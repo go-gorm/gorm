@@ -56,9 +56,9 @@ func (s *DB) Order(value interface{}) (orm *Orm) {
 	return
 }
 
-func (s *DB) Select(querystring string) (orm *Orm) {
+func (s *DB) Select(value interface{}) (orm *Orm) {
 	orm = s.buildORM()
-	orm.Select(querystring)
+	orm.Select(value)
 	return
 }
 
