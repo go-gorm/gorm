@@ -61,6 +61,14 @@ func (s *Orm) Delete(value interface{}) *Orm {
 	return s
 }
 
+func (s *Orm) Update(column string, value string) *Orm {
+	return s
+}
+
+func (s *Orm) Updates(values map[string]string) *Orm {
+	return s
+}
+
 func (s *Orm) Exec(sql string) *Orm {
 	return s
 }
