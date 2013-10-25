@@ -1,20 +1,23 @@
 package gorm
 
-import "database/sql"
+import (
+	"database/sql"
+	_ "github.com/lib/pq"
+)
 
 type DB struct {
 	Db *sql.DB
 }
 
-func Open(driver, source string) (db *DB, err error) {
+func Open(driver, source string) (db DB, err error) {
 	db.Db, err = sql.Open(driver, source)
 	// SetMaxIdleConns pools
 	return
 }
 
-func (s *DB) buildORM() (orm *Orm) {
-	orm.Db = s.Db
-	return
+func (s *DB) buildORM() *Orm {
+	orm := &Orm{db: s.Db}
+	return orm
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) (orm *Orm) {

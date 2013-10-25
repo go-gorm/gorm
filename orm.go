@@ -3,17 +3,19 @@ package gorm
 import "database/sql"
 
 type Orm struct {
-	Db         *sql.DB
 	TableName  string
-	WhereStr   string
-	OrderStr   string
 	PrimaryKey string
-	OffsetInt  int64
-	LimitInt   int64
 	Error      bool
+
+	db          *sql.DB
+	whereClause []interface{}
+	orderStr    string
+	offsetInt   int64
+	limitInt    int64
 }
 
 func (s *Orm) Where(querystring interface{}, args ...interface{}) *Orm {
+	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
 	return s
 }
 
