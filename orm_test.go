@@ -1,10 +1,15 @@
 package gorm
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 type User struct {
-	Id   int64
-	Name string
+	Id       int64
+	Age      int64
+	Birthday time.Time
+	Name     string
 }
 
 var db DB
@@ -108,5 +113,18 @@ func TestWhere(t *testing.T) {
 	}
 	if len(users) != 0 {
 		t.Errorf("Shouldn't find anything when looking for none existing records, %+v", users)
+	}
+}
+
+func TestComplexWhere(t *testing.T) {
+	db.Save(&User{Name: "1", Age: 18})
+	db.Save(&User{Name: "2", Age: 20})
+	db.Save(&User{Name: "3", Age: 22})
+	db.Save(&User{Name: "3", Age: 24})
+
+	var users []User
+	db.Where("age > ?", 20).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should only have 2 users age great than 20, but have %v", len(users))
 	}
 }

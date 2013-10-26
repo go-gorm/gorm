@@ -65,7 +65,12 @@ func (s *Orm) query(out interface{}) {
 			values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
 		}
 		s.Error = rows.Scan(values...)
+
+		if is_slice {
+			dest_out.Set(reflect.Append(dest_out, dest))
+		}
 	}
+
 	if (counts == 0) && !is_slice {
 		s.Error = errors.New("Record not found!")
 	}
