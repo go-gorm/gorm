@@ -180,4 +180,12 @@ func TestComplexWhere(t *testing.T) {
 	if len(users) != 2 {
 		t.Errorf("Should only found 2 users's birthday <= t2, but have %v", len(users))
 	}
+
+	users = []User{}
+	a := db.Where("name in (?)", []string{"1", "3"}).Find(&users)
+	a.db.Query("SELECT * FROM users WHERE ( name in ($1) )", "'1', '2'")
+
+	if len(users) != 3 {
+		t.Errorf("Should only found 3 users's name in (1, 3), but have %v", len(users))
+	}
 }

@@ -144,7 +144,20 @@ func (s *Orm) whereSql() (sql string) {
 			str := "( " + clause["query"].(string) + " )"
 			args := clause["args"].([]interface{})
 			for _, arg := range args {
-				str = strings.Replace(str, "?", s.addToVars(arg), 1)
+
+				switch arg.(type) {
+				case []string, []int, []int64, []int32:
+					var temp_marks []string
+					for _ = range arg.([]string) {
+						temp_marks = append(temp_marks, "?")
+					}
+					str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
+					for _, a := range arg.([]string) {
+						str = strings.Replace(str, "?", s.addToVars(a), 1)
+					}
+				default:
+					str = strings.Replace(str, "?", s.addToVars(arg), 1)
+				}
 			}
 			conditions = append(conditions, str)
 		}
