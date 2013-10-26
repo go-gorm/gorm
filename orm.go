@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"errors"
+
 	"strconv"
 
 	"database/sql"
@@ -11,6 +12,8 @@ type Orm struct {
 	TableName  string
 	PrimaryKey string
 	Error      error
+	Sql        string
+	SqlVars    []interface{}
 
 	db          *sql.DB
 	whereClause []interface{}
@@ -18,6 +21,13 @@ type Orm struct {
 	orderStr    string
 	offsetInt   int
 	limitInt    int
+	operation   string
+}
+
+func (s *Orm) setModel(model interface{}) (err error) {
+	s.TableName = "user"
+	s.PrimaryKey = "id"
+	return
 }
 
 func (s *Orm) Where(querystring interface{}, args ...interface{}) *Orm {
@@ -74,10 +84,14 @@ func (s *Orm) Select(value interface{}) *Orm {
 }
 
 func (s *Orm) Save(value interface{}) *Orm {
+	s.explain(value, "Save")
+	s.Exec()
 	return s
 }
 
 func (s *Orm) Delete(value interface{}) *Orm {
+	s.explain(value, "Delete")
+	s.Exec()
 	return s
 }
 
@@ -89,11 +103,17 @@ func (s *Orm) Updates(values map[string]string) *Orm {
 	return s
 }
 
-func (s *Orm) Exec(sql string) *Orm {
+func (s *Orm) Exec(sql ...string) *Orm {
+	if len(sql) == 0 {
+		s.db.Exec(s.Sql, s.SqlVars...)
+	} else {
+		s.db.Exec(sql[0])
+	}
 	return s
 }
 
 func (s *Orm) First(out interface{}) *Orm {
+	s.setModel(out)
 	return s
 }
 
