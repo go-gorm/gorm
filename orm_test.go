@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"fmt"
-	"time"
 
 	"testing"
 )
@@ -19,10 +18,7 @@ func getDB() DB {
 func TestSaveAndFirst(t *testing.T) {
 	db := getDB()
 	u := &User{Name: "jinzhu"}
-	fmt.Println("*******")
-	fmt.Println(db.Save(u).Sql)
-	fmt.Println(db.Save(u).Error)
-	fmt.Println(time.Now().String())
+	db.Save(u)
 
 	user := &User{}
 	db.First(&user)

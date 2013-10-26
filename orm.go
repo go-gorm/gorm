@@ -26,7 +26,7 @@ type Orm struct {
 }
 
 func (s *Orm) setModel(model interface{}) (err error) {
-	s.TableName = "user"
+	s.TableName = "users"
 	s.PrimaryKey = "id"
 	return
 }
