@@ -16,6 +16,7 @@ type Orm struct {
 	Model      *Model
 
 	db          *sql.DB
+	driver      string
 	whereClause []map[string]interface{}
 	selectStr   string
 	orderStr    string
@@ -25,7 +26,7 @@ type Orm struct {
 }
 
 func (s *Orm) setModel(model interface{}) (err error) {
-	s.Model = toModel(model)
+	s.Model = s.toModel(model)
 	s.TableName = s.Model.TableName()
 	s.PrimaryKey = "id"
 	return
@@ -130,5 +131,6 @@ func (s *Orm) Not(querystring interface{}, args ...interface{}) *Orm {
 }
 
 func (s *Orm) CreateTable(value interface{}) *Orm {
+	s.explain(value, "CreateTable").Exec()
 	return s
 }

@@ -18,7 +18,7 @@ func (s *Orm) explain(value interface{}, operation string) *Orm {
 	case "Query":
 		s.querySql(value)
 	case "CreateTable":
-		s.createTableSql(value)
+		s.Sql = s.Model.CreateTable()
 	}
 	return s
 }
@@ -101,14 +101,5 @@ func (s *Orm) whereSql() (sql string) {
 			}
 		}
 	}
-	return
-}
-
-func (s *Orm) createTableSql(value interface{}) {
-	s.Sql = fmt.Sprintf(
-		"CREATE TABLE \"%v\" (%v)",
-		s.TableName,
-		"",
-	)
 	return
 }

@@ -6,17 +6,19 @@ import (
 )
 
 type DB struct {
-	Db *sql.DB
+	Db     *sql.DB
+	Driver string
 }
 
 func Open(driver, source string) (db DB, err error) {
 	db.Db, err = sql.Open(driver, source)
+	db.Driver = driver
 	// SetMaxIdleConns pools
 	return
 }
 
 func (s *DB) buildORM() *Orm {
-	orm := &Orm{db: s.Db}
+	orm := &Orm{db: s.Db, driver: s.Driver}
 	return orm
 }
 

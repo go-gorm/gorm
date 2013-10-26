@@ -4,6 +4,7 @@ import "testing"
 
 type User struct {
 	Name string
+	Id   int64
 }
 
 func getDB() DB {
@@ -53,5 +54,15 @@ func TestWhere(t *testing.T) {
 	orm = db.Where("Name = ?", "jinzhu-noexisting").First(users)
 	if orm.Error != nil {
 		t.Errorf("Shouldn't return error when looking for unexist records, %+v", users)
+	}
+}
+
+func TestCreateTable(t *testing.T) {
+	db := getDB()
+	db.Exec("drop table users;")
+
+	orm := db.CreateTable(&User{})
+	if orm.Error != nil {
+		t.Errorf("No error should raise when create table, but got %+v", orm.Error)
 	}
 }

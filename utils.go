@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// FIXME
 func valuesToBinVar(values []interface{}) string {
 	var sqls []string
 	for index, _ := range values {

@@ -4,7 +4,6 @@ Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
 * Perimary key
-* Create table
 * Save and fill the record
 * Update
 * Delete
@@ -21,7 +20,6 @@ Yet Another ORM library for Go, aims for developer friendly
 * Soft Delete
 * After/Before Save/Update/Create/Delete
 * FindOrInitialize / FindOrCreate
-* Exec run SQL directly
 * SQL Log
 * Auto Migration
 * Index, Unique, Valiations
