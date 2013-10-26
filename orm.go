@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"errors"
+
 	"strconv"
 )
 
@@ -86,8 +87,12 @@ func (s *Orm) Select(value interface{}) *Orm {
 }
 
 func (s *Orm) Save(value interface{}) *Orm {
-	s.explain(value, "Create").create(value)
-	// s.explain(value, "Update").update(value)
+	s.setModel(value)
+	if s.Model.PrimaryKeyIsEmpty() {
+		s.explain(value, "Create").create(value)
+	} else {
+		s.explain(value, "Update").update(value)
+	}
 	return s
 }
 

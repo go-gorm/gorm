@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+
 	"strings"
 )
 
@@ -21,6 +22,11 @@ type Field struct {
 
 func (s *Orm) toModel(value interface{}) *Model {
 	return &Model{Data: value, driver: s.driver}
+}
+
+func (m *Model) PrimaryKeyIsEmpty() bool {
+	result := reflect.ValueOf(m.Data).Elem()
+	return result.FieldByName(m.PrimaryKey()).Interface().(int64) == int64(0)
 }
 
 func (m *Model) PrimaryKey() string {
