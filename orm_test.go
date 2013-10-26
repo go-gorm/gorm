@@ -26,6 +26,14 @@ func TestSaveAndFirst(t *testing.T) {
 	if user.Name != "jinzhu" {
 		t.Errorf("User should be saved and fetched correctly")
 	}
+
+	users := []User{}
+	db.Find(&users)
+	for _, user := range users {
+		if user.Name != "jinzhu" {
+			t.Errorf("User should be saved and fetched correctly")
+		}
+	}
 }
 
 func TestWhere(t *testing.T) {

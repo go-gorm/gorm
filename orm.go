@@ -85,14 +85,12 @@ func (s *Orm) Select(value interface{}) *Orm {
 }
 
 func (s *Orm) Save(value interface{}) *Orm {
-	s.explain(value, "Save")
-	s.Exec()
+	s.explain(value, "Save").Exec()
 	return s
 }
 
 func (s *Orm) Delete(value interface{}) *Orm {
-	s.explain(value, "Delete")
-	s.Exec()
+	s.explain(value, "Delete").Exec()
 	return s
 }
 

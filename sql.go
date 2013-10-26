@@ -1,10 +1,9 @@
 package gorm
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
-
-	"fmt"
 )
 
 func (s *Orm) explain(value interface{}, operation string) *Orm {
@@ -26,11 +25,28 @@ func (s *Orm) querySql(out interface{}) {
 }
 
 func (s *Orm) query(out interface{}) {
+	var (
+		is_slice  bool
+		dest_type reflect.Type
+	)
+	dest_out := reflect.Indirect(reflect.ValueOf(out))
+
+	if x := dest_out.Kind(); x == reflect.Slice {
+		is_slice = true
+		dest_type = dest_out.Type().Elem()
+	}
+
 	rows, err := s.db.Query(s.Sql)
 	s.Error = err
+
 	for rows.Next() {
-		dest := reflect.ValueOf(out).Elem()
-		fmt.Printf("%+v", dest)
+		var dest reflect.Value
+		if is_slice {
+			dest = reflect.New(dest_type).Elem()
+		} else {
+			dest = reflect.ValueOf(out).Elem()
+		}
+
 		columns, _ := rows.Columns()
 		var values []interface{}
 		for _, value := range columns {
