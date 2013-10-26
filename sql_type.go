@@ -5,6 +5,27 @@ import (
 	"time"
 )
 
+func getPrimaryKeySqlType(adaptor string, column interface{}, size int) string {
+	switch adaptor {
+	case "mysql":
+		suffix_str := " NOT NULL AUTO_INCREMENT PRIMARY KEY"
+		switch column.(type) {
+		case int, int8, int16, int32, uint, uint8, uint16, uint32:
+			return "int" + suffix_str
+		case int64, uint64:
+			return "bigint" + suffix_str
+		}
+	case "postgres":
+		switch column.(type) {
+		case int, int8, int16, int32, uint, uint8, uint16, uint32:
+			return "serial"
+		case int64, uint64:
+			return "bigserial"
+		}
+	}
+	panic("unsupported sql adaptor, please submit an issue in github")
+}
+
 func getSqlType(adaptor string, column interface{}, size int) string {
 	switch adaptor {
 	case "mysql":
@@ -55,7 +76,7 @@ func getSqlType(adaptor string, column interface{}, size int) string {
 		default:
 			panic("invalid sql type")
 		}
+	default:
+		panic("unsupported sql adaptor, please submit an issue in github")
 	}
-
-	panic("unsupported sql adaptor, please submit an issue in github")
 }

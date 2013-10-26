@@ -23,6 +23,10 @@ func (s *Orm) toModel(value interface{}) *Model {
 	return &Model{Data: value, driver: s.driver}
 }
 
+func (m *Model) PrimaryKey() string {
+	return "Id"
+}
+
 func (m *Model) Fields() (fields []Field) {
 	typ := reflect.TypeOf(m.Data).Elem()
 
@@ -33,7 +37,11 @@ func (m *Model) Fields() (fields []Field) {
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
 			field.Value = reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Interface()
-			field.SqlType = getSqlType(m.driver, field.Value, 0)
+			if m.PrimaryKey() == p.Name {
+				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
+			} else {
+				field.SqlType = getSqlType(m.driver, field.Value, 0)
+			}
 			fields = append(fields, field)
 		}
 	}
