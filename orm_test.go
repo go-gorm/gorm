@@ -7,7 +7,7 @@ type User struct {
 }
 
 func getDB() DB {
-	db, _ := Open("postgres", "user=gorm dbname=gorm  sslmode=disable")
+	db, _ := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	return db
 }
 

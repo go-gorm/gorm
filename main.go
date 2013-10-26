@@ -79,3 +79,9 @@ func (s *DB) Exec(sql string) (orm *Orm) {
 	orm.Exec(sql)
 	return
 }
+
+func (s *DB) CreateTable(value interface{}) (orm *Orm) {
+	orm = s.buildORM()
+	orm.CreateTable(value)
+	return
+}

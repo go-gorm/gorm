@@ -126,3 +126,7 @@ func (s *Orm) Or(querystring interface{}, args ...interface{}) *Orm {
 func (s *Orm) Not(querystring interface{}, args ...interface{}) *Orm {
 	return s
 }
+
+func (s *Orm) CreateTable(value interface{}) *Orm {
+	return s
+}
