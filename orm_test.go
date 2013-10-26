@@ -67,6 +67,24 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func TestDelete(t *testing.T) {
+	name, name2 := "delete", "delete2"
+	user := User{Name: name}
+	db.Save(&user)
+	db.Save(&User{Name: name2})
+	orm := db.Delete(&user)
+
+	orm = db.Where("name = ?", name).First(&User{})
+	if orm.Error == nil {
+		t.Errorf("User should be deleted successfully")
+	}
+
+	orm = db.Where("name = ?", name2).First(&User{})
+	if orm.Error != nil {
+		t.Errorf("User2 should not be deleted")
+	}
+}
+
 func TestWhere(t *testing.T) {
 	name := "where"
 	db.Save(&User{Name: name})

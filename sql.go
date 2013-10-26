@@ -120,7 +120,7 @@ func (s *Orm) update(value interface{}) {
 }
 
 func (s *Orm) deleteSql(value interface{}) {
-	s.Sql = fmt.Sprintf("DELETE FROM %v WHERE %v", s.TableName, s.whereSql)
+	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.whereSql())
 	return
 }
 
