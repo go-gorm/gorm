@@ -51,7 +51,7 @@ func (s *Orm) query(out interface{}) {
 		columns, _ := rows.Columns()
 		var values []interface{}
 		for _, value := range columns {
-			values = append(values, dest.FieldByName(value).Addr().Interface())
+			values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
 		}
 		s.Error = rows.Scan(values...)
 	}
