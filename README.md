@@ -1,27 +1,35 @@
 # GORM
 
-Yet Another ORM library for Go, hope sucks less. (created for internal usage, API is breakable)
+Yet Another ORM library for Go, aims for developer friendly
 
-# TODO
-Where("id =/>/</<> ?", string or int64).First(&user) (error)
-Where("id in (?)", map[]interface{}).First(&user) (error)
-Where("id in (?)", map[]interface{}).Find(&users) (error)
-Where(map[string]string{"id": "12", "name": "jinzhu"}).Find(&users) (error)
-Order("").Limit(11).Or("").Count().Select("").Not("").Offset(11)
+## TODO
+* Perimary key
+* Create table
+* Save and fill the record
+* Update
+* Delete
+* Complex where query (= / > / < / <> / in)
+* Order
+* Limit
+* Select
+* Offset
+* Or query
+* Not query
+* Even more complex where query (with map or struct)
+* ORM.Errors
+* Better First method (First(&user, primary_key))
+* Soft Delete
+* After/Before Save/Update/Create/Delete
+* FindOrInitialize / FindOrCreate
+* Exec run SQL directly
+* SQL Log
+* Auto Migration
+* Index, Unique, Valiations
 
-First(&user, primary_key) (error)
+# Author
 
-Save(&user)
-Save(&users)
-Delete(&user)
-Delete(&users)
+**Jinzhu**
 
-Before/After Save/Update/Create/Delete
-Where("id in ?", map[]interface{}).FindOrInitialize(&users) (error)
-Where("id in ?", map[]interface{}).FindOrCreate(&users) (error)
-
-Sql("ssssss", &users)
-
-SQL log
-Auto Migration
-Index, Unique
+* <http://github.com/jinzhu>
+* <wosmvp@gmail.com>
+* <http://twitter.com/zhangjinzhu>
