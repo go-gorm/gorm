@@ -62,12 +62,11 @@ func (s *Orm) Offset(value interface{}) *Orm {
 	return s
 }
 
-func (s *Orm) Order(value interface{}) *Orm {
-	switch value := value.(type) {
-	case string:
+func (s *Orm) Order(value string, reorder ...bool) *Orm {
+	if len(reorder) > 0 && reorder[0] {
 		s.orderStr = value
-	default:
-		s.Error = errors.New("Can' understand the value of Order, Should be string")
+	} else {
+		s.orderStr = s.orderStr + value
 	}
 	return s
 }

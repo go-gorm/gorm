@@ -12,18 +12,31 @@ type User struct {
 	Name     string
 }
 
-var db DB
+var (
+	db                 DB
+	t1, t2, t3, t4, t5 time.Time
+)
 
 func init() {
 	db, _ = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	db.Exec("drop table users;")
-}
 
-func TestCreateTable(t *testing.T) {
 	orm := db.CreateTable(&User{})
 	if orm.Error != nil {
-		t.Errorf("No error should raise when create table, but got %+v", orm.Error)
+		panic("No error should raise when create table")
 	}
+
+	var shortForm = "2006-01-02 15:04:05"
+	t1, _ = time.Parse(shortForm, "2000-10-27 12:02:40")
+	t2, _ = time.Parse(shortForm, "2002-01-01 00:00:00")
+	t3, _ = time.Parse(shortForm, "2005-01-01 00:00:00")
+	t4, _ = time.Parse(shortForm, "2010-01-01 00:00:00")
+	t5, _ = time.Parse(shortForm, "2020-01-01 00:00:00")
+	db.Save(&User{Name: "1", Age: 18, Birthday: t1})
+	db.Save(&User{Name: "2", Age: 20, Birthday: t2})
+	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
+	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
+	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 }
 
 func TestSaveAndFind(t *testing.T) {
@@ -117,26 +130,16 @@ func TestWhere(t *testing.T) {
 }
 
 func TestComplexWhere(t *testing.T) {
-	var shortForm = "2006-01-02 15:04:05"
-	t1, _ := time.Parse(shortForm, "2000-10-27 12:02:40")
-	t2, _ := time.Parse(shortForm, "2002-01-01 00:00:00")
-	t3, _ := time.Parse(shortForm, "2005-01-01 00:00:00")
-	t4, _ := time.Parse(shortForm, "2010-01-01 00:00:00")
-	db.Save(&User{Name: "1", Age: 18, Birthday: t1})
-	db.Save(&User{Name: "2", Age: 20, Birthday: t2})
-	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
-	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
-
 	var users []User
 	db.Where("age > ?", 20).Find(&users)
-	if len(users) != 2 {
-		t.Errorf("Should only found 2 users that age > 20, but have %v", len(users))
+	if len(users) != 3 {
+		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("age >= ?", 20).Find(&users)
-	if len(users) != 3 {
-		t.Errorf("Should only found 2 users that age >= 20, but have %v", len(users))
+	if len(users) != 4 {
+		t.Errorf("Should only found 4 users that age >= 20, but have %v", len(users))
 	}
 
 	users = []User{}
@@ -165,8 +168,8 @@ func TestComplexWhere(t *testing.T) {
 
 	users = []User{}
 	db.Where("birthday > ?", t2).Find(&users)
-	if len(users) != 2 {
-		t.Errorf("Should only found 2 users's birthday >= t2", len(users))
+	if len(users) != 3 {
+		t.Errorf("Should only found 3 users's birthday >= t2", len(users))
 	}
 
 	users = []User{}
@@ -220,4 +223,9 @@ func TestComplexWhere(t *testing.T) {
 	if len(users) != 1 {
 		t.Errorf("Should only found 1 users's name in (1, 2) - search by the first id, but have %v", len(users))
 	}
+}
+
+func TestOrder(t *testing.T) {
+	var users []User
+	db.Order("age desc").Find(&users)
 }

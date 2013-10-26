@@ -52,9 +52,9 @@ func (s *DB) Offset(value interface{}) (orm *Orm) {
 	return
 }
 
-func (s *DB) Order(value interface{}) (orm *Orm) {
+func (s *DB) Order(value string, reorder ...bool) (orm *Orm) {
 	orm = s.buildORM()
-	orm.Order(value)
+	orm.Order(value, reorder...)
 	return
 }
 
