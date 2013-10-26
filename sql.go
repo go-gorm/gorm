@@ -20,9 +20,9 @@ func (s *Orm) explain(value interface{}, operation string) {
 func (s *Orm) saveSql(value interface{}) {
 	columns, values := modelValues(value)
 	s.Sql = fmt.Sprintf(
-		"INSERT INTO %v (%v) VALUES (%v)",
+		"INSERT INTO \"%v\" (%v) VALUES (%v)",
 		s.TableName,
-		strings.Join(columns, ","),
+		strings.Join(quoteMap(columns), ","),
 		valuesToBinVar(values),
 	)
 	s.SqlVars = values

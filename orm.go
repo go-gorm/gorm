@@ -11,6 +11,7 @@ import (
 type Orm struct {
 	TableName  string
 	PrimaryKey string
+	SqlResult  sql.Result
 	Error      error
 	Sql        string
 	SqlVars    []interface{}
@@ -105,9 +106,9 @@ func (s *Orm) Updates(values map[string]string) *Orm {
 
 func (s *Orm) Exec(sql ...string) *Orm {
 	if len(sql) == 0 {
-		s.db.Exec(s.Sql, s.SqlVars...)
+		s.SqlResult, s.Error = s.db.Exec(s.Sql, s.SqlVars...)
 	} else {
-		s.db.Exec(sql[0])
+		s.SqlResult, s.Error = s.db.Exec(sql[0])
 	}
 	return s
 }

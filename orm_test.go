@@ -12,15 +12,16 @@ type User struct {
 }
 
 func getDB() DB {
-	db, _ := Open("postgres", "user=gorm dbname=gorm")
+	db, _ := Open("postgres", "user=gorm dbname=gorm  sslmode=disable")
 	return db
 }
 
 func TestSaveAndFirst(t *testing.T) {
 	db := getDB()
 	u := &User{Name: "jinzhu"}
+	fmt.Println("*******")
 	fmt.Println(db.Save(u).Sql)
-
+	fmt.Println(db.Save(u).Error)
 	fmt.Println(time.Now().String())
 
 	user := &User{}

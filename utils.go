@@ -27,3 +27,10 @@ func valuesToBinVar(values []interface{}) string {
 	}
 	return strings.Join(sqls, ",")
 }
+
+func quoteMap(values []string) (results []string) {
+	for _, value := range values {
+		results = append(results, "\""+value+"\"")
+	}
+	return
+}
