@@ -14,7 +14,7 @@ type Orm struct {
 	Error      error
 	Sql        string
 	SqlVars    []interface{}
-	Model      *Model
+	model      *Model
 
 	db          *sql.DB
 	driver      string
@@ -26,10 +26,10 @@ type Orm struct {
 	operation   string
 }
 
-func (s *Orm) setModel(model interface{}) (err error) {
-	s.Model = s.toModel(model)
-	s.TableName = s.Model.TableName()
-	s.PrimaryKey = s.Model.PrimaryKeyDb()
+func (s *Orm) Model(model interface{}) (err error) {
+	s.model = s.toModel(model)
+	s.TableName = s.model.TableName()
+	s.PrimaryKey = s.model.PrimaryKeyDb()
 	return
 }
 
@@ -86,8 +86,8 @@ func (s *Orm) Select(value interface{}) *Orm {
 }
 
 func (s *Orm) Save(value interface{}) *Orm {
-	s.setModel(value)
-	if s.Model.PrimaryKeyIsEmpty() {
+	s.Model(value)
+	if s.model.PrimaryKeyIsEmpty() {
 		s.explain(value, "Create").create(value)
 	} else {
 		s.explain(value, "Update").update(value)

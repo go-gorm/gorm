@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Orm) explain(value interface{}, operation string) *Orm {
-	s.setModel(value)
+	s.Model(value)
 	switch operation {
 	case "Create":
 		s.createSql(value)
@@ -19,7 +19,7 @@ func (s *Orm) explain(value interface{}, operation string) *Orm {
 	case "Query":
 		s.querySql(value)
 	case "CreateTable":
-		s.Sql = s.Model.CreateTable()
+		s.Sql = s.model.CreateTable()
 	}
 	return s
 }
@@ -76,7 +76,7 @@ func (s *Orm) query(out interface{}) {
 }
 
 func (s *Orm) createSql(value interface{}) {
-	columns, values := s.Model.ColumnsAndValues()
+	columns, values := s.model.ColumnsAndValues()
 
 	var sqls []string
 	for _, value := range values {
@@ -88,7 +88,7 @@ func (s *Orm) createSql(value interface{}) {
 		s.TableName,
 		strings.Join(s.quoteMap(columns), ","),
 		strings.Join(sqls, ","),
-		s.Model.ReturningStr(),
+		s.model.ReturningStr(),
 	)
 	return
 }
@@ -102,12 +102,12 @@ func (s *Orm) create(value interface{}) {
 		id, s.Error = s.SqlResult.LastInsertId()
 	}
 
-	result := reflect.ValueOf(s.Model.Data).Elem()
-	result.FieldByName(s.Model.PrimaryKey()).SetInt(id)
+	result := reflect.ValueOf(s.model.Data).Elem()
+	result.FieldByName(s.model.PrimaryKey()).SetInt(id)
 }
 
 func (s *Orm) updateSql(value interface{}) {
-	columns, values := s.Model.ColumnsAndValues()
+	columns, values := s.model.ColumnsAndValues()
 	var sets []string
 	for index, column := range columns {
 		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
@@ -135,8 +135,8 @@ func (s *Orm) deleteSql(value interface{}) {
 
 func (s *Orm) whereSql() (sql string) {
 	var conditions []string
-	if !s.Model.PrimaryKeyIsEmpty() {
-		conditions = append(conditions, fmt.Sprintf("(%v = %v)", s.quote(s.Model.PrimaryKeyDb()), s.addToVars(s.Model.PrimaryKeyValue())))
+	if !s.model.PrimaryKeyIsEmpty() {
+		conditions = append(conditions, fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue())))
 	}
 
 	if len(s.whereClause) > 0 {
