@@ -3,7 +3,6 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* Delete
 * Complex where query (= / > / < / <> / in)
 * Order
 * Limit
@@ -11,12 +10,12 @@ Yet Another ORM library for Go, aims for developer friendly
 * Offset
 * Or query
 * Not query
+* Better First method (First(&user, primary_key, where conditions))
 * Even more complex where query (with map or struct)
 * ORM.Errors
-* Better First method (First(&user, primary_key, where conditions))
-* Soft Delete
 * After/Before Save/Update/Create/Delete
 * CreatedAt, UpdatedAt
+* Soft Delete
 * FindOrInitialize / FindOrCreate
 * SQL Log
 * Auto Migration

@@ -25,8 +25,18 @@ func (s *Orm) toModel(value interface{}) *Model {
 }
 
 func (m *Model) PrimaryKeyIsEmpty() bool {
-	result := reflect.ValueOf(m.Data).Elem()
-	return result.FieldByName(m.PrimaryKey()).Interface().(int64) == 0
+	return m.PrimaryKeyValue() == 0
+}
+
+func (m *Model) PrimaryKeyValue() int64 {
+	t := reflect.TypeOf(m.Data).Elem()
+	switch t.Kind() {
+	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
+		return 0
+	default:
+		result := reflect.ValueOf(m.Data).Elem()
+		return result.FieldByName(m.PrimaryKey()).Interface().(int64)
+	}
 }
 
 func (m *Model) PrimaryKey() string {

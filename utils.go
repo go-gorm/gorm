@@ -7,15 +7,6 @@ import (
 	"strings"
 )
 
-// FIXME
-func valuesToBinVar(values []interface{}) string {
-	var sqls []string
-	for index, _ := range values {
-		sqls = append(sqls, fmt.Sprintf("$%d", index+1))
-	}
-	return strings.Join(sqls, ",")
-}
-
 func (s *Orm) quote(value string) string {
 	return "\"" + value + "\""
 }

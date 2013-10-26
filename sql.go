@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 )
 
@@ -74,14 +73,19 @@ func (s *Orm) query(out interface{}) {
 
 func (s *Orm) createSql(value interface{}) {
 	columns, values := s.Model.ColumnsAndValues()
+
+	var sqls []string
+	for _, value := range values {
+		sqls = append(sqls, s.addToVars(value))
+	}
+
 	s.Sql = fmt.Sprintf(
 		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
 		s.TableName,
 		strings.Join(s.quoteMap(columns), ","),
-		valuesToBinVar(values),
+		strings.Join(sqls, ","),
 		s.Model.ReturningStr(),
 	)
-	s.SqlVars = values
 	return
 }
 
@@ -102,15 +106,16 @@ func (s *Orm) updateSql(value interface{}) {
 	columns, values := s.Model.ColumnsAndValues()
 	var sets []string
 	for index, column := range columns {
-		s.SqlVars = append(s.SqlVars, values[index])
-		sets = append(sets, fmt.Sprintf("%v = $%d", s.quote(column), len(s.SqlVars)))
+		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
 	}
 
 	s.Sql = fmt.Sprintf(
-		"UPDATE %v SET %v",
+		"UPDATE %v SET %v %v",
 		s.TableName,
 		strings.Join(sets, ", "),
+		s.whereSql(),
 	)
+
 	return
 }
 
@@ -125,18 +130,31 @@ func (s *Orm) deleteSql(value interface{}) {
 }
 
 func (s *Orm) whereSql() (sql string) {
-	if len(s.whereClause) == 0 {
-		return
-	} else {
-		sql = "WHERE "
+	var conditions []string
+	if !s.Model.PrimaryKeyIsEmpty() {
+		conditions = append(conditions, fmt.Sprintf("(%v = %v)", s.quote(s.Model.PrimaryKeyDb()), s.addToVars(s.Model.PrimaryKeyValue())))
+	}
+
+	if len(s.whereClause) > 0 {
 		for _, clause := range s.whereClause {
-			sql += clause["query"].(string)
+			str := "( " + clause["query"].(string) + " )"
 			args := clause["args"].([]interface{})
 			for _, arg := range args {
 				s.SqlVars = append(s.SqlVars, arg.([]interface{})...)
-				sql = strings.Replace(sql, "?", "$"+strconv.Itoa(len(s.SqlVars)), 1)
+				str = strings.Replace(str, "?", fmt.Sprintf("$%d", len(s.SqlVars)), 1)
 			}
+			conditions = append(conditions, str)
 		}
 	}
+
+	if len(conditions) > 0 {
+		sql = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
 	return
+}
+
+func (s *Orm) addToVars(value interface{}) string {
+	s.SqlVars = append(s.SqlVars, value)
+	return fmt.Sprintf("$%d", len(s.SqlVars))
 }
