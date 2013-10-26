@@ -117,10 +117,15 @@ func TestWhere(t *testing.T) {
 }
 
 func TestComplexWhere(t *testing.T) {
-	db.Save(&User{Name: "1", Age: 18})
-	db.Save(&User{Name: "2", Age: 20})
-	db.Save(&User{Name: "3", Age: 22})
-	db.Save(&User{Name: "3", Age: 24})
+	var shortForm = "2006-01-02 15:04:05"
+	t1, _ := time.Parse(shortForm, "2000-10-27 12:02:40")
+	t2, _ := time.Parse(shortForm, "2002-01-01 00:00:00")
+	t3, _ := time.Parse(shortForm, "2005-01-01 00:00:00")
+	t4, _ := time.Parse(shortForm, "2010-01-01 00:00:00")
+	db.Save(&User{Name: "1", Age: 18, Birthday: t1})
+	db.Save(&User{Name: "2", Age: 20, Birthday: t2})
+	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
+	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
 
 	var users []User
 	db.Where("age > ?", 20).Find(&users)
@@ -156,5 +161,23 @@ func TestComplexWhere(t *testing.T) {
 	db.Where("name = ?", "3").Where("age >= ?", 20).Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should only found 2 users that age >= 20 with name 3, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("birthday > ?", t2).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should only found 2 users's birthday >= t2", len(users))
+	}
+
+	users = []User{}
+	db.Where("birthday >= ?", t1).Where("birthday < ?", t2).Find(&users)
+	if len(users) != 1 {
+		t.Errorf("Should only found 1 users's birthday <= t2, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("birthday >= ? and birthday <= ?", t1, t2).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should only found 2 users's birthday <= t2, but have %v", len(users))
 	}
 }

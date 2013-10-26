@@ -43,7 +43,6 @@ func (s *Orm) query(out interface{}) {
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
-
 	s.Error = err
 	if rows.Err() != nil {
 		s.Error = rows.Err()
