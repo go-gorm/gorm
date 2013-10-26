@@ -17,7 +17,7 @@ type Orm struct {
 	SqlVars    []interface{}
 
 	db          *sql.DB
-	whereClause []interface{}
+	whereClause []map[string]interface{}
 	selectStr   string
 	orderStr    string
 	offsetInt   int

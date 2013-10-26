@@ -34,3 +34,8 @@ func quoteMap(values []string) (results []string) {
 	}
 	return
 }
+
+func debug(value interface{}) {
+	fmt.Printf("***************\n")
+	fmt.Printf("%+v\n\n", value)
+}

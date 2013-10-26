@@ -38,8 +38,11 @@ func TestSaveAndFirst(t *testing.T) {
 
 func TestWhere(t *testing.T) {
 	db := getDB()
-	orm := db.Where("id = $1", 1, 3, 4, []int64{1, 2, 3}).Where("name = $1", "jinzhu")
+	u := &User{Name: "jinzhu"}
+	db.Save(u)
+
 	user := &User{}
-	orm.First(user)
+	db.Where("Name = ?", "jinzhu").First(user)
+
 	fmt.Println(user)
 }

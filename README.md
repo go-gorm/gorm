@@ -4,8 +4,8 @@ Yet Another ORM library for Go, hope sucks less. (created for internal usage, AP
 
 # TODO
 Where("id =/>/</<> ?", string or int64).First(&user) (error)
-Where("id in ?", map[]interface{}).First(&user) (error)
-Where("id in ?", map[]interface{}).Find(&users) (error)
+Where("id in (?)", map[]interface{}).First(&user) (error)
+Where("id in (?)", map[]interface{}).Find(&users) (error)
 Where(map[string]string{"id": "12", "name": "jinzhu"}).Find(&users) (error)
 Order("").Limit(11).Or("").Count().Select("").Not("").Offset(11)
 

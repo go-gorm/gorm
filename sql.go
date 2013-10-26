@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -20,7 +21,7 @@ func (s *Orm) explain(value interface{}, operation string) *Orm {
 }
 
 func (s *Orm) querySql(out interface{}) {
-	s.Sql = "SELECT * from users limit 1"
+	s.Sql = fmt.Sprintf("SELECT * FROM %v %v", s.TableName, s.whereSql())
 	return
 }
 
@@ -36,7 +37,7 @@ func (s *Orm) query(out interface{}) {
 		dest_type = dest_out.Type().Elem()
 	}
 
-	rows, err := s.db.Query(s.Sql)
+	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	s.Error = err
 
 	for rows.Next() {
@@ -75,6 +76,18 @@ func (s *Orm) deleteSql(value interface{}) {
 }
 
 func (s *Orm) whereSql() (sql string) {
-	sql = "1=1"
+	if len(s.whereClause) == 0 {
+		return
+	} else {
+		sql = "WHERE "
+		for _, clause := range s.whereClause {
+			sql += clause["query"].(string)
+			args := clause["args"].([]interface{})
+			for _, arg := range args {
+				s.SqlVars = append(s.SqlVars, arg.([]interface{})...)
+				sql = strings.Replace(sql, "?", "$"+strconv.Itoa(len(s.SqlVars)), 1)
+			}
+		}
+	}
 	return
 }
