@@ -13,6 +13,7 @@ type Orm struct {
 	Error      error
 	Sql        string
 	SqlVars    []interface{}
+	Model      *Model
 
 	db          *sql.DB
 	whereClause []map[string]interface{}
@@ -24,6 +25,7 @@ type Orm struct {
 }
 
 func (s *Orm) setModel(model interface{}) (err error) {
+	s.Model = toModel(model)
 	s.TableName = interfaceToTableName(model)
 	s.PrimaryKey = "id"
 	return

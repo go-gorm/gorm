@@ -71,7 +71,7 @@ func (s *Orm) query(out interface{}) {
 }
 
 func (s *Orm) saveSql(value interface{}) {
-	columns, values := modelValues(value)
+	columns, values := s.Model.ColumnsAndValues()
 	s.Sql = fmt.Sprintf(
 		"INSERT INTO \"%v\" (%v) VALUES (%v)",
 		s.TableName,
