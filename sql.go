@@ -145,8 +145,7 @@ func (s *Orm) whereSql() (sql string) {
 			str := "( " + clause["query"].(string) + " )"
 			args := clause["args"].([]interface{})
 			for _, arg := range args {
-				s.SqlVars = append(s.SqlVars, arg.([]interface{})...)
-				str = strings.Replace(str, "?", fmt.Sprintf("$%d", len(s.SqlVars)), 1)
+				str = strings.Replace(str, "?", s.addToVars(arg), 1)
 			}
 			conditions = append(conditions, str)
 		}
@@ -155,7 +154,6 @@ func (s *Orm) whereSql() (sql string) {
 	if len(conditions) > 0 {
 		sql = "WHERE " + strings.Join(conditions, " AND ")
 	}
-
 	return
 }
 

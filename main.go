@@ -24,7 +24,7 @@ func (s *DB) buildORM() *Orm {
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) (orm *Orm) {
 	orm = s.buildORM()
-	orm.Where(querystring, args)
+	orm.Where(querystring, args...)
 	return
 }
 

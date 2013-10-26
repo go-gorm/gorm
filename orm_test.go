@@ -125,6 +125,36 @@ func TestComplexWhere(t *testing.T) {
 	var users []User
 	db.Where("age > ?", 20).Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should only have 2 users age great than 20, but have %v", len(users))
+		t.Errorf("Should only found 2 users that age > 20, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("age >= ?", 20).Find(&users)
+	if len(users) != 3 {
+		t.Errorf("Should only found 2 users that age >= 20, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("age = ?", 20).Find(&users)
+	if len(users) != 1 {
+		t.Errorf("Should only found 1 users age == 20, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("age <> ?", 20).Find(&users)
+	if len(users) < 3 {
+		t.Errorf("Should have more than 3 users age != 20, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("name = ? and age >= ?", "3", 20).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should only found 2 users that age >= 20 with name 3, but have %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("name = ?", "3").Where("age >= ?", 20).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should only found 2 users that age >= 20 with name 3, but have %v", len(users))
 	}
 }
