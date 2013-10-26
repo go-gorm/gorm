@@ -28,7 +28,7 @@ type Orm struct {
 func (s *Orm) setModel(model interface{}) (err error) {
 	s.Model = s.toModel(model)
 	s.TableName = s.Model.TableName()
-	s.PrimaryKey = s.Model.PrimaryKey()
+	s.PrimaryKey = s.Model.PrimaryKeyDb()
 	return
 }
 
@@ -86,7 +86,8 @@ func (s *Orm) Select(value interface{}) *Orm {
 }
 
 func (s *Orm) Save(value interface{}) *Orm {
-	s.explain(value, "Save").Exec()
+	s.explain(value, "Create").create(value)
+	// s.explain(value, "Update").update(value)
 	return s
 }
 

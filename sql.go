@@ -11,8 +11,10 @@ import (
 func (s *Orm) explain(value interface{}, operation string) *Orm {
 	s.setModel(value)
 	switch operation {
-	case "Save":
-		s.saveSql(value)
+	case "Create":
+		s.createSql(value)
+	case "Update":
+		s.updateSql(value)
 	case "Delete":
 		s.deleteSql(value)
 	case "Query":
@@ -70,15 +72,37 @@ func (s *Orm) query(out interface{}) {
 	}
 }
 
-func (s *Orm) saveSql(value interface{}) {
+func (s *Orm) createSql(value interface{}) {
 	columns, values := s.Model.ColumnsAndValues()
 	s.Sql = fmt.Sprintf(
-		"INSERT INTO \"%v\" (%v) VALUES (%v)",
+		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
 		s.TableName,
 		strings.Join(quoteMap(columns), ","),
 		valuesToBinVar(values),
+		s.Model.ReturningStr(),
 	)
 	s.SqlVars = values
+	return
+}
+
+func (s *Orm) create(value interface{}) {
+	var id int64
+	if s.driver == "postgres" {
+		s.Error = s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id)
+	} else {
+		s.SqlResult, s.Error = s.db.Exec(s.Sql, s.SqlVars...)
+		id, s.Error = s.SqlResult.LastInsertId()
+	}
+
+	result := reflect.ValueOf(s.Model.Data).Elem()
+	result.FieldByName(s.Model.PrimaryKey()).SetInt(id)
+}
+
+func (s *Orm) updateSql(value interface{}) {
+	return
+}
+
+func (s *Orm) update(value interface{}) {
 	return
 }
 

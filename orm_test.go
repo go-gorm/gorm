@@ -17,6 +17,9 @@ func TestSaveAndFirst(t *testing.T) {
 	db := getDB()
 	u := &User{Name: "jinzhu"}
 	db.Save(u)
+	if u.Id == 0 {
+		t.Errorf("Should have ID after create record")
+	}
 
 	user := &User{}
 	db.First(user)

@@ -3,8 +3,6 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* Perimary key
-* Save and fill the record
 * Update
 * Delete
 * Complex where query (= / > / < / <> / in)
@@ -16,9 +14,10 @@ Yet Another ORM library for Go, aims for developer friendly
 * Not query
 * Even more complex where query (with map or struct)
 * ORM.Errors
-* Better First method (First(&user, primary_key))
+* Better First method (First(&user, primary_key, where conditions))
 * Soft Delete
 * After/Before Save/Update/Create/Delete
+* CreatedAt, UpdatedAt
 * FindOrInitialize / FindOrCreate
 * SQL Log
 * Auto Migration

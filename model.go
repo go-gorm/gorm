@@ -27,6 +27,10 @@ func (m *Model) PrimaryKey() string {
 	return "Id"
 }
 
+func (m *Model) PrimaryKeyDb() string {
+	return toSnake(m.PrimaryKey())
+}
+
 func (m *Model) Fields() (fields []Field) {
 	typ := reflect.TypeOf(m.Data).Elem()
 
@@ -37,7 +41,7 @@ func (m *Model) Fields() (fields []Field) {
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
 			field.Value = reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Interface()
-			if m.PrimaryKey() == p.Name {
+			if m.PrimaryKeyDb() == field.DbName {
 				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
 			} else {
 				field.SqlType = getSqlType(m.driver, field.Value, 0)
@@ -54,9 +58,12 @@ func (m *Model) ColumnsAndValues() (columns []string, values []interface{}) {
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
 		if !p.Anonymous {
-			columns = append(columns, toSnake(p.Name))
-			value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
-			values = append(values, value.Interface())
+			db_name := toSnake(p.Name)
+			if m.PrimaryKeyDb() != db_name {
+				columns = append(columns, db_name)
+				value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
+				values = append(values, value.Interface())
+			}
 		}
 	}
 	return
@@ -83,10 +90,6 @@ func (model *Model) MissingColumns() (results []string) {
 	return
 }
 
-func (model *Model) ColumnType(column string) (result string) {
-	return
-}
-
 func (model *Model) CreateTable() (sql string) {
 	var sqls []string
 	for _, field := range model.Fields() {
@@ -98,5 +101,12 @@ func (model *Model) CreateTable() (sql string) {
 		model.TableName(),
 		strings.Join(sqls, ","),
 	)
+	return
+}
+
+func (model *Model) ReturningStr() (str string) {
+	if model.driver == "postgres" {
+		str = fmt.Sprintf("RETURNING \"%v\"", model.PrimaryKeyDb())
+	}
 	return
 }
