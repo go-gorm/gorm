@@ -1,11 +1,9 @@
 package gorm
 
 import (
-	"errors"
-
-	"strconv"
-
 	"database/sql"
+	"errors"
+	"strconv"
 )
 
 type Orm struct {

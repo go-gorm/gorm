@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -38,9 +39,16 @@ func (s *Orm) query(out interface{}) {
 	}
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	s.Error = err
+	defer rows.Close()
 
+	s.Error = err
+	if rows.Err() != nil {
+		s.Error = rows.Err()
+	}
+
+	counts := 0
 	for rows.Next() {
+		counts += 1
 		var dest reflect.Value
 		if is_slice {
 			dest = reflect.New(dest_type).Elem()
@@ -55,7 +63,9 @@ func (s *Orm) query(out interface{}) {
 		}
 		s.Error = rows.Scan(values...)
 	}
-	return
+	if (counts == 0) && !is_slice {
+		s.Error = errors.New("Record not found!")
+	}
 }
 
 func (s *Orm) saveSql(value interface{}) {

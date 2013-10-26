@@ -1,10 +1,6 @@
 package gorm
 
-import (
-	"fmt"
-
-	"testing"
-)
+import "testing"
 
 type User struct {
 	Name string
@@ -43,6 +39,19 @@ func TestWhere(t *testing.T) {
 
 	user := &User{}
 	db.Where("Name = ?", "jinzhu").First(user)
+	if user.Name != "jinzhu" {
+		t.Errorf("Should found out user with name 'jinzhu'")
+	}
 
-	fmt.Println(user)
+	user = &User{}
+	orm := db.Where("Name = ?", "jinzhu-noexisting").First(user)
+	if orm.Error == nil {
+		t.Errorf("Should return error when looking for unexist record, %+v", user)
+	}
+
+	users := &[]User{}
+	orm = db.Where("Name = ?", "jinzhu-noexisting").First(users)
+	if orm.Error != nil {
+		t.Errorf("Shouldn't return error when looking for unexist records, %+v", users)
+	}
 }
