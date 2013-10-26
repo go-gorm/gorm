@@ -1,6 +1,10 @@
 package gorm
 
-import "reflect"
+import (
+	"regexp"
+
+	"reflect"
+)
 
 type Model struct {
 	Data interface{}
@@ -24,6 +28,23 @@ func (m *Model) ColumnsAndValues() (columns []string, values []interface{}) {
 		}
 	}
 	return
+}
+
+func (m *Model) TableName() string {
+	t := reflect.TypeOf(m.Data)
+	for {
+		c := false
+		switch t.Kind() {
+		case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
+			t = t.Elem()
+			c = true
+		}
+		if !c {
+			break
+		}
+	}
+	reg, _ := regexp.Compile("s*$")
+	return reg.ReplaceAllString(toSnake(t.Name()), "s")
 }
 
 func (m *Model) Columns() (columns []string) {

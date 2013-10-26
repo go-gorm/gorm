@@ -3,8 +3,7 @@ package gorm
 import (
 	"bytes"
 	"fmt"
-	"reflect"
-	"regexp"
+
 	"strings"
 )
 
@@ -43,23 +42,6 @@ func snakeToUpperCamel(s string) string {
 		}
 	}
 	return buf.String()
-}
-
-func interfaceToTableName(f interface{}) string {
-	t := reflect.TypeOf(f)
-	for {
-		c := false
-		switch t.Kind() {
-		case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
-			t = t.Elem()
-			c = true
-		}
-		if !c {
-			break
-		}
-	}
-	reg, _ := regexp.Compile("s*$")
-	return reg.ReplaceAllString(toSnake(t.Name()), "s")
 }
 
 func debug(value interface{}) {
