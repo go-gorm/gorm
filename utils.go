@@ -12,7 +12,7 @@ func modelValues(m interface{}) (columns []string, values []interface{}) {
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
 		if !p.Anonymous {
-			columns = append(columns, strings.ToLower(p.Name))
+			columns = append(columns, p.Name)
 			value := reflect.ValueOf(m).Elem().FieldByName(p.Name)
 			values = append(values, value.Interface())
 		}

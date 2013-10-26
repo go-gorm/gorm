@@ -2,6 +2,8 @@ package gorm
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 
 	"strconv"
 
@@ -115,6 +117,18 @@ func (s *Orm) Exec(sql ...string) *Orm {
 
 func (s *Orm) First(out interface{}) *Orm {
 	s.setModel(out)
+	rows, err := s.db.Query("SELECT * from users limit 1")
+	s.Error = err
+	for rows.Next() {
+		dest := reflect.ValueOf(out).Elem()
+		fmt.Printf("%+v", dest)
+		columns, _ := rows.Columns()
+		var values []interface{}
+		for _, value := range columns {
+			values = append(values, dest.FieldByName(value).Addr().Interface())
+		}
+		s.Error = rows.Scan(values...)
+	}
 	return s
 }
 

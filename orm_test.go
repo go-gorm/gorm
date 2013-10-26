@@ -16,12 +16,13 @@ func getDB() DB {
 }
 
 func TestSaveAndFirst(t *testing.T) {
+	// create table "users" ("name" varchar(255));
 	db := getDB()
 	u := &User{Name: "jinzhu"}
 	db.Save(u)
 
 	user := &User{}
-	db.First(&user)
+	db.First(user)
 	if user.Name != "jinzhu" {
 		t.Errorf("User should be saved and fetched correctly")
 	}
