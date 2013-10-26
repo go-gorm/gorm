@@ -144,16 +144,19 @@ func (s *Orm) whereSql() (sql string) {
 			str := "( " + clause["query"].(string) + " )"
 			args := clause["args"].([]interface{})
 			for _, arg := range args {
+				switch reflect.TypeOf(arg).Kind() {
+				case reflect.Slice: // For where("id in (?)", []int64{1,2})
+					v := reflect.ValueOf(arg)
 
-				switch arg.(type) {
-				case []string, []int, []int64, []int32:
 					var temp_marks []string
-					for _ = range arg.([]string) {
+					for i := 0; i < v.Len(); i++ {
 						temp_marks = append(temp_marks, "?")
 					}
+
 					str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
-					for _, a := range arg.([]string) {
-						str = strings.Replace(str, "?", s.addToVars(a), 1)
+
+					for i := 0; i < v.Len(); i++ {
+						str = strings.Replace(str, "?", s.addToVars(v.Index(i).Addr().Interface()), 1)
 					}
 				default:
 					str = strings.Replace(str, "?", s.addToVars(arg), 1)
