@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -35,6 +36,7 @@ func quoteMap(values []string) (results []string) {
 	}
 	return
 }
+
 func toSnake(s string) string {
 	buf := bytes.NewBufferString("")
 	for i, v := range s {
@@ -46,7 +48,18 @@ func toSnake(s string) string {
 	return strings.ToLower(buf.String())
 }
 
-func interfaceToSnake(f interface{}) string {
+func snakeToUpperCamel(s string) string {
+	buf := bytes.NewBufferString("")
+	for _, v := range strings.Split(s, "_") {
+		if len(v) > 0 {
+			buf.WriteString(strings.ToUpper(v[:1]))
+			buf.WriteString(v[1:])
+		}
+	}
+	return buf.String()
+}
+
+func interfaceToTableName(f interface{}) string {
 	t := reflect.TypeOf(f)
 	for {
 		c := false
@@ -59,18 +72,8 @@ func interfaceToSnake(f interface{}) string {
 			break
 		}
 	}
-	return toSnake(t.Name())
-}
-
-func snakeToUpperCamel(s string) string {
-	buf := bytes.NewBufferString("")
-	for _, v := range strings.Split(s, "_") {
-		if len(v) > 0 {
-			buf.WriteString(strings.ToUpper(v[:1]))
-			buf.WriteString(v[1:])
-		}
-	}
-	return buf.String()
+	reg, _ := regexp.Compile("s*$")
+	return reg.ReplaceAllString(toSnake(t.Name()), "s")
 }
 
 func debug(value interface{}) {
