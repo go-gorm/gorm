@@ -39,6 +39,34 @@ func TestSaveAndFind(t *testing.T) {
 	db.Find(&users)
 }
 
+func TestUpdate(t *testing.T) {
+	name := "update"
+	user := User{Name: name}
+	db.Save(&user)
+
+	user_id := user.Id
+	if user_id == 0 {
+		t.Errorf("User Id should exist after create")
+	}
+
+	orm := db.Where("name = ?", "update").First(&User{})
+	if orm.Error != nil {
+		t.Errorf("No error should raise when looking for a exiting user")
+	}
+
+	user.Name = "update2"
+	db.Save(&user)
+	orm = db.Where("name = ?", "update").First(&User{})
+	if orm.Error == nil {
+		t.Errorf("Should raise error when looking for a existing user with an outdated name")
+	}
+
+	orm = db.Where("name = ?", "update2").First(&User{})
+	if orm.Error != nil {
+		t.Errorf("Shouldn't raise error when looking for a existing user with the new name")
+	}
+}
+
 func TestWhere(t *testing.T) {
 	name := "where"
 	db.Save(&User{Name: name})

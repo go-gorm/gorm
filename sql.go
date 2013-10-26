@@ -77,7 +77,7 @@ func (s *Orm) createSql(value interface{}) {
 	s.Sql = fmt.Sprintf(
 		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
 		s.TableName,
-		strings.Join(quoteMap(columns), ","),
+		strings.Join(s.quoteMap(columns), ","),
 		valuesToBinVar(values),
 		s.Model.ReturningStr(),
 	)
@@ -99,10 +99,23 @@ func (s *Orm) create(value interface{}) {
 }
 
 func (s *Orm) updateSql(value interface{}) {
+	columns, values := s.Model.ColumnsAndValues()
+	var sets []string
+	for index, column := range columns {
+		s.SqlVars = append(s.SqlVars, values[index])
+		sets = append(sets, fmt.Sprintf("%v = $%d", s.quote(column), len(s.SqlVars)))
+	}
+
+	s.Sql = fmt.Sprintf(
+		"UPDATE %v SET %v",
+		s.TableName,
+		strings.Join(sets, ", "),
+	)
 	return
 }
 
 func (s *Orm) update(value interface{}) {
+	s.Exec()
 	return
 }
 

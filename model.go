@@ -26,7 +26,7 @@ func (s *Orm) toModel(value interface{}) *Model {
 
 func (m *Model) PrimaryKeyIsEmpty() bool {
 	result := reflect.ValueOf(m.Data).Elem()
-	return result.FieldByName(m.PrimaryKey()).Interface().(int64) == int64(0)
+	return result.FieldByName(m.PrimaryKey()).Interface().(int64) == 0
 }
 
 func (m *Model) PrimaryKey() string {
