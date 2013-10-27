@@ -129,6 +129,9 @@ func (s *Orm) createSql(value interface{}) {
 
 func (s *Orm) create(value interface{}) {
 	var id int64
+	s.err(s.model.callMethod("BeforeCreate"))
+	s.err(s.model.callMethod("BeforeSave"))
+
 	if s.driver == "postgres" {
 		s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
 	} else {
@@ -138,6 +141,9 @@ func (s *Orm) create(value interface{}) {
 		id, err = s.SqlResult.LastInsertId()
 		s.err(err)
 	}
+
+	s.err(s.model.callMethod("AfterCreate"))
+	s.err(s.model.callMethod("AfterSave"))
 
 	result := reflect.ValueOf(s.model.Data).Elem()
 	result.FieldByName(s.model.PrimaryKey()).SetInt(id)
@@ -161,7 +167,11 @@ func (s *Orm) updateSql(value interface{}) {
 }
 
 func (s *Orm) update(value interface{}) {
+	s.err(s.model.callMethod("BeforeUpdate"))
+	s.err(s.model.callMethod("BeforeSave"))
 	s.Exec()
+	s.err(s.model.callMethod("AfterUpdate"))
+	s.err(s.model.callMethod("AfterSave"))
 	return
 }
 
@@ -169,6 +179,13 @@ func (s *Orm) deleteSql(value interface{}) {
 	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
 	return
 }
+
+func (s *Orm) delete(value interface{}) {
+	s.err(s.model.callMethod("BeforeDelete"))
+	s.Exec()
+	s.err(s.model.callMethod("AfterDelete"))
+}
+
 func (s *Orm) buildWhereCondition(clause map[string]interface{}) string {
 	str := "( " + clause["query"].(string) + " )"
 

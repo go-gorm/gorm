@@ -118,7 +118,7 @@ func (s *Orm) Save(value interface{}) *Orm {
 }
 
 func (s *Orm) Delete(value interface{}) *Orm {
-	s.explain(value, "Delete").Exec()
+	s.explain(value, "Delete").delete(value)
 	return s
 }
 

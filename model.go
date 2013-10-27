@@ -122,6 +122,17 @@ func (m *Model) TableName() string {
 	return reg.ReplaceAllString(toSnake(t.Name()), "s")
 }
 
+func (model *Model) callMethod(method string) error {
+	fm := reflect.ValueOf(model).MethodByName(method)
+	if fm.IsValid() {
+		v := fm.Call([]reflect.Value{})
+		if verr, ok := v[0].Interface().(error); ok {
+			return verr
+		}
+	}
+	return nil
+}
+
 func (model *Model) MissingColumns() (results []string) {
 	return
 }
