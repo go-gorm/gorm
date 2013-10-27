@@ -3,7 +3,6 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* CreatedAt, UpdatedAt
 * After/Before Save/Update/Create/Delete
 * Soft Delete
 * Better First method (First(&user, primary_key, where conditions))

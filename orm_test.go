@@ -6,10 +6,12 @@ import (
 )
 
 type User struct {
-	Id       int64
-	Age      int64
-	Birthday time.Time
-	Name     string
+	Id        int64
+	Age       int64
+	Birthday  time.Time
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 var (
@@ -279,5 +281,33 @@ func TestOrAndNot(t *testing.T) {
 	db.Where("name = ?", "1").Or("name = ?", "3").Find(&users)
 	if len(users) != 3 {
 		t.Errorf("Should find three users with name 1 and 3")
+	}
+}
+
+func TestCreatedAtAndUpdatedAt(t *testing.T) {
+	name := "check_created_at_and_updated_at"
+	u := User{Name: name, Age: 1}
+	db.Save(&u)
+	created_at := u.CreatedAt
+	updated_at := u.UpdatedAt
+
+	if created_at.IsZero() {
+		t.Errorf("Should have created_at after create")
+	}
+	if updated_at.IsZero() {
+		t.Errorf("Should have updated_at after create")
+	}
+
+	u.Name = "check_created_at_and_updated_at_2"
+	db.Save(&u)
+	created_at2 := u.CreatedAt
+	updated_at2 := u.UpdatedAt
+
+	if created_at != created_at2 {
+		t.Errorf("Created At should not changed after update")
+	}
+
+	if updated_at == updated_at2 {
+		t.Errorf("Updated At should be changed after update")
 	}
 }

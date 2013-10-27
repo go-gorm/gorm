@@ -110,7 +110,7 @@ func (s *Orm) pluck(value interface{}) {
 }
 
 func (s *Orm) createSql(value interface{}) {
-	columns, values := s.model.ColumnsAndValues()
+	columns, values := s.model.ColumnsAndValues("create")
 
 	var sqls []string
 	for _, value := range values {
@@ -144,7 +144,7 @@ func (s *Orm) create(value interface{}) {
 }
 
 func (s *Orm) updateSql(value interface{}) {
-	columns, values := s.model.ColumnsAndValues()
+	columns, values := s.model.ColumnsAndValues("update")
 	var sets []string
 	for index, column := range columns {
 		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-
 	"strings"
+	"time"
 )
 
 type Model struct {
@@ -14,10 +14,13 @@ type Model struct {
 }
 
 type Field struct {
-	Name    string
-	Value   interface{}
-	SqlType string
-	DbName  string
+	Name           string
+	Value          interface{}
+	SqlType        string
+	DbName         string
+	AutoCreateTime bool
+	AutoUpdateTime bool
+	IsPrimaryKey   bool
 }
 
 func (s *Orm) toModel(value interface{}) *Model {
@@ -52,7 +55,7 @@ func (m *Model) PrimaryKeyDb() string {
 	return toSnake(m.PrimaryKey())
 }
 
-func (m *Model) Fields() (fields []Field) {
+func (m *Model) Fields(operation string) (fields []Field) {
 	typ := reflect.TypeOf(m.Data).Elem()
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -61,8 +64,27 @@ func (m *Model) Fields() (fields []Field) {
 			var field Field
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
-			field.Value = reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Interface()
-			if m.PrimaryKeyDb() == field.DbName {
+			field.IsPrimaryKey = m.PrimaryKeyDb() == field.DbName
+			field.AutoCreateTime = "created_at" == field.DbName
+			field.AutoUpdateTime = "updated_at" == field.DbName
+			value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
+
+			switch operation {
+			case "create":
+				if (field.AutoCreateTime || field.AutoUpdateTime) && value.Interface().(time.Time).IsZero() {
+					value = reflect.ValueOf(time.Now())
+					reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Set(value)
+				}
+			case "update":
+				if field.AutoUpdateTime {
+					value = reflect.ValueOf(time.Now())
+					reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Set(value)
+				}
+			default:
+			}
+			field.Value = value.Interface()
+
+			if field.IsPrimaryKey {
 				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
 			} else {
 				field.SqlType = getSqlType(m.driver, field.Value, 0)
@@ -73,18 +95,11 @@ func (m *Model) Fields() (fields []Field) {
 	return
 }
 
-func (m *Model) ColumnsAndValues() (columns []string, values []interface{}) {
-	typ := reflect.TypeOf(m.Data).Elem()
-
-	for i := 0; i < typ.NumField(); i++ {
-		p := typ.Field(i)
-		if !p.Anonymous {
-			db_name := toSnake(p.Name)
-			if m.PrimaryKeyDb() != db_name {
-				columns = append(columns, db_name)
-				value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
-				values = append(values, value.Interface())
-			}
+func (m *Model) ColumnsAndValues(operation string) (columns []string, values []interface{}) {
+	for _, field := range m.Fields(operation) {
+		if !field.IsPrimaryKey {
+			columns = append(columns, field.DbName)
+			values = append(values, field.Value)
 		}
 	}
 	return
@@ -113,7 +128,7 @@ func (model *Model) MissingColumns() (results []string) {
 
 func (model *Model) CreateTable() (sql string) {
 	var sqls []string
-	for _, field := range model.Fields() {
+	for _, field := range model.Fields("null") {
 		sqls = append(sqls, field.DbName+" "+field.SqlType)
 	}
 
