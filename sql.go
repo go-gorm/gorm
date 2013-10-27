@@ -131,7 +131,7 @@ func (s *Orm) create(value interface{}) {
 	var id int64
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
-
+	s.explain(value, "Create")
 	if s.driver == "postgres" {
 		s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
 	} else {
@@ -141,12 +141,11 @@ func (s *Orm) create(value interface{}) {
 		id, err = s.SqlResult.LastInsertId()
 		s.err(err)
 	}
+	result := reflect.ValueOf(s.model.Data).Elem()
+	result.FieldByName(s.model.PrimaryKey()).SetInt(id)
 
 	s.err(s.model.callMethod("AfterCreate"))
 	s.err(s.model.callMethod("AfterSave"))
-
-	result := reflect.ValueOf(s.model.Data).Elem()
-	result.FieldByName(s.model.PrimaryKey()).SetInt(id)
 }
 
 func (s *Orm) updateSql(value interface{}) {
@@ -169,7 +168,7 @@ func (s *Orm) updateSql(value interface{}) {
 func (s *Orm) update(value interface{}) {
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
-	s.Exec()
+	s.explain(value, "Update").Exec()
 	s.err(s.model.callMethod("AfterUpdate"))
 	s.err(s.model.callMethod("AfterSave"))
 	return

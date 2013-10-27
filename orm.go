@@ -110,9 +110,9 @@ func (s *Orm) Select(value interface{}) *Orm {
 func (s *Orm) Save(value interface{}) *Orm {
 	s.Model(value)
 	if s.model.PrimaryKeyIsEmpty() {
-		s.explain(value, "Create").create(value)
+		s.create(value)
 	} else {
-		s.explain(value, "Update").update(value)
+		s.update(value)
 	}
 	return s
 }

@@ -122,12 +122,14 @@ func (m *Model) TableName() string {
 	return reg.ReplaceAllString(toSnake(t.Name()), "s")
 }
 
-func (model *Model) callMethod(method string) error {
-	fm := reflect.ValueOf(model).MethodByName(method)
+func (m *Model) callMethod(method string) error {
+	fm := reflect.ValueOf(m.Data).MethodByName(method)
 	if fm.IsValid() {
 		v := fm.Call([]reflect.Value{})
-		if verr, ok := v[0].Interface().(error); ok {
-			return verr
+		if len(v) > 0 {
+			if verr, ok := v[0].Interface().(error); ok {
+				return verr
+			}
 		}
 	}
 	return nil

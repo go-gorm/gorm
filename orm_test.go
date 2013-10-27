@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
@@ -14,6 +15,20 @@ type User struct {
 	UpdatedAt time.Time
 }
 
+type Product struct {
+	Id                    int64
+	Code                  string
+	Price                 int64
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	BeforeCreateCallTimes int64
+	AfterCreateCallTimes  int64
+	BeforeUpdateCallTimes int64
+	AfterUpdateCallTimes  int64
+	BeforeSaveCallTimes   int64
+	AfterSaveCallTimes    int64
+}
+
 var (
 	db                 DB
 	t1, t2, t3, t4, t5 time.Time
@@ -22,11 +37,13 @@ var (
 func init() {
 	db, _ = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	db.Exec("drop table users;")
+	db.Exec("drop table products;")
 
 	orm := db.CreateTable(&User{})
 	if orm.Error != nil {
 		panic("No error should raise when create table")
 	}
+	db.CreateTable(&Product{})
 
 	var shortForm = "2006-01-02 15:04:05"
 	t1, _ = time.Parse(shortForm, "2000-10-27 12:02:40")
@@ -309,5 +326,57 @@ func TestCreatedAtAndUpdatedAt(t *testing.T) {
 
 	if updated_at == updated_at2 {
 		t.Errorf("Updated At should be changed after update")
+	}
+}
+
+func (s *Product) BeforeCreate() {
+	s.BeforeCreateCallTimes = s.BeforeCreateCallTimes + 1
+}
+
+func (s *Product) BeforeUpdate() {
+	s.BeforeUpdateCallTimes = s.BeforeUpdateCallTimes + 1
+}
+
+func (s *Product) BeforeSave() {
+	s.BeforeSaveCallTimes = s.BeforeSaveCallTimes + 1
+}
+
+func (s *Product) AfterCreate() {
+	s.AfterCreateCallTimes = s.AfterCreateCallTimes + 1
+}
+
+func (s *Product) AfterUpdate() {
+	s.AfterUpdateCallTimes = s.AfterUpdateCallTimes + 1
+}
+
+func (s *Product) AfterSave() {
+	s.AfterSaveCallTimes = s.AfterSaveCallTimes + 1
+}
+
+func (p *Product) GetCallTimes() []int64 {
+	return []int64{p.BeforeCreateCallTimes, p.BeforeSaveCallTimes, p.BeforeUpdateCallTimes, p.AfterCreateCallTimes, p.AfterSaveCallTimes, p.AfterUpdateCallTimes}
+}
+
+func TestRunCallbacks(t *testing.T) {
+	p := Product{Code: "unique_code", Price: 100}
+	db.Save(&p)
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0}) {
+		t.Errorf("Some errors happened when run create callbacks, %v", p.GetCallTimes())
+	}
+
+	db.Where("Code = ?", "unique_code").First(&p)
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 0, 0, 0}) {
+		t.Errorf("Should be able to query about saved values in before filters, %v", p.GetCallTimes())
+	}
+
+	p.Price = 200
+	db.Save(&p)
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 1, 1}) {
+		t.Errorf("Some errors happened when run update callbacks, %v", p.GetCallTimes())
+	}
+
+	db.Where("Code = ?", "unique_code").First(&p)
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 0, 0}) {
+		t.Errorf("Some errors happened when run update callbacks, %v", p.GetCallTimes())
 	}
 }
