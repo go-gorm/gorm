@@ -226,6 +226,7 @@ func TestComplexWhere(t *testing.T) {
 }
 
 func TestOrder(t *testing.T) {
-	// var ages []int64
-	// db.Model(&User).Order("age desc").Pluck("age", &ages)
+	var ages []int64
+	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages)
+	debug(ages)
 }

@@ -35,7 +35,12 @@ func (m *Model) PrimaryKeyValue() int64 {
 		return 0
 	default:
 		result := reflect.ValueOf(m.Data).Elem()
-		return result.FieldByName(m.PrimaryKey()).Interface().(int64)
+		value := result.FieldByName(m.PrimaryKey())
+		if value.IsValid() {
+			return result.FieldByName(m.PrimaryKey()).Interface().(int64)
+		} else {
+			return 0
+		}
 	}
 }
 

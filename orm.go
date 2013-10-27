@@ -128,8 +128,8 @@ func (s *Orm) Find(out interface{}) *Orm {
 }
 
 func (s *Orm) Pluck(column string, value interface{}) (orm *Orm) {
-	s.explain(s.model, "Query").query(value)
-	return
+	s.Select(column).explain(s.model.Data, "Query").pluck(value)
+	return s
 }
 
 func (s *Orm) Or(querystring interface{}, args ...interface{}) *Orm {

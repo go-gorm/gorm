@@ -9,6 +9,7 @@ import (
 
 func (s *Orm) explain(value interface{}, operation string) *Orm {
 	s.Model(value)
+
 	switch operation {
 	case "Create":
 		s.createSql(value)
@@ -43,6 +44,7 @@ func (s *Orm) query(out interface{}) {
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
+
 	s.Error = err
 	if rows.Err() != nil {
 		s.Error = rows.Err()
@@ -73,6 +75,22 @@ func (s *Orm) query(out interface{}) {
 	if (counts == 0) && !is_slice {
 		s.Error = errors.New("Record not found!")
 	}
+}
+
+func (s *Orm) pluck(value interface{}) {
+	dest_out := reflect.Indirect(reflect.ValueOf(value))
+	dest_type := dest_out.Type().Elem()
+
+	rows, err := s.db.Query(s.Sql, s.SqlVars...)
+	s.Error = err
+
+	defer rows.Close()
+	for rows.Next() {
+		dest := reflect.New(dest_type).Elem()
+		s.Error = rows.Scan(dest)
+		dest_out.Set(reflect.Append(dest_out, dest))
+	}
+	return
 }
 
 func (s *Orm) createSql(value interface{}) {
