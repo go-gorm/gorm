@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -63,8 +64,34 @@ func init() {
 }
 
 func TestFirst(t *testing.T) {
-	var u1, u2 User
+	var u1, u2, u3, u4, u5, u6, u7 User
 	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
+
+	db.Where("name = ?", "3").First(&u3, "age = 22").First(&u4, "age = ?", 24).First(&u5, "age = ?", 26)
+	if !((u5.Id == 0) && (u3.Age == 22 && u3.Name == "3") && (u4.Age == 24 && u4.Name == "3")) {
+		t.Errorf("Inline where condition for first when search")
+	}
+
+	var us1, us2, us3, us4 []User
+	db.Find(&us1, "age = 22").Find(&us2, "name = ?", "3").Find(&us3, "age > ?", 20)
+	if !(len(us1) == 1 && len(us2) == 2 && len(us3) == 3) {
+		t.Errorf("Inline where condition for find when search")
+	}
+
+	db.Find(&us4, "name = ? and age > ?", "3", "22")
+	if len(us4) != 1 {
+		t.Errorf("More complex inline where condition for find, %v", us4)
+	}
+
+	db.First(&u6, u1.Id)
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Should find out user with int id")
+	}
+
+	db.First(&u7, strconv.Itoa(int(u1.Id)))
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Should find out user with string id")
+	}
 }
 
 func TestSaveAndFind(t *testing.T) {

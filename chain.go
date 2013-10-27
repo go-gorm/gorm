@@ -145,13 +145,13 @@ func (s *Chain) Exec(sql string) *Chain {
 	return s
 }
 
-func (s *Chain) First(out interface{}) *Chain {
-	s.do(out).query()
+func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
+	s.do(out).query(where...)
 	return s
 }
 
-func (s *Chain) Find(out interface{}) *Chain {
-	s.do(out).query()
+func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
+	s.do(out).query(where...)
 	return s
 }
 

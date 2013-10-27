@@ -25,12 +25,12 @@ func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
 	return s.buildORM().Where(querystring, args...)
 }
 
-func (s *DB) First(out interface{}) *Chain {
-	return s.buildORM().First(out)
+func (s *DB) First(out interface{}, where ...interface{}) *Chain {
+	return s.buildORM().First(out, where...)
 }
 
-func (s *DB) Find(out interface{}) *Chain {
-	return s.buildORM().Find(out)
+func (s *DB) Find(out interface{}, where ...interface{}) *Chain {
+	return s.buildORM().Find(out, where...)
 }
 
 func (s *DB) Limit(value interface{}) *Chain {

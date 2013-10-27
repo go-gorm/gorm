@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
+	"strconv"
 
 	"strings"
 )
@@ -160,7 +162,11 @@ func (s *Do) prepareQuerySql() *Do {
 	return s
 }
 
-func (s *Do) query() {
+func (s *Do) query(where ...interface{}) {
+	if len(where) > 0 {
+		s.where(where[0], where[1:len(where)]...)
+	}
+
 	var (
 		is_slice  bool
 		dest_type reflect.Type
@@ -176,7 +182,6 @@ func (s *Do) query() {
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
 	s.err(err)
-
 	if rows.Err() != nil {
 		s.err(rows.Err())
 	}
@@ -246,8 +251,28 @@ func (s *Do) pluck(value interface{}) *Do {
 	return s
 }
 
-func (s *Do) buildWhereCondition(clause map[string]interface{}) string {
-	str := "( " + clause["query"].(string) + " )"
+func (s *Do) where(querystring interface{}, args ...interface{}) *Do {
+	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
+	return s
+}
+
+func (s *Do) primaryCondiation(value interface{}) string {
+	return fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), value)
+}
+
+func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
+	switch clause["query"].(type) {
+	case string:
+		value := clause["query"].(string)
+		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
+			id, _ := strconv.Atoi(value)
+			return s.primaryCondiation(s.addToVars(id))
+		} else {
+			str = "( " + value + " )"
+		}
+	case int, int64, int32:
+		return s.primaryCondiation(s.addToVars(clause["query"]))
+	}
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
@@ -269,7 +294,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) string {
 			str = strings.Replace(str, "?", s.addToVars(arg), 1)
 		}
 	}
-	return str
+	return
 }
 
 func (s *Do) whereSql() (sql string) {
@@ -277,7 +302,7 @@ func (s *Do) whereSql() (sql string) {
 	var and_conditions, or_conditions []string
 
 	if !s.model.PrimaryKeyZero() {
-		primary_condiation = fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue()))
+		primary_condiation = s.primaryCondiation(s.addToVars(s.model.PrimaryKeyValue()))
 	}
 
 	for _, clause := range s.whereClause {
