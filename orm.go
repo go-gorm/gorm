@@ -26,11 +26,11 @@ type Orm struct {
 	operation   string
 }
 
-func (s *Orm) Model(model interface{}) (err error) {
+func (s *Orm) Model(model interface{}) *Orm {
 	s.model = s.toModel(model)
 	s.TableName = s.model.TableName()
 	s.PrimaryKey = s.model.PrimaryKeyDb()
-	return
+	return s
 }
 
 func (s *Orm) Where(querystring interface{}, args ...interface{}) *Orm {
@@ -125,6 +125,11 @@ func (s *Orm) First(out interface{}) *Orm {
 func (s *Orm) Find(out interface{}) *Orm {
 	s.explain(out, "Query").query(out)
 	return s
+}
+
+func (s *Orm) Pluck(column string, value interface{}) (orm *Orm) {
+	s.explain(s.model, "Query").query(value)
+	return
 }
 
 func (s *Orm) Or(querystring interface{}, args ...interface{}) *Orm {

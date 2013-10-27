@@ -18,72 +18,53 @@ func Open(driver, source string) (db DB, err error) {
 }
 
 func (s *DB) buildORM() *Orm {
-	orm := &Orm{db: s.Db, driver: s.Driver}
-	return orm
+	return &Orm{db: s.Db, driver: s.Driver}
 }
 
-func (s *DB) Where(querystring interface{}, args ...interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Where(querystring, args...)
-	return
+func (s *DB) Where(querystring interface{}, args ...interface{}) *Orm {
+	return s.buildORM().Where(querystring, args...)
 }
 
-func (s *DB) First(out interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.First(out)
-	return
+func (s *DB) First(out interface{}) *Orm {
+	return s.buildORM().First(out)
 }
 
-func (s *DB) Find(out interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Find(out)
-	return
+func (s *DB) Find(out interface{}) *Orm {
+	return s.buildORM().Find(out)
 }
 
-func (s *DB) Limit(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Limit(value)
-	return
+func (s *DB) Limit(value interface{}) *Orm {
+	return s.buildORM().Limit(value)
 }
 
-func (s *DB) Offset(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Offset(value)
-	return
+func (s *DB) Offset(value interface{}) *Orm {
+	return s.buildORM().Offset(value)
 }
 
-func (s *DB) Order(value string, reorder ...bool) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Order(value, reorder...)
-	return
+func (s *DB) Order(value string, reorder ...bool) *Orm {
+	return s.buildORM().Order(value, reorder...)
 }
 
-func (s *DB) Select(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Select(value)
-	return
+func (s *DB) Select(value interface{}) *Orm {
+	return s.buildORM().Select(value)
 }
 
-func (s *DB) Save(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Save(value)
-	return
+func (s *DB) Save(value interface{}) *Orm {
+	return s.buildORM().Save(value)
 }
 
-func (s *DB) Delete(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Delete(value)
-	return
+func (s *DB) Delete(value interface{}) *Orm {
+	return s.buildORM().Delete(value)
 }
 
-func (s *DB) Exec(sql string) (orm *Orm) {
-	orm = s.buildORM()
-	orm.Exec(sql)
-	return
+func (s *DB) Exec(sql string) *Orm {
+	return s.buildORM().Exec(sql)
 }
 
-func (s *DB) CreateTable(value interface{}) (orm *Orm) {
-	orm = s.buildORM()
-	orm.CreateTable(value)
-	return
+func (s *DB) Model(value interface{}) *Orm {
+	return s.buildORM().Model(value)
+}
+
+func (s *DB) CreateTable(value interface{}) *Orm {
+	return s.buildORM().CreateTable(value)
 }
