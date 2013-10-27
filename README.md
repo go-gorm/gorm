@@ -34,36 +34,49 @@ db.Where("name = ?", "jinzhu").First(&user)
 db.Where("name = ?", "jinzhu").Find(&users)
 
 // Advanced Where Usage
+// select * from users name <> 'jinzhu';
 db.Where("name <> ?", "jinzhu").Find(&users)
-db.Where("name = ? and age >= ?", "3", "22").Find(&users)
+// select * from users name = 'jinzhu' and age >= 22;
+db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
+// select * from users name in ('jinzhu', 'jinzhu 2');
 db.Where("name in (?)", []string["jinzhu", "jinzhu 2"]).Find(&users)
 db.Where("birthday < ?", time.Now()).Find(&users)
 
 // Inline search condition
-db.First(&user, 23) // select * from users where id = 23 limit 1;
-db.First(&user, "name = ?", "jinzhu") // select * from users where name = "jinzhu" limit 1;
-db.Find(&users, "name = ?", "jinzhu") // select * from users where name = "jinzhu";
-db.Find(&users, "name <> ? and age > ?", "jinzhu", 20) // select * from users where name <> "jinzhu" and age > 20;
+// select * from users where id = 23 limit 1;
+db.First(&user, 23)
+// select * from users where name = "jinzhu" limit 1;
+db.First(&user, "name = ?", "jinzhu")
+// select * from users where name = "jinzhu";
+db.Find(&users, "name = ?", "jinzhu")
+// select * from users where name <> "jinzhu" and age > 20;
+db.Find(&users, "name <> ? and age > ?", "jinzhu", 20)
 
 // Select
+// select name from users;
 db.Select("name").Find(&users)
 
 // Order
+// select * from users order by age desc, name;
 db.Order("age desc, name").Find(&users)
 db.Order("age desc").Order("name").Find(&users)
 
 // Limit
+// select * from users limit 3;
 db.Limit(3).Find(&users)
 db.Limit(10).Find(&ten_users).Limit(20).Find(&twenty_users).Limit(-1).Find(&all_users)
 
 // Offset
+// select * from users offset 3;
 db.Offset(3).Find(&users)
 db.Offset(10).Find(&users).Offset(20).Find(&users).Offset(-1).Find(&users)
 
 // Or
+// select * from users where role = 'admin' or role = 'super_admin';
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)
 
 // Count
+// select count(*) from users where name = 'jinzhu' or name = 'jinzhu 2'';
 db.Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Find(&users).Count(&count)
 db.Model(&User{}).Where("name = ?", "jinzhu").Count(&count)
 
