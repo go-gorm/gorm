@@ -61,6 +61,11 @@ func init() {
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 }
 
+func TestFirst(t *testing.T) {
+	var u1, u2 User
+	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
+}
+
 func TestSaveAndFind(t *testing.T) {
 	name := "save_and_find"
 	u := &User{Name: name, Age: 1}

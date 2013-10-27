@@ -36,6 +36,12 @@ func (s *Orm) err(err error) {
 	}
 }
 
+func (s *Orm) Copy() *Orm {
+	c := *s
+	c.SqlVars = c.SqlVars[:0]
+	return &c
+}
+
 func (s *Orm) Model(model interface{}) *Orm {
 	s.model = s.toModel(model)
 	s.TableName = s.model.TableName()
@@ -114,12 +120,12 @@ func (s *Orm) Save(value interface{}) *Orm {
 	} else {
 		s.update(value)
 	}
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) Delete(value interface{}) *Orm {
 	s.explain(value, "Delete").delete(value)
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) Update(column string, value string) *Orm {
@@ -138,22 +144,22 @@ func (s *Orm) Exec(sql ...string) *Orm {
 		s.SqlResult, err = s.db.Exec(sql[0])
 	}
 	s.err(err)
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) First(out interface{}) *Orm {
 	s.explain(out, "Query").query(out)
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) Find(out interface{}) *Orm {
 	s.explain(out, "Query").query(out)
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) Pluck(column string, value interface{}) (orm *Orm) {
 	s.Select(column).explain(s.model.Data, "Query").pluck(value)
-	return s
+	return s.Copy()
 }
 
 func (s *Orm) Or(querystring interface{}, args ...interface{}) *Orm {
