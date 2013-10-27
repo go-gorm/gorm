@@ -63,7 +63,7 @@ func init() {
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 }
 
-func TestFirst(t *testing.T) {
+func TestInitlineCondition(t *testing.T) {
 	var u1, u2, u3, u4, u5, u6, u7 User
 	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
 
