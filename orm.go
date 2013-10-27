@@ -11,10 +11,12 @@ type Orm struct {
 	TableName  string
 	PrimaryKey string
 	SqlResult  sql.Result
-	Error      error
 	Sql        string
 	SqlVars    []interface{}
 	model      *Model
+
+	Errors []error
+	Error  error
 
 	db          *sql.DB
 	driver      string
@@ -25,6 +27,13 @@ type Orm struct {
 	offsetStr   string
 	limitStr    string
 	operation   string
+}
+
+func (s *Orm) err(err error) {
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		s.Error = err
+	}
 }
 
 func (s *Orm) Model(model interface{}) *Orm {
@@ -50,7 +59,7 @@ func (s *Orm) Limit(value interface{}) *Orm {
 			s.limitStr = strconv.Itoa(value)
 		}
 	default:
-		s.Error = errors.New("Can' understand the value of Limit, Should be int")
+		s.err(errors.New("Can' understand the value of Limit, Should be int"))
 	}
 	return s
 }
@@ -66,7 +75,7 @@ func (s *Orm) Offset(value interface{}) *Orm {
 			s.offsetStr = strconv.Itoa(value)
 		}
 	default:
-		s.Error = errors.New("Can' understand the value of Offset, Should be int")
+		s.err(errors.New("Can' understand the value of Offset, Should be int"))
 	}
 	return s
 }
@@ -92,7 +101,7 @@ func (s *Orm) Select(value interface{}) *Orm {
 	case string:
 		s.selectStr = value
 	default:
-		s.Error = errors.New("Can' understand the value of Select, Should be string")
+		s.err(errors.New("Can' understand the value of Select, Should be string"))
 	}
 
 	return s
@@ -122,11 +131,13 @@ func (s *Orm) Updates(values map[string]string) *Orm {
 }
 
 func (s *Orm) Exec(sql ...string) *Orm {
+	var err error
 	if len(sql) == 0 {
-		s.SqlResult, s.Error = s.db.Exec(s.Sql, s.SqlVars...)
+		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
 	} else {
-		s.SqlResult, s.Error = s.db.Exec(sql[0])
+		s.SqlResult, err = s.db.Exec(sql[0])
 	}
+	s.err(err)
 	return s
 }
 

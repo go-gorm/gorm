@@ -11,7 +11,7 @@ import (
 func (s *Orm) validSql(str string) (result bool) {
 	result = regexp.MustCompile("^\\s*[\\w][\\w\\s,.]*[\\w]\\s*$").MatchString(str)
 	if !result {
-		s.Error = errors.New(fmt.Sprintf("SQL is not valid, %s", str))
+		s.err(errors.New(fmt.Sprintf("SQL is not valid, %s", str)))
 	}
 	return
 }
@@ -53,9 +53,9 @@ func (s *Orm) query(out interface{}) {
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
-	s.Error = err
+	s.err(err)
 	if rows.Err() != nil {
-		s.Error = rows.Err()
+		s.err(rows.Err())
 	}
 
 	counts := 0
@@ -73,7 +73,7 @@ func (s *Orm) query(out interface{}) {
 		for _, value := range columns {
 			values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
 		}
-		s.Error = rows.Scan(values...)
+		s.err(rows.Scan(values...))
 
 		if is_slice {
 			dest_out.Set(reflect.Append(dest_out, dest))
@@ -81,7 +81,7 @@ func (s *Orm) query(out interface{}) {
 	}
 
 	if (counts == 0) && !is_slice {
-		s.Error = errors.New("Record not found!")
+		s.err(errors.New("Record not found!"))
 	}
 }
 
@@ -90,12 +90,12 @@ func (s *Orm) pluck(value interface{}) {
 	dest_type := dest_out.Type().Elem()
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	s.Error = err
+	s.err(err)
 
 	defer rows.Close()
 	for rows.Next() {
 		dest := reflect.New(dest_type).Elem().Interface()
-		s.Error = rows.Scan(&dest)
+		s.err(rows.Scan(&dest))
 		switch dest.(type) {
 		case []uint8:
 			if dest_type.String() == "string" {
@@ -130,10 +130,13 @@ func (s *Orm) createSql(value interface{}) {
 func (s *Orm) create(value interface{}) {
 	var id int64
 	if s.driver == "postgres" {
-		s.Error = s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id)
+		s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
 	} else {
-		s.SqlResult, s.Error = s.db.Exec(s.Sql, s.SqlVars...)
-		id, s.Error = s.SqlResult.LastInsertId()
+		var err error
+		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+		s.err(err)
+		id, err = s.SqlResult.LastInsertId()
+		s.err(err)
 	}
 
 	result := reflect.ValueOf(s.model.Data).Elem()
