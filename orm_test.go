@@ -225,7 +225,18 @@ func TestComplexWhere(t *testing.T) {
 	}
 }
 
-func TestOrder(t *testing.T) {
+func TestSelect(t *testing.T) {
+	var user User
+	db.Where("name = ?", "3").Select("name").Find(&user)
+	if user.Id != 0 {
+		t.Errorf("Should not got ID because I am only looking for age, %+v", user.Id)
+	}
+	if user.Name != "3" {
+		t.Errorf("Should got Name = 3 when searching it, %+v", user.Id)
+	}
+}
+
+func TestPluck(t *testing.T) {
 	var ages []int64
 	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages)
 	debug(ages)

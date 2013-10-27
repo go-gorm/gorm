@@ -26,7 +26,7 @@ func (s *Orm) explain(value interface{}, operation string) *Orm {
 }
 
 func (s *Orm) querySql(out interface{}) {
-	s.Sql = fmt.Sprintf("SELECT * FROM %v %v", s.TableName, s.whereSql())
+	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.whereSql())
 	return
 }
 
@@ -188,6 +188,14 @@ func (s *Orm) whereSql() (sql string) {
 		sql = "WHERE " + strings.Join(conditions, " AND ")
 	}
 	return
+}
+
+func (s *Orm) selectSql() string {
+	if len(s.selectStr) == 0 {
+		return " * "
+	} else {
+		return s.selectStr
+	}
 }
 
 func (s *Orm) addToVars(value interface{}) string {

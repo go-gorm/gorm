@@ -3,10 +3,8 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* Pluck
 * Order
 * Limit
-* Select
 * Offset
 * Or query
 * Not query
