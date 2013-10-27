@@ -208,6 +208,20 @@ func (s *Do) query() {
 	}
 }
 
+func (s *Do) count(value interface{}) {
+	dest_out := reflect.Indirect(reflect.ValueOf(value))
+
+	s.prepareQuerySql()
+	rows, err := s.db.Query(s.Sql, s.SqlVars...)
+	s.err(err)
+	for rows.Next() {
+		var dest int64
+		s.err(rows.Scan(&dest))
+		dest_out.Set(reflect.ValueOf(dest))
+	}
+	return
+}
+
 func (s *Do) pluck(value interface{}) *Do {
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 	dest_type := dest_out.Type().Elem()

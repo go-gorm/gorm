@@ -63,8 +63,8 @@ func init() {
 }
 
 func TestFirst(t *testing.T) {
-	// var u1, u2 User
-	// db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
+	var u1, u2 User
+	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
 }
 
 func TestSaveAndFind(t *testing.T) {
@@ -302,11 +302,25 @@ func TestOffset(t *testing.T) {
 	}
 }
 
-func TestOrAndNot(t *testing.T) {
+func TestOr(t *testing.T) {
 	var users []User
 	db.Where("name = ?", "1").Or("name = ?", "3").Find(&users)
 	if len(users) != 3 {
 		t.Errorf("Should find three users with name 1 and 3")
+	}
+}
+
+func TestCount(t *testing.T) {
+	var count, count1, count2 int64
+	var users []User
+	db.Where("name = ?", "1").Or("name = ?", "3").Find(&users).Count(&count)
+	if count != int64(len(users)) {
+		t.Errorf("Count() method should get same value of users count")
+	}
+
+	db.Model(&User{}).Where("name = ?", "1").Count(&count1).Or("name = ?", "3").Count(&count2)
+	if !(count1 == 1 && count2 == 3) {
+		t.Errorf("Multiple count should works well also")
 	}
 }
 

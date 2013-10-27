@@ -45,6 +45,7 @@ func (s *Chain) do(value interface{}) *Do {
 	do.offsetStr = s.offsetStr
 	do.limitStr = s.limitStr
 
+	s.value = value
 	do.setModel(value)
 	return &do
 }
@@ -101,8 +102,9 @@ func (s *Chain) Order(value string, reorder ...bool) *Chain {
 	return s
 }
 
-func (s *Chain) Count() int64 {
-	return 0
+func (s *Chain) Count(value interface{}) *Chain {
+	s.Select("count(*)").do(s.value).count(value)
+	return s
 }
 
 func (s *Chain) Select(value interface{}) *Chain {
