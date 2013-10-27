@@ -146,7 +146,9 @@ func (s *Chain) Exec(sql string) *Chain {
 }
 
 func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
-	s.do(out).query(where...)
+	do := s.do(out)
+	do.limitStr = "1"
+	do.query(where...)
 	return s
 }
 
@@ -156,7 +158,9 @@ func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
 }
 
 func (s *Chain) Pluck(column string, value interface{}) (orm *Chain) {
-	s.Select(column).do(s.value).pluck(value)
+	do := s.do(s.value)
+	do.selectStr = column
+	do.pluck(value)
 	return s
 }
 

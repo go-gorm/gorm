@@ -103,7 +103,7 @@ func TestSaveAndFind(t *testing.T) {
 	}
 
 	user := &User{}
-	db.First(user)
+	db.First(user, "name = ?", name)
 	if user.Name != name {
 		t.Errorf("User should be saved and fetched correctly")
 	}
