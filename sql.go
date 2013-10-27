@@ -204,10 +204,6 @@ func (s *Orm) whereSql() (sql string) {
 		and_conditions = append(and_conditions, s.buildWhereCondition(clause))
 	}
 
-	for _, clause := range s.notClause {
-		and_conditions = append(and_conditions, "!"+s.buildWhereCondition(clause))
-	}
-
 	for _, clause := range s.orClause {
 		or_conditions = append(or_conditions, s.buildWhereCondition(clause))
 	}

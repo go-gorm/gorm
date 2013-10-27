@@ -280,9 +280,4 @@ func TestOrAndNot(t *testing.T) {
 	if len(users) != 3 {
 		t.Errorf("Should find three users with name 1 and 3")
 	}
-
-	db.Where("name = ?", "3").Not("age = ?", 22).Find(&users)
-	if len(users) != 3 {
-		t.Errorf("Should find three users with name 1 and 3")
-	}
 }

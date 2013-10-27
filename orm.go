@@ -20,7 +20,6 @@ type Orm struct {
 	driver      string
 	whereClause []map[string]interface{}
 	orClause    []map[string]interface{}
-	notClause   []map[string]interface{}
 	selectStr   string
 	orderStrs   []string
 	offsetStr   string
@@ -148,11 +147,6 @@ func (s *Orm) Pluck(column string, value interface{}) (orm *Orm) {
 
 func (s *Orm) Or(querystring interface{}, args ...interface{}) *Orm {
 	s.orClause = append(s.orClause, map[string]interface{}{"query": querystring, "args": args})
-	return s
-}
-
-func (s *Orm) Not(querystring interface{}, args ...interface{}) *Orm {
-	s.notClause = append(s.notClause, map[string]interface{}{"query": querystring, "args": args})
 	return s
 }
 
