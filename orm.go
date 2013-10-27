@@ -22,7 +22,7 @@ type Orm struct {
 	selectStr   string
 	orderStrs   []string
 	offsetInt   int
-	limitInt    int
+	limitStr    string
 	operation   string
 }
 
@@ -41,9 +41,13 @@ func (s *Orm) Where(querystring interface{}, args ...interface{}) *Orm {
 func (s *Orm) Limit(value interface{}) *Orm {
 	switch value := value.(type) {
 	case string:
-		s.limitInt, _ = strconv.Atoi(value)
+		s.limitStr = value
 	case int:
-		s.limitInt = value
+		if value < 0 {
+			s.limitStr = ""
+		} else {
+			s.limitStr = strconv.Itoa(value)
+		}
 	default:
 		s.Error = errors.New("Can' understand the value of Limit, Should be int")
 	}

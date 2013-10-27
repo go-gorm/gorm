@@ -215,16 +215,24 @@ func (s *Orm) selectSql() string {
 	}
 }
 
-func (s *Orm) orderSql() (str string) {
+func (s *Orm) orderSql() string {
 	if len(s.orderStrs) == 0 {
-		return
+		return ""
 	} else {
 		return " ORDER BY " + strings.Join(s.orderStrs, ",")
 	}
 }
 
+func (s *Orm) limitSql() string {
+	if len(s.limitStr) == 0 {
+		return ""
+	} else {
+		return " LIMIT " + s.limitStr
+	}
+}
+
 func (s *Orm) combinedSql() string {
-	return s.whereSql() + s.orderSql()
+	return s.whereSql() + s.orderSql() + s.limitSql()
 }
 
 func (s *Orm) addToVars(value interface{}) string {

@@ -255,3 +255,12 @@ func TestOrderAndPluck(t *testing.T) {
 		t.Errorf("Should be ordered correctly with multiple orders")
 	}
 }
+
+func TestLimit(t *testing.T) {
+	var users1, users2, users3 []User
+	db.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
+
+	if !(len(users1) == 3 && len(users2) == 5 && len(users3) > 5) {
+		t.Errorf("Limit should works perfectly")
+	}
+}
