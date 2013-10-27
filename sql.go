@@ -132,20 +132,23 @@ func (s *Orm) create(value interface{}) {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
 	s.explain(value, "Create")
-	if s.driver == "postgres" {
-		s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
-	} else {
-		var err error
-		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
-		s.err(err)
-		id, err = s.SqlResult.LastInsertId()
-		s.err(err)
-	}
-	result := reflect.ValueOf(s.model.Data).Elem()
-	result.FieldByName(s.model.PrimaryKey()).SetInt(id)
 
-	s.err(s.model.callMethod("AfterCreate"))
-	s.err(s.model.callMethod("AfterSave"))
+	if len(s.Errors) == 0 {
+		if s.driver == "postgres" {
+			s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
+		} else {
+			var err error
+			s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+			s.err(err)
+			id, err = s.SqlResult.LastInsertId()
+			s.err(err)
+		}
+		result := reflect.ValueOf(s.model.Data).Elem()
+		result.FieldByName(s.model.PrimaryKey()).SetInt(id)
+
+		s.err(s.model.callMethod("AfterCreate"))
+		s.err(s.model.callMethod("AfterSave"))
+	}
 }
 
 func (s *Orm) updateSql(value interface{}) {
@@ -168,7 +171,9 @@ func (s *Orm) updateSql(value interface{}) {
 func (s *Orm) update(value interface{}) {
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
-	s.explain(value, "Update").Exec()
+	if len(s.Errors) == 0 {
+		s.explain(value, "Update").Exec()
+	}
 	s.err(s.model.callMethod("AfterUpdate"))
 	s.err(s.model.callMethod("AfterSave"))
 	return
@@ -181,7 +186,9 @@ func (s *Orm) deleteSql(value interface{}) {
 
 func (s *Orm) delete(value interface{}) {
 	s.err(s.model.callMethod("BeforeDelete"))
-	s.Exec()
+	if len(s.Errors) == 0 {
+		s.Exec()
+	}
 	s.err(s.model.callMethod("AfterDelete"))
 }
 
