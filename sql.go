@@ -50,8 +50,6 @@ func (s *Orm) query(out interface{}) {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
 	}
-	debug(s.Sql)
-	debug(s.SqlVars)
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
@@ -196,7 +194,7 @@ func (s *Orm) buildWhereCondition(clause map[string]interface{}) string {
 
 func (s *Orm) whereSql() (sql string) {
 	var primary_condiation string
-	var and_conditions, or_conditions, not_conditions []string
+	var and_conditions, or_conditions []string
 
 	if !s.model.PrimaryKeyIsEmpty() {
 		primary_condiation = fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue()))
@@ -215,7 +213,7 @@ func (s *Orm) whereSql() (sql string) {
 	}
 
 	and_sql := strings.Join(and_conditions, " AND ")
-	or_sql := strings.Join(not_conditions, " OR ")
+	or_sql := strings.Join(or_conditions, " OR ")
 	combined_conditions := and_sql
 	if len(combined_conditions) > 0 {
 		if len(or_sql) > 0 {
@@ -233,7 +231,6 @@ func (s *Orm) whereSql() (sql string) {
 	} else if len(combined_conditions) > 0 {
 		sql = "WHERE " + combined_conditions
 	}
-	debug(sql)
 	return
 }
 
