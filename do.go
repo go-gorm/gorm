@@ -1,59 +1,182 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
+
 	"strings"
 )
 
-func (s *Orm) validSql(str string) (result bool) {
-	result = regexp.MustCompile("^\\s*[\\w][\\w\\s,.]*[\\w]\\s*$").MatchString(str)
-	if !result {
-		s.err(errors.New(fmt.Sprintf("SQL is not valid, %s", str)))
-	}
-	return
+type Do struct {
+	chain     *Chain
+	db        *sql.DB
+	driver    string
+	TableName string
+	Errors    []error
+
+	model     *Model
+	value     interface{}
+	SqlResult sql.Result
+
+	Sql     string
+	SqlVars []interface{}
+
+	whereClause []map[string]interface{}
+	orClause    []map[string]interface{}
+	selectStr   string
+	orderStrs   []string
+	offsetStr   string
+	limitStr    string
+	operation   string
 }
 
-func (s *Orm) explain(value interface{}, operation string) *Orm {
-	s.Model(value)
+func (s *Do) err(err error) {
+	if err != nil {
+		s.Errors = append(s.Errors, err)
+		s.chain.err(err)
+	}
+}
 
-	switch operation {
-	case "Create":
-		s.createSql(value)
-	case "Update":
-		s.updateSql(value)
-	case "Delete":
-		s.deleteSql(value)
-	case "Query":
-		s.querySql(value)
-	case "CreateTable":
-		s.Sql = s.model.CreateTable()
+func (s *Do) setModel(value interface{}) {
+	s.value = value
+	s.model = &Model{Data: value, driver: s.driver}
+	s.TableName = s.model.TableName()
+}
+
+func (s *Do) addToVars(value interface{}) string {
+	s.SqlVars = append(s.SqlVars, value)
+	return fmt.Sprintf("$%d", len(s.SqlVars))
+}
+
+func (s *Do) Exec(sql ...string) {
+	var err error
+	if len(sql) == 0 {
+		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+	} else {
+		s.SqlResult, err = s.db.Exec(sql[0])
+	}
+	s.err(err)
+}
+
+func (s *Do) save() *Do {
+	if s.model.PrimaryKeyZero() {
+		s.create()
+	} else {
+		s.update()
 	}
 	return s
 }
 
-func (s *Orm) querySql(out interface{}) {
-	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.combinedSql())
-	return
+func (s *Do) prepareCreateSql() *Do {
+	columns, values := s.model.ColumnsAndValues("create")
+
+	var sqls []string
+	for _, value := range values {
+		sqls = append(sqls, s.addToVars(value))
+	}
+
+	s.Sql = fmt.Sprintf(
+		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
+		s.TableName,
+		strings.Join(s.quoteMap(columns), ","),
+		strings.Join(sqls, ","),
+		s.model.ReturningStr(),
+	)
+	return s
 }
 
-func (s *Orm) query(out interface{}) {
+func (s *Do) create() *Do {
+	s.err(s.model.callMethod("BeforeCreate"))
+	s.err(s.model.callMethod("BeforeSave"))
+
+	s.prepareCreateSql()
+
+	if len(s.Errors) == 0 {
+		var id int64
+		if s.driver == "postgres" {
+			s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
+		} else {
+			var err error
+			s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+			s.err(err)
+			id, err = s.SqlResult.LastInsertId()
+			s.err(err)
+		}
+		result := reflect.ValueOf(s.model.Data).Elem()
+		result.FieldByName(s.model.PrimaryKey()).SetInt(id)
+
+		s.err(s.model.callMethod("AfterCreate"))
+		s.err(s.model.callMethod("AfterSave"))
+	}
+
+	return s
+}
+
+func (s *Do) prepareUpdateSql() *Do {
+	columns, values := s.model.ColumnsAndValues("update")
+	var sets []string
+	for index, column := range columns {
+		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
+	}
+
+	s.Sql = fmt.Sprintf(
+		"UPDATE %v SET %v %v",
+		s.TableName,
+		strings.Join(sets, ", "),
+		s.combinedSql(),
+	)
+	return s
+}
+
+func (s *Do) update() *Do {
+	s.err(s.model.callMethod("BeforeUpdate"))
+	s.err(s.model.callMethod("BeforeSave"))
+	if len(s.Errors) == 0 {
+		s.prepareUpdateSql().Exec()
+	}
+	s.err(s.model.callMethod("AfterUpdate"))
+	s.err(s.model.callMethod("AfterSave"))
+	return s
+}
+
+func (s *Do) prepareDeleteSql() *Do {
+	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
+	return s
+}
+
+func (s *Do) delete() *Do {
+	s.err(s.model.callMethod("BeforeDelete"))
+	if len(s.Errors) == 0 {
+		s.prepareDeleteSql().Exec()
+	}
+	s.err(s.model.callMethod("AfterDelete"))
+	return s
+}
+
+func (s *Do) prepareQuerySql() *Do {
+	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.combinedSql())
+	return s
+}
+
+func (s *Do) query() {
 	var (
 		is_slice  bool
 		dest_type reflect.Type
 	)
-	dest_out := reflect.Indirect(reflect.ValueOf(out))
+	dest_out := reflect.Indirect(reflect.ValueOf(s.value))
 
 	if x := dest_out.Kind(); x == reflect.Slice {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
 	}
 
+	s.prepareQuerySql()
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
 	s.err(err)
+
 	if rows.Err() != nil {
 		s.err(rows.Err())
 	}
@@ -65,7 +188,7 @@ func (s *Orm) query(out interface{}) {
 		if is_slice {
 			dest = reflect.New(dest_type).Elem()
 		} else {
-			dest = reflect.ValueOf(out).Elem()
+			dest = reflect.ValueOf(s.value).Elem()
 		}
 
 		columns, _ := rows.Columns()
@@ -85,10 +208,10 @@ func (s *Orm) query(out interface{}) {
 	}
 }
 
-func (s *Orm) pluck(value interface{}) {
+func (s *Do) pluck(value interface{}) *Do {
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 	dest_type := dest_out.Type().Elem()
-
+	s.prepareQuerySql()
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	s.err(err)
 
@@ -106,93 +229,10 @@ func (s *Orm) pluck(value interface{}) {
 			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
 		}
 	}
-	return
+	return s
 }
 
-func (s *Orm) createSql(value interface{}) {
-	columns, values := s.model.ColumnsAndValues("create")
-
-	var sqls []string
-	for _, value := range values {
-		sqls = append(sqls, s.addToVars(value))
-	}
-
-	s.Sql = fmt.Sprintf(
-		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
-		s.TableName,
-		strings.Join(s.quoteMap(columns), ","),
-		strings.Join(sqls, ","),
-		s.model.ReturningStr(),
-	)
-	return
-}
-
-func (s *Orm) create(value interface{}) {
-	var id int64
-	s.err(s.model.callMethod("BeforeCreate"))
-	s.err(s.model.callMethod("BeforeSave"))
-	s.explain(value, "Create")
-
-	if len(s.Errors) == 0 {
-		if s.driver == "postgres" {
-			s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
-		} else {
-			var err error
-			s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
-			s.err(err)
-			id, err = s.SqlResult.LastInsertId()
-			s.err(err)
-		}
-		result := reflect.ValueOf(s.model.Data).Elem()
-		result.FieldByName(s.model.PrimaryKey()).SetInt(id)
-
-		s.err(s.model.callMethod("AfterCreate"))
-		s.err(s.model.callMethod("AfterSave"))
-	}
-}
-
-func (s *Orm) updateSql(value interface{}) {
-	columns, values := s.model.ColumnsAndValues("update")
-	var sets []string
-	for index, column := range columns {
-		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
-	}
-
-	s.Sql = fmt.Sprintf(
-		"UPDATE %v SET %v %v",
-		s.TableName,
-		strings.Join(sets, ", "),
-		s.combinedSql(),
-	)
-
-	return
-}
-
-func (s *Orm) update(value interface{}) {
-	s.err(s.model.callMethod("BeforeUpdate"))
-	s.err(s.model.callMethod("BeforeSave"))
-	if len(s.Errors) == 0 {
-		s.explain(value, "Update").Exec()
-	}
-	s.err(s.model.callMethod("AfterUpdate"))
-	s.err(s.model.callMethod("AfterSave"))
-	return
-}
-
-func (s *Orm) deleteSql(value interface{}) {
-	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
-	return
-}
-
-func (s *Orm) delete(value interface{}) {
-	s.err(s.model.callMethod("BeforeDelete"))
-	if len(s.Errors) == 0 {
-		s.Exec()
-	}
-	s.err(s.model.callMethod("AfterDelete"))
-}
-
-func (s *Orm) buildWhereCondition(clause map[string]interface{}) string {
+func (s *Do) buildWhereCondition(clause map[string]interface{}) string {
 	str := "( " + clause["query"].(string) + " )"
 
 	args := clause["args"].([]interface{})
@@ -218,11 +258,11 @@ func (s *Orm) buildWhereCondition(clause map[string]interface{}) string {
 	return str
 }
 
-func (s *Orm) whereSql() (sql string) {
+func (s *Do) whereSql() (sql string) {
 	var primary_condiation string
 	var and_conditions, or_conditions []string
 
-	if !s.model.PrimaryKeyIsEmpty() {
+	if !s.model.PrimaryKeyZero() {
 		primary_condiation = fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue()))
 	}
 
@@ -256,7 +296,7 @@ func (s *Orm) whereSql() (sql string) {
 	return
 }
 
-func (s *Orm) selectSql() string {
+func (s *Do) selectSql() string {
 	if len(s.selectStr) == 0 {
 		return " * "
 	} else {
@@ -264,7 +304,7 @@ func (s *Orm) selectSql() string {
 	}
 }
 
-func (s *Orm) orderSql() string {
+func (s *Do) orderSql() string {
 	if len(s.orderStrs) == 0 {
 		return ""
 	} else {
@@ -272,7 +312,7 @@ func (s *Orm) orderSql() string {
 	}
 }
 
-func (s *Orm) limitSql() string {
+func (s *Do) limitSql() string {
 	if len(s.limitStr) == 0 {
 		return ""
 	} else {
@@ -280,7 +320,7 @@ func (s *Orm) limitSql() string {
 	}
 }
 
-func (s *Orm) offsetSql() string {
+func (s *Do) offsetSql() string {
 	if len(s.offsetStr) == 0 {
 		return ""
 	} else {
@@ -288,11 +328,11 @@ func (s *Orm) offsetSql() string {
 	}
 }
 
-func (s *Orm) combinedSql() string {
+func (s *Do) combinedSql() string {
 	return s.whereSql() + s.orderSql() + s.limitSql() + s.offsetSql()
 }
 
-func (s *Orm) addToVars(value interface{}) string {
-	s.SqlVars = append(s.SqlVars, value)
-	return fmt.Sprintf("$%d", len(s.SqlVars))
+func (s *Do) createTable() *Do {
+	s.Sql = s.model.CreateTable()
+	return s
 }

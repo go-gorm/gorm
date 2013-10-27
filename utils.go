@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-func (s *Orm) quote(value string) string {
+func (s *Do) quote(value string) string {
 	return "\"" + value + "\""
 }
 
-func (s *Orm) quoteMap(values []string) (results []string) {
+func (s *Do) quoteMap(values []string) (results []string) {
 	for _, value := range values {
 		results = append(results, s.quote(value))
 	}

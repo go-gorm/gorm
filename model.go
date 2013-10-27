@@ -23,11 +23,7 @@ type Field struct {
 	IsPrimaryKey   bool
 }
 
-func (s *Orm) toModel(value interface{}) *Model {
-	return &Model{Data: value, driver: s.driver}
-}
-
-func (m *Model) PrimaryKeyIsEmpty() bool {
+func (m *Model) PrimaryKeyZero() bool {
 	return m.PrimaryKeyValue() == 0
 }
 

@@ -46,6 +46,7 @@ func init() {
 	if orm.Error != nil {
 		panic("No error should raise when create table")
 	}
+
 	db.CreateTable(&Product{})
 
 	var shortForm = "2006-01-02 15:04:05"
@@ -62,8 +63,8 @@ func init() {
 }
 
 func TestFirst(t *testing.T) {
-	var u1, u2 User
-	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
+	// var u1, u2 User
+	// db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
 }
 
 func TestSaveAndFind(t *testing.T) {
