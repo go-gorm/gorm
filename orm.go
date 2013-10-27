@@ -21,7 +21,7 @@ type Orm struct {
 	whereClause []map[string]interface{}
 	selectStr   string
 	orderStrs   []string
-	offsetInt   int
+	offsetStr   string
 	limitStr    string
 	operation   string
 }
@@ -57,9 +57,13 @@ func (s *Orm) Limit(value interface{}) *Orm {
 func (s *Orm) Offset(value interface{}) *Orm {
 	switch value := value.(type) {
 	case string:
-		s.offsetInt, _ = strconv.Atoi(value)
+		s.offsetStr = value
 	case int:
-		s.offsetInt = value
+		if value < 0 {
+			s.offsetStr = ""
+		} else {
+			s.offsetStr = strconv.Itoa(value)
+		}
 	default:
 		s.Error = errors.New("Can' understand the value of Offset, Should be int")
 	}

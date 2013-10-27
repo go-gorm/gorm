@@ -231,8 +231,16 @@ func (s *Orm) limitSql() string {
 	}
 }
 
+func (s *Orm) offsetSql() string {
+	if len(s.offsetStr) == 0 {
+		return ""
+	} else {
+		return " OFFSET " + s.offsetStr
+	}
+}
+
 func (s *Orm) combinedSql() string {
-	return s.whereSql() + s.orderSql() + s.limitSql()
+	return s.whereSql() + s.orderSql() + s.limitSql() + s.offsetSql()
 }
 
 func (s *Orm) addToVars(value interface{}) string {
