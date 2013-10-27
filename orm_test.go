@@ -273,3 +273,11 @@ func TestOffset(t *testing.T) {
 		t.Errorf("Offset should works perfectly")
 	}
 }
+
+func TestWhereOr(t *testing.T) {
+	// var users []User
+	// db.Where("name = ?", "1").Or("name = ?", "3").Find(&users)
+	// if len(users) != 3 {
+	// 	t.Errorf("Should find three users with name 1 and 3")
+	// }
+}

@@ -50,10 +50,11 @@ func (s *Orm) query(out interface{}) {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
 	}
+	debug(s.Sql)
+	debug(s.SqlVars)
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	defer rows.Close()
-
 	s.Error = err
 	if rows.Err() != nil {
 		s.Error = rows.Err()
@@ -167,43 +168,72 @@ func (s *Orm) deleteSql(value interface{}) {
 	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
 	return
 }
+func (s *Orm) buildWhereCondition(clause map[string]interface{}) string {
+	str := "( " + clause["query"].(string) + " )"
 
-func (s *Orm) whereSql() (sql string) {
-	var conditions []string
-	if !s.model.PrimaryKeyIsEmpty() {
-		conditions = append(conditions, fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue())))
-	}
+	args := clause["args"].([]interface{})
+	for _, arg := range args {
+		switch reflect.TypeOf(arg).Kind() {
+		case reflect.Slice: // For where("id in (?)", []int64{1,2})
+			v := reflect.ValueOf(arg)
 
-	if len(s.whereClause) > 0 {
-		for _, clause := range s.whereClause {
-			str := "( " + clause["query"].(string) + " )"
-			args := clause["args"].([]interface{})
-			for _, arg := range args {
-				switch reflect.TypeOf(arg).Kind() {
-				case reflect.Slice: // For where("id in (?)", []int64{1,2})
-					v := reflect.ValueOf(arg)
-
-					var temp_marks []string
-					for i := 0; i < v.Len(); i++ {
-						temp_marks = append(temp_marks, "?")
-					}
-
-					str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
-
-					for i := 0; i < v.Len(); i++ {
-						str = strings.Replace(str, "?", s.addToVars(v.Index(i).Addr().Interface()), 1)
-					}
-				default:
-					str = strings.Replace(str, "?", s.addToVars(arg), 1)
-				}
+			var temp_marks []string
+			for i := 0; i < v.Len(); i++ {
+				temp_marks = append(temp_marks, "?")
 			}
-			conditions = append(conditions, str)
+
+			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
+
+			for i := 0; i < v.Len(); i++ {
+				str = strings.Replace(str, "?", s.addToVars(v.Index(i).Addr().Interface()), 1)
+			}
+		default:
+			str = strings.Replace(str, "?", s.addToVars(arg), 1)
 		}
 	}
+	return str
+}
 
-	if len(conditions) > 0 {
-		sql = "WHERE " + strings.Join(conditions, " AND ")
+func (s *Orm) whereSql() (sql string) {
+	var primary_condiation string
+	var and_conditions, or_conditions, not_conditions []string
+
+	if !s.model.PrimaryKeyIsEmpty() {
+		primary_condiation = fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), s.addToVars(s.model.PrimaryKeyValue()))
 	}
+
+	for _, clause := range s.whereClause {
+		and_conditions = append(and_conditions, s.buildWhereCondition(clause))
+	}
+
+	for _, clause := range s.notClause {
+		and_conditions = append(and_conditions, "!"+s.buildWhereCondition(clause))
+	}
+
+	for _, clause := range s.orClause {
+		or_conditions = append(or_conditions, s.buildWhereCondition(clause))
+	}
+
+	and_sql := strings.Join(and_conditions, " AND ")
+	or_sql := strings.Join(not_conditions, " OR ")
+	combined_conditions := and_sql
+	if len(combined_conditions) > 0 {
+		if len(or_sql) > 0 {
+			combined_conditions = combined_conditions + " OR " + or_sql
+		}
+	} else {
+		combined_conditions = or_sql
+	}
+
+	if len(primary_condiation) > 0 {
+		sql = "WHERE " + primary_condiation
+		if len(combined_conditions) > 0 {
+			sql = sql + " AND ( " + combined_conditions + " )"
+		}
+	} else if len(combined_conditions) > 0 {
+		sql = "WHERE " + combined_conditions
+	}
+	debug(sql)
 	return
 }
 

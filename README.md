@@ -3,7 +3,6 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* Offset
 * Or query
 * Not query
 * Better First method (First(&user, primary_key, where conditions))
