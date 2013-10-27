@@ -35,7 +35,7 @@ func (s *Orm) explain(value interface{}, operation string) *Orm {
 }
 
 func (s *Orm) querySql(out interface{}) {
-	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.whereSql())
+	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.combinedSql())
 	return
 }
 
@@ -92,11 +92,20 @@ func (s *Orm) pluck(value interface{}) {
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	s.Error = err
+
 	defer rows.Close()
 	for rows.Next() {
 		dest := reflect.New(dest_type).Elem().Interface()
 		s.Error = rows.Scan(&dest)
-		dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
+		switch dest.(type) {
+		case []uint8:
+			if dest_type.String() == "string" {
+				dest = string(dest.([]uint8))
+			}
+			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
+		default:
+			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
+		}
 	}
 	return
 }
@@ -143,7 +152,7 @@ func (s *Orm) updateSql(value interface{}) {
 		"UPDATE %v SET %v %v",
 		s.TableName,
 		strings.Join(sets, ", "),
-		s.whereSql(),
+		s.combinedSql(),
 	)
 
 	return
@@ -155,7 +164,7 @@ func (s *Orm) update(value interface{}) {
 }
 
 func (s *Orm) deleteSql(value interface{}) {
-	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.whereSql())
+	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
 	return
 }
 
@@ -204,6 +213,18 @@ func (s *Orm) selectSql() string {
 	} else {
 		return s.selectStr
 	}
+}
+
+func (s *Orm) orderSql() (str string) {
+	if len(s.orderStrs) == 0 {
+		return
+	} else {
+		return " ORDER BY " + strings.Join(s.orderStrs, ",")
+	}
+}
+
+func (s *Orm) combinedSql() string {
+	return s.whereSql() + s.orderSql()
 }
 
 func (s *Orm) addToVars(value interface{}) string {

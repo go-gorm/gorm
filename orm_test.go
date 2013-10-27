@@ -241,7 +241,17 @@ func TestSelect(t *testing.T) {
 	}
 }
 
-func TestPluck(t *testing.T) {
+func TestOrderAndPluck(t *testing.T) {
 	var ages []int64
 	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages)
+	if ages[0] != 26 {
+		t.Errorf("The first age should be 26 because of ordered by")
+	}
+
+	ages = []int64{}
+	var names []string
+	db.Model(&User{}).Order("name").Order("age desc").Pluck("age", &ages).Pluck("name", &names)
+	if !(names[0] == "1" && names[2] == "3" && names[3] == "3" && ages[2] == 24 && ages[3] == 22) {
+		t.Errorf("Should be ordered correctly with multiple orders")
+	}
 }

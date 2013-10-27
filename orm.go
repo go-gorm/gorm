@@ -20,7 +20,7 @@ type Orm struct {
 	driver      string
 	whereClause []map[string]interface{}
 	selectStr   string
-	orderStr    string
+	orderStrs   []string
 	offsetInt   int
 	limitInt    int
 	operation   string
@@ -63,11 +63,11 @@ func (s *Orm) Offset(value interface{}) *Orm {
 }
 
 func (s *Orm) Order(value string, reorder ...bool) *Orm {
-	defer s.validSql(s.orderStr)
+	defer s.validSql(value)
 	if len(reorder) > 0 && reorder[0] {
-		s.orderStr = value
+		s.orderStrs = append([]string{}, value)
 	} else {
-		s.orderStr = s.orderStr + value
+		s.orderStrs = append(s.orderStrs, value)
 	}
 	return s
 }

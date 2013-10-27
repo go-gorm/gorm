@@ -3,7 +3,6 @@
 Yet Another ORM library for Go, aims for developer friendly
 
 ## TODO
-* Order
 * Limit
 * Offset
 * Or query
