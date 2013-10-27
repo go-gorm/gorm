@@ -4,8 +4,17 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 )
+
+func (s *Orm) validSql(str string) (result bool) {
+	result = regexp.MustCompile("^\\s*[\\w][\\w\\s,.]*[\\w]\\s*$").MatchString(str)
+	if !result {
+		s.Error = errors.New(fmt.Sprintf("SQL is not valid, %s", str))
+	}
+	return
+}
 
 func (s *Orm) explain(value interface{}, operation string) *Orm {
 	s.Model(value)

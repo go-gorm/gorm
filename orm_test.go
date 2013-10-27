@@ -234,6 +234,12 @@ func TestSelect(t *testing.T) {
 	if user.Name != "3" {
 		t.Errorf("Should got Name = 3 when searching it, %+v", user.Id)
 	}
+
+	query := db.Where("name = ?", "3").Select("nam;e")
+	if query.Error == nil {
+		t.Errorf("Should got error with invalid select string")
+	}
+	debug(query.Error)
 }
 
 func TestPluck(t *testing.T) {

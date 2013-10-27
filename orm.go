@@ -63,6 +63,7 @@ func (s *Orm) Offset(value interface{}) *Orm {
 }
 
 func (s *Orm) Order(value string, reorder ...bool) *Orm {
+	defer s.validSql(s.orderStr)
 	if len(reorder) > 0 && reorder[0] {
 		s.orderStr = value
 	} else {
@@ -76,12 +77,15 @@ func (s *Orm) Count() int64 {
 }
 
 func (s *Orm) Select(value interface{}) *Orm {
+	defer func() { s.validSql(s.selectStr) }()
+
 	switch value := value.(type) {
 	case string:
 		s.selectStr = value
 	default:
 		s.Error = errors.New("Can' understand the value of Select, Should be string")
 	}
+
 	return s
 }
 
