@@ -92,12 +92,11 @@ func (s *Orm) pluck(value interface{}) {
 
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	s.Error = err
-
 	defer rows.Close()
 	for rows.Next() {
-		dest := reflect.New(dest_type).Elem()
-		s.Error = rows.Scan(dest)
-		dest_out.Set(reflect.Append(dest_out, dest))
+		dest := reflect.New(dest_type).Elem().Interface()
+		s.Error = rows.Scan(&dest)
+		dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
 	}
 	return
 }

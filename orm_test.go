@@ -41,7 +41,7 @@ func init() {
 
 func TestSaveAndFind(t *testing.T) {
 	name := "save_and_find"
-	u := &User{Name: name}
+	u := &User{Name: name, Age: 1}
 	db.Save(u)
 	if u.Id == 0 {
 		t.Errorf("Should have ID after create record")
@@ -59,9 +59,9 @@ func TestSaveAndFind(t *testing.T) {
 
 func TestUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
-	user := User{Name: name}
+	user := User{Name: name, Age: 1}
 	db.Save(&user)
-	db.Save(&User{Name: name2})
+	db.Save(&User{Name: name2, Age: 1})
 
 	if user.Id == 0 {
 		t.Errorf("User Id should exist after create")
@@ -87,9 +87,9 @@ func TestUpdate(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	name, name2 := "delete", "delete2"
-	user := User{Name: name}
+	user := User{Name: name, Age: 1}
 	db.Save(&user)
-	db.Save(&User{Name: name2})
+	db.Save(&User{Name: name2, Age: 1})
 	orm := db.Delete(&user)
 
 	orm = db.Where("name = ?", name).First(&User{})
@@ -105,7 +105,7 @@ func TestDelete(t *testing.T) {
 
 func TestWhere(t *testing.T) {
 	name := "where"
-	db.Save(&User{Name: name})
+	db.Save(&User{Name: name, Age: 1})
 
 	user := &User{}
 	db.Where("Name = ?", name).First(user)
@@ -239,11 +239,9 @@ func TestSelect(t *testing.T) {
 	if query.Error == nil {
 		t.Errorf("Should got error with invalid select string")
 	}
-	debug(query.Error)
 }
 
 func TestPluck(t *testing.T) {
 	var ages []int64
 	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages)
-	debug(ages)
 }
