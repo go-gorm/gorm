@@ -151,6 +151,13 @@ db.CreateTable(&User{})
 
 // Run Raw SQL
 db.Exec("drop table users;")
+
+// Error Handling
+query := db.Where("name = ?", "jinzhu").First(&user)
+query := db.First(&user).Limit(10).Find(&users)
+//// query.Error -> the last error happened
+//// query.Errors -> all errors happened
+//// If an error happened, gorm will stop do insert, update, delete operations
 ```
 
 ## Advanced Usage With Query Chain
