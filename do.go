@@ -58,7 +58,7 @@ func (s *Do) addToVars(value interface{}) string {
 	return fmt.Sprintf("$%d", len(s.SqlVars))
 }
 
-func (s *Do) Exec(sql ...string) {
+func (s *Do) exec(sql ...string) {
 	if s.hasError() {
 		return
 	}
@@ -146,7 +146,7 @@ func (s *Do) update() *Do {
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
 	if len(s.Errors) == 0 {
-		s.prepareUpdateSql().Exec()
+		s.prepareUpdateSql().exec()
 	}
 	s.err(s.model.callMethod("AfterUpdate"))
 	s.err(s.model.callMethod("AfterSave"))
@@ -161,7 +161,7 @@ func (s *Do) prepareDeleteSql() *Do {
 func (s *Do) delete() *Do {
 	s.err(s.model.callMethod("BeforeDelete"))
 	if len(s.Errors) == 0 {
-		s.prepareDeleteSql().Exec()
+		s.prepareDeleteSql().exec()
 	}
 	s.err(s.model.callMethod("AfterDelete"))
 	return s
@@ -254,6 +254,9 @@ func (s *Do) pluck(value interface{}) *Do {
 	s.prepareQuerySql()
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
 	s.err(err)
+	if err != nil {
+		return s
+	}
 
 	defer rows.Close()
 	for rows.Next() {

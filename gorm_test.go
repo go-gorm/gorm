@@ -532,9 +532,14 @@ func TestRunCallbacksAndGetErrors(t *testing.T) {
 	}
 }
 
-func TestNoPanicInAnyCases(t *testing.T) {
+func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
 	var columns []string
-	db.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns)
+	if db.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
+		t.Errorf("Should got error with invalid SQL")
+	}
+	if db.Model(&User{}).Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
+		t.Errorf("Should got error with invalid SQL")
+	}
 
 	type Article struct {
 		Name string
@@ -542,6 +547,21 @@ func TestNoPanicInAnyCases(t *testing.T) {
 	db.Where("sdsd.zaaa = ?", "sd;;;aa").Find(&Article{})
 
 	db.Where("name = ?", "3").Find(&[]User{})
+	var count1, count2 int64
+	db.Model(&User{}).Count(&count1)
+	if count1 <= 0 {
+		t.Errorf("Should find some users")
+	}
+
+	q := db.Where("name = ?", "jinzhu; delete * from users").First(&User{})
+	if q.Error == nil {
+		t.Errorf("Can't find user")
+	}
+
+	db.Model(&User{}).Count(&count2)
+	if count1 != count2 {
+		t.Errorf("Users should not be deleted by invalid SQL")
+	}
+
 	db.Where("unexisting = ?", "3").Find(&[]User{})
-	db.Where("unexisting = ?", "3").First(&User{})
 }

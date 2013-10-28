@@ -170,7 +170,7 @@ func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
 }
 
 func (s *Chain) CreateTable(value interface{}) *Chain {
-	s.do(value).createTable().Exec()
+	s.do(value).createTable().exec()
 	return s
 }
 
