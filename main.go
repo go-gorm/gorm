@@ -1,9 +1,6 @@
 package gorm
 
-import (
-	"database/sql"
-	_ "github.com/lib/pq"
-)
+import "database/sql"
 
 type DB struct {
 	Db     *sql.DB
@@ -13,7 +10,6 @@ type DB struct {
 func Open(driver, source string) (db DB, err error) {
 	db.Db, err = sql.Open(driver, source)
 	db.Driver = driver
-	// SetMaxIdleConns pools
 	return
 }
 

@@ -1,6 +1,8 @@
 package gorm
 
 import (
+	_ "github.com/lib/pq"
+
 	"errors"
 	"reflect"
 	"strconv"
