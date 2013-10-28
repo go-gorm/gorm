@@ -132,11 +132,15 @@ func (s *Chain) Delete(value interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) Update(column string, value string) *Chain {
-	return s
+func (s *Chain) Update(column string, value interface{}) *Chain {
+	return s.Updates(map[string]interface{}{column: value}, true)
 }
 
-func (s *Chain) Updates(values map[string]string) *Chain {
+func (s *Chain) Updates(values map[string]interface{}, ignore_protected_attrs ...interface{}) *Chain {
+	do := s.do(s.value)
+	do.updateAttrs = values
+	do.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0
+	do.update()
 	return s
 }
 

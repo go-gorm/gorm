@@ -9,6 +9,8 @@ Yet Another ORM library for Go, aims for developer friendly
 * Before/After Create/Save/Update/Delete Callbacks
 * Order/Select/Limit/Offset Support
 * Automatically CreatedAt, UpdatedAt
+* Update, Updates Like Rails's update_attribute, update_attributes
+* Dynamically set table name when search, update, delete...
 * Create table from struct
 * Prevent SQL Injection
 * Goroutines friendly
@@ -83,7 +85,6 @@ db.Order("age desc").Find(&users1).Order("age", true).Find(&users2)
 //// users1 -> select * from users order by age desc;
 //// users2 -> select * from users order by age;
 
-
 // Limit
 db.Limit(3).Find(&users)
 //// users -> select * from users limit 3;
@@ -91,7 +92,6 @@ db.Limit(10).Find(&users1).Limit(20).Find(&users2).Limit(-1).Find(&users3)
 //// users1 -> select * from users limit 10;
 //// users2 -> select * from users limit 20;
 //// users3 -> select * from users;
-
 
 // Offset
 //// select * from users offset 3;
@@ -159,6 +159,18 @@ db.Table("deleted_users").Find(&deleted_users)
 db.Table("deleted_users").Find(&deleted_user)
 //// deleted_user -> select * from deleted_users limit 1;
 
+// Update
+db.Table("users").Where(10).Update("name", "hello")
+//// update users set name='hello' where id = 10;
+db.Table("users").Update("name", "hello")
+//// update users set name='hello';
+
+// Updates
+db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age": 18})
+//// update users set name='hello', age=18 where id = 10;
+db.Table("users").Updates(map[string]interface{}{"name": "hello", "age": 18})
+//// update users set name='hello', age=18;
+
 // Run Raw SQL
 db.Exec("drop table users;")
 
@@ -203,7 +215,6 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ```
 
 ## TODO
-* Update, Updates like rails's update_attribute, update_attributes
 * Soft Delete
 * Query with map or struct
 * FindOrInitialize / FindOrCreate

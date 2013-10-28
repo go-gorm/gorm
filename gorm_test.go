@@ -116,7 +116,7 @@ func TestSaveAndFind(t *testing.T) {
 	db.Find(&users)
 }
 
-func TestUpdate(t *testing.T) {
+func TestSaveAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
 	user := User{Name: name, Age: 1}
 	db.Save(&user)
@@ -170,6 +170,10 @@ func TestWhere(t *testing.T) {
 	db.Where("name = ?", name).First(user)
 	if user.Name != name {
 		t.Errorf("Should found out user with name '%v'", name)
+	}
+
+	if db.Where(user.Id).First(&User{}).Error != nil {
+		t.Errorf("Should found out users only with id")
 	}
 
 	user = &User{}
@@ -614,5 +618,67 @@ func TestSetTableDirectly(t *testing.T) {
 	db.First(&user1).Table("deleted_users").First(&user2).Table("").First(&user3)
 	if !((user1.Name != user2.Name) && (user1.Name == user3.Name)) {
 		t.Errorf("Set Table Chain Should works well")
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	product1 := Product{Code: "123"}
+	product2 := Product{Code: "234"}
+	db.Save(&product1).Save(&product2).Update("code", "456")
+
+	if db.First(&Product{}, "code = '123'").Error != nil {
+		t.Errorf("Product 123's code should not be changed!")
+	}
+
+	if db.First(&Product{}, "code = '234'").Error == nil {
+		t.Errorf("Product 234's code should be changed to 456!")
+	}
+
+	if db.First(&Product{}, "code = '456'").Error != nil {
+		t.Errorf("Product 234's code should be 456 now!")
+	}
+
+	db.Table("products").Where("code in (?)", []string{"123"}).Update("code", "789")
+	if db.First(&Product{}, "code = '123'").Error == nil {
+		t.Errorf("Product 123's code should be changed to 789")
+	}
+
+	if db.First(&Product{}, "code = '456'").Error != nil {
+		t.Errorf("Product 456's code should not be changed to 789")
+	}
+
+	if db.First(&Product{}, "code = '789'").Error != nil {
+		t.Errorf("We should have Product 789")
+	}
+}
+
+func TestUpdates(t *testing.T) {
+	product1 := Product{Code: "abc", Price: 10}
+	product2 := Product{Code: "cde", Price: 20}
+	db.Save(&product1).Save(&product2).Updates(map[string]interface{}{"code": "edf", "price": 100})
+
+	if db.First(&Product{}, "code = 'abc' and price = 10").Error != nil {
+		t.Errorf("Product abc should not be updated!")
+	}
+
+	if db.First(&Product{}, "code = 'cde'").Error == nil {
+		t.Errorf("Product cde should be renamed to edf!")
+	}
+
+	if db.First(&Product{}, "code = 'edf' and price = 100").Error != nil {
+		t.Errorf("We should have product edf!")
+	}
+
+	db.Table("products").Where("code in (?)", []string{"abc"}).Updates(map[string]interface{}{"code": "fgh", "price": 200})
+	if db.First(&Product{}, "code = 'abc'").Error == nil {
+		t.Errorf("Product abc's code should be changed to fgh")
+	}
+
+	if db.First(&Product{}, "code = 'edf' and price = ?", 100).Error != nil {
+		t.Errorf("Product cde's code should not be changed to fgh")
+	}
+
+	if db.First(&Product{}, "code = 'fgh' and price = 200").Error != nil {
+		t.Errorf("We should have Product fgh")
 	}
 }

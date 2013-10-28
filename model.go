@@ -96,14 +96,14 @@ func (m *Model) fields(operation string) (fields []Field) {
 	return
 }
 
-func (m *Model) columnsAndValues(operation string) (columns []string, values []interface{}) {
+func (m *Model) columnsAndValues(operation string) map[string]interface{} {
+	results := map[string]interface{}{}
 	for _, field := range m.fields(operation) {
 		if !field.IsPrimaryKey {
-			columns = append(columns, field.DbName)
-			values = append(values, field.Value)
+			results[field.DbName] = field.Value
 		}
 	}
-	return
+	return results
 }
 
 func (m *Model) tableName() (str string, err error) {
@@ -138,6 +138,10 @@ func (m *Model) tableName() (str string, err error) {
 }
 
 func (m *Model) callMethod(method string) error {
+	if m.Data == nil {
+		return nil
+	}
+
 	fm := reflect.ValueOf(m.Data).MethodByName(method)
 	if fm.IsValid() {
 		v := fm.Call([]reflect.Value{})

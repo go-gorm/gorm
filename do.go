@@ -33,6 +33,9 @@ type Do struct {
 	offsetStr   string
 	limitStr    string
 	operation   string
+
+	updateAttrs          map[string]interface{}
+	ignoreProtectedAttrs bool
 }
 
 func (s *Do) tableName() string {
@@ -93,10 +96,10 @@ func (s *Do) save() *Do {
 }
 
 func (s *Do) prepareCreateSql() *Do {
-	columns, values := s.model.columnsAndValues("create")
+	var sqls, columns []string
 
-	var sqls []string
-	for _, value := range values {
+	for key, value := range s.model.columnsAndValues("create") {
+		columns = append(columns, key)
 		sqls = append(sqls, s.addToVars(value))
 	}
 
@@ -138,16 +141,20 @@ func (s *Do) create() *Do {
 }
 
 func (s *Do) prepareUpdateSql() *Do {
-	columns, values := s.model.columnsAndValues("update")
-	var sets []string
-	for index, column := range columns {
-		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
+	update_attrs := s.updateAttrs
+	if len(update_attrs) == 0 {
+		update_attrs = s.model.columnsAndValues("update")
+	}
+
+	var sqls []string
+	for key, value := range update_attrs {
+		sqls = append(sqls, fmt.Sprintf("%v = %v", s.quote(key), s.addToVars(value)))
 	}
 
 	s.Sql = fmt.Sprintf(
 		"UPDATE %v SET %v %v",
 		s.tableName(),
-		strings.Join(sets, ", "),
+		strings.Join(sqls, ", "),
 		s.combinedSql(),
 	)
 	return s
