@@ -3,22 +3,22 @@ package gorm
 import "database/sql"
 
 type DB struct {
-	Db     *sql.DB
-	Driver string
+	db     *sql.DB
+	driver string
 }
 
 func Open(driver, source string) (db DB, err error) {
-	db.Db, err = sql.Open(driver, source)
-	db.Driver = driver
+	db.db, err = sql.Open(driver, source)
+	db.driver = driver
 	return
 }
 
 func (s *DB) SetPool(n int) {
-	s.Db.SetMaxIdleConns(n)
+	s.db.SetMaxIdleConns(n)
 }
 
 func (s *DB) buildORM() *Chain {
-	return &Chain{db: s.Db, driver: s.Driver}
+	return &Chain{db: s.db, driver: s.driver}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
