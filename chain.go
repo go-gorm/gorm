@@ -26,11 +26,12 @@ type Chain struct {
 	specifiedTableName string
 }
 
-func (s *Chain) err(err error) {
+func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.Error = err
 	}
+	return err
 }
 
 func (s *Chain) do(value interface{}) *Do {
@@ -136,18 +137,16 @@ func (s *Chain) Update(column string, value interface{}) *Chain {
 	return s.Updates(map[string]interface{}{column: value}, true)
 }
 
-func (s *Chain) Updates(values map[string]interface{}, ignore_protected_attrs ...interface{}) *Chain {
+func (s *Chain) Updates(values map[string]interface{}, ignore_protected_attrs ...bool) *Chain {
 	do := s.do(s.value)
 	do.updateAttrs = values
-	do.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0
+	do.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
 	do.update()
 	return s
 }
 
 func (s *Chain) Exec(sql string) *Chain {
-	var err error
-	_, err = s.db.Exec(sql)
-	s.err(err)
+	s.do(nil).exec(sql)
 	return s
 }
 
@@ -164,9 +163,7 @@ func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
 }
 
 func (s *Chain) Pluck(column string, value interface{}) (orm *Chain) {
-	do := s.do(s.value)
-	do.selectStr = column
-	do.pluck(value)
+	s.do(s.value).pluck(column, value)
 	return s
 }
 

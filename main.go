@@ -17,58 +17,58 @@ func (s *DB) SetPool(n int) {
 	s.db.SetMaxIdleConns(n)
 }
 
-func (s *DB) buildORM() *Chain {
+func (s *DB) buildChain() *Chain {
 	return &Chain{db: s.db, driver: s.driver}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
-	return s.buildORM().Where(querystring, args...)
+	return s.buildChain().Where(querystring, args...)
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *Chain {
-	return s.buildORM().First(out, where...)
+	return s.buildChain().First(out, where...)
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *Chain {
-	return s.buildORM().Find(out, where...)
+	return s.buildChain().Find(out, where...)
 }
 
 func (s *DB) Limit(value interface{}) *Chain {
-	return s.buildORM().Limit(value)
+	return s.buildChain().Limit(value)
 }
 
 func (s *DB) Offset(value interface{}) *Chain {
-	return s.buildORM().Offset(value)
+	return s.buildChain().Offset(value)
 }
 
 func (s *DB) Order(value string, reorder ...bool) *Chain {
-	return s.buildORM().Order(value, reorder...)
+	return s.buildChain().Order(value, reorder...)
 }
 
 func (s *DB) Select(value interface{}) *Chain {
-	return s.buildORM().Select(value)
+	return s.buildChain().Select(value)
 }
 
 func (s *DB) Save(value interface{}) *Chain {
-	return s.buildORM().Save(value)
+	return s.buildChain().Save(value)
 }
 
 func (s *DB) Delete(value interface{}) *Chain {
-	return s.buildORM().Delete(value)
+	return s.buildChain().Delete(value)
 }
 
 func (s *DB) Exec(sql string) *Chain {
-	return s.buildORM().Exec(sql)
+	return s.buildChain().Exec(sql)
 }
 
 func (s *DB) Model(value interface{}) *Chain {
-	return s.buildORM().Model(value)
+	return s.buildChain().Model(value)
 }
 
 func (s *DB) Table(name string) *Chain {
-	return s.buildORM().Table(name)
+	return s.buildChain().Table(name)
 }
 
 func (s *DB) CreateTable(value interface{}) *Chain {
-	return s.buildORM().CreateTable(value)
+	return s.buildChain().CreateTable(value)
 }

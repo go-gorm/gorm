@@ -21,10 +21,9 @@ type Do struct {
 
 	model     *Model
 	value     interface{}
-	SqlResult sql.Result
-
-	Sql     string
-	SqlVars []interface{}
+	sqlResult sql.Result
+	sql       string
+	sqlVars   []interface{}
 
 	whereClause []map[string]interface{}
 	orClause    []map[string]interface{}
@@ -32,7 +31,6 @@ type Do struct {
 	orderStrs   []string
 	offsetStr   string
 	limitStr    string
-	operation   string
 
 	updateAttrs          map[string]interface{}
 	ignoreProtectedAttrs bool
@@ -40,17 +38,21 @@ type Do struct {
 
 func (s *Do) tableName() string {
 	if s.specifiedTableName == "" {
+		var err error
+		s.guessedTableName, err = s.model.tableName()
+		s.err(err)
 		return s.guessedTableName
 	} else {
 		return s.specifiedTableName
 	}
 }
 
-func (s *Do) err(err error) {
+func (s *Do) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.chain.err(err)
 	}
+	return err
 }
 
 func (s *Do) hasError() bool {
@@ -58,18 +60,13 @@ func (s *Do) hasError() bool {
 }
 
 func (s *Do) setModel(value interface{}) {
+	s.model = &Model{data: value, driver: s.driver}
 	s.value = value
-	s.model = &Model{Data: value, driver: s.driver}
-	var err error
-	if s.specifiedTableName == "" {
-		s.guessedTableName, err = s.model.tableName()
-		s.err(err)
-	}
 }
 
 func (s *Do) addToVars(value interface{}) string {
-	s.SqlVars = append(s.SqlVars, value)
-	return fmt.Sprintf("$%d", len(s.SqlVars))
+	s.sqlVars = append(s.sqlVars, value)
+	return fmt.Sprintf("$%d", len(s.sqlVars))
 }
 
 func (s *Do) exec(sql ...string) {
@@ -79,23 +76,23 @@ func (s *Do) exec(sql ...string) {
 
 	var err error
 	if len(sql) == 0 {
-		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+		s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
 	} else {
-		s.SqlResult, err = s.db.Exec(sql[0])
+		s.sqlResult, err = s.db.Exec(sql[0])
 	}
 	s.err(err)
 }
 
-func (s *Do) save() *Do {
+func (s *Do) save() {
 	if s.model.primaryKeyZero() {
 		s.create()
 	} else {
 		s.update()
 	}
-	return s
+	return
 }
 
-func (s *Do) prepareCreateSql() *Do {
+func (s *Do) prepareCreateSql() {
 	var sqls, columns []string
 
 	for key, value := range s.model.columnsAndValues("create") {
@@ -103,44 +100,47 @@ func (s *Do) prepareCreateSql() *Do {
 		sqls = append(sqls, s.addToVars(value))
 	}
 
-	s.Sql = fmt.Sprintf(
+	s.sql = fmt.Sprintf(
 		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
 		s.tableName(),
-		strings.Join(s.quoteMap(columns), ","),
+		strings.Join(columns, ","),
 		strings.Join(sqls, ","),
 		s.model.returningStr(),
 	)
-	return s
+	return
 }
 
-func (s *Do) create() *Do {
+func (s *Do) create() {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
 	s.prepareCreateSql()
 
-	if len(s.Errors) == 0 {
+	if !s.hasError() {
 		var id int64
 		if s.driver == "postgres" {
-			s.err(s.db.QueryRow(s.Sql, s.SqlVars...).Scan(&id))
+			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
 		} else {
 			var err error
-			s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
+			s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
 			s.err(err)
-			id, err = s.SqlResult.LastInsertId()
+			id, err = s.sqlResult.LastInsertId()
 			s.err(err)
 		}
-		result := reflect.ValueOf(s.model.Data).Elem()
-		result.FieldByName(s.model.primaryKey()).SetInt(id)
 
-		s.err(s.model.callMethod("AfterCreate"))
-		s.err(s.model.callMethod("AfterSave"))
+		if !s.hasError() {
+			result := reflect.ValueOf(s.value).Elem()
+			result.FieldByName(s.model.primaryKey()).SetInt(id)
+
+			s.err(s.model.callMethod("AfterCreate"))
+			s.err(s.model.callMethod("AfterSave"))
+		}
 	}
 
-	return s
+	return
 }
 
-func (s *Do) prepareUpdateSql() *Do {
+func (s *Do) prepareUpdateSql() {
 	update_attrs := s.updateAttrs
 	if len(update_attrs) == 0 {
 		update_attrs = s.model.columnsAndValues("update")
@@ -148,46 +148,55 @@ func (s *Do) prepareUpdateSql() *Do {
 
 	var sqls []string
 	for key, value := range update_attrs {
-		sqls = append(sqls, fmt.Sprintf("%v = %v", s.quote(key), s.addToVars(value)))
+		sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
 	}
 
-	s.Sql = fmt.Sprintf(
+	s.sql = fmt.Sprintf(
 		"UPDATE %v SET %v %v",
 		s.tableName(),
 		strings.Join(sqls, ", "),
 		s.combinedSql(),
 	)
-	return s
+	return
 }
 
-func (s *Do) update() *Do {
+func (s *Do) update() {
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
-	if len(s.Errors) == 0 {
-		s.prepareUpdateSql().exec()
+
+	s.prepareUpdateSql()
+	if !s.hasError() {
+		s.exec()
+
+		if !s.hasError() {
+			s.err(s.model.callMethod("AfterUpdate"))
+			s.err(s.model.callMethod("AfterSave"))
+		}
 	}
-	s.err(s.model.callMethod("AfterUpdate"))
-	s.err(s.model.callMethod("AfterSave"))
-	return s
+	return
 }
 
-func (s *Do) prepareDeleteSql() *Do {
-	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.tableName(), s.combinedSql())
-	return s
+func (s *Do) prepareDeleteSql() {
+	s.sql = fmt.Sprintf("DELETE FROM %v %v", s.tableName(), s.combinedSql())
+	return
 }
 
-func (s *Do) delete() *Do {
+func (s *Do) delete() {
 	s.err(s.model.callMethod("BeforeDelete"))
-	if len(s.Errors) == 0 {
-		s.prepareDeleteSql().exec()
+
+	s.prepareDeleteSql()
+	if !s.hasError() {
+		s.exec()
+		if !s.hasError() {
+			s.err(s.model.callMethod("AfterDelete"))
+		}
 	}
-	s.err(s.model.callMethod("AfterDelete"))
-	return s
+	return
 }
 
-func (s *Do) prepareQuerySql() *Do {
-	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.tableName(), s.combinedSql())
-	return s
+func (s *Do) prepareQuerySql() {
+	s.sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.tableName(), s.combinedSql())
+	return
 }
 
 func (s *Do) query(where ...interface{}) {
@@ -207,47 +216,46 @@ func (s *Do) query(where ...interface{}) {
 	}
 
 	s.prepareQuerySql()
-
-	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	s.err(err)
-
-	if err != nil {
-		return
-	}
-
-	defer rows.Close()
-
-	if rows.Err() != nil {
-		s.err(rows.Err())
-	}
-
-	counts := 0
-	for rows.Next() {
-		counts += 1
-		var dest reflect.Value
-		if is_slice {
-			dest = reflect.New(dest_type).Elem()
-		} else {
-			dest = reflect.ValueOf(s.value).Elem()
+	if !s.hasError() {
+		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		if s.err(err) != nil {
+			return
 		}
 
-		columns, _ := rows.Columns()
-		var values []interface{}
-		for _, value := range columns {
-			field := dest.FieldByName(snakeToUpperCamel(value))
-			if field.IsValid() {
-				values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
+		defer rows.Close()
+
+		if rows.Err() != nil {
+			s.err(rows.Err())
+		}
+
+		counts := 0
+		for rows.Next() {
+			counts += 1
+			var dest reflect.Value
+			if is_slice {
+				dest = reflect.New(dest_type).Elem()
+			} else {
+				dest = reflect.ValueOf(s.value).Elem()
+			}
+
+			columns, _ := rows.Columns()
+			var values []interface{}
+			for _, value := range columns {
+				field := dest.FieldByName(snakeToUpperCamel(value))
+				if field.IsValid() {
+					values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
+				}
+			}
+			s.err(rows.Scan(values...))
+
+			if is_slice {
+				dest_out.Set(reflect.Append(dest_out, dest))
 			}
 		}
-		s.err(rows.Scan(values...))
 
-		if is_slice {
-			dest_out.Set(reflect.Append(dest_out, dest))
+		if (counts == 0) && !is_slice {
+			s.err(errors.New("Record not found!"))
 		}
-	}
-
-	if (counts == 0) && !is_slice {
-		s.err(errors.New("Record not found!"))
 	}
 }
 
@@ -255,54 +263,60 @@ func (s *Do) count(value interface{}) {
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 
 	s.prepareQuerySql()
-	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	s.err(err)
-	for rows.Next() {
-		var dest int64
-		s.err(rows.Scan(&dest))
-		dest_out.Set(reflect.ValueOf(dest))
+	if !s.hasError() {
+		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		if s.err(err) != nil {
+			return
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			var dest int64
+			if s.err(rows.Scan(&dest)) == nil {
+				dest_out.Set(reflect.ValueOf(dest))
+			}
+		}
 	}
 	return
 }
 
-func (s *Do) pluck(value interface{}) *Do {
-	if s.hasError() {
-		return s
-	}
-
+func (s *Do) pluck(column string, value interface{}) {
+	s.selectStr = column
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 	dest_type := dest_out.Type().Elem()
 	s.prepareQuerySql()
-	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	s.err(err)
-	if err != nil {
-		return s
-	}
 
-	defer rows.Close()
-	for rows.Next() {
-		dest := reflect.New(dest_type).Elem().Interface()
-		s.err(rows.Scan(&dest))
-		switch dest.(type) {
-		case []uint8:
-			if dest_type.String() == "string" {
-				dest = string(dest.([]uint8))
+	if !s.hasError() {
+		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		if s.err(err) != nil {
+			return
+		}
+
+		defer rows.Close()
+		for rows.Next() {
+			dest := reflect.New(dest_type).Elem().Interface()
+			s.err(rows.Scan(&dest))
+			switch dest.(type) {
+			case []uint8:
+				if dest_type.String() == "string" {
+					dest = string(dest.([]uint8))
+				}
+				dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
+			default:
+				dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
 			}
-			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
-		default:
-			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
 		}
 	}
-	return s
+	return
 }
 
-func (s *Do) where(querystring interface{}, args ...interface{}) *Do {
+func (s *Do) where(querystring interface{}, args ...interface{}) {
 	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
-	return s
+	return
 }
 
 func (s *Do) primaryCondiation(value interface{}) string {
-	return fmt.Sprintf("(%v = %v)", s.quote(s.model.primaryKeyDb()), value)
+	return fmt.Sprintf("(%v = %v)", s.model.primaryKeyDb(), value)
 }
 
 func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
@@ -324,17 +338,11 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		switch reflect.TypeOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			v := reflect.ValueOf(arg)
-
 			var temp_marks []string
 			for i := 0; i < v.Len(); i++ {
-				temp_marks = append(temp_marks, "?")
+				temp_marks = append(temp_marks, s.addToVars(v.Index(i).Addr().Interface()))
 			}
-
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
-
-			for i := 0; i < v.Len(); i++ {
-				str = strings.Replace(str, "?", s.addToVars(v.Index(i).Addr().Interface()), 1)
-			}
 		default:
 			str = strings.Replace(str, "?", s.addToVars(arg), 1)
 		}
@@ -421,7 +429,7 @@ func (s *Do) createTable() *Do {
 	for _, field := range s.model.fields("null") {
 		sqls = append(sqls, field.DbName+" "+field.SqlType)
 	}
-	s.Sql = fmt.Sprintf(
+	s.sql = fmt.Sprintf(
 		"CREATE TABLE \"%v\" (%v)",
 		s.tableName(),
 		strings.Join(sqls, ","),

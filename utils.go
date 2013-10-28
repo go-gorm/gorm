@@ -7,17 +7,6 @@ import (
 	"strings"
 )
 
-func (s *Do) quote(value string) string {
-	return "\"" + value + "\""
-}
-
-func (s *Do) quoteMap(values []string) (results []string) {
-	for _, value := range values {
-		results = append(results, s.quote(value))
-	}
-	return
-}
-
 func toSnake(s string) string {
 	buf := bytes.NewBufferString("")
 	for i, v := range s {

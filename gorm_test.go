@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"errors"
+	"fmt"
 	_ "github.com/lib/pq"
 	"reflect"
 	"strconv"
@@ -41,15 +42,23 @@ var (
 )
 
 func init() {
-	db, _ = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	var err error
+	db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))
+	}
 	db.SetPool(10)
 
-	db.Exec("drop table users;")
+	err = db.Exec("drop table users;").Error
+	if err != nil {
+		fmt.Printf("Got error when try to delete table uses, %+v\n", err)
+	}
+
 	db.Exec("drop table products;")
 
 	orm := db.CreateTable(&User{})
 	if orm.Error != nil {
-		panic("No error should raise when create table")
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", orm.Error))
 	}
 
 	db.CreateTable(&Product{})

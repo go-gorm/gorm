@@ -217,10 +217,11 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ## TODO
 * Soft Delete
 * Query with map or struct
+* SubStruct
+* Index, Unique, Valiations
+* Auto Migration
 * FindOrInitialize / FindOrCreate
 * SQL Log
-* Auto Migration
-* Index, Unique, Valiations
 * SQL Query with goroutines
 * Only tested with postgres, confirm works with other database adaptors
 

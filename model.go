@@ -10,7 +10,7 @@ import (
 )
 
 type Model struct {
-	Data   interface{}
+	data   interface{}
 	driver string
 }
 
@@ -25,23 +25,23 @@ type Field struct {
 }
 
 func (m *Model) primaryKeyZero() bool {
-	return m.primaryKeyValue() == 0
+	return m.primaryKeyValue() <= 0
 }
 
 func (m *Model) primaryKeyValue() int64 {
-	if m.Data == nil {
-		return 0
+	if m.data == nil {
+		return -1
 	}
 
-	t := reflect.TypeOf(m.Data).Elem()
+	t := reflect.TypeOf(m.data).Elem()
 	switch t.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
 		return 0
 	default:
-		result := reflect.ValueOf(m.Data).Elem()
+		result := reflect.ValueOf(m.data).Elem()
 		value := result.FieldByName(m.primaryKey())
 		if value.IsValid() {
-			return result.FieldByName(m.primaryKey()).Interface().(int64)
+			return value.Interface().(int64)
 		} else {
 			return 0
 		}
@@ -57,7 +57,7 @@ func (m *Model) primaryKeyDb() string {
 }
 
 func (m *Model) fields(operation string) (fields []Field) {
-	typ := reflect.TypeOf(m.Data).Elem()
+	typ := reflect.TypeOf(m.data).Elem()
 
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
@@ -68,18 +68,16 @@ func (m *Model) fields(operation string) (fields []Field) {
 			field.IsPrimaryKey = m.primaryKeyDb() == field.DbName
 			field.AutoCreateTime = "created_at" == field.DbName
 			field.AutoUpdateTime = "updated_at" == field.DbName
-			value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
+			value := reflect.ValueOf(m.data).Elem().FieldByName(p.Name)
 
 			switch operation {
 			case "create":
 				if (field.AutoCreateTime || field.AutoUpdateTime) && value.Interface().(time.Time).IsZero() {
-					value = reflect.ValueOf(time.Now())
-					reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Set(value)
+					value.Set(reflect.ValueOf(time.Now()))
 				}
 			case "update":
 				if field.AutoUpdateTime {
-					value = reflect.ValueOf(time.Now())
-					reflect.ValueOf(m.Data).Elem().FieldByName(p.Name).Set(value)
+					value.Set(reflect.ValueOf(time.Now()))
 				}
 			default:
 			}
@@ -107,12 +105,12 @@ func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 }
 
 func (m *Model) tableName() (str string, err error) {
-	if m.Data == nil {
+	if m.data == nil {
 		err = errors.New("Model haven't been set")
 		return
 	}
 
-	t := reflect.TypeOf(m.Data)
+	t := reflect.TypeOf(m.data)
 	for {
 		c := false
 		switch t.Kind() {
@@ -138,11 +136,11 @@ func (m *Model) tableName() (str string, err error) {
 }
 
 func (m *Model) callMethod(method string) error {
-	if m.Data == nil {
+	if m.data == nil {
 		return nil
 	}
 
-	fm := reflect.ValueOf(m.Data).MethodByName(method)
+	fm := reflect.ValueOf(m.data).MethodByName(method)
 	if fm.IsValid() {
 		v := fm.Call([]reflect.Value{})
 		if len(v) > 0 {
@@ -154,13 +152,13 @@ func (m *Model) callMethod(method string) error {
 	return nil
 }
 
-func (model *Model) missingColumns() (results []string) {
-	return
-}
-
 func (model *Model) returningStr() (str string) {
 	if model.driver == "postgres" {
 		str = fmt.Sprintf("RETURNING \"%v\"", model.primaryKeyDb())
 	}
+	return
+}
+
+func (model *Model) missingColumns() (results []string) {
 	return
 }
