@@ -1,10 +1,11 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
-	"strings"
+
 	"time"
 )
 
@@ -101,7 +102,12 @@ func (m *Model) ColumnsAndValues(operation string) (columns []string, values []i
 	return
 }
 
-func (m *Model) TableName() string {
+func (m *Model) TableName() (str string, err error) {
+	if m.Data == nil {
+		err = errors.New("Model haven't been set")
+		return
+	}
+
 	t := reflect.TypeOf(m.Data)
 	for {
 		c := false
@@ -115,7 +121,8 @@ func (m *Model) TableName() string {
 		}
 	}
 	reg, _ := regexp.Compile("s*$")
-	return reg.ReplaceAllString(toSnake(t.Name()), "s")
+	str = reg.ReplaceAllString(toSnake(t.Name()), "s")
+	return
 }
 
 func (m *Model) callMethod(method string) error {
@@ -132,20 +139,6 @@ func (m *Model) callMethod(method string) error {
 }
 
 func (model *Model) MissingColumns() (results []string) {
-	return
-}
-
-func (model *Model) CreateTable() (sql string) {
-	var sqls []string
-	for _, field := range model.Fields("null") {
-		sqls = append(sqls, field.DbName+" "+field.SqlType)
-	}
-
-	sql = fmt.Sprintf(
-		"CREATE TABLE \"%v\" (%v)",
-		model.TableName(),
-		strings.Join(sqls, ","),
-	)
 	return
 }
 

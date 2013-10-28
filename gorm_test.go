@@ -531,3 +531,17 @@ func TestRunCallbacksAndGetErrors(t *testing.T) {
 		t.Errorf("Should not delete record due to errors happened in callback")
 	}
 }
+
+func TestNoPanicInAnyCases(t *testing.T) {
+	var columns []string
+	db.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns)
+
+	type Article struct {
+		Name string
+	}
+	db.Where("sdsd.zaaa = ?", "sd;;;aa").Find(&Article{})
+
+	db.Where("name = ?", "3").Find(&[]User{})
+	db.Where("unexisting = ?", "3").Find(&[]User{})
+	db.Where("unexisting = ?", "3").First(&User{})
+}

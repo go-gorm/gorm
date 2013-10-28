@@ -41,10 +41,16 @@ func (s *Do) err(err error) {
 	}
 }
 
+func (s *Do) hasError() bool {
+	return len(s.Errors) > 0
+}
+
 func (s *Do) setModel(value interface{}) {
 	s.value = value
 	s.model = &Model{Data: value, driver: s.driver}
-	s.TableName = s.model.TableName()
+	var err error
+	s.TableName, err = s.model.TableName()
+	s.err(err)
 }
 
 func (s *Do) addToVars(value interface{}) string {
@@ -53,6 +59,10 @@ func (s *Do) addToVars(value interface{}) string {
 }
 
 func (s *Do) Exec(sql ...string) {
+	if s.hasError() {
+		return
+	}
+
 	var err error
 	if len(sql) == 0 {
 		s.SqlResult, err = s.db.Exec(s.Sql, s.SqlVars...)
@@ -179,9 +189,16 @@ func (s *Do) query(where ...interface{}) {
 	}
 
 	s.prepareQuerySql()
+
 	rows, err := s.db.Query(s.Sql, s.SqlVars...)
-	defer rows.Close()
 	s.err(err)
+
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
 	if rows.Err() != nil {
 		s.err(rows.Err())
 	}
@@ -228,6 +245,10 @@ func (s *Do) count(value interface{}) {
 }
 
 func (s *Do) pluck(value interface{}) *Do {
+	if s.hasError() {
+		return s
+	}
+
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 	dest_type := dest_out.Type().Elem()
 	s.prepareQuerySql()
@@ -372,6 +393,15 @@ func (s *Do) combinedSql() string {
 }
 
 func (s *Do) createTable() *Do {
-	s.Sql = s.model.CreateTable()
+	var sqls []string
+	for _, field := range s.model.Fields("null") {
+		sqls = append(sqls, field.DbName+" "+field.SqlType)
+	}
+
+	s.Sql = fmt.Sprintf(
+		"CREATE TABLE \"%v\" (%v)",
+		s.TableName,
+		strings.Join(sqls, ","),
+	)
 	return s
 }
