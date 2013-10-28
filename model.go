@@ -120,8 +120,16 @@ func (m *Model) TableName() (str string, err error) {
 			break
 		}
 	}
-	reg, _ := regexp.Compile("s*$")
-	str = reg.ReplaceAllString(toSnake(t.Name()), "s")
+
+	str = toSnake(t.Name())
+
+	pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
+	for key, value := range pluralMap {
+		reg := regexp.MustCompile(key + "$")
+		if reg.MatchString(str) {
+			return reg.ReplaceAllString(str, value), err
+		}
+	}
 	return
 }
 
