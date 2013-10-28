@@ -40,6 +40,8 @@ var (
 
 func init() {
 	db, _ = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	db.SetPool(10)
+
 	db.Exec("drop table users;")
 	db.Exec("drop table products;")
 

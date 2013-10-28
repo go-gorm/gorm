@@ -2,6 +2,18 @@
 
 Yet Another ORM library for Go, aims for developer friendly
 
+## Overview
+
+* CURD
+* Chainable API
+* Before/After Create/Save/Update/Delete Callbacks
+* Order/Select/Limit/Offset Support
+* Automatically CreatedAt, UpdatedAt
+* Create table from struct
+* Prevent SQL Injection
+* Goroutines friendly
+* Database Pool
+
 ## Basic Usage
 
 ```go
@@ -16,8 +28,11 @@ type User struct {
 	UpdatedAt time.Time
 }
 
+// Set database pool
+db.SetPool(10)
+
 // Create
-user = User{Name: "jinzhu", Age: 18, Birthday: time.Now())
+user = User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
 db.Save(&user)
 
 // Update

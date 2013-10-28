@@ -17,6 +17,10 @@ func Open(driver, source string) (db DB, err error) {
 	return
 }
 
+func (s *DB) SetPool(n int) {
+	s.Db.SetMaxIdleConns(n)
+}
+
 func (s *DB) buildORM() *Chain {
 	return &Chain{db: s.Db, driver: s.Driver}
 }
