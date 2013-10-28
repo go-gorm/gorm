@@ -163,19 +163,31 @@ func TestWhere(t *testing.T) {
 	db.Save(&User{Name: name, Age: 1})
 
 	user := &User{}
-	db.Where("Name = ?", name).First(user)
+	db.Where("name = ?", name).First(user)
 	if user.Name != name {
 		t.Errorf("Should found out user with name '%v'", name)
 	}
 
 	user = &User{}
-	orm := db.Where("Name = ?", "noexisting-user").First(user)
+	orm := db.Where("name LIKE ?", "%nonono%").First(user)
+	if orm.Error == nil {
+		t.Errorf("Should return error when searching for none existing record, %+v", user)
+	}
+
+	user = &User{}
+	orm = db.Where("name LIKE ?", "%whe%").First(user)
+	if orm.Error != nil {
+		t.Errorf("Should not return error when searching for existing record, %+v", user)
+	}
+
+	user = &User{}
+	orm = db.Where("name = ?", "noexisting-user").First(user)
 	if orm.Error == nil {
 		t.Errorf("Should return error when looking for none existing record, %+v", user)
 	}
 
 	users := []User{}
-	orm = db.Where("Name = ?", "none-noexisting").Find(&users)
+	orm = db.Where("name = ?", "none-noexisting").Find(&users)
 	if orm.Error != nil {
 		t.Errorf("Shouldn't return error when looking for none existing records, %+v", users)
 	}
