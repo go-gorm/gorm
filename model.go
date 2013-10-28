@@ -24,35 +24,35 @@ type Field struct {
 	IsPrimaryKey   bool
 }
 
-func (m *Model) PrimaryKeyZero() bool {
-	return m.PrimaryKeyValue() == 0
+func (m *Model) primaryKeyZero() bool {
+	return m.primaryKeyValue() == 0
 }
 
-func (m *Model) PrimaryKeyValue() int64 {
+func (m *Model) primaryKeyValue() int64 {
 	t := reflect.TypeOf(m.Data).Elem()
 	switch t.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
 		return 0
 	default:
 		result := reflect.ValueOf(m.Data).Elem()
-		value := result.FieldByName(m.PrimaryKey())
+		value := result.FieldByName(m.primaryKey())
 		if value.IsValid() {
-			return result.FieldByName(m.PrimaryKey()).Interface().(int64)
+			return result.FieldByName(m.primaryKey()).Interface().(int64)
 		} else {
 			return 0
 		}
 	}
 }
 
-func (m *Model) PrimaryKey() string {
+func (m *Model) primaryKey() string {
 	return "Id"
 }
 
-func (m *Model) PrimaryKeyDb() string {
-	return toSnake(m.PrimaryKey())
+func (m *Model) primaryKeyDb() string {
+	return toSnake(m.primaryKey())
 }
 
-func (m *Model) Fields(operation string) (fields []Field) {
+func (m *Model) fields(operation string) (fields []Field) {
 	typ := reflect.TypeOf(m.Data).Elem()
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -61,7 +61,7 @@ func (m *Model) Fields(operation string) (fields []Field) {
 			var field Field
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
-			field.IsPrimaryKey = m.PrimaryKeyDb() == field.DbName
+			field.IsPrimaryKey = m.primaryKeyDb() == field.DbName
 			field.AutoCreateTime = "created_at" == field.DbName
 			field.AutoUpdateTime = "updated_at" == field.DbName
 			value := reflect.ValueOf(m.Data).Elem().FieldByName(p.Name)
@@ -92,8 +92,8 @@ func (m *Model) Fields(operation string) (fields []Field) {
 	return
 }
 
-func (m *Model) ColumnsAndValues(operation string) (columns []string, values []interface{}) {
-	for _, field := range m.Fields(operation) {
+func (m *Model) columnsAndValues(operation string) (columns []string, values []interface{}) {
+	for _, field := range m.fields(operation) {
 		if !field.IsPrimaryKey {
 			columns = append(columns, field.DbName)
 			values = append(values, field.Value)
@@ -102,7 +102,7 @@ func (m *Model) ColumnsAndValues(operation string) (columns []string, values []i
 	return
 }
 
-func (m *Model) TableName() (str string, err error) {
+func (m *Model) tableName() (str string, err error) {
 	if m.Data == nil {
 		err = errors.New("Model haven't been set")
 		return
@@ -146,13 +146,13 @@ func (m *Model) callMethod(method string) error {
 	return nil
 }
 
-func (model *Model) MissingColumns() (results []string) {
+func (model *Model) missingColumns() (results []string) {
 	return
 }
 
-func (model *Model) ReturningStr() (str string) {
+func (model *Model) returningStr() (str string) {
 	if model.driver == "postgres" {
-		str = fmt.Sprintf("RETURNING \"%v\"", model.PrimaryKeyDb())
+		str = fmt.Sprintf("RETURNING \"%v\"", model.primaryKeyDb())
 	}
 	return
 }

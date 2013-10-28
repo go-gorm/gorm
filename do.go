@@ -49,7 +49,7 @@ func (s *Do) setModel(value interface{}) {
 	s.value = value
 	s.model = &Model{Data: value, driver: s.driver}
 	var err error
-	s.TableName, err = s.model.TableName()
+	s.TableName, err = s.model.tableName()
 	s.err(err)
 }
 
@@ -73,7 +73,7 @@ func (s *Do) exec(sql ...string) {
 }
 
 func (s *Do) save() *Do {
-	if s.model.PrimaryKeyZero() {
+	if s.model.primaryKeyZero() {
 		s.create()
 	} else {
 		s.update()
@@ -82,7 +82,7 @@ func (s *Do) save() *Do {
 }
 
 func (s *Do) prepareCreateSql() *Do {
-	columns, values := s.model.ColumnsAndValues("create")
+	columns, values := s.model.columnsAndValues("create")
 
 	var sqls []string
 	for _, value := range values {
@@ -94,7 +94,7 @@ func (s *Do) prepareCreateSql() *Do {
 		s.TableName,
 		strings.Join(s.quoteMap(columns), ","),
 		strings.Join(sqls, ","),
-		s.model.ReturningStr(),
+		s.model.returningStr(),
 	)
 	return s
 }
@@ -117,7 +117,7 @@ func (s *Do) create() *Do {
 			s.err(err)
 		}
 		result := reflect.ValueOf(s.model.Data).Elem()
-		result.FieldByName(s.model.PrimaryKey()).SetInt(id)
+		result.FieldByName(s.model.primaryKey()).SetInt(id)
 
 		s.err(s.model.callMethod("AfterCreate"))
 		s.err(s.model.callMethod("AfterSave"))
@@ -127,7 +127,7 @@ func (s *Do) create() *Do {
 }
 
 func (s *Do) prepareUpdateSql() *Do {
-	columns, values := s.model.ColumnsAndValues("update")
+	columns, values := s.model.columnsAndValues("update")
 	var sets []string
 	for index, column := range columns {
 		sets = append(sets, fmt.Sprintf("%v = %v", s.quote(column), s.addToVars(values[index])))
@@ -281,7 +281,7 @@ func (s *Do) where(querystring interface{}, args ...interface{}) *Do {
 }
 
 func (s *Do) primaryCondiation(value interface{}) string {
-	return fmt.Sprintf("(%v = %v)", s.quote(s.model.PrimaryKeyDb()), value)
+	return fmt.Sprintf("(%v = %v)", s.quote(s.model.primaryKeyDb()), value)
 }
 
 func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
@@ -325,8 +325,8 @@ func (s *Do) whereSql() (sql string) {
 	var primary_condiation string
 	var and_conditions, or_conditions []string
 
-	if !s.model.PrimaryKeyZero() {
-		primary_condiation = s.primaryCondiation(s.addToVars(s.model.PrimaryKeyValue()))
+	if !s.model.primaryKeyZero() {
+		primary_condiation = s.primaryCondiation(s.addToVars(s.model.primaryKeyValue()))
 	}
 
 	for _, clause := range s.whereClause {
@@ -397,7 +397,7 @@ func (s *Do) combinedSql() string {
 
 func (s *Do) createTable() *Do {
 	var sqls []string
-	for _, field := range s.model.Fields("null") {
+	for _, field := range s.model.fields("null") {
 		sqls = append(sqls, field.DbName+" "+field.SqlType)
 	}
 
