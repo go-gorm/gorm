@@ -63,6 +63,11 @@ db.Order("age desc, name").Find(&users)
 //// users -> select * from users order by age desc, name;
 db.Order("age desc").Order("name").Find(&users)
 //// users -> select * from users order by age desc, name;
+// ReOrder
+db.Order("age desc").Find(&users1).Order("age", true).Find(&users2)
+//// users1 -> select * from users order by age desc;
+//// users2 -> select * from users order by age;
+
 
 // Limit
 db.Limit(3).Find(&users)

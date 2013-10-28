@@ -315,6 +315,18 @@ func TestOrderAndPluck(t *testing.T) {
 		t.Errorf("The first age should be 26 because of ordered by")
 	}
 
+	var ages1, ages2 []int64
+	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages1).Order("age").Pluck("age", &ages2)
+	if !reflect.DeepEqual(ages1, ages2) {
+		t.Errorf("The first order is the primary order")
+	}
+
+	var ages3, ages4 []int64
+	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages3).Order("age", true).Pluck("age", &ages4)
+	if reflect.DeepEqual(ages3, ages4) {
+		t.Errorf("Reorder should works well")
+	}
+
 	ages = []int64{}
 	var names []string
 	db.Model(&User{}).Order("name").Order("age desc").Pluck("age", &ages).Pluck("name", &names)
