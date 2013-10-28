@@ -12,11 +12,12 @@ import (
 )
 
 type Do struct {
-	chain     *Chain
-	db        *sql.DB
-	driver    string
-	TableName string
-	Errors    []error
+	chain              *Chain
+	db                 *sql.DB
+	driver             string
+	guessedTableName   string
+	specifiedTableName string
+	Errors             []error
 
 	model     *Model
 	value     interface{}
@@ -34,6 +35,14 @@ type Do struct {
 	operation   string
 }
 
+func (s *Do) tableName() string {
+	if s.specifiedTableName == "" {
+		return s.guessedTableName
+	} else {
+		return s.specifiedTableName
+	}
+}
+
 func (s *Do) err(err error) {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
@@ -49,8 +58,10 @@ func (s *Do) setModel(value interface{}) {
 	s.value = value
 	s.model = &Model{Data: value, driver: s.driver}
 	var err error
-	s.TableName, err = s.model.tableName()
-	s.err(err)
+	if s.specifiedTableName == "" {
+		s.guessedTableName, err = s.model.tableName()
+		s.err(err)
+	}
 }
 
 func (s *Do) addToVars(value interface{}) string {
@@ -91,7 +102,7 @@ func (s *Do) prepareCreateSql() *Do {
 
 	s.Sql = fmt.Sprintf(
 		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
-		s.TableName,
+		s.tableName(),
 		strings.Join(s.quoteMap(columns), ","),
 		strings.Join(sqls, ","),
 		s.model.returningStr(),
@@ -135,7 +146,7 @@ func (s *Do) prepareUpdateSql() *Do {
 
 	s.Sql = fmt.Sprintf(
 		"UPDATE %v SET %v %v",
-		s.TableName,
+		s.tableName(),
 		strings.Join(sets, ", "),
 		s.combinedSql(),
 	)
@@ -154,7 +165,7 @@ func (s *Do) update() *Do {
 }
 
 func (s *Do) prepareDeleteSql() *Do {
-	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.TableName, s.combinedSql())
+	s.Sql = fmt.Sprintf("DELETE FROM %v %v", s.tableName(), s.combinedSql())
 	return s
 }
 
@@ -168,7 +179,7 @@ func (s *Do) delete() *Do {
 }
 
 func (s *Do) prepareQuerySql() *Do {
-	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.TableName, s.combinedSql())
+	s.Sql = fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.tableName(), s.combinedSql())
 	return s
 }
 
@@ -216,7 +227,10 @@ func (s *Do) query(where ...interface{}) {
 		columns, _ := rows.Columns()
 		var values []interface{}
 		for _, value := range columns {
-			values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
+			field := dest.FieldByName(snakeToUpperCamel(value))
+			if field.IsValid() {
+				values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
+			}
 		}
 		s.err(rows.Scan(values...))
 
@@ -400,10 +414,9 @@ func (s *Do) createTable() *Do {
 	for _, field := range s.model.fields("null") {
 		sqls = append(sqls, field.DbName+" "+field.SqlType)
 	}
-
 	s.Sql = fmt.Sprintf(
 		"CREATE TABLE \"%v\" (%v)",
-		s.TableName,
+		s.tableName(),
 		strings.Join(sqls, ","),
 	)
 	return s

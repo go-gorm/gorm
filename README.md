@@ -20,12 +20,12 @@ Yet Another ORM library for Go, aims for developer friendly
 db, _ = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 
 type User struct {
-	Id        int64
-	Age       int64
-	Birthday  time.Time
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+  Id        int64
+  Age       int64
+  Birthday  time.Time
+  Name      string
+  CreatedAt time.Time
+  UpdatedAt time.Time
 }
 
 // Set database pool
@@ -127,12 +127,12 @@ Below callbacks are defined now:
 
 Callbacks is a function defined to a model, if the function return error, will prevent the database operations.
 
-  func (u *User) BeforeUpdate() (err error) {
-      if u.readonly() {
-          err = errors.New("Read Only User")
-      }
-      return
+func (u *User) BeforeUpdate() (err error) {
+  if u.readonly() {
+    err = errors.New("Read Only User")
   }
+  return
+}
 
 // Pluck (get users's age as map)
 var ages []int64
@@ -148,6 +148,16 @@ db.Where("name <> ?", "jinzhu").Where("age >= ? and role <> ?", 20, "admin").Fin
 
 // Create Table with struct
 db.CreateTable(&User{})
+
+// Specify Table Name
+db.Table("deleted_users").CreateTable(&User{})
+db.Table("users").Pluck("age", &ages)
+//// ages -> select age from users;
+var deleted_users []User
+db.Table("deleted_users").Find(&deleted_users)
+//// deleted_users -> select * from deleted_users;
+db.Table("deleted_users").Find(&deleted_user)
+//// deleted_user -> select * from deleted_users limit 1;
 
 // Run Raw SQL
 db.Exec("drop table users;")
@@ -184,6 +194,10 @@ db.Where("product_name = ?", "fancy_product").Find(&orders).Find(&shopping_cart)
 //// orders -> select * from orders where product_name = 'fancy_product'
 //// shopping_cart -> select * from carts where product_name = 'fancy_product'
 // Do you noticed the search table is different for above query, yay
+
+db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&user2)
+//// users1 -> select * from users where mail_type = 'TEXT';
+//// users2 -> select * from deleted_users where mail_type = 'TEXT';
 
 // Open your mind, add more cool examples
 ```

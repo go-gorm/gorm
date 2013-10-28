@@ -1,11 +1,11 @@
 package gorm
 
 import (
-	_ "github.com/lib/pq"
-
 	"errors"
+	_ "github.com/lib/pq"
 	"reflect"
 	"strconv"
+
 	"testing"
 	"time"
 )
@@ -566,4 +566,53 @@ func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
 	}
 
 	db.Where("unexisting = ?", "3").Find(&[]User{})
+}
+
+func TestSetTableDirectly(t *testing.T) {
+	var ages []int64
+	if db.Table("users").Pluck("age", &ages).Error != nil {
+		t.Errorf("No errors should happen if only set table")
+	}
+
+	if len(ages) == 0 {
+		t.Errorf("Should find out some records")
+	}
+
+	var users []User
+	if db.Table("users").Find(&users).Error != nil {
+		t.Errorf("No errors should happen if set table to an existing table")
+	}
+
+	if db.Table("unexisting_users_table").Find(&users).Error == nil {
+		t.Errorf("Should got some errors if set table to an unexisting table")
+	}
+
+	if db.Table("products").Find(&users).Error == nil {
+		t.Errorf("Should got some errors if set table to an unexisting table")
+	}
+
+	db.Exec("drop table deleted_users;")
+	if db.Table("deleted_users").CreateTable(&User{}).Error != nil {
+		t.Errorf("Should create deleted_users table")
+	}
+
+	db.Table("deleted_users").Save(&User{Name: "DeletedUser"})
+
+	var deleted_users []User
+	db.Table("deleted_users").Find(&deleted_users)
+	if len(deleted_users) != 1 {
+		t.Errorf("Should query from deleted_users table")
+	}
+
+	var deleted_user User
+	db.Table("deleted_users").Find(&deleted_user)
+	if deleted_user.Name != "DeletedUser" {
+		t.Errorf("Should query from deleted_users table")
+	}
+
+	var user1, user2, user3 User
+	db.First(&user1).Table("deleted_users").First(&user2).Table("").First(&user3)
+	if !((user1.Name != user2.Name) && (user1.Name == user3.Name)) {
+		t.Errorf("Set Table Chain Should works well")
+	}
 }

@@ -65,6 +65,10 @@ func (s *DB) Model(value interface{}) *Chain {
 	return s.buildORM().Model(value)
 }
 
+func (s *DB) Table(name string) *Chain {
+	return s.buildORM().Table(name)
+}
+
 func (s *DB) CreateTable(value interface{}) *Chain {
 	return s.buildORM().CreateTable(value)
 }

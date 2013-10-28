@@ -29,6 +29,10 @@ func (m *Model) primaryKeyZero() bool {
 }
 
 func (m *Model) primaryKeyValue() int64 {
+	if m.Data == nil {
+		return 0
+	}
+
 	t := reflect.TypeOf(m.Data).Elem()
 	switch t.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:

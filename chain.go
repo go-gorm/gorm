@@ -17,12 +17,13 @@ type Chain struct {
 	Errors []error
 	Error  error
 
-	whereClause []map[string]interface{}
-	orClause    []map[string]interface{}
-	selectStr   string
-	orderStrs   []string
-	offsetStr   string
-	limitStr    string
+	whereClause        []map[string]interface{}
+	orClause           []map[string]interface{}
+	selectStr          string
+	orderStrs          []string
+	offsetStr          string
+	limitStr           string
+	specifiedTableName string
 }
 
 func (s *Chain) err(err error) {
@@ -44,6 +45,7 @@ func (s *Chain) do(value interface{}) *Do {
 	do.orderStrs = s.orderStrs
 	do.offsetStr = s.offsetStr
 	do.limitStr = s.limitStr
+	do.specifiedTableName = s.specifiedTableName
 
 	s.value = value
 	do.setModel(value)
@@ -171,6 +173,11 @@ func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
 
 func (s *Chain) CreateTable(value interface{}) *Chain {
 	s.do(value).createTable().exec()
+	return s
+}
+
+func (s *Chain) Table(name string) *Chain {
+	s.specifiedTableName = name
 	return s
 }
 
