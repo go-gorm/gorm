@@ -34,49 +34,49 @@ db.Where("name = ?", "jinzhu").First(&user)
 db.Where("name = ?", "jinzhu").Find(&users)
 
 // Advanced Where Usage
-// select * from users name <> 'jinzhu';
+//// select * from users name <> 'jinzhu';
 db.Where("name <> ?", "jinzhu").Find(&users)
-// select * from users name = 'jinzhu' and age >= 22;
+//// select * from users name = 'jinzhu' and age >= 22;
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
-// select * from users name in ('jinzhu', 'jinzhu 2');
+//// select * from users name in ('jinzhu', 'jinzhu 2');
 db.Where("name in (?)", []string["jinzhu", "jinzhu 2"]).Find(&users)
 db.Where("birthday < ?", time.Now()).Find(&users)
 
 // Inline search condition
-// select * from users where id = 23 limit 1;
+//// select * from users where id = 23 limit 1;
 db.First(&user, 23)
-// select * from users where name = "jinzhu" limit 1;
+//// select * from users where name = "jinzhu" limit 1;
 db.First(&user, "name = ?", "jinzhu")
-// select * from users where name = "jinzhu";
+//// select * from users where name = "jinzhu";
 db.Find(&users, "name = ?", "jinzhu")
-// select * from users where name <> "jinzhu" and age > 20;
+//// select * from users where name <> "jinzhu" and age > 20;
 db.Find(&users, "name <> ? and age > ?", "jinzhu", 20)
 
 // Select
-// select name from users;
+//// select name from users;
 db.Select("name").Find(&users)
 
 // Order
-// select * from users order by age desc, name;
+//// select * from users order by age desc, name;
 db.Order("age desc, name").Find(&users)
 db.Order("age desc").Order("name").Find(&users)
 
 // Limit
-// select * from users limit 3;
+//// select * from users limit 3;
 db.Limit(3).Find(&users)
 db.Limit(10).Find(&ten_users).Limit(20).Find(&twenty_users).Limit(-1).Find(&all_users)
 
 // Offset
-// select * from users offset 3;
+//// select * from users offset 3;
 db.Offset(3).Find(&users)
 db.Offset(10).Find(&users).Offset(20).Find(&users).Offset(-1).Find(&users)
 
 // Or
-// select * from users where role = 'admin' or role = 'super_admin';
+//// select * from users where role = 'admin' or role = 'super_admin';
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)
 
 // Count
-// select count(*) from users where name = 'jinzhu' or name = 'jinzhu 2'';
+//// select count(*) from users where name = 'jinzhu' or name = 'jinzhu 2'';
 db.Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Find(&users).Count(&count)
 db.Model(&User{}).Where("name = ?", "jinzhu").Count(&count)
 
@@ -105,7 +105,8 @@ Callbacks is a function defined to a model, if the function return error, will p
 
 // Pluck (get users's age as map)
 var ages []int64
-db.Find(&users).Pluck("age", &ages)
+//// select age from users;
+db.Find(&users).Pluck("age", &ages) // ages => []int64{18, 10, 99...}
 var names []string
 db.Model(&User{}).Pluck("name", &names)
 
@@ -119,25 +120,30 @@ db.CreateTable(&User{})
 db.Exec("drop table users;")
 ```
 
-## Cool Examples
+## Advanced Usage With Query Chain
 
 ```go
 // Already excited about the basic usage? Let's see some magic!
 
 db.First(&first_article).Count(&total_count).Limit(10).Find(&first_page_articles).Offset(10).Find(&second_page_articles)
-// first_article return the latest article
-// total_count return the total numbers of articles
-// first_page_articles return the latest 10 articles
-// second_page_articles return the latest 10 to 20 articles
+// first_article -> select * from articles limit 1
+// total_count -> select count(*) from articles
+// first_page_articles -> select * from articles limit 10
+// second_page_articles -> select * from articles limit 10 offset 10
 
 db.Where("created_at > ?", "2013/10/10").Find(&cancelled_orders, "state = ?", "cancelled").Find(&shipped_orders, "state = ?", "shipped")
-// cancelled_orders return all cancelled orders since 2013/10/10
-// shipped_orders return all shipped orders since 2013/10/10
+// cancelled_orders -> select * from orders where created_at > '2013/10/10' and state = 'cancelled'
+// shipped_orders -> select * from orders where created_at > '2013/10/10' and state = 'shipped'
 
 db.Model(&Order{}).Where("amount > ?", 10000).Pluck("user_id", &paid_user_ids)
+// paid_user_ids -> select user_id from orders where amount > 10000
 db.Where("user_id = ?", paid_user_ids).Find(&:paid_users)
+// paid_users -> select * from users where user_id in (10, 20, 99)
 
 db.Where("product_name = ?", "fancy_product").Find(&orders).Find(&shopping_cart)
+// orders -> select * from orders where product_name = 'fancy_product'
+// shopping_cart -> select * from carts where product_name = 'fancy_product'
+// Do you noticed the search table is different for above query, yay
 
 // Open your mind, add more cool examples
 ```
@@ -150,6 +156,8 @@ db.Where("product_name = ?", "fancy_product").Find(&orders).Find(&shopping_cart)
 * SQL Log
 * Auto Migration
 * Index, Unique, Valiations
+* SQL Query with goroutines
+* Only tested with postgres, confirm works with other database adaptors
 
 # Author
 
