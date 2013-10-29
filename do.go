@@ -350,14 +350,14 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		for key, value := range query.(map[string]interface{}) {
 			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", key, s.addToVars(value)))
 		}
-		return strings.Join(sqls, ",")
+		return strings.Join(sqls, " AND ")
 	case interface{}:
 		m := &Model{data: query, driver: s.driver}
 		var sqls []string
 		for _, field := range m.columnsHasValue("") {
 			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", field.DbName, s.addToVars(field.Value)))
 		}
-		return strings.Join(sqls, ",")
+		return strings.Join(sqls, " AND ")
 	}
 
 	args := clause["args"].([]interface{})
@@ -383,7 +383,6 @@ func (s *Do) whereSql() (sql string) {
 	if !s.unscoped && s.model.hasColumn("DeletedAt") {
 		primary_condiations = append(primary_condiations, "(deleted_at is null or deleted_at <= '0001-01-02')")
 	}
-
 	if !s.model.primaryKeyZero() {
 		primary_condiations = append(primary_condiations, s.primaryCondiation(s.addToVars(s.model.primaryKeyValue())))
 	}
@@ -465,4 +464,23 @@ func (s *Do) createTable() *Do {
 		strings.Join(sqls, ","),
 	)
 	return s
+}
+
+func (s *Do) initializedWithSearchCondition() {
+	m := Model{data: s.value, driver: s.driver}
+
+	for _, clause := range s.whereClause {
+		query := clause["query"]
+		switch query.(type) {
+		case map[string]interface{}:
+			for key, value := range query.(map[string]interface{}) {
+				m.setValueByColumn(key, value, s.value)
+			}
+		case interface{}:
+			m := &Model{data: query, driver: s.driver}
+			for _, field := range m.columnsHasValue("") {
+				m.setValueByColumn(field.DbName, field.Value, s.value)
+			}
+		}
+	}
 }

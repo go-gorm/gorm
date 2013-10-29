@@ -799,9 +799,14 @@ func TestSoftDelete(t *testing.T) {
 }
 
 func TestFindOrInitialize(t *testing.T) {
-	var user User
-	db.Where(User{Name: "hello world"}).FirstOrInit(&user)
-	if user.Name != "hello world" || user.Id != 0 {
+	var user1 User
+	db.Where(&User{Name: "hello world", Age: 33}).FirstOrInit(&user1)
+	if user1.Name != "hello world" || user1.Id != 0 || user1.Age != 33 {
 		t.Errorf("user should be initialized with search value")
 	}
+
+	// db.FirstOrInit(&user2, map[string]interface{}{"name": "hahaha"})
+	// if user2.Name != "hahaha" || user2.Id != 0 {
+	// 	t.Errorf("user should be initialized with search value")
+	// }
 }

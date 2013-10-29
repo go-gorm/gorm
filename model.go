@@ -188,13 +188,21 @@ func (m *Model) callMethod(method string) error {
 	return nil
 }
 
-func (model *Model) returningStr() (str string) {
-	if model.driver == "postgres" {
-		str = fmt.Sprintf("RETURNING \"%v\"", model.primaryKeyDb())
+func (m *Model) returningStr() (str string) {
+	if m.driver == "postgres" {
+		str = fmt.Sprintf("RETURNING \"%v\"", m.primaryKeyDb())
 	}
 	return
 }
 
-func (model *Model) missingColumns() (results []string) {
+func (m *Model) missingColumns() (results []string) {
 	return
+}
+
+func (m *Model) setValueByColumn(name string, value interface{}, out interface{}) {
+	data := reflect.ValueOf(out).Elem()
+	field := data.FieldByName(snakeToUpperCamel(name))
+	if field.IsValid() {
+		field.Set(reflect.ValueOf(value))
+	}
 }

@@ -35,6 +35,11 @@ func (s *Chain) err(err error) error {
 	return err
 }
 
+func (s *Chain) deleteLastError() {
+	s.Error = nil
+	s.Errors = s.Errors[:len(s.Errors)-1]
+}
+
 func (s *Chain) do(value interface{}) *Do {
 	var do Do
 	do.chain = s
@@ -160,6 +165,10 @@ func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
 }
 
 func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
+	if s.First(out).Error != nil {
+		s.do(out).initializedWithSearchCondition()
+		s.deleteLastError()
+	}
 	return s
 }
 
