@@ -57,6 +57,10 @@ func (s *DB) Delete(value interface{}) *Chain {
 	return s.buildChain().Delete(value)
 }
 
+func (s *DB) Unscoped() *Chain {
+	return s.buildChain().Unscoped()
+}
+
 func (s *DB) Exec(sql string) *Chain {
 	return s.buildChain().Exec(sql)
 }

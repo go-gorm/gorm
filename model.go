@@ -104,6 +104,15 @@ func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 	return results
 }
 
+func (m *Model) hasColumn(name string) bool {
+	if m.data == nil {
+		return false
+	}
+
+	value := reflect.ValueOf(m.data).Elem().FieldByName(name)
+	return value.IsValid()
+}
+
 func (m *Model) tableName() (str string, err error) {
 	if m.data == nil {
 		err = errors.New("Model haven't been set")

@@ -53,7 +53,6 @@ func init() {
 	if err != nil {
 		fmt.Printf("Got error when try to delete table uses, %+v\n", err)
 	}
-
 	db.Exec("drop table products;")
 
 	orm := db.CreateTable(&User{})
@@ -689,5 +688,30 @@ func TestUpdates(t *testing.T) {
 
 	if db.First(&Product{}, "code = 'fgh' and price = 200").Error != nil {
 		t.Errorf("We should have Product fgh")
+	}
+}
+
+func TestSoftDelete(t *testing.T) {
+	type Order struct {
+		Id        int64
+		Amount    int64
+		DeletedAt time.Time
+	}
+	db.Exec("drop table orders;")
+	db.CreateTable(&Order{})
+
+	order := Order{Amount: 1234}
+	db.Save(&order)
+	if db.Find(&Order{}, "amount = 1234").Error != nil {
+		t.Errorf("No errors should happen when save an order")
+	}
+
+	db.Delete(&order)
+	if db.Find(&Order{}, "amount = 1234").Error == nil {
+		t.Errorf("Can't find the user because it is soft deleted")
+	}
+
+	if db.Unscoped().Find(&Order{}, "amount = 1234").Error != nil {
+		t.Errorf("Should be able to find out the soft deleted user with unscoped")
 	}
 }

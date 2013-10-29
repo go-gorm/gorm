@@ -24,6 +24,7 @@ type Chain struct {
 	offsetStr          string
 	limitStr           string
 	specifiedTableName string
+	unscoped           bool
 }
 
 func (s *Chain) err(err error) error {
@@ -47,6 +48,7 @@ func (s *Chain) do(value interface{}) *Do {
 	do.offsetStr = s.offsetStr
 	do.limitStr = s.limitStr
 	do.specifiedTableName = s.specifiedTableName
+	do.unscoped = s.unscoped
 
 	s.value = value
 	do.setModel(value)
@@ -174,6 +176,11 @@ func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
 
 func (s *Chain) CreateTable(value interface{}) *Chain {
 	s.do(value).createTable().exec()
+	return s
+}
+
+func (s *Chain) Unscoped() *Chain {
+	s.unscoped = true
 	return s
 }
 

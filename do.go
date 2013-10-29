@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"time"
 
 	"strings"
 )
@@ -25,13 +26,13 @@ type Do struct {
 	sql       string
 	sqlVars   []interface{}
 
-	whereClause []map[string]interface{}
-	orClause    []map[string]interface{}
-	selectStr   string
-	orderStrs   []string
-	offsetStr   string
-	limitStr    string
-
+	whereClause          []map[string]interface{}
+	orClause             []map[string]interface{}
+	selectStr            string
+	orderStrs            []string
+	offsetStr            string
+	limitStr             string
+	unscoped             bool
 	updateAttrs          map[string]interface{}
 	ignoreProtectedAttrs bool
 }
@@ -184,9 +185,15 @@ func (s *Do) prepareDeleteSql() {
 func (s *Do) delete() {
 	s.err(s.model.callMethod("BeforeDelete"))
 
-	s.prepareDeleteSql()
 	if !s.hasError() {
-		s.exec()
+		if s.model.hasColumn("DeletedAt") {
+			delete_sql := "deleted_at=" + s.addToVars(time.Now())
+			s.sql = fmt.Sprintf("UPDATE %v SET %v %v", s.tableName(), delete_sql, s.combinedSql())
+			s.exec()
+		} else {
+			s.prepareDeleteSql()
+			s.exec()
+		}
 		if !s.hasError() {
 			s.err(s.model.callMethod("AfterDelete"))
 		}
