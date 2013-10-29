@@ -12,6 +12,7 @@ import (
 type Chain struct {
 	db     *sql.DB
 	driver string
+	debug  bool
 	value  interface{}
 
 	Errors []error
@@ -27,10 +28,20 @@ type Chain struct {
 	unscoped           bool
 }
 
+func (s *Chain) msg(str string) {
+	if s.debug {
+		debug(str)
+	}
+}
+
 func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.Error = err
+
+		if s.debug {
+			debug(err)
+		}
 	}
 	return err
 }
@@ -203,6 +214,11 @@ func (s *Chain) Unscoped() *Chain {
 
 func (s *Chain) Table(name string) *Chain {
 	s.specifiedTableName = name
+	return s
+}
+
+func (s *Chain) Debug() *Chain {
+	s.debug = true
 	return s
 }
 

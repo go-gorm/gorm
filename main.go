@@ -3,8 +3,9 @@ package gorm
 import "database/sql"
 
 type DB struct {
-	db     *sql.DB
-	driver string
+	db        *sql.DB
+	driver    string
+	DebugMode bool
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -18,7 +19,7 @@ func (s *DB) SetPool(n int) {
 }
 
 func (s *DB) buildChain() *Chain {
-	return &Chain{db: s.db, driver: s.driver}
+	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
@@ -79,6 +80,10 @@ func (s *DB) Model(value interface{}) *Chain {
 
 func (s *DB) Table(name string) *Chain {
 	return s.buildChain().Table(name)
+}
+
+func (s *DB) Debug() *Chain {
+	return s.buildChain().Debug()
 }
 
 func (s *DB) CreateTable(value interface{}) *Chain {
