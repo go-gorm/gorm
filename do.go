@@ -131,7 +131,10 @@ func (s *Do) create() {
 
 		if !s.hasError() {
 			result := reflect.ValueOf(s.value).Elem()
-			result.FieldByName(s.model.primaryKey()).SetInt(id)
+			primary_key := result.FieldByName(s.model.primaryKey())
+			if primary_key.IsValid() {
+				primary_key.SetInt(id)
+			}
 
 			s.err(s.model.callMethod("AfterCreate"))
 			s.err(s.model.callMethod("AfterSave"))
@@ -238,7 +241,7 @@ func (s *Do) query() {
 			if is_slice {
 				dest = reflect.New(dest_type).Elem()
 			} else {
-				dest = reflect.ValueOf(s.value).Elem()
+				dest = dest_out
 			}
 
 			columns, _ := rows.Columns()
@@ -279,7 +282,7 @@ func (s *Do) count(value interface{}) {
 		for rows.Next() {
 			var dest int64
 			if s.err(rows.Scan(&dest)) == nil {
-				dest_out.Set(reflect.ValueOf(dest))
+				dest_out.SetInt(dest)
 			}
 		}
 	}
@@ -289,7 +292,13 @@ func (s *Do) count(value interface{}) {
 func (s *Do) pluck(column string, value interface{}) {
 	s.selectStr = column
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
+
+	if dest_out.Kind() != reflect.Slice {
+		s.err(errors.New("Return results should be a slice"))
+		return
+	}
 	dest_type := dest_out.Type().Elem()
+
 	s.prepareQuerySql()
 
 	if !s.hasError() {
@@ -302,6 +311,7 @@ func (s *Do) pluck(column string, value interface{}) {
 		for rows.Next() {
 			dest := reflect.New(dest_type).Elem().Interface()
 			s.err(rows.Scan(&dest))
+
 			switch dest.(type) {
 			case []uint8:
 				if dest_type.String() == "string" {
@@ -362,10 +372,10 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 	for _, arg := range args {
 		switch reflect.TypeOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			v := reflect.ValueOf(arg)
+			values := reflect.ValueOf(arg)
 			var temp_marks []string
-			for i := 0; i < v.Len(); i++ {
-				temp_marks = append(temp_marks, s.addToVars(v.Index(i).Addr().Interface()))
+			for i := 0; i < values.Len(); i++ {
+				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Addr().Interface()))
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
@@ -381,6 +391,7 @@ func (s *Do) whereSql() (sql string) {
 	if !s.unscoped && s.model.hasColumn("DeletedAt") {
 		primary_condiations = append(primary_condiations, "(deleted_at is null or deleted_at <= '0001-01-02')")
 	}
+
 	if !s.model.primaryKeyZero() {
 		primary_condiations = append(primary_condiations, s.primaryCondiation(s.addToVars(s.model.primaryKeyValue())))
 	}
@@ -453,9 +464,10 @@ func (s *Do) combinedSql() string {
 
 func (s *Do) createTable() *Do {
 	var sqls []string
-	for _, field := range s.model.fields("null") {
+	for _, field := range s.model.fields("") {
 		sqls = append(sqls, field.DbName+" "+field.SqlType)
 	}
+
 	s.sql = fmt.Sprintf(
 		"CREATE TABLE \"%v\" (%v)",
 		s.tableName(),

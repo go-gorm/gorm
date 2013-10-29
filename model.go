@@ -34,15 +34,21 @@ func (m *Model) primaryKeyValue() int64 {
 		return -1
 	}
 
-	t := reflect.TypeOf(m.data).Elem()
-	switch t.Kind() {
+	data := reflect.ValueOf(m.data).Elem()
+
+	switch data.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
 		return 0
 	default:
-		result := reflect.ValueOf(m.data).Elem()
-		value := result.FieldByName(m.primaryKey())
+		value := data.FieldByName(m.primaryKey())
+
 		if value.IsValid() {
-			return value.Interface().(int64)
+			switch value.Kind() {
+			case reflect.Int, reflect.Int64, reflect.Int32:
+				return value.Int()
+			default:
+				return 0
+			}
 		} else {
 			return 0
 		}
@@ -83,17 +89,19 @@ func (m *Model) fields(operation string) (fields []Field) {
 				}
 			}
 
-			switch operation {
-			case "create":
-				if (field.AutoCreateTime || field.AutoUpdateTime) && value.Interface().(time.Time).IsZero() {
-					value.Set(reflect.ValueOf(time.Now()))
+			if v, ok := value.Interface().(time.Time); ok {
+				switch operation {
+				case "create":
+					if (field.AutoCreateTime || field.AutoUpdateTime) && v.IsZero() {
+						value.Set(reflect.ValueOf(time.Now()))
+					}
+				case "update":
+					if field.AutoUpdateTime {
+						value.Set(reflect.ValueOf(time.Now()))
+					}
 				}
-			case "update":
-				if field.AutoUpdateTime {
-					value.Set(reflect.ValueOf(time.Now()))
-				}
-			default:
 			}
+
 			field.Value = value.Interface()
 
 			if field.IsPrimaryKey {
@@ -134,7 +142,7 @@ func (m *Model) hasColumn(name string) bool {
 
 	data := reflect.Indirect(reflect.ValueOf(m.data))
 	if data.Kind() == reflect.Slice {
-		return false //FIXME data.Elem().FieldByName(name).IsValid()
+		return reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
 	} else {
 		return data.FieldByName(name).IsValid()
 	}
@@ -146,21 +154,12 @@ func (m *Model) tableName() (str string, err error) {
 		return
 	}
 
-	t := reflect.TypeOf(m.data)
-	for {
-		c := false
-		switch t.Kind() {
-		case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
-			t = t.Elem()
-			c = true
-		}
-		if !c {
-			break
-		}
+	typ := reflect.Indirect(reflect.ValueOf(m.data)).Type()
+	if typ.Kind() == reflect.Slice {
+		typ = typ.Elem()
 	}
 
-	str = toSnake(t.Name())
-
+	str = toSnake(typ.Name())
 	pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
 	for key, value := range pluralMap {
 		reg := regexp.MustCompile(key + "$")
@@ -200,7 +199,8 @@ func (m *Model) missingColumns() (results []string) {
 }
 
 func (m *Model) setValueByColumn(name string, value interface{}, out interface{}) {
-	data := reflect.ValueOf(out).Elem()
+	data := reflect.Indirect(reflect.ValueOf(out))
+
 	field := data.FieldByName(snakeToUpperCamel(name))
 	if field.IsValid() {
 		field.Set(reflect.ValueOf(value))

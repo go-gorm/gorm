@@ -48,7 +48,7 @@ func init() {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))
 	}
 	db.SetPool(10)
-	db.DebugMode = true
+	// db.DebugMode = true
 
 	err = db.Exec("drop table users;").Error
 	if err != nil {
