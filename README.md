@@ -9,6 +9,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Before/After Create/Save/Update/Delete Callbacks
 * Order/Select/Limit/Offset Support
 * Update, Updates Like Rails's update_attribute, update_attributes
+* FirstOrInit, FirstOrCreate Like Rails's first_or_initialize, first_or_create
 * Dynamically set table name when search, update, delete...
 * Automatically CreatedAt, UpdatedAt
 * Soft Delete
@@ -83,6 +84,22 @@ db.Find(&users, &User{Age: 20})
 //// users -> select * from users where age = 20;
 db.Find(&users, map[string]interface{}{"age": 20})
 //// users -> select * from users where age = 20;
+
+// FirstOrInit
+db.FirstOrInit(&user, User{Name: "noexisting_user"})
+//// user -> User{Name: "noexisting_user"}
+db.Where(User{Name: "Jinzhu"}).FirstOrInit(&user)
+//// user -> User{Id: 111, Name: "Jinzhu"}
+db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
+
+// FirstOrCreate
+db.FirstOrCreate(&user, User{Name: "noexisting_user"})
+//// user -> User{Id: 112, Name: "noexisting_user"}
+db.Where(User{Name: "Jinzhu"}).FirstOrCreate(&user)
+//// user -> User{Id: 111, Name: "Jinzhu"}
+db.FirstOrCreate(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 
 // Select
 db.Select("name").Find(&users)
@@ -251,7 +268,6 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ```
 
 ## TODO
-* FindOrInitialize / FindOrCreate
 * SubStruct
 * Index, Unique, Valiations
 * Auto Migration
