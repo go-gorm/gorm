@@ -54,6 +54,10 @@ db.Where("name = ?", "jinzhu").Find(&users)
 // Advanced Where Usage
 db.Where("name <> ?", "jinzhu").Find(&users)
 //// users -> select * from users name <> 'jinzhu';
+db.Where(20).First(&user)
+//// users -> select * from users where id = 20;
+db.Where([]int64{20, 21, 22}).Find(&user)
+//// users -> select * from users where id in (20, 21, 22);
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
 //// users -> select * from users name = 'jinzhu' and age >= 22;
 db.Where("name in (?)", []string["jinzhu", "jinzhu 2"]).Find(&users)
@@ -239,7 +243,7 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ```
 
 ## TODO
-* Query with map or struct
+* Query with struct
 * SubStruct
 * Index, Unique, Valiations
 * Auto Migration

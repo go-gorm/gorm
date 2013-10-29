@@ -338,6 +338,9 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		}
 	case int, int64, int32:
 		return s.primaryCondiation(s.addToVars(clause["query"]))
+	case []int64, []int, []int32, []string:
+		str = fmt.Sprintf("(%v in (?))", s.model.primaryKeyDb())
+		clause["args"] = []interface{}{clause["query"]}
 	}
 
 	args := clause["args"].([]interface{})

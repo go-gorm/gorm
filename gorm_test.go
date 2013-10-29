@@ -75,37 +75,6 @@ func init() {
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 }
 
-func TestInitlineCondition(t *testing.T) {
-	var u1, u2, u3, u4, u5, u6, u7 User
-	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
-
-	db.Where("name = ?", "3").First(&u3, "age = 22").First(&u4, "age = ?", 24).First(&u5, "age = ?", 26)
-	if !((u5.Id == 0) && (u3.Age == 22 && u3.Name == "3") && (u4.Age == 24 && u4.Name == "3")) {
-		t.Errorf("Inline where condition for first when search")
-	}
-
-	var us1, us2, us3, us4 []User
-	db.Find(&us1, "age = 22").Find(&us2, "name = ?", "3").Find(&us3, "age > ?", 20)
-	if !(len(us1) == 1 && len(us2) == 2 && len(us3) == 3) {
-		t.Errorf("Inline where condition for find when search")
-	}
-
-	db.Find(&us4, "name = ? and age > ?", "3", "22")
-	if len(us4) != 1 {
-		t.Errorf("More complex inline where condition for find, %v", us4)
-	}
-
-	db.First(&u6, u1.Id)
-	if !(u6.Id == u1.Id && u6.Id != 0) {
-		t.Errorf("Should find out user with int id")
-	}
-
-	db.First(&u7, strconv.Itoa(int(u1.Id)))
-	if !(u6.Id == u1.Id && u6.Id != 0) {
-		t.Errorf("Should find out user with string id")
-	}
-}
-
 func TestSaveAndFind(t *testing.T) {
 	name := "save_and_find"
 	u := &User{Name: name, Age: 1}
@@ -219,6 +188,18 @@ func TestComplexWhere(t *testing.T) {
 		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
 	}
 
+	var user_ids []int64
+	db.Table("users").Where("age > ?", 20).Pluck("id", &user_ids)
+	if len(user_ids) != 3 {
+		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
+	}
+	users = []User{}
+	db.Where(user_ids).Find(&users)
+
+	if len(users) != 3 {
+		t.Errorf("Should only found 3 users that age > 20 when search with id map, but have %v", len(users))
+	}
+
 	users = []User{}
 	db.Where("age >= ?", 20).Find(&users)
 	if len(users) != 4 {
@@ -274,7 +255,7 @@ func TestComplexWhere(t *testing.T) {
 		t.Errorf("Should only found 3 users's name in (1, 3), but have %v", len(users))
 	}
 
-	var user_ids []int64
+	user_ids = []int64{}
 	for _, user := range users {
 		user_ids = append(user_ids, user.Id)
 	}
@@ -305,6 +286,37 @@ func TestComplexWhere(t *testing.T) {
 	db.Where("id in (?)", user_ids[0]).Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should only found 1 users's name in (1, 2) - search by the first id, but have %v", len(users))
+	}
+}
+
+func TestInitlineCondition(t *testing.T) {
+	var u1, u2, u3, u4, u5, u6, u7 User
+	db.Where("name = ?", "3").Order("age desc").First(&u1).First(&u2)
+
+	db.Where("name = ?", "3").First(&u3, "age = 22").First(&u4, "age = ?", 24).First(&u5, "age = ?", 26)
+	if !((u5.Id == 0) && (u3.Age == 22 && u3.Name == "3") && (u4.Age == 24 && u4.Name == "3")) {
+		t.Errorf("Inline where condition for first when search")
+	}
+
+	var us1, us2, us3, us4 []User
+	db.Find(&us1, "age = 22").Find(&us2, "name = ?", "3").Find(&us3, "age > ?", 20)
+	if !(len(us1) == 1 && len(us2) == 2 && len(us3) == 3) {
+		t.Errorf("Inline where condition for find when search")
+	}
+
+	db.Find(&us4, "name = ? and age > ?", "3", "22")
+	if len(us4) != 1 {
+		t.Errorf("More complex inline where condition for find, %v", us4)
+	}
+
+	db.First(&u6, u1.Id)
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Should find out user with int id")
+	}
+
+	db.First(&u7, strconv.Itoa(int(u1.Id)))
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Should find out user with string id")
 	}
 }
 
