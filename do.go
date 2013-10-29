@@ -330,9 +330,10 @@ func (s *Do) primaryCondiation(value interface{}) string {
 }
 
 func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
-	switch clause["query"].(type) {
+	query := clause["query"]
+	switch query.(type) {
 	case string:
-		value := clause["query"].(string)
+		value := query.(string)
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
 			return s.primaryCondiation(s.addToVars(id))
@@ -340,10 +341,17 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			str = "( " + value + " )"
 		}
 	case int, int64, int32:
-		return s.primaryCondiation(s.addToVars(clause["query"]))
+		return s.primaryCondiation(s.addToVars(query))
 	case []int64, []int, []int32, []string:
 		str = fmt.Sprintf("(%v in (?))", s.model.primaryKeyDb())
-		clause["args"] = []interface{}{clause["query"]}
+		clause["args"] = []interface{}{query}
+	case interface{}:
+		m := &Model{data: query, driver: s.driver}
+		var sqls []string
+		for _, field := range m.columnsHasValue("") {
+			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", field.DbName, s.addToVars(field.Value)))
+		}
+		return strings.Join(sqls, ",")
 	}
 
 	args := clause["args"].([]interface{})

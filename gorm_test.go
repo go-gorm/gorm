@@ -51,7 +51,7 @@ func init() {
 
 	err = db.Exec("drop table users;").Error
 	if err != nil {
-		fmt.Printf("Got error when try to delete table uses, %+v\n", err)
+		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
 	db.Exec("drop table products;")
 
@@ -193,9 +193,9 @@ func TestComplexWhere(t *testing.T) {
 	if len(user_ids) != 3 {
 		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
 	}
+
 	users = []User{}
 	db.Where(user_ids).Find(&users)
-
 	if len(users) != 3 {
 		t.Errorf("Should only found 3 users that age > 20 when search with id map, but have %v", len(users))
 	}
@@ -286,6 +286,35 @@ func TestComplexWhere(t *testing.T) {
 	db.Where("id in (?)", user_ids[0]).Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should only found 1 users's name in (1, 2) - search by the first id, but have %v", len(users))
+	}
+}
+
+func TestWhereWithStruct(t *testing.T) {
+	var user User
+	db.First(&user, &User{Name: "2"})
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with struct")
+	}
+
+	db.First(&user, User{Name: "2"})
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with struct")
+	}
+
+	db.Where(&User{Name: "2"}).First(&user)
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with struct")
+	}
+
+	var users []User
+	db.Find(&users, &User{Name: "3"})
+	if len(users) != 2 {
+		t.Errorf("Should be able to search all record with struct")
+	}
+
+	db.Where(User{Name: "3"}).Find(&users)
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with struct")
 	}
 }
 

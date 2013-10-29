@@ -22,6 +22,7 @@ type Field struct {
 	AutoCreateTime bool
 	AutoUpdateTime bool
 	IsPrimaryKey   bool
+	IsBlank        bool
 }
 
 func (m *Model) primaryKeyZero() bool {
@@ -57,7 +58,8 @@ func (m *Model) primaryKeyDb() string {
 }
 
 func (m *Model) fields(operation string) (fields []Field) {
-	typ := reflect.TypeOf(m.data).Elem()
+	indirect_value := reflect.Indirect(reflect.ValueOf(m.data))
+	typ := indirect_value.Type()
 
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
@@ -68,7 +70,18 @@ func (m *Model) fields(operation string) (fields []Field) {
 			field.IsPrimaryKey = m.primaryKeyDb() == field.DbName
 			field.AutoCreateTime = "created_at" == field.DbName
 			field.AutoUpdateTime = "updated_at" == field.DbName
-			value := reflect.ValueOf(m.data).Elem().FieldByName(p.Name)
+			value := indirect_value.FieldByName(p.Name)
+
+			switch value.Kind() {
+			case reflect.Int, reflect.Int64, reflect.Int32:
+				field.IsBlank = value.Int() == 0
+			case reflect.String:
+				field.IsBlank = value.String() == ""
+			default:
+				if value, ok := value.Interface().(time.Time); ok {
+					field.IsBlank = value.IsZero()
+				}
+			}
 
 			switch operation {
 			case "create":
@@ -88,6 +101,16 @@ func (m *Model) fields(operation string) (fields []Field) {
 			} else {
 				field.SqlType = getSqlType(m.driver, field.Value, 0)
 			}
+			fields = append(fields, field)
+		}
+	}
+	return
+
+}
+
+func (m *Model) columnsHasValue(operation string) (fields []Field) {
+	for _, field := range m.fields(operation) {
+		if !field.IsBlank {
 			fields = append(fields, field)
 		}
 	}
