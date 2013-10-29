@@ -8,9 +8,10 @@ Yet Another ORM library for Go, aims for developer friendly
 * Chainable API
 * Before/After Create/Save/Update/Delete Callbacks
 * Order/Select/Limit/Offset Support
-* Automatically CreatedAt, UpdatedAt
 * Update, Updates Like Rails's update_attribute, update_attributes
 * Dynamically set table name when search, update, delete...
+* Automatically CreatedAt, UpdatedAt
+* Soft Delete
 * Create table from struct
 * Prevent SQL Injection
 * Goroutines friendly
@@ -171,6 +172,29 @@ db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age
 db.Table("users").Updates(map[string]interface{}{"name": "hello", "age": 18})
 //// update users set name='hello', age=18;
 
+// Soft Delete
+// For those struct have DeletedAt field, they will get soft delete ability automatically!
+type Order struct {
+  Id        int64
+  Amount    int64
+  CreatedAt time.Time
+  UpdatedAt time.Time
+  DeletedAt time.Time
+}
+order := order{Id:10}
+db.Delete(&order)
+//// UPDATE orders SET deleted_at="2013-10-29 10:23" WHERE id = 10;
+db.Where("amount = ?", 0).Delete(&Order{})
+//// UPDATE orders SET deleted_at="2013-10-29 10:23" WHERE amount = 0;
+db.Where("amount = 100").Find(&order)
+//// order -> select * from orders where amount = 100 and (deleted_at is null and deleted_at <= '0001-01-02');
+// And you are possible to query soft deleted orders with Unscoped method
+db.Unscoped().Where("amount = 100").Find(&order)
+//// order -> select * from orders where amount = 100;
+// Of course, you could permanently delete a record with Unscoped
+db.Unscoped().Delete(&order)
+// DELETE from orders where id=10;
+
 // Run Raw SQL
 db.Exec("drop table users;")
 
@@ -215,7 +239,6 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ```
 
 ## TODO
-* Soft Delete
 * Query with map or struct
 * SubStruct
 * Index, Unique, Valiations
