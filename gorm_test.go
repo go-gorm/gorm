@@ -558,6 +558,22 @@ func TestRunCallbacksAndGetErrors(t *testing.T) {
 	}
 }
 
+func TestFillSmallerStructCorrectly(t *testing.T) {
+	type SimpleUser struct {
+		Name      string
+		Id        int64
+		UpdatedAt time.Time
+		CreatedAt time.Time
+	}
+
+	var simple_user SimpleUser
+	db.Table("users").Find(&simple_user)
+
+	if simple_user.Id == 0 || simple_user.Name == "" {
+		t.Errorf("Should fill data correctly even some column missing")
+	}
+}
+
 func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
 	var columns []string
 	if db.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
@@ -608,10 +624,6 @@ func TestSetTableDirectly(t *testing.T) {
 	}
 
 	if db.Table("unexisting_users_table").Find(&users).Error == nil {
-		t.Errorf("Should got some errors if set table to an unexisting table")
-	}
-
-	if db.Table("products").Find(&users).Error == nil {
 		t.Errorf("Should got some errors if set table to an unexisting table")
 	}
 

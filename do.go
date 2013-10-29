@@ -250,7 +250,10 @@ func (s *Do) query(where ...interface{}) {
 			for _, value := range columns {
 				field := dest.FieldByName(snakeToUpperCamel(value))
 				if field.IsValid() {
-					values = append(values, dest.FieldByName(snakeToUpperCamel(value)).Addr().Interface())
+					values = append(values, field.Addr().Interface())
+				} else {
+					var null interface{}
+					values = append(values, &null)
 				}
 			}
 			s.err(rows.Scan(values...))
