@@ -186,7 +186,7 @@ func (s *Do) delete() {
 	s.err(s.model.callMethod("BeforeDelete"))
 
 	if !s.hasError() {
-		if s.model.hasColumn("DeletedAt") {
+		if !s.unscoped && s.model.hasColumn("DeletedAt") {
 			delete_sql := "deleted_at=" + s.addToVars(time.Now())
 			s.sql = fmt.Sprintf("UPDATE %v SET %v %v", s.tableName(), delete_sql, s.combinedSql())
 			s.exec()
@@ -217,7 +217,7 @@ func (s *Do) query(where ...interface{}) {
 	)
 	dest_out := reflect.Indirect(reflect.ValueOf(s.value))
 
-	if x := dest_out.Kind(); x == reflect.Slice {
+	if dest_out.Kind() == reflect.Slice {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
 	}
@@ -358,11 +358,14 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 }
 
 func (s *Do) whereSql() (sql string) {
-	var primary_condiation string
-	var and_conditions, or_conditions []string
+	var primary_condiations, and_conditions, or_conditions []string
+
+	if !s.unscoped && s.model.hasColumn("DeletedAt") {
+		primary_condiations = append(primary_condiations, "(deleted_at is null or deleted_at <= '0001-01-02')")
+	}
 
 	if !s.model.primaryKeyZero() {
-		primary_condiation = s.primaryCondiation(s.addToVars(s.model.primaryKeyValue()))
+		primary_condiations = append(primary_condiations, s.primaryCondiation(s.addToVars(s.model.primaryKeyValue())))
 	}
 
 	for _, clause := range s.whereClause {
@@ -384,8 +387,8 @@ func (s *Do) whereSql() (sql string) {
 		combined_conditions = or_sql
 	}
 
-	if len(primary_condiation) > 0 {
-		sql = "WHERE " + primary_condiation
+	if len(primary_condiations) > 0 {
+		sql = "WHERE " + strings.Join(primary_condiations, " AND ")
 		if len(combined_conditions) > 0 {
 			sql = sql + " AND ( " + combined_conditions + " )"
 		}

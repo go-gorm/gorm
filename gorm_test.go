@@ -702,16 +702,21 @@ func TestSoftDelete(t *testing.T) {
 
 	order := Order{Amount: 1234}
 	db.Save(&order)
-	if db.Find(&Order{}, "amount = 1234").Error != nil {
+	if db.First(&Order{}, "amount = ?", 1234).Error != nil {
 		t.Errorf("No errors should happen when save an order")
 	}
 
 	db.Delete(&order)
-	if db.Find(&Order{}, "amount = 1234").Error == nil {
+	if db.First(&Order{}, "amount = 1234").Error == nil {
 		t.Errorf("Can't find the user because it is soft deleted")
 	}
 
-	if db.Unscoped().Find(&Order{}, "amount = 1234").Error != nil {
+	if db.Unscoped().First(&Order{}, "amount = 1234").Error != nil {
 		t.Errorf("Should be able to find out the soft deleted user with unscoped")
+	}
+
+	db.Unscoped().Delete(&order)
+	if db.Unscoped().First(&Order{}, "amount = 1234").Error == nil {
+		t.Errorf("Can't find out permanently deleted order")
 	}
 }

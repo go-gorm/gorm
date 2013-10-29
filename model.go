@@ -109,8 +109,12 @@ func (m *Model) hasColumn(name string) bool {
 		return false
 	}
 
-	value := reflect.ValueOf(m.data).Elem().FieldByName(name)
-	return value.IsValid()
+	data := reflect.Indirect(reflect.ValueOf(m.data))
+	if data.Kind() == reflect.Slice {
+		return false //FIXME data.Elem().FieldByName(name).IsValid()
+	} else {
+		return data.FieldByName(name).IsValid()
+	}
 }
 
 func (m *Model) tableName() (str string, err error) {
