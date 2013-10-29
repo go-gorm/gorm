@@ -66,6 +66,8 @@ db.Where("name LIKE ?", "%jin%").Find(&users)
 //// users -> select * from users name LIKE "%jinzhu%";
 db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
 //// user -> select * from users name = "jinzhu" and age = 20 limit 1;
+db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).First(&user)
+//// user -> select * from users name = "jinzhu" and age = 20 limit 1;
 db.Where("birthday < ?", time.Now()).Find(&users)
 
 // Inline search condition
@@ -78,6 +80,8 @@ db.Find(&users, "name = ?", "jinzhu")
 db.Find(&users, "name <> ? and age > ?", "jinzhu", 20)
 //// users -> select * from users where name <> "jinzhu" and age > 20;
 db.Find(&users, &User{Age: 20})
+//// users -> select * from users where age = 20;
+db.Find(&users, map[string]interface{}{"age": 20})
 //// users -> select * from users where age = 20;
 
 // Select
@@ -247,10 +251,10 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 ```
 
 ## TODO
+* FindOrInitialize / FindOrCreate
 * SubStruct
 * Index, Unique, Valiations
 * Auto Migration
-* FindOrInitialize / FindOrCreate
 * SQL Log
 * SQL Query with goroutines
 * Only tested with postgres, confirm works with other database adaptors

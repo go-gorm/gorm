@@ -293,28 +293,52 @@ func TestWhereWithStruct(t *testing.T) {
 	var user User
 	db.First(&user, &User{Name: "2"})
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with struct")
+		t.Errorf("Should be able to search first record with inline struct")
 	}
 
 	db.First(&user, User{Name: "2"})
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with struct")
+		t.Errorf("Should be able to search first record with inline struct")
 	}
 
 	db.Where(&User{Name: "2"}).First(&user)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with struct")
+		t.Errorf("Should be able to search first record with where struct")
 	}
 
 	var users []User
 	db.Find(&users, &User{Name: "3"})
 	if len(users) != 2 {
-		t.Errorf("Should be able to search all record with struct")
+		t.Errorf("Should be able to search all record with inline struct")
 	}
 
 	db.Where(User{Name: "3"}).Find(&users)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with struct")
+		t.Errorf("Should be able to search first record with where struct")
+	}
+}
+
+func TestWhereWithInterfaceMap(t *testing.T) {
+	var user User
+	db.First(&user, map[string]interface{}{"name": "2"})
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with inline interface map")
+	}
+
+	db.Where(map[string]interface{}{"name": "2"}).First(&user)
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with where interface map")
+	}
+
+	var users []User
+	db.Find(&users, map[string]interface{}{"name": "3"})
+	if len(users) != 2 {
+		t.Errorf("Should be able to search all record with inline interface map")
+	}
+
+	db.Where(map[string]interface{}{"name": "3"}).Find(&users)
+	if user.Id == 0 || user.Name != "2" {
+		t.Errorf("Should be able to search first record with where interface map")
 	}
 }
 

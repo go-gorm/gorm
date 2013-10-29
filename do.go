@@ -345,6 +345,12 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 	case []int64, []int, []int32, []string:
 		str = fmt.Sprintf("(%v in (?))", s.model.primaryKeyDb())
 		clause["args"] = []interface{}{query}
+	case map[string]interface{}:
+		var sqls []string
+		for key, value := range query.(map[string]interface{}) {
+			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", key, s.addToVars(value)))
+		}
+		return strings.Join(sqls, ",")
 	case interface{}:
 		m := &Model{data: query, driver: s.driver}
 		var sqls []string
