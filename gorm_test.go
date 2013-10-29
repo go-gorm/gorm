@@ -800,14 +800,27 @@ func TestSoftDelete(t *testing.T) {
 }
 
 func TestFindOrInitialize(t *testing.T) {
-	var user1 User
-	db.Where(&User{Name: "hello world", Age: 33}).FirstOrInit(&user1)
-	if user1.Name != "hello world" || user1.Id != 0 || user1.Age != 33 {
+	var user1, user2 User
+	db.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user1)
+	if user1.Name != "find or init" || user1.Id != 0 || user1.Age != 33 {
 		t.Errorf("user should be initialized with search value")
 	}
 
-	// db.FirstOrInit(&user2, map[string]interface{}{"name": "hahaha"})
-	// if user2.Name != "hahaha" || user2.Id != 0 {
-	// 	t.Errorf("user should be initialized with search value")
-	// }
+	db.FirstOrInit(&user2, map[string]interface{}{"name": "find or init 2"})
+	if user2.Name != "find or init 2" || user2.Id != 0 {
+		t.Errorf("user should be initialized with inline search value")
+	}
+}
+
+func TestFindOrCreate(t *testing.T) {
+	var user1, user2 User
+	db.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1)
+	if user1.Name != "find or create" || user1.Id == 0 || user1.Age != 33 {
+		t.Errorf("user should be created with search value")
+	}
+
+	db.FirstOrCreate(&user2, map[string]interface{}{"name": "find or create 2"})
+	if user2.Name != "find or create 2" || user2.Id == 0 {
+		t.Errorf("user should be created with inline search value")
+	}
 }

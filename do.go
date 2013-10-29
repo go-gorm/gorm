@@ -206,11 +206,7 @@ func (s *Do) prepareQuerySql() {
 	return
 }
 
-func (s *Do) query(where ...interface{}) {
-	if len(where) > 0 {
-		s.where(where[0], where[1:len(where)]...)
-	}
-
+func (s *Do) query() {
 	var (
 		is_slice  bool
 		dest_type reflect.Type
@@ -320,9 +316,11 @@ func (s *Do) pluck(column string, value interface{}) {
 	return
 }
 
-func (s *Do) where(querystring interface{}, args ...interface{}) {
-	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
-	return
+func (s *Do) where(where ...interface{}) *Do {
+	if len(where) > 0 {
+		s.whereClause = append(s.whereClause, map[string]interface{}{"query": where[0], "args": where[1:len(where)]})
+	}
+	return s
 }
 
 func (s *Do) primaryCondiation(value interface{}) string {
@@ -466,7 +464,7 @@ func (s *Do) createTable() *Do {
 	return s
 }
 
-func (s *Do) initializedWithSearchCondition() {
+func (s *Do) initializeWithSearchCondition() {
 	m := Model{data: s.value, driver: s.driver}
 
 	for _, clause := range s.whereClause {

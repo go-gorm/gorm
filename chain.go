@@ -171,24 +171,29 @@ func (s *Chain) Exec(sql string) *Chain {
 func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
 	do := s.do(out)
 	do.limitStr = "1"
-	do.query(where...)
+	do.where(where...).query()
 	return s
 }
 
 func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
-	if s.First(out).Error != nil {
-		s.do(out).initializedWithSearchCondition()
+	if s.First(out, where...).Error != nil {
+		s.do(out).where(where...).initializeWithSearchCondition()
 		s.deleteLastError()
 	}
 	return s
 }
 
 func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
+	if s.First(out, where...).Error != nil {
+		s.do(out).where(where...).initializeWithSearchCondition()
+		s.deleteLastError()
+		s.Save(out)
+	}
 	return s
 }
 
 func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
-	s.do(out).query(where...)
+	s.do(out).where(where...).query()
 	return s
 }
 
