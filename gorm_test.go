@@ -797,3 +797,11 @@ func TestSoftDelete(t *testing.T) {
 		t.Errorf("Can't find out permanently deleted order")
 	}
 }
+
+func TestFindOrInitialize(t *testing.T) {
+	var user User
+	db.Where(User{Name: "hello world"}).FirstOrInit(&user)
+	if user.Name != "hello world" || user.Id != 0 {
+		t.Errorf("user should be initialized with search value")
+	}
+}

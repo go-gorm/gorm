@@ -159,6 +159,14 @@ func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
 	return s
 }
 
+func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
+	return s
+}
+
+func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
+	return s
+}
+
 func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
 	s.do(out).query(where...)
 	return s

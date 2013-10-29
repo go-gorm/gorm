@@ -29,6 +29,14 @@ func (s *DB) First(out interface{}, where ...interface{}) *Chain {
 	return s.buildChain().First(out, where...)
 }
 
+func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *Chain {
+	return s.buildChain().FirstOrInit(out, where...)
+}
+
+func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
+	return s.buildChain().FirstOrCreate(out, where...)
+}
+
 func (s *DB) Find(out interface{}, where ...interface{}) *Chain {
 	return s.buildChain().Find(out, where...)
 }
