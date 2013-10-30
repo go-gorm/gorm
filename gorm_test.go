@@ -238,6 +238,12 @@ func TestComplexWhere(t *testing.T) {
 	}
 
 	users = []User{}
+	db.Where("birthday > ?", "2002-10-10").Find(&users)
+	if len(users) != 3 {
+		t.Errorf("Should only found 3 users's birthday >= t2", len(users))
+	}
+
+	users = []User{}
 	db.Where("birthday >= ?", t1).Where("birthday < ?", t2).Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should only found 1 users's birthday <= t2, but have %v", len(users))
