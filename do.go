@@ -108,6 +108,7 @@ func (s *Do) prepareCreateSql() {
 		strings.Join(sqls, ","),
 		s.model.returningStr(),
 	)
+	debug(s.sql)
 	return
 }
 

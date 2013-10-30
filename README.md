@@ -93,6 +93,16 @@ db.Where(User{Name: "Jinzhu"}).FirstOrInit(&user)
 db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 
+// FirstOrInit With Attrs
+db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrInit(&user)
+//// user -> select * from users where name = 'noexisting_user';
+//// user -> User{Name: "noexisting_user", Age: 20}
+db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrInit(&user)
+//// user -> select * from users where name = 'jinzhu';
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 18}
+//// Do you notice the difference? The value in Attrs won't be used when search,
+//// But is used to initalize the object if no record found
+
 // FirstOrCreate
 db.FirstOrCreate(&user, User{Name: "noexisting_user"})
 //// user -> User{Id: 112, Name: "noexisting_user"}
@@ -100,6 +110,15 @@ db.Where(User{Name: "Jinzhu"}).FirstOrCreate(&user)
 //// user -> User{Id: 111, Name: "Jinzhu"}
 db.FirstOrCreate(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
+
+// FirstOrCreate With Attrs
+db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
+//// user -> select * from users where name = 'noexisting_user';
+//// user -> User{Id: 112, Name: "noexisting_user", Age: 20}
+db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
+//// user -> select * from users where name = 'jinzhu';
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 18}
+//// You must noticed that the Attrs is similar to FirstOrInit with Attrs, yes?
 
 // Select
 db.Select("name").Find(&users)
@@ -263,6 +282,10 @@ db.Where("product_name = ?", "fancy_product").Find(&orders).Find(&shopping_cart)
 db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&user2)
 //// users1 -> select * from users where mail_type = 'TEXT';
 //// users2 -> select * from deleted_users where mail_type = 'TEXT';
+
+db.Where("email = ?", "x@example.org"').Attrs(User{FromIp: "111.111.111.111"}).FirstOrCreate(&user)
+//// user -> select * from users where email = 'x@example.org'
+//// (if no record found) -> INSERT INTO "users" (email,from_ip) VALUES ("x@example.org", "111.111.111.111")
 
 // Open your mind, add more cool examples
 ```
