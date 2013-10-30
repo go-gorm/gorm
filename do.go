@@ -77,7 +77,9 @@ func (s *Do) exec(sql ...string) {
 
 	var err error
 	if len(sql) == 0 {
-		s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
+		if len(s.sql) > 0 {
+			s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
+		}
 	} else {
 		s.sqlResult, err = s.db.Exec(sql[0])
 	}
@@ -108,7 +110,6 @@ func (s *Do) prepareCreateSql() {
 		strings.Join(sqls, ","),
 		s.model.returningStr(),
 	)
-	debug(s.sql)
 	return
 }
 
@@ -145,13 +146,20 @@ func (s *Do) create() {
 	return
 }
 
-func (s *Do) prepareUpdateSql() {
-	update_attrs := s.updateAttrs
-	if len(update_attrs) == 0 {
-		update_attrs = s.model.columnsAndValues("update")
+func (s *Do) prepareUpdateAttrs() (results map[string]interface{}, update bool) {
+	if len(s.updateAttrs) > 0 {
+		results, update = s.model.updatedColumnsAndValues(s.updateAttrs)
+	}
+	return
+}
+
+func (s *Do) prepareUpdateSql(results map[string]interface{}) {
+	var sqls []string
+	for key, value := range results {
+		sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
 	}
 
-	var sqls []string
+	update_attrs := s.model.columnsAndValues("update")
 	for key, value := range update_attrs {
 		sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
 	}
@@ -166,10 +174,20 @@ func (s *Do) prepareUpdateSql() {
 }
 
 func (s *Do) update() {
+	update_attrs := s.updateAttrs
+	if len(update_attrs) > 0 {
+		var need_update bool
+		update_attrs, need_update = s.prepareUpdateAttrs()
+		if !need_update {
+			return
+		}
+	}
+
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
-	s.prepareUpdateSql()
+	s.prepareUpdateSql(update_attrs)
+
 	if !s.hasError() {
 		s.exec()
 

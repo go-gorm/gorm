@@ -125,7 +125,45 @@ func (m *Model) columnsHasValue(operation string) (fields []Field) {
 	return
 }
 
+func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (map[string]interface{}, bool) {
+	if m.data == nil {
+		return values, true
+	}
+
+	data := reflect.Indirect(reflect.ValueOf(m.data))
+	results := map[string]interface{}{}
+
+	for key, value := range values {
+		field := data.FieldByName(snakeToUpperCamel(key))
+		if field.IsValid() {
+			if field.Interface() != value {
+				switch field.Kind() {
+				case reflect.Int, reflect.Int32, reflect.Int64:
+					field.SetInt(reflect.ValueOf(value).Int())
+					if field.Int() != reflect.ValueOf(value).Int() {
+						results[key] = value
+					}
+				default:
+					results[key] = value
+					field.Set(reflect.ValueOf(value))
+				}
+			}
+		}
+	}
+
+	field := data.FieldByName("UpdatedAt")
+	if field.IsValid() && values["updated_at"] != nil && len(results) > 0 {
+		data.FieldByName("UpdatedAt").Set(reflect.ValueOf(time.Now()))
+	}
+	result := len(results) > 0
+	return map[string]interface{}{}, result
+}
+
 func (m *Model) columnsAndValues(operation string) map[string]interface{} {
+	if m.data == nil {
+		return map[string]interface{}{}
+	}
+
 	results := map[string]interface{}{}
 	for _, field := range m.fields(operation) {
 		if !field.IsPrimaryKey {

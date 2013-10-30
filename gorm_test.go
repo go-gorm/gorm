@@ -717,6 +717,20 @@ func TestUpdate(t *testing.T) {
 	product1 := Product{Code: "123"}
 	product2 := Product{Code: "234"}
 	db.Save(&product1).Save(&product2).Update("code", "456")
+	if product2.Code != "456" {
+		t.Errorf("Object should be updated also with update attributes")
+	}
+
+	db.First(&product1, product1.Id)
+	db.First(&product2, product2.Id)
+	updated_at1 := product1.UpdatedAt
+	updated_at2 := product2.UpdatedAt
+
+	var product3 Product
+	db.First(&product3, product2.Id).Update("code", "456")
+	if updated_at2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should not be updated if nothing really new")
+	}
 
 	if db.First(&Product{}, "code = '123'").Error != nil {
 		t.Errorf("Product 123's code should not be changed!")
@@ -731,6 +745,13 @@ func TestUpdate(t *testing.T) {
 	}
 
 	db.Table("products").Where("code in (?)", []string{"123"}).Update("code", "789")
+
+	var product4 Product
+	db.First(&product4, product1.Id)
+	if updated_at1.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should be updated if something updated")
+	}
+
 	if db.First(&Product{}, "code = '123'").Error == nil {
 		t.Errorf("Product 123's code should be changed to 789")
 	}
@@ -748,6 +769,20 @@ func TestUpdates(t *testing.T) {
 	product1 := Product{Code: "abc", Price: 10}
 	product2 := Product{Code: "cde", Price: 20}
 	db.Save(&product1).Save(&product2).Updates(map[string]interface{}{"code": "edf", "price": 100})
+	if product2.Code != "edf" || product2.Price != 100 {
+		t.Errorf("Object should be updated also with update attributes")
+	}
+	db.First(&product1, product1.Id)
+	db.First(&product2, product2.Id)
+	updated_at1 := product1.UpdatedAt
+	updated_at2 := product2.UpdatedAt
+
+	var product3 Product
+	db.First(&product3, product2.Id).Updates(map[string]interface{}{"code": "edf", "price": 100})
+
+	if updated_at2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should not be updated if nothing really new")
+	}
 
 	if db.First(&Product{}, "code = 'abc' and price = 10").Error != nil {
 		t.Errorf("Product abc should not be updated!")
@@ -764,6 +799,11 @@ func TestUpdates(t *testing.T) {
 	db.Table("products").Where("code in (?)", []string{"abc"}).Updates(map[string]interface{}{"code": "fgh", "price": 200})
 	if db.First(&Product{}, "code = 'abc'").Error == nil {
 		t.Errorf("Product abc's code should be changed to fgh")
+	}
+	var product4 Product
+	db.First(&product4, product1.Id)
+	if updated_at1.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should be updated if something updated")
 	}
 
 	if db.First(&Product{}, "code = 'edf' and price = ?", 100).Error != nil {
