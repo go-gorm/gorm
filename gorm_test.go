@@ -806,7 +806,7 @@ func TestSoftDelete(t *testing.T) {
 }
 
 func TestFindOrInitialize(t *testing.T) {
-	var user1, user2, user3 User
+	var user1, user2, user3, user4, user5, user6 User
 	db.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user1)
 	if user1.Name != "find or init" || user1.Id != 0 || user1.Age != 33 {
 		t.Errorf("user should be initialized with search value")
@@ -821,10 +821,27 @@ func TestFindOrInitialize(t *testing.T) {
 	if user3.Name != "find or init 2" || user3.Id != 0 {
 		t.Errorf("user should be initialized with inline search value")
 	}
+
+	db.Where(&User{Name: "find or init"}).Attrs(User{Age: 44}).FirstOrInit(&user4)
+	if user4.Name != "find or init" || user4.Id != 0 || user4.Age != 44 {
+		t.Errorf("user should be initialized with search value and attrs")
+	}
+
+	db.Save(&User{Name: "find or init", Age: 33})
+
+	db.Where(&User{Name: "find or init"}).Attrs(User{Age: 44}).FirstOrInit(&user5)
+	if user5.Name != "find or init" || user5.Id == 0 || user5.Age != 33 {
+		t.Errorf("user should be found and not initialized by Attrs")
+	}
+
+	db.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user6)
+	if user6.Name != "find or init" || user6.Id == 0 || user6.Age != 33 {
+		t.Errorf("user should be found with FirstOrInit")
+	}
 }
 
 func TestFindOrCreate(t *testing.T) {
-	var user1, user2, user3 User
+	var user1, user2, user3, user4, user5 User
 	db.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1)
 	if user1.Name != "find or create" || user1.Id == 0 || user1.Age != 33 {
 		t.Errorf("user should be created with search value")
@@ -838,5 +855,15 @@ func TestFindOrCreate(t *testing.T) {
 	db.FirstOrCreate(&user3, map[string]interface{}{"name": "find or create 2"})
 	if user3.Name != "find or create 2" || user3.Id == 0 {
 		t.Errorf("user should be created with inline search value")
+	}
+
+	db.Where(&User{Name: "find or create 3"}).Attrs(User{Age: 44}).FirstOrCreate(&user4)
+	if user4.Name != "find or create 3" || user4.Id == 0 || user4.Age != 44 {
+		t.Errorf("user should be created with search value and attrs")
+	}
+
+	db.Where(&User{Name: "find or create"}).Attrs(User{Age: 44}).FirstOrInit(&user5)
+	if user5.Name != "find or create" || user5.Id == 0 || user5.Age != 33 {
+		t.Errorf("user should be found and not initialized by Attrs")
 	}
 }

@@ -482,6 +482,13 @@ func (s *Do) initializeWithSearchCondition() {
 	for _, clause := range s.whereClause {
 		query := clause["query"]
 		switch query.(type) {
+		case []interface{}:
+			for _, obj := range query.([]interface{}) {
+				m := &Model{data: obj, driver: s.driver}
+				for _, field := range m.columnsHasValue("") {
+					m.setValueByColumn(field.DbName, field.Value, s.value)
+				}
+			}
 		case map[string]interface{}:
 			for key, value := range query.(map[string]interface{}) {
 				m.setValueByColumn(key, value, s.value)
