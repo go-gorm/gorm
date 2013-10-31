@@ -189,7 +189,9 @@ func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
 		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
 	} else {
-		s.do(out).update()
+		if len(s.assignAttrs) > 0 {
+			s.do(out).setUpdateAttrs(s.assignAttrs).prepareUpdateAttrs()
+		}
 	}
 	return s
 }
@@ -199,6 +201,10 @@ func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
 		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
 		s.Save(out)
+	} else {
+		if len(s.assignAttrs) > 0 {
+			s.do(out).setUpdateAttrs(s.assignAttrs).update()
+		}
 	}
 	return s
 }

@@ -139,10 +139,10 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (map[stri
 			if field.Interface() != value {
 				switch field.Kind() {
 				case reflect.Int, reflect.Int32, reflect.Int64:
-					field.SetInt(reflect.ValueOf(value).Int())
 					if field.Int() != reflect.ValueOf(value).Int() {
 						results[key] = value
 					}
+					field.SetInt(reflect.ValueOf(value).Int())
 				default:
 					results[key] = value
 					field.Set(reflect.ValueOf(value))

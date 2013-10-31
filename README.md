@@ -96,12 +96,23 @@ db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
 // FirstOrInit With Attrs
 db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'noexisting_user';
-//// user -> User{Name: "noexisting_user", Age: 20}
+//// If no record found, will assign the attrs to user, so user become:
+////   User{Name: "noexisting_user", Age: 20}
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'jinzhu';
-//// user -> User{Id: 111, Name: "Jinzhu", Age: 18}
-//// Do you notice the difference? The value in Attrs won't be used when search,
-//// But is used to initalize the object if no record found
+//// If found the user, will ingore the attrs:
+////   User{Id: 111, Name: "Jinzhu", Age: 18}
+
+// FirstOrInit With Assign
+db.Where(User{Name: "noexisting_user"}).Assign(User{Age: 20}).FirstOrInit(&user)
+//// user -> select * from users where name = 'noexisting_user';
+//// If no record found, will assign the value to user, so user become:
+////   User{Name: "noexisting_user", Age: 20} (same as FirstOrInit With Attrs)
+//// user -> User{Name: "noexisting_user", Age: 20}
+db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 20}).FirstOrInit(&user)
+//// user -> select * from users where name = 'jinzhu';
+//// If found the user, will assign the value to user, so user become: (different with FirstOrInit With Attrs)
+////   User{Id: 111, Name: "Jinzhu", Age: 20}
 
 // FirstOrCreate
 db.FirstOrCreate(&user, User{Name: "noexisting_user"})
@@ -114,9 +125,26 @@ db.FirstOrCreate(&user, map[string]interface{}{"name": "jinzhu", "age": 20})
 // FirstOrCreate With Attrs
 db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
 //// user -> select * from users where name = 'noexisting_user';
+//// If not record found, will assing the attrs to the user first, then create it
+//// Same as db.Where(User{Name: "noexisting_user"}).FirstOrCreate(&user).Update("age": 20), but one less sql
 //// user -> User{Id: 112, Name: "noexisting_user", Age: 20}
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
 //// user -> select * from users where name = 'jinzhu';
+//// If found any record, will ignore the attrs
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 18}
+
+// FirstOrCreate With Assign
+db.Where(User{Name: "noexisting_user"}).Assign(User{Age: 20}).FirstOrCreate(&user)
+//// user -> select * from users where name = 'noexisting_user';
+//// If not record found, will assing the value to the user first, then create it
+//// user -> User{Id: 112, Name: "noexisting_user", Age: 20} (Same as FirstOrCreate With Attrs)
+db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 20}).FirstOrCreate(&user)
+//// user -> select * from users where name = 'jinzhu';
+//// If any record found, will assing the value to the user and update it
+//// UPDATE users SET age=20 WHERE id = 111;
+//// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
+
+
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 18}
 //// You must noticed that the Attrs is similar to FirstOrInit with Attrs, yes?
 
