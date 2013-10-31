@@ -146,6 +146,12 @@ func (s *Do) create() {
 	return
 }
 
+func (s *Do) setUpdateAttrs(values map[string]interface{}, ignore_protected_attrs ...bool) *Do {
+	s.updateAttrs = values
+	s.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
+	return s
+}
+
 func (s *Do) prepareUpdateAttrs() (results map[string]interface{}, update bool) {
 	if len(s.updateAttrs) > 0 {
 		results, update = s.model.updatedColumnsAndValues(s.updateAttrs)

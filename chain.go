@@ -21,6 +21,7 @@ type Chain struct {
 	whereClause        []map[string]interface{}
 	orClause           []map[string]interface{}
 	initAttrs          []interface{}
+	assignAttrs        []interface{}
 	selectStr          string
 	orderStrs          []string
 	offsetStr          string
@@ -157,10 +158,7 @@ func (s *Chain) Update(column string, value interface{}) *Chain {
 }
 
 func (s *Chain) Updates(values map[string]interface{}, ignore_protected_attrs ...bool) *Chain {
-	do := s.do(s.value)
-	do.updateAttrs = values
-	do.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
-	do.update()
+	s.do(s.value).setUpdateAttrs(values, ignore_protected_attrs...).update()
 	return s
 }
 
@@ -181,17 +179,24 @@ func (s *Chain) Attrs(attrs interface{}) *Chain {
 	return s
 }
 
+func (s *Chain) Assign(attrs interface{}) *Chain {
+	s.assignAttrs = append(s.assignAttrs, attrs)
+	return s
+}
+
 func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
 	if s.First(out, where...).Error != nil {
-		s.do(out).where(where...).where(s.initAttrs).initializeWithSearchCondition()
+		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
+	} else {
+		s.do(out).update()
 	}
 	return s
 }
 
 func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
 	if s.First(out, where...).Error != nil {
-		s.do(out).where(where...).where(s.initAttrs).initializeWithSearchCondition()
+		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
 		s.Save(out)
 	}

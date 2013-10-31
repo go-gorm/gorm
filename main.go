@@ -34,6 +34,10 @@ func (s *DB) Attrs(attrs interface{}) *Chain {
 	return s.buildChain().Attrs(attrs)
 }
 
+func (s *DB) Assign(attrs interface{}) *Chain {
+	return s.buildChain().Assign(attrs)
+}
+
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *Chain {
 	return s.buildChain().FirstOrInit(out, where...)
 }

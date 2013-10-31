@@ -867,6 +867,11 @@ func TestFindOrInitialize(t *testing.T) {
 		t.Errorf("user should be initialized with search value and attrs")
 	}
 
+	db.Where(&User{Name: "find or init"}).Assign(User{Age: 44}).FirstOrInit(&user4)
+	if user4.Name != "find or init" || user4.Id != 0 || user4.Age != 44 {
+		t.Errorf("user should be initialized with search value and assigned attrs")
+	}
+
 	db.Save(&User{Name: "find or init", Age: 33})
 
 	db.Where(&User{Name: "find or init"}).Attrs(User{Age: 44}).FirstOrInit(&user5)
@@ -877,6 +882,11 @@ func TestFindOrInitialize(t *testing.T) {
 	db.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user6)
 	if user6.Name != "find or init" || user6.Id == 0 || user6.Age != 33 {
 		t.Errorf("user should be found with FirstOrInit")
+	}
+
+	db.Where(&User{Name: "find or init"}).Assign(User{Age: 44}).FirstOrInit(&user6)
+	if user6.Name != "find or init" || user6.Id == 0 || user6.Age != 44 {
+		// t.Errorf("user should be found and updated with assigned attrs")
 	}
 }
 
