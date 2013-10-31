@@ -28,6 +28,7 @@ type Do struct {
 
 	whereClause          []map[string]interface{}
 	orClause             []map[string]interface{}
+	notClause            []map[string]interface{}
 	selectStr            string
 	orderStrs            []string
 	offsetStr            string
@@ -423,6 +424,62 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 	return
 }
 
+func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
+	query := clause["query"]
+	var not_equal_sql string
+
+	switch query.(type) {
+	case string:
+		value := query.(string)
+		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
+			id, _ := strconv.Atoi(value)
+			return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), id)
+		} else {
+			str = "( \"" + value + "\" NOT INT (?))"
+			not_equal_sql = " (%v <> ?) "
+		}
+	case int, int64, int32:
+		return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), query)
+	case []int64, []int, []int32, []string:
+		if reflect.ValueOf(query).Len() > 0 {
+			str = fmt.Sprintf("(%v not in (?))", s.model.primaryKeyDb())
+			clause["args"] = []interface{}{query}
+		} else {
+			s.err(errors.New(fmt.Sprintf("%+v not supported", query)))
+			return
+		}
+	case map[string]interface{}:
+		var sqls []string
+		for key, value := range query.(map[string]interface{}) {
+			sqls = append(sqls, fmt.Sprintf(" ( %v <> %v ) ", key, s.addToVars(value)))
+		}
+		return strings.Join(sqls, " AND ")
+	case interface{}:
+		m := &Model{data: query, driver: s.driver}
+		var sqls []string
+		for _, field := range m.columnsHasValue("") {
+			sqls = append(sqls, fmt.Sprintf(" ( %v <> %v ) ", field.DbName, s.addToVars(field.Value)))
+		}
+		return strings.Join(sqls, " AND ")
+	}
+
+	args := clause["args"].([]interface{})
+	for _, arg := range args {
+		switch reflect.TypeOf(arg).Kind() {
+		case reflect.Slice: // For where("id in (?)", []int64{1,2})
+			values := reflect.ValueOf(arg)
+			var temp_marks []string
+			for i := 0; i < values.Len(); i++ {
+				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Addr().Interface()))
+			}
+			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
+		default:
+			str = strings.Replace(not_equal_sql, "?", s.addToVars(arg), 1)
+		}
+	}
+	return
+}
+
 func (s *Do) whereSql() (sql string) {
 	var primary_condiations, and_conditions, or_conditions []string
 
@@ -440,6 +497,10 @@ func (s *Do) whereSql() (sql string) {
 
 	for _, clause := range s.orClause {
 		or_conditions = append(or_conditions, s.buildWhereCondition(clause))
+	}
+
+	for _, clause := range s.notClause {
+		and_conditions = append(and_conditions, s.buildNotCondition(clause))
 	}
 
 	and_sql := strings.Join(and_conditions, " AND ")

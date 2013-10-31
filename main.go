@@ -26,6 +26,10 @@ func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
 	return s.buildChain().Where(querystring, args...)
 }
 
+func (s *DB) Not(querystring interface{}, args ...interface{}) *Chain {
+	return s.buildChain().Not(querystring, args...)
+}
+
 func (s *DB) First(out interface{}, where ...interface{}) *Chain {
 	return s.buildChain().First(out, where...)
 }

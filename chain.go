@@ -20,6 +20,7 @@ type Chain struct {
 
 	whereClause        []map[string]interface{}
 	orClause           []map[string]interface{}
+	notClause          []map[string]interface{}
 	initAttrs          []interface{}
 	assignAttrs        []interface{}
 	selectStr          string
@@ -61,6 +62,7 @@ func (s *Chain) do(value interface{}) *Do {
 
 	do.whereClause = s.whereClause
 	do.orClause = s.orClause
+	do.notClause = s.notClause
 	do.selectStr = s.selectStr
 	do.orderStrs = s.orderStrs
 	do.offsetStr = s.offsetStr
@@ -80,6 +82,11 @@ func (s *Chain) Model(model interface{}) *Chain {
 
 func (s *Chain) Where(querystring interface{}, args ...interface{}) *Chain {
 	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
+	return s
+}
+
+func (s *Chain) Not(querystring interface{}, args ...interface{}) *Chain {
+	s.notClause = append(s.notClause, map[string]interface{}{"query": querystring, "args": args})
 	return s
 }
 
