@@ -133,10 +133,7 @@ func (s *Do) create() {
 
 		if !s.hasError() {
 			result := reflect.ValueOf(s.value).Elem()
-			primary_key := result.FieldByName(s.model.primaryKey())
-			if primary_key.IsValid() {
-				primary_key.SetInt(id)
-			}
+			setFieldValue(result.FieldByName(s.model.primaryKey()), id)
 
 			s.err(s.model.callMethod("AfterCreate"))
 			s.err(s.model.callMethod("AfterSave"))
@@ -323,7 +320,7 @@ func (s *Do) count(value interface{}) {
 		for rows.Next() {
 			var dest int64
 			if s.err(rows.Scan(&dest)) == nil {
-				dest_out.SetInt(dest)
+				setFieldValue(dest_out, dest)
 			}
 		}
 	}
@@ -523,16 +520,23 @@ func (s *Do) initializeWithSearchCondition() {
 	for _, clause := range s.whereClause {
 		query := clause["query"]
 		switch query.(type) {
-		case []interface{}:
-			for _, obj := range query.([]interface{}) {
-				m := &Model{data: obj, driver: s.driver}
-				for _, field := range m.columnsHasValue("") {
-					m.setValueByColumn(field.DbName, field.Value, s.value)
-				}
-			}
 		case map[string]interface{}:
 			for key, value := range query.(map[string]interface{}) {
 				m.setValueByColumn(key, value, s.value)
+			}
+		case []interface{}:
+			for _, obj := range query.([]interface{}) {
+				switch reflect.ValueOf(obj).Kind() {
+				case reflect.Struct:
+					m := &Model{data: obj, driver: s.driver}
+					for _, field := range m.columnsHasValue("") {
+						m.setValueByColumn(field.DbName, field.Value, s.value)
+					}
+				case reflect.Map:
+					for key, value := range obj.(map[string]interface{}) {
+						m.setValueByColumn(key, value, s.value)
+					}
+				}
 			}
 		case interface{}:
 			m := &Model{data: query, driver: s.driver}

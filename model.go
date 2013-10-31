@@ -151,9 +151,8 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (map[stri
 		}
 	}
 
-	field := data.FieldByName("UpdatedAt")
-	if field.IsValid() && values["updated_at"] != nil && len(results) > 0 {
-		data.FieldByName("UpdatedAt").Set(reflect.ValueOf(time.Now()))
+	if values["updated_at"] != nil && len(results) > 0 {
+		setFieldValue(data.FieldByName("UpdatedAt"), time.Now())
 	}
 	result := len(results) > 0
 	return map[string]interface{}{}, result
@@ -238,9 +237,16 @@ func (m *Model) missingColumns() (results []string) {
 
 func (m *Model) setValueByColumn(name string, value interface{}, out interface{}) {
 	data := reflect.Indirect(reflect.ValueOf(out))
+	setFieldValue(data.FieldByName(snakeToUpperCamel(name)), value)
+}
 
-	field := data.FieldByName(snakeToUpperCamel(name))
+func setFieldValue(field reflect.Value, value interface{}) {
 	if field.IsValid() {
-		field.Set(reflect.ValueOf(value))
+		switch field.Kind() {
+		case reflect.Int, reflect.Int32, reflect.Int64:
+			field.SetInt(reflect.ValueOf(value).Int())
+		default:
+			field.Set(reflect.ValueOf(value))
+		}
 	}
 }

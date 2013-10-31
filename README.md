@@ -98,6 +98,8 @@ db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'noexisting_user';
 //// If no record found, will assign the attrs to user, so user become:
 ////   User{Name: "noexisting_user", Age: 20}
+db.Where(User{Name: "noexisting_user"}).Attrs("age", 20).FirstOrInit(&user)
+// Same as above
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'jinzhu';
 //// If found the user, will ingore the attrs:
@@ -108,6 +110,8 @@ db.Where(User{Name: "noexisting_user"}).Assign(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'noexisting_user';
 //// If no record found, will assign the value to user, so user become:
 ////   User{Name: "noexisting_user", Age: 20} (same as FirstOrInit With Attrs)
+db.Where(User{Name: "noexisting_user"}).Assign("age", 20).FirstOrInit(&user)
+// Same as above
 //// user -> User{Name: "noexisting_user", Age: 20}
 db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 20}).FirstOrInit(&user)
 //// user -> select * from users where name = 'jinzhu';
@@ -127,6 +131,8 @@ db.Where(User{Name: "noexisting_user"}).Attrs(User{Age: 20}).FirstOrCreate(&user
 //// user -> select * from users where name = 'noexisting_user';
 //// If not record found, will assing the attrs to the user first, then create it
 //// Same as db.Where(User{Name: "noexisting_user"}).FirstOrCreate(&user).Update("age": 20), but one less sql
+db.Where(User{Name: "noexisting_user"}).Attrs("age", 20).FirstOrCreate(&user)
+// Save as above
 //// user -> User{Id: 112, Name: "noexisting_user", Age: 20}
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
 //// user -> select * from users where name = 'jinzhu';

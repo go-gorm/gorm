@@ -153,8 +153,8 @@ func (s *Chain) Delete(value interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) Update(column string, value interface{}) *Chain {
-	return s.Updates(map[string]interface{}{column: value}, true)
+func (s *Chain) Update(attrs ...interface{}) *Chain {
+	return s.Updates(toSearchableMap(attrs...), true)
 }
 
 func (s *Chain) Updates(values interface{}, ignore_protected_attrs ...bool) *Chain {
@@ -174,13 +174,13 @@ func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) Attrs(attrs interface{}) *Chain {
-	s.initAttrs = append(s.initAttrs, attrs)
+func (s *Chain) Attrs(attrs ...interface{}) *Chain {
+	s.initAttrs = append(s.initAttrs, toSearchableMap(attrs...))
 	return s
 }
 
-func (s *Chain) Assign(attrs interface{}) *Chain {
-	s.assignAttrs = append(s.assignAttrs, attrs)
+func (s *Chain) Assign(attrs ...interface{}) *Chain {
+	s.assignAttrs = append(s.assignAttrs, toSearchableMap(attrs...))
 	return s
 }
 
