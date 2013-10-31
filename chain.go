@@ -157,7 +157,7 @@ func (s *Chain) Update(column string, value interface{}) *Chain {
 	return s.Updates(map[string]interface{}{column: value}, true)
 }
 
-func (s *Chain) Updates(values map[string]interface{}, ignore_protected_attrs ...bool) *Chain {
+func (s *Chain) Updates(values interface{}, ignore_protected_attrs ...bool) *Chain {
 	s.do(s.value).setUpdateAttrs(values, ignore_protected_attrs...).update()
 	return s
 }

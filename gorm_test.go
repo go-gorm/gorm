@@ -778,7 +778,10 @@ func TestUpdates(t *testing.T) {
 	updated_at2 := product2.UpdatedAt
 
 	var product3 Product
-	db.First(&product3, product2.Id).Updates(map[string]interface{}{"code": "edf", "price": 100})
+	db.First(&product3, product2.Id).Updates(Product{Code: "edf", Price: 100})
+	if product3.Code != "edf" || product3.Price != 100 {
+		t.Errorf("Object should be updated also with update attributes")
+	}
 
 	if updated_at2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("updated_at should not be updated if nothing really new")

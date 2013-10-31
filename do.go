@@ -146,8 +146,20 @@ func (s *Do) create() {
 	return
 }
 
-func (s *Do) setUpdateAttrs(values map[string]interface{}, ignore_protected_attrs ...bool) *Do {
-	s.updateAttrs = values
+func (s *Do) setUpdateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do {
+	switch values.(type) {
+	case map[string]interface{}:
+		s.updateAttrs = values.(map[string]interface{})
+	case interface{}:
+		m := &Model{data: values, driver: s.driver}
+		fields := m.columnsHasValue("")
+
+		s.updateAttrs = make(map[string]interface{}, len(fields))
+		for _, field := range fields {
+			s.updateAttrs[field.DbName] = field.Value
+		}
+	}
+
 	s.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
 	return s
 }

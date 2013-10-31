@@ -219,6 +219,12 @@ db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age
 //// update users set name='hello', age=18 where id = 10;
 db.Table("users").Updates(map[string]interface{}{"name": "hello", "age": 18})
 //// update users set name='hello', age=18;
+db.Find(&users).Updates(User{Name: "hello", Age: 18})
+//// update users set name='hello', age=18;
+db.First(&user, 20).Updates(User{Name: "hello", Age: 18})
+//// update users set name='hello', age=18 where id = 20;
+//// object user's value would be reflected by the Updates also,
+//// so you don't need to refetch the user from database
 
 // Soft Delete
 // For those struct have DeletedAt field, they will get soft delete ability automatically!
