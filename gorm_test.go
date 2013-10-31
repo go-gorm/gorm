@@ -958,6 +958,18 @@ func TestNot(t *testing.T) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
+	users4 = []User{}
+	db.Not("name = ?", "3").Find(&users4)
+	if len(users1)-len(users4) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
+	users4 = []User{}
+	db.Not("name <> ?", "3").Find(&users4)
+	if len(users4) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
 	db.Not(User{Name: "3"}).Find(&users5)
 	if len(users1)-len(users5) != int(name_3_count) {
 		t.Errorf("Should find all users's name not equal 3")

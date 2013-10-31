@@ -78,6 +78,10 @@ db.Not([]int64{}).First(&user)
 //// user -> select * from users;
 db.Not("name", "jinzhu").First(&user)
 //// user -> select * from users where name <> "jinzhu"
+db.Not("name = ?", "jinzhu").First(&user)
+//// user -> select * from users where NOT(name = "jinzhu")
+db.Not("name <> ?", "jinzhu").First(&user)
+//// user -> select * from users where NOT(name <> "jinzhu")
 db.Not("name", []string{"jinzhu", "jinzhu 2"}).First(&user)
 //// user -> select * from users where name NOT IN ("jinzhu", "jinzhu 2")
 db.Not(User{Name: "jinzhu"}).First(&user)

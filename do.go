@@ -434,6 +434,9 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
 			return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), id)
+		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
+			str = fmt.Sprintf(" NOT (%v) ", value)
+			not_equal_sql = fmt.Sprintf(" NOT (%v) ", value)
 		} else {
 			str = fmt.Sprintf(" (%v NOT IN (?)) ", value)
 			not_equal_sql = fmt.Sprintf(" (%v <> ?) ", value)
