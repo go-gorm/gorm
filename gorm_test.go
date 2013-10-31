@@ -935,3 +935,48 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("user should be found and updated with assigned attrs")
 	}
 }
+
+func TestNot(t *testing.T) {
+	var users1, users2, users3, users4, users5, users6, users7, users8 []User
+	db.Find(&users1)
+
+	db.Not(users1[0].Id).Find(&users2)
+
+	if len(users1)-len(users2) != 1 {
+		t.Errorf("Should ignore the first users with Not")
+	}
+
+	db.Not([]int{}).Find(&users3)
+	if len(users1)-len(users3) != 0 {
+		t.Errorf("Should find all users with a blank condition")
+	}
+
+	var name_3_count int64
+	db.Table("users").Where("name = ?", "3").Count(&name_3_count)
+	db.Not("name", "3").Find(&users4)
+	if len(users1)-len(users4) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
+	db.Not(User{Name: "3"}).Find(&users5)
+	if len(users1)-len(users5) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
+	db.Not(map[string]interface{}{"name": "3"}).Find(&users6)
+	if len(users1)-len(users6) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
+	db.Not("name", []string{"3"}).Find(&users7)
+	if len(users1)-len(users7) != int(name_3_count) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+
+	var name_2_count int64
+	db.Table("users").Where("name = ?", "2").Count(&name_2_count)
+	db.Not("name", []string{"3", "2"}).Find(&users8)
+	if len(users1)-len(users8) != (int(name_3_count) + int(name_2_count)) {
+		t.Errorf("Should find all users's name not equal 3")
+	}
+}

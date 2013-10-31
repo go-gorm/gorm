@@ -435,8 +435,8 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			id, _ := strconv.Atoi(value)
 			return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), id)
 		} else {
-			str = "( \"" + value + "\" NOT INT (?))"
-			not_equal_sql = " (%v <> ?) "
+			str = fmt.Sprintf(" (%v NOT IN (?)) ", value)
+			not_equal_sql = fmt.Sprintf(" (%v <> ?) ", value)
 		}
 	case int, int64, int32:
 		return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), query)
@@ -445,8 +445,7 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			str = fmt.Sprintf("(%v not in (?))", s.model.primaryKeyDb())
 			clause["args"] = []interface{}{query}
 		} else {
-			s.err(errors.New(fmt.Sprintf("%+v not supported", query)))
-			return
+			return ""
 		}
 	case map[string]interface{}:
 		var sqls []string

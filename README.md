@@ -71,6 +71,18 @@ db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).First(&user)
 //// user -> select * from users name = "jinzhu" and age = 20 limit 1;
 db.Where("birthday < ?", time.Now()).Find(&users)
 
+// Not
+db.Not([]int64{1,2,3}).First(&user)
+//// user -> select * from users where id NOT IN (1,2,3)
+db.Not([]int64{}).First(&user)
+//// user -> select * from users;
+db.Not("name", "jinzhu").First(&user)
+//// user -> select * from users where name <> "jinzhu"
+db.Not("name", []string{"jinzhu", "jinzhu 2"}).First(&user)
+//// user -> select * from users where name NOT IN ("jinzhu", "jinzhu 2")
+db.Not(User{Name: "jinzhu"}).First(&user)
+//// user -> select * from users where name <> "jinzhu";
+
 // Inline search condition
 db.First(&user, 23)
 //// user -> select * from users where id = 23 limit 1;
