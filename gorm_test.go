@@ -50,18 +50,21 @@ func init() {
 	db.SetPool(10)
 	// db.DebugMode = true
 
-	err = db.Exec("drop table users;").Error
+	err = db.DropTable(&User{}).Error
 	if err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
-	db.Exec("drop table products;")
+	db.Exec("drop table products")
 
-	orm := db.CreateTable(&User{})
-	if orm.Error != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", orm.Error))
+	err = db.CreateTable(&User{}).Error
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	db.CreateTable(&Product{})
+	err = db.CreateTable(&Product{}).Error
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
 
 	var shortForm = "2006-01-02 15:04:05"
 	t1, _ = time.Parse(shortForm, "2000-10-27 12:02:40")

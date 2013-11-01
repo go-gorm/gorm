@@ -248,6 +248,9 @@ db.Where("name <> ?", "jinzhu").Where("age >= ? and role <> ?", 20, "admin").Fin
 // Create Table with struct
 db.CreateTable(&User{})
 
+// Drop Table
+db.DropTable(&User{})
+
 // Specify Table Name
 db.Table("deleted_users").CreateTable(&User{})
 db.Table("users").Pluck("age", &ages)

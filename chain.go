@@ -236,6 +236,11 @@ func (s *Chain) CreateTable(value interface{}) *Chain {
 	return s
 }
 
+func (s *Chain) DropTable(value interface{}) *Chain {
+	s.do(value).dropTable().exec()
+	return s
+}
+
 func (s *Chain) Unscoped() *Chain {
 	s.unscoped = true
 	return s

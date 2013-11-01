@@ -577,6 +577,14 @@ func (s *Do) createTable() *Do {
 	return s
 }
 
+func (s *Do) dropTable() *Do {
+	s.sql = fmt.Sprintf(
+		"DROP TABLE \"%v\"",
+		s.tableName(),
+	)
+	return s
+}
+
 func (s *Do) initializeWithSearchCondition() {
 	m := Model{data: s.value, driver: s.driver}
 

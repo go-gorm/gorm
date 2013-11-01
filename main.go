@@ -101,3 +101,7 @@ func (s *DB) Debug() *Chain {
 func (s *DB) CreateTable(value interface{}) *Chain {
 	return s.buildChain().CreateTable(value)
 }
+
+func (s *DB) DropTable(value interface{}) *Chain {
+	return s.buildChain().DropTable(value)
+}
