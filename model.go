@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 
 	"time"
 )
@@ -244,6 +245,9 @@ func setFieldValue(field reflect.Value, value interface{}) {
 	if field.IsValid() {
 		switch field.Kind() {
 		case reflect.Int, reflect.Int32, reflect.Int64:
+			if str, ok := value.(string); ok {
+				value, _ = strconv.Atoi(str)
+			}
 			field.SetInt(reflect.ValueOf(value).Int())
 		default:
 			field.Set(reflect.ValueOf(value))
