@@ -34,8 +34,7 @@ func (m *Model) primaryKeyValue() int64 {
 	if m.data == nil {
 		return -1
 	}
-
-	data := reflect.ValueOf(m.data).Elem()
+	data := reflect.Indirect(reflect.ValueOf(m.data))
 
 	switch data.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
