@@ -114,6 +114,12 @@ func (s *Do) prepareCreateSql() {
 	return
 }
 
+func (s *Do) saveAssociation(typ string) {
+	if typ == "before" {
+	} else if typ == "after" {
+	}
+}
+
 func (s *Do) create() {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
@@ -154,7 +160,7 @@ func (s *Do) setUpdateAttrs(values interface{}, ignore_protected_attrs ...bool) 
 		}
 	case interface{}:
 		m := &Model{data: values, driver: s.driver}
-		fields := m.columnsHasValue("")
+		fields := m.columnsHasValue("other")
 
 		s.updateAttrs = make(map[string]interface{}, len(fields))
 		for _, field := range fields {
@@ -401,7 +407,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 	case interface{}:
 		m := &Model{data: query, driver: s.driver}
 		var sqls []string
-		for _, field := range m.columnsHasValue("") {
+		for _, field := range m.columnsHasValue("other") {
 			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", field.DbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
@@ -459,7 +465,7 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 	case interface{}:
 		m := &Model{data: query, driver: s.driver}
 		var sqls []string
-		for _, field := range m.columnsHasValue("") {
+		for _, field := range m.columnsHasValue("other") {
 			sqls = append(sqls, fmt.Sprintf(" ( %v <> %v ) ", field.DbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
@@ -565,7 +571,7 @@ func (s *Do) combinedSql() string {
 
 func (s *Do) createTable() *Do {
 	var sqls []string
-	for _, field := range s.model.fields("") {
+	for _, field := range s.model.fields("create") {
 		if len(field.SqlType) > 0 {
 			sqls = append(sqls, field.DbName+" "+field.SqlType)
 		}
@@ -602,7 +608,7 @@ func (s *Do) initializeWithSearchCondition() {
 				switch reflect.ValueOf(obj).Kind() {
 				case reflect.Struct:
 					m := &Model{data: obj, driver: s.driver}
-					for _, field := range m.columnsHasValue("") {
+					for _, field := range m.columnsHasValue("other") {
 						m.setValueByColumn(field.DbName, field.Value, s.value)
 					}
 				case reflect.Map:
@@ -613,7 +619,7 @@ func (s *Do) initializeWithSearchCondition() {
 			}
 		case interface{}:
 			m := &Model{data: query, driver: s.driver}
-			for _, field := range m.columnsHasValue("") {
+			for _, field := range m.columnsHasValue("other") {
 				m.setValueByColumn(field.DbName, field.Value, s.value)
 			}
 		}

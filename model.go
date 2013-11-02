@@ -11,8 +11,9 @@ import (
 )
 
 type Model struct {
-	data   interface{}
-	driver string
+	data          interface{}
+	driver        string
+	_cache_fields map[string][]Field
 }
 
 type Field struct {
@@ -64,6 +65,10 @@ func (m *Model) primaryKeyDb() string {
 }
 
 func (m *Model) fields(operation string) (fields []Field) {
+	if len(m._cache_fields[operation]) > 0 {
+		return
+	}
+
 	indirect_value := reflect.Indirect(reflect.ValueOf(m.data))
 	typ := indirect_value.Type()
 
@@ -121,8 +126,12 @@ func (m *Model) fields(operation string) (fields []Field) {
 			fields = append(fields, field)
 		}
 	}
-	return
 
+	if len(m._cache_fields) == 0 {
+		m._cache_fields = make(map[string][]Field)
+	}
+	m._cache_fields[operation] = fields
+	return
 }
 
 func (m *Model) columnsHasValue(operation string) (fields []Field) {

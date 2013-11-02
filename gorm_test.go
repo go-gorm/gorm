@@ -1024,10 +1024,14 @@ func TestSubStruct(t *testing.T) {
 		Title:    "post 1",
 		Body:     "body 1",
 		Comments: []Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
-		Category: Category{Name: "category"},
+		Category: Category{Name: "Category 1"},
 	}
 
 	if err := db.Save(&post).Error; err != nil {
 		t.Errorf("Got errors when save post", err)
+	}
+
+	if db.First(&Category{}, "name = ?", "Category 1").Error != nil {
+		t.Errorf("Category should be saved")
 	}
 }
