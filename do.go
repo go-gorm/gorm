@@ -88,11 +88,11 @@ func (s *Do) exec(sql ...string) {
 	s.err(err)
 }
 
-func (s *Do) save() {
+func (s *Do) save() (i int64) {
 	if s.model.primaryKeyZero() {
-		s.create()
+		return s.create()
 	} else {
-		s.update()
+		return s.update()
 	}
 	return
 }
@@ -118,7 +118,10 @@ func (s *Do) prepareCreateSql() {
 func (s *Do) saveBeforeAssociations() {
 	for _, field := range s.model.beforeAssociations() {
 		do := &Do{chain: s.chain, db: s.db, driver: s.driver}
-		do.setModel(field.Value).save()
+		id := do.setModel(field.Value).save()
+		if len(field.foreignKey) > 0 {
+			s.model.setValueByColumn(field.foreignKey, id, s.model.data)
+		}
 	}
 }
 
@@ -128,8 +131,12 @@ func (s *Do) saveAfterAssociations() {
 		switch reflect.TypeOf(field.Value).Kind() {
 		case reflect.Slice:
 			for i := 0; i < reflect_value.Len(); i++ {
+				value := reflect_value.Index(i).Addr().Interface()
 				do := &Do{chain: s.chain, db: s.db, driver: s.driver}
-				do.setModel(reflect_value.Index(i).Addr().Interface()).save()
+				if len(field.foreignKey) > 0 {
+					s.model.setValueByColumn(field.foreignKey, s.model.primaryKeyValue(), value)
+				}
+				do.setModel(value).save()
 			}
 		default:
 			do := &Do{chain: s.chain, db: s.db, driver: s.driver}
@@ -138,7 +145,7 @@ func (s *Do) saveAfterAssociations() {
 	}
 }
 
-func (s *Do) create() {
+func (s *Do) create() (i int64) {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
@@ -167,6 +174,7 @@ func (s *Do) create() {
 			s.err(s.model.callMethod("AfterCreate"))
 			s.err(s.model.callMethod("AfterSave"))
 		}
+		return id
 	}
 
 	return
@@ -221,7 +229,7 @@ func (s *Do) prepareUpdateSql(results map[string]interface{}) {
 	return
 }
 
-func (s *Do) update() {
+func (s *Do) update() (i int64) {
 	update_attrs := s.updateAttrs
 	if len(update_attrs) > 0 {
 		var need_update bool
@@ -246,7 +254,8 @@ func (s *Do) update() {
 			s.err(s.model.callMethod("AfterSave"))
 		}
 	}
-	return
+
+	return s.model.primaryKeyValue()
 }
 
 func (s *Do) prepareDeleteSql() {
@@ -318,7 +327,12 @@ func (s *Do) query() {
 			for _, value := range columns {
 				field := dest.FieldByName(snakeToUpperCamel(value))
 				if field.IsValid() {
-					values = append(values, field.Addr().Interface())
+					if field.CanAddr() {
+						values = append(values, field.Addr().Interface())
+					} else {
+						s.err(errors.New(fmt.Sprintf("Can't take address of %v, should be ptr", dest)))
+						return
+					}
 				} else {
 					var null interface{}
 					values = append(values, &null)

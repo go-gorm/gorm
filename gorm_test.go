@@ -1041,11 +1041,28 @@ func TestSubStruct(t *testing.T) {
 		t.Errorf("Category should be saved")
 	}
 
+	var p Post
+	db.First(&p, post.Id)
+	if post.CategoryId == 0 || p.CategoryId == 0 {
+		t.Errorf("Category Id should exist")
+	}
+
 	if db.First(&Comment{}, "content = ?", "Comment 1").Error != nil {
 		t.Errorf("Comment 1 should be saved")
 	}
+	if post.Comments[0].PostId == 0 {
+		t.Errorf("Comment Should have post id")
+	}
 
-	if db.First(&Comment{}, "content = ?", "Comment 2").Error != nil {
+	var comment Comment
+	if db.First(&comment, "content = ?", "Comment 2").Error != nil {
 		t.Errorf("Comment 2 should be saved")
 	}
+
+	if comment.PostId == 0 {
+		t.Errorf("Comment 2 Should have post id")
+	}
+
+	comment3 := Comment{Content: "Comment 3", Post: Post{Title: "Title 3", Body: "Body 3"}}
+	db.Save(&comment3)
 }

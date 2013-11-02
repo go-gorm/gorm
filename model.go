@@ -28,6 +28,7 @@ type Field struct {
 
 	beforeAssociation bool
 	afterAssociation  bool
+	foreignKey        string
 }
 
 func (m *Model) primaryKeyZero() bool {
@@ -139,12 +140,17 @@ func (m *Model) fields(operation string) (fields []Field) {
 
 				switch field_value.Kind() {
 				case reflect.Slice:
+					foreign_key := typ.Name() + "Id"
+					if reflect.New(field_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
+						field.foreignKey = foreign_key
+					}
 					field.afterAssociation = true
 				case reflect.Struct:
 					if is_time {
 						field.SqlType = getSqlType(m.driver, field.Value, 0)
 					} else {
 						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
+							field.foreignKey = p.Name + "Id"
 							field.beforeAssociation = true
 						} else {
 							field.afterAssociation = true
