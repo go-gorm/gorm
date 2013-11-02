@@ -159,7 +159,9 @@ func (s *Do) create() {
 
 		if !s.hasError() {
 			result := reflect.Indirect(reflect.ValueOf(s.value))
-			setFieldValue(result.FieldByName(s.model.primaryKey()), id)
+			if !setFieldValue(result.FieldByName(s.model.primaryKey()), id) {
+				fmt.Printf("Can't set primary key for %#v\n", result.Interface())
+			}
 			s.saveAfterAssociations()
 
 			s.err(s.model.callMethod("AfterCreate"))

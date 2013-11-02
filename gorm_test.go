@@ -1002,15 +1002,17 @@ type Category struct {
 }
 
 type Post struct {
-	Id       int64
-	Title    string
-	Body     string
-	Comments []Comment
-	Category Category
+	Id         int64
+	CategoryId int64
+	Title      string
+	Body       string
+	Comments   []Comment
+	Category   Category
 }
 
 type Comment struct {
 	Id      int64
+	PostId  int64
 	Content string
 	Post    Post
 }
