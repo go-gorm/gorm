@@ -25,6 +25,9 @@ type Field struct {
 	AutoUpdateTime bool
 	IsPrimaryKey   bool
 	IsBlank        bool
+
+	beforeAssociation bool
+	afterAssociation  bool
 }
 
 func (m *Model) primaryKeyZero() bool {
@@ -66,10 +69,14 @@ func (m *Model) primaryKeyDb() string {
 
 func (m *Model) fields(operation string) (fields []Field) {
 	if len(m._cache_fields[operation]) > 0 {
-		return
+		return m._cache_fields[operation]
 	}
 
 	indirect_value := reflect.Indirect(reflect.ValueOf(m.data))
+	if !indirect_value.IsValid() {
+		return
+	}
+
 	typ := indirect_value.Type()
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -89,9 +96,19 @@ func (m *Model) fields(operation string) (fields []Field) {
 				field.IsBlank = value.Int() == 0
 			case reflect.String:
 				field.IsBlank = value.String() == ""
-			default:
+			case reflect.Slice:
+				if value.Len() == 0 {
+					field.IsBlank = true
+				}
+			case reflect.Struct:
 				if is_time {
 					field.IsBlank = time_value.IsZero()
+				} else {
+					m := &Model{data: value.Interface(), driver: m.driver}
+					fields := m.columnsHasValue("other")
+					if len(fields) == 0 {
+						field.IsBlank = true
+					}
 				}
 			}
 
@@ -115,9 +132,16 @@ func (m *Model) fields(operation string) (fields []Field) {
 			} else {
 				switch reflect.TypeOf(field.Value).Kind() {
 				case reflect.Slice:
+					field.afterAssociation = true
 				case reflect.Struct:
 					if is_time {
 						field.SqlType = getSqlType(m.driver, field.Value, 0)
+					} else {
+						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
+							field.beforeAssociation = true
+						} else {
+							field.afterAssociation = true
+						}
 					}
 				default:
 					field.SqlType = getSqlType(m.driver, field.Value, 0)
@@ -258,8 +282,26 @@ func (m *Model) setValueByColumn(name string, value interface{}, out interface{}
 	setFieldValue(data.FieldByName(snakeToUpperCamel(name)), value)
 }
 
+func (m *Model) beforeAssociations() (fields []Field) {
+	for _, field := range m.fields("null") {
+		if field.beforeAssociation && !field.IsBlank {
+			fields = append(fields, field)
+		}
+	}
+	return
+}
+
+func (m *Model) afterAssociations() (fields []Field) {
+	for _, field := range m.fields("null") {
+		if field.afterAssociation && !field.IsBlank {
+			fields = append(fields, field)
+		}
+	}
+	return
+}
+
 func setFieldValue(field reflect.Value, value interface{}) {
-	if field.IsValid() {
+	if field.IsValid() && field.CanAddr() {
 		switch field.Kind() {
 		case reflect.Int, reflect.Int32, reflect.Int64:
 			if str, ok := value.(string); ok {

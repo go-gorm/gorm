@@ -1016,6 +1016,10 @@ type Comment struct {
 }
 
 func TestSubStruct(t *testing.T) {
+	db.DropTable(Category{})
+	db.DropTable(Post{})
+	db.DropTable(Comment{})
+
 	db.CreateTable(Category{})
 	db.CreateTable(Post{})
 	db.CreateTable(Comment{})
@@ -1033,5 +1037,13 @@ func TestSubStruct(t *testing.T) {
 
 	if db.First(&Category{}, "name = ?", "Category 1").Error != nil {
 		t.Errorf("Category should be saved")
+	}
+
+	if db.First(&Comment{}, "content = ?", "Comment 1").Error != nil {
+		t.Errorf("Comment 1 should be saved")
+	}
+
+	if db.First(&Comment{}, "content = ?", "Comment 2").Error != nil {
+		t.Errorf("Comment 2 should be saved")
 	}
 }

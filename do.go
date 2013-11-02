@@ -61,9 +61,10 @@ func (s *Do) hasError() bool {
 	return len(s.Errors) > 0
 }
 
-func (s *Do) setModel(value interface{}) {
+func (s *Do) setModel(value interface{}) *Do {
 	s.model = &Model{data: value, driver: s.driver}
 	s.value = value
+	return s
 }
 
 func (s *Do) addToVars(value interface{}) string {
@@ -114,9 +115,26 @@ func (s *Do) prepareCreateSql() {
 	return
 }
 
-func (s *Do) saveAssociation(typ string) {
-	if typ == "before" {
-	} else if typ == "after" {
+func (s *Do) saveBeforeAssociations() {
+	for _, field := range s.model.beforeAssociations() {
+		do := &Do{chain: s.chain, db: s.db, driver: s.driver}
+		do.setModel(field.Value).save()
+	}
+}
+
+func (s *Do) saveAfterAssociations() {
+	for _, field := range s.model.afterAssociations() {
+		reflect_value := reflect.ValueOf(field.Value)
+		switch reflect.TypeOf(field.Value).Kind() {
+		case reflect.Slice:
+			for i := 0; i < reflect_value.Len(); i++ {
+				do := &Do{chain: s.chain, db: s.db, driver: s.driver}
+				do.setModel(reflect_value.Index(i).Addr().Interface()).save()
+			}
+		default:
+			do := &Do{chain: s.chain, db: s.db, driver: s.driver}
+			do.setModel(field.Value).save()
+		}
 	}
 }
 
@@ -124,6 +142,7 @@ func (s *Do) create() {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
+	s.saveBeforeAssociations()
 	s.prepareCreateSql()
 
 	if !s.hasError() {
@@ -139,8 +158,9 @@ func (s *Do) create() {
 		}
 
 		if !s.hasError() {
-			result := reflect.ValueOf(s.value).Elem()
+			result := reflect.Indirect(reflect.ValueOf(s.value))
 			setFieldValue(result.FieldByName(s.model.primaryKey()), id)
+			s.saveAfterAssociations()
 
 			s.err(s.model.callMethod("AfterCreate"))
 			s.err(s.model.callMethod("AfterSave"))
@@ -212,10 +232,12 @@ func (s *Do) update() {
 	s.err(s.model.callMethod("BeforeUpdate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
+	s.saveBeforeAssociations()
 	s.prepareUpdateSql(update_attrs)
 
 	if !s.hasError() {
 		s.exec()
+		s.saveAfterAssociations()
 
 		if !s.hasError() {
 			s.err(s.model.callMethod("AfterUpdate"))
