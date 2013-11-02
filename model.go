@@ -130,7 +130,14 @@ func (m *Model) fields(operation string) (fields []Field) {
 			if field.IsPrimaryKey {
 				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
 			} else {
-				switch reflect.TypeOf(field.Value).Kind() {
+				field_value := reflect.ValueOf(field.Value)
+				if field_value.Kind() == reflect.Ptr {
+					if field_value.CanAddr() {
+						field_value = field_value.Elem()
+					}
+				}
+
+				switch field_value.Kind() {
 				case reflect.Slice:
 					field.afterAssociation = true
 				case reflect.Struct:
@@ -143,6 +150,8 @@ func (m *Model) fields(operation string) (fields []Field) {
 							field.afterAssociation = true
 						}
 					}
+				case reflect.Ptr:
+					debug("Errors when handle ptr sub structs")
 				default:
 					field.SqlType = getSqlType(m.driver, field.Value, 0)
 				}
