@@ -12,12 +12,32 @@ import (
 )
 
 type User struct {
-	Id        int64
-	Age       int64
-	Birthday  time.Time
-	Name      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Id                int64     // Id: Primary key
+	Birthday          time.Time // Time
+	Age               int64
+	Name              string
+	CreatedAt         time.Time // CreatedAt: Time of record is created, will be insert automatically
+	UpdatedAt         time.Time // UpdatedAt: Time of record is updated, will be updated automatically
+	DeletedAt         time.Time // DeletedAt: Time of record is deleted, refer Soft Delete for more
+	Email             []Email   // Embedded structs
+	BillingAddress    Address   // Embedded struct
+	BillingAddressId  int64     // Embedded struct's foreign key
+	ShippingAddress   Address   // Embedded struct
+	ShippingAddressId int64     // Embedded struct's foreign key
+}
+
+type Email struct {
+	Id         int64
+	UserId     int64 // Foreign key for above embedded structs
+	Email      string
+	Subscribed bool
+}
+
+type Address struct {
+	Id       int64
+	Address1 string
+	Address2 string
+	Post     string
 }
 
 type Product struct {
@@ -1002,12 +1022,14 @@ type Category struct {
 }
 
 type Post struct {
-	Id         int64
-	CategoryId int64
-	Title      string
-	Body       string
-	Comments   []Comment
-	Category   Category
+	Id             int64
+	CategoryId     int64
+	MainCategoryId int64
+	Title          string
+	Body           string
+	Comments       []Comment
+	Category       Category
+	MainCategory   Category
 }
 
 type Comment struct {
@@ -1027,10 +1049,11 @@ func TestSubStruct(t *testing.T) {
 	db.CreateTable(Comment{})
 
 	post := Post{
-		Title:    "post 1",
-		Body:     "body 1",
-		Comments: []Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
-		Category: Category{Name: "Category 1"},
+		Title:        "post 1",
+		Body:         "body 1",
+		Comments:     []Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
+		Category:     Category{Name: "Category 1"},
+		MainCategory: Category{Name: "Main Category 1"},
 	}
 
 	if err := db.Save(&post).Error; err != nil {
@@ -1043,7 +1066,7 @@ func TestSubStruct(t *testing.T) {
 
 	var p Post
 	db.First(&p, post.Id)
-	if post.CategoryId == 0 || p.CategoryId == 0 {
+	if post.CategoryId == 0 || p.CategoryId == 0 || post.MainCategoryId == 0 || p.MainCategoryId == 0 {
 		t.Errorf("Category Id should exist")
 	}
 
@@ -1065,4 +1088,17 @@ func TestSubStruct(t *testing.T) {
 
 	comment3 := Comment{Content: "Comment 3", Post: Post{Title: "Title 3", Body: "Body 3"}}
 	db.Save(&comment3)
+}
+
+func TestT(t *testing.T) {
+	user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
+	db.Save(&user)
+
+	var user2 User
+	db.Where("name in (?)", []string{"1,2"}).First(&user2).Update("name", "hhh")
+	debug(user2)
+
+	var users []User
+	db.Find(&users, User{Age: 20})
+	debug(users)
 }
