@@ -566,7 +566,9 @@ func (s *Do) combinedSql() string {
 func (s *Do) createTable() *Do {
 	var sqls []string
 	for _, field := range s.model.fields("") {
-		sqls = append(sqls, field.DbName+" "+field.SqlType)
+		if len(field.SqlType) > 0 {
+			sqls = append(sqls, field.DbName+" "+field.SqlType)
+		}
 	}
 
 	s.sql = fmt.Sprintf(

@@ -995,3 +995,39 @@ func TestNot(t *testing.T) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 }
+
+type Category struct {
+	Id   int64
+	Name string
+}
+
+type Post struct {
+	Id       int64
+	Title    string
+	Body     string
+	Comments []Comment
+	Category Category
+}
+
+type Comment struct {
+	Id      int64
+	Content string
+	Post    Post
+}
+
+func TestSubStruct(t *testing.T) {
+	db.CreateTable(Category{})
+	db.CreateTable(Post{})
+	db.CreateTable(Comment{})
+
+	post := Post{
+		Title:    "post 1",
+		Body:     "body 1",
+		Comments: []Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
+		Category: Category{Name: "category"},
+	}
+
+	if err := db.Save(&post).Error; err != nil {
+		t.Errorf("Got errors when save post", err)
+	}
+}

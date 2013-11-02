@@ -77,6 +77,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 			field.AutoCreateTime = "created_at" == field.DbName
 			field.AutoUpdateTime = "updated_at" == field.DbName
 			value := indirect_value.FieldByName(p.Name)
+			time_value, is_time := value.Interface().(time.Time)
 
 			switch value.Kind() {
 			case reflect.Int, reflect.Int64, reflect.Int32:
@@ -84,15 +85,15 @@ func (m *Model) fields(operation string) (fields []Field) {
 			case reflect.String:
 				field.IsBlank = value.String() == ""
 			default:
-				if value, ok := value.Interface().(time.Time); ok {
-					field.IsBlank = value.IsZero()
+				if is_time {
+					field.IsBlank = time_value.IsZero()
 				}
 			}
 
-			if v, ok := value.Interface().(time.Time); ok {
+			if is_time {
 				switch operation {
 				case "create":
-					if (field.AutoCreateTime || field.AutoUpdateTime) && v.IsZero() {
+					if (field.AutoCreateTime || field.AutoUpdateTime) && time_value.IsZero() {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				case "update":
@@ -107,7 +108,15 @@ func (m *Model) fields(operation string) (fields []Field) {
 			if field.IsPrimaryKey {
 				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
 			} else {
-				field.SqlType = getSqlType(m.driver, field.Value, 0)
+				switch reflect.TypeOf(field.Value).Kind() {
+				case reflect.Slice:
+				case reflect.Struct:
+					if is_time {
+						field.SqlType = getSqlType(m.driver, field.Value, 0)
+					}
+				default:
+					field.SqlType = getSqlType(m.driver, field.Value, 0)
+				}
 			}
 			fields = append(fields, field)
 		}
@@ -165,7 +174,7 @@ func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 
 	results := map[string]interface{}{}
 	for _, field := range m.fields(operation) {
-		if !field.IsPrimaryKey {
+		if !field.IsPrimaryKey && (len(field.SqlType) > 0) {
 			results[field.DbName] = field.Value
 		}
 	}
