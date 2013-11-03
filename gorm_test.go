@@ -1090,26 +1090,13 @@ func TestSubStruct(t *testing.T) {
 	db.Save(&comment3)
 }
 
-func TestT(t *testing.T) {
-	user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
+func TestForReadme(t *testing.T) {
+	user := User{
+		Name:            "jinzhu",
+		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+		Email:           []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	}
+
 	db.Save(&user)
-
-	var user2 User
-	debug("asdsd")
-	db.Where("name in (?)", []string{"1"}).First(&user2)
-
-	debug("aaadsd")
-	debug(user2)
-	db.Model(&user2).Updates(User{Name: "lala", Age: 10})
-	debug("aals")
-	//// UPDATE users SET name='hello' WHERE id=111;
-
-	var users []User
-	// db.Where("name = '3'").Or(User{Name: "2"}).Find(&users)
-	db.Where("name = '3'").Or(map[string]interface{}{"name": "2"}).Find(&users)
-	var count int64
-	db.Model(User{}).Where("name = ?", "jinzhu").Count(&count)
-	db.Table("users").Count(&count)
-	debug(count)
-
 }

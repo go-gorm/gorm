@@ -93,6 +93,24 @@ user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
 db.Save(&user)
 ```
 
+### Create With SubStruct
+
+```go
+user := User{
+		Name:            "jinzhu",
+		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+		Email:           []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+}
+
+db.Save(&user)
+//// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
+//// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
+//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+```
+
 ## Query
 
 ```go
