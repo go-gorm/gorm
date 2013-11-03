@@ -3,10 +3,10 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
-
 	"time"
 )
 
@@ -82,7 +82,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
-		if !p.Anonymous {
+		if !p.Anonymous && ast.IsExported(p.Name) {
 			var field Field
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
