@@ -1095,10 +1095,21 @@ func TestT(t *testing.T) {
 	db.Save(&user)
 
 	var user2 User
-	db.Where("name in (?)", []string{"1,2"}).First(&user2).Update("name", "hhh")
+	debug("asdsd")
+	db.Where("name in (?)", []string{"1"}).First(&user2)
+
+	debug("aaadsd")
 	debug(user2)
+	db.Model(&user2).Updates(User{Name: "lala", Age: 10})
+	debug("aals")
+	//// UPDATE users SET name='hello' WHERE id=111;
 
 	var users []User
-	db.Find(&users, User{Age: 20})
-	debug(users)
+	// db.Where("name = '3'").Or(User{Name: "2"}).Find(&users)
+	db.Where("name = '3'").Or(map[string]interface{}{"name": "2"}).Find(&users)
+	var count int64
+	db.Model(User{}).Where("name = ?", "jinzhu").Count(&count)
+	db.Table("users").Count(&count)
+	debug(count)
+
 }
