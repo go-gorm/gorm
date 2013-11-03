@@ -23,7 +23,7 @@ Yet Another ORM library for Go, aims for developer friendly
 ## Conventions
 
 ```go
-type User struct {  // TableName: `users`, gorm will pluralize struct's name as table name
+type User struct {         // TableName: `users`, gorm will pluralize struct's name as table name
 	Id			 int64	   // Id: Database Primary key
 	Birthday	 time.Time
 	Age			 int64
@@ -57,7 +57,14 @@ type Address struct {  // TableName: `addresses`
 ## Opening a Database
 
 ```go
-db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+import "github.com/jinzhu/gorm"
+import _ "github.com/lib/pq"
+
+db, err := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+
+// Set the maximum idle database connections
+db.SetPool(100)
+
 
 // Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere like this
 
@@ -69,9 +76,6 @@ func init() {
         panic(fmt.Sprintf("Got error when connect database, the error is '%v'", err))
     }
 }
-
-// Set the maximum idle database connections
-db.SetPool(100)
 ```
 
 ## Struct & Database Mapping
