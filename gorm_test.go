@@ -1099,4 +1099,6 @@ func TestForReadme(t *testing.T) {
 	}
 
 	db.Save(&user)
+	var users []User
+	db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
 }

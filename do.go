@@ -106,7 +106,7 @@ func (s *Do) prepareCreateSql() {
 	}
 
 	s.sql = fmt.Sprintf(
-		"INSERT INTO \"%v\" (%v) VALUES (%v) %v",
+		"INSERT INTO %v (%v) VALUES (%v) %v",
 		s.tableName(),
 		strings.Join(columns, ","),
 		strings.Join(sqls, ","),
@@ -616,7 +616,7 @@ func (s *Do) createTable() *Do {
 	}
 
 	s.sql = fmt.Sprintf(
-		"CREATE TABLE \"%v\" (%v)",
+		"CREATE TABLE %v (%v)",
 		s.tableName(),
 		strings.Join(sqls, ","),
 	)
@@ -625,7 +625,7 @@ func (s *Do) createTable() *Do {
 
 func (s *Do) dropTable() *Do {
 	s.sql = fmt.Sprintf(
-		"DROP TABLE \"%v\"",
+		"DROP TABLE %v",
 		s.tableName(),
 	)
 	return s

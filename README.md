@@ -147,7 +147,7 @@ db.Where("name <> ?", "jinzhu").Find(&users)
 //// SELECT * FROM users WHERE name <> 'jinzhu';
 
 // IN
-db.Where("name in (?)", []string["jinzhu", "jinzhu 2"]).Find(&users)
+db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
 //// SELECT * FROM users WHERE name IN ('jinzhu', 'jinzhu 2');
 
 // LIKE
