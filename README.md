@@ -20,8 +20,6 @@ Yet Another ORM library for Go, aims for developer friendly
 * Database Pool
 * Convention Over Configuration
 
-## Basic Usage
-
 ## Opening a Database
 
 ```go
@@ -45,14 +43,14 @@ db.SetPool(100)
 ## Conventions
 
 ```go
-type User struct {			 // TableName: `users`, gorm will pluralize struct name as table name
-	Id			   int64	 // Id: Database Primary key
-	Birthday	   time.Time // Time
-	Age			   int64
-	Name		   string
-	CreatedAt	   time.Time // Time of record is created, will be insert automatically
-	UpdatedAt	   time.Time // Time of record is updated, will be updated automatically
-	DeletedAt	   time.Time // Time of record is deleted, refer Soft Delete for more
+type User struct {		   // TableName: `users`, gorm will pluralize struct name as table name
+	Id			 int64	   // Id: Database Primary key
+	Birthday	 time.Time
+	Age			 int64
+	Name		 string
+	CreatedAt	 time.Time // Time of record is created, will be insert automatically
+	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
+	DeletedAt	 time.Time // Time of record is deleted, refer Soft Delete for more
 
 	Email             []Email   // Embedded structs
 	BillingAddress    Address   // Embedded struct
@@ -117,9 +115,9 @@ db.Save(&user)
 // Get the first record
 db.First(&user)
 //// SELECT * FROM users LIMIT 1;
-// Search table `users` are guessed from the out struct's name.
+// Search table `users` are guessed from the out struct type.
 // You are possible to specify the table name with Model() if no out struct for some methods like Pluck()
-// Or set table name with Table(), if so, it will ignore the out struct's type even have it. more details later.
+// Or set table name with Table(), if so, it will ignore the out struct even have it. more details following.
 
 // Get All records
 db.Find(&users)
@@ -200,7 +198,7 @@ db.Not(User{Name: "jinzhu"}).First(&user)
 //// SELECT * FROM users WHERE name <> "jinzhu";
 ```
 
-### Inline Search
+### Query With Inline Condition
 
 ```go
 // Find with primary key
@@ -226,7 +224,7 @@ db.Find(&users, map[string]interface{}{"age": 20})
 
 ### Query With Or
 
-```
+```go
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)
 //// SELECT * FROM users WHERE role = 'admin' OR role = 'super_admin';
 
@@ -240,10 +238,10 @@ db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(
 
 ### Query Chains
 
-Gorm has a chainable API, so you could write query in chain
+Gorm has a chainable API, so you could query like this
 
 ```go
-db.Where("name <> ?", "jinzhu").Where("age >= ? and role <> ?", 20, "admin").Find(&users)
+db.Where("name <> ?","jinzhu").Where("age >= ? and role <> ?",20,"admin").Find(&users)
 //// SELECT * FROM users WHERE name <> 'jinzhu' AND age >= 20 AND role <> 'admin';
 
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jinzhu").Find(&users)
@@ -262,7 +260,7 @@ db.Save(&user)
 
 ### Update one attribute with `Update`
 
-```
+```go
 // Update an existing struct's name if name is different
 db.Model(&user).Update("name", "hello")
 //// UPDATE users SET name='hello' WHERE id=111;
@@ -272,23 +270,23 @@ db.First(&user, 111).Update("name", "hello")
 //// SELECT * FROM users LIMIT 1;
 //// UPDATE users SET name='hello' WHERE id=111;
 
-// Update a record
+// Specify table name with where search
 db.Table("users").Where(10).Update("name", "hello")
 //// UPDATE users SET name='hello' WHERE id = 10;
 ```
 
 ### Update multiple attributes with `Updates`
 
-```
-// Update an existing record if have any different attributes
+```go
+// Update an existing record if have any changed values
 db.Model(&user).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18 WHERE id = 111;
 
-// Update with Map
+// Updates with Map
 db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age": 18})
 //// UPDATE users SET name='hello', age=18 WHERE id = 10;
 
-// Update with Struct
+// Updates with Struct
 db.Model(User{}).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18;
 ```
@@ -311,7 +309,8 @@ db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
 
 ### Soft Delete
 
-If a struct have DeletedAt field, it will get soft delete ability automatically!
+If a struct has DeletedAt field, it will get soft delete ability automatically!
+
 For those don't have the filed, will be deleted from database permanently
 
 ```go
@@ -338,6 +337,7 @@ db.Unscoped().Delete(&order)
 ## FirstOrInit
 
 Try to load the first record, if fails, initialize struct with search conditions.
+
 (only support map or struct conditions, SQL like conditions are not supported)
 
 ```go
@@ -412,6 +412,7 @@ db.Where(User{Name: "jinzhu"}).Attrs(User{Age: 30}).FirstOrCreate(&user)
 ### FirstOrCreate With Assign
 
 Assign's arguments would be used to initialize the struct if not record found,
+
 If any record found, will assign those values to the record, and save it back to database.
 
 ```go
@@ -588,7 +589,7 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").First(&us
 //// SELECT * FROM users WHERE mail_type = 'TEXT'; (users1)
 //// SELECT * FROM deleted_users WHERE mail_type = 'TEXT'; (users2)
 
-db.Where("email = ?", "x@example.org"').Attrs(User{FromIp: "111.111.111.111"}).FirstOrCreate(&user)
+db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).FirstOrCreate(&user)
 //// SELECT * FROM users WHERE email = 'x@example.org';
 //// INSERT INTO "users" (email,from_ip) VALUES ("x@example.org", "111.111.111.111") (if no record found)
 
