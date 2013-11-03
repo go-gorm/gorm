@@ -20,37 +20,17 @@ Yet Another ORM library for Go, aims for developer friendly
 * Database Pool
 * Convention Over Configuration
 
-## Opening a Database
-
-```go
-db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-
-// Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere like this
-
-var DB gorm.DB
-
-func init() {
-    DB, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-    if err != nil {
-        panic(fmt.Sprintf("Got error when connect database, the error is '%v'", err))
-    }
-}
-
-// Set the maximum idle database connections
-db.SetPool(100)
-```
-
 ## Conventions
 
 ```go
-type User struct {		   // TableName: `users`, gorm will pluralize struct name as table name
+type User struct {  // TableName: `users`, gorm will pluralize struct's name as table name
 	Id			 int64	   // Id: Database Primary key
 	Birthday	 time.Time
 	Age			 int64
 	Name		 string
 	CreatedAt	 time.Time // Time of record is created, will be insert automatically
 	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
-	DeletedAt	 time.Time // Time of record is deleted, refer Soft Delete for more
+	DeletedAt	 time.Time // Time of record is deleted, refer `Soft Delete` for more
 
 	Email             []Email   // Embedded structs
 	BillingAddress    Address   // Embedded struct
@@ -72,6 +52,26 @@ type Address struct {  // TableName: `addresses`
 	Address2 string
 	Post     string
 }
+```
+
+## Opening a Database
+
+```go
+db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+
+// Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere like this
+
+var DB gorm.DB
+
+func init() {
+    DB, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+    if err != nil {
+        panic(fmt.Sprintf("Got error when connect database, the error is '%v'", err))
+    }
+}
+
+// Set the maximum idle database connections
+db.SetPool(100)
 ```
 
 ## Struct & Database Mapping
@@ -528,7 +528,7 @@ func (u *User) BeforeUpdate() (err error) {
 
 ## Specify Table Name
 
-```
+```go
 // When Create Table from struct
 db.Table("deleted_users").CreateTable(&User{})
 
