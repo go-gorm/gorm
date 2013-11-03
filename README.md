@@ -27,7 +27,7 @@ Yet Another ORM library for Go, aims for developer friendly
 ```go
 db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 
-// Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere
+// Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere like this
 
 var DB gorm.DB
 
@@ -45,14 +45,15 @@ db.SetPool(100)
 ## Conventions
 
 ```go
-type User struct {              // TableName: `users`, gorm will pluralize struct name as table name
-	Id                int64     // Id: Database Primary key
-	Birthday          time.Time // Time
-	Age               int64
-	Name              string
-	CreatedAt         time.Time // CreatedAt: Time of record is created, will be insert automatically
-	UpdatedAt         time.Time // UpdatedAt: Time of record is updated, will be updated automatically
-	DeletedAt         time.Time // DeletedAt: Time of record is deleted, refer Soft Delete for more
+type User struct {			 // TableName: `users`, gorm will pluralize struct name as table name
+	Id			   int64	 // Id: Database Primary key
+	Birthday	   time.Time // Time
+	Age			   int64
+	Name		   string
+	CreatedAt	   time.Time // Time of record is created, will be insert automatically
+	UpdatedAt	   time.Time // Time of record is updated, will be updated automatically
+	DeletedAt	   time.Time // Time of record is deleted, refer Soft Delete for more
+
 	Email             []Email   // Embedded structs
 	BillingAddress    Address   // Embedded struct
 	BillingAddressId  int64     // Embedded struct BillingAddress's foreign key
@@ -348,6 +349,7 @@ db.Where(User{Name: "noexisting_user"}).Attrs("age", 20).FirstOrInit(&user)
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 30}).FirstOrInit(&user)
 //// SELECT * FROM USERS WHERE name = jinzhu';
 //// User{Id: 111, Name: "Jinzhu", Age: 20}
+```
 
 ### FirstOrInit With Assign
 
