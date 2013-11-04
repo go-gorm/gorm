@@ -117,6 +117,23 @@ func TestSaveAndFind(t *testing.T) {
 	db.Find(&users)
 }
 
+func TestFirstAndLast(t *testing.T) {
+	var user1, user2, user3, user4 User
+	db.First(&user1)
+	db.Order("id").Find(&user2)
+	db.Last(&user3)
+	db.Order("id desc").Find(&user4)
+	if user1.Id != user2.Id || user3.Id != user4.Id {
+		t.Errorf("First and Last should works correctly")
+	}
+
+	var users []User
+	db.First(&users)
+	if len(users) != 1 {
+		t.Errorf("Find first record as map")
+	}
+}
+
 func TestSaveAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
 	user := User{Name: name, Age: 1}

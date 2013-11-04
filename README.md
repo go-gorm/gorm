@@ -118,10 +118,22 @@ db.Save(&user)
 ```go
 // Get the first record
 db.First(&user)
-//// SELECT * FROM users LIMIT 1;
+//// SELECT * FROM users ORDER BY id LIMIT 1;
 // Search table `users` are guessed from the out struct type.
 // You are possible to specify the table name with Model() if no out struct for some methods like Pluck()
 // Or set table name with Table(), if so, it will ignore the out struct even have it. more details following.
+
+// Get the last record
+db.Last(&user)
+//// SELECT * FROM users ORDER BY id DESC LIMIT 1;
+
+// Get a record without order by primary key
+db.Find(&user)
+//// SELECT * FROM users LIMIT 1;
+
+// Get first record as map
+db.First(&users)
+//// SELECT * FROM users LIMIT 1;
 
 // Get All records
 db.Find(&users)

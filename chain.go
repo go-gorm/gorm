@@ -175,9 +175,12 @@ func (s *Chain) Exec(sql string) *Chain {
 }
 
 func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
-	do := s.do(out)
-	do.limitStr = "1"
-	do.where(where...).query()
+	s.do(out).where(where...).first()
+	return s
+}
+
+func (s *Chain) Last(out interface{}, where ...interface{}) *Chain {
+	s.do(out).where(where...).last()
 	return s
 }
 

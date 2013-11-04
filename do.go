@@ -287,6 +287,18 @@ func (s *Do) prepareQuerySql() {
 	return
 }
 
+func (s *Do) first() {
+	s.limitStr = "1"
+	s.orderStrs = append(s.orderStrs, s.model.primaryKeyDb())
+	s.query()
+}
+
+func (s *Do) last() {
+	s.limitStr = "1"
+	s.orderStrs = append(s.orderStrs, s.model.primaryKeyDb()+" DESC")
+	s.query()
+}
+
 func (s *Do) query() {
 	var (
 		is_slice  bool
@@ -297,6 +309,8 @@ func (s *Do) query() {
 	if dest_out.Kind() == reflect.Slice {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
+	} else {
+		s.limitStr = "1"
 	}
 
 	s.prepareQuerySql()

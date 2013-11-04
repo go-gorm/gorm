@@ -34,6 +34,10 @@ func (s *DB) First(out interface{}, where ...interface{}) *Chain {
 	return s.buildChain().First(out, where...)
 }
 
+func (s *DB) Last(out interface{}, where ...interface{}) *Chain {
+	return s.buildChain().Last(out, where...)
+}
+
 func (s *DB) Attrs(attrs ...interface{}) *Chain {
 	return s.buildChain().Attrs(attrs...)
 }
