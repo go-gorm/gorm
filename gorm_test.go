@@ -83,7 +83,10 @@ func init() {
 	if err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
-	db.Exec("drop table products")
+
+	db.Exec("drop table products;")
+	db.Exec("drop table emails;")
+	db.Exec("drop table addresses")
 
 	err = db.CreateTable(&User{}).Error
 	if err != nil {
@@ -91,6 +94,16 @@ func init() {
 	}
 
 	err = db.CreateTable(&Product{}).Error
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	err = db.CreateTable(Email{}).Error
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	err = db.CreateTable(Address{}).Error
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
@@ -1115,7 +1128,7 @@ func TestSubStruct(t *testing.T) {
 	db.Save(&comment3)
 }
 
-func TestForReadme(t *testing.T) {
+func TestRelated(t *testing.T) {
 	user := User{
 		Name:            "jinzhu",
 		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
@@ -1124,6 +1137,22 @@ func TestForReadme(t *testing.T) {
 	}
 
 	db.Save(&user)
-	var users []User
-	db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
+
+	var emails []Email
+	db.Model(&user).Related(&emails)
+	if len(emails) != 2 {
+		t.Errorf("Should have two emails")
+	}
+
+	var address1 Address
+	db.Model(&user).Related(&address1, "BillingAddressId")
+	if address1.Address1 != "Billing Address - Address 1" {
+		t.Errorf("Should get billing address from user correctly")
+	}
+
+	var user2 User
+	db.Model(&emails[0]).Related(&user2)
+	if user2.Id != user.Id || user2.Name != user.Name {
+		t.Errorf("Should get user from email correctly")
+	}
 }

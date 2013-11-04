@@ -257,6 +257,19 @@ db.Where("name = 'jinzhu'").Or(User{Name: "jinzhu 2"}).Find(&users)
 db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(&users)
 ```
 
+### Query With Related
+
+```go
+db.Model(&user).Related(&emails)
+//// SELECT * FROM emails WHERE user_id = 111;
+
+db.Model(&user).Related(&address1, "BillingAddressId")
+//// SELECT * FROM addresses WHERE id = 123; // 123 is the value of user's BillingAddressId
+
+db.Model(&email).Related(&user)
+//// SELECT * FROM users WHERE id = 111; // 111 is the value of email's UserId
+```
+
 ### Query Chains
 
 Gorm has a chainable API, so you could query like this

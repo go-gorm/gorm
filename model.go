@@ -242,18 +242,40 @@ func (m *Model) hasColumn(name string) bool {
 	}
 }
 
+func (m *Model) ColumnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
+	if m.data == nil {
+		return
+	}
+
+	data := reflect.Indirect(reflect.ValueOf(m.data))
+	if data.Kind() == reflect.Slice {
+		has_column = reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		is_slice = true
+	} else {
+		if has_column = data.FieldByName(name).IsValid(); has_column {
+			value = data.FieldByName(name).Interface()
+		}
+	}
+	return
+}
+
+func (m *Model) typeName() string {
+	typ := reflect.Indirect(reflect.ValueOf(m.data)).Type()
+	if typ.Kind() == reflect.Slice {
+		typ = typ.Elem()
+	}
+
+	return typ.Name()
+}
+
 func (m *Model) tableName() (str string, err error) {
 	if m.data == nil {
 		err = errors.New("Model haven't been set")
 		return
 	}
 
-	typ := reflect.Indirect(reflect.ValueOf(m.data)).Type()
-	if typ.Kind() == reflect.Slice {
-		typ = typ.Elem()
-	}
+	str = toSnake(m.typeName())
 
-	str = toSnake(typ.Name())
 	pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
 	for key, value := range pluralMap {
 		reg := regexp.MustCompile(key + "$")

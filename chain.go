@@ -253,6 +253,12 @@ func (s *Chain) Table(name string) *Chain {
 	return s
 }
 
+func (s *Chain) Related(value interface{}, foreign_keys ...string) *Chain {
+	original_value := s.value
+	s.do(value).related(original_value, foreign_keys...)
+	return s
+}
+
 func (s *Chain) Debug() *Chain {
 	s.debug = true
 	return s

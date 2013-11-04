@@ -303,6 +303,52 @@ func (s *Do) last() {
 	s.query()
 }
 
+func (s *Do) getForeignKey(from *Model, to *Model, foreign_key string) (err error, from_from bool, foreign_value interface{}) {
+	if has_column, is_slice, value := from.ColumnAndValue(foreign_key); has_column {
+		from_from = true
+		if is_slice {
+			foreign_value = to.primaryKeyValue()
+		} else {
+			foreign_value = value
+		}
+	} else if has_column, is_slice, value := to.ColumnAndValue(foreign_key); has_column {
+		if is_slice {
+			foreign_value = from.primaryKeyValue()
+		} else {
+			foreign_value = value
+		}
+	} else {
+		err = errors.New("Can't find valid foreign Key")
+	}
+	return
+}
+
+func (s *Do) related(value interface{}, foreign_keys ...string) {
+	var foreign_value interface{}
+	var from_from bool
+	var foreign_key string
+	var err error
+
+	from := &Model{data: value, driver: s.driver}
+	to := &Model{data: s.value, driver: s.driver}
+	foreign_keys = append(foreign_keys, from.typeName()+"Id", to.typeName()+"Id")
+
+	for _, fk := range foreign_keys {
+		err, from_from, foreign_value = s.getForeignKey(from, to, snakeToUpperCamel(fk))
+		if err == nil {
+			foreign_key = fk
+			break
+		}
+	}
+
+	if from_from {
+		s.where(foreign_value).query()
+	} else {
+		query := fmt.Sprintf("%v = %v", toSnake(foreign_key), foreign_value)
+		s.where(query).query()
+	}
+}
+
 func (s *Do) query() {
 	var (
 		is_slice  bool
