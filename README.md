@@ -59,8 +59,11 @@ type Address struct {  // TableName: `addresses`
 ```go
 import "github.com/jinzhu/gorm"
 import _ "github.com/lib/pq"
+// import _ "github.com/go-sql-driver/mysql"
 
 db, err := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+
 
 // Set the maximum idle database connections
 db.SetPool(100)
@@ -617,7 +620,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 * Auto Migration
 * SQL Log
 * SQL Query with goroutines
-* Only tested with postgres, confirm works with other database adaptors
+* Only tested with postgres and mysql, confirm works with other database adaptors
 
 # Author
 

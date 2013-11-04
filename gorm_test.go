@@ -3,10 +3,10 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"reflect"
 	"strconv"
-
 	"testing"
 	"time"
 )
@@ -64,9 +64,16 @@ var (
 func init() {
 	var err error
 	db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+
+	// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
+	// CREATE DATABASE 'gorm';
+	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
+	db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))
 	}
+
 	db.SetPool(10)
 	// db.DebugMode = true
 
@@ -474,8 +481,7 @@ func TestLimit(t *testing.T) {
 
 func TestOffset(t *testing.T) {
 	var users1, users2, users3, users4 []User
-	db.Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
-
+	db.Limit(100).Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
 	if !((len(users1) == len(users4)) && (len(users1)-len(users2) == 3) && (len(users1)-len(users3) == 5)) {
 		t.Errorf("Offset should works perfectly")
 	}

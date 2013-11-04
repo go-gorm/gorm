@@ -7,9 +7,8 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"time"
-
 	"strings"
+	"time"
 )
 
 type Do struct {
@@ -69,7 +68,11 @@ func (s *Do) setModel(value interface{}) *Do {
 
 func (s *Do) addToVars(value interface{}) string {
 	s.sqlVars = append(s.sqlVars, value)
-	return fmt.Sprintf("$%d", len(s.sqlVars))
+	if s.driver == "postgres" {
+		return fmt.Sprintf("$%d", len(s.sqlVars))
+	} else {
+		return "?"
+	}
 }
 
 func (s *Do) exec(sql ...string) {
@@ -159,9 +162,10 @@ func (s *Do) create() (i int64) {
 		} else {
 			var err error
 			s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
-			s.err(err)
-			id, err = s.sqlResult.LastInsertId()
-			s.err(err)
+			if s.err(err) == nil {
+				id, err = s.sqlResult.LastInsertId()
+				s.err(err)
+			}
 		}
 
 		if !s.hasError() {
@@ -413,7 +417,11 @@ func (s *Do) pluck(column string, value interface{}) {
 			case []uint8:
 				if dest_type.String() == "string" {
 					dest = string(dest.([]uint8))
+				} else if dest_type.String() == "int64" {
+					dest, _ = strconv.Atoi(string(dest.([]uint8)))
+					dest = int64(dest.(int))
 				}
+
 				dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
 			default:
 				dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest)))
