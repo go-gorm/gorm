@@ -5,6 +5,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"reflect"
 	"strconv"
 	"testing"
@@ -68,7 +69,8 @@ func init() {
 	// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
 	// CREATE DATABASE 'gorm';
 	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
-	db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+	// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+	// db, err = Open("sqlite3", "/tmp/gorm.db")
 
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))

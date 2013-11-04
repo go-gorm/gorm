@@ -7,6 +7,8 @@ import (
 
 func getPrimaryKeySqlType(adaptor string, column interface{}, size int) string {
 	switch adaptor {
+	case "sqlite3":
+		return "INTEGER PRIMARY KEY"
 	case "mysql":
 		suffix_str := " NOT NULL AUTO_INCREMENT PRIMARY KEY"
 		switch column.(type) {
@@ -28,6 +30,26 @@ func getPrimaryKeySqlType(adaptor string, column interface{}, size int) string {
 
 func getSqlType(adaptor string, column interface{}, size int) string {
 	switch adaptor {
+	case "sqlite3":
+		switch column.(type) {
+		case time.Time:
+			return "datetime"
+		case bool:
+			return "bool"
+		case int, int8, int16, int32, uint, uint8, uint16, uint32:
+			return "integer"
+		case int64, uint64:
+			return "bigint"
+		case float32, float64:
+			return "real"
+		case string:
+			if size > 0 && size < 65532 {
+				return fmt.Sprintf("varchar(%d)", size)
+			}
+			return "text"
+		default:
+			panic("invalid sql type")
+		}
 	case "mysql":
 		switch column.(type) {
 		case time.Time:
