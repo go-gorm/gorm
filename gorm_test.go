@@ -25,11 +25,18 @@ type User struct {
 	BillingAddressId  int64     // Embedded struct's foreign key
 	ShippingAddress   Address   // Embedded struct
 	ShippingAddressId int64     // Embedded struct's foreign key
+	CreditCard        CreditCard
+}
+
+type CreditCard struct {
+	Id     int64
+	Number string
+	UserId int64
 }
 
 type Email struct {
 	Id         int64
-	UserId     int64 // Foreign key for above embedded structs
+	UserId     int64
 	Email      string
 	Subscribed bool
 }
@@ -87,6 +94,7 @@ func init() {
 	db.Exec("drop table products;")
 	db.Exec("drop table emails;")
 	db.Exec("drop table addresses")
+	db.Exec("drop table credit_cards")
 
 	err = db.CreateTable(&User{}).Error
 	if err != nil {
@@ -104,6 +112,11 @@ func init() {
 	}
 
 	err = db.CreateTable(Address{}).Error
+	if err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	err = db.CreateTable(CreditCard{}).Error
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
@@ -1134,6 +1147,7 @@ func TestRelated(t *testing.T) {
 		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
 		Email:           []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+		CreditCard:      CreditCard{Number: "1234567890"},
 	}
 
 	db.Save(&user)
@@ -1154,5 +1168,13 @@ func TestRelated(t *testing.T) {
 	db.Model(&emails[0]).Related(&user2)
 	if user2.Id != user.Id || user2.Name != user.Name {
 		t.Errorf("Should get user from email correctly")
+	}
+
+	var credit_card CreditCard
+	var user3 User
+	db.First(&credit_card, "number = ?", "1234567890")
+	db.Model(&credit_card).Related(&user3)
+	if user3.Id != user.Id || user3.Name != user.Name {
+		t.Errorf("Should get user from credit card correctly")
 	}
 }

@@ -131,6 +131,7 @@ func (s *Do) saveBeforeAssociations() {
 func (s *Do) saveAfterAssociations() {
 	for _, field := range s.model.afterAssociations() {
 		reflect_value := reflect.ValueOf(field.Value)
+
 		switch reflect.TypeOf(field.Value).Kind() {
 		case reflect.Slice:
 			for i := 0; i < reflect_value.Len(); i++ {
@@ -143,7 +144,19 @@ func (s *Do) saveAfterAssociations() {
 			}
 		default:
 			do := &Do{chain: s.chain, db: s.db, driver: s.driver}
-			do.setModel(field.Value).save()
+			if reflect_value.CanAddr() {
+				s.model.setValueByColumn(field.foreignKey, s.model.primaryKeyValue(), field.Value)
+				do.setModel(field.Value).save()
+			} else {
+				dest_value := reflect.New(reflect.TypeOf(field.Value)).Elem()
+				m := &Model{data: field.Value, driver: s.driver}
+				for _, f := range m.columnsHasValue("update") {
+					dest_value.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
+				}
+
+				setFieldValue(dest_value.FieldByName(field.foreignKey), s.model.primaryKeyValue())
+				do.setModel(dest_value.Interface()).save()
+			}
 		}
 	}
 }
@@ -311,12 +324,8 @@ func (s *Do) getForeignKey(from *Model, to *Model, foreign_key string) (err erro
 		} else {
 			foreign_value = value
 		}
-	} else if has_column, is_slice, value := to.ColumnAndValue(foreign_key); has_column {
-		if is_slice {
-			foreign_value = from.primaryKeyValue()
-		} else {
-			foreign_value = value
-		}
+	} else if has_column, _, _ := to.ColumnAndValue(foreign_key); has_column {
+		foreign_value = from.primaryKeyValue()
 	} else {
 		err = errors.New("Can't find valid foreign Key")
 	}

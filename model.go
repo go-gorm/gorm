@@ -120,6 +120,10 @@ func (m *Model) fields(operation string) (fields []Field) {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				case "update":
+					if field.AutoCreateTime && time_value.IsZero() {
+						value.Set(reflect.ValueOf(time.Now()))
+					}
+
 					if field.AutoUpdateTime {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
@@ -153,6 +157,10 @@ func (m *Model) fields(operation string) (fields []Field) {
 							field.foreignKey = p.Name + "Id"
 							field.beforeAssociation = true
 						} else {
+							foreign_key := typ.Name() + "Id"
+							if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
+								field.foreignKey = foreign_key
+							}
 							field.afterAssociation = true
 						}
 					}
