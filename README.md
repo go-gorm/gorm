@@ -102,6 +102,8 @@ db.Save(&user)
 
 ### Create With SubStruct
 
+Refer [Query With Related](#query-with-related) to find how to find associations
+
 ```go
 user := User{
 		Name:            "jinzhu",
@@ -260,12 +262,15 @@ db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(
 ### Query With Related
 
 ```go
+// Find emails from user with guessed foreign key
 db.Model(&user).Related(&emails)
 //// SELECT * FROM emails WHERE user_id = 111;
 
+// Find address from user with specified foreign key 'BillingAddressId'
 db.Model(&user).Related(&address1, "BillingAddressId")
 //// SELECT * FROM addresses WHERE id = 123; // 123 is the value of user's BillingAddressId
 
+// Find user from email with guessed primary key value from emails
 db.Model(&email).Related(&user)
 //// SELECT * FROM users WHERE id = 111; // 111 is the value of email's UserId
 ```
