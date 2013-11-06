@@ -81,7 +81,6 @@ var (
 func init() {
 	var err error
 	db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-
 	// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
 	// CREATE DATABASE 'gorm';
 	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';

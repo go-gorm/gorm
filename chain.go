@@ -9,10 +9,11 @@ import (
 )
 
 type Chain struct {
-	db     *sql.DB
-	driver string
-	debug  bool
-	value  interface{}
+	db                *sql.DB
+	driver            string
+	debug             bool
+	singularTableName bool
+	value             interface{}
 
 	Errors []error
 	Error  error
@@ -68,6 +69,7 @@ func (s *Chain) do(value interface{}) *Do {
 	do.limitStr = s.limitStr
 	do.specifiedTableName = s.specifiedTableName
 	do.unscoped = s.unscoped
+	do.singularTableName = s.singularTableName
 
 	s.value = value
 	do.setModel(value)

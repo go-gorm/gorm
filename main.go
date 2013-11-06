@@ -3,9 +3,10 @@ package gorm
 import "database/sql"
 
 type DB struct {
-	db        *sql.DB
-	driver    string
-	DebugMode bool
+	db                *sql.DB
+	driver            string
+	DebugMode         bool
+	SingularTableName bool
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -18,8 +19,12 @@ func (s *DB) SetPool(n int) {
 	s.db.SetMaxIdleConns(n)
 }
 
+func (s *DB) SingularTable(result bool) {
+	s.SingularTableName = result
+}
+
 func (s *DB) buildChain() *Chain {
-	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode}
+	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode, singularTableName: s.SingularTableName}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {

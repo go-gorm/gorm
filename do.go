@@ -35,12 +35,13 @@ type Do struct {
 	unscoped             bool
 	updateAttrs          map[string]interface{}
 	ignoreProtectedAttrs bool
+	singularTableName    bool
 }
 
 func (s *Do) tableName() string {
 	if s.specifiedTableName == "" {
 		var err error
-		s.guessedTableName, err = s.model.tableName()
+		s.guessedTableName, err = s.model.tableName(s.singularTableName)
 		s.err(err)
 		return s.guessedTableName
 	} else {

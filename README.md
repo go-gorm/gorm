@@ -70,6 +70,8 @@ db, err := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 // Set the maximum idle database connections
 db.SetPool(100)
 
+// By default, table name is plural of struct type, if you like singular table name
+db.SingularTable(true)
 
 // Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere like this
 

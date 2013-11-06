@@ -276,7 +276,7 @@ func (m *Model) typeName() string {
 	return typ.Name()
 }
 
-func (m *Model) tableName() (str string, err error) {
+func (m *Model) tableName(singularTableName bool) (str string, err error) {
 	if m.data == nil {
 		err = errors.New("Model haven't been set")
 		return
@@ -284,11 +284,13 @@ func (m *Model) tableName() (str string, err error) {
 
 	str = toSnake(m.typeName())
 
-	pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
-	for key, value := range pluralMap {
-		reg := regexp.MustCompile(key + "$")
-		if reg.MatchString(str) {
-			return reg.ReplaceAllString(str, value), err
+	if !singularTableName {
+		pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
+		for key, value := range pluralMap {
+			reg := regexp.MustCompile(key + "$")
+			if reg.MatchString(str) {
+				return reg.ReplaceAllString(str, value), err
+			}
 		}
 	}
 	return
