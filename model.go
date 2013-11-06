@@ -282,6 +282,16 @@ func (m *Model) tableName(singularTableName bool) (str string, err error) {
 		return
 	}
 
+	fm := reflect.Indirect(reflect.ValueOf(m.data)).MethodByName("TableName")
+	if fm.IsValid() {
+		v := fm.Call([]reflect.Value{})
+		if len(v) > 0 {
+			if result, ok := v[0].Interface().(string); ok {
+				return result, nil
+			}
+		}
+	}
+
 	str = toSnake(m.typeName())
 
 	if !singularTableName {
@@ -293,6 +303,7 @@ func (m *Model) tableName(singularTableName bool) (str string, err error) {
 			}
 		}
 	}
+
 	return
 }
 

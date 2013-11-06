@@ -1198,3 +1198,40 @@ func TestRelated(t *testing.T) {
 		t.Errorf("Should get user from credit card correctly")
 	}
 }
+
+type Order struct {
+}
+
+type Cart struct {
+}
+
+func (c Cart) TableName() string {
+	return "shopping_cart"
+}
+
+func TestTableName(t *testing.T) {
+	var table string
+
+	model := &Model{data: Order{}}
+	table, _ = model.tableName(false)
+	if table != "orders" {
+		t.Errorf("Order table name should be orders")
+	}
+
+	table, _ = model.tableName(true)
+	if table != "order" {
+		t.Errorf("Order's singular table name should be order")
+	}
+
+	model2 := &Model{data: Cart{}}
+	table, _ = model2.tableName(false)
+	if table != "shopping_cart" {
+		t.Errorf("Cart's singular table name should be shopping_cart")
+	}
+
+	model3 := &Model{data: &Cart{}}
+	table, _ = model3.tableName(false)
+	if table != "shopping_cart" {
+		t.Errorf("Cart's singular table name should be shopping_cart")
+	}
+}
