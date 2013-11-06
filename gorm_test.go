@@ -20,7 +20,7 @@ type User struct {
 	CreatedAt         time.Time // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt         time.Time // UpdatedAt: Time of record is updated, will be updated automatically
 	DeletedAt         time.Time // DeletedAt: Time of record is deleted, refer Soft Delete for more
-	Email             []Email   // Embedded structs
+	Emails            []Email   // Embedded structs
 	BillingAddress    Address   // Embedded struct
 	BillingAddressId  int64     // Embedded struct's foreign key
 	ShippingAddress   Address   // Embedded struct
@@ -29,9 +29,12 @@ type User struct {
 }
 
 type CreditCard struct {
-	Id     int64
-	Number string
-	UserId int64
+	Id        int64
+	Number    string
+	UserId    int64
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
 type Email struct {
@@ -39,13 +42,19 @@ type Email struct {
 	UserId     int64
 	Email      string
 	Subscribed bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  time.Time
 }
 
 type Address struct {
-	Id       int64
-	Address1 string
-	Address2 string
-	Post     string
+	Id        int64
+	Address1  string
+	Address2  string
+	Post      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
 type Product struct {
@@ -1146,11 +1155,23 @@ func TestRelated(t *testing.T) {
 		Name:            "jinzhu",
 		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-		Email:           []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
 		CreditCard:      CreditCard{Number: "1234567890"},
 	}
 
 	db.Save(&user)
+
+	if user.CreditCard.Id == 0 {
+		t.Errorf("After user save, credit card should have id")
+	}
+
+	if user.BillingAddress.Id == 0 {
+		t.Errorf("After user save, billing address should have id")
+	}
+
+	if user.Emails[0].Id == 0 {
+		t.Errorf("After user save, billing address should have id")
+	}
 
 	var emails []Email
 	db.Model(&user).Related(&emails)

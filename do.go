@@ -120,8 +120,23 @@ func (s *Do) prepareCreateSql() {
 
 func (s *Do) saveBeforeAssociations() {
 	for _, field := range s.model.beforeAssociations() {
+		var id interface{}
+
 		do := &Do{chain: s.chain, db: s.db, driver: s.driver}
-		id := do.setModel(field.Value).save()
+
+		reflect_value := reflect.ValueOf(field.Value)
+		if reflect_value.CanAddr() {
+			id = do.setModel(reflect_value.Addr().Interface()).save()
+		} else {
+			dest_value := reflect.New(reflect_value.Type()).Elem()
+			m := &Model{data: field.Value, driver: s.driver}
+			for _, f := range m.columnsHasValue("other") {
+				dest_value.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
+			}
+			id = do.setModel(dest_value.Addr().Interface()).save()
+			m.setValueByColumn(field.Name, dest_value.Interface(), s.value)
+		}
+
 		if len(field.foreignKey) > 0 {
 			s.model.setValueByColumn(field.foreignKey, id, s.model.data)
 		}
@@ -150,12 +165,14 @@ func (s *Do) saveAfterAssociations() {
 			} else {
 				dest_value := reflect.New(reflect.TypeOf(field.Value)).Elem()
 				m := &Model{data: field.Value, driver: s.driver}
-				for _, f := range m.columnsHasValue("update") {
+				for _, f := range m.columnsHasValue("other") {
 					dest_value.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
 				}
 
 				setFieldValue(dest_value.FieldByName(field.foreignKey), s.model.primaryKeyValue())
-				do.setModel(dest_value.Interface()).save()
+				do.setModel(dest_value.Addr().Interface()).save()
+
+				m.setValueByColumn(field.Name, dest_value.Interface(), s.value)
 			}
 		}
 	}
@@ -686,7 +703,7 @@ func (s *Do) combinedSql() string {
 
 func (s *Do) createTable() *Do {
 	var sqls []string
-	for _, field := range s.model.fields("create") {
+	for _, field := range s.model.fields("other") {
 		if len(field.SqlType) > 0 {
 			sqls = append(sqls, field.DbName+" "+field.SqlType)
 		}
