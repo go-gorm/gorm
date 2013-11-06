@@ -600,6 +600,14 @@ type Cart struct {
 func (c Cart) TableName() string {
 	return "shopping_cart"
 }
+
+func (u User) TableName() string {
+    if u.Role == "admin" {
+        return "admin_users"
+    } else {
+        return "users"
+    }
+}
 ```
 
 ## Run Raw SQl
