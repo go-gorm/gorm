@@ -114,3 +114,7 @@ func (s *DB) CreateTable(value interface{}) *Chain {
 func (s *DB) DropTable(value interface{}) *Chain {
 	return s.buildChain().DropTable(value)
 }
+
+func (s *DB) AutoMigrate(value interface{}) *Chain {
+	return s.buildChain().AutoMigrate(value)
+}

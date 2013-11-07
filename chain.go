@@ -245,6 +245,11 @@ func (s *Chain) DropTable(value interface{}) *Chain {
 	return s
 }
 
+func (s *Chain) AutoMigrate(value interface{}) *Chain {
+	s.do(value).autoMigrate().exec()
+	return s
+}
+
 func (s *Chain) Unscoped() *Chain {
 	s.unscoped = true
 	return s

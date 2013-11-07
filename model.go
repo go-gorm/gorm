@@ -331,10 +331,6 @@ func (m *Model) returningStr() (str string) {
 	return
 }
 
-func (m *Model) missingColumns() (results []string) {
-	return
-}
-
 func (m *Model) setValueByColumn(name string, value interface{}, out interface{}) {
 	data := reflect.Indirect(reflect.ValueOf(out))
 	setFieldValue(data.FieldByName(snakeToUpperCamel(name)), value)

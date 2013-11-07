@@ -726,6 +726,14 @@ func (s *Do) dropTable() *Do {
 	return s
 }
 
+func (s *Do) autoMigrate() *Do {
+	sql := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v", s.tableName())
+	for _, field := range s.model.fields("other") {
+		s.sql = fmt.Sprintf(sql+"and column_name = %v", field.DbName)
+	}
+	return s
+}
+
 func (s *Do) initializeWithSearchCondition() {
 	m := Model{data: s.value, driver: s.driver}
 

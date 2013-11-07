@@ -1235,3 +1235,7 @@ func TestTableName(t *testing.T) {
 		t.Errorf("Cart's singular table name should be shopping_cart")
 	}
 }
+
+func TestAutoMigration(t *testing.T) {
+	db.AutoMigrate(Address{})
+}
