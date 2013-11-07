@@ -14,6 +14,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Automatically CreatedAt, UpdatedAt
 * Soft Delete
 * Create/Drop table from struct
+* Automating Migrations
 * Dynamically set table name when search, create, update, delete...
 * Prevent SQL Injection
 * Goroutines friendly
@@ -95,6 +96,18 @@ db.CreateTable(User{})
 
 // Drop table
 db.DropTable(User{})
+```
+
+### Automating Migrations
+
+Feel Free to update your struct, AutoMigrate will keep your database update to date.
+
+FYI, AutoMigrate will only add new columns, won't change column's type or delete unused columns, to make sure gorm won't harm your data.
+
+If table doesn't exist when AutoMigrate, it will run create table automatically.
+
+```go
+db.AutoMigrate(User{})
 ```
 
 ## Create

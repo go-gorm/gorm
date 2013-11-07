@@ -38,13 +38,12 @@ type CreditCard struct {
 }
 
 type Email struct {
-	Id         int64
-	UserId     int64
-	Email      string
-	Subscribed bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	DeletedAt  time.Time
+	Id        int64
+	UserId    int64
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
 type Address struct {
@@ -1236,6 +1235,32 @@ func TestTableName(t *testing.T) {
 	}
 }
 
+type BigEmail struct {
+	Id           int64
+	UserId       int64
+	Email        string
+	UserAgent    string
+	RegisteredAt time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    time.Time
+}
+
+func (b BigEmail) TableName() string {
+	return "emails"
+}
+
 func TestAutoMigration(t *testing.T) {
 	db.AutoMigrate(Address{})
+	if err := db.Table("emails").AutoMigrate(BigEmail{}).Error; err != nil {
+		t.Errorf("Auto Migrate should not raise any error", err)
+	}
+
+	db.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
+
+	var big_email BigEmail
+	db.First(&big_email, "user_agent = ?", "pc")
+	if big_email.Email != "jinzhu@example.org" || big_email.UserAgent != "pc" || big_email.RegisteredAt.IsZero() {
+		t.Error("Big Emails should be saved and fetched correctly")
+	}
 }

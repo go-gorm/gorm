@@ -236,17 +236,17 @@ func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
 }
 
 func (s *Chain) CreateTable(value interface{}) *Chain {
-	s.do(value).createTable().exec()
+	s.do(value).createTable()
 	return s
 }
 
 func (s *Chain) DropTable(value interface{}) *Chain {
-	s.do(value).dropTable().exec()
+	s.do(value).dropTable()
 	return s
 }
 
 func (s *Chain) AutoMigrate(value interface{}) *Chain {
-	s.do(value).autoMigrate().exec()
+	s.do(value).autoMigrate()
 	return s
 }
 

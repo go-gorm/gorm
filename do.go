@@ -715,6 +715,7 @@ func (s *Do) createTable() *Do {
 		s.tableName(),
 		strings.Join(sqls, ","),
 	)
+	s.exec()
 	return s
 }
 
@@ -723,13 +724,32 @@ func (s *Do) dropTable() *Do {
 		"DROP TABLE %v",
 		s.tableName(),
 	)
+	s.exec()
 	return s
 }
 
 func (s *Do) autoMigrate() *Do {
-	sql := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v", s.tableName())
-	for _, field := range s.model.fields("other") {
-		s.sql = fmt.Sprintf(sql+"and column_name = %v", field.DbName)
+	var table_name string
+	sql := fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_name = %v", s.addToVars(s.tableName()))
+	s.db.QueryRow(sql, s.sqlVars...).Scan(&table_name)
+	s.sqlVars = []interface{}{}
+
+	// If table doesn't exist
+	if len(table_name) == 0 {
+		s.createTable()
+	} else {
+		for _, field := range s.model.fields("other") {
+			var column_name, data_type string
+			sql := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v", s.addToVars(s.tableName()))
+			s.db.QueryRow(fmt.Sprintf(sql+" and column_name = %v", s.addToVars(field.DbName)), s.sqlVars...).Scan(&column_name, &data_type)
+			s.sqlVars = []interface{}{}
+
+			// If column doesn't exist
+			if len(column_name) == 0 {
+				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v", s.tableName(), field.DbName, field.SqlType)
+				s.exec()
+			}
+		}
 	}
 	return s
 }
