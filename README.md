@@ -98,6 +98,8 @@ FYI, AutoMigrate will only add new columns, won't change column's type or delete
 
 If table doesn't exist when AutoMigrate, it will run create table automatically.
 
+(only postgres and mysql supported)
+
 ```go
 db.AutoMigrate(User{})
 ```
