@@ -745,8 +745,8 @@ func (s *Do) autoMigrate() *Do {
 			s.sqlVars = []interface{}{}
 
 			// If column doesn't exist
-			if len(column_name) == 0 {
-				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v", s.tableName(), field.DbName, field.SqlType)
+			if len(column_name) == 0 && len(field.SqlType) > 0 {
+				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v;", s.tableName(), field.DbName, field.SqlType)
 				s.exec()
 			}
 		}
