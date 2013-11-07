@@ -4,22 +4,14 @@ Yet Another ORM library for Go, aims for developer friendly
 
 ## Overview
 
-* CURD
 * Chainable API
-* Embedded structs support
-* Before/After Create/Save/Update/Delete Callbacks
-* Update, Updates Like Rails's update_attribute, update_attributes
-* FirstOrInit, FirstOrCreate Like Rails's first_or_initialize, first_or_create
-* Order/Select/Limit/Offset Support
-* Automatically CreatedAt, UpdatedAt
+* Relations
+* Callbacks (before/after create/save/update/delete)
 * Soft Delete
-* Create/Drop table from struct
-* Automating Migrations
-* Dynamically set table name when search, create, update, delete...
-* Prevent SQL Injection
-* Goroutines friendly
-* Database Pool
+* Auto Migration
+* Every feature comes with tests
 * Convention Over Configuration
+* Developer Friendly
 
 ## Conventions
 
@@ -675,7 +667,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 
 ## TODO
 * Index, Unique, Valiations
-* Auto Migration
 * SQL Log
 * SQL Query with goroutines
 
