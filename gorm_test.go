@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -43,7 +44,6 @@ type Email struct {
 	Email     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt time.Time
 }
 
 type Address struct {
@@ -1262,5 +1262,34 @@ func TestAutoMigration(t *testing.T) {
 	db.First(&big_email, "user_agent = ?", "pc")
 	if big_email.Email != "jinzhu@example.org" || big_email.UserAgent != "pc" || big_email.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
+	}
+}
+
+func BenchmarkGorm(b *testing.B) {
+	for x := 0; x < b.N; x++ {
+		email := BigEmail{Email: "benchmark@example.org", UserAgent: "pc", RegisteredAt: time.Now()}
+		db.Save(&email)
+		db.First(&BigEmail{}, "email = ?", "benchmark@benchmark.org")
+		db.Model(&email).Update("email", "benchmark@benchmark.org")
+		db.Delete(&email)
+	}
+}
+
+func BenchmarkRawSql(b *testing.B) {
+	db, _ := sql.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	db.SetMaxIdleConns(10)
+	insert_sql := "INSERT INTO emails (user_id,email,user_agent,registered_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+	query_sql := "SELECT * FROM emails WHERE email = $1 ORDER BY id LIMIT 1"
+	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
+	delete_sql := "DELETE FROM orders WHERE id = $1"
+
+	var id int64
+	for x := 0; x < b.N; x++ {
+		email := BigEmail{Email: "benchmark@example.org", UserAgent: "pc", RegisteredAt: time.Now()}
+		db.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
+		rows, _ := db.Query(query_sql, email.Email)
+		rows.Close()
+		db.Exec(update_sql, "benchmark@benchmark.org", time.Now(), id)
+		db.Exec(delete_sql, id)
 	}
 }
