@@ -5,13 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strconv"
 )
 
 type Chain struct {
 	db     *sql.DB
 	driver string
-	debug  bool
 	value  interface{}
 
 	Errors []error
@@ -30,20 +28,10 @@ type Chain struct {
 	unscoped           bool
 }
 
-func (s *Chain) msg(str string) {
-	if s.debug {
-		debug(str)
-	}
-}
-
 func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.Error = err
-
-		if s.debug {
-			debug(err)
-		}
 	}
 	return err
 }
@@ -53,26 +41,25 @@ func (s *Chain) deleteLastError() {
 	s.Errors = s.Errors[:len(s.Errors)-1]
 }
 
-func (s *Chain) do(value interface{}) *Do {
-	var do Do
-	do.chain = s
-	do.db = s.db
-	do.driver = s.driver
-
-	do.whereClause = s.whereClause
-	do.orClause = s.orClause
-	do.notClause = s.notClause
-	do.selectStr = s.selectStr
-	do.orderStrs = s.orderStrs
-	do.offsetStr = s.offsetStr
-	do.limitStr = s.limitStr
-	do.specifiedTableName = s.specifiedTableName
-	do.unscoped = s.unscoped
-	do.debug = s.debug
+func (s *Chain) do(value interface{}) (do *Do) {
+	do = &Do{
+		chain:              s,
+		db:                 s.db,
+		driver:             s.driver,
+		whereClause:        s.whereClause,
+		orClause:           s.orClause,
+		notClause:          s.notClause,
+		selectStr:          s.selectStr,
+		orderStrs:          s.orderStrs,
+		offsetStr:          s.offsetStr,
+		limitStr:           s.limitStr,
+		specifiedTableName: s.specifiedTableName,
+		unscoped:           s.unscoped,
+	}
 
 	s.value = value
 	do.setModel(value)
-	return &do
+	return
 }
 
 func (s *Chain) Model(model interface{}) *Chain {
@@ -91,32 +78,18 @@ func (s *Chain) Not(querystring interface{}, args ...interface{}) *Chain {
 }
 
 func (s *Chain) Limit(value interface{}) *Chain {
-	switch value := value.(type) {
-	case string:
-		s.limitStr = value
-	case int:
-		if value < 0 {
-			s.limitStr = ""
-		} else {
-			s.limitStr = strconv.Itoa(value)
-		}
-	default:
+	if str, err := getInterfaceAsString(value); err == nil {
+		s.limitStr = str
+	} else {
 		s.err(errors.New("Can' understand the value of Limit, Should be int"))
 	}
 	return s
 }
 
 func (s *Chain) Offset(value interface{}) *Chain {
-	switch value := value.(type) {
-	case string:
-		s.offsetStr = value
-	case int:
-		if value < 0 {
-			s.offsetStr = ""
-		} else {
-			s.offsetStr = strconv.Itoa(value)
-		}
-	default:
+	if str, err := getInterfaceAsString(value); err == nil {
+		s.offsetStr = str
+	} else {
 		s.err(errors.New("Can' understand the value of Offset, Should be int"))
 	}
 	return s
@@ -125,7 +98,7 @@ func (s *Chain) Offset(value interface{}) *Chain {
 func (s *Chain) Order(value string, reorder ...bool) *Chain {
 	defer s.validSql(value)
 	if len(reorder) > 0 && reorder[0] {
-		s.orderStrs = append([]string{}, value)
+		s.orderStrs = []string{value}
 	} else {
 		s.orderStrs = append(s.orderStrs, value)
 	}
@@ -196,8 +169,8 @@ func (s *Chain) Assign(attrs ...interface{}) *Chain {
 
 func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
 	if s.First(out, where...).Error != nil {
-		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
+		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 	} else {
 		if len(s.assignAttrs) > 0 {
 			s.do(out).setUpdateAttrs(s.assignAttrs).prepareUpdateAttrs()
@@ -208,8 +181,8 @@ func (s *Chain) FirstOrInit(out interface{}, where ...interface{}) *Chain {
 
 func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
 	if s.First(out, where...).Error != nil {
-		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.deleteLastError()
+		s.do(out).where(where...).where(s.initAttrs).where(s.assignAttrs).initializeWithSearchCondition()
 		s.Save(out)
 	} else {
 		if len(s.assignAttrs) > 0 {
@@ -262,11 +235,6 @@ func (s *Chain) Table(name string) *Chain {
 func (s *Chain) Related(value interface{}, foreign_keys ...string) *Chain {
 	original_value := s.value
 	s.do(value).related(original_value, foreign_keys...)
-	return s
-}
-
-func (s *Chain) Debug() *Chain {
-	s.debug = true
 	return s
 }
 

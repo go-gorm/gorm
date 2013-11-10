@@ -92,7 +92,6 @@ func init() {
 	}
 
 	db.SetPool(10)
-	// db.DebugMode = true
 
 	err = db.DropTable(&User{}).Error
 	if err != nil {

@@ -5,9 +5,8 @@ import "database/sql"
 var singularTableName bool
 
 type DB struct {
-	db        *sql.DB
-	driver    string
-	DebugMode bool
+	db     *sql.DB
+	driver string
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -25,7 +24,7 @@ func (s *DB) SingularTable(result bool) {
 }
 
 func (s *DB) buildChain() *Chain {
-	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode}
+	return &Chain{db: s.db, driver: s.driver}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
@@ -102,10 +101,6 @@ func (s *DB) Model(value interface{}) *Chain {
 
 func (s *DB) Table(name string) *Chain {
 	return s.buildChain().Table(name)
-}
-
-func (s *DB) Debug() *Chain {
-	return s.buildChain().Debug()
 }
 
 func (s *DB) CreateTable(value interface{}) *Chain {

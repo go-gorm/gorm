@@ -14,7 +14,6 @@ import (
 type Model struct {
 	data          interface{}
 	driver        string
-	debug         bool
 	_cache_fields map[string][]Field
 }
 

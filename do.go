@@ -18,14 +18,11 @@ type Do struct {
 	driver             string
 	guessedTableName   string
 	specifiedTableName string
-	debug              bool
-	Errors             []error
 
-	model     *Model
-	value     interface{}
-	sqlResult sql.Result
-	sql       string
-	sqlVars   []interface{}
+	model   *Model
+	value   interface{}
+	sql     string
+	sqlVars []interface{}
 
 	whereClause          []map[string]interface{}
 	orClause             []map[string]interface{}
@@ -40,7 +37,7 @@ type Do struct {
 }
 
 func (s *Do) tableName() string {
-	if s.specifiedTableName == "" {
+	if len(s.specifiedTableName) == 0 {
 		var err error
 		s.guessedTableName, err = s.model.tableName()
 		s.err(err)
@@ -52,18 +49,17 @@ func (s *Do) tableName() string {
 
 func (s *Do) err(err error) error {
 	if err != nil {
-		s.Errors = append(s.Errors, err)
 		s.chain.err(err)
 	}
 	return err
 }
 
 func (s *Do) hasError() bool {
-	return len(s.Errors) > 0
+	return len(s.chain.Errors) > 0
 }
 
 func (s *Do) setModel(value interface{}) *Do {
-	s.model = &Model{data: value, driver: s.driver, debug: s.debug}
+	s.model = &Model{data: value, driver: s.driver}
 	s.value = value
 	return s
 }
@@ -77,20 +73,15 @@ func (s *Do) addToVars(value interface{}) string {
 	}
 }
 
-func (s *Do) exec(sql ...string) {
+func (s *Do) exec(sqls ...string) (err error) {
 	if s.hasError() {
 		return
+	} else if len(sqls) > 0 {
+		_, err = s.db.Exec(sqls[0])
+	} else if len(s.sql) > 0 {
+		_, err = s.db.Exec(s.sql, s.sqlVars...)
 	}
-
-	var err error
-	if len(sql) == 0 {
-		if len(s.sql) > 0 {
-			s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
-		}
-	} else {
-		s.sqlResult, err = s.db.Exec(sql[0])
-	}
-	s.err(err)
+	return s.err(err)
 }
 
 func (s *Do) save() (i interface{}) {
@@ -123,7 +114,6 @@ func (s *Do) prepareCreateSql() {
 func (s *Do) saveBeforeAssociations() {
 	for _, field := range s.model.beforeAssociations() {
 		var id interface{}
-
 		do := &Do{chain: s.chain, db: s.db, driver: s.driver}
 
 		reflect_value := reflect.ValueOf(field.Value)
@@ -192,10 +182,8 @@ func (s *Do) create() (i interface{}) {
 		if s.driver == "postgres" {
 			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
 		} else {
-			var err error
-			s.sqlResult, err = s.db.Exec(s.sql, s.sqlVars...)
-			if s.err(err) == nil {
-				id, err = s.sqlResult.LastInsertId()
+			if sql_result, err := s.db.Exec(s.sql, s.sqlVars...); s.err(err) == nil {
+				id, err = sql_result.LastInsertId()
 				s.err(err)
 			}
 		}
