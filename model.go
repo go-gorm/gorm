@@ -106,10 +106,15 @@ func (m *Model) fields(operation string) (fields []Field) {
 				if is_time {
 					field.IsBlank = time_value.IsZero()
 				} else {
-					m := &Model{data: value.Interface(), driver: m.driver}
-					fields := m.columnsHasValue("other")
-					if len(fields) == 0 {
-						field.IsBlank = true
+					switch value.Interface().(type) {
+					case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
+						field.IsBlank = value.FieldByName("Valid").Interface().(bool)
+					default:
+						m := &Model{data: value.Interface(), driver: m.driver}
+						fields := m.columnsHasValue("other")
+						if len(fields) == 0 {
+							field.IsBlank = true
+						}
 					}
 				}
 			}
@@ -151,22 +156,19 @@ func (m *Model) fields(operation string) (fields []Field) {
 					}
 					field.afterAssociation = true
 				case reflect.Struct:
-					if is_time {
+					switch value.Interface().(type) {
+					case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString, time.Time:
 						field.SqlType = getSqlType(m.driver, field.Value, 0)
-					} else {
-						switch value.Interface().(type) {
-						case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
-						default:
-							if indirect_value.FieldByName(p.Name + "Id").IsValid() {
-								field.foreignKey = p.Name + "Id"
-								field.beforeAssociation = true
-							} else {
-								foreign_key := typ.Name() + "Id"
-								if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
-									field.foreignKey = foreign_key
-								}
-								field.afterAssociation = true
+					default:
+						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
+							field.foreignKey = p.Name + "Id"
+							field.beforeAssociation = true
+						} else {
+							foreign_key := typ.Name() + "Id"
+							if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
+								field.foreignKey = foreign_key
 							}
+							field.afterAssociation = true
 						}
 					}
 				case reflect.Ptr:

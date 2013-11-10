@@ -1124,6 +1124,7 @@ func TestSubStruct(t *testing.T) {
 
 	var p Post
 	db.First(&p, post.Id)
+
 	if post.CategoryId.Int64 == 0 || p.CategoryId.Int64 == 0 || post.MainCategoryId == 0 || p.MainCategoryId == 0 {
 		t.Errorf("Category Id should exist")
 	}
@@ -1262,6 +1263,40 @@ func TestAutoMigration(t *testing.T) {
 	db.First(&big_email, "user_agent = ?", "pc")
 	if big_email.Email != "jinzhu@example.org" || big_email.UserAgent != "pc" || big_email.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
+	}
+}
+
+type NullValue struct {
+	Id     int64
+	Name   sql.NullString
+	Age    sql.NullInt64
+	Male   sql.NullBool
+	Height sql.NullFloat64
+}
+
+func TestSqlNullValue(t *testing.T) {
+	db.DropTable(&NullValue{})
+	db.AutoMigrate(&NullValue{})
+
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello", true}, Age: sql.NullInt64{18, true}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}}).Error; err != nil {
+		t.Errorf("Not error should raise when test null value", err)
+	}
+
+	var nv NullValue
+	db.First(&nv, "name = ?", "hello")
+
+	if nv.Name.String != "hello" || nv.Age.Int64 != 18 || nv.Male.Bool != true || nv.Height.Float64 != 100.11 {
+		t.Errorf("Should be able to fetch null value")
+	}
+
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello-2", true}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}}).Error; err != nil {
+		t.Errorf("Not error should raise when test null value", err)
+	}
+
+	var nv2 NullValue
+	db.First(&nv2, "name = ?", "hello-2")
+	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 {
+		t.Errorf("Should be able to fetch null value")
 	}
 }
 
