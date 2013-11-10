@@ -14,6 +14,7 @@ import (
 type Model struct {
 	data          interface{}
 	driver        string
+	debug         bool
 	_cache_fields map[string][]Field
 }
 
@@ -106,11 +107,13 @@ func (m *Model) fields(operation string) (fields []Field) {
 				if is_time {
 					field.IsBlank = time_value.IsZero()
 				} else {
-					switch value.Interface().(type) {
-					case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
+					_, is_scanner := reflect.New(value.Type()).Interface().(sql.Scanner)
+
+					if is_scanner {
 						field.IsBlank = !value.FieldByName("Valid").Interface().(bool)
-					default:
+					} else {
 						m := &Model{data: value.Interface(), driver: m.driver}
+
 						fields := m.columnsHasValue("other")
 						if len(fields) == 0 {
 							field.IsBlank = true
@@ -370,25 +373,14 @@ func setFieldValue(field reflect.Value, value interface{}) bool {
 			}
 			field.SetInt(reflect.ValueOf(value).Int())
 		default:
-			field_type := field.Type()
-			if field_type == reflect.TypeOf(value) {
-				field.Set(reflect.ValueOf(value))
-			} else if value == nil {
-				field.Set(reflect.Zero(field.Type()))
-			} else if field_type == reflect.TypeOf(sql.NullBool{}) {
-				field.Set(reflect.ValueOf(sql.NullBool{value.(bool), true}))
-			} else if field_type == reflect.TypeOf(sql.NullFloat64{}) {
-				field.Set(reflect.ValueOf(sql.NullFloat64{value.(float64), true}))
-			} else if field_type == reflect.TypeOf(sql.NullInt64{}) {
-				field.Set(reflect.ValueOf(sql.NullInt64{value.(int64), true}))
-			} else if field_type == reflect.TypeOf(sql.NullString{}) {
-				field.Set(reflect.ValueOf(sql.NullString{value.(string), true}))
+			if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
+				scanner.Scan(value)
 			} else {
 				field.Set(reflect.ValueOf(value))
 			}
 		}
 		return true
-	} else {
-		return false
 	}
+
+	return false
 }

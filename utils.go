@@ -2,8 +2,8 @@ package gorm
 
 import (
 	"bytes"
-	"fmt"
 
+	"fmt"
 	"strings"
 )
 

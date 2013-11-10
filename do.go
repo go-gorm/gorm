@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"reflect"
@@ -560,13 +561,10 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
-			switch arg.(type) {
-			case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
-				value := reflect.ValueOf(arg).Field(0).Interface()
-				str = strings.Replace(str, "?", s.addToVars(value), 1)
-			default:
-				str = strings.Replace(str, "?", s.addToVars(arg), 1)
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, _ = scanner.Value()
 			}
+			str = strings.Replace(str, "?", s.addToVars(arg), 1)
 		}
 	}
 	return
@@ -624,13 +622,10 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
-			switch arg.(type) {
-			case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
-				value := reflect.ValueOf(arg).Field(0).Interface()
-				str = strings.Replace(not_equal_sql, "?", s.addToVars(value), 1)
-			default:
-				str = strings.Replace(not_equal_sql, "?", s.addToVars(arg), 1)
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, _ = scanner.Value()
 			}
+			str = strings.Replace(not_equal_sql, "?", s.addToVars(arg), 1)
 		}
 	}
 	return
