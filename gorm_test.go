@@ -1081,7 +1081,7 @@ type Category struct {
 
 type Post struct {
 	Id             int64
-	CategoryId     int64
+	CategoryId     sql.NullInt64
 	MainCategoryId int64
 	Title          string
 	Body           string
@@ -1124,7 +1124,7 @@ func TestSubStruct(t *testing.T) {
 
 	var p Post
 	db.First(&p, post.Id)
-	if post.CategoryId == 0 || p.CategoryId == 0 || post.MainCategoryId == 0 || p.MainCategoryId == 0 {
+	if post.CategoryId.Int64 == 0 || p.CategoryId.Int64 == 0 || post.MainCategoryId == 0 || p.MainCategoryId == 0 {
 		t.Errorf("Category Id should exist")
 	}
 

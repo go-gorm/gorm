@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -153,15 +154,19 @@ func (m *Model) fields(operation string) (fields []Field) {
 					if is_time {
 						field.SqlType = getSqlType(m.driver, field.Value, 0)
 					} else {
-						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
-							field.foreignKey = p.Name + "Id"
-							field.beforeAssociation = true
-						} else {
-							foreign_key := typ.Name() + "Id"
-							if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
-								field.foreignKey = foreign_key
+						switch value.Interface().(type) {
+						case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
+						default:
+							if indirect_value.FieldByName(p.Name + "Id").IsValid() {
+								field.foreignKey = p.Name + "Id"
+								field.beforeAssociation = true
+							} else {
+								foreign_key := typ.Name() + "Id"
+								if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
+									field.foreignKey = foreign_key
+								}
+								field.afterAssociation = true
 							}
-							field.afterAssociation = true
 						}
 					}
 				case reflect.Ptr:
@@ -363,7 +368,22 @@ func setFieldValue(field reflect.Value, value interface{}) bool {
 			}
 			field.SetInt(reflect.ValueOf(value).Int())
 		default:
-			field.Set(reflect.ValueOf(value))
+			field_type := field.Type()
+			if field_type == reflect.TypeOf(value) {
+				field.Set(reflect.ValueOf(value))
+			} else if value == nil {
+				field.Set(reflect.Zero(field.Type()))
+			} else if field_type == reflect.TypeOf(sql.NullBool{}) {
+				field.Set(reflect.ValueOf(sql.NullBool{value.(bool), true}))
+			} else if field_type == reflect.TypeOf(sql.NullFloat64{}) {
+				field.Set(reflect.ValueOf(sql.NullFloat64{value.(float64), true}))
+			} else if field_type == reflect.TypeOf(sql.NullInt64{}) {
+				field.Set(reflect.ValueOf(sql.NullInt64{value.(int64), true}))
+			} else if field_type == reflect.TypeOf(sql.NullString{}) {
+				field.Set(reflect.ValueOf(sql.NullString{value.(string), true}))
+			} else {
+				field.Set(reflect.ValueOf(value))
+			}
 		}
 		return true
 	} else {

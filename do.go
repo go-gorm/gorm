@@ -17,6 +17,7 @@ type Do struct {
 	driver             string
 	guessedTableName   string
 	specifiedTableName string
+	debug              bool
 	Errors             []error
 
 	model     *Model

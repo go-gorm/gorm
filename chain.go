@@ -70,6 +70,7 @@ func (s *Chain) do(value interface{}) *Do {
 	do.specifiedTableName = s.specifiedTableName
 	do.unscoped = s.unscoped
 	do.singularTableName = s.singularTableName
+	do.debug = s.debug
 
 	s.value = value
 	do.setModel(value)
