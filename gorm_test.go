@@ -533,7 +533,11 @@ func TestOr(t *testing.T) {
 func TestCount(t *testing.T) {
 	var count, count1, count2 int64
 	var users []User
-	db.Where("name = ?", "1").Or("name = ?", "3").Find(&users).Count(&count)
+
+	if err := db.Where("name = ?", "1").Or("name = ?", "3").Find(&users).Count(&count).Error; err != nil {
+		t.Errorf("Count should have no error", err)
+	}
+
 	if count != int64(len(users)) {
 		t.Errorf("Count() method should get same value of users count")
 	}

@@ -273,7 +273,7 @@ func (s *Chain) Debug() *Chain {
 }
 
 func (s *Chain) validSql(str string) (result bool) {
-	result = regexp.MustCompile("^\\s*[\\w][\\w\\s,.]*[\\w]\\s*$").MatchString(str)
+	result = regexp.MustCompile("^\\s*[\\w\\s,.*()]*\\s*$").MatchString(str)
 	if !result {
 		s.err(errors.New(fmt.Sprintf("SQL is not valid, %s", str)))
 	}
