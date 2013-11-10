@@ -372,7 +372,7 @@ func (s *Do) related(value interface{}, foreign_keys ...string) {
 	if from_from {
 		s.where(foreign_value).query()
 	} else {
-		query := fmt.Sprintf("%v = %v", toSnake(foreign_key), foreign_value)
+		query := fmt.Sprintf("%v = %v", toSnake(foreign_key), s.addToVars(foreign_value))
 		s.where(query).query()
 	}
 }
@@ -529,6 +529,8 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		}
 	case int, int64, int32:
 		return s.primaryCondiation(s.addToVars(query))
+	case sql.NullInt64:
+		return s.primaryCondiation(s.addToVars(query.(sql.NullInt64).Int64))
 	case []int64, []int, []int32, []string:
 		str = fmt.Sprintf("(%v in (?))", s.model.primaryKeyDb())
 		clause["args"] = []interface{}{query}
@@ -558,7 +560,13 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
-			str = strings.Replace(str, "?", s.addToVars(arg), 1)
+			switch arg.(type) {
+			case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
+				value := reflect.ValueOf(arg).Field(0).Interface()
+				str = strings.Replace(str, "?", s.addToVars(value), 1)
+			default:
+				str = strings.Replace(str, "?", s.addToVars(arg), 1)
+			}
 		}
 	}
 	return
@@ -616,7 +624,13 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
-			str = strings.Replace(not_equal_sql, "?", s.addToVars(arg), 1)
+			switch arg.(type) {
+			case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
+				value := reflect.ValueOf(arg).Field(0).Interface()
+				str = strings.Replace(not_equal_sql, "?", s.addToVars(value), 1)
+			default:
+				str = strings.Replace(not_equal_sql, "?", s.addToVars(arg), 1)
+			}
 		}
 	}
 	return

@@ -18,21 +18,21 @@ type User struct {
 	Birthday          time.Time // Time
 	Age               int64
 	Name              string
-	CreatedAt         time.Time // CreatedAt: Time of record is created, will be insert automatically
-	UpdatedAt         time.Time // UpdatedAt: Time of record is updated, will be updated automatically
-	DeletedAt         time.Time // DeletedAt: Time of record is deleted, refer Soft Delete for more
-	Emails            []Email   // Embedded structs
-	BillingAddress    Address   // Embedded struct
-	BillingAddressId  int64     // Embedded struct's foreign key
-	ShippingAddress   Address   // Embedded struct
-	ShippingAddressId int64     // Embedded struct's foreign key
+	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
+	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
+	DeletedAt         time.Time     // DeletedAt: Time of record is deleted, refer Soft Delete for more
+	Emails            []Email       // Embedded structs
+	BillingAddress    Address       // Embedded struct
+	BillingAddressId  sql.NullInt64 // Embedded struct's foreign key
+	ShippingAddress   Address       // Embedded struct
+	ShippingAddressId int64         // Embedded struct's foreign key
 	CreditCard        CreditCard
 }
 
 type CreditCard struct {
 	Id        int64
 	Number    string
-	UserId    int64
+	UserId    sql.NullInt64
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt time.Time

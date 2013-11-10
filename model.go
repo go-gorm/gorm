@@ -108,7 +108,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 				} else {
 					switch value.Interface().(type) {
 					case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString:
-						field.IsBlank = value.FieldByName("Valid").Interface().(bool)
+						field.IsBlank = !value.FieldByName("Valid").Interface().(bool)
 					default:
 						m := &Model{data: value.Interface(), driver: m.driver}
 						fields := m.columnsHasValue("other")
