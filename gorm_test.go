@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -1270,36 +1271,58 @@ func TestAutoMigration(t *testing.T) {
 	}
 }
 
+type NullTime struct {
+	Time  time.Time
+	Valid bool
+}
+
+func (nt *NullTime) Scan(value interface{}) error {
+	if value == nil {
+		nt.Valid = false
+		return nil
+	}
+	nt.Time, nt.Valid = value.(time.Time), true
+	return nil
+}
+
+func (nt NullTime) Value() (driver.Value, error) {
+	if !nt.Valid {
+		return nil, nil
+	}
+	return nt.Time, nil
+}
+
 type NullValue struct {
-	Id     int64
-	Name   sql.NullString
-	Age    sql.NullInt64
-	Male   sql.NullBool
-	Height sql.NullFloat64
+	Id      int64
+	Name    sql.NullString
+	Age     sql.NullInt64
+	Male    sql.NullBool
+	Height  sql.NullFloat64
+	AddedAt NullTime
 }
 
 func TestSqlNullValue(t *testing.T) {
 	db.DropTable(&NullValue{})
 	db.AutoMigrate(&NullValue{})
 
-	if err := db.Save(&NullValue{Name: sql.NullString{"hello", true}, Age: sql.NullInt64{18, true}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}}).Error; err != nil {
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello", true}, Age: sql.NullInt64{18, true}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), true}}).Error; err != nil {
 		t.Errorf("Not error should raise when test null value", err)
 	}
 
 	var nv NullValue
 	db.First(&nv, "name = ?", "hello")
 
-	if nv.Name.String != "hello" || nv.Age.Int64 != 18 || nv.Male.Bool != true || nv.Height.Float64 != 100.11 {
+	if nv.Name.String != "hello" || nv.Age.Int64 != 18 || nv.Male.Bool != true || nv.Height.Float64 != 100.11 || nv.AddedAt.Valid != true {
 		t.Errorf("Should be able to fetch null value")
 	}
 
-	if err := db.Save(&NullValue{Name: sql.NullString{"hello-2", true}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}}).Error; err != nil {
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello-2", true}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err != nil {
 		t.Errorf("Not error should raise when test null value", err)
 	}
 
 	var nv2 NullValue
 	db.First(&nv2, "name = ?", "hello-2")
-	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 {
+	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 || nv2.AddedAt.Valid != false {
 		t.Errorf("Should be able to fetch null value")
 	}
 }

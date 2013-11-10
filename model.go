@@ -81,7 +81,6 @@ func (m *Model) fields(operation string) (fields []Field) {
 	}
 
 	typ := indirect_value.Type()
-
 	for i := 0; i < typ.NumField(); i++ {
 		p := typ.Field(i)
 		if !p.Anonymous && ast.IsExported(p.Name) {
@@ -137,19 +136,11 @@ func (m *Model) fields(operation string) (fields []Field) {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				}
-			}
-
-			field.Value = value.Interface()
-
-			if field.IsPrimaryKey {
-				field.SqlType = getPrimaryKeySqlType(m.driver, field.Value, 0)
+				field.SqlType = getSqlType(m.driver, value, 0)
+			} else if field.IsPrimaryKey {
+				field.SqlType = getPrimaryKeySqlType(m.driver, value, 0)
 			} else {
-				field_value := reflect.ValueOf(field.Value)
-				if field_value.Kind() == reflect.Ptr {
-					if field_value.CanAddr() {
-						field_value = field_value.Elem()
-					}
-				}
+				field_value := reflect.Indirect(value)
 
 				switch field_value.Kind() {
 				case reflect.Slice:
@@ -159,10 +150,11 @@ func (m *Model) fields(operation string) (fields []Field) {
 					}
 					field.afterAssociation = true
 				case reflect.Struct:
-					switch value.Interface().(type) {
-					case sql.NullInt64, sql.NullFloat64, sql.NullBool, sql.NullString, time.Time:
-						field.SqlType = getSqlType(m.driver, field.Value, 0)
-					default:
+					_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
+
+					if is_scanner {
+						field.SqlType = getSqlType(m.driver, value, 0)
+					} else {
 						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
 							field.foreignKey = p.Name + "Id"
 							field.beforeAssociation = true
@@ -174,12 +166,12 @@ func (m *Model) fields(operation string) (fields []Field) {
 							field.afterAssociation = true
 						}
 					}
-				case reflect.Ptr:
-					debug("Errors when handle ptr sub structs")
 				default:
-					field.SqlType = getSqlType(m.driver, field.Value, 0)
+					field.SqlType = getSqlType(m.driver, value, 0)
 				}
 			}
+
+			field.Value = value.Interface()
 			fields = append(fields, field)
 		}
 	}

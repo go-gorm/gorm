@@ -25,11 +25,11 @@ type User struct {         // TableName: `users`, gorm will pluralize struct's n
 	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
 	DeletedAt	 time.Time // Time of record is deleted, refer `Soft Delete` for more
 
-	Email             []Email   // Embedded structs
-	BillingAddress    Address   // Embedded struct
-	BillingAddressId  int64     // Embedded struct BillingAddress's foreign key
-	ShippingAddress   Address   // Embedded struct
-	ShippingAddressId int64     // Embedded struct ShippingAddress's foreign key
+	Email             []Email        // Embedded structs
+	BillingAddress    Address        // Embedded struct
+	BillingAddressId  sql.NullInt64  // Embedded struct BillingAddress's foreign key
+	ShippingAddress   Address        // Embedded struct
+	ShippingAddressId int64          // Embedded struct ShippingAddress's foreign key
 }
 
 type Email struct {    // TableName: `emails`

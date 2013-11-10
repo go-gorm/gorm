@@ -64,7 +64,7 @@ func (s *Do) hasError() bool {
 }
 
 func (s *Do) setModel(value interface{}) *Do {
-	s.model = &Model{data: value, driver: s.driver}
+	s.model = &Model{data: value, driver: s.driver, debug: s.debug}
 	s.value = value
 	return s
 }
@@ -561,8 +561,8 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
-			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
-				arg, _ = scanner.Value()
+			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, _ = valuer.Value()
 			}
 			str = strings.Replace(str, "?", s.addToVars(arg), 1)
 		}
@@ -725,6 +725,7 @@ func (s *Do) createTable() *Do {
 		s.tableName(),
 		strings.Join(sqls, ","),
 	)
+
 	s.exec()
 	return s
 }

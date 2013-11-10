@@ -2,11 +2,26 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"time"
 )
 
+func formatColumnValue(column interface{}) interface{} {
+	if v, ok := column.(reflect.Value); ok {
+		column = v.Interface()
+	}
+
+	if valuer, ok := interface{}(column).(driver.Valuer); ok {
+		column = reflect.New(reflect.ValueOf(valuer).Field(0).Type()).Elem().Interface()
+	}
+	return column
+}
+
 func getPrimaryKeySqlType(adaptor string, column interface{}, size int) string {
+	column = formatColumnValue(column)
+
 	switch adaptor {
 	case "sqlite3":
 		return "INTEGER PRIMARY KEY"
@@ -30,6 +45,8 @@ func getPrimaryKeySqlType(adaptor string, column interface{}, size int) string {
 }
 
 func getSqlType(adaptor string, column interface{}, size int) string {
+	column = formatColumnValue(column)
+
 	switch adaptor {
 	case "sqlite3":
 		switch column.(type) {
