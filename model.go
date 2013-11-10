@@ -278,7 +278,7 @@ func (m *Model) typeName() string {
 	return typ.Name()
 }
 
-func (m *Model) tableName(singularTableName bool) (str string, err error) {
+func (m *Model) tableName() (str string, err error) {
 	if m.data == nil {
 		err = errors.New("Model haven't been set")
 		return

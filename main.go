@@ -2,11 +2,12 @@ package gorm
 
 import "database/sql"
 
+var singularTableName bool
+
 type DB struct {
-	db                *sql.DB
-	driver            string
-	DebugMode         bool
-	SingularTableName bool
+	db        *sql.DB
+	driver    string
+	DebugMode bool
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -20,11 +21,11 @@ func (s *DB) SetPool(n int) {
 }
 
 func (s *DB) SingularTable(result bool) {
-	s.SingularTableName = result
+	singularTableName = result
 }
 
 func (s *DB) buildChain() *Chain {
-	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode, singularTableName: s.SingularTableName}
+	return &Chain{db: s.db, driver: s.driver, debug: s.DebugMode}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
