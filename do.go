@@ -93,7 +93,7 @@ func (s *Do) exec(sql ...string) {
 	s.err(err)
 }
 
-func (s *Do) save() (i int64) {
+func (s *Do) save() (i interface{}) {
 	if s.model.primaryKeyZero() {
 		return s.create()
 	} else {
@@ -180,7 +180,7 @@ func (s *Do) saveAfterAssociations() {
 	}
 }
 
-func (s *Do) create() (i int64) {
+func (s *Do) create() (i interface{}) {
 	s.err(s.model.callMethod("BeforeCreate"))
 	s.err(s.model.callMethod("BeforeSave"))
 
@@ -188,7 +188,7 @@ func (s *Do) create() (i int64) {
 	s.prepareCreateSql()
 
 	if !s.hasError() {
-		var id int64
+		var id interface{}
 		if s.driver == "postgres" {
 			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
 		} else {
