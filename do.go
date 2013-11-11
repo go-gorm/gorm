@@ -77,8 +77,9 @@ func (s *Do) exec(sqls ...string) (err error) {
 		if len(sqls) > 0 {
 			s.sql = sqls[0]
 		}
+		now := time.Now()
 		_, err = s.db.Exec(s.sql, s.sqlVars...)
-		slog(s.sql, s.sqlVars...)
+		s.chain.slog(s.sql, now, s.sqlVars...)
 	}
 	return s.err(err)
 }
@@ -177,6 +178,7 @@ func (s *Do) create() (i interface{}) {
 	s.prepareCreateSql()
 
 	if !s.hasError() {
+		now := time.Now()
 		var id interface{}
 		if s.chain.driver() == "postgres" {
 			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
@@ -186,7 +188,7 @@ func (s *Do) create() (i interface{}) {
 				s.err(err)
 			}
 		}
-		slog(s.sql, s.sqlVars...)
+		s.chain.slog(s.sql, now, s.sqlVars...)
 
 		if !s.hasError() {
 			result := reflect.Indirect(reflect.ValueOf(s.value))
@@ -377,8 +379,9 @@ func (s *Do) query() {
 
 	s.prepareQuerySql()
 	if !s.hasError() {
+		now := time.Now()
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
-		slog(s.sql, s.sqlVars...)
+		s.chain.slog(s.sql, now, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}
@@ -433,8 +436,9 @@ func (s *Do) count(value interface{}) {
 
 	s.prepareQuerySql()
 	if !s.hasError() {
+		now := time.Now()
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
-		slog(s.sql, s.sqlVars...)
+		s.chain.slog(s.sql, now, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}
@@ -463,8 +467,9 @@ func (s *Do) pluck(column string, value interface{}) {
 	s.prepareQuerySql()
 
 	if !s.hasError() {
+		now := time.Now()
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
-		slog(s.sql, s.sqlVars...)
+		s.chain.slog(s.sql, now, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}
@@ -512,7 +517,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			id, _ := strconv.Atoi(value)
 			return s.primaryCondiation(s.addToVars(id))
 		} else {
-			str = "( " + value + " )"
+			str = "(" + value + ")"
 		}
 	case int, int64, int32:
 		return s.primaryCondiation(s.addToVars(query))
@@ -524,14 +529,14 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range query.(map[string]interface{}) {
-			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", key, s.addToVars(value)))
+			sqls = append(sqls, fmt.Sprintf("(%v = %v)", key, s.addToVars(value)))
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		m := &Model{data: query, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
-			sqls = append(sqls, fmt.Sprintf(" ( %v = %v ) ", field.DbName, s.addToVars(field.Value)))
+			sqls = append(sqls, fmt.Sprintf(" (%v = %v) ", field.DbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -585,14 +590,14 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range query.(map[string]interface{}) {
-			sqls = append(sqls, fmt.Sprintf(" ( %v <> %v ) ", key, s.addToVars(value)))
+			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", key, s.addToVars(value)))
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		m := &Model{data: query, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
-			sqls = append(sqls, fmt.Sprintf(" ( %v <> %v ) ", field.DbName, s.addToVars(field.Value)))
+			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", field.DbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -654,7 +659,7 @@ func (s *Do) whereSql() (sql string) {
 	if len(primary_condiations) > 0 {
 		sql = "WHERE " + strings.Join(primary_condiations, " AND ")
 		if len(combined_conditions) > 0 {
-			sql = sql + " AND ( " + combined_conditions + " )"
+			sql = sql + " AND (" + combined_conditions + ")"
 		}
 	} else if len(combined_conditions) > 0 {
 		sql = "WHERE " + combined_conditions
@@ -664,7 +669,7 @@ func (s *Do) whereSql() (sql string) {
 
 func (s *Do) selectSql() string {
 	if len(s.selectStr) == 0 {
-		return " * "
+		return "*"
 	} else {
 		return s.selectStr
 	}

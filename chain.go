@@ -7,9 +7,10 @@ import (
 )
 
 type Chain struct {
-	d     *DB
-	db    sql_common
-	value interface{}
+	d          *DB
+	db         sql_common
+	value      interface{}
+	debug_mode bool
 
 	Errors []error
 	Error  error
@@ -35,7 +36,7 @@ func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.Error = err
-		warn(err)
+		s.warn(err)
 	}
 	return err
 }
@@ -254,6 +255,11 @@ func (s *Chain) Begin() *Chain {
 		s.err(errors.New("Can't start a transaction."))
 	}
 
+	return s
+}
+
+func (s *Chain) Debug() *Chain {
+	s.debug_mode = true
 	return s
 }
 

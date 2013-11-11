@@ -5,8 +5,10 @@ import "database/sql"
 var singularTableName bool
 
 type DB struct {
-	db     sql_common
-	driver string
+	db       sql_common
+	driver   string
+	logger   Logger
+	log_mode bool
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -21,12 +23,12 @@ func (s *DB) SetPool(n int) {
 	}
 }
 
-func (s *DB) SetLogger(l interface{}) {
-	logger = l
+func (s *DB) SetLogger(l Logger) {
+	s.logger = l
 }
 
 func (s *DB) LogMode(b bool) {
-	logger_disabled = !b
+	s.log_mode = b
 }
 
 func (s *DB) SingularTable(result bool) {
@@ -123,6 +125,10 @@ func (s *DB) DropTable(value interface{}) *Chain {
 
 func (s *DB) AutoMigrate(value interface{}) *Chain {
 	return s.buildChain().AutoMigrate(value)
+}
+
+func (s *DB) Debug() *Chain {
+	return s.buildChain().Debug()
 }
 
 func (s *DB) Begin() *Chain {
