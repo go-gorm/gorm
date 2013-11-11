@@ -733,3 +733,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 * <http://github.com/jinzhu>
 * <wosmvp@gmail.com>
 * <http://twitter.com/zhangjinzhu>
+
+## License
+
+Released under the [MIT License](http://www.opensource.org/licenses/MIT).
