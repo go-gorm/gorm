@@ -277,9 +277,9 @@ func (m *Model) typeName() string {
 	return typ.Name()
 }
 
-func (m *Model) tableName() (str string, err error) {
+func (m *Model) tableName() (str string) {
 	if m.data == nil {
-		err = errors.New("Model haven't been set")
+		m.do.err(errors.New("Model haven't been set"))
 		return
 	}
 
@@ -288,7 +288,7 @@ func (m *Model) tableName() (str string, err error) {
 		v := fm.Call([]reflect.Value{})
 		if len(v) > 0 {
 			if result, ok := v[0].Interface().(string); ok {
-				return result, nil
+				return result
 			}
 		}
 	}
@@ -300,7 +300,7 @@ func (m *Model) tableName() (str string, err error) {
 		for key, value := range pluralMap {
 			reg := regexp.MustCompile(key + "$")
 			if reg.MatchString(str) {
-				return reg.ReplaceAllString(str, value), err
+				return reg.ReplaceAllString(str, value)
 			}
 		}
 	}
@@ -308,9 +308,9 @@ func (m *Model) tableName() (str string, err error) {
 	return
 }
 
-func (m *Model) callMethod(method string) error {
-	if m.data == nil {
-		return nil
+func (m *Model) callMethod(method string) {
+	if m.data == nil || m.do.hasError() {
+		return
 	}
 
 	fm := reflect.ValueOf(m.data).MethodByName(method)
@@ -318,11 +318,11 @@ func (m *Model) callMethod(method string) error {
 		v := fm.Call([]reflect.Value{})
 		if len(v) > 0 {
 			if verr, ok := v[0].Interface().(error); ok {
-				return verr
+				m.do.err(verr)
 			}
 		}
 	}
-	return nil
+	return
 }
 
 func (m *Model) returningStr() (str string) {

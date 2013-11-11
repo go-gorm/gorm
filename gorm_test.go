@@ -1218,25 +1218,25 @@ func TestTableName(t *testing.T) {
 	var table string
 
 	model := &Model{data: Order{}}
-	table, _ = model.tableName()
+	table = model.tableName()
 	if table != "orders" {
 		t.Errorf("Order table name should be orders")
 	}
 
 	db.SingularTable(true)
-	table, _ = model.tableName()
+	table = model.tableName()
 	if table != "order" {
 		t.Errorf("Order's singular table name should be order")
 	}
 
 	model2 := &Model{data: Cart{}}
-	table, _ = model2.tableName()
+	table = model2.tableName()
 	if table != "shopping_cart" {
 		t.Errorf("Cart's singular table name should be shopping_cart")
 	}
 
 	model3 := &Model{data: &Cart{}}
-	table, _ = model3.tableName()
+	table = model3.tableName()
 	if table != "shopping_cart" {
 		t.Errorf("Cart's singular table name should be shopping_cart")
 	}

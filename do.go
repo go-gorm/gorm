@@ -37,9 +37,7 @@ type Do struct {
 
 func (s *Do) tableName() string {
 	if len(s.specifiedTableName) == 0 {
-		var err error
-		s.guessedTableName, err = s.model.tableName()
-		s.err(err)
+		s.guessedTableName = s.model.tableName()
 		return s.guessedTableName
 	} else {
 		return s.specifiedTableName
@@ -172,8 +170,8 @@ func (s *Do) saveAfterAssociations() {
 }
 
 func (s *Do) create() (i interface{}) {
-	s.err(s.model.callMethod("BeforeCreate"))
-	s.err(s.model.callMethod("BeforeSave"))
+	s.model.callMethod("BeforeCreate")
+	s.model.callMethod("BeforeSave")
 
 	s.saveBeforeAssociations()
 	s.prepareCreateSql()
@@ -197,8 +195,8 @@ func (s *Do) create() (i interface{}) {
 			}
 			s.saveAfterAssociations()
 
-			s.err(s.model.callMethod("AfterCreate"))
-			s.err(s.model.callMethod("AfterSave"))
+			s.model.callMethod("AfterCreate")
+			s.model.callMethod("AfterSave")
 		}
 		return id
 	}
@@ -265,8 +263,8 @@ func (s *Do) update() (i int64) {
 		}
 	}
 
-	s.err(s.model.callMethod("BeforeUpdate"))
-	s.err(s.model.callMethod("BeforeSave"))
+	s.model.callMethod("BeforeUpdate")
+	s.model.callMethod("BeforeSave")
 
 	s.saveBeforeAssociations()
 	s.prepareUpdateSql(update_attrs)
@@ -275,10 +273,8 @@ func (s *Do) update() (i int64) {
 		s.exec()
 		s.saveAfterAssociations()
 
-		if !s.hasError() {
-			s.err(s.model.callMethod("AfterUpdate"))
-			s.err(s.model.callMethod("AfterSave"))
-		}
+		s.model.callMethod("AfterUpdate")
+		s.model.callMethod("AfterSave")
 	}
 
 	return s.model.primaryKeyValue()
@@ -290,7 +286,7 @@ func (s *Do) prepareDeleteSql() {
 }
 
 func (s *Do) delete() {
-	s.err(s.model.callMethod("BeforeDelete"))
+	s.model.callMethod("BeforeDelete")
 
 	if !s.hasError() {
 		if !s.unscoped && s.model.hasColumn("DeletedAt") {
@@ -301,9 +297,7 @@ func (s *Do) delete() {
 			s.prepareDeleteSql()
 			s.exec()
 		}
-		if !s.hasError() {
-			s.err(s.model.callMethod("AfterDelete"))
-		}
+		s.model.callMethod("AfterDelete")
 	}
 	return
 }
