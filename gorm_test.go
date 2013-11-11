@@ -505,6 +505,8 @@ func TestOrderAndPluck(t *testing.T) {
 	if !(names[0] == "1" && names[2] == "3" && names[3] == "3" && ages[2] == 24 && ages[3] == 22) {
 		t.Errorf("Should be ordered correctly with multiple orders")
 	}
+
+	db.Model(User{}).Select("name, age").Find(&[]User{})
 }
 
 func TestLimit(t *testing.T) {

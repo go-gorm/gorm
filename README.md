@@ -555,6 +555,9 @@ db.Model(&User{}).Pluck("name", &names)
 // Set Table With Table
 db.Table("deleted_users").Pluck("name", &names)
 //// SELECT name FROM deleted_users;
+
+// Pluck more than one column? Do it like this
+db.Select("name, age").Find(&users)
 ```
 
 ## Callbacks
@@ -719,7 +722,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 ```
 
 ## TODO
-* Join, Having, Group, Includes, Pluck (distinct)
+* Join, Having, Group, Includes
 * Scopes
 * Index, Unique, Valiations
 

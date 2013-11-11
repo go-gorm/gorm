@@ -309,7 +309,7 @@ func (m *Model) tableName() (str string) {
 }
 
 func (m *Model) callMethod(method string) {
-	if m.data == nil || m.do.hasError() {
+	if m.data == nil || m.do.chain.hasError() {
 		return
 	}
 
