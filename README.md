@@ -645,7 +645,7 @@ Grom has builtin logger support, enable it with:
 db.LogMode(true)
 ```
 
-![logger](https://github.com/jinzhu/gorm/raw/master/images/logger.png)
+![logger](https://raw.github.com/jinzhu/gorm/master/images/logger.png)
 
 ```go
 // Use your own logger
