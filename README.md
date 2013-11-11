@@ -10,6 +10,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Soft Delete
 * Auto Migration
 * Transaction
+* Logger Support
 * Every feature comes with tests
 * Convention Over Configuration
 * Developer Friendly
@@ -634,6 +635,28 @@ tx.Rollback()
 
 // commit
 tx.Commit()
+```
+
+## Logger
+
+Grom has builtin logger support, enable it with:
+
+```go
+db.LogMode(true)
+```
+
+![logger](https://github.com/jinzhu/gorm/raw/master/images/logger.png)
+
+```go
+// Use your own logger
+// Checkout gorm's default logger for how to format messages: https://github.com/jinzhu/gorm/blob/master/logger.go#files
+db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+
+// Disable log
+db.LogMode(false)
+
+// Enable log for a single operation, make debug easy
+db.Debug().Where("name = ?", "jinzhu").First(&User{})
 ```
 
 ## Run Raw SQl

@@ -86,6 +86,7 @@ func init() {
 	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 	// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 	// db, err = Open("sqlite3", "/tmp/gorm.db")
+	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 	db.LogMode(true)
 
 	if err != nil {
