@@ -17,6 +17,7 @@ type Do struct {
 	db                 sql_common
 	guessedTableName   string
 	specifiedTableName string
+	startedTransaction bool
 
 	model   *Model
 	value   interface{}
@@ -756,20 +757,26 @@ func (s *Do) autoMigrate() *Do {
 	return s
 }
 
-func (s *Do) begin() bool {
+func (s *Do) begin() *Do {
 	if db, ok := s.db.(sql_db); ok {
 		tx, err := db.Begin()
 		if err == nil {
 			s.db = interface{}(tx).(sql_common)
-			return true
+			s.startedTransaction = true
 		}
 	}
-	return false
+	return s
 }
 
-func (s *Do) commit() {
-	if db, ok := s.db.(sql_tx); ok {
-		s.err(db.Commit())
+func (s *Do) commit_or_rollback() {
+	if s.startedTransaction {
+		if db, ok := s.db.(sql_tx); ok {
+			if s.chain.hasError() {
+				db.Rollback()
+			} else {
+				db.Commit()
+			}
+		}
 	}
 }
 

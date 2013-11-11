@@ -132,22 +132,16 @@ func (s *Chain) Select(value interface{}) *Chain {
 }
 
 func (s *Chain) Save(value interface{}) *Chain {
-	do := s.do(value)
-	tx_started := do.begin()
+	do := s.do(value).begin()
 	do.save()
-	if tx_started {
-		do.commit()
-	}
+	do.commit_or_rollback()
 	return s
 }
 
 func (s *Chain) Delete(value interface{}) *Chain {
-	do := s.do(value)
-	tx_started := do.begin()
+	do := s.do(value).begin()
 	do.delete()
-	if tx_started {
-		do.commit()
-	}
+	do.commit_or_rollback()
 	return s
 }
 
@@ -156,12 +150,9 @@ func (s *Chain) Update(attrs ...interface{}) *Chain {
 }
 
 func (s *Chain) Updates(values interface{}, ignore_protected_attrs ...bool) *Chain {
-	do := s.do(s.value)
-	tx_started := do.begin()
-	do.setUpdateAttrs(values, ignore_protected_attrs...).update()
-	if tx_started {
-		do.commit()
-	}
+	do := s.do(s.value).begin().setUpdateAttrs(values, ignore_protected_attrs...)
+	do.update()
+	do.commit_or_rollback()
 	return s
 }
 

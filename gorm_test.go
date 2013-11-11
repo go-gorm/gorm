@@ -610,8 +610,12 @@ func (s *Product) AfterUpdate() {
 	s.AfterUpdateCallTimes = s.AfterUpdateCallTimes + 1
 }
 
-func (s *Product) AfterSave() {
+func (s *Product) AfterSave() (err error) {
+	if s.Code == "after_save_error" {
+		err = errors.New("Can't save")
+	}
 	s.AfterSaveCallTimes = s.AfterSaveCallTimes + 1
+	return
 }
 
 func (s *Product) BeforeDelete() (err error) {
@@ -622,8 +626,12 @@ func (s *Product) BeforeDelete() (err error) {
 	return
 }
 
-func (s *Product) AfterDelete() {
+func (s *Product) AfterDelete() (err error) {
+	if s.Code == "after_delete_error" {
+		err = errors.New("Can't delete")
+	}
 	s.AfterDeleteCallTimes = s.AfterDeleteCallTimes + 1
+	return
 }
 func (p *Product) GetCallTimes() []int64 {
 	return []int64{p.BeforeCreateCallTimes, p.BeforeSaveCallTimes, p.BeforeUpdateCallTimes, p.AfterCreateCallTimes, p.AfterSaveCallTimes, p.AfterUpdateCallTimes, p.BeforeDeleteCallTimes, p.AfterDeleteCallTimes}
@@ -702,6 +710,23 @@ func TestRunCallbacksAndGetErrors(t *testing.T) {
 
 	if db.Where("Code = ?", "dont_delete").First(&p3).Error != nil {
 		t.Errorf("Should not delete record due to errors happened in callback")
+	}
+
+	p4 := Product{Code: "after_save_error", Price: 100}
+	db.Save(&p4)
+	if err := db.First(&Product{}, "code = ?", "after_save_error").Error; err == nil {
+		t.Errorf("Record should be reverted if get an error after save", err)
+	}
+
+	p5 := Product{Code: "after_delete_error", Price: 100}
+	db.Save(&p5)
+	if err := db.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
+		t.Errorf("Record should be found", err)
+	}
+
+	db.Delete(&p5)
+	if err := db.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
+		t.Errorf("Record should be found because failed to delete", err)
 	}
 }
 
@@ -1363,6 +1388,13 @@ func TestTransaction(t *testing.T) {
 	if err := db.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
+}
+
+func (s *CreditCard) BeforeSave() (err error) {
+	if s.Number == "0000" {
+		err = errors.New("invalid credit card")
+	}
+	return
 }
 
 func BenchmarkGorm(b *testing.B) {

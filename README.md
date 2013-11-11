@@ -560,7 +560,7 @@ db.Table("deleted_users").Pluck("name", &names)
 ## Callbacks
 
 Callback is a function defined to a struct, the function would be run when reflect a struct to database.
-If the function return an error, will prevent following operations. (for example, stop inserting, updating)
+If a function return error, gorm will prevent future operations and do rollback
 
 Those callbacks are defined now:
 
@@ -570,9 +570,18 @@ Those callbacks are defined now:
 `BeforeDelete`, `AfterDelete`
 
 ```go
+// Won't update readonly user
 func (u *User) BeforeUpdate() (err error) {
     if u.readonly() {
         err = errors.New("Read Only User")
+    }
+    return
+}
+
+// If have more than 1000 users, will rollback the insertion
+func (u *User) AfterCreate() (err error) {
+    if (u.Id > 1000) { // just an example, don't use Id to count users
+        err = errors.New("Only 1000 users allowed")
     }
     return
 }
