@@ -13,7 +13,7 @@ import (
 
 type Model struct {
 	data          interface{}
-	driver        string
+	do            *Do
 	_cache_fields map[string][]Field
 }
 
@@ -110,7 +110,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 					if is_scanner {
 						field.IsBlank = !value.FieldByName("Valid").Interface().(bool)
 					} else {
-						m := &Model{data: value.Interface(), driver: m.driver}
+						m := &Model{data: value.Interface(), do: m.do}
 
 						fields := m.columnsHasValue("other")
 						if len(fields) == 0 {
@@ -135,9 +135,9 @@ func (m *Model) fields(operation string) (fields []Field) {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				}
-				field.SqlType = getSqlType(m.driver, value, 0)
+				field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
 			} else if field.IsPrimaryKey {
-				field.SqlType = getPrimaryKeySqlType(m.driver, value, 0)
+				field.SqlType = getPrimaryKeySqlType(m.do.chain.driver(), value, 0)
 			} else {
 				field_value := reflect.Indirect(value)
 
@@ -152,7 +152,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 					_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
 
 					if is_scanner {
-						field.SqlType = getSqlType(m.driver, value, 0)
+						field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
 					} else {
 						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
 							field.foreignKey = p.Name + "Id"
@@ -166,7 +166,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 						}
 					}
 				default:
-					field.SqlType = getSqlType(m.driver, value, 0)
+					field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
 				}
 			}
 
@@ -326,7 +326,7 @@ func (m *Model) callMethod(method string) error {
 }
 
 func (m *Model) returningStr() (str string) {
-	if m.driver == "postgres" {
+	if m.do.chain.driver() == "postgres" {
 		str = fmt.Sprintf("RETURNING \"%v\"", m.primaryKeyDb())
 	}
 	return

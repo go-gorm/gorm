@@ -7,9 +7,9 @@ import (
 )
 
 type Chain struct {
-	db     sql_common
-	driver string
-	value  interface{}
+	d     *DB
+	db    sql_common
+	value interface{}
 
 	Errors []error
 	Error  error
@@ -27,6 +27,9 @@ type Chain struct {
 	unscoped           bool
 }
 
+func (s *Chain) driver() string {
+	return s.d.driver
+}
 func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
@@ -49,7 +52,6 @@ func (s *Chain) do(value interface{}) (do *Do) {
 	do = &Do{
 		chain:              s,
 		db:                 s.db,
-		driver:             s.driver,
 		whereClause:        s.whereClause,
 		orClause:           s.orClause,
 		notClause:          s.notClause,

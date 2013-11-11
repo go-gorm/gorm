@@ -34,7 +34,7 @@ func (s *DB) SingularTable(result bool) {
 }
 
 func (s *DB) buildChain() *Chain {
-	return &Chain{db: s.db, driver: s.driver}
+	return &Chain{db: s.db, d: s}
 }
 
 func (s *DB) Where(querystring interface{}, args ...interface{}) *Chain {
