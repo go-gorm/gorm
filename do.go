@@ -536,7 +536,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		m := &Model{data: query, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
-			sqls = append(sqls, fmt.Sprintf(" (%v = %v) ", field.DbName, s.addToVars(field.Value)))
+			sqls = append(sqls, fmt.Sprintf("(%v = %v)", field.DbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -573,10 +573,10 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), id)
 		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
-			not_equal_sql = fmt.Sprintf(" NOT (%v) ", value)
+			not_equal_sql = fmt.Sprintf("NOT (%v)", value)
 		} else {
-			str = fmt.Sprintf(" (%v NOT IN (?)) ", value)
-			not_equal_sql = fmt.Sprintf(" (%v <> ?) ", value)
+			str = fmt.Sprintf("(%v NOT IN (?))", value)
+			not_equal_sql = fmt.Sprintf("(%v <> ?)", value)
 		}
 	case int, int64, int32:
 		return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), query)
@@ -626,7 +626,7 @@ func (s *Do) whereSql() (sql string) {
 	var primary_condiations, and_conditions, or_conditions []string
 
 	if !s.unscoped && s.model.hasColumn("DeletedAt") {
-		primary_condiations = append(primary_condiations, "(deleted_at is null or deleted_at <= '0001-01-02')")
+		primary_condiations = append(primary_condiations, "(deleted_at IS NULL OR deleted_at <= '0001-01-02')")
 	}
 
 	if !s.model.primaryKeyZero() {
