@@ -23,6 +23,10 @@ func (s *DB) SetLogger(l interface{}) {
 	logger = l
 }
 
+func (s *DB) LogMode(b bool) {
+	logger_disabled = !b
+}
+
 func (s *DB) SingularTable(result bool) {
 	singularTableName = result
 }

@@ -1,31 +1,41 @@
 package gorm
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"os"
+)
 
 var logger interface{}
+var logger_disabled bool
 
 type Logger interface {
 	Print(v ...interface{})
 }
 
 func Print(level string, v ...interface{}) {
-	args := []interface{}{level}
-
-	if l, ok := logger.(Logger); ok {
-		l.Print(append(args, v...))
-	} else {
-		fmt.Println("logger haven't been set,", append(args, v...))
+	if logger_disabled {
+		return
 	}
+
+	var has_valid_logger bool
+	if logger, has_valid_logger = logger.(Logger); !has_valid_logger {
+		fmt.Println("logger haven't been set, using os.Stdout")
+		logger = log.New(os.Stdout, "", 0)
+	}
+
+	args := []interface{}{level}
+	logger.(Logger).Print(append(args, v...))
 }
 
 func warn(v ...interface{}) {
-	Print("warn", v...)
+	go Print("warn", v...)
 }
 
 func info(v ...interface{}) {
-	Print("info", v...)
+	go Print("info", v...)
 }
 
 func debug(v ...interface{}) {
-	Print("debug", v...)
+	go Print("debug", v...)
 }
