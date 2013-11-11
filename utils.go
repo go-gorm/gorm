@@ -63,8 +63,3 @@ func getInterfaceAsString(value interface{}) (str string, err error) {
 	}
 	return
 }
-
-func debug(value interface{}) {
-	fmt.Printf("***************\n")
-	fmt.Printf("%+v\n\n", value)
-}

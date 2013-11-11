@@ -32,6 +32,7 @@ func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)
 		s.Error = err
+		warn(err)
 	}
 	return err
 }

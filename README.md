@@ -668,9 +668,10 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 ```
 
 ## TODO
+* Transaction
+* Logger
+* Join, Having, Group
 * Index, Unique, Valiations
-* SQL Log
-* SQL Query with goroutines
 
 # Author
 

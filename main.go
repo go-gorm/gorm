@@ -19,6 +19,10 @@ func (s *DB) SetPool(n int) {
 	s.db.SetMaxIdleConns(n)
 }
 
+func (s *DB) SetLogger(l interface{}) {
+	logger = l
+}
+
 func (s *DB) SingularTable(result bool) {
 	singularTableName = result
 }
