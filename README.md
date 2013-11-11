@@ -719,8 +719,8 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 ```
 
 ## TODO
-* Logger
-* Join, Having, Group
+* Join, Having, Group, Includes, Pluck (distinct)
+* Scopes
 * Index, Unique, Valiations
 
 # Author
