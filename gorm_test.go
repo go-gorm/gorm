@@ -1329,6 +1329,41 @@ func TestSqlNullValue(t *testing.T) {
 	}
 }
 
+func TestTransaction(t *testing.T) {
+	d := db.Begin()
+	u := User{Name: "transcation"}
+	if err := d.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise, but got", err)
+	}
+
+	if err := d.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record, but got", err)
+	}
+
+	d.Rollback()
+
+	if err := d.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	d2 := db.Begin()
+	u2 := User{Name: "transcation-2"}
+	if err := d2.Save(&u2).Error; err != nil {
+		t.Errorf("No error should raise, but got", err)
+	}
+	d2.Update("age", 90)
+
+	if err := d2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		t.Errorf("Should find saved record, but got", err)
+	}
+
+	d2.Commit()
+
+	if err := db.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	for x := 0; x < b.N; x++ {
 		email := BigEmail{Email: "benchmark@example.org", UserAgent: "pc", RegisteredAt: time.Now()}

@@ -5,7 +5,7 @@ import "database/sql"
 var singularTableName bool
 
 type DB struct {
-	db     *sql.DB
+	db     sql_common
 	driver string
 }
 
@@ -16,7 +16,9 @@ func Open(driver, source string) (db DB, err error) {
 }
 
 func (s *DB) SetPool(n int) {
-	s.db.SetMaxIdleConns(n)
+	if db, ok := s.db.(sql_db); ok {
+		db.SetMaxIdleConns(n)
+	}
 }
 
 func (s *DB) SetLogger(l interface{}) {
@@ -121,4 +123,8 @@ func (s *DB) DropTable(value interface{}) *Chain {
 
 func (s *DB) AutoMigrate(value interface{}) *Chain {
 	return s.buildChain().AutoMigrate(value)
+}
+
+func (s *DB) Begin() *Chain {
+	return s.buildChain().Begin()
 }

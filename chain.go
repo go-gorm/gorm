@@ -1,14 +1,13 @@
 package gorm
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
 )
 
 type Chain struct {
-	db     *sql.DB
+	db     sql_common
 	driver string
 	value  interface{}
 
@@ -240,6 +239,36 @@ func (s *Chain) Table(name string) *Chain {
 func (s *Chain) Related(value interface{}, foreign_keys ...string) *Chain {
 	original_value := s.value
 	s.do(value).related(original_value, foreign_keys...)
+	return s
+}
+
+func (s *Chain) Begin() *Chain {
+	if db, ok := s.db.(sql_db); ok {
+		tx, err := db.Begin()
+		s.db = interface{}(tx).(sql_common)
+		s.err(err)
+	} else {
+		s.err(errors.New("Can't start a transaction."))
+	}
+
+	return s
+}
+
+func (s *Chain) Commit() *Chain {
+	if db, ok := s.db.(sql_tx); ok {
+		s.err(db.Commit())
+	} else {
+		s.err(errors.New("Commit is not supported, no database transaction found."))
+	}
+	return s
+}
+
+func (s *Chain) Rollback() *Chain {
+	if db, ok := s.db.(sql_tx); ok {
+		s.err(db.Rollback())
+	} else {
+		s.err(errors.New("Rollback is not supported, no database transaction found."))
+	}
 	return s
 }
 

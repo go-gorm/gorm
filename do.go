@@ -14,7 +14,7 @@ import (
 
 type Do struct {
 	chain              *Chain
-	db                 *sql.DB
+	db                 sql_common
 	driver             string
 	guessedTableName   string
 	specifiedTableName string

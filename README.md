@@ -9,6 +9,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Callbacks (before/after create/save/update/delete)
 * Soft Delete
 * Auto Migration
+* Transaction
 * Every feature comes with tests
 * Convention Over Configuration
 * Developer Friendly
@@ -617,6 +618,24 @@ func (u User) TableName() string {
 }
 ```
 
+## Transaction
+
+```go
+tx := db.Begin()
+
+user := User{Name: "transcation"}
+
+tx.Save(&u)
+tx.Update("age": 90)
+// do whatever
+
+// rollback
+tx.Rollback()
+
+// commit
+tx.Commit()
+```
+
 ## Run Raw SQl
 
 ```go
@@ -668,7 +687,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 ```
 
 ## TODO
-* Transaction
 * Logger
 * Join, Having, Group
 * Index, Unique, Valiations

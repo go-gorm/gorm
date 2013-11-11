@@ -15,7 +15,7 @@ type Logger interface {
 }
 
 func print(level string, v ...interface{}) {
-	if logger_disabled {
+	if logger_disabled && level != "debug" {
 		return
 	}
 
