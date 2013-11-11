@@ -86,7 +86,7 @@ func init() {
 	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 	// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 	// db, err = Open("sqlite3", "/tmp/gorm.db")
-	db.LogMode(true)
+	db.LogMode(false)
 
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))

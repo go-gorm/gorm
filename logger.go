@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 )
 
 var logger interface{}
@@ -13,7 +14,7 @@ type Logger interface {
 	Print(v ...interface{})
 }
 
-func Print(level string, v ...interface{}) {
+func print(level string, v ...interface{}) {
 	if logger_disabled {
 		return
 	}
@@ -29,13 +30,17 @@ func Print(level string, v ...interface{}) {
 }
 
 func warn(v ...interface{}) {
-	go Print("warn", v...)
+	go print("warn", v...)
 }
 
 func info(v ...interface{}) {
-	go Print("info", v...)
+	go print("info", v...)
+}
+
+func slog(sql string, vars ...interface{}) {
+	go print("sql", fmt.Sprintf(regexp.MustCompile(`\$\d|\?`).ReplaceAllString(sql, "'%v'"), vars...))
 }
 
 func debug(v ...interface{}) {
-	go Print("debug", v...)
+	go print("debug", v...)
 }

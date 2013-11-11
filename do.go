@@ -55,7 +55,7 @@ func (s *Do) err(err error) error {
 }
 
 func (s *Do) hasError() bool {
-	return len(s.chain.Errors) > 0
+	return s.chain.hasError()
 }
 
 func (s *Do) setModel(value interface{}) *Do {
@@ -76,10 +76,12 @@ func (s *Do) addToVars(value interface{}) string {
 func (s *Do) exec(sqls ...string) (err error) {
 	if s.hasError() {
 		return
-	} else if len(sqls) > 0 {
-		_, err = s.db.Exec(sqls[0])
-	} else if len(s.sql) > 0 {
+	} else {
+		if len(sqls) > 0 {
+			s.sql = sqls[0]
+		}
 		_, err = s.db.Exec(s.sql, s.sqlVars...)
+		slog(s.sql, s.sqlVars...)
 	}
 	return s.err(err)
 }
@@ -187,6 +189,7 @@ func (s *Do) create() (i interface{}) {
 				s.err(err)
 			}
 		}
+		slog(s.sql, s.sqlVars...)
 
 		if !s.hasError() {
 			result := reflect.Indirect(reflect.ValueOf(s.value))
@@ -382,6 +385,7 @@ func (s *Do) query() {
 	s.prepareQuerySql()
 	if !s.hasError() {
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		slog(s.sql, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}
@@ -437,6 +441,7 @@ func (s *Do) count(value interface{}) {
 	s.prepareQuerySql()
 	if !s.hasError() {
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		slog(s.sql, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}
@@ -466,6 +471,7 @@ func (s *Do) pluck(column string, value interface{}) {
 
 	if !s.hasError() {
 		rows, err := s.db.Query(s.sql, s.sqlVars...)
+		slog(s.sql, s.sqlVars...)
 		if s.err(err) != nil {
 			return
 		}

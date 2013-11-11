@@ -37,6 +37,10 @@ func (s *Chain) err(err error) error {
 	return err
 }
 
+func (s *Chain) hasError() bool {
+	return len(s.Errors) > 0
+}
+
 func (s *Chain) deleteLastError() {
 	s.Error = nil
 	s.Errors = s.Errors[:len(s.Errors)-1]
