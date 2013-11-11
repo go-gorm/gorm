@@ -50,8 +50,8 @@ func (s *Chain) deleteLastError() {
 	s.Errors = s.Errors[:len(s.Errors)-1]
 }
 
-func (s *Chain) do(value interface{}) (do *Do) {
-	do = &Do{
+func (s *Chain) do(value interface{}) *Do {
+	do := Do{
 		chain:              s,
 		db:                 s.db,
 		whereClause:        s.whereClause,
@@ -67,7 +67,7 @@ func (s *Chain) do(value interface{}) (do *Do) {
 
 	s.value = value
 	do.setModel(value)
-	return
+	return &do
 }
 
 func (s *Chain) Model(model interface{}) *Chain {
@@ -132,12 +132,22 @@ func (s *Chain) Select(value interface{}) *Chain {
 }
 
 func (s *Chain) Save(value interface{}) *Chain {
-	s.do(value).save()
+	do := s.do(value)
+	tx_started := do.begin()
+	do.save()
+	if tx_started {
+		do.commit()
+	}
 	return s
 }
 
 func (s *Chain) Delete(value interface{}) *Chain {
-	s.do(value).delete()
+	do := s.do(value)
+	tx_started := do.begin()
+	do.delete()
+	if tx_started {
+		do.commit()
+	}
 	return s
 }
 
@@ -146,7 +156,12 @@ func (s *Chain) Update(attrs ...interface{}) *Chain {
 }
 
 func (s *Chain) Updates(values interface{}, ignore_protected_attrs ...bool) *Chain {
-	s.do(s.value).setUpdateAttrs(values, ignore_protected_attrs...).update()
+	do := s.do(s.value)
+	tx_started := do.begin()
+	do.setUpdateAttrs(values, ignore_protected_attrs...).update()
+	if tx_started {
+		do.commit()
+	}
 	return s
 }
 

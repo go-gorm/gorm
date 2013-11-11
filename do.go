@@ -84,11 +84,11 @@ func (s *Do) exec(sqls ...string) (err error) {
 	return s.err(err)
 }
 
-func (s *Do) save() (i interface{}) {
+func (s *Do) save() (value interface{}) {
 	if s.model.primaryKeyZero() {
-		return s.create()
+		value = s.create()
 	} else {
-		return s.update()
+		value = s.update()
 	}
 	return
 }
@@ -255,7 +255,7 @@ func (s *Do) prepareUpdateSql(results map[string]interface{}) {
 	return
 }
 
-func (s *Do) update() (i int64) {
+func (s *Do) update() (i interface{}) {
 	update_attrs := s.updateAttrs
 	if len(update_attrs) > 0 {
 		var need_update bool
@@ -754,6 +754,23 @@ func (s *Do) autoMigrate() *Do {
 		}
 	}
 	return s
+}
+
+func (s *Do) begin() bool {
+	if db, ok := s.db.(sql_db); ok {
+		tx, err := db.Begin()
+		if err == nil {
+			s.db = interface{}(tx).(sql_common)
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Do) commit() {
+	if db, ok := s.db.(sql_tx); ok {
+		s.err(db.Commit())
+	}
 }
 
 func (s *Do) initializeWithSearchCondition() {
