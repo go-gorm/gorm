@@ -87,8 +87,6 @@ func (m *Model) fields(operation string) (fields []Field) {
 			field.Name = p.Name
 			field.DbName = toSnake(p.Name)
 			field.IsPrimaryKey = m.primaryKeyDb() == field.DbName
-			field.AutoCreateTime = "created_at" == field.DbName
-			field.AutoUpdateTime = "updated_at" == field.DbName
 			value := indirect_value.FieldByName(p.Name)
 			time_value, is_time := value.Interface().(time.Time)
 
@@ -98,9 +96,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 			case reflect.String:
 				field.IsBlank = value.String() == ""
 			case reflect.Slice:
-				if value.Len() == 0 {
-					field.IsBlank = true
-				}
+				field.IsBlank = value.Len() == 0
 			case reflect.Struct:
 				if is_time {
 					field.IsBlank = time_value.IsZero()
@@ -111,7 +107,6 @@ func (m *Model) fields(operation string) (fields []Field) {
 						field.IsBlank = !value.FieldByName("Valid").Interface().(bool)
 					} else {
 						m := &Model{data: value.Interface(), do: m.do}
-
 						fields := m.columnsHasValue("other")
 						if len(fields) == 0 {
 							field.IsBlank = true
@@ -121,20 +116,20 @@ func (m *Model) fields(operation string) (fields []Field) {
 			}
 
 			if is_time {
+				field.AutoCreateTime = "created_at" == field.DbName
+				field.AutoUpdateTime = "updated_at" == field.DbName
+
 				switch operation {
 				case "create":
 					if (field.AutoCreateTime || field.AutoUpdateTime) && time_value.IsZero() {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				case "update":
-					if field.AutoCreateTime && time_value.IsZero() {
-						value.Set(reflect.ValueOf(time.Now()))
-					}
-
 					if field.AutoUpdateTime {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				}
+
 				field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
 			} else if field.IsPrimaryKey {
 				field.SqlType = getPrimaryKeySqlType(m.do.chain.driver(), value, 0)
@@ -176,7 +171,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 	}
 
 	if len(m._cache_fields) == 0 {
-		m._cache_fields = make(map[string][]Field)
+		m._cache_fields = map[string][]Field{}
 	}
 	m._cache_fields[operation] = fields
 	return
@@ -191,14 +186,12 @@ func (m *Model) columnsHasValue(operation string) (fields []Field) {
 	return
 }
 
-func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (map[string]interface{}, bool) {
+func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (results map[string]interface{}, any_updated bool) {
 	if m.data == nil {
 		return values, true
 	}
 
 	data := reflect.Indirect(reflect.ValueOf(m.data))
-	results := map[string]interface{}{}
-
 	for key, value := range values {
 		field := data.FieldByName(snakeToUpperCamel(key))
 		if field.IsValid() {
@@ -206,33 +199,31 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (map[stri
 				switch field.Kind() {
 				case reflect.Int, reflect.Int32, reflect.Int64:
 					if field.Int() != reflect.ValueOf(value).Int() {
-						results[key] = value
+						any_updated = true
 					}
 					field.SetInt(reflect.ValueOf(value).Int())
 				default:
-					results[key] = value
+					any_updated = true
 					field.Set(reflect.ValueOf(value))
 				}
 			}
 		}
 	}
 
-	if values["updated_at"] != nil && len(results) > 0 {
+	if values["updated_at"] != nil && any_updated {
 		setFieldValue(data.FieldByName("UpdatedAt"), time.Now())
 	}
-	result := len(results) > 0
-	return map[string]interface{}{}, result
+	return
 }
 
 func (m *Model) columnsAndValues(operation string) map[string]interface{} {
-	if m.data == nil {
-		return map[string]interface{}{}
-	}
-
 	results := map[string]interface{}{}
-	for _, field := range m.fields(operation) {
-		if !field.IsPrimaryKey && (len(field.SqlType) > 0) {
-			results[field.DbName] = field.Value
+
+	if m.data != nil {
+		for _, field := range m.fields(operation) {
+			if !field.IsPrimaryKey && (len(field.SqlType) > 0) {
+				results[field.DbName] = field.Value
+			}
 		}
 	}
 	return results
@@ -252,17 +243,15 @@ func (m *Model) hasColumn(name string) bool {
 }
 
 func (m *Model) ColumnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
-	if m.data == nil {
-		return
-	}
-
-	data := reflect.Indirect(reflect.ValueOf(m.data))
-	if data.Kind() == reflect.Slice {
-		has_column = reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
-		is_slice = true
-	} else {
-		if has_column = data.FieldByName(name).IsValid(); has_column {
-			value = data.FieldByName(name).Interface()
+	if m.data != nil {
+		data := reflect.Indirect(reflect.ValueOf(m.data))
+		if data.Kind() == reflect.Slice {
+			has_column = reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+			is_slice = true
+		} else {
+			if has_column = data.FieldByName(name).IsValid(); has_column {
+				value = data.FieldByName(name).Interface()
+			}
 		}
 	}
 	return
@@ -285,8 +274,7 @@ func (m *Model) tableName() (str string) {
 
 	fm := reflect.Indirect(reflect.ValueOf(m.data)).MethodByName("TableName")
 	if fm.IsValid() {
-		v := fm.Call([]reflect.Value{})
-		if len(v) > 0 {
+		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
 			if result, ok := v[0].Interface().(string); ok {
 				return result
 			}
@@ -315,8 +303,7 @@ func (m *Model) callMethod(method string) {
 
 	fm := reflect.ValueOf(m.data).MethodByName(method)
 	if fm.IsValid() {
-		v := fm.Call([]reflect.Value{})
-		if len(v) > 0 {
+		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
 			if verr, ok := v[0].Interface().(error); ok {
 				m.do.err(verr)
 			}

@@ -452,8 +452,7 @@ func (s *Do) primaryCondiation(value interface{}) string {
 }
 
 func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
-	query := clause["query"]
-	switch value := query.(type) {
+	switch value := clause["query"].(type) {
 	case string:
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
@@ -462,7 +461,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			str = "(" + value + ")"
 		}
 	case int, int64, int32:
-		return s.primaryCondiation(s.addToVars(query))
+		return s.primaryCondiation(s.addToVars(value))
 	case sql.NullInt64:
 		return s.primaryCondiation(s.addToVars(value.Int64))
 	case []int64, []int, []int32, []string:
@@ -504,10 +503,9 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 }
 
 func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
-	query := clause["query"]
 	var not_equal_sql string
 
-	switch value := query.(type) {
+	switch value := clause["query"].(type) {
 	case string:
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
@@ -520,11 +518,11 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			not_equal_sql = fmt.Sprintf("(%v <> ?)", value)
 		}
 	case int, int64, int32:
-		return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), query)
+		return fmt.Sprintf("(%v <> %v)", s.model.primaryKeyDb(), value)
 	case []int64, []int, []int32, []string:
-		if reflect.ValueOf(query).Len() > 0 {
+		if reflect.ValueOf(value).Len() > 0 {
 			str = fmt.Sprintf("(%v not in (?))", s.model.primaryKeyDb())
-			clause["args"] = []interface{}{query}
+			clause["args"] = []interface{}{value}
 		} else {
 			return ""
 		}
@@ -535,7 +533,7 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
-		m := &Model{data: query, do: s}
+		m := &Model{data: value, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
 			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", field.DbName, s.addToVars(field.Value)))
@@ -586,24 +584,23 @@ func (s *Do) whereSql() (sql string) {
 		and_conditions = append(and_conditions, s.buildNotCondition(clause))
 	}
 
-	and_sql := strings.Join(and_conditions, " AND ")
 	or_sql := strings.Join(or_conditions, " OR ")
-	combined_conditions := and_sql
-	if len(combined_conditions) > 0 {
+	combined_sql := strings.Join(and_conditions, " AND ")
+	if len(combined_sql) > 0 {
 		if len(or_sql) > 0 {
-			combined_conditions = combined_conditions + " OR " + or_sql
+			combined_sql = combined_sql + " OR " + or_sql
 		}
 	} else {
-		combined_conditions = or_sql
+		combined_sql = or_sql
 	}
 
 	if len(primary_condiations) > 0 {
 		sql = "WHERE " + strings.Join(primary_condiations, " AND ")
-		if len(combined_conditions) > 0 {
-			sql = sql + " AND (" + combined_conditions + ")"
+		if len(combined_sql) > 0 {
+			sql = sql + " AND (" + combined_sql + ")"
 		}
-	} else if len(combined_conditions) > 0 {
-		sql = "WHERE " + combined_conditions
+	} else if len(combined_sql) > 0 {
+		sql = "WHERE " + combined_sql
 	}
 	return
 }
@@ -646,7 +643,7 @@ func (s *Do) combinedSql() string {
 
 func (s *Do) createTable() *Do {
 	var sqls []string
-	for _, field := range s.model.fields("other") {
+	for _, field := range s.model.fields("migration") {
 		if len(field.SqlType) > 0 {
 			sqls = append(sqls, field.DbName+" "+field.SqlType)
 		}
@@ -681,7 +678,7 @@ func (s *Do) autoMigrate() *Do {
 	if len(table_name) == 0 {
 		s.createTable()
 	} else {
-		for _, field := range s.model.fields("other") {
+		for _, field := range s.model.fields("migration") {
 			var column_name, data_type string
 			sql := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v", s.addToVars(s.tableName()))
 			s.db.QueryRow(fmt.Sprintf(sql+" and column_name = %v", s.addToVars(field.DbName)), s.sqlVars...).Scan(&column_name, &data_type)
@@ -699,8 +696,7 @@ func (s *Do) autoMigrate() *Do {
 
 func (s *Do) begin() *Do {
 	if db, ok := s.db.(sql_db); ok {
-		tx, err := db.Begin()
-		if err == nil {
+		if tx, err := db.Begin(); err == nil {
 			s.db = interface{}(tx).(sql_common)
 			s.startedTransaction = true
 		}
@@ -721,14 +717,11 @@ func (s *Do) commit_or_rollback() {
 }
 
 func (s *Do) initializeWithSearchCondition() {
-	m := Model{data: s.value, do: s}
-
 	for _, clause := range s.whereClause {
-		query := clause["query"]
-		switch value := query.(type) {
+		switch value := clause["query"].(type) {
 		case map[string]interface{}:
 			for k, v := range value {
-				m.setValueByColumn(k, v, s.value)
+				s.model.setValueByColumn(k, v, s.value)
 			}
 		case []interface{}:
 			for _, obj := range value {
@@ -736,18 +729,18 @@ func (s *Do) initializeWithSearchCondition() {
 				case reflect.Struct:
 					m := &Model{data: obj, do: s}
 					for _, field := range m.columnsHasValue("other") {
-						m.setValueByColumn(field.DbName, field.Value, s.value)
+						s.model.setValueByColumn(field.DbName, field.Value, s.value)
 					}
 				case reflect.Map:
 					for key, value := range obj.(map[string]interface{}) {
-						m.setValueByColumn(key, value, s.value)
+						s.model.setValueByColumn(key, value, s.value)
 					}
 				}
 			}
 		case interface{}:
-			m := &Model{data: query, do: s}
+			m := &Model{data: value, do: s}
 			for _, field := range m.columnsHasValue("other") {
-				m.setValueByColumn(field.DbName, field.Value, s.value)
+				s.model.setValueByColumn(field.DbName, field.Value, s.value)
 			}
 		}
 	}
