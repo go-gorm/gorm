@@ -57,6 +57,10 @@ func (s *Chain) warn(v ...interface{}) {
 	go s.print("warn", v...)
 }
 
+func (s *Chain) info(v ...interface{}) {
+	go s.print("info", v...)
+}
+
 func (s *Chain) slog(sql string, t time.Time, vars ...interface{}) {
 	go s.print("sql", time.Now().Sub(t), sql, vars)
 }

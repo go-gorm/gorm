@@ -3,6 +3,11 @@ package gorm
 import "database/sql"
 
 var singularTableName bool
+var tagIdentifier string
+
+func init() {
+	tagIdentifier = "sql"
+}
 
 type DB struct {
 	db       sql_common
@@ -21,6 +26,10 @@ func (s *DB) SetPool(n int) {
 	if db, ok := s.db.(sql_db); ok {
 		db.SetMaxIdleConns(n)
 	}
+}
+
+func (s *DB) SetTagIdentifier(str string) {
+	tagIdentifier = str
 }
 
 func (s *DB) SetLogger(l Logger) {

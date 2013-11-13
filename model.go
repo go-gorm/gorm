@@ -115,6 +115,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 				}
 			}
 
+			tag_value := p.Tag.Get(tagIdentifier)
 			if is_time {
 				field.AutoCreateTime = "created_at" == field.DbName
 				field.AutoUpdateTime = "updated_at" == field.DbName
@@ -130,9 +131,9 @@ func (m *Model) fields(operation string) (fields []Field) {
 					}
 				}
 
-				field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
+				field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
 			} else if field.IsPrimaryKey {
-				field.SqlType = getPrimaryKeySqlType(m.do.chain.driver(), value, 0)
+				field.SqlType = getPrimaryKeySqlType(m.do.chain.driver(), value, tag_value)
 			} else {
 				field_value := reflect.Indirect(value)
 
@@ -147,7 +148,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 					_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
 
 					if is_scanner {
-						field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
+						field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
 					} else {
 						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
 							field.foreignKey = p.Name + "Id"
@@ -161,7 +162,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 						}
 					}
 				default:
-					field.SqlType = getSqlType(m.do.chain.driver(), value, 0)
+					field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
 				}
 			}
 

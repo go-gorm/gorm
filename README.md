@@ -11,6 +11,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Auto Migration
 * Transaction
 * Logger Support
+* Bind struct with tag
 * Every feature comes with tests
 * Convention Over Configuration
 * Developer Friendly
@@ -22,30 +23,32 @@ type User struct {         // TableName: `users`, gorm will pluralize struct's n
 	Id			 int64	   // Id: Database Primary key
 	Birthday	 time.Time
 	Age			 int64
-	Name		 string
+	Name		 string  `sql:"size:255"` // set this field's length and as not null with tag
 	CreatedAt	 time.Time // Time of record is created, will be insert automatically
 	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
 	DeletedAt	 time.Time // Time of record is deleted, refer `Soft Delete` for more
 
-	Email             []Email        // Embedded structs
-	BillingAddress    Address        // Embedded struct
-	BillingAddressId  sql.NullInt64  // Embedded struct BillingAddress's foreign key
-	ShippingAddress   Address        // Embedded struct
-	ShippingAddressId int64          // Embedded struct ShippingAddress's foreign key
+	Email             []Email         // Embedded structs
+	BillingAddress    Address         // Embedded struct
+	BillingAddressId  sql.NullInt64   // Embedded struct BillingAddress's foreign key
+	ShippingAddress   Address         // Embedded struct
+	ShippingAddressId int64           // Embedded struct ShippingAddress's foreign key
+	IgnoreMe          int64 `sql:"-"` // Ignore this field with tag
 }
 
 type Email struct {    // TableName: `emails`
 	Id         int64
 	UserId     int64   // Foreign key for above embedded structs
-	Email      string
+	Email      string  `sql:"type:varchar(100);"` // Set column type directly with tag
 	Subscribed bool
 }
 
 type Address struct {  // TableName: `addresses`
 	Id       int64
-	Address1 string
-	Address2 string
-	Post     string
+	Address1 string         `sql:"not null;unique"` // Set column as unique with tag
+	Address2 string         `sql:"type:varchar(100);unique"`
+	Post     sql.NullString `sql:not null`
+    // Be careful: "NOT NULL" will only works for NullXXX scanner, because golang will initalize a default value for most type...
 }
 ```
 
@@ -723,8 +726,8 @@ db.Where("email = ?", "x@example.org").Attrs(User{FromIp: "111.111.111.111"}).Fi
 
 ## TODO
 * Join, Having, Group, Includes
-* Scopes
-* Index, Unique, Valiations
+* Scopes, Valiations
+* AlertColumn, DropColumn, AddIndex, RemoveIndex
 
 # Author
 

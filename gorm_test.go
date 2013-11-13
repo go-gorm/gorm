@@ -18,7 +18,7 @@ type User struct {
 	Id                int64     // Id: Primary key
 	Birthday          time.Time // Time
 	Age               int64
-	Name              string
+	Name              string        `sql:"size:255"`
 	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
 	DeletedAt         time.Time     // DeletedAt: Time of record is deleted, refer Soft Delete for more
@@ -28,6 +28,7 @@ type User struct {
 	ShippingAddress   Address       // Embedded struct
 	ShippingAddressId int64         // Embedded struct's foreign key
 	CreditCard        CreditCard
+	IgnoreMe          int64 `sql:"-"`
 }
 
 type CreditCard struct {
@@ -42,7 +43,7 @@ type CreditCard struct {
 type Email struct {
 	Id        int64
 	UserId    int64
-	Email     string
+	Email     string `sql:"type:varchar(100); unique"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -1279,7 +1280,6 @@ type BigEmail struct {
 	RegisteredAt time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    time.Time
 }
 
 func (b BigEmail) TableName() string {
@@ -1298,6 +1298,10 @@ func TestAutoMigration(t *testing.T) {
 	db.First(&big_email, "user_agent = ?", "pc")
 	if big_email.Email != "jinzhu@example.org" || big_email.UserAgent != "pc" || big_email.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
+	}
+
+	if err := db.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()}).Error; err == nil {
+		t.Error("Should not be able to save because of unique tag")
 	}
 }
 
@@ -1324,7 +1328,7 @@ func (nt NullTime) Value() (driver.Value, error) {
 
 type NullValue struct {
 	Id      int64
-	Name    sql.NullString
+	Name    sql.NullString `sql:"not null"`
 	Age     sql.NullInt64
 	Male    sql.NullBool
 	Height  sql.NullFloat64
@@ -1354,6 +1358,10 @@ func TestSqlNullValue(t *testing.T) {
 	db.First(&nv2, "name = ?", "hello-2")
 	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 || nv2.AddedAt.Valid != false {
 		t.Errorf("Should be able to fetch null value")
+	}
+
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello-3", false}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err == nil {
+		t.Errorf("Can't save because of name can't be null", err)
 	}
 }
 
@@ -1401,10 +1409,11 @@ func (s *CreditCard) BeforeSave() (err error) {
 
 func BenchmarkGorm(b *testing.B) {
 	for x := 0; x < b.N; x++ {
-		email := BigEmail{Email: "benchmark@example.org", UserAgent: "pc", RegisteredAt: time.Now()}
+		e := strconv.Itoa(x) + "benchmark@example.org"
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
 		db.Save(&email)
-		db.First(&BigEmail{}, "email = ?", "benchmark@benchmark.org")
-		db.Model(&email).Update("email", "benchmark@benchmark.org")
+		db.First(&BigEmail{}, "email = ?", e)
+		db.Model(&email).Update("email", e)
 		db.Delete(&email)
 	}
 }
@@ -1419,11 +1428,12 @@ func BenchmarkRawSql(b *testing.B) {
 
 	var id int64
 	for x := 0; x < b.N; x++ {
-		email := BigEmail{Email: "benchmark@example.org", UserAgent: "pc", RegisteredAt: time.Now()}
+		e := strconv.Itoa(x) + "benchmark@example.org"
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
 		db.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
 		rows, _ := db.Query(query_sql, email.Email)
 		rows.Close()
-		db.Exec(update_sql, "benchmark@benchmark.org", time.Now(), id)
+		db.Exec(update_sql, e, time.Now(), id)
 		db.Exec(delete_sql, id)
 	}
 }
