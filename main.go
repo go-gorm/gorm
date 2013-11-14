@@ -12,7 +12,7 @@ func init() {
 
 type DB struct {
 	db       sql_common
-	dialect  *dialect.Dialect
+	dialect  dialect.Dialect
 	logger   Logger
 	log_mode bool
 }

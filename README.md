@@ -28,7 +28,7 @@ type User struct {         // TableName: `users`, gorm will pluralize struct's n
 	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
 	DeletedAt	 time.Time // Time of record is deleted, refer `Soft Delete` for more
 
-	Email             []Email         // Embedded structs
+	Emails            []Email         // Embedded structs
 	BillingAddress    Address         // Embedded struct
 	BillingAddressId  sql.NullInt64   // Embedded struct BillingAddress's foreign key
 	ShippingAddress   Address         // Embedded struct
@@ -125,7 +125,7 @@ user := User{
 		Name:            "jinzhu",
 		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-		Email:           []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
 }
 
 db.Save(&user)

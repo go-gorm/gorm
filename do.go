@@ -60,11 +60,7 @@ func (s *Do) setModel(value interface{}) *Do {
 
 func (s *Do) addToVars(value interface{}) string {
 	s.sqlVars = append(s.sqlVars, value)
-	if s.chain.driver() == "postgres" {
-		return fmt.Sprintf("$%d", len(s.sqlVars))
-	} else {
-		return "?"
-	}
+	return s.chain.d.dialect.BinVar(len(s.sqlVars))
 }
 
 func (s *Do) exec(sqls ...string) (err error) {
@@ -102,7 +98,7 @@ func (s *Do) prepareCreateSql() {
 		s.tableName(),
 		strings.Join(columns, ","),
 		strings.Join(sqls, ","),
-		s.model.returningStr(),
+		s.chain.d.dialect.ReturningStr(s.model.primaryKeyDb()),
 	)
 	return
 }
@@ -178,13 +174,13 @@ func (s *Do) create() (i interface{}) {
 		var id interface{}
 
 		now := time.Now()
-		if s.chain.driver() == "postgres" {
-			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
-		} else {
+		if s.chain.d.dialect.SupportLastInsertId() {
 			if sql_result, err := s.db.Exec(s.sql, s.sqlVars...); s.err(err) == nil {
 				id, err = sql_result.LastInsertId()
 				s.err(err)
 			}
+		} else {
+			s.err(s.db.QueryRow(s.sql, s.sqlVars...).Scan(&id))
 		}
 		s.chain.slog(s.sql, now, s.sqlVars...)
 

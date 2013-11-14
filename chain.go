@@ -28,10 +28,6 @@ type Chain struct {
 	unscoped           bool
 }
 
-func (s *Chain) driver() string {
-	return s.d.driver
-}
-
 func (s *Chain) err(err error) error {
 	if err != nil {
 		s.Errors = append(s.Errors, err)

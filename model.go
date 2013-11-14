@@ -3,11 +3,11 @@ package gorm
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+
 	"go/ast"
 	"reflect"
 	"regexp"
-	"strconv"
+
 	"time"
 )
 
@@ -115,7 +115,6 @@ func (m *Model) fields(operation string) (fields []Field) {
 				}
 			}
 
-			tag_value := p.Tag.Get(tagIdentifier)
 			if is_time {
 				field.AutoCreateTime = "created_at" == field.DbName
 				field.AutoUpdateTime = "updated_at" == field.DbName
@@ -130,10 +129,14 @@ func (m *Model) fields(operation string) (fields []Field) {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				}
+			}
 
-				field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
+			field.Value = value.Interface()
+
+			if is_time {
+				field.SqlType = m.getSqlTag(field, p)
 			} else if field.IsPrimaryKey {
-				field.SqlType = getPrimaryKeySqlType(m.do.chain.driver(), value, tag_value)
+				field.SqlType = m.getSqlTag(field, p)
 			} else {
 				field_value := reflect.Indirect(value)
 
@@ -148,7 +151,7 @@ func (m *Model) fields(operation string) (fields []Field) {
 					_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
 
 					if is_scanner {
-						field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
+						field.SqlType = m.getSqlTag(field, p)
 					} else {
 						if indirect_value.FieldByName(p.Name + "Id").IsValid() {
 							field.foreignKey = p.Name + "Id"
@@ -162,11 +165,10 @@ func (m *Model) fields(operation string) (fields []Field) {
 						}
 					}
 				default:
-					field.SqlType = getSqlType(m.do.chain.driver(), value, tag_value)
+					field.SqlType = m.getSqlTag(field, p)
 				}
 			}
 
-			field.Value = value.Interface()
 			fields = append(fields, field)
 		}
 	}
@@ -313,13 +315,6 @@ func (m *Model) callMethod(method string) {
 	return
 }
 
-func (m *Model) returningStr() (str string) {
-	if m.do.chain.driver() == "postgres" {
-		str = fmt.Sprintf("RETURNING \"%v\"", m.primaryKeyDb())
-	}
-	return
-}
-
 func (m *Model) setValueByColumn(name string, value interface{}, out interface{}) {
 	data := reflect.Indirect(reflect.ValueOf(out))
 	setFieldValue(data.FieldByName(snakeToUpperCamel(name)), value)
@@ -343,23 +338,24 @@ func (m *Model) afterAssociations() (fields []Field) {
 	return
 }
 
-func setFieldValue(field reflect.Value, value interface{}) bool {
-	if field.IsValid() && field.CanAddr() {
-		switch field.Kind() {
-		case reflect.Int, reflect.Int32, reflect.Int64:
-			if str, ok := value.(string); ok {
-				value, _ = strconv.Atoi(str)
-			}
-			field.SetInt(reflect.ValueOf(value).Int())
-		default:
-			if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
-				scanner.Scan(value)
-			} else {
-				field.Set(reflect.ValueOf(value))
-			}
-		}
-		return true
+func (m *Model) getSqlTag(field Field, struct_field reflect.StructField) string {
+	column := getInterfaceValue(field.Value)
+	typ, addational_typ, size := parseSqlTag(struct_field.Tag.Get(tagIdentifier))
+
+	if typ == "-" {
+		return ""
 	}
 
-	return false
+	if len(typ) == 0 {
+		if field.IsPrimaryKey {
+			typ = m.do.chain.d.dialect.PrimaryKeyTag(column, size)
+		} else {
+			typ = m.do.chain.d.dialect.SqlTag(column, size)
+		}
+	}
+
+	if len(addational_typ) > 0 {
+		typ = typ + " " + addational_typ
+	}
+	return typ
 }

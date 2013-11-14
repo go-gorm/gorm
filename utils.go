@@ -2,7 +2,10 @@ package gorm
 
 import (
 	"bytes"
+	"database/sql"
+	"database/sql/driver"
 	"errors"
+	"reflect"
 	"strconv"
 
 	"fmt"
@@ -62,4 +65,65 @@ func getInterfaceAsString(value interface{}) (str string, err error) {
 		err = errors.New(fmt.Sprintf("Can't understand %v", value))
 	}
 	return
+}
+
+func parseSqlTag(str string) (typ string, addational_typ string, size int) {
+	if str == "-" {
+		typ = str
+	} else if str != "" {
+		tags := strings.Split(str, ";")
+		m := make(map[string]string)
+		for _, value := range tags {
+			v := strings.Split(value, ":")
+			k := strings.Trim(strings.ToUpper(v[0]), " ")
+			if len(v) == 2 {
+				m[k] = v[1]
+			} else {
+				m[k] = k
+			}
+		}
+
+		if len(m["SIZE"]) > 0 {
+			size, _ = strconv.Atoi(m["SIZE"])
+		}
+
+		if len(m["TYPE"]) > 0 {
+			typ = m["TYPE"]
+		}
+
+		addational_typ = m["NOT NULL"] + " " + m["UNIQUE"]
+	}
+	return
+}
+
+func getInterfaceValue(column interface{}) interface{} {
+	if v, ok := column.(reflect.Value); ok {
+		column = v.Interface()
+	}
+
+	if valuer, ok := interface{}(column).(driver.Valuer); ok {
+		column = reflect.New(reflect.ValueOf(valuer).Field(0).Type()).Elem().Interface()
+	}
+	return column
+}
+
+func setFieldValue(field reflect.Value, value interface{}) bool {
+	if field.IsValid() && field.CanAddr() {
+		switch field.Kind() {
+		case reflect.Int, reflect.Int32, reflect.Int64:
+			if str, ok := value.(string); ok {
+				value, _ = strconv.Atoi(str)
+			}
+			field.SetInt(reflect.ValueOf(value).Int())
+		default:
+			if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
+				scanner.Scan(value)
+			} else {
+				field.Set(reflect.ValueOf(value))
+			}
+		}
+		return true
+	}
+
+	return false
 }
