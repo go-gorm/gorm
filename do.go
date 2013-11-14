@@ -649,23 +649,43 @@ func (s *Do) createTable() *Do {
 		}
 	}
 
-	s.sql = fmt.Sprintf(
-		"CREATE TABLE %v (%v)",
-		s.tableName(),
-		strings.Join(sqls, ","),
-	)
+	s.sql = fmt.Sprintf("CREATE TABLE %v (%v)", s.tableName(), strings.Join(sqls, ","))
 
 	s.exec()
 	return s
 }
 
 func (s *Do) dropTable() *Do {
-	s.sql = fmt.Sprintf(
-		"DROP TABLE %v",
-		s.tableName(),
-	)
+	s.sql = fmt.Sprintf("DROP TABLE %v", s.tableName())
 	s.exec()
 	return s
+}
+
+func (s *Do) updateColumn(column string, typ string) {
+	s.sql = fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", s.tableName(), column, typ)
+	s.exec()
+}
+
+func (s *Do) dropColumn(column string) {
+	s.sql = fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", s.tableName(), column)
+	s.exec()
+}
+
+func (s *Do) addIndex(column string, names ...string) {
+	var index_name string
+	if len(names) > 0 {
+		index_name = names[0]
+	} else {
+		index_name = fmt.Sprintf("index_%v_on_%v", s.tableName(), column)
+	}
+
+	s.sql = fmt.Sprintf("CREATE INDEX %v ON %v(%v);", index_name, s.tableName(), column)
+	s.exec()
+}
+
+func (s *Do) removeIndex(index_name string) {
+	s.sql = fmt.Sprintf("DROP INDEX %v ON %v", index_name, s.tableName())
+	s.exec()
 }
 
 func (s *Do) autoMigrate() *Do {

@@ -215,21 +215,6 @@ func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) CreateTable(value interface{}) *Chain {
-	s.do(value).createTable()
-	return s
-}
-
-func (s *Chain) DropTable(value interface{}) *Chain {
-	s.do(value).dropTable()
-	return s
-}
-
-func (s *Chain) AutoMigrate(value interface{}) *Chain {
-	s.do(value).autoMigrate()
-	return s
-}
-
 func (s *Chain) Unscoped() *Chain {
 	s.unscoped = true
 	return s
@@ -278,6 +263,41 @@ func (s *Chain) Rollback() *Chain {
 	} else {
 		s.err(errors.New("Rollback is not supported, no database transaction found."))
 	}
+	return s
+}
+
+func (s *Chain) CreateTable(value interface{}) *Chain {
+	s.do(value).createTable()
+	return s
+}
+
+func (s *Chain) DropTable(value interface{}) *Chain {
+	s.do(value).dropTable()
+	return s
+}
+
+func (s *Chain) AutoMigrate(value interface{}) *Chain {
+	s.do(value).autoMigrate()
+	return s
+}
+
+func (s *Chain) UpdateColumn(column string, typ string) *Chain {
+	s.do(s.value).updateColumn(column, typ)
+	return s
+}
+
+func (s *Chain) DropColumn(column string) *Chain {
+	s.do(s.value).dropColumn(column)
+	return s
+}
+
+func (s *Chain) AddIndex(column string, index_name ...string) *Chain {
+	s.do(s.value).addIndex(column, index_name...)
+	return s
+}
+
+func (s *Chain) RemoveIndex(column string) *Chain {
+	s.do(s.value).removeIndex(column)
 	return s
 }
 
