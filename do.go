@@ -640,8 +640,8 @@ func (s *Do) combinedSql() string {
 func (s *Do) createTable() *Do {
 	var sqls []string
 	for _, field := range s.model.fields("migration") {
-		if len(field.SqlType()) > 0 {
-			sqls = append(sqls, field.DbName+" "+field.SqlType())
+		if len(field.sqlTag()) > 0 {
+			sqls = append(sqls, field.DbName+" "+field.sqlTag())
 		}
 	}
 
@@ -701,8 +701,8 @@ func (s *Do) autoMigrate() *Do {
 			s.sqlVars = []interface{}{}
 
 			// If column doesn't exist
-			if len(column_name) == 0 && len(field.SqlType()) > 0 {
-				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v;", s.tableName(), field.DbName, field.SqlType())
+			if len(column_name) == 0 && len(field.sqlTag()) > 0 {
+				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v;", s.tableName(), field.DbName, field.sqlTag())
 				s.exec()
 			}
 		}
