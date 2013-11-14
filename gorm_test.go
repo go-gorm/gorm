@@ -351,6 +351,7 @@ func TestComplexWhere(t *testing.T) {
 	for _, user := range users {
 		user_ids = append(user_ids, user.Id)
 	}
+
 	users = []User{}
 	db.Where("id in (?)", user_ids).Find(&users)
 	if len(users) != 3 {
