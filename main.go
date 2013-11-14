@@ -1,6 +1,7 @@
 package gorm
 
 import "database/sql"
+import "github.com/jinzhu/gorm/dialect"
 
 var singularTableName bool
 var tagIdentifier string
@@ -11,14 +12,14 @@ func init() {
 
 type DB struct {
 	db       sql_common
-	driver   string
+	dialect  *dialect.Dialect
 	logger   Logger
 	log_mode bool
 }
 
 func Open(driver, source string) (db DB, err error) {
 	db.db, err = sql.Open(driver, source)
-	db.driver = driver
+	db.dialect = dialect.NewDialect(driver)
 	return
 }
 
