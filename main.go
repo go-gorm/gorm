@@ -11,10 +11,10 @@ func init() {
 }
 
 type DB struct {
-	db       sql_common
-	dialect  dialect.Dialect
-	logger   Logger
-	log_mode bool
+	db      sql_common
+	dialect dialect.Dialect
+	logger  Logger
+	logMode bool
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -38,7 +38,7 @@ func (s *DB) SetLogger(l Logger) {
 }
 
 func (s *DB) LogMode(b bool) {
-	s.log_mode = b
+	s.logMode = b
 }
 
 func (s *DB) SingularTable(result bool) {

@@ -43,7 +43,7 @@ func init() {
 }
 
 func (s *Chain) print(level string, v ...interface{}) {
-	if s.d.log_mode || s.debug_mode || level == "debug" {
+	if s.d.logMode || s.debug_mode || level == "debug" {
 		if _, ok := s.d.logger.(Logger); !ok {
 			fmt.Println("logger haven't been set, using os.Stdout")
 			s.d.logger = default_logger
