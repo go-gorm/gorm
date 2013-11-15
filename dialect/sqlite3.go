@@ -28,6 +28,8 @@ func (s *sqlite3) SqlTag(column interface{}, size int) string {
 		return "bigint"
 	case float32, float64, sql.NullFloat64:
 		return "real"
+	case []byte:
+		return "blob"
 	case string, sql.NullString:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("varchar(%d)", size)
