@@ -1409,12 +1409,17 @@ func (s *CreditCard) BeforeSave() (err error) {
 }
 
 func BenchmarkGorm(b *testing.B) {
+	b.N = 5000
 	for x := 0; x < b.N; x++ {
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		// Insert
 		db.Save(&email)
+		// Query
 		db.First(&BigEmail{}, "email = ?", e)
-		db.Model(&email).Update("email", e)
+		// Update
+		db.Model(&email).Update("email", "new-"+e)
+		// Delete
 		db.Delete(&email)
 	}
 }
@@ -1427,14 +1432,19 @@ func BenchmarkRawSql(b *testing.B) {
 	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
 	delete_sql := "DELETE FROM orders WHERE id = $1"
 
-	var id int64
+	b.N = 5000
 	for x := 0; x < b.N; x++ {
+		var id int64
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		// Insert
 		db.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
+		// Query
 		rows, _ := db.Query(query_sql, email.Email)
 		rows.Close()
-		db.Exec(update_sql, e, time.Now(), id)
+		// Update
+		db.Exec(update_sql, "new-"+e, time.Now(), id)
+		// Delete
 		db.Exec(delete_sql, id)
 	}
 }
