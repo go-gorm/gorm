@@ -19,7 +19,7 @@ type DB struct {
 
 func Open(driver, source string) (db DB, err error) {
 	db.db, err = sql.Open(driver, source)
-	db.dialect = dialect.NewDialect(driver)
+	db.dialect = dialect.New(driver)
 	return
 }
 

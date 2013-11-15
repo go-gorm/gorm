@@ -8,7 +8,7 @@ type Dialect interface {
 	ReturningStr(key string) string
 }
 
-func NewDialect(driver string) Dialect {
+func New(driver string) Dialect {
 	var d Dialect
 	switch driver {
 	case "postgres":
