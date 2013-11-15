@@ -3,13 +3,12 @@ package gorm
 import (
 	"bytes"
 	"database/sql"
-
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
-
-	"fmt"
 	"strings"
+	"time"
 )
 
 func toSnake(s string) string {
@@ -85,5 +84,33 @@ func setFieldValue(field reflect.Value, value interface{}) bool {
 		return true
 	}
 
+	return false
+}
+
+func isBlank(value reflect.Value) bool {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int64, reflect.Int32:
+		return value.Int() == 0
+	case reflect.String:
+		return value.String() == ""
+	case reflect.Slice:
+		return value.Len() == 0
+	case reflect.Struct:
+		time_value, is_time := value.Interface().(time.Time)
+		if is_time {
+			return time_value.IsZero()
+		} else {
+			_, is_scanner := reflect.New(value.Type()).Interface().(sql.Scanner)
+			if is_scanner {
+				return !value.FieldByName("Valid").Interface().(bool)
+			} else {
+				m := &Model{data: value.Interface()}
+				fields := m.columnsHasValue("other")
+				if len(fields) == 0 {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }

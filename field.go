@@ -2,85 +2,68 @@ package gorm
 
 import (
 	"database/sql"
-	"database/sql/driver"
-
-	"time"
-
+	"reflect"
 	"strconv"
 	"strings"
-
-	"reflect"
+	"time"
 )
 
 type Field struct {
 	Name              string
 	Value             interface{}
-	DbName            string
-	AutoCreateTime    bool
-	AutoUpdateTime    bool
-	IsPrimaryKey      bool
-	structField       reflect.StructField
-	modelValue        reflect.Value
+	model             *Model
+	dbName            string
+	isPrimaryKey      bool
+	autoCreateTime    bool
+	autoUpdateTime    bool
+	foreignKey        string
 	beforeAssociation bool
 	afterAssociation  bool
-	foreignKey        string
-	model             *Model
+	reflectValue      reflect.Value
+	structField       reflect.StructField
 }
 
 func (f *Field) isBlank() bool {
-	value := reflect.ValueOf(f.Value)
-	switch value.Kind() {
-	case reflect.Int, reflect.Int64, reflect.Int32:
-		return value.Int() == 0
-	case reflect.String:
-		return value.String() == ""
-	case reflect.Slice:
-		return value.Len() == 0
-	case reflect.Struct:
-		time_value, is_time := f.Value.(time.Time)
-		if is_time {
-			return time_value.IsZero()
-		} else {
-			_, is_scanner := reflect.New(value.Type()).Interface().(sql.Scanner)
-			if is_scanner {
-				return !value.FieldByName("Valid").Interface().(bool)
-			} else {
-				m := &Model{data: value.Interface(), do: f.model.do}
-				fields := m.columnsHasValue("other")
-				if len(fields) == 0 {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	return isBlank(f.reflectValue)
 }
 
-func (f *Field) sqlTag() string {
-	column := getInterfaceValue(f.Value)
-	field_value := reflect.ValueOf(f.Value)
-	switch field_value.Kind() {
+func (f *Field) isScanner() bool {
+	_, is_scanner := reflect.New(f.reflectValue.Type()).Interface().(sql.Scanner)
+	return is_scanner
+}
+
+func (f *Field) isTime() bool {
+	_, is_time := f.Value.(time.Time)
+	return is_time
+}
+
+func (f *Field) sqlTag() (str string) {
+	value := f.Value
+	if f.isScanner() {
+		value = f.reflectValue.Field(0).Interface()
+	}
+	reflect_value := f.reflectValue
+
+	switch reflect_value.Kind() {
 	case reflect.Slice:
-		return ""
+		return
 	case reflect.Struct:
-		_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
-		_, is_time := column.(time.Time)
-		if !is_time && !is_scanner {
-			return ""
+		if !f.isTime() && !f.isScanner() {
+			return
 		}
 	}
 
 	typ, addational_typ, size := parseSqlTag(f.structField.Tag.Get(tagIdentifier))
 
 	if typ == "-" {
-		return ""
+		return
 	}
 
 	if len(typ) == 0 {
-		if f.IsPrimaryKey {
-			typ = f.model.do.chain.d.dialect.PrimaryKeyTag(column, size)
+		if f.isPrimaryKey {
+			typ = f.model.do.chain.d.dialect.PrimaryKeyTag(value, size)
 		} else {
-			typ = f.model.do.chain.d.dialect.SqlTag(column, size)
+			typ = f.model.do.chain.d.dialect.SqlTag(value, size)
 		}
 	}
 
@@ -91,26 +74,23 @@ func (f *Field) sqlTag() string {
 }
 
 func (f *Field) parseAssociation() {
-	field_value := reflect.ValueOf(f.Value)
+	reflect_value := f.reflectValue
 
-	switch field_value.Kind() {
+	switch reflect_value.Kind() {
 	case reflect.Slice:
 		foreign_key := f.model.typeName() + "Id"
-		if reflect.New(field_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
+		if reflect.New(reflect_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
 			f.foreignKey = foreign_key
 		}
 		f.afterAssociation = true
 	case reflect.Struct:
-		_, is_time := f.Value.(time.Time)
-		_, is_scanner := reflect.New(field_value.Type()).Interface().(sql.Scanner)
-
-		if !is_scanner && !is_time {
-			if f.modelValue.FieldByName(f.Name + "Id").IsValid() {
+		if !f.isTime() && !f.isScanner() {
+			if f.model.reflectData().FieldByName(f.Name + "Id").IsValid() {
 				f.foreignKey = f.Name + "Id"
 				f.beforeAssociation = true
 			} else {
 				foreign_key := f.model.typeName() + "Id"
-				if reflect.New(field_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
+				if reflect.New(reflect_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
 					f.foreignKey = foreign_key
 				}
 				f.afterAssociation = true
@@ -146,15 +126,4 @@ func parseSqlTag(str string) (typ string, addational_typ string, size int) {
 		addational_typ = m["NOT NULL"] + " " + m["UNIQUE"]
 	}
 	return
-}
-
-func getInterfaceValue(column interface{}) interface{} {
-	if v, ok := column.(reflect.Value); ok {
-		column = v.Interface()
-	}
-
-	if valuer, ok := interface{}(column).(driver.Valuer); ok {
-		column = reflect.New(reflect.ValueOf(valuer).Field(0).Type()).Elem().Interface()
-	}
-	return column
 }

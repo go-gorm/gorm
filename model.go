@@ -14,33 +14,22 @@ type Model struct {
 	_cache_fields map[string][]*Field
 }
 
-func (m *Model) primaryKeyZero() bool {
-	return m.primaryKeyValue() <= 0
+func (m *Model) reflectData() reflect.Value {
+	return reflect.Indirect(reflect.ValueOf(m.data))
 }
 
-func (m *Model) primaryKeyValue() int64 {
-	if m.data == nil {
-		return -1
-	}
-	data := reflect.Indirect(reflect.ValueOf(m.data))
+func (m *Model) primaryKeyZero() bool {
+	return isBlank(reflect.ValueOf(m.primaryKeyValue()))
+}
 
-	switch data.Kind() {
-	case reflect.Array, reflect.Chan, reflect.Map, reflect.Ptr, reflect.Slice:
-		return 0
-	default:
-		value := data.FieldByName(m.primaryKey())
-
-		if value.IsValid() {
-			switch value.Kind() {
-			case reflect.Int, reflect.Int64, reflect.Int32:
-				return value.Int()
-			default:
-				return 0
-			}
-		} else {
-			return 0
+func (m *Model) primaryKeyValue() interface{} {
+	if data := m.reflectData(); data.Kind() == reflect.Struct {
+		field := data.FieldByName(m.primaryKey())
+		if data.FieldByName(m.primaryKey()).IsValid() {
+			return field.Interface()
 		}
 	}
+	return 0
 }
 
 func (m *Model) primaryKey() string {
@@ -56,7 +45,7 @@ func (m *Model) fields(operation string) (fields []*Field) {
 		return m._cache_fields[operation]
 	}
 
-	indirect_value := reflect.Indirect(reflect.ValueOf(m.data))
+	indirect_value := m.reflectData()
 	if !indirect_value.IsValid() {
 		return
 	}
@@ -67,30 +56,29 @@ func (m *Model) fields(operation string) (fields []*Field) {
 		if !p.Anonymous && ast.IsExported(p.Name) {
 			var field Field
 			field.Name = p.Name
-			field.DbName = toSnake(p.Name)
-			field.IsPrimaryKey = m.primaryKeyDb() == field.DbName
+			field.dbName = toSnake(p.Name)
+			field.isPrimaryKey = m.primaryKeyDb() == field.dbName
 			value := indirect_value.FieldByName(p.Name)
-			time_value, is_time := value.Interface().(time.Time)
 			field.model = m
-			field.modelValue = indirect_value
 
-			if is_time {
-				field.AutoCreateTime = "created_at" == field.DbName
-				field.AutoUpdateTime = "updated_at" == field.DbName
+			if time_value, is_time := value.Interface().(time.Time); is_time {
+				field.autoCreateTime = "created_at" == field.dbName
+				field.autoUpdateTime = "updated_at" == field.dbName
 
 				switch operation {
 				case "create":
-					if (field.AutoCreateTime || field.AutoUpdateTime) && time_value.IsZero() {
+					if (field.autoCreateTime || field.autoUpdateTime) && time_value.IsZero() {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				case "update":
-					if field.AutoUpdateTime {
+					if field.autoUpdateTime {
 						value.Set(reflect.ValueOf(time.Now()))
 					}
 				}
 			}
 
 			field.structField = p
+			field.reflectValue = value
 			field.Value = value.Interface()
 			fields = append(fields, &field)
 		}
@@ -117,17 +105,16 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (results 
 		return values, true
 	}
 
-	data := reflect.Indirect(reflect.ValueOf(m.data))
+	data := m.reflectData()
 	for key, value := range values {
-		field := data.FieldByName(snakeToUpperCamel(key))
-		if field.IsValid() {
+		if field := data.FieldByName(snakeToUpperCamel(key)); field.IsValid() {
 			if field.Interface() != value {
 				switch field.Kind() {
 				case reflect.Int, reflect.Int32, reflect.Int64:
 					if field.Int() != reflect.ValueOf(value).Int() {
 						any_updated = true
+						field.SetInt(reflect.ValueOf(value).Int())
 					}
-					field.SetInt(reflect.ValueOf(value).Int())
 				default:
 					any_updated = true
 					field.Set(reflect.ValueOf(value))
@@ -145,51 +132,46 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (results 
 func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 	results := map[string]interface{}{}
 
-	if m.data != nil {
-		for _, field := range m.fields(operation) {
-			if !field.IsPrimaryKey && (len(field.sqlTag()) > 0) {
-				results[field.DbName] = field.Value
-			}
+	for _, field := range m.fields(operation) {
+		if !field.isPrimaryKey && (len(field.sqlTag()) > 0) {
+			results[field.dbName] = field.Value
 		}
 	}
 	return results
 }
 
 func (m *Model) hasColumn(name string) bool {
-	if m.data == nil {
-		return false
-	}
+	data := m.reflectData()
 
-	data := reflect.Indirect(reflect.ValueOf(m.data))
-	if data.Kind() == reflect.Slice {
-		return reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
-	} else {
+	if data.Kind() == reflect.Struct {
 		return data.FieldByName(name).IsValid()
+	} else if data.Kind() == reflect.Slice {
+		return reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
 	}
+	return false
 }
 
 func (m *Model) ColumnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
-	if m.data != nil {
-		data := reflect.Indirect(reflect.ValueOf(m.data))
-		if data.Kind() == reflect.Slice {
-			has_column = reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
-			is_slice = true
-		} else {
-			if has_column = data.FieldByName(name).IsValid(); has_column {
-				value = data.FieldByName(name).Interface()
-			}
+	data := m.reflectData()
+
+	if data.Kind() == reflect.Struct {
+		if has_column = data.FieldByName(name).IsValid(); has_column {
+			value = data.FieldByName(name).Interface()
 		}
+	} else if data.Kind() == reflect.Slice {
+		has_column = reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		is_slice = true
 	}
 	return
 }
 
 func (m *Model) typeName() string {
-	typ := reflect.Indirect(reflect.ValueOf(m.data)).Type()
+	typ := m.reflectData().Type()
 	if typ.Kind() == reflect.Slice {
-		typ = typ.Elem()
+		return typ.Elem().Name()
+	} else {
+		return typ.Name()
 	}
-
-	return typ.Name()
 }
 
 func (m *Model) tableName() (str string) {
@@ -198,8 +180,8 @@ func (m *Model) tableName() (str string) {
 		return
 	}
 
-	fm := reflect.Indirect(reflect.ValueOf(m.data)).MethodByName("TableName")
-	if fm.IsValid() {
+	data := m.reflectData()
+	if fm := data.MethodByName("TableName"); fm.IsValid() {
 		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
 			if result, ok := v[0].Interface().(string); ok {
 				return result
@@ -227,8 +209,7 @@ func (m *Model) callMethod(method string) {
 		return
 	}
 
-	fm := reflect.ValueOf(m.data).MethodByName(method)
-	if fm.IsValid() {
+	if fm := reflect.ValueOf(m.data).MethodByName(method); fm.IsValid() {
 		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
 			if verr, ok := v[0].Interface().(error); ok {
 				m.do.err(verr)
@@ -255,7 +236,6 @@ func (m *Model) beforeAssociations() (fields []*Field) {
 
 func (m *Model) afterAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		field.parseAssociation()
 		if field.afterAssociation && !field.isBlank() {
 			fields = append(fields, field)
 		}

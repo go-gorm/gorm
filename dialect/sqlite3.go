@@ -8,7 +8,7 @@ import (
 
 type sqlite3 struct{}
 
-func (s *sqlite3) BinVar(i int) string {
+func (s *sqlite3) BinVar() string {
 	return "?"
 }
 

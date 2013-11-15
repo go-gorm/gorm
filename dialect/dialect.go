@@ -1,7 +1,7 @@
 package dialect
 
 type Dialect interface {
-	BinVar(i int) string
+	BinVar() string
 	SupportLastInsertId() bool
 	SqlTag(column interface{}, size int) string
 	PrimaryKeyTag(column interface{}, size int) string

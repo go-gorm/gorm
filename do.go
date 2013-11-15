@@ -60,7 +60,7 @@ func (s *Do) setModel(value interface{}) *Do {
 
 func (s *Do) addToVars(value interface{}) string {
 	s.sqlVars = append(s.sqlVars, value)
-	return s.chain.d.dialect.BinVar(len(s.sqlVars))
+	return fmt.Sprintf(s.chain.d.dialect.BinVar(), len(s.sqlVars))
 }
 
 func (s *Do) exec(sqls ...string) (err error) {
@@ -209,7 +209,7 @@ func (s *Do) setUpdateAttrs(values interface{}, ignore_protected_attrs ...bool) 
 		m := &Model{data: values, do: s}
 		s.updateAttrs = map[string]interface{}{}
 		for _, field := range m.columnsHasValue("other") {
-			s.updateAttrs[field.DbName] = field.Value
+			s.updateAttrs[field.dbName] = field.Value
 		}
 	}
 
@@ -473,7 +473,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 		m := &Model{data: value, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
-			sqls = append(sqls, fmt.Sprintf("(%v = %v)", field.DbName, s.addToVars(field.Value)))
+			sqls = append(sqls, fmt.Sprintf("(%v = %v)", field.dbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -532,7 +532,7 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 		m := &Model{data: value, do: s}
 		var sqls []string
 		for _, field := range m.columnsHasValue("other") {
-			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", field.DbName, s.addToVars(field.Value)))
+			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", field.dbName, s.addToVars(field.Value)))
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -641,7 +641,7 @@ func (s *Do) createTable() *Do {
 	var sqls []string
 	for _, field := range s.model.fields("migration") {
 		if len(field.sqlTag()) > 0 {
-			sqls = append(sqls, field.DbName+" "+field.sqlTag())
+			sqls = append(sqls, field.dbName+" "+field.sqlTag())
 		}
 	}
 
@@ -697,12 +697,12 @@ func (s *Do) autoMigrate() *Do {
 		for _, field := range s.model.fields("migration") {
 			var column_name, data_type string
 			sql := fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v", s.addToVars(s.tableName()))
-			s.db.QueryRow(fmt.Sprintf(sql+" and column_name = %v", s.addToVars(field.DbName)), s.sqlVars...).Scan(&column_name, &data_type)
+			s.db.QueryRow(fmt.Sprintf(sql+" and column_name = %v", s.addToVars(field.dbName)), s.sqlVars...).Scan(&column_name, &data_type)
 			s.sqlVars = []interface{}{}
 
 			// If column doesn't exist
 			if len(column_name) == 0 && len(field.sqlTag()) > 0 {
-				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v;", s.tableName(), field.DbName, field.sqlTag())
+				s.sql = fmt.Sprintf("ALTER TABLE %v ADD %v %v;", s.tableName(), field.dbName, field.sqlTag())
 				s.exec()
 			}
 		}
@@ -745,7 +745,7 @@ func (s *Do) initializeWithSearchCondition() {
 				case reflect.Struct:
 					m := &Model{data: obj, do: s}
 					for _, field := range m.columnsHasValue("other") {
-						s.model.setValueByColumn(field.DbName, field.Value, s.value)
+						s.model.setValueByColumn(field.dbName, field.Value, s.value)
 					}
 				case reflect.Map:
 					for key, value := range obj.(map[string]interface{}) {
@@ -756,7 +756,7 @@ func (s *Do) initializeWithSearchCondition() {
 		case interface{}:
 			m := &Model{data: value, do: s}
 			for _, field := range m.columnsHasValue("other") {
-				s.model.setValueByColumn(field.DbName, field.Value, s.value)
+				s.model.setValueByColumn(field.dbName, field.Value, s.value)
 			}
 		}
 	}
