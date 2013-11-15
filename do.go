@@ -395,7 +395,7 @@ func (s *Do) query() {
 		}
 
 		if !has_record && !is_slice {
-			s.err(errors.New("Record not found!"))
+			s.err(RecordNotFound)
 		}
 	}
 }

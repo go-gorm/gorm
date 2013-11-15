@@ -2,7 +2,7 @@ package gorm
 
 import (
 	"errors"
-	"fmt"
+
 	"regexp"
 )
 
@@ -300,7 +300,7 @@ func (s *Chain) RemoveIndex(column string) *Chain {
 func (s *Chain) validSql(str string) (result bool) {
 	result = regexp.MustCompile("^\\s*[\\w\\s,.*()]*\\s*$").MatchString(str)
 	if !result {
-		s.err(errors.New(fmt.Sprintf("SQL is not valid, %s", str)))
+		s.err(InvalidSql)
 	}
 	return
 }

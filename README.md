@@ -687,6 +687,9 @@ query := db.First(&user).Limit(10).Find(&users)
 if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
   // ...
 }
+
+// If no record found, gorm will return RecordNotFound error, you could check it with
+db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
 ```
 
 ## Advanced Usage With Query Chain

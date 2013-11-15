@@ -191,18 +191,15 @@ func TestSaveAndUpdate(t *testing.T) {
 
 	user.Name = new_name
 	db.Save(&user)
-	orm := db.Where("name = ?", name).First(&User{})
-	if orm.Error == nil {
+	if db.Where("name = ?", name).First(&User{}).Error != RecordNotFound {
 		t.Errorf("Should raise error when looking for a existing user with an outdated name")
 	}
 
-	orm = db.Where("name = ?", new_name).First(&User{})
-	if orm.Error != nil {
+	if db.Where("name = ?", new_name).First(&User{}).Error != nil {
 		t.Errorf("Shouldn't raise error when looking for a existing user with the new name")
 	}
 
-	orm = db.Where("name = ?", name2).First(&User{})
-	if orm.Error != nil {
+	if db.Where("name = ?", name2).First(&User{}).Error != nil {
 		t.Errorf("Shouldn't update other users")
 	}
 }
