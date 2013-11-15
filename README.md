@@ -80,6 +80,7 @@ package db
 
 var DB gorm.DB
 func init() {
+    var err error
     DB, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
     if err != nil {
         panic(fmt.Sprintf("Got error when connect database, the error is '%v'", err))
