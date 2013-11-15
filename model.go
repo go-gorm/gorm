@@ -151,7 +151,7 @@ func (m *Model) hasColumn(name string) bool {
 	return false
 }
 
-func (m *Model) ColumnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
+func (m *Model) columnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
 	data := m.reflectData()
 
 	if data.Kind() == reflect.Struct {

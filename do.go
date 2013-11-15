@@ -302,14 +302,14 @@ func (s *Do) last() {
 }
 
 func (s *Do) getForeignKey(from *Model, to *Model, foreign_key string) (err error, from_from bool, foreign_value interface{}) {
-	if has_column, is_slice, value := from.ColumnAndValue(foreign_key); has_column {
+	if has_column, is_slice, value := from.columnAndValue(foreign_key); has_column {
 		from_from = true
 		if is_slice {
 			foreign_value = to.primaryKeyValue()
 		} else {
 			foreign_value = value
 		}
-	} else if has_column, _, _ := to.ColumnAndValue(foreign_key); has_column {
+	} else if has_column, _, _ := to.columnAndValue(foreign_key); has_column {
 		foreign_value = from.primaryKeyValue()
 	} else {
 		err = errors.New("Can't find valid foreign Key")

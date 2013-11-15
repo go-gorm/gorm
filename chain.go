@@ -38,7 +38,7 @@ func (s *Chain) err(err error) error {
 }
 
 func (s *Chain) hasError() bool {
-	return len(s.Errors) > 0
+	return s.Error != nil
 }
 
 func (s *Chain) deleteLastError() {
