@@ -8,7 +8,7 @@ import (
 
 type Chain struct {
 	d          *DB
-	db         sql_common
+	db         sqlCommon
 	value      interface{}
 	debug_mode bool
 
@@ -228,9 +228,9 @@ func (s *Chain) Related(value interface{}, foreign_keys ...string) *Chain {
 }
 
 func (s *Chain) Begin() *Chain {
-	if db, ok := s.db.(sql_db); ok {
+	if db, ok := s.db.(sqlDb); ok {
 		tx, err := db.Begin()
-		s.db = interface{}(tx).(sql_common)
+		s.db = interface{}(tx).(sqlCommon)
 		s.err(err)
 	} else {
 		s.err(errors.New("Can't start a transaction."))
@@ -245,7 +245,7 @@ func (s *Chain) Debug() *Chain {
 }
 
 func (s *Chain) Commit() *Chain {
-	if db, ok := s.db.(sql_tx); ok {
+	if db, ok := s.db.(sqlTx); ok {
 		s.err(db.Commit())
 	} else {
 		s.err(errors.New("Commit is not supported, no database transaction found."))
@@ -254,7 +254,7 @@ func (s *Chain) Commit() *Chain {
 }
 
 func (s *Chain) Rollback() *Chain {
-	if db, ok := s.db.(sql_tx); ok {
+	if db, ok := s.db.(sqlTx); ok {
 		s.err(db.Rollback())
 	} else {
 		s.err(errors.New("Rollback is not supported, no database transaction found."))

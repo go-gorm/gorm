@@ -14,7 +14,7 @@ import (
 
 type Do struct {
 	chain              *Chain
-	db                 sql_common
+	db                 sqlCommon
 	guessedTableName   string
 	specifiedTableName string
 	startedTransaction bool
@@ -711,9 +711,9 @@ func (s *Do) autoMigrate() *Do {
 }
 
 func (s *Do) begin() *Do {
-	if db, ok := s.db.(sql_db); ok {
+	if db, ok := s.db.(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
-			s.db = interface{}(tx).(sql_common)
+			s.db = interface{}(tx).(sqlCommon)
 			s.startedTransaction = true
 		}
 	}
@@ -722,7 +722,7 @@ func (s *Do) begin() *Do {
 
 func (s *Do) commit_or_rollback() {
 	if s.startedTransaction {
-		if db, ok := s.db.(sql_tx); ok {
+		if db, ok := s.db.(sqlTx); ok {
 			if s.chain.hasError() {
 				db.Rollback()
 			} else {

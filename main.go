@@ -11,7 +11,7 @@ func init() {
 }
 
 type DB struct {
-	db      sql_common
+	db      sqlCommon
 	dialect dialect.Dialect
 	logger  Logger
 	logMode bool
@@ -24,7 +24,7 @@ func Open(driver, source string) (db DB, err error) {
 }
 
 func (s *DB) SetPool(n int) {
-	if db, ok := s.db.(sql_db); ok {
+	if db, ok := s.db.(sqlDb); ok {
 		db.SetMaxIdleConns(n)
 	}
 }
