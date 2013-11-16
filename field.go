@@ -53,7 +53,7 @@ func (f *Field) sqlTag() (str string) {
 		}
 	}
 
-	typ, addational_typ, size := parseSqlTag(f.structField.Tag.Get(f.model.do.db.tagIdentifier))
+	typ, addational_typ, size := parseSqlTag(f.structField.Tag.Get(f.model.do.db.parent.tagIdentifier))
 
 	if typ == "-" {
 		return

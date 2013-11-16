@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -1289,145 +1290,145 @@ func TestAutoMigration(t *testing.T) {
 	}
 }
 
-// type NullTime struct {
-// 	Time  time.Time
-// 	Valid bool
-// }
+type NullTime struct {
+	Time  time.Time
+	Valid bool
+}
 
-// func (nt *NullTime) Scan(value interface{}) error {
-// 	if value == nil {
-// 		nt.Valid = false
-// 		return nil
-// 	}
-// 	nt.Time, nt.Valid = value.(time.Time), true
-// 	return nil
-// }
+func (nt *NullTime) Scan(value interface{}) error {
+	if value == nil {
+		nt.Valid = false
+		return nil
+	}
+	nt.Time, nt.Valid = value.(time.Time), true
+	return nil
+}
 
-// func (nt NullTime) Value() (driver.Value, error) {
-// 	if !nt.Valid {
-// 		return nil, nil
-// 	}
-// 	return nt.Time, nil
-// }
+func (nt NullTime) Value() (driver.Value, error) {
+	if !nt.Valid {
+		return nil, nil
+	}
+	return nt.Time, nil
+}
 
-// type NullValue struct {
-// 	Id      int64
-// 	Name    sql.NullString `sql:"not null"`
-// 	Age     sql.NullInt64
-// 	Male    sql.NullBool
-// 	Height  sql.NullFloat64
-// 	AddedAt NullTime
-// }
+type NullValue struct {
+	Id      int64
+	Name    sql.NullString `sql:"not null"`
+	Age     sql.NullInt64
+	Male    sql.NullBool
+	Height  sql.NullFloat64
+	AddedAt NullTime
+}
 
-// func TestSqlNullValue(t *testing.T) {
-// 	db.DropTable(&NullValue{})
-// 	db.AutoMigrate(&NullValue{})
+func TestSqlNullValue(t *testing.T) {
+	db.DropTable(&NullValue{})
+	db.AutoMigrate(&NullValue{})
 
-// 	if err := db.Save(&NullValue{Name: sql.NullString{"hello", true}, Age: sql.NullInt64{18, true}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), true}}).Error; err != nil {
-// 		t.Errorf("Not error should raise when test null value", err)
-// 	}
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello", true}, Age: sql.NullInt64{18, true}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), true}}).Error; err != nil {
+		t.Errorf("Not error should raise when test null value", err)
+	}
 
-// 	var nv NullValue
-// 	db.First(&nv, "name = ?", "hello")
+	var nv NullValue
+	db.First(&nv, "name = ?", "hello")
 
-// 	if nv.Name.String != "hello" || nv.Age.Int64 != 18 || nv.Male.Bool != true || nv.Height.Float64 != 100.11 || nv.AddedAt.Valid != true {
-// 		t.Errorf("Should be able to fetch null value")
-// 	}
+	if nv.Name.String != "hello" || nv.Age.Int64 != 18 || nv.Male.Bool != true || nv.Height.Float64 != 100.11 || nv.AddedAt.Valid != true {
+		t.Errorf("Should be able to fetch null value")
+	}
 
-// 	if err := db.Save(&NullValue{Name: sql.NullString{"hello-2", true}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err != nil {
-// 		t.Errorf("Not error should raise when test null value", err)
-// 	}
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello-2", true}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err != nil {
+		t.Errorf("Not error should raise when test null value", err)
+	}
 
-// 	var nv2 NullValue
-// 	db.First(&nv2, "name = ?", "hello-2")
-// 	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 || nv2.AddedAt.Valid != false {
-// 		t.Errorf("Should be able to fetch null value")
-// 	}
+	var nv2 NullValue
+	db.First(&nv2, "name = ?", "hello-2")
+	if nv2.Name.String != "hello-2" || nv2.Age.Int64 != 0 || nv2.Male.Bool != true || nv2.Height.Float64 != 100.11 || nv2.AddedAt.Valid != false {
+		t.Errorf("Should be able to fetch null value")
+	}
 
-// 	if err := db.Save(&NullValue{Name: sql.NullString{"hello-3", false}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err == nil {
-// 		t.Errorf("Can't save because of name can't be null", err)
-// 	}
-// }
+	if err := db.Save(&NullValue{Name: sql.NullString{"hello-3", false}, Age: sql.NullInt64{18, false}, Male: sql.NullBool{true, true}, Height: sql.NullFloat64{100.11, true}, AddedAt: NullTime{time.Now(), false}}).Error; err == nil {
+		t.Errorf("Can't save because of name can't be null", err)
+	}
+}
 
-// func TestTransaction(t *testing.T) {
-// 	d := db.Begin()
-// 	u := User{Name: "transcation"}
-// 	if err := d.Save(&u).Error; err != nil {
-// 		t.Errorf("No error should raise, but got", err)
-// 	}
+func TestTransaction(t *testing.T) {
+	d := db.Begin()
+	u := User{Name: "transcation"}
+	if err := d.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise, but got", err)
+	}
 
-// 	if err := d.First(&User{}, "name = ?", "transcation").Error; err != nil {
-// 		t.Errorf("Should find saved record, but got", err)
-// 	}
+	if err := d.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record, but got", err)
+	}
 
-// 	d.Rollback()
+	d.Rollback()
 
-// 	if err := d.First(&User{}, "name = ?", "transcation").Error; err == nil {
-// 		t.Errorf("Should not find record after rollback")
-// 	}
+	if err := d.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
 
-// 	d2 := db.Begin()
-// 	u2 := User{Name: "transcation-2"}
-// 	if err := d2.Save(&u2).Error; err != nil {
-// 		t.Errorf("No error should raise, but got", err)
-// 	}
-// 	d2.Update("age", 90)
+	d2 := db.Begin()
+	u2 := User{Name: "transcation-2"}
+	if err := d2.Save(&u2).Error; err != nil {
+		t.Errorf("No error should raise, but got", err)
+	}
+	d2.Update("age", 90)
 
-// 	if err := d2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
-// 		t.Errorf("Should find saved record, but got", err)
-// 	}
+	if err := d2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		t.Errorf("Should find saved record, but got", err)
+	}
 
-// 	d2.Commit()
+	d2.Commit()
 
-// 	if err := db.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
-// 		t.Errorf("Should be able to find committed record")
-// 	}
-// }
+	if err := db.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+}
 
-// func (s *CreditCard) BeforeSave() (err error) {
-// 	if s.Number == "0000" {
-// 		err = errors.New("invalid credit card")
-// 	}
-// 	return
-// }
+func (s *CreditCard) BeforeSave() (err error) {
+	if s.Number == "0000" {
+		err = errors.New("invalid credit card")
+	}
+	return
+}
 
-// func BenchmarkGorm(b *testing.B) {
-// 	b.N = 5000
-// 	for x := 0; x < b.N; x++ {
-// 		e := strconv.Itoa(x) + "benchmark@example.org"
-// 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
-// 		// Insert
-// 		db.Save(&email)
-// 		// Query
-// 		db.First(&BigEmail{}, "email = ?", e)
-// 		// Update
-// 		db.Model(&email).Update("email", "new-"+e)
-// 		// Delete
-// 		db.Delete(&email)
-// 	}
-// }
+func BenchmarkGorm(b *testing.B) {
+	b.N = 5000
+	for x := 0; x < b.N; x++ {
+		e := strconv.Itoa(x) + "benchmark@example.org"
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		// Insert
+		db.Save(&email)
+		// Query
+		db.First(&BigEmail{}, "email = ?", e)
+		// Update
+		db.Model(&email).Update("email", "new-"+e)
+		// Delete
+		db.Delete(&email)
+	}
+}
 
-// func BenchmarkRawSql(b *testing.B) {
-// 	db, _ := sql.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-// 	db.SetMaxIdleConns(10)
-// 	insert_sql := "INSERT INTO emails (user_id,email,user_agent,registered_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
-// 	query_sql := "SELECT * FROM emails WHERE email = $1 ORDER BY id LIMIT 1"
-// 	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
-// 	delete_sql := "DELETE FROM orders WHERE id = $1"
+func BenchmarkRawSql(b *testing.B) {
+	db, _ := sql.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	db.SetMaxIdleConns(10)
+	insert_sql := "INSERT INTO emails (user_id,email,user_agent,registered_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+	query_sql := "SELECT * FROM emails WHERE email = $1 ORDER BY id LIMIT 1"
+	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
+	delete_sql := "DELETE FROM orders WHERE id = $1"
 
-// 	b.N = 5000
-// 	for x := 0; x < b.N; x++ {
-// 		var id int64
-// 		e := strconv.Itoa(x) + "benchmark@example.org"
-// 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
-// 		// Insert
-// 		db.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
-// 		// Query
-// 		rows, _ := db.Query(query_sql, email.Email)
-// 		rows.Close()
-// 		// Update
-// 		db.Exec(update_sql, "new-"+e, time.Now(), id)
-// 		// Delete
-// 		db.Exec(delete_sql, id)
-// 	}
-// }
+	b.N = 5000
+	for x := 0; x < b.N; x++ {
+		var id int64
+		e := strconv.Itoa(x) + "benchmark@example.org"
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		// Insert
+		db.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
+		// Query
+		rows, _ := db.Query(query_sql, email.Email)
+		rows.Close()
+		// Update
+		db.Exec(update_sql, "new-"+e, time.Now(), id)
+		// Delete
+		db.Exec(delete_sql, id)
+	}
+}

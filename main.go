@@ -2,10 +2,9 @@ package gorm
 
 import (
 	"database/sql"
-	"errors"
-)
 
-import "github.com/jinzhu/gorm/dialect"
+	"github.com/jinzhu/gorm/dialect"
+)
 
 type DB struct {
 	db            sqlCommon
@@ -23,12 +22,13 @@ type DB struct {
 func Open(driver, source string) (db DB, err error) {
 	db.db, err = sql.Open(driver, source)
 	db.dialect = dialect.New(driver)
+	db.tagIdentifier = "sql"
 	db.parent = &db
 	return
 }
 
 func (s *DB) SetPool(n int) {
-	if db, ok := s.db.(sqlDb); ok {
+	if db, ok := s.parent.db.(sqlDb); ok {
 		db.SetMaxIdleConns(n)
 	}
 }
@@ -103,25 +103,23 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 }
 
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
-	if s.clone().First(out, where...).Error != nil {
-		return s.clone().do(out).where(where).initialize().db
-	} else {
-		if len(s.search.assignAttrs) > 0 {
-			return s.clone().do(out).updateAttrs(s.search.assignAttrs).db
-		}
+	c := s.clone()
+	if c.First(out, where...).Error == RecordNotFound {
+		return c.do(out).where(where).initialize().db
+	} else if len(s.search.assignAttrs) > 0 {
+		return c.do(out).updateAttrs(s.search.assignAttrs).db
 	}
-	return s
+	return c
 }
 
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
-	if s.clone().First(out, where...).Error != nil {
-		return s.clone().do(out).where(where...).initialize().db.Save(out)
-	} else {
-		if len(s.search.assignAttrs) > 0 {
-			return s.clone().do(out).updateAttrs(s.search.assignAttrs).update().db
-		}
+	c := s.clone()
+	if c.First(out, where...).Error == RecordNotFound {
+		return c.do(out).where(where...).initialize().db.Save(out)
+	} else if len(s.search.assignAttrs) > 0 {
+		return c.do(out).updateAttrs(s.search.assignAttrs).update().db
 	}
-	return s
+	return c
 }
 
 func (s *DB) Update(attrs ...interface{}) *DB {
@@ -167,12 +165,10 @@ func (s *DB) Table(name string) *DB {
 	return s.clone().search.table(name).db
 }
 
-// Debug
 func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
 }
 
-// Transactions
 func (s *DB) Begin() *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok {
@@ -180,7 +176,7 @@ func (s *DB) Begin() *DB {
 		c.db = interface{}(tx).(sqlCommon)
 		c.err(err)
 	} else {
-		c.err(errors.New("Can't start a transaction."))
+		c.err(CantStartTransaction)
 	}
 	return c
 }
@@ -205,22 +201,19 @@ func (s *DB) Rollback() *DB {
 
 // Migrations
 func (s *DB) CreateTable(value interface{}) *DB {
-	s.do(value).createTable()
-	return s
+	return s.clone().do(value).createTable().db
 }
 
 func (s *DB) DropTable(value interface{}) *DB {
-	s.do(value).dropTable()
-	return s
+	return s.clone().do(value).dropTable().db
 }
 
 func (s *DB) AutoMigrate(value interface{}) *DB {
-	s.do(value).autoMigrate()
-	return s
+	return s.clone().do(value).autoMigrate().db
 }
 
 func (s *DB) UpdateColumn(column string, typ string) *DB {
-	s.do(s.data).updateColumn(column, typ)
+	s.clone().do(s.data).updateColumn(column, typ)
 	return s
 }
 
@@ -230,11 +223,11 @@ func (s *DB) DropColumn(column string) *DB {
 }
 
 func (s *DB) AddIndex(column string, index_name ...string) *DB {
-	s.do(s.data).addIndex(column, index_name...)
+	s.clone().do(s.data).addIndex(column, index_name...)
 	return s
 }
 
 func (s *DB) RemoveIndex(column string) *DB {
-	s.do(s.data).removeIndex(column)
+	s.clone().do(s.data).removeIndex(column)
 	return s
 }
