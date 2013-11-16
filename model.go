@@ -191,7 +191,7 @@ func (m *Model) tableName() (str string) {
 
 	str = toSnake(m.typeName())
 
-	if !singularTableName {
+	if !m.do.db.singularTable {
 		pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
 		for key, value := range pluralMap {
 			reg := regexp.MustCompile(key + "$")
@@ -205,7 +205,7 @@ func (m *Model) tableName() (str string) {
 }
 
 func (m *Model) callMethod(method string) {
-	if m.data == nil || m.do.chain.hasError() {
+	if m.data == nil || m.do.db.hasError() {
 		return
 	}
 

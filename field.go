@@ -53,7 +53,7 @@ func (f *Field) sqlTag() (str string) {
 		}
 	}
 
-	typ, addational_typ, size := parseSqlTag(f.structField.Tag.Get(tagIdentifier))
+	typ, addational_typ, size := parseSqlTag(f.structField.Tag.Get(f.model.do.db.tagIdentifier))
 
 	if typ == "-" {
 		return
@@ -61,9 +61,9 @@ func (f *Field) sqlTag() (str string) {
 
 	if len(typ) == 0 {
 		if f.isPrimaryKey {
-			typ = f.model.do.chain.d.dialect.PrimaryKeyTag(value, size)
+			typ = f.model.do.db.dialect.PrimaryKeyTag(value, size)
 		} else {
-			typ = f.model.do.chain.d.dialect.SqlTag(value, size)
+			typ = f.model.do.db.dialect.SqlTag(value, size)
 		}
 	}
 
