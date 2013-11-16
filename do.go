@@ -16,22 +16,10 @@ type Do struct {
 	db                 *DB
 	model              *Model
 	tableName          string
+	value              interface{}
+	sql                string
+	sqlVars            []interface{}
 	startedTransaction bool
-
-	value   interface{}
-	sql     string
-	sqlVars []interface{}
-
-	whereClause          []map[string]interface{}
-	orClause             []map[string]interface{}
-	notClause            []map[string]interface{}
-	selectStr            string
-	orderStrs            []string
-	offsetStr            string
-	limitStr             string
-	unscoped             bool
-	updateAttrs          map[string]interface{}
-	ignoreProtectedAttrs bool
 }
 
 func (s *Do) table() string {
@@ -63,17 +51,19 @@ func (s *Do) addToVars(value interface{}) string {
 	return fmt.Sprintf(s.db.dialect.BinVar(), len(s.sqlVars))
 }
 
-func (s *Do) exec(sqls ...string) (err error) {
+func (s *Do) trace(t time.Time) {
+	s.db.slog(s.sql, t, s.sqlVars...)
+}
+
+func (s *Do) exec(sqls ...string) {
+	defer s.trace(time.Now())
 	if !s.db.hasError() {
 		if len(sqls) > 0 {
 			s.sql = sqls[0]
 		}
-
-		now := time.Now()
-		_, err = s.db.db.Exec(s.sql, s.sqlVars...)
-		s.db.slog(s.sql, now, s.sqlVars...)
+		_, err := s.db.db.Exec(s.sql, s.sqlVars...)
+		s.err(err)
 	}
-	return s.err(err)
 }
 
 func (s *Do) save() *Do {
