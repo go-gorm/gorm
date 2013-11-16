@@ -105,28 +105,23 @@ func init() {
 	db.Exec("drop table addresses")
 	db.Exec("drop table credit_cards")
 
-	err = db.CreateTable(&User{}).Error
-	if err != nil {
+	if err = db.CreateTable(&User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	err = db.CreateTable(&Product{}).Error
-	if err != nil {
+	if err = db.CreateTable(&Product{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	err = db.CreateTable(Email{}).Error
-	if err != nil {
+	if err = db.CreateTable(Email{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	err = db.CreateTable(Address{}).Error
-	if err != nil {
+	if err = db.AutoMigrate(Address{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	err = db.CreateTable(CreditCard{}).Error
-	if err != nil {
+	if err = db.AutoMigrate(&CreditCard{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -143,28 +138,11 @@ func init() {
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 }
 
-func TestSaveAndFind(t *testing.T) {
-	name := "save_and_find"
-	u := &User{Name: name, Age: 1}
-	db.Save(u)
-	if u.Id == 0 {
-		t.Errorf("Should have ID after create record")
-	}
-
-	user := &User{}
-	db.First(user, "name = ?", name)
-	if user.Name != name {
-		t.Errorf("User should be saved and fetched correctly")
-	}
-
-	users := []User{}
-	db.Find(&users)
-}
-
 func TestFirstAndLast(t *testing.T) {
 	var user1, user2, user3, user4 User
 	db.First(&user1)
 	db.Order("id").Find(&user2)
+
 	db.Last(&user3)
 	db.Order("id desc").Find(&user4)
 	if user1.Id != user2.Id || user3.Id != user4.Id {
@@ -178,28 +156,28 @@ func TestFirstAndLast(t *testing.T) {
 	}
 }
 
-func TestSaveAndUpdate(t *testing.T) {
+func TestCreateAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
 	user := User{Name: name, Age: 1}
 	db.Save(&user)
-	db.Save(&User{Name: name2, Age: 1})
-
 	if user.Id == 0 {
-		t.Errorf("User Id should exist after create")
+		t.Errorf("Should have ID after create")
 	}
+
+	db.Save(&User{Name: name2, Age: 1})
 
 	user.Name = new_name
 	db.Save(&user)
 	if db.Where("name = ?", name).First(&User{}).Error != RecordNotFound {
-		t.Errorf("Should raise error when looking for a existing user with an outdated name")
+		t.Errorf("Should raise RecordNotFound error when looking with an outdated name")
 	}
 
 	if db.Where("name = ?", new_name).First(&User{}).Error != nil {
-		t.Errorf("Shouldn't raise error when looking for a existing user with the new name")
+		t.Errorf("Shouldn't raise error when looking with the new name")
 	}
 
 	if db.Where("name = ?", name2).First(&User{}).Error != nil {
-		t.Errorf("Shouldn't update other users")
+		t.Errorf("Shouldn't update other users when update one")
 	}
 }
 
@@ -208,16 +186,17 @@ func TestDelete(t *testing.T) {
 	user := User{Name: name, Age: 1}
 	db.Save(&user)
 	db.Save(&User{Name: name2, Age: 1})
-	orm := db.Delete(&user)
 
-	orm = db.Where("name = ?", name).First(&User{})
-	if orm.Error == nil {
-		t.Errorf("User should be deleted successfully")
+	if db.Delete(&user).Error != nil {
+		t.Errorf("Shouldn't raise any error when delete a user")
 	}
 
-	orm = db.Where("name = ?", name2).First(&User{})
-	if orm.Error != nil {
-		t.Errorf("User2 should not be deleted")
+	if db.Where("name = ?", name).First(&User{}).Error == nil {
+		t.Errorf("User can't be found after delete")
+	}
+
+	if db.Where("name = ?", name2).First(&User{}).Error != nil {
+		t.Errorf("Other users shouldn't be deleted")
 	}
 }
 
@@ -228,38 +207,32 @@ func TestWhere(t *testing.T) {
 	user := &User{}
 	db.Where("name = ?", name).First(user)
 	if user.Name != name {
-		t.Errorf("Should found out user with name '%v'", name)
+		t.Errorf("Search user with name")
 	}
 
 	if db.Where(user.Id).First(&User{}).Error != nil {
-		t.Errorf("Should found out users only with id")
+		t.Errorf("Search user with primary key")
 	}
 
-	user = &User{}
-	orm := db.Where("name LIKE ?", "%nonono%").First(user)
-	if orm.Error == nil {
-		t.Errorf("Should return error when searching for none existing record, %+v", user)
+	if db.Where("name LIKE ?", "%nonono%").First(&User{}).Error == nil {
+		t.Errorf("Search non-existing user with regexp name")
 	}
 
-	user = &User{}
-	orm = db.Where("name LIKE ?", "%whe%").First(user)
-	if orm.Error != nil {
-		t.Errorf("Should not return error when searching for existing record, %+v", user)
+	if db.Where("name LIKE ?", "%whe%").First(&User{}).Error != nil {
+		t.Errorf("Search user with regexp name")
 	}
 
-	user = &User{}
-	orm = db.Where("name = ?", "noexisting-user").First(user)
-	if orm.Error == nil {
-		t.Errorf("Should return error when looking for none existing record, %+v", user)
+	if db.Where("name = ?", "non-existing user").First(&User{}).Error == nil {
+		t.Errorf("Search non-existing user should get error")
 	}
 
-	users := []User{}
-	orm = db.Where("name = ?", "none-noexisting").Find(&users)
-	if orm.Error != nil {
-		t.Errorf("Shouldn't return error when looking for none existing records, %+v", users)
+	var users []User
+	if db.Where("name = ?", "none-noexisting").Find(&users).Error != nil {
+		t.Errorf("Shouldn't return error when looking for none existing records with find")
 	}
+
 	if len(users) != 0 {
-		t.Errorf("Shouldn't find anything when looking for none existing records, %+v", users)
+		t.Errorf("Users should be empty")
 	}
 }
 
@@ -267,80 +240,80 @@ func TestComplexWhere(t *testing.T) {
 	var users []User
 	db.Where("age > ?", 20).Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
+		t.Errorf("Should found 3 users that age > 20, but got %v", len(users))
 	}
 
 	var user_ids []int64
 	db.Table("users").Where("age > ?", 20).Pluck("id", &user_ids)
 	if len(user_ids) != 3 {
-		t.Errorf("Should only found 3 users that age > 20, but have %v", len(users))
+		t.Errorf("Should found 3 users that age > 20, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where(user_ids).Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users that age > 20 when search with id map, but have %v", len(users))
+		t.Errorf("Should found 3 users that age > 20 when search with primary keys, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("age >= ?", 20).Find(&users)
 	if len(users) != 4 {
-		t.Errorf("Should only found 4 users that age >= 20, but have %v", len(users))
+		t.Errorf("Should found 4 users that age >= 20, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("age = ?", 20).Find(&users)
 	if len(users) != 1 {
-		t.Errorf("Should only found 1 users age == 20, but have %v", len(users))
+		t.Errorf("Should found 1 users age == 20, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("age <> ?", 20).Find(&users)
 	if len(users) < 3 {
-		t.Errorf("Should have more than 3 users age != 20, but have %v", len(users))
+		t.Errorf("Should found more than 3 users age != 20, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("name = ? and age >= ?", "3", 20).Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should only found 2 users that age >= 20 with name 3, but have %v", len(users))
+		t.Errorf("Should found 2 users that age >= 20 with name 3, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("name = ?", "3").Where("age >= ?", 20).Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should only found 2 users that age >= 20 with name 3, but have %v", len(users))
+		t.Errorf("Should found 2 users that age >= 20 with name 3, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("birthday > ?", t2).Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users's birthday >= t2", len(users))
+		t.Errorf("Should found 3 users's birthday >= t2, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("birthday > ?", "2002-10-10").Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users's birthday >= t2", len(users))
+		t.Errorf("Should found 3 users's birthday >= 2002-10-10, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("birthday >= ?", t1).Where("birthday < ?", t2).Find(&users)
 	if len(users) != 1 {
-		t.Errorf("Should only found 1 users's birthday <= t2, but have %v", len(users))
+		t.Errorf("Should found 1 users's birthday <= t2, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("birthday >= ? and birthday <= ?", t1, t2).Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should only found 2 users's birthday <= t2, but have %v", len(users))
+		t.Errorf("Should found 2 users's birthday <= t2, but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("name in (?)", []string{"1", "3"}).Find(&users)
 
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users's name in (1, 3), but have %v", len(users))
+		t.Errorf("Should found 3 users's name in (1, 3), but got  %v", len(users))
 	}
 
 	user_ids = []int64{}
@@ -351,83 +324,72 @@ func TestComplexWhere(t *testing.T) {
 	users = []User{}
 	db.Where("id in (?)", user_ids).Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should only found 3 users's name in (1, 3) - search by id, but have %v", len(users))
-	}
-
-	users = []User{}
-	db.Where("name in (?)", []string{"1", "2"}).Find(&users)
-
-	if len(users) != 2 {
-		t.Errorf("Should only found 2 users's name in (1, 2), but have %v", len(users))
-	}
-
-	user_ids = []int64{}
-	for _, user := range users {
-		user_ids = append(user_ids, user.Id)
-	}
-	users = []User{}
-	db.Where("id in (?)", user_ids).Find(&users)
-	if len(users) != 2 {
-		t.Errorf("Should only found 2 users's name in (1, 2) - search by id, but have %v", len(users))
+		t.Errorf("Should found 3 users's name in (1, 3), but got %v", len(users))
 	}
 
 	users = []User{}
 	db.Where("id in (?)", user_ids[0]).Find(&users)
 	if len(users) != 1 {
-		t.Errorf("Should only found 1 users's name in (1, 2) - search by the first id, but have %v", len(users))
+		t.Errorf("Should found 1 users's name in (1), but got %v", len(users))
+	}
+
+	users = []User{}
+	db.Where("name in (?)", []string{"1", "2"}).Find(&users)
+	if len(users) != 2 {
+		t.Errorf("Should found 2 users's name in (1, 2), but got %v", len(users))
 	}
 }
 
-func TestWhereWithStruct(t *testing.T) {
+func TestSearchWithStruct(t *testing.T) {
 	var user User
 	db.First(&user, &User{Name: "2"})
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with inline struct")
+		t.Errorf("Search first record with inline struct pointer")
 	}
 
 	db.First(&user, User{Name: "2"})
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with inline struct")
+		t.Errorf("Search first record with inline struct")
 	}
 
 	db.Where(&User{Name: "2"}).First(&user)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with where struct")
+		t.Errorf("Search first record with where struct")
 	}
 
 	var users []User
 	db.Find(&users, &User{Name: "3"})
 	if len(users) != 2 {
-		t.Errorf("Should be able to search all record with inline struct")
+		t.Errorf("Search all records with inline struct")
 	}
 
 	db.Where(User{Name: "3"}).Find(&users)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with where struct")
+		t.Errorf("Search all records with where struct")
 	}
 }
 
-func TestWhereWithInterfaceMap(t *testing.T) {
+func TestSearchWithMap(t *testing.T) {
 	var user User
 	db.First(&user, map[string]interface{}{"name": "2"})
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with inline interface map")
+		t.Errorf("Search first record with inline map")
 	}
 
 	db.Where(map[string]interface{}{"name": "2"}).First(&user)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with where interface map")
+		t.Errorf("Search first record with where map")
 	}
 
 	var users []User
 	db.Find(&users, map[string]interface{}{"name": "3"})
 	if len(users) != 2 {
-		t.Errorf("Should be able to search all record with inline interface map")
+		t.Errorf("Search all records with inline map")
 	}
 
 	db.Where(map[string]interface{}{"name": "3"}).Find(&users)
 	if user.Id == 0 || user.Name != "2" {
-		t.Errorf("Should be able to search first record with where interface map")
+		t.Errorf("Search all records with where map")
 	}
 }
 
@@ -437,28 +399,28 @@ func TestInitlineCondition(t *testing.T) {
 
 	db.Where("name = ?", "3").First(&u3, "age = 22").First(&u4, "age = ?", 24).First(&u5, "age = ?", 26)
 	if !((u5.Id == 0) && (u3.Age == 22 && u3.Name == "3") && (u4.Age == 24 && u4.Name == "3")) {
-		t.Errorf("Inline where condition for first when search")
+		t.Errorf("Find first record with inline condition and where")
+	}
+
+	db.First(&u6, u1.Id)
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Find first record with primary key")
+	}
+
+	db.First(&u7, strconv.Itoa(int(u1.Id)))
+	if !(u6.Id == u1.Id && u6.Id != 0) {
+		t.Errorf("Find first record with string primary key")
 	}
 
 	var us1, us2, us3, us4 []User
 	db.Find(&us1, "age = 22").Find(&us2, "name = ?", "3").Find(&us3, "age > ?", 20)
 	if !(len(us1) == 1 && len(us2) == 2 && len(us3) == 3) {
-		t.Errorf("Inline where condition for find when search")
+		t.Errorf("Find all records with inline condition and where")
 	}
 
 	db.Find(&us4, "name = ? and age > ?", "3", "22")
 	if len(us4) != 1 {
-		t.Errorf("More complex inline where condition for find, %v", us4)
-	}
-
-	db.First(&u6, u1.Id)
-	if !(u6.Id == u1.Id && u6.Id != 0) {
-		t.Errorf("Should find out user with int id")
-	}
-
-	db.First(&u7, strconv.Itoa(int(u1.Id)))
-	if !(u6.Id == u1.Id && u6.Id != 0) {
-		t.Errorf("Should find out user with string id")
+		t.Errorf("Find all records with complex inline condition")
 	}
 }
 
@@ -466,10 +428,11 @@ func TestSelect(t *testing.T) {
 	var user User
 	db.Where("name = ?", "3").Select("name").Find(&user)
 	if user.Id != 0 {
-		t.Errorf("Should not got ID because I am only looking for age, %+v", user.Id)
+		t.Errorf("Should not have ID because only searching age, %+v", user.Id)
 	}
+
 	if user.Name != "3" {
-		t.Errorf("Should got Name = 3 when searching it, %+v", user.Id)
+		t.Errorf("Should got Name = 3 when searching with it, %+v", user.Id)
 	}
 
 	query := db.Where("name = ?", "3").Select("nam;e")
@@ -479,29 +442,26 @@ func TestSelect(t *testing.T) {
 }
 
 func TestOrderAndPluck(t *testing.T) {
-	var ages []int64
+	var ages, ages1, ages2, ages3, ages4, ages5 []int64
 	db.Model(&[]User{}).Order("age desc").Pluck("age", &ages)
 	if ages[0] != 26 {
-		t.Errorf("The first age should be 26 because of ordered by")
+		t.Errorf("The first age should be 26 when order with age desc")
 	}
 
-	var ages1, ages2 []int64
 	db.Model([]User{}).Order("age desc").Pluck("age", &ages1).Order("age").Pluck("age", &ages2)
 	if !reflect.DeepEqual(ages1, ages2) {
 		t.Errorf("The first order is the primary order")
 	}
 
-	var ages3, ages4 []int64
 	db.Model(&User{}).Order("age desc").Pluck("age", &ages3).Order("age", true).Pluck("age", &ages4)
 	if reflect.DeepEqual(ages3, ages4) {
-		t.Errorf("Reorder should works well")
+		t.Errorf("Reorder should works")
 	}
 
-	ages = []int64{}
 	var names []string
-	db.Model(User{}).Order("name").Order("age desc").Pluck("age", &ages).Pluck("name", &names)
-	if !(names[0] == "1" && names[2] == "3" && names[3] == "3" && ages[2] == 24 && ages[3] == 22) {
-		t.Errorf("Should be ordered correctly with multiple orders")
+	db.Model(User{}).Order("name").Order("age desc").Pluck("age", &ages5).Pluck("name", &names)
+	if !(names[0] == "1" && names[2] == "3" && names[3] == "3" && ages5[2] == 24 && ages5[3] == 22) {
+		t.Errorf("Order with multiple orders")
 	}
 
 	db.Model(User{}).Select("name, age").Find(&[]User{})
@@ -511,16 +471,17 @@ func TestLimit(t *testing.T) {
 	var users1, users2, users3 []User
 	db.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
 
-	if !(len(users1) == 3 && len(users2) == 5 && len(users3) > 5) {
-		t.Errorf("Limit should works perfectly")
+	if len(users1) != 3 || len(users2) != 5 || len(users3) <= 5 {
+		t.Errorf("Limit should works")
 	}
 }
 
 func TestOffset(t *testing.T) {
 	var users1, users2, users3, users4 []User
 	db.Limit(100).Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
-	if !((len(users1) == len(users4)) && (len(users1)-len(users2) == 3) && (len(users1)-len(users3) == 5)) {
-		t.Errorf("Offset should works perfectly")
+
+	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
+		t.Errorf("Offset should works")
 	}
 }
 
@@ -528,7 +489,7 @@ func TestOr(t *testing.T) {
 	var users []User
 	db.Where("name = ?", "1").Or("name = ?", "3").Find(&users)
 	if len(users) != 3 {
-		t.Errorf("Should find three users with name 1 and 3")
+		t.Errorf("Find users with or")
 	}
 }
 
@@ -537,16 +498,16 @@ func TestCount(t *testing.T) {
 	var users []User
 
 	if err := db.Where("name = ?", "1").Or("name = ?", "3").Find(&users).Count(&count).Error; err != nil {
-		t.Errorf("Count should have no error", err)
+		t.Errorf("Count should works", err)
 	}
 
 	if count != int64(len(users)) {
-		t.Errorf("Count() method should get same value of users count")
+		t.Errorf("Count() method should get correct value")
 	}
 
 	db.Model(&User{}).Where("name = ?", "1").Count(&count1).Or("name = ?", "3").Count(&count2)
-	if !(count1 == 1 && count2 == 3) {
-		t.Errorf("Multiple count should works well also")
+	if count1 != 1 || count2 != 3 {
+		t.Errorf("Multiple count should works")
 	}
 }
 
@@ -633,6 +594,7 @@ func (s *Product) AfterDelete() (err error) {
 	s.AfterDeleteCallTimes = s.AfterDeleteCallTimes + 1
 	return
 }
+
 func (p *Product) GetCallTimes() []int64 {
 	return []int64{p.BeforeCreateCallTimes, p.BeforeSaveCallTimes, p.BeforeUpdateCallTimes, p.AfterCreateCallTimes, p.AfterSaveCallTimes, p.AfterUpdateCallTimes, p.BeforeDeleteCallTimes, p.AfterDeleteCallTimes}
 }
@@ -640,82 +602,86 @@ func (p *Product) GetCallTimes() []int64 {
 func TestRunCallbacks(t *testing.T) {
 	p := Product{Code: "unique_code", Price: 100}
 	db.Save(&p)
+
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0}) {
-		t.Errorf("Some errors happened when run create callbacks, %v", p.GetCallTimes())
+		t.Errorf("Callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	db.Where("Code = ?", "unique_code").First(&p)
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 0, 0, 0, 0, 0}) {
-		t.Errorf("Should be able to query about saved values in before filters, %v", p.GetCallTimes())
+		t.Errorf("After callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	p.Price = 200
 	db.Save(&p)
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 1, 1, 0, 0}) {
-		t.Errorf("Some errors happened when run update callbacks, %v", p.GetCallTimes())
+		t.Errorf("After update callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	db.Where("Code = ?", "unique_code").First(&p)
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 0, 0, 0, 0}) {
-		t.Errorf("Some errors happened when run update callbacks, %v", p.GetCallTimes())
+		t.Errorf("After update callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	db.Delete(&p)
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 0, 0, 1, 1}) {
-		t.Errorf("Some errors happened when run update callbacks, %v", p.GetCallTimes())
+		t.Errorf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	if db.Where("Code = ?", "unique_code").First(&p).Error == nil {
-		t.Errorf("Should get error when find an deleted record")
+		t.Errorf("Can't find a deleted record")
 	}
 }
 
-func TestRunCallbacksAndGetErrors(t *testing.T) {
+func TestCallbacksWithErrors(t *testing.T) {
 	p := Product{Code: "Invalid", Price: 100}
 	if db.Save(&p).Error == nil {
-		t.Errorf("An error from create callbacks expected when create")
+		t.Errorf("An error from before create callbacks happened when create with invalid value")
 	}
 
 	if db.Where("code = ?", "Invalid").First(&Product{}).Error == nil {
-		t.Errorf("Should not save records that have errors")
+		t.Errorf("Should not save record that have errors")
 	}
 
 	if db.Save(&Product{Code: "dont_save", Price: 100}).Error == nil {
-		t.Errorf("An error from create callbacks expected when create")
+		t.Errorf("An error from after create callbacks happened when create with invalid value")
 	}
 
 	p2 := Product{Code: "update_callback", Price: 100}
 	db.Save(&p2)
+
 	p2.Code = "dont_update"
 	if db.Save(&p2).Error == nil {
-		t.Errorf("An error from callbacks expected when update")
+		t.Errorf("An error from before update callbacks happened when update with invalid value")
 	}
+
 	if db.Where("code = ?", "update_callback").First(&Product{}).Error != nil {
-		t.Errorf("Record Should not be updated due to errors happened in callback")
+		t.Errorf("Record Should not be updated due to errors happened in before update callback")
 	}
+
 	if db.Where("code = ?", "dont_update").First(&Product{}).Error == nil {
-		t.Errorf("Record Should not be updated due to errors happened in callback")
+		t.Errorf("Record Should not be updated due to errors happened in before update callback")
 	}
 
 	p2.Code = "dont_save"
 	if db.Save(&p2).Error == nil {
-		t.Errorf("An error from before save callbacks expected when update")
+		t.Errorf("An error from before save callbacks happened when update with invalid value")
 	}
 
 	p3 := Product{Code: "dont_delete", Price: 100}
 	db.Save(&p3)
 	if db.Delete(&p3).Error == nil {
-		t.Errorf("An error from before delete callbacks expected when delete")
+		t.Errorf("An error from before delete callbacks happened when delete")
 	}
 
 	if db.Where("Code = ?", "dont_delete").First(&p3).Error != nil {
-		t.Errorf("Should not delete record due to errors happened in callback")
+		t.Errorf("An error from before delete callbacks happened")
 	}
 
 	p4 := Product{Code: "after_save_error", Price: 100}
 	db.Save(&p4)
 	if err := db.First(&Product{}, "code = ?", "after_save_error").Error; err == nil {
-		t.Errorf("Record should be reverted if get an error after save", err)
+		t.Errorf("Record should be reverted if get an error in after save callback", err)
 	}
 
 	p5 := Product{Code: "after_delete_error", Price: 100}
@@ -726,7 +692,7 @@ func TestRunCallbacksAndGetErrors(t *testing.T) {
 
 	db.Delete(&p5)
 	if err := db.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
-		t.Errorf("Record should be found because failed to delete", err)
+		t.Errorf("Record shouldn't be deleted because of an error happened in after delete callback", err)
 	}
 }
 
@@ -746,11 +712,12 @@ func TestFillSmallerStructCorrectly(t *testing.T) {
 	}
 }
 
-func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
+func TestExceptionsWithInvalidSql(t *testing.T) {
 	var columns []string
 	if db.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
+
 	if db.Model(&User{}).Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
@@ -761,6 +728,7 @@ func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
 	db.Where("sdsd.zaaa = ?", "sd;;;aa").Find(&Article{})
 
 	db.Where("name = ?", "3").Find(&[]User{})
+
 	var count1, count2 int64
 	db.Model(&User{}).Count(&count1)
 	if count1 <= 0 {
@@ -777,31 +745,31 @@ func TestNoUnExpectedHappenWithInvalidSql(t *testing.T) {
 		t.Errorf("Users should not be deleted by invalid SQL")
 	}
 
-	db.Where("unexisting = ?", "3").Find(&[]User{})
+	db.Where("non-existing = ?", "3").Find(&[]User{})
 }
 
 func TestSetTableDirectly(t *testing.T) {
 	var ages []int64
 	if db.Table("users").Pluck("age", &ages).Error != nil {
-		t.Errorf("No errors should happen if only set table")
+		t.Errorf("No errors should happen if set table for pluck")
 	}
 
 	if len(ages) == 0 {
-		t.Errorf("Should find out some records")
+		t.Errorf("Should get some records")
 	}
 
 	var users []User
 	if db.Table("users").Find(&users).Error != nil {
-		t.Errorf("No errors should happen if set table to an existing table")
+		t.Errorf("No errors should happen if set table for find")
 	}
 
 	if db.Table("unexisting_users_table").Find(&users).Error == nil {
-		t.Errorf("Should got some errors if set table to an unexisting table")
+		t.Errorf("Should got error if set table to an invalid table")
 	}
 
 	db.Exec("drop table deleted_users;")
 	if db.Table("deleted_users").CreateTable(&User{}).Error != nil {
-		t.Errorf("Should create deleted_users table")
+		t.Errorf("Should create table with specified table")
 	}
 
 	db.Table("deleted_users").Save(&User{Name: "DeletedUser"})
@@ -809,19 +777,19 @@ func TestSetTableDirectly(t *testing.T) {
 	var deleted_users []User
 	db.Table("deleted_users").Find(&deleted_users)
 	if len(deleted_users) != 1 {
-		t.Errorf("Should query from deleted_users table")
+		t.Errorf("Query from specified table")
 	}
 
 	var deleted_user User
-	db.Table("deleted_users").Find(&deleted_user)
+	db.Table("deleted_users").First(&deleted_user)
 	if deleted_user.Name != "DeletedUser" {
-		t.Errorf("Should query from deleted_users table")
+		t.Errorf("Query from specified table")
 	}
 
 	var user1, user2, user3 User
 	db.First(&user1).Table("deleted_users").First(&user2).Table("").First(&user3)
-	if !((user1.Name != user2.Name) && (user1.Name == user3.Name)) {
-		t.Errorf("Set Table Chain Should works well")
+	if (user1.Name == user2.Name) || (user1.Name != user3.Name) {
+		t.Errorf("unset specified table with blank string")
 	}
 }
 
@@ -830,7 +798,7 @@ func TestUpdate(t *testing.T) {
 	product2 := Product{Code: "234"}
 	db.Save(&product1).Save(&product2).Update("code", "456")
 	if product2.Code != "456" {
-		t.Errorf("Object should be updated also with update attributes")
+		t.Errorf("Record should be updated with update attributes")
 	}
 
 	db.First(&product1, product1.Id)
@@ -841,19 +809,19 @@ func TestUpdate(t *testing.T) {
 	var product3 Product
 	db.First(&product3, product2.Id).Update("code", "456")
 	if updated_at2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updated_at should not be updated if nothing really new")
+		t.Errorf("updated_at should not be updated if nothing changed")
 	}
 
 	if db.First(&Product{}, "code = '123'").Error != nil {
-		t.Errorf("Product 123's code should not be changed!")
+		t.Errorf("Product 123 should not be updated")
 	}
 
 	if db.First(&Product{}, "code = '234'").Error == nil {
-		t.Errorf("Product 234's code should be changed to 456!")
+		t.Errorf("Product 234 should be changed to 456")
 	}
 
 	if db.First(&Product{}, "code = '456'").Error != nil {
-		t.Errorf("Product 234's code should be 456 now!")
+		t.Errorf("Product 234 should be changed to 456")
 	}
 
 	db.Table("products").Where("code in (?)", []string{"123"}).Update("code", "789")
@@ -861,19 +829,19 @@ func TestUpdate(t *testing.T) {
 	var product4 Product
 	db.First(&product4, product1.Id)
 	if updated_at1.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updated_at should be updated if something updated")
+		t.Errorf("updated_at should be updated if something changed")
 	}
 
 	if db.First(&Product{}, "code = '123'").Error == nil {
-		t.Errorf("Product 123's code should be changed to 789")
+		t.Errorf("Product 123 should be changed to 789")
 	}
 
 	if db.First(&Product{}, "code = '456'").Error != nil {
-		t.Errorf("Product 456's code should not be changed to 789")
+		t.Errorf("Product 456 should not be changed to 789")
 	}
 
 	if db.First(&Product{}, "code = '789'").Error != nil {
-		t.Errorf("We should have Product 789")
+		t.Errorf("Product 456 should be changed to 789")
 	}
 }
 
@@ -882,8 +850,9 @@ func TestUpdates(t *testing.T) {
 	product2 := Product{Code: "cde", Price: 20}
 	db.Save(&product1).Save(&product2).Updates(map[string]interface{}{"code": "edf", "price": 100})
 	if product2.Code != "edf" || product2.Price != 100 {
-		t.Errorf("Object should be updated also with update attributes")
+		t.Errorf("Record should be updated also with update attributes")
 	}
+
 	db.First(&product1, product1.Id)
 	db.First(&product2, product2.Id)
 	updated_at1 := product1.UpdatedAt
@@ -892,33 +861,34 @@ func TestUpdates(t *testing.T) {
 	var product3 Product
 	db.First(&product3, product2.Id).Updates(Product{Code: "edf", Price: 100})
 	if product3.Code != "edf" || product3.Price != 100 {
-		t.Errorf("Object should be updated also with update attributes")
+		t.Errorf("Record should be updated with update attributes")
 	}
 
 	if updated_at2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updated_at should not be updated if nothing really new")
+		t.Errorf("updated_at should not be updated if nothing changed")
 	}
 
 	if db.First(&Product{}, "code = 'abc' and price = 10").Error != nil {
-		t.Errorf("Product abc should not be updated!")
+		t.Errorf("Product abc should not be updated")
 	}
 
 	if db.First(&Product{}, "code = 'cde'").Error == nil {
-		t.Errorf("Product cde should be renamed to edf!")
+		t.Errorf("Product cde should be renamed to edf")
 	}
 
 	if db.First(&Product{}, "code = 'edf' and price = 100").Error != nil {
-		t.Errorf("We should have product edf!")
+		t.Errorf("Product cde should be renamed to edf")
 	}
 
 	db.Table("products").Where("code in (?)", []string{"abc"}).Updates(map[string]interface{}{"code": "fgh", "price": 200})
 	if db.First(&Product{}, "code = 'abc'").Error == nil {
 		t.Errorf("Product abc's code should be changed to fgh")
 	}
+
 	var product4 Product
 	db.First(&product4, product1.Id)
 	if updated_at1.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updated_at should be updated if something updated")
+		t.Errorf("updated_at should be updated if something changed")
 	}
 
 	if db.First(&Product{}, "code = 'edf' and price = ?", 100).Error != nil {
@@ -947,16 +917,16 @@ func TestSoftDelete(t *testing.T) {
 
 	db.Delete(&order)
 	if db.First(&Order{}, "amount = 1234").Error == nil {
-		t.Errorf("Can't find the user because it is soft deleted")
+		t.Errorf("Can't find order because it is soft deleted")
 	}
 
 	if db.Unscoped().First(&Order{}, "amount = 1234").Error != nil {
-		t.Errorf("Should be able to find out the soft deleted user with unscoped")
+		t.Errorf("Should be able to find out the soft deleted order with unscoped")
 	}
 
 	db.Unscoped().Delete(&order)
 	if db.Unscoped().First(&Order{}, "amount = 1234").Error == nil {
-		t.Errorf("Can't find out permanently deleted order")
+		t.Errorf("Can't find permanently deleted order")
 	}
 }
 
@@ -984,11 +954,10 @@ func TestFindOrInitialize(t *testing.T) {
 
 	db.Where(&User{Name: "find or init"}).Assign("age", 44).FirstOrInit(&user4)
 	if user4.Name != "find or init" || user4.Id != 0 || user4.Age != 44 {
-		t.Errorf("user should be initialized with search value and assigned attrs")
+		t.Errorf("user should be initialized with search value and assign attrs")
 	}
 
 	db.Save(&User{Name: "find or init", Age: 33})
-
 	db.Where(&User{Name: "find or init"}).Attrs("age", 44).FirstOrInit(&user5)
 	if user5.Name != "find or init" || user5.Id == 0 || user5.Age != 33 {
 		t.Errorf("user should be found and not initialized by Attrs")
@@ -1013,7 +982,7 @@ func TestFindOrCreate(t *testing.T) {
 	}
 
 	db.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user2)
-	if user2.Name != "find or create" || user2.Id == 0 || user2.Age != 33 {
+	if user1.Id != user2.Id || user2.Name != "find or create" || user2.Id == 0 || user2.Age != 33 {
 		t.Errorf("user should be created with search value")
 	}
 
