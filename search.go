@@ -3,6 +3,7 @@ package gorm
 import "strconv"
 
 type search struct {
+	db          *DB
 	whereClause []map[string]interface{}
 	orClause    []map[string]interface{}
 	notClause   []map[string]interface{}
@@ -12,6 +13,7 @@ type search struct {
 	selectStr   string
 	offsetStr   string
 	limitStr    string
+	tableName   string
 	unscope     bool
 }
 
@@ -87,6 +89,11 @@ func (s *search) offset(value interface{}) *search {
 
 func (s *search) unscoped() *search {
 	s.unscope = true
+	return s
+}
+
+func (s *search) table(name string) *search {
+	s.tableName = name
 	return s
 }
 

@@ -14,7 +14,7 @@ import (
 
 type Do struct {
 	chain              *Chain
-	db                 sqlCommon
+	db                 *DB
 	guessedTableName   string
 	specifiedTableName string
 	startedTransaction bool
@@ -730,6 +730,14 @@ func (s *Do) commit_or_rollback() {
 			}
 		}
 	}
+}
+
+func (s *Do) initialize() {
+	// TODO initializeWithSearchCondition
+}
+
+func (s *Do) updateAttrs_() {
+	// TODO return false if no updates
 }
 
 func (s *Do) initializeWithSearchCondition() {

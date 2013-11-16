@@ -71,16 +71,6 @@ func (s *Chain) Model(model interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) Where(querystring interface{}, args ...interface{}) *Chain {
-	s.whereClause = append(s.whereClause, map[string]interface{}{"query": querystring, "args": args})
-	return s
-}
-
-func (s *Chain) Not(querystring interface{}, args ...interface{}) *Chain {
-	s.notClause = append(s.notClause, map[string]interface{}{"query": querystring, "args": args})
-	return s
-}
-
 func (s *Chain) Limit(value interface{}) *Chain {
 	if str, err := getInterfaceAsString(value); err == nil {
 		s.limitStr = str
@@ -151,16 +141,6 @@ func (s *Chain) Exec(sql string) *Chain {
 	return s
 }
 
-func (s *Chain) First(out interface{}, where ...interface{}) *Chain {
-	s.do(out).where(where...).first()
-	return s
-}
-
-func (s *Chain) Last(out interface{}, where ...interface{}) *Chain {
-	s.do(out).where(where...).last()
-	return s
-}
-
 func (s *Chain) Attrs(attrs ...interface{}) *Chain {
 	s.initAttrs = append(s.initAttrs, toSearchableMap(attrs...))
 	return s
@@ -196,18 +176,8 @@ func (s *Chain) FirstOrCreate(out interface{}, where ...interface{}) *Chain {
 	return s
 }
 
-func (s *Chain) Find(out interface{}, where ...interface{}) *Chain {
-	s.do(out).where(where...).query()
-	return s
-}
-
 func (s *Chain) Pluck(column string, value interface{}) (orm *Chain) {
 	s.do(s.value).pluck(column, value)
-	return s
-}
-
-func (s *Chain) Or(querystring interface{}, args ...interface{}) *Chain {
-	s.orClause = append(s.orClause, map[string]interface{}{"query": querystring, "args": args})
 	return s
 }
 
