@@ -82,17 +82,17 @@ func (s *DB) Unscoped() *DB {
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	s.clone().search.limit(1).where(where[0], where[1:]).db.do(out).first()
+	s.clone().do(out).where(where...).first()
 	return s
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	s.clone().search.limit(1).where(where[0], where[1:]).db.do(out).last()
+	s.clone().do(out).where(where...).last()
 	return s
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	s.clone().search.where(where[0], where[1:]).db.do(out).query()
+	s.clone().do(out).where(where...).query()
 	return s
 }
 

@@ -13,7 +13,9 @@ func (s *DB) clone() *DB {
 
 func (s *DB) do(data interface{}) *Do {
 	s.data = data
-	return &Do{db: s}.setModel(data)
+	do := Do{db: s}
+	do.setModel(data)
+	return &do
 }
 
 func (s *DB) err(err error) error {

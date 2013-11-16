@@ -100,7 +100,7 @@ func (m *Model) columnsHasValue(operation string) (fields []*Field) {
 	return
 }
 
-func (m *Model) updatedColumnsAndValues(values map[string]interface{}) (results map[string]interface{}, any_updated bool) {
+func (m *Model) updatedColumnsAndValues(values map[string]interface{}, ignore_protected_attrs bool) (results map[string]interface{}, any_updated bool) {
 	if m.data == nil {
 		return values, true
 	}
