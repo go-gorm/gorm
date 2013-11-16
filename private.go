@@ -6,14 +6,15 @@ import (
 )
 
 func (s *DB) clone() *DB {
-	db := &DB{db: s.db, parent: s.parent}
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, data: s.data, Error: s.Error}
+
 	if s.parent.search == nil {
 		db.search = &search{}
 	} else {
 		db.search = s.parent.search.clone()
 	}
-	db.search.db = db
-	return db
+	db.search.db = &db
+	return &db
 }
 
 func (s *DB) do(data interface{}) *Do {

@@ -42,7 +42,7 @@ func (s *DB) SetLogger(l Logger) {
 }
 
 func (s *DB) LogMode(b bool) {
-	s.parent.logMode = b
+	s.logMode = b
 }
 
 func (s *DB) SingularTable(b bool) {
@@ -132,17 +132,17 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
-	s.do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback()
+	s.clone().do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback()
 	return s
 }
 
 func (s *DB) Save(value interface{}) *DB {
-	s.do(value).begin().save().commit_or_rollback()
+	s.clone().do(value).begin().save().commit_or_rollback()
 	return s
 }
 
 func (s *DB) Delete(value interface{}) *DB {
-	s.do(value).begin().delete().commit_or_rollback()
+	s.clone().do(value).begin().delete().commit_or_rollback()
 	return s
 }
 
@@ -178,8 +178,9 @@ func (s *DB) Table(name string) *DB {
 
 // Debug
 func (s *DB) Debug() *DB {
-	s.logMode = true
-	return s
+	c := s.clone()
+	c.logMode = true
+	return c
 }
 
 // Transactions
