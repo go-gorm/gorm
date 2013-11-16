@@ -24,8 +24,7 @@ func (m *Model) primaryKeyZero() bool {
 
 func (m *Model) primaryKeyValue() interface{} {
 	if data := m.reflectData(); data.Kind() == reflect.Struct {
-		field := data.FieldByName(m.primaryKey())
-		if data.FieldByName(m.primaryKey()).IsValid() {
+		if field := data.FieldByName(m.primaryKey()); field.IsValid() {
 			return field.Interface()
 		}
 	}
@@ -133,7 +132,7 @@ func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 	results := map[string]interface{}{}
 
 	for _, field := range m.fields(operation) {
-		if !field.isPrimaryKey && (len(field.sqlTag()) > 0) {
+		if !field.isPrimaryKey && len(field.sqlTag()) > 0 {
 			results[field.dbName] = field.Value
 		}
 	}
@@ -141,9 +140,7 @@ func (m *Model) columnsAndValues(operation string) map[string]interface{} {
 }
 
 func (m *Model) hasColumn(name string) bool {
-	data := m.reflectData()
-
-	if data.Kind() == reflect.Struct {
+	if data := m.reflectData(); data.Kind() == reflect.Struct {
 		return data.FieldByName(name).IsValid()
 	} else if data.Kind() == reflect.Slice {
 		return reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
@@ -152,9 +149,7 @@ func (m *Model) hasColumn(name string) bool {
 }
 
 func (m *Model) columnAndValue(name string) (has_column bool, is_slice bool, value interface{}) {
-	data := m.reflectData()
-
-	if data.Kind() == reflect.Struct {
+	if data := m.reflectData(); data.Kind() == reflect.Struct {
 		if has_column = data.FieldByName(name).IsValid(); has_column {
 			value = data.FieldByName(name).Interface()
 		}
@@ -165,13 +160,17 @@ func (m *Model) columnAndValue(name string) (has_column bool, is_slice bool, val
 	return
 }
 
-func (m *Model) typeName() string {
+func (m *Model) typ() reflect.Type {
 	typ := m.reflectData().Type()
 	if typ.Kind() == reflect.Slice {
-		return typ.Elem().Name()
+		return typ.Elem()
 	} else {
-		return typ.Name()
+		return typ
 	}
+}
+
+func (m *Model) typeName() string {
+	return m.typ().Name()
 }
 
 func (m *Model) tableName() (str string) {
