@@ -6,7 +6,12 @@ import (
 )
 
 func (s *DB) clone() *DB {
-	db := &DB{db: s.db, parent: s.parent, search: s.parent.search.clone()}
+	db := &DB{db: s.db, parent: s.parent}
+	if s.parent.search == nil {
+		db.search = &search{}
+	} else {
+		db.search = s.parent.search.clone()
+	}
 	db.search.db = db
 	return db
 }

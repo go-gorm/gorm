@@ -61,9 +61,9 @@ func (f *Field) sqlTag() (str string) {
 
 	if len(typ) == 0 {
 		if f.isPrimaryKey {
-			typ = f.model.do.db.dialect.PrimaryKeyTag(value, size)
+			typ = f.model.do.dialect().PrimaryKeyTag(value, size)
 		} else {
-			typ = f.model.do.db.dialect.SqlTag(value, size)
+			typ = f.model.do.dialect().SqlTag(value, size)
 		}
 	}
 

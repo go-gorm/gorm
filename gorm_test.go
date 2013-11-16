@@ -147,7 +147,7 @@ func init() {
 func TestSaveAndFind(t *testing.T) {
 	name := "save_and_find"
 	u := &User{Name: name, Age: 1}
-	db.Save(u)
+	db.Debug().Save(u)
 	if u.Id == 0 {
 		t.Errorf("Should have ID after create record")
 	}

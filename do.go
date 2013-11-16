@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm/dialect"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -37,6 +38,10 @@ func (s *Do) table() string {
 	return s.tableName
 }
 
+func (s *Do) dialect() dialect.Dialect {
+	return s.db.parent.dialect
+}
+
 func (s *Do) err(err error) error {
 	if err != nil {
 		s.db.err(err)
@@ -57,7 +62,7 @@ func (s *Do) setModel(value interface{}) *Do {
 
 func (s *Do) addToVars(value interface{}) string {
 	s.sqlVars = append(s.sqlVars, value)
-	return fmt.Sprintf(s.db.dialect.BinVar(), len(s.sqlVars))
+	return fmt.Sprintf(s.dialect().BinVar(), len(s.sqlVars))
 }
 
 func (s *Do) trace(t time.Time) {
@@ -97,7 +102,7 @@ func (s *Do) prepareCreateSql() {
 		s.table(),
 		strings.Join(columns, ","),
 		strings.Join(sqls, ","),
-		s.db.dialect.ReturningStr(s.model.primaryKeyDb()),
+		s.dialect().ReturningStr(s.model.primaryKeyDb()),
 	)
 	return
 }
@@ -173,7 +178,7 @@ func (s *Do) create() (i interface{}) {
 		var id interface{}
 
 		now := time.Now()
-		if s.db.dialect.SupportLastInsertId() {
+		if s.dialect().SupportLastInsertId() {
 			if sql_result, err := s.db.db.Exec(s.sql, s.sqlVars...); s.err(err) == nil {
 				id, err = sql_result.LastInsertId()
 				s.err(err)
