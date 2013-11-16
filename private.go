@@ -29,13 +29,13 @@ func (s *DB) hasError() bool {
 }
 
 func (s *DB) print(level string, v ...interface{}) {
-	if s.d.logMode || s.debug_mode || level == "debug" {
-		if _, ok := s.d.logger.(Logger); !ok {
+	if s.logMode || level == "debug" {
+		if _, ok := s.parent.logger.(Logger); !ok {
 			fmt.Println("logger haven't been set, using os.Stdout")
-			s.d.logger = default_logger
+			s.parent.logger = default_logger
 		}
 		args := []interface{}{level}
-		s.d.logger.(Logger).Print(append(args, v...)...)
+		s.parent.logger.(Logger).Print(append(args, v...)...)
 	}
 }
 

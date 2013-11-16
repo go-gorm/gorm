@@ -109,7 +109,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 		s.clone().do(out).where(where).initialize()
 	} else {
 		if len(s.search.assignAttrs) > 0 {
-			s.do(out).updateAttrs(s.assignAttrs) //updated or not
+			s.do(out).updateAttrs(s.search.assignAttrs) //updated or not
 		}
 	}
 	return s
@@ -127,13 +127,22 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	return s
 }
 
+func (s *DB) Update(attrs ...interface{}) *DB {
+	return s.Updates(toSearchableMap(attrs...), true)
+}
+
+func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
+	s.do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback()
+	return s
+}
+
 func (s *DB) Save(value interface{}) *DB {
 	s.do(value).begin().save().commit_or_rollback()
 	return s
 }
 
 func (s *DB) Delete(value interface{}) *DB {
-	s.do(value).bengin().delete(value).commit_or_rollback()
+	s.do(value).begin().delete().commit_or_rollback()
 	return s
 }
 
