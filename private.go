@@ -8,11 +8,12 @@ import (
 func (s *DB) clone() *DB {
 	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, data: s.data, Error: s.Error}
 
-	if s.parent.search == nil {
+	if s.search == nil {
 		db.search = &search{}
 	} else {
-		db.search = s.parent.search.clone()
+		db.search = s.search.clone()
 	}
+
 	db.search.db = &db
 	return &db
 }

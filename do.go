@@ -18,6 +18,7 @@ type Do struct {
 	search               *search
 	model                *Model
 	tableName            string
+	usingUpdate          bool
 	value                interface{}
 	update_attrs         map[string]interface{}
 	hasUpdate            bool
@@ -69,7 +70,7 @@ func (s *Do) trace(t time.Time) {
 	s.db.slog(s.sql, t, s.sqlVars...)
 }
 
-func (s *Do) exec(sqls ...string) {
+func (s *Do) exec(sqls ...string) *Do {
 	defer s.trace(time.Now())
 	if !s.db.hasError() {
 		if len(sqls) > 0 {
@@ -78,6 +79,7 @@ func (s *Do) exec(sqls ...string) {
 		_, err := s.db.db.Exec(s.sql, s.sqlVars...)
 		s.err(err)
 	}
+	return s
 }
 
 func (s *Do) save() *Do {
@@ -203,6 +205,7 @@ func (s *Do) create() (i interface{}) {
 
 func (s *Do) updateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do {
 	ignore_protected := len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
+	s.usingUpdate = true
 
 	switch value := values.(type) {
 	case map[string]interface{}:
@@ -210,9 +213,8 @@ func (s *Do) updateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do
 			results, has_update := s.model.updatedColumnsAndValues(value, ignore_protected)
 			if len(results) > 0 {
 				s.update_attrs = results
-			} else if has_update {
-				s.hasUpdate = has_update
 			}
+			s.hasUpdate = has_update
 		}
 	case []interface{}:
 		for _, v := range value {
@@ -226,8 +228,6 @@ func (s *Do) updateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do
 		}
 		s.updateAttrs(attrs)
 	}
-
-	s.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
 	return s
 }
 
@@ -251,6 +251,10 @@ func (s *Do) prepareUpdateSql() {
 }
 
 func (s *Do) update() *Do {
+	if s.usingUpdate && !s.hasUpdate {
+		return s
+	}
+
 	s.model.callMethod("BeforeUpdate")
 	s.model.callMethod("BeforeSave")
 	s.saveBeforeAssociations()
@@ -288,14 +292,16 @@ func (s *Do) prepareQuerySql() {
 	return
 }
 
-func (s *Do) first() {
-	s.search.order(s.model.primaryKeyDb()).limit(1)
+func (s *Do) first() *Do {
+	s.search = s.search.clone().order(s.model.primaryKeyDb()).limit(1)
 	s.query()
+	return s
 }
 
-func (s *Do) last() {
-	s.search.order(s.model.primaryKeyDb() + " DESC").limit(1)
+func (s *Do) last() *Do {
+	s.search = s.search.clone().order(s.model.primaryKeyDb() + " DESC").limit(1)
 	s.query()
+	return s
 }
 
 func (s *Do) getForeignKey(from *Model, to *Model, foreign_key string) (err error, from_from bool, foreign_value interface{}) {
@@ -314,7 +320,7 @@ func (s *Do) getForeignKey(from *Model, to *Model, foreign_key string) (err erro
 	return
 }
 
-func (s *Do) related(value interface{}, foreign_keys ...string) {
+func (s *Do) related(value interface{}, foreign_keys ...string) *Do {
 	var foreign_value interface{}
 	var from_from bool
 	var foreign_key string
@@ -338,9 +344,10 @@ func (s *Do) related(value interface{}, foreign_keys ...string) {
 		query := fmt.Sprintf("%v = %v", toSnake(foreign_key), s.addToVars(foreign_value))
 		s.where(query).query()
 	}
+	return s
 }
 
-func (s *Do) query() {
+func (s *Do) query() *Do {
 	var (
 		is_slice  bool
 		dest_type reflect.Type
@@ -351,7 +358,7 @@ func (s *Do) query() {
 		is_slice = true
 		dest_type = dest_out.Type().Elem()
 	} else {
-		s.search.limit(1)
+		s.search = s.search.clone().limit(1)
 	}
 
 	s.prepareQuerySql()
@@ -361,7 +368,7 @@ func (s *Do) query() {
 		s.db.slog(s.sql, now, s.sqlVars...)
 
 		if s.err(err) != nil {
-			return
+			return s
 		}
 
 		defer rows.Close()
@@ -395,23 +402,26 @@ func (s *Do) query() {
 			s.err(RecordNotFound)
 		}
 	}
+	return s
 }
 
-func (s *Do) count(value interface{}) {
+func (s *Do) count(value interface{}) *Do {
+	s.search = s.search.clone().selects("count(*)")
 	s.prepareQuerySql()
 	if !s.db.hasError() {
 		now := time.Now()
 		s.err(s.db.db.QueryRow(s.sql, s.sqlVars...).Scan(value))
 		s.db.slog(s.sql, now, s.sqlVars...)
 	}
+	return s
 }
 
-func (s *Do) pluck(column string, value interface{}) {
+func (s *Do) pluck(column string, value interface{}) *Do {
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
-
+	s.search = s.search.clone().selects(column)
 	if dest_out.Kind() != reflect.Slice {
 		s.err(errors.New("Results should be a slice"))
-		return
+		return s
 	}
 
 	s.prepareQuerySql()
@@ -430,6 +440,7 @@ func (s *Do) pluck(column string, value interface{}) {
 			}
 		}
 	}
+	return s
 }
 
 func (s *Do) primaryCondiation(value interface{}) string {
@@ -474,7 +485,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			values := reflect.ValueOf(arg)
 			var temp_marks []string
 			for i := 0; i < values.Len(); i++ {
-				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Addr().Interface()))
+				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Interface()))
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
@@ -533,7 +544,7 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 			values := reflect.ValueOf(arg)
 			var temp_marks []string
 			for i := 0; i < values.Len(); i++ {
-				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Addr().Interface()))
+				temp_marks = append(temp_marks, s.addToVars(values.Index(i).Interface()))
 			}
 			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
 		default:
@@ -544,6 +555,13 @@ func (s *Do) buildNotCondition(clause map[string]interface{}) (str string) {
 		}
 	}
 	return
+}
+
+func (s *Do) where(where ...interface{}) *Do {
+	if len(where) > 0 {
+		s.search = s.search.clone().where(where[0], where[1:]...)
+	}
+	return s
 }
 
 func (s *Do) whereSql() (sql string) {
@@ -709,7 +727,7 @@ func (s *Do) begin() *Do {
 	return s
 }
 
-func (s *Do) commit_or_rollback() {
+func (s *Do) commit_or_rollback() *Do {
 	if s.startedTransaction {
 		if db, ok := s.db.db.(sqlTx); ok {
 			if s.db.hasError() {
@@ -717,47 +735,21 @@ func (s *Do) commit_or_rollback() {
 			} else {
 				db.Commit()
 			}
+			s.db.db = s.db.parent.db
 		}
-	}
-}
-
-func (s *Do) where(where ...interface{}) *Do {
-	if len(where) > 0 {
-		s.search.where(where[0], where[1:])
 	}
 	return s
 }
 
-func (s *Do) initialize() {
-	// TODO initializeWithSearchCondition
-}
-
-func (s *Do) initializeWithSearchCondition() {
+func (s *Do) initialize() *Do {
 	for _, clause := range s.search.whereClause {
-		switch value := clause["query"].(type) {
-		case map[string]interface{}:
-			for k, v := range value {
-				s.model.setValueByColumn(k, v, s.value)
-			}
-		case []interface{}:
-			for _, obj := range value {
-				switch reflect.ValueOf(obj).Kind() {
-				case reflect.Struct:
-					m := &Model{data: obj, do: s}
-					for _, field := range m.columnsHasValue("other") {
-						s.model.setValueByColumn(field.dbName, field.Value, s.value)
-					}
-				case reflect.Map:
-					for key, value := range obj.(map[string]interface{}) {
-						s.model.setValueByColumn(key, value, s.value)
-					}
-				}
-			}
-		case interface{}:
-			m := &Model{data: value, do: s}
-			for _, field := range m.columnsHasValue("other") {
-				s.model.setValueByColumn(field.dbName, field.Value, s.value)
-			}
-		}
+		s.updateAttrs(clause["query"])
 	}
+	for _, attrs := range s.search.initAttrs {
+		s.updateAttrs(attrs)
+	}
+	for _, attrs := range s.search.assignAttrs {
+		s.updateAttrs(attrs)
+	}
+	return s
 }

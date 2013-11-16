@@ -41,8 +41,9 @@ func (s *DB) SetLogger(l Logger) {
 	s.parent.logger = l
 }
 
-func (s *DB) LogMode(b bool) {
+func (s *DB) LogMode(b bool) *DB {
 	s.logMode = b
+	return s
 }
 
 func (s *DB) SingularTable(b bool) {
@@ -54,7 +55,7 @@ func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 }
 
 func (s *DB) Or(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.where(query, args...).db
+	return s.clone().search.or(query, args...).db
 }
 
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
@@ -82,18 +83,15 @@ func (s *DB) Unscoped() *DB {
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	s.clone().do(out).where(where...).first()
-	return s
+	return s.clone().do(out).where(where...).first().db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	s.clone().do(out).where(where...).last()
-	return s
+	return s.clone().do(out).where(where...).last().db
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	s.clone().do(out).where(where...).query()
-	return s
+	return s.clone().do(out).where(where...).query().db
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
@@ -105,23 +103,22 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 }
 
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
-	if s.First(out, where...).Error != nil {
-		s.clone().do(out).where(where).initialize()
+	if s.clone().First(out, where...).Error != nil {
+		return s.clone().do(out).where(where).initialize().db
 	} else {
 		if len(s.search.assignAttrs) > 0 {
-			s.do(out).updateAttrs(s.search.assignAttrs) //updated or not
+			return s.clone().do(out).updateAttrs(s.search.assignAttrs).db
 		}
 	}
 	return s
 }
 
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
-	if s.First(out, where...).Error != nil {
-		s.clone().do(out).where(where...).initialize()
-		s.Save(out)
+	if s.clone().First(out, where...).Error != nil {
+		return s.clone().do(out).where(where...).initialize().db.Save(out)
 	} else {
 		if len(s.search.assignAttrs) > 0 {
-			s.do(out).updateAttrs(s.search.assignAttrs).update()
+			return s.clone().do(out).updateAttrs(s.search.assignAttrs).update().db
 		}
 	}
 	return s
@@ -132,23 +129,19 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
-	s.clone().do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback()
-	return s
+	return s.clone().do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback().db
 }
 
 func (s *DB) Save(value interface{}) *DB {
-	s.clone().do(value).begin().save().commit_or_rollback()
-	return s
+	return s.clone().do(value).begin().save().commit_or_rollback().db
 }
 
 func (s *DB) Delete(value interface{}) *DB {
-	s.clone().do(value).begin().delete().commit_or_rollback()
-	return s
+	return s.clone().do(value).begin().delete().commit_or_rollback().db
 }
 
 func (s *DB) Exec(sql string) *DB {
-	s.do(nil).exec(sql)
-	return s
+	return s.do(nil).exec(sql).db
 }
 
 func (s *DB) Model(value interface{}) *DB {
@@ -158,18 +151,16 @@ func (s *DB) Model(value interface{}) *DB {
 }
 
 func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
-	s.clone().do(value).related(s.data, foreign_keys...)
-	return s
+	old_data := s.data
+	return s.do(value).related(old_data, foreign_keys...).db
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
-	s.clone().search.selects(column).db.do(s.data).pluck(column, value)
-	return s
+	return s.do(s.data).pluck(column, value).db
 }
 
 func (s *DB) Count(value interface{}) *DB {
-	s.clone().search.selects("count(*)").db.do(s.data).count(value)
-	return s
+	return s.do(s.data).count(value).db
 }
 
 func (s *DB) Table(name string) *DB {
@@ -178,9 +169,7 @@ func (s *DB) Table(name string) *DB {
 
 // Debug
 func (s *DB) Debug() *DB {
-	c := s.clone()
-	c.logMode = true
-	return c
+	return s.clone().LogMode(true)
 }
 
 // Transactions

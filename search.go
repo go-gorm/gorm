@@ -1,6 +1,10 @@
 package gorm
 
-import "strconv"
+import (
+	"regexp"
+
+	"strconv"
+)
 
 type search struct {
 	db          *DB
@@ -29,6 +33,7 @@ func (s *search) clone() *search {
 		offsetStr:   s.offsetStr,
 		limitStr:    s.limitStr,
 		unscope:     s.unscope,
+		tableName:   s.tableName,
 	}
 }
 
@@ -67,23 +72,17 @@ func (s *search) order(value string, reorder ...bool) *search {
 }
 
 func (s *search) selects(value interface{}) *search {
-	if str, err := getInterfaceAsString(value); err == nil {
-		s.selectStr = str
-	}
+	s.selectStr = s.getInterfaceAsSql(value)
 	return s
 }
 
 func (s *search) limit(value interface{}) *search {
-	if str, err := getInterfaceAsString(value); err == nil {
-		s.limitStr = str
-	}
+	s.limitStr = s.getInterfaceAsSql(value)
 	return s
 }
 
 func (s *search) offset(value interface{}) *search {
-	if str, err := getInterfaceAsString(value); err == nil {
-		s.offsetStr = str
-	}
+	s.offsetStr = s.getInterfaceAsSql(value)
 	return s
 }
 
@@ -97,7 +96,7 @@ func (s *search) table(name string) *search {
 	return s
 }
 
-func getInterfaceAsString(value interface{}) (str string, err error) {
+func (s *search) getInterfaceAsSql(value interface{}) (str string) {
 	switch value := value.(type) {
 	case string:
 		str = value
@@ -108,7 +107,11 @@ func getInterfaceAsString(value interface{}) (str string, err error) {
 			str = strconv.Itoa(value)
 		}
 	default:
-		err = InvalidSql
+		s.db.err(InvalidSql)
+	}
+
+	if !regexp.MustCompile("^\\s*[\\w\\s,.*()]*\\s*$").MatchString(str) {
+		s.db.err(InvalidSql)
 	}
 	return
 }
