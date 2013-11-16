@@ -1,10 +1,10 @@
 package gorm
 
 import (
-	"errors"
-
 	"database/sql"
+	"errors"
 )
+
 import "github.com/jinzhu/gorm/dialect"
 
 type DB struct {
@@ -47,29 +47,6 @@ func (s *DB) LogMode(b bool) {
 
 func (s *DB) SingularTable(b bool) {
 	s.parent.singularTable = b
-}
-
-func (s *DB) clone() *DB {
-	db := &DB{db: s.db, parent: s.parent, search: s.parent.search.clone()}
-	db.search.db = db
-	return db
-}
-
-func (s *DB) do(data interface{}) *Do {
-	s.data = data
-	return &Do{db: s}
-}
-
-func (s *DB) err(err error) error {
-	if err != nil {
-		s.Error = err
-		s.warn(err)
-	}
-	return err
-}
-
-func (s *DB) hasError() bool {
-	return s.Error != nil
 }
 
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
@@ -172,22 +149,22 @@ func (s *DB) Model(value interface{}) *DB {
 }
 
 func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
-	s.clone().do(value).related(s.value, foreign_keys...)
+	s.clone().do(value).related(s.data, foreign_keys...)
 	return s
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
-	s.clone().search.selects(column).do(s.value).pluck(column, value)
+	s.clone().search.selects(column).db.do(s.data).pluck(column, value)
 	return s
 }
 
 func (s *DB) Count(value interface{}) *DB {
-	s.clone().search.selects("count(*)").do(s.value).count(value)
+	s.clone().search.selects("count(*)").db.do(s.data).count(value)
 	return s
 }
 
 func (s *DB) Table(name string) *DB {
-	return s.clone().table(name).db
+	return s.clone().search.table(name).db
 }
 
 // Debug

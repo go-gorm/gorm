@@ -41,30 +41,3 @@ func init() {
 	// default_logger = log.New(os.Stdout, "\r\n", 0)
 	default_logger = defaultLogger{log.New(os.Stdout, "\r\n", 0)}
 }
-
-func (s *Chain) print(level string, v ...interface{}) {
-	if s.d.logMode || s.debug_mode || level == "debug" {
-		if _, ok := s.d.logger.(Logger); !ok {
-			fmt.Println("logger haven't been set, using os.Stdout")
-			s.d.logger = default_logger
-		}
-		args := []interface{}{level}
-		s.d.logger.(Logger).Print(append(args, v...)...)
-	}
-}
-
-func (s *Chain) warn(v ...interface{}) {
-	go s.print("warn", v...)
-}
-
-func (s *Chain) info(v ...interface{}) {
-	go s.print("info", v...)
-}
-
-func (s *Chain) slog(sql string, t time.Time, vars ...interface{}) {
-	go s.print("sql", time.Now().Sub(t), sql, vars)
-}
-
-func (s *Chain) debug(v ...interface{}) {
-	go s.print("debug", v...)
-}
