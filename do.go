@@ -13,13 +13,16 @@ import (
 )
 
 type Do struct {
-	db                 *DB
-	model              *Model
-	tableName          string
-	value              interface{}
-	sql                string
-	sqlVars            []interface{}
-	startedTransaction bool
+	db                   *DB
+	model                *Model
+	tableName            string
+	value                interface{}
+	update_attrs         map[string]interface{}
+	hasUpdate            bool
+	ignoreProtectedAttrs bool
+	sql                  string
+	sqlVars              []interface{}
+	startedTransaction   bool
 }
 
 func (s *Do) table() string {
@@ -187,20 +190,28 @@ func (s *Do) create() (i interface{}) {
 	return
 }
 
-func (s *Do) setUpdateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do {
-	switch vs := values.(type) {
+func (s *Do) updateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do {
+	switch value := values.(type) {
 	case map[string]interface{}:
-		s.updateAttrs = vs
+		if len(value) > 0 {
+			results, has_update := s.model.updatedColumnsAndValues(value)
+			if len(results) > 0 {
+				s.update_attrs = results
+			} else if has_update {
+				s.hasUpdate = has_update
+			}
+		}
 	case []interface{}:
-		for _, value := range vs {
-			s.setUpdateAttrs(value, ignore_protected_attrs...)
+		for _, v := range value {
+			s.updateAttrs(v)
 		}
 	case interface{}:
 		m := &Model{data: values, do: s}
-		s.updateAttrs = map[string]interface{}{}
+		attrs := map[string]interface{}{}
 		for _, field := range m.columnsHasValue("other") {
-			s.updateAttrs[field.dbName] = field.Value
+			attrs[field.dbName] = field.Value
 		}
+		s.updateAttrs(attrs)
 	}
 
 	s.ignoreProtectedAttrs = len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
