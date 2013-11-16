@@ -58,7 +58,7 @@ func (s *Do) setModel(value interface{}) *Do {
 
 func (s *Do) addToVars(value interface{}) string {
 	s.sqlVars = append(s.sqlVars, value)
-	return fmt.Sprintf(s.dialect().BinVar(), len(s.sqlVars))
+	return s.dialect().BinVar(len(s.sqlVars))
 }
 
 func (s *Do) trace(t time.Time) {

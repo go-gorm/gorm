@@ -8,7 +8,7 @@ import (
 
 type mysql struct{}
 
-func (s *mysql) BinVar() string {
+func (s *mysql) BinVar(i int) string {
 	return "?"
 }
 

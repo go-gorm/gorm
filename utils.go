@@ -3,7 +3,6 @@ package gorm
 import (
 	"bytes"
 	"database/sql"
-	"fmt"
 
 	"reflect"
 	"strconv"
@@ -97,9 +96,4 @@ func isBlank(value reflect.Value) bool {
 		}
 	}
 	return false
-}
-
-func debug(values ...interface{}) {
-	fmt.Println("*****************")
-	fmt.Println(values)
 }

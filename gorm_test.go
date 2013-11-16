@@ -96,8 +96,7 @@ func init() {
 
 	db.SetPool(10)
 
-	err = db.DropTable(&User{}).Error
-	if err != nil {
+	if err := db.DropTable(&User{}).Error; err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
 

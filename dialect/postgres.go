@@ -9,8 +9,8 @@ import (
 type postgres struct {
 }
 
-func (s *postgres) BinVar() string {
-	return "$%v"
+func (s *postgres) BinVar(i int) string {
+	return fmt.Sprintf("$%v", i)
 }
 
 func (s *postgres) SupportLastInsertId() bool {
