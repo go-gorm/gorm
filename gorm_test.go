@@ -1354,11 +1354,14 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
-func (s *CreditCard) BeforeSave() (err error) {
-	if s.Number == "0000" {
-		err = errors.New("invalid credit card")
+func TestQueryChain(t *testing.T) {
+	var user_count1, user_count2 int64
+	d := db.Model(User{}).Where("age > ?", 20)
+	d.Where("name = ?", "3").Count(&user_count1)
+	d.Count(&user_count2)
+	if user_count2 == user_count1 {
+		t.Error("DB object should be cloned when search")
 	}
-	return
 }
 
 func BenchmarkGorm(b *testing.B) {

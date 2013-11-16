@@ -710,6 +710,12 @@ db.Where("created_at > ?", "2013-10-10").Find(&cancelled_orders, "state = ?", "c
 //// SELECT * FROM orders WHERE created_at > '2013/10/10' AND state = 'shipped'; (shipped_orders)
 
 
+// Use variable to keep query chain
+todays_orders := db.Where("created_at > ?", "2013-10-29")
+cancelled_orders := todays_orders.Where("state = ?", "cancelled")
+shipped_orders := todays_orders.Where("state = ?", "shipped")
+
+
 // Search with shared conditions from different tables
 db.Where("product_name = ?", "fancy_product").Find(&orders).Find(&shopping_carts)
 //// SELECT * FROM orders WHERE product_name = 'fancy_product'; (orders)
