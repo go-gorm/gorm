@@ -3,8 +3,7 @@ package gorm
 import (
 	"bytes"
 	"database/sql"
-	"errors"
-	"fmt"
+
 	"reflect"
 	"strconv"
 	"strings"
@@ -46,22 +45,6 @@ func toSearchableMap(attrs ...interface{}) (result interface{}) {
 		if attr, ok := attrs[0].(interface{}); ok {
 			result = attr
 		}
-	}
-	return
-}
-
-func getInterfaceAsString(value interface{}) (str string, err error) {
-	switch value := value.(type) {
-	case string:
-		str = value
-	case int:
-		if value < 0 {
-			str = ""
-		} else {
-			str = strconv.Itoa(value)
-		}
-	default:
-		err = errors.New(fmt.Sprintf("Can't understand %v", value))
 	}
 	return
 }
