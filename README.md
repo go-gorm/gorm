@@ -678,6 +678,23 @@ db.LogMode(false)
 db.Debug().Where("name = ?", "jinzhu").First(&User{})
 ```
 
+## Row & Rows
+
+Row & Rows is not chainable, it works just like `QueryRow` and `Query`
+
+```go
+row := db.Where("name = ?", "jinzhu").select("name, age").Row() // (*sql.Row)
+row.Scan(&name, &age)
+
+rows, err := db.Where("name = ?", "jinzhu").select("name, age, email").Rows() // (*sql.Rows, error)
+defer rows.Close()
+for rows.Next() {
+  ...
+  rows.Scan(&name, &age, &email)
+  ...
+}
+```
+
 ## Run Raw SQl
 
 ```go
