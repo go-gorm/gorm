@@ -678,7 +678,7 @@ func (s *Do) dropTable() *Do {
 	return s
 }
 
-func (s *Do) updateColumn(column string, typ string) {
+func (s *Do) modifyColumn(column string, typ string) {
 	s.sql = fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", s.table(), column, typ)
 	s.exec()
 }

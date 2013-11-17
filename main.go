@@ -235,8 +235,8 @@ func (s *DB) AutoMigrate(value interface{}) *DB {
 	return s.clone().do(value).autoMigrate().db
 }
 
-func (s *DB) UpdateColumn(column string, typ string) *DB {
-	s.clone().do(s.data).updateColumn(column, typ)
+func (s *DB) ModifyColumn(column string, typ string) *DB {
+	s.clone().do(s.data).modifyColumn(column, typ)
 	return s
 }
 
