@@ -93,6 +93,14 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.clone().do(out).where(where...).query().db
 }
 
+func (s *DB) Row() *sql.Row {
+	return s.do(s.data).row()
+}
+
+func (s *DB) Rows() (*sql.Rows, error) {
+	return s.do(s.data).rows()
+}
+
 func (s *DB) Attrs(attrs ...interface{}) *DB {
 	return s.clone().search.attrs(attrs...).db
 }

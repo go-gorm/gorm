@@ -12,41 +12,51 @@ Yet Another ORM library for Go, aims for developer friendly
 * Transaction
 * Logger Support
 * Bind struct with tag
+* Iteration Support via sql.Rows
+* sql.Scanner
 * Every feature comes with tests
 * Convention Over Configuration
 * Developer Friendly
 
 ## Conventions
 
+* Table name is the plural of struct name's snake case.
+  Disable pluralization with `db.SingularTable(true)`, or [specify your table name](#specify-table-name)
+* Column name is the snake case of field's name.
+* Use `Id int64` field as primary key.
+* Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`.
+* Use `CreatedAt` to store record's created time if it exist.
+* Use `UpdatedAt` to store record's updated time if it exist.
+* Use `DeletedAt` to store record's deleted time if it exist. [Soft Delete](#soft-delete)
+
 ```go
-// TableName: `users`, gorm will pluralize struct's name as table name, you are possible to turn off this feature
 type User struct {
-	Id			 int64	   // Id: Database Primary key
+	Id			 int64
 	Birthday	 time.Time
 	Age			 int64
-	Name		 string  `sql:"size:255"` // set this field's length in database
-	CreatedAt	 time.Time // Time of record is created, will be insert automatically
-	UpdatedAt	 time.Time // Time of record is updated, will be updated automatically
-	DeletedAt	 time.Time // Time of record is deleted, refer `Soft Delete` for more
+	Name		 string  `sql:"size:255"`
+	CreatedAt	 time.Time
+	UpdatedAt	 time.Time
+	DeletedAt	 time.Time
 
 	Emails            []Email         // Embedded structs
 	BillingAddress    Address         // Embedded struct
-	BillingAddressId  sql.NullInt64   // Embedded struct BillingAddress's foreign key
-	ShippingAddress   Address         // Embedded struct
-	ShippingAddressId int64           // Embedded struct ShippingAddress's foreign key
+	BillingAddressId  sql.NullInt64   // BillingAddress's foreign key
+	ShippingAddress   Address         // Another Embedded struct with same type
+	ShippingAddressId int64           // ShippingAddress's foreign key
 	IgnoreMe          int64 `sql:"-"` // Ignore this field
 }
 
-type Email struct {    // TableName: `emails`
+type Email struct {
 	Id         int64
-	UserId     int64   // Foreign key for above embedded structs
-	Email      string  `sql:"type:varchar(100);"` // Set this field's type in database
+	UserId     int64   // Foreign key for User
+	Email      string  `sql:"type:varchar(100);"` // Set this field's type
 	Subscribed bool
 }
 
-type Address struct {  // TableName: `addresses`
+type Address struct {
 	Id       int64
-	Address1 string         `sql:"not null;unique"` // Set this field as not null and unique in database
+	Address1 string         `sql:"not null;unique"` // Set this field as not nullable and unique in database
 	Address2 string         `sql:"type:varchar(100);unique"`
 	Post     sql.NullString `sql:not null`
     // FYI, "NOT NULL" will only works well with NullXXX Scanner, because golang will initalize a default value for most type...
@@ -735,7 +745,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* Rows, Row
 * Cache Stmt for performance
 * Join, Having, Group, Includes
 * Scopes, Valiations

@@ -1364,6 +1364,33 @@ func TestQueryChain(t *testing.T) {
 	}
 }
 
+func TestRow(t *testing.T) {
+	row := db.Table("users").Where("name = ?", "2").Select("age").Row()
+	var age int64
+	row.Scan(&age)
+	if age != 20 {
+		t.Errorf("Scan with Row")
+	}
+}
+
+func TestRows(t *testing.T) {
+	rows, err := db.Table("users").Where("name = ?", "3").Select("name, age").Rows()
+	if err != nil {
+		t.Errorf("Not error should happen, but got", err)
+	}
+
+	count := 0
+	for rows.Next() {
+		var name string
+		var age int64
+		rows.Scan(&name, &age)
+		count++
+	}
+	if count != 2 {
+		t.Errorf("Should found two records with name 3")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {

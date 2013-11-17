@@ -341,6 +341,16 @@ func (s *Do) related(value interface{}, foreign_keys ...string) *Do {
 	return s
 }
 
+func (s *Do) row() *sql.Row {
+	s.prepareQuerySql()
+	return s.db.db.QueryRow(s.sql, s.sqlVars...)
+}
+
+func (s *Do) rows() (*sql.Rows, error) {
+	s.prepareQuerySql()
+	return s.db.db.Query(s.sql, s.sqlVars...)
+}
+
 func (s *Do) query() *Do {
 	defer s.trace(time.Now())
 	var (
@@ -400,12 +410,8 @@ func (s *Do) query() *Do {
 
 func (s *Do) count(value interface{}) *Do {
 	defer s.trace(time.Now())
-
 	s.search = s.search.clone().selects("count(*)")
-	s.prepareQuerySql()
-	if !s.db.hasError() {
-		s.err(s.db.db.QueryRow(s.sql, s.sqlVars...).Scan(value))
-	}
+	s.err(s.row().Scan(value))
 	return s
 }
 
@@ -419,18 +425,13 @@ func (s *Do) pluck(column string, value interface{}) *Do {
 		return s
 	}
 
-	s.prepareQuerySql()
-
-	if !s.db.hasError() {
-		rows, err := s.db.db.Query(s.sql, s.sqlVars...)
-
-		if s.err(err) == nil {
-			defer rows.Close()
-			for rows.Next() {
-				dest := reflect.New(dest_out.Type().Elem()).Interface()
-				s.err(rows.Scan(dest))
-				dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest).Elem()))
-			}
+	rows, err := s.rows()
+	if s.err(err) == nil {
+		defer rows.Close()
+		for rows.Next() {
+			dest := reflect.New(dest_out.Type().Elem()).Interface()
+			s.err(rows.Scan(dest))
+			dest_out.Set(reflect.Append(dest_out, reflect.ValueOf(dest).Elem()))
 		}
 	}
 	return s
