@@ -40,10 +40,6 @@ func (m *Model) primaryKeyDb() string {
 }
 
 func (m *Model) fields(operation string) (fields []*Field) {
-	if len(m._cache_fields[operation]) > 0 {
-		return m._cache_fields[operation]
-	}
-
 	indirect_value := m.reflectData()
 	if !indirect_value.IsValid() {
 		return
@@ -79,14 +75,10 @@ func (m *Model) fields(operation string) (fields []*Field) {
 			field.structField = p
 			field.reflectValue = value
 			field.Value = value.Interface()
+			field.parseAssociation()
 			fields = append(fields, &field)
 		}
 	}
-
-	if len(m._cache_fields) == 0 {
-		m._cache_fields = map[string][]*Field{}
-	}
-	m._cache_fields[operation] = fields
 	return
 }
 
@@ -225,7 +217,6 @@ func (m *Model) setValueByColumn(name string, value interface{}, out interface{}
 
 func (m *Model) beforeAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		field.parseAssociation()
 		if field.beforeAssociation && !field.isBlank() {
 			fields = append(fields, field)
 		}

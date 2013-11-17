@@ -10,18 +10,37 @@ import (
 	"time"
 )
 
-func toSnake(s string) string {
+var toSnakeMap map[string]string
+var toUpperMap map[string]string
+
+func init() {
+	toSnakeMap = map[string]string{}
+	toUpperMap = map[string]string{}
+}
+
+func toSnake(u string) string {
+	if v := toSnakeMap[u]; v != "" {
+		return v
+	}
+
 	buf := bytes.NewBufferString("")
-	for i, v := range s {
+	for i, v := range u {
 		if i > 0 && v >= 'A' && v <= 'Z' {
 			buf.WriteRune('_')
 		}
 		buf.WriteRune(v)
 	}
-	return strings.ToLower(buf.String())
+
+	s := strings.ToLower(buf.String())
+	toSnakeMap[u] = s
+	return s
 }
 
 func snakeToUpperCamel(s string) string {
+	if v := toUpperMap[s]; v != "" {
+		return v
+	}
+
 	buf := bytes.NewBufferString("")
 	for _, v := range strings.Split(s, "_") {
 		if len(v) > 0 {
@@ -29,7 +48,10 @@ func snakeToUpperCamel(s string) string {
 			buf.WriteString(v[1:])
 		}
 	}
-	return buf.String()
+
+	u := buf.String()
+	toUpperMap[s] = u
+	return u
 }
 
 func toSearchableMap(attrs ...interface{}) (result interface{}) {

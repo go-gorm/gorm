@@ -107,7 +107,7 @@ func parseSqlTag(str string) (typ string, addational_typ string, size int) {
 		m := make(map[string]string)
 		for _, value := range tags {
 			v := strings.Split(value, ":")
-			k := strings.Trim(strings.ToUpper(v[0]), " ")
+			k := strings.TrimSpace(strings.ToUpper(v[0]))
 			if len(v) == 2 {
 				m[k] = v[1]
 			} else {
