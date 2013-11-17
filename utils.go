@@ -3,7 +3,6 @@ package gorm
 import (
 	"bytes"
 	"database/sql"
-
 	"reflect"
 	"strconv"
 	"strings"

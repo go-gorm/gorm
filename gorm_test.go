@@ -1365,7 +1365,7 @@ func TestQueryChain(t *testing.T) {
 }
 
 func BenchmarkGorm(b *testing.B) {
-	b.N = 5000
+	b.N = 2000
 	for x := 0; x < b.N; x++ {
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
@@ -1388,7 +1388,7 @@ func BenchmarkRawSql(b *testing.B) {
 	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
 	delete_sql := "DELETE FROM orders WHERE id = $1"
 
-	b.N = 5000
+	b.N = 2000
 	for x := 0; x < b.N; x++ {
 		var id int64
 		e := strconv.Itoa(x) + "benchmark@example.org"

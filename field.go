@@ -13,6 +13,7 @@ type Field struct {
 	Value             interface{}
 	model             *Model
 	dbName            string
+	isBlank           bool
 	isPrimaryKey      bool
 	autoCreateTime    bool
 	autoUpdateTime    bool
@@ -23,8 +24,8 @@ type Field struct {
 	structField       reflect.StructField
 }
 
-func (f *Field) isBlank() bool {
-	return isBlank(f.reflectValue)
+func (f *Field) parseBlank() {
+	f.isBlank = isBlank(f.reflectValue)
 }
 
 func (f *Field) isScanner() bool {

@@ -63,47 +63,65 @@ func getStructs(typ reflect.Type) (fs []reflect.StructField) {
 }
 
 func (m *Model) fields(operation string) (fields []*Field) {
+	if len(m._cache_fields[operation]) > 0 {
+		return m._cache_fields[operation]
+	}
+
 	indirect_value := m.reflectData()
 	if !indirect_value.IsValid() {
 		return
 	}
 
-	for _, filed_struct := range getStructs(indirect_value.Type()) {
-		var field Field
-		field.Name = filed_struct.Name
-		field.dbName = toSnake(filed_struct.Name)
-		field.isPrimaryKey = m.primaryKeyDb() == field.dbName
-		value := indirect_value.FieldByName(filed_struct.Name)
-		field.model = m
+	structs := getStructs(indirect_value.Type())
+	c := make(chan *Field, len(structs))
+	for _, field_struct := range structs {
+		go func(field_struct reflect.StructField, c chan *Field) {
+			var field Field
+			field.Name = field_struct.Name
+			field.dbName = toSnake(field_struct.Name)
+			field.isPrimaryKey = m.primaryKeyDb() == field.dbName
+			value := indirect_value.FieldByName(field_struct.Name)
+			field.model = m
 
-		if time_value, is_time := value.Interface().(time.Time); is_time {
-			field.autoCreateTime = "created_at" == field.dbName
-			field.autoUpdateTime = "updated_at" == field.dbName
+			if time_value, is_time := value.Interface().(time.Time); is_time {
+				field.autoCreateTime = "created_at" == field.dbName
+				field.autoUpdateTime = "updated_at" == field.dbName
 
-			switch operation {
-			case "create":
-				if (field.autoCreateTime || field.autoUpdateTime) && time_value.IsZero() {
-					value.Set(reflect.ValueOf(time.Now()))
-				}
-			case "update":
-				if field.autoUpdateTime {
-					value.Set(reflect.ValueOf(time.Now()))
+				switch operation {
+				case "create":
+					if (field.autoCreateTime || field.autoUpdateTime) && time_value.IsZero() {
+						value.Set(reflect.ValueOf(time.Now()))
+					}
+				case "update":
+					if field.autoUpdateTime {
+						value.Set(reflect.ValueOf(time.Now()))
+					}
 				}
 			}
-		}
-
-		field.structField = filed_struct
-		field.reflectValue = value
-		field.Value = value.Interface()
-		field.parseAssociation()
-		fields = append(fields, &field)
+			field.structField = field_struct
+			field.reflectValue = value
+			field.Value = value.Interface()
+			field.parseAssociation()
+			field.parseBlank()
+			c <- &field
+		}(field_struct, c)
 	}
+
+	for i := 0; i < len(structs); i++ {
+		fields = append(fields, <-c)
+	}
+	close(c)
+
+	if len(m._cache_fields) == 0 {
+		m._cache_fields = map[string][]*Field{}
+	}
+	m._cache_fields[operation] = fields
 	return
 }
 
 func (m *Model) columnsHasValue(operation string) (fields []*Field) {
 	for _, field := range m.fields(operation) {
-		if !field.isBlank() {
+		if !field.isBlank {
 			fields = append(fields, field)
 		}
 	}
@@ -236,7 +254,7 @@ func (m *Model) setValueByColumn(name string, value interface{}, out interface{}
 
 func (m *Model) beforeAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		if field.beforeAssociation && !field.isBlank() {
+		if field.beforeAssociation && !field.isBlank {
 			fields = append(fields, field)
 		}
 	}
@@ -245,7 +263,7 @@ func (m *Model) beforeAssociations() (fields []*Field) {
 
 func (m *Model) afterAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		if field.afterAssociation && !field.isBlank() {
+		if field.afterAssociation && !field.isBlank {
 			fields = append(fields, field)
 		}
 	}

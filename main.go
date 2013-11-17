@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"database/sql"
-
 	"github.com/jinzhu/gorm/dialect"
 )
 
@@ -139,7 +138,7 @@ func (s *DB) Delete(value interface{}) *DB {
 }
 
 func (s *DB) Exec(sql string) *DB {
-	return s.do(nil).exec(sql).db
+	return s.clone().do(nil).exec(sql).db
 }
 
 func (s *DB) Model(value interface{}) *DB {
