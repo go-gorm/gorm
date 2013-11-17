@@ -12,8 +12,8 @@ Yet Another ORM library for Go, aims for developer friendly
 * Transaction
 * Logger Support
 * Bind struct with tag
-* Iteration Support via sql.Rows
-* sql.Scanner
+* Iteration Support via [Rows](#row--rows)
+* sql.Scanner support
 * Every feature comes with tests
 * Convention Over Configuration
 * Developer Friendly
@@ -695,6 +695,20 @@ for rows.Next() {
 }
 ```
 
+## Group & Having
+
+```go
+rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Rows()
+for rows.Next() {
+  ...
+}
+
+rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Rows()
+for rows.Next() {
+  ...
+}
+```
+
 ## Run Raw SQl
 
 ```go
@@ -762,9 +776,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* Cache Stmt for performance
-* Join, Having, Group, Includes
-* Scopes, Valiations
+* Scopes, Valiations, Includes, Joins, UpdateColumn/Columns
 * AlertColumn, DropColumn, AddIndex, RemoveIndex
 
 # Author

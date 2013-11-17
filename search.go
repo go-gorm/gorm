@@ -7,33 +7,39 @@ import (
 )
 
 type search struct {
-	db          *DB
-	whereClause []map[string]interface{}
-	orClause    []map[string]interface{}
-	notClause   []map[string]interface{}
-	initAttrs   []interface{}
-	assignAttrs []interface{}
-	orders      []string
-	selectStr   string
-	offsetStr   string
-	limitStr    string
-	tableName   string
-	unscope     bool
+	db           *DB
+	whereClause  []map[string]interface{}
+	orClause     []map[string]interface{}
+	notClause    []map[string]interface{}
+	initAttrs    []interface{}
+	assignAttrs  []interface{}
+	havingClause map[string]interface{}
+	orders       []string
+	joinsStr     string
+	selectStr    string
+	offsetStr    string
+	limitStr     string
+	groupStr     string
+	tableName    string
+	unscope      bool
 }
 
 func (s *search) clone() *search {
 	return &search{
-		whereClause: s.whereClause,
-		orClause:    s.orClause,
-		notClause:   s.notClause,
-		initAttrs:   s.initAttrs,
-		assignAttrs: s.assignAttrs,
-		orders:      s.orders,
-		selectStr:   s.selectStr,
-		offsetStr:   s.offsetStr,
-		limitStr:    s.limitStr,
-		unscope:     s.unscope,
-		tableName:   s.tableName,
+		whereClause:  s.whereClause,
+		orClause:     s.orClause,
+		notClause:    s.notClause,
+		initAttrs:    s.initAttrs,
+		assignAttrs:  s.assignAttrs,
+		havingClause: s.havingClause,
+		orders:       s.orders,
+		selectStr:    s.selectStr,
+		offsetStr:    s.offsetStr,
+		limitStr:     s.limitStr,
+		unscope:      s.unscope,
+		groupStr:     s.groupStr,
+		joinsStr:     s.joinsStr,
+		tableName:    s.tableName,
 	}
 }
 
@@ -83,6 +89,25 @@ func (s *search) limit(value interface{}) *search {
 
 func (s *search) offset(value interface{}) *search {
 	s.offsetStr = s.getInterfaceAsSql(value)
+	return s
+}
+
+func (s *search) group(query string) *search {
+	s.groupStr = s.getInterfaceAsSql(query)
+	return s
+}
+
+func (s *search) having(query string, values ...interface{}) *search {
+	s.havingClause = map[string]interface{}{"query": query, "args": values}
+	return s
+}
+
+func (s *search) includes(value interface{}) *search {
+	return s
+}
+
+func (s *search) joins(query string) *search {
+	s.joinsStr = query
 	return s
 }
 

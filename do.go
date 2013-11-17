@@ -342,11 +342,13 @@ func (s *Do) related(value interface{}, foreign_keys ...string) *Do {
 }
 
 func (s *Do) row() *sql.Row {
+	defer s.trace(time.Now())
 	s.prepareQuerySql()
 	return s.db.db.QueryRow(s.sql, s.sqlVars...)
 }
 
 func (s *Do) rows() (*sql.Rows, error) {
+	defer s.trace(time.Now())
 	s.prepareQuerySql()
 	return s.db.db.Query(s.sql, s.sqlVars...)
 }
@@ -409,15 +411,12 @@ func (s *Do) query() *Do {
 }
 
 func (s *Do) count(value interface{}) *Do {
-	defer s.trace(time.Now())
 	s.search = s.search.clone().selects("count(*)")
 	s.err(s.row().Scan(value))
 	return s
 }
 
 func (s *Do) pluck(column string, value interface{}) *Do {
-	defer s.trace(time.Now())
-
 	dest_out := reflect.Indirect(reflect.ValueOf(value))
 	s.search = s.search.clone().selects(column)
 	if dest_out.Kind() != reflect.Slice {
@@ -634,8 +633,28 @@ func (s *Do) offsetSql() string {
 	}
 }
 
+func (s *Do) groupSql() string {
+	if len(s.search.groupStr) == 0 {
+		return ""
+	} else {
+		return " GROUP BY " + s.search.groupStr
+	}
+}
+
+func (s *Do) havingSql() string {
+	if s.search.havingClause == nil {
+		return ""
+	} else {
+		return " HAVING " + s.buildWhereCondition(s.search.havingClause)
+	}
+}
+
+func (s *Do) joinsSql() string {
+	return ""
+}
+
 func (s *Do) combinedSql() string {
-	return s.whereSql() + s.orderSql() + s.limitSql() + s.offsetSql()
+	return s.whereSql() + s.orderSql() + s.limitSql() + s.offsetSql() + s.groupSql() + s.havingSql()
 }
 
 func (s *Do) createTable() *Do {

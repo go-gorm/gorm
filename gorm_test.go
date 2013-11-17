@@ -1391,6 +1391,42 @@ func TestRows(t *testing.T) {
 	}
 }
 
+func TestGroup(t *testing.T) {
+	rows, err := db.Select("name").Table("users").Group("name").Rows()
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			rows.Scan(&name)
+		}
+	} else {
+		t.Errorf("Should not raise any error")
+	}
+}
+
+func TestHaving(t *testing.T) {
+	rows, err := db.Debug().Select("name, count(*) as total").Table("users").Group("name").Having("name IN (?)", []string{"2", "3"}).Rows()
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var name string
+			var total int64
+			rows.Scan(&name, &total)
+
+			if name == "2" && total != 1 {
+				t.Errorf("Should have one user having name 2", total)
+			}
+			if name == "3" && total != 2 {
+				t.Errorf("Should have two users having name 3", total)
+			}
+		}
+	} else {
+		t.Errorf("Should not raise any error", err)
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {

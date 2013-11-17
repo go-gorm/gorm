@@ -77,6 +77,22 @@ func (s *DB) Select(value interface{}) *DB {
 	return s.clone().search.selects(value).db
 }
 
+func (s *DB) Group(query string) *DB {
+	return s.clone().search.group(query).db
+}
+
+func (s *DB) Having(query string, values ...interface{}) *DB {
+	return s.clone().search.having(query, values...).db
+}
+
+func (s *DB) Joins(query string) *DB {
+	return s.clone().search.joins(query).db
+}
+
+func (s *DB) Includes(value interface{}) *DB {
+	return s.clone().search.includes(value).db
+}
+
 func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }
