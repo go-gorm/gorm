@@ -153,6 +153,14 @@ func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
 	return s.clone().do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback().db
 }
 
+func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
+	return s.UpdateColumns(toSearchableMap(attrs...), true)
+}
+
+func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *DB {
+	return s.clone().do(s.data).begin().updateColumns(values).commit_or_rollback().db
+}
+
 func (s *DB) Save(value interface{}) *DB {
 	return s.clone().do(value).begin().save().commit_or_rollback().db
 }

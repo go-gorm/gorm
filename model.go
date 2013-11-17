@@ -134,6 +134,10 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}, ignore_pr
 	}
 
 	data := m.reflectData()
+	if !data.CanAddr() {
+		return
+	}
+
 	for key, value := range values {
 		if field := data.FieldByName(snakeToUpperCamel(key)); field.IsValid() {
 			if field.Interface() != value {

@@ -199,42 +199,51 @@ func (s *Do) create() (i interface{}) {
 	return
 }
 
+func (s *Do) convertToMapInterface(values interface{}) map[string]interface{} {
+	attrs := map[string]interface{}{}
+
+	switch value := values.(type) {
+	case map[string]interface{}:
+		attrs = value
+	case []interface{}:
+		for _, v := range value {
+			for key, value := range s.convertToMapInterface(v) {
+				attrs[key] = value
+			}
+		}
+	case interface{}:
+		m := &Model{data: values, do: s}
+		for _, field := range m.columnsHasValue("other") {
+			attrs[field.dbName] = field.Value
+		}
+	}
+	return attrs
+}
+
 func (s *Do) updateAttrs(values interface{}, ignore_protected_attrs ...bool) *Do {
 	ignore_protected := len(ignore_protected_attrs) > 0 && ignore_protected_attrs[0]
 	s.usingUpdate = true
 
-	switch value := values.(type) {
-	case map[string]interface{}:
-		if len(value) > 0 {
-			results, has_update := s.model.updatedColumnsAndValues(value, ignore_protected)
-			if len(results) > 0 {
-				s.update_attrs = results
-			}
-			s.hasUpdate = has_update
+	if maps := s.convertToMapInterface(values); len(maps) > 0 {
+		results, has_update := s.model.updatedColumnsAndValues(maps, ignore_protected)
+		if len(results) > 0 {
+			s.update_attrs = results
 		}
-	case []interface{}:
-		for _, v := range value {
-			s.updateAttrs(v)
-		}
-	case interface{}:
-		m := &Model{data: values, do: s}
-		attrs := map[string]interface{}{}
-		for _, field := range m.columnsHasValue("other") {
-			attrs[field.dbName] = field.Value
-		}
-		s.updateAttrs(attrs)
+		s.hasUpdate = has_update
 	}
 	return s
 }
 
-func (s *Do) prepareUpdateSql() {
+func (s *Do) prepareUpdateSql(include_self bool) {
 	var sqls []string
 	for key, value := range s.update_attrs {
 		sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
 	}
 
-	for key, value := range s.model.columnsAndValues("update") {
-		sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
+	if include_self {
+		for key, value := range s.model.columnsAndValues("update") {
+			sqls = append(sqls, fmt.Sprintf("%v = %v", key, s.addToVars(value)))
+		}
 	}
 
 	s.sql = fmt.Sprintf(
@@ -246,6 +255,16 @@ func (s *Do) prepareUpdateSql() {
 	return
 }
 
+func (s *Do) updateColumns(value interface{}) *Do {
+	s.update_attrs = s.convertToMapInterface(value)
+	s.prepareUpdateSql(false)
+	if !s.db.hasError() {
+		s.exec()
+		s.updateAttrs(s.update_attrs)
+	}
+	return s
+}
+
 func (s *Do) update() *Do {
 	if s.usingUpdate && !s.hasUpdate {
 		return s
@@ -255,7 +274,7 @@ func (s *Do) update() *Do {
 	s.model.callMethod("BeforeSave")
 	s.saveBeforeAssociations()
 
-	s.prepareUpdateSql()
+	s.prepareUpdateSql(true)
 
 	if !s.db.hasError() {
 		s.exec()

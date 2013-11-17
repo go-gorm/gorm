@@ -900,6 +900,31 @@ func TestUpdates(t *testing.T) {
 	}
 }
 
+func TestUpdateColumn(t *testing.T) {
+	product1 := Product{Code: "update_column 1", Price: 10}
+	product2 := Product{Code: "update_column 2", Price: 20}
+	db.Save(&product1).Save(&product2).UpdateColumn(map[string]interface{}{"code": "update_column 3", "price": 100})
+	if product2.Code != "update_column 3" || product2.Price != 100 {
+		t.Errorf("product 2 should be updated with update column")
+	}
+
+	var product3 Product
+	db.First(&product3, product1.Id)
+	if product3.Code != "update_column 1" || product3.Price != 10 {
+		t.Errorf("product 1 should not be updated")
+	}
+
+	var product4, product5 Product
+	db.First(&product4, product2.Id)
+	updated_at1 := product4.UpdatedAt
+
+	db.Model(Product{}).Where(product2.Id).UpdateColumn("code", "update_column_new")
+	db.First(&product5, product2.Id)
+	if updated_at1.Format(time.RFC3339Nano) != product5.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should not be updated with update column")
+	}
+}
+
 func TestSoftDelete(t *testing.T) {
 	type Order struct {
 		Id        int64
@@ -1444,7 +1469,7 @@ func BenchmarkGorm(b *testing.B) {
 		// Query
 		db.First(&BigEmail{}, "email = ?", e)
 		// Update
-		db.Model(&email).Update("email", "new-"+e)
+		db.Model(&email).UpdateColumn("email", "new-"+e)
 		// Delete
 		db.Delete(&email)
 	}

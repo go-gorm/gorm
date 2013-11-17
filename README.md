@@ -320,7 +320,7 @@ db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jin
 user.Name = "jinzhu 2"
 user.Age = 100
 db.Save(&user)
-//// UPDATE users SET name='jinzhu 2', age=100 WHERE id=111;
+//// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111;
 ```
 
 ### Update one attribute with `Update`
@@ -328,12 +328,12 @@ db.Save(&user)
 ```go
 // Update existing user's name if it is changed
 db.Model(&user).Update("name", "hello")
-//// UPDATE users SET name='hello' WHERE id=111;
+//// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111;
 
 // Find out a user, and update the name if it is changed
 db.First(&user, 111).Update("name", "hello")
 //// SELECT * FROM users LIMIT 1;
-//// UPDATE users SET name='hello' WHERE id=111;
+//// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111;
 
 // Update name with search condiation and specified table name
 db.Table("users").Where(10).Update("name", "hello")
@@ -345,7 +345,7 @@ db.Table("users").Where(10).Update("name", "hello")
 ```go
 // Update user's name and age if they are changed
 db.Model(&user).Updates(User{Name: "hello", Age: 18})
-//// UPDATE users SET name='hello', age=18 WHERE id = 111;
+//// UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;
 
 // Updates with Map
 db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age": 18})
@@ -354,6 +354,16 @@ db.Table("users").Where(10).Updates(map[string]interface{}{"name": "hello", "age
 // Updates with Struct
 db.Model(User{}).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18;
+```
+
+### Update attributes without callbacks
+
+```go
+db.Model(&user).UpdateColumn("name", "hello")
+//// UPDATE users SET name='hello' WHERE id = 111;
+
+db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
+//// UPDATE users SET name='hello', age=18 WHERE id = 111;
 ```
 
 ## Delete
@@ -780,7 +790,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* UpdateColumn/Columns
 * Scopes
 * Joins
 * Scan
