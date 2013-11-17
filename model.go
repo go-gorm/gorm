@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+var modelFieldMap map[string][]reflect.StructField
+
+func init() {
+	modelFieldMap = map[string][]reflect.StructField{}
+}
+
 type Model struct {
 	data          interface{}
 	do            *Do
@@ -39,45 +45,58 @@ func (m *Model) primaryKeyDb() string {
 	return toSnake(m.primaryKey())
 }
 
+func getStructs(typ reflect.Type) (fs []reflect.StructField) {
+	name := typ.Name()
+	if fs = modelFieldMap[name]; fs != nil {
+		return
+	}
+
+	for i := 0; i < typ.NumField(); i++ {
+		p := typ.Field(i)
+		if !p.Anonymous && ast.IsExported(p.Name) {
+			fs = append(fs, p)
+		}
+	}
+
+	modelFieldMap[name] = fs
+	return
+}
+
 func (m *Model) fields(operation string) (fields []*Field) {
 	indirect_value := m.reflectData()
 	if !indirect_value.IsValid() {
 		return
 	}
 
-	typ := indirect_value.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		p := typ.Field(i)
-		if !p.Anonymous && ast.IsExported(p.Name) {
-			var field Field
-			field.Name = p.Name
-			field.dbName = toSnake(p.Name)
-			field.isPrimaryKey = m.primaryKeyDb() == field.dbName
-			value := indirect_value.FieldByName(p.Name)
-			field.model = m
+	for _, filed_struct := range getStructs(indirect_value.Type()) {
+		var field Field
+		field.Name = filed_struct.Name
+		field.dbName = toSnake(filed_struct.Name)
+		field.isPrimaryKey = m.primaryKeyDb() == field.dbName
+		value := indirect_value.FieldByName(filed_struct.Name)
+		field.model = m
 
-			if time_value, is_time := value.Interface().(time.Time); is_time {
-				field.autoCreateTime = "created_at" == field.dbName
-				field.autoUpdateTime = "updated_at" == field.dbName
+		if time_value, is_time := value.Interface().(time.Time); is_time {
+			field.autoCreateTime = "created_at" == field.dbName
+			field.autoUpdateTime = "updated_at" == field.dbName
 
-				switch operation {
-				case "create":
-					if (field.autoCreateTime || field.autoUpdateTime) && time_value.IsZero() {
-						value.Set(reflect.ValueOf(time.Now()))
-					}
-				case "update":
-					if field.autoUpdateTime {
-						value.Set(reflect.ValueOf(time.Now()))
-					}
+			switch operation {
+			case "create":
+				if (field.autoCreateTime || field.autoUpdateTime) && time_value.IsZero() {
+					value.Set(reflect.ValueOf(time.Now()))
+				}
+			case "update":
+				if field.autoUpdateTime {
+					value.Set(reflect.ValueOf(time.Now()))
 				}
 			}
-
-			field.structField = p
-			field.reflectValue = value
-			field.Value = value.Interface()
-			field.parseAssociation()
-			fields = append(fields, &field)
 		}
+
+		field.structField = filed_struct
+		field.reflectValue = value
+		field.Value = value.Interface()
+		field.parseAssociation()
+		fields = append(fields, &field)
 	}
 	return
 }
