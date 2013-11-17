@@ -712,7 +712,11 @@ for rows.Next() {
 ## Run Raw SQl
 
 ```go
+// Raw sql
 db.Exec("drop table users;")
+
+// Raw sql with arguments
+db.Exec("update orders set shipped_at=? where id in (?)", time.Now, []int64{11,22,33})
 ```
 
 ## Error Handling

@@ -1406,7 +1406,7 @@ func TestGroup(t *testing.T) {
 }
 
 func TestHaving(t *testing.T) {
-	rows, err := db.Debug().Select("name, count(*) as total").Table("users").Group("name").Having("name IN (?)", []string{"2", "3"}).Rows()
+	rows, err := db.Select("name, count(*) as total").Table("users").Group("name").Having("name IN (?)", []string{"2", "3"}).Rows()
 
 	if err == nil {
 		defer rows.Close()
@@ -1424,6 +1424,13 @@ func TestHaving(t *testing.T) {
 		}
 	} else {
 		t.Errorf("Should not raise any error", err)
+	}
+}
+
+func TestExecRawSql(t *testing.T) {
+	db.Exec("update users set name=? where name in (?)", "jinzhu", []string{"1", "2", "3"})
+	if db.Where("name in (?)", []string{"1", "2", "3"}).First(&User{}).Error != RecordNotFound {
+		t.Error("Raw sql should be able to parse argument")
 	}
 }
 

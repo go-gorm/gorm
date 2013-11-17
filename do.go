@@ -67,12 +67,14 @@ func (s *Do) trace(t time.Time) {
 	}
 }
 
-func (s *Do) exec(sqls ...string) *Do {
+func (s *Do) raw(query string, values ...interface{}) *Do {
+	s.sql = s.buildWhereCondition(map[string]interface{}{"query": query, "args": values})
+	return s
+}
+
+func (s *Do) exec() *Do {
 	defer s.trace(time.Now())
 	if !s.db.hasError() {
-		if len(sqls) > 0 {
-			s.sql = sqls[0]
-		}
 		_, err := s.db.db.Exec(s.sql, s.sqlVars...)
 		s.err(err)
 	}
@@ -447,7 +449,7 @@ func (s *Do) buildWhereCondition(clause map[string]interface{}) (str string) {
 			id, _ := strconv.Atoi(value)
 			return s.primaryCondiation(s.addToVars(id))
 		} else {
-			str = "(" + value + ")"
+			str = value
 		}
 	case int, int64, int32:
 		return s.primaryCondiation(s.addToVars(value))

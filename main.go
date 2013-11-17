@@ -161,8 +161,8 @@ func (s *DB) Delete(value interface{}) *DB {
 	return s.clone().do(value).begin().delete().commit_or_rollback().db
 }
 
-func (s *DB) Exec(sql string) *DB {
-	return s.clone().do(nil).exec(sql).db
+func (s *DB) Exec(sql string, values ...interface{}) *DB {
+	return s.clone().do(nil).raw(sql, values...).exec().db
 }
 
 func (s *DB) Model(value interface{}) *DB {

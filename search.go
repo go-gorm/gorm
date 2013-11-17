@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"regexp"
-
 	"strconv"
 )
 
