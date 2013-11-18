@@ -93,6 +93,14 @@ func (s *DB) Includes(value interface{}) *DB {
 	return s.clone().search.includes(value).db
 }
 
+func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
+	c := s
+	for _, f := range funcs {
+		c = f(c)
+	}
+	return c
+}
+
 func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }

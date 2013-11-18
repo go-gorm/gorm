@@ -74,6 +74,8 @@ func (m *Model) fields(operation string) (fields []*Field) {
 
 	structs := getStructs(indirect_value.Type())
 	c := make(chan *Field, len(structs))
+	defer close(c)
+
 	for _, field_struct := range structs {
 		go func(field_struct reflect.StructField, c chan *Field) {
 			var field Field
@@ -110,7 +112,6 @@ func (m *Model) fields(operation string) (fields []*Field) {
 	for i := 0; i < len(structs); i++ {
 		fields = append(fields, <-c)
 	}
-	close(c)
 
 	if len(m._cache_fields) == 0 {
 		m._cache_fields = map[string][]*Field{}

@@ -13,6 +13,7 @@ Yet Another ORM library for Go, aims for developer friendly
 * Logger Support
 * Bind struct with tag
 * Iteration Support via [Rows](#row--rows)
+* Scopes
 * sql.Scanner support
 * Every feature comes with tests
 * Convention Over Configuration
@@ -666,6 +667,37 @@ tx.Rollback()
 tx.Commit()
 ```
 
+## Scopes
+
+```go
+func AmountGreaterThan1000(d *gorm.DB) *gorm.DB {
+  d.Where("amount > ?", 1000)
+}
+
+func PaidWithCreditCard(d *gorm.DB) *gorm.DB {
+  d.Where("pay_mode_sign = ?", "C")
+}
+
+func PaidWithCod(d *gorm.DB) *gorm.DB {
+  d.Where("pay_mode_sign = ?", "C")
+}
+
+func OrderStatus(status []string) func (d *gorm.DB) *gorm.DB {
+  return func (d *gorm.DB) *gorm.DB {
+     return d.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
+  }
+}
+
+db.Scopes(AmountGreaterThan1000, PaidWithCreditCard).Find(&orders)
+// Find all credit card orders and amount greater than 1000
+
+db.Scopes(AmountGreaterThan1000, PaidWithCod).Find(&orders)
+// Find all COD orders and amount greater than 1000
+
+db.Scopes(OrderStatus([]string{"paid", "shipped"})).Find(&orders)
+// Find all paid, shipped orders and amount greater than 1000
+```
+
 ## Logger
 
 Grom has builtin logger support, enable it with:
@@ -790,7 +822,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* Scopes
 * Joins
 * Scan
 * AlertColumn, DropColumn, AddIndex, RemoveIndex
