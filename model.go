@@ -8,11 +8,7 @@ import (
 	"time"
 )
 
-var modelFieldMap map[string][]reflect.StructField
-
-func init() {
-	modelFieldMap = map[string][]reflect.StructField{}
-}
+var modelFieldMap = map[string][]reflect.StructField{}
 
 type Model struct {
 	data          interface{}

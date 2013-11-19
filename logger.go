@@ -16,6 +16,9 @@ type defaultLogger struct {
 	*log.Logger
 }
 
+//var default_logger = log.New(os.Stdout, "\r\n", 0)
+var default_logger = defaultLogger{log.New(os.Stdout, "\r\n", 0)}
+
 func (logger defaultLogger) Print(v ...interface{}) {
 	if len(v) > 1 {
 		level := v[0]
@@ -33,11 +36,4 @@ func (logger defaultLogger) Print(v ...interface{}) {
 			logger.Println(messages...)
 		}
 	}
-}
-
-var default_logger defaultLogger
-
-func init() {
-	// default_logger = log.New(os.Stdout, "\r\n", 0)
-	default_logger = defaultLogger{log.New(os.Stdout, "\r\n", 0)}
 }

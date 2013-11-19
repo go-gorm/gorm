@@ -9,13 +9,8 @@ import (
 	"time"
 )
 
-var toSnakeMap map[string]string
-var toUpperMap map[string]string
-
-func init() {
-	toSnakeMap = map[string]string{}
-	toUpperMap = map[string]string{}
-}
+var toSnakeMap = map[string]string{}
+var toUpperMap = map[string]string{}
 
 func toSnake(u string) string {
 	if v := toSnakeMap[u]; v != "" {
