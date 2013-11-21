@@ -47,7 +47,9 @@ func (f *Field) sqlTag() (str string) {
 
 	switch reflect_value.Kind() {
 	case reflect.Slice:
-		return
+		if _, ok := f.Value.([]byte); !ok {
+			return
+		}
 	case reflect.Struct:
 		if !f.isTime() && !f.isScanner() {
 			return
@@ -79,11 +81,13 @@ func (f *Field) parseAssociation() {
 
 	switch reflect_value.Kind() {
 	case reflect.Slice:
-		foreign_key := f.model.typeName() + "Id"
-		if reflect.New(reflect_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
-			f.foreignKey = foreign_key
+		if _, ok := f.Value.([]byte); !ok {
+			foreign_key := f.model.typeName() + "Id"
+			if reflect.New(reflect_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
+				f.foreignKey = foreign_key
+			}
+			f.afterAssociation = true
 		}
-		f.afterAssociation = true
 	case reflect.Struct:
 		if !f.isTime() && !f.isScanner() {
 			if f.model.reflectData().FieldByName(f.Name + "Id").IsValid() {

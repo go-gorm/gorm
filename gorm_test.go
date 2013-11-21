@@ -28,6 +28,7 @@ type User struct {
 	ShippingAddress   Address       // Embedded struct
 	ShippingAddressId int64         // Embedded struct's foreign key
 	CreditCard        CreditCard
+	PasswordHash      []byte
 	IgnoreMe          int64 `sql:"-"`
 }
 
@@ -81,6 +82,7 @@ var (
 
 func init() {
 	var err error
+
 	db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
 	// CREATE DATABASE 'gorm';
@@ -158,10 +160,16 @@ func TestFirstAndLast(t *testing.T) {
 
 func TestCreateAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
-	user := User{Name: name, Age: 1}
+	user := User{Name: name, Age: 1, PasswordHash: []byte{'f', 'a', 'k', '4'}}
 	db.Save(&user)
 	if user.Id == 0 {
 		t.Errorf("Should have ID after create")
+	}
+
+	var u User
+	db.First(&u, user.Id)
+	if !reflect.DeepEqual(u.PasswordHash, []byte{'f', 'a', 'k', '4'}) {
+		t.Errorf("User's Password should be saved")
 	}
 
 	db.Save(&User{Name: name2, Age: 1})
