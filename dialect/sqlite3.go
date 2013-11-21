@@ -9,7 +9,7 @@ import (
 type sqlite3 struct{}
 
 func (s *sqlite3) BinVar(i int) string {
-	return "?"
+	return "$$" // ?
 }
 
 func (s *sqlite3) SupportLastInsertId() bool {

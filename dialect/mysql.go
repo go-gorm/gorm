@@ -9,7 +9,7 @@ import (
 type mysql struct{}
 
 func (s *mysql) BinVar(i int) string {
-	return "?"
+	return "$$" // ?
 }
 
 func (s *mysql) SupportLastInsertId() bool {
