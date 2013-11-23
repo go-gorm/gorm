@@ -137,6 +137,18 @@ user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
 db.Save(&user)
 ```
 
+### NewRecord
+
+Returns true if object hasn’t been saved yet (`Id` is blank)
+
+```go
+user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
+db.NewRecord(user) // => true
+
+db.Save(&user)
+db.NewRecord(user) // => false
+```
+
 ### Create With SubStruct
 
 Refer [Query With Related](#query-with-related) for how to find associations

@@ -161,9 +161,18 @@ func TestFirstAndLast(t *testing.T) {
 func TestCreateAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
 	user := User{Name: name, Age: 1, PasswordHash: []byte{'f', 'a', 'k', '4'}}
+
+	if !db.NewRecord(user) {
+		t.Error("User should be new record")
+	}
+
 	db.Save(&user)
 	if user.Id == 0 {
 		t.Errorf("Should have ID after create")
+	}
+
+	if db.NewRecord(user) {
+		t.Error("User should not new record after save")
 	}
 
 	var u User

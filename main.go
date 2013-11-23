@@ -238,6 +238,10 @@ func (s *DB) Rollback() *DB {
 	return s
 }
 
+func (s *DB) NewRecord(value interface{}) bool {
+	return s.clone().do(value).model.primaryKeyZero()
+}
+
 // Migrations
 func (s *DB) CreateTable(value interface{}) *DB {
 	return s.clone().do(value).createTable().db
