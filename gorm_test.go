@@ -166,12 +166,20 @@ func TestCreateAndUpdate(t *testing.T) {
 		t.Error("User should be new record")
 	}
 
+	if !db.NewRecord(&user) {
+		t.Error("User should be new record")
+	}
+
 	db.Save(&user)
 	if user.Id == 0 {
 		t.Errorf("Should have ID after create")
 	}
 
 	if db.NewRecord(user) {
+		t.Error("User should not new record after save")
+	}
+
+	if db.NewRecord(&user) {
 		t.Error("User should not new record after save")
 	}
 
