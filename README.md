@@ -827,6 +827,12 @@ if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
 
 // If no record found, gorm will return RecordNotFound error, you could check it with
 db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
+// or use shortcut
+if db.Where("name = ?", "hello world").First(&user).RecordNotFound() {
+  panic("no record found")
+} else {
+  user.Blalala()
+}
 ```
 
 ## Advanced Usage With Query Chain

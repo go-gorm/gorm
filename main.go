@@ -242,6 +242,10 @@ func (s *DB) NewRecord(value interface{}) bool {
 	return s.clone().do(value).model.primaryKeyZero()
 }
 
+func (s *DB) RecordNotFound() bool {
+	return s.Error == RecordNotFound
+}
+
 // Migrations
 func (s *DB) CreateTable(value interface{}) *DB {
 	return s.clone().do(value).createTable().db
