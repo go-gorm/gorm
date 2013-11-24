@@ -173,8 +173,8 @@ func (s *Do) saveAfterAssociations() {
 
 func (s *Do) create() (i interface{}) {
 	defer s.trace(time.Now())
-	s.model.callMethod("BeforeCreate")
 	s.model.callMethod("BeforeSave")
+	s.model.callMethod("BeforeCreate")
 
 	s.saveBeforeAssociations()
 	s.prepareCreateSql()
@@ -274,8 +274,8 @@ func (s *Do) update() *Do {
 		return s
 	}
 
-	s.model.callMethod("BeforeUpdate")
 	s.model.callMethod("BeforeSave")
+	s.model.callMethod("BeforeUpdate")
 	s.saveBeforeAssociations()
 
 	s.prepareUpdateSql(true)

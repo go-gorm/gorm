@@ -18,6 +18,12 @@ func (s *DB) clone() *DB {
 	return &db
 }
 
+func (s *DB) new() *DB {
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, data: s.data, Error: s.Error, search: &search{}}
+	db.search.db = &db
+	return &db
+}
+
 func (s *DB) do(data interface{}) *Do {
 	s.data = data
 	do := Do{db: s}

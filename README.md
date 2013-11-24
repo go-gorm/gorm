@@ -598,16 +598,43 @@ db.Select("name, age").Find(&users)
 ## Callbacks
 
 Callbacks are functions defined to struct's pointer, they would be run when save a struct to database.
-If any callback return error, gorm will stop future operations and do rollback
+If any callback return error, gorm will stop future operations and rollback all changes
 
-Below callbacks are supported now:
+Here is a list with all available callbacks,
+listed in the same order in which they will get called during the respective operations.
 
-`BeforeCreate`, `AfterCreate`
-`BeforeUpdate`, `AfterUpdate`
-`BeforeSave`, `AfterSave`
-`BeforeDelete`, `AfterDelete`
+### Creating an Object
 
-For example:
+```go
+BeforeSave
+BeforeCreate
+// save before associations
+// save self
+// save after associations
+AfterCreate
+AfterSave
+```
+### Updating an Object
+
+```go
+BeforeSave
+BeforeUpdate
+// save before associations
+// save self
+// save after associations
+AfterUpdate
+AfterSave
+```
+
+### Destroying an Object
+
+```go
+BeforeDelete
+// delete self
+AfterDelete
+```
+
+Here is an example:
 
 ```go
 func (u *User) BeforeUpdate() (err error) {
@@ -622,6 +649,17 @@ func (u *User) AfterCreate() (err error) {
     if (u.Id > 1000) { // Just as example, don't use Id to count users!
         err = errors.New("Only 1000 users allowed!")
     }
+    return
+}
+```
+
+```go
+// As you know, the save/delete operations are running in a transaction
+// This is means all your changes will be rollbacked if get any errors
+// If you want your changes in callbacks be run in the same transaction
+// You have to pass the transaction as argument to the function
+func (u *User) AfterCreate(tx *gorm.DB) (err error) {
+    tx.Model(u).Update("role", "admin")
     return
 }
 ```

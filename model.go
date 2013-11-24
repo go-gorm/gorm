@@ -239,8 +239,15 @@ func (m *Model) callMethod(method string) {
 	}
 
 	if fm := reflect.ValueOf(m.data).MethodByName(method); fm.IsValid() {
-		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
-			if verr, ok := v[0].Interface().(error); ok {
+		numin := fm.Type().NumIn()
+		var results []reflect.Value
+		if numin == 0 {
+			results = fm.Call([]reflect.Value{})
+		} else if numin == 1 {
+			results = fm.Call([]reflect.Value{reflect.ValueOf(m.do.db.new())})
+		}
+		if len(results) > 0 {
+			if verr, ok := results[0].Interface().(error); ok {
 				m.do.err(verr)
 			}
 		}

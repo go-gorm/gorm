@@ -588,8 +588,8 @@ func (s *Product) BeforeSave() (err error) {
 	return
 }
 
-func (s *Product) AfterCreate() {
-	s.AfterCreateCallTimes = s.AfterCreateCallTimes + 1
+func (s *Product) AfterCreate(db *DB) {
+	db.Model(s).UpdateColumn(Product{AfterCreateCallTimes: s.AfterCreateCallTimes + 1})
 }
 
 func (s *Product) AfterUpdate() {
@@ -633,23 +633,23 @@ func TestRunCallbacks(t *testing.T) {
 	}
 
 	db.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 0, 0, 0, 0, 0}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 0, 0, 0, 0}) {
 		t.Errorf("After callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	p.Price = 200
 	db.Save(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 1, 1, 0, 0}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 1, 1, 0, 0}) {
 		t.Errorf("After update callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	db.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 0, 0, 0, 0}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0}) {
 		t.Errorf("After update callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	db.Delete(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 0, 0, 0, 1, 1}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1}) {
 		t.Errorf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
