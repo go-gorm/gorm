@@ -868,6 +868,14 @@ func TestUpdate(t *testing.T) {
 	if db.First(&Product{}, "code = '789'").Error != nil {
 		t.Errorf("Product 456 should be changed to 789")
 	}
+
+	if db.Model(&product2).Update("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
+		t.Error("No error should raise when update with CamelCase")
+	}
+
+	if db.Model(&product2).UpdateColumn("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
+		t.Error("No error should raise when update_column with CamelCase")
+	}
 }
 
 func TestUpdates(t *testing.T) {

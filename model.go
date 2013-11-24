@@ -132,6 +132,7 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}, ignore_pr
 
 	data := m.reflectData()
 	if !data.CanAddr() {
+		m.do.err(errors.New("Can't take address of the object"))
 		return
 	}
 

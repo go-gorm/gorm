@@ -208,7 +208,9 @@ func (s *Do) convertToMapInterface(values interface{}) map[string]interface{} {
 
 	switch value := values.(type) {
 	case map[string]interface{}:
-		attrs = value
+		for k, v := range value {
+			attrs[toSnake(k)] = v
+		}
 	case []interface{}:
 		for _, v := range value {
 			for key, value := range s.convertToMapInterface(v) {
