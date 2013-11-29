@@ -882,7 +882,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * Scan
 * AlertColumn, DropColumn, AddIndex, RemoveIndex
 * Includes
-* Valiations
+* Validations
 
 # Author
 
