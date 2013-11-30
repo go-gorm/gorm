@@ -48,3 +48,7 @@ func (s *sqlite3) PrimaryKeyTag(column interface{}, size int) string {
 func (s *sqlite3) ReturningStr(key string) (str string) {
 	return
 }
+
+func (s *sqlite3) Quote(key string) (str string) {
+	return fmt.Sprintf("\"%s\"", key)
+}

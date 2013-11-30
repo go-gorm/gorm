@@ -56,3 +56,7 @@ func (s *postgres) PrimaryKeyTag(column interface{}, size int) string {
 func (s *postgres) ReturningStr(key string) (str string) {
 	return fmt.Sprintf("RETURNING \"%v\"", key)
 }
+
+func (s *postgres) Quote(key string) (str string) {
+	return fmt.Sprintf("\"%s\"", key)
+}

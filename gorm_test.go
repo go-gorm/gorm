@@ -27,6 +27,7 @@ type User struct {
 	BillingAddressId  sql.NullInt64 // Embedded struct's foreign key
 	ShippingAddress   Address       // Embedded struct
 	ShippingAddressId int64         // Embedded struct's foreign key
+	When              time.Time
 	CreditCard        CreditCard
 	PasswordHash      []byte
 	IgnoreMe          int64 `sql:"-"`
@@ -133,7 +134,7 @@ func init() {
 	t3, _ = time.Parse(shortForm, "2005-01-01 00:00:00")
 	t4, _ = time.Parse(shortForm, "2010-01-01 00:00:00")
 	t5, _ = time.Parse(shortForm, "2020-01-01 00:00:00")
-	db.Save(&User{Name: "1", Age: 18, Birthday: t1})
+	db.Save(&User{Name: "1", Age: 18, Birthday: t1, When: time.Now()})
 	db.Save(&User{Name: "2", Age: 20, Birthday: t2})
 	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
 	db.Save(&User{Name: "3", Age: 24, Birthday: t4})

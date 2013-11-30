@@ -60,3 +60,7 @@ func (s *mysql) PrimaryKeyTag(column interface{}, size int) string {
 func (s *mysql) ReturningStr(key string) (str string) {
 	return
 }
+
+func (s *mysql) Quote(key string) (str string) {
+	return fmt.Sprintf("`%s`", key)
+}
