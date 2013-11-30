@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"reflect"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -141,6 +142,13 @@ func (m *Model) updatedColumnsAndValues(values map[string]interface{}, ignore_pr
 			if field.Interface() != value {
 				switch field.Kind() {
 				case reflect.Int, reflect.Int32, reflect.Int64:
+					if s, ok := value.(string); ok {
+						i, err := strconv.Atoi(s)
+						if m.do.err(err) == nil {
+							value = i
+						}
+					}
+
 					if field.Int() != reflect.ValueOf(value).Int() {
 						any_updated = true
 						field.SetInt(reflect.ValueOf(value).Int())
