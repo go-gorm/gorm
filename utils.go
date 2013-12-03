@@ -90,6 +90,8 @@ func isBlank(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.Int, reflect.Int64, reflect.Int32:
 		return value.Int() == 0
+	case reflect.Float32, reflect.Float64:
+		return value.Float() == 0
 	case reflect.String:
 		return value.String() == ""
 	case reflect.Slice:

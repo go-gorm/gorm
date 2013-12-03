@@ -28,7 +28,7 @@ func (d *postgres) SqlTag(column interface{}, size int) string {
 	case int64, uint64, sql.NullInt64:
 		return "bigint"
 	case float32, float64, sql.NullFloat64:
-		return "double precision"
+		return "numeric"
 	case []byte:
 		return "bytea"
 	case string, sql.NullString:

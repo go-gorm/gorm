@@ -29,6 +29,7 @@ type User struct {
 	ShippingAddressId int64         // Embedded struct's foreign key
 	When              time.Time
 	CreditCard        CreditCard
+	Latitude          float64
 	PasswordHash      []byte
 	IgnoreMe          int64 `sql:"-"`
 }
@@ -156,6 +157,22 @@ func TestFirstAndLast(t *testing.T) {
 	db.First(&users)
 	if len(users) != 1 {
 		t.Errorf("Find first record as map")
+	}
+}
+
+func TestPrecision(t *testing.T) {
+	f := 35.03554004971999
+	user := User{Name: "Precision", Latitude: f}
+	db.Save(&user)
+	if user.Latitude != f {
+		t.Errorf("Float64 should not be changed after save")
+	}
+
+	var u User
+	db.First(&u, "name = ?", "Precision")
+	fmt.Println(u.Latitude)
+	if u.Latitude != f {
+		t.Errorf("Float64 should not be changed after query")
 	}
 }
 
@@ -1111,6 +1128,7 @@ func TestNot(t *testing.T) {
 	}
 
 	db.Not(User{Name: "3"}).Find(&users5)
+
 	if len(users1)-len(users5) != int(name_3_count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
