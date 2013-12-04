@@ -19,7 +19,7 @@ func (s *mysql) SupportLastInsertId() bool {
 func (d *mysql) SqlTag(column interface{}, size int) string {
 	switch column.(type) {
 	case time.Time:
-		return "timestamp"
+		return "datetime"
 	case bool, sql.NullBool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:

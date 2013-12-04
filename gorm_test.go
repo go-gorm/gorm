@@ -8,6 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"os"
 	"reflect"
 	"strconv"
 	"testing"
@@ -84,13 +85,20 @@ var (
 
 func init() {
 	var err error
-
-	db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-	// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
-	// CREATE DATABASE 'gorm';
-	// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
-	// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
-	// db, err = Open("sqlite3", "/tmp/gorm.db")
+	switch os.Getenv("GORM_DIALECT") {
+	case "mysql":
+		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
+		// CREATE DATABASE 'gorm';
+		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
+		fmt.Println("testing mysql...")
+		db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+	case "sqlite":
+		fmt.Println("testing sqlite3...")
+		db, err = Open("sqlite3", "/tmp/gorm.db")
+	default:
+		fmt.Println("testing postgres...")
+		db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	}
 	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 	// db.LogMode(true)
 
