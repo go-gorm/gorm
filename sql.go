@@ -11,7 +11,6 @@ type sqlCommon interface {
 
 type sqlDb interface {
 	Begin() (*sql.Tx, error)
-	SetMaxIdleConns(n int)
 }
 
 type sqlTx interface {

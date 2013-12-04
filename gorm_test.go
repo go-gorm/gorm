@@ -91,7 +91,7 @@ func init() {
 		// CREATE DATABASE 'gorm';
 		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 		fmt.Println("testing mysql...")
-		db, err = Open("mysql", "gorm:gorm@/gorim?charset=utf8&parseTime=True")
+		db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 	case "sqlite":
 		fmt.Println("testing sqlite3...")
 		db, err = Open("sqlite3", "/tmp/gorm.db")

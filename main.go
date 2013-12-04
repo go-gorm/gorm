@@ -31,12 +31,6 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
-func (s *DB) SetPool(n int) {
-	if db, ok := s.parent.db.(sqlDb); ok {
-		db.SetMaxIdleConns(n)
-	}
-}
-
 func (s *DB) SetTagIdentifier(str string) {
 	s.parent.tagIdentifier = str
 }
