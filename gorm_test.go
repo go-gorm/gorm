@@ -91,7 +91,7 @@ func init() {
 		// CREATE DATABASE 'gorm';
 		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 		fmt.Println("testing mysql...")
-		db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+		db, err = Open("mysql", "gorm:gorm@/gorim?charset=utf8&parseTime=True")
 	case "sqlite":
 		fmt.Println("testing sqlite3...")
 		db, err = Open("sqlite3", "/tmp/gorm.db")
@@ -101,12 +101,11 @@ func init() {
 	}
 	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 	// db.LogMode(true)
-
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))
 	}
 
-	db.SetPool(10)
+	db.DB().SetMaxIdleConns(10)
 
 	if err := db.DropTable(&User{}).Error; err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)

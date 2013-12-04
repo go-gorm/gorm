@@ -76,10 +76,13 @@ db, err := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 // db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 // db, err = Open("sqlite3", "/tmp/gorm.db")
 
+// Get database connection handle [*sql.DB](http://golang.org/pkg/database/sql/#DB)
+d := db.DB()
 
-// Set the maximum idle database connections
-db.SetPool(100)
-
+// With it you could use package `database/sql`'s builtin methods
+db.DB().SetMaxIdleConns(10)
+db.DB().SetMaxOpenConns(100)
+db.DB().Ping()
 
 // By default, table name is plural of struct type, you can use struct type as table name with:
 db.SingularTable(true)

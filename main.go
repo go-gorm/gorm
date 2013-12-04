@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+
 	"github.com/jinzhu/gorm/dialect"
 )
 
@@ -24,6 +25,10 @@ func Open(driver, source string) (db DB, err error) {
 	db.tagIdentifier = "sql"
 	db.parent = &db
 	return
+}
+
+func (s *DB) DB() *sql.DB {
+	return s.db.(*sql.DB)
 }
 
 func (s *DB) SetPool(n int) {
