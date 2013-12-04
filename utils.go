@@ -67,7 +67,7 @@ func toSearchableMap(attrs ...interface{}) (result interface{}) {
 func setFieldValue(field reflect.Value, value interface{}) bool {
 	if field.IsValid() && field.CanAddr() {
 		switch field.Kind() {
-		case reflect.Int, reflect.Int32, reflect.Int64:
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			if str, ok := value.(string); ok {
 				value, _ = strconv.Atoi(str)
 			}
