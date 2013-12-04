@@ -170,7 +170,6 @@ func TestPrecision(t *testing.T) {
 
 	var u User
 	db.First(&u, "name = ?", "Precision")
-	fmt.Println(u.Latitude)
 	if u.Latitude != f {
 		t.Errorf("Float64 should not be changed after query")
 	}
