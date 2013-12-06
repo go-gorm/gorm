@@ -45,9 +45,9 @@ func (d *postgres) SqlTag(column interface{}, size int) string {
 func (s *postgres) PrimaryKeyTag(column interface{}, size int) string {
 	switch column.(type) {
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:
-		return "serial"
+		return "serial PRIMARY KEY"
 	case int64, uint64:
-		return "bigserial"
+		return "bigserial PRIMARY KEY"
 	default:
 		panic("Invalid primary key type")
 	}
