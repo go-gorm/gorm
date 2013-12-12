@@ -6,14 +6,23 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-var toSnakeMap = map[string]string{}
+type SnakeMap struct {
+  Map map[string]string
+  mu sync.RWMutex
+}
+var snake = SnakeMap{Map:map[string]string{}}
 var toUpperMap = map[string]string{}
 
 func toSnake(u string) string {
-	if v := toSnakeMap[u]; v != "" {
+	snake.mu.RLock()
+	if v := snake.Map[u]; v != "" {
+		snake.mu.RUnlock()
 		return v
+	} else {
+		snake.mu.RUnlock()
 	}
 
 	buf := bytes.NewBufferString("")
@@ -25,7 +34,9 @@ func toSnake(u string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	toSnakeMap[u] = s
+	snake.mu.Lock()
+	defer snake.mu.Unlock()
+	snake.Map[u] = s
 	return s
 }
 
