@@ -9,20 +9,33 @@ import (
 	"sync"
 )
 
-type SnakeMap struct {
-  Map map[string]string
-  mu sync.RWMutex
+type safeMap struct {
+	m map[string]string
+	l *sync.RWMutex
 }
-var snake = SnakeMap{Map:map[string]string{}}
-var toUpperMap = map[string]string{}
+
+func (s *safeMap) Set(key string, value string) {
+	s.l.Lock()
+	defer s.l.Unlock()
+	s.m[key] = value
+}
+
+func (s *safeMap) Get(key string) string {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.m[key]
+}
+
+func newSafeMap() *safeMap {
+	return &safeMap{l: new(sync.RWMutex), m: make(map[string]string)}
+}
+
+var smap = newSafeMap()
+var umap = newSafeMap()
 
 func toSnake(u string) string {
-	snake.mu.RLock()
-	if v := snake.Map[u]; v != "" {
-		snake.mu.RUnlock()
+	if v := smap.Get(u); v != "" {
 		return v
-	} else {
-		snake.mu.RUnlock()
 	}
 
 	buf := bytes.NewBufferString("")
@@ -34,14 +47,12 @@ func toSnake(u string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	snake.mu.Lock()
-	defer snake.mu.Unlock()
-	snake.Map[u] = s
+	go smap.Set(u, s)
 	return s
 }
 
 func snakeToUpperCamel(s string) string {
-	if v := toUpperMap[s]; v != "" {
+	if v := umap.Get(s); v != "" {
 		return v
 	}
 
@@ -54,7 +65,7 @@ func snakeToUpperCamel(s string) string {
 	}
 
 	u := buf.String()
-	toUpperMap[s] = u
+	go umap.Set(s, u)
 	return u
 }
 
