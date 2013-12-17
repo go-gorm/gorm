@@ -5,7 +5,9 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+
 	"github.com/jinzhu/gorm/dialect"
+
 	"reflect"
 	"regexp"
 	"strconv"
@@ -222,9 +224,18 @@ func (s *Do) convertToMapInterface(values interface{}) map[string]interface{} {
 			}
 		}
 	case interface{}:
-		m := &Model{data: values, do: s}
-		for _, field := range m.columnsHasValue("other") {
-			attrs[field.dbName] = field.Value
+		reflect_value := reflect.ValueOf(values)
+
+		switch reflect_value.Kind() {
+		case reflect.Map:
+			for _, key := range reflect_value.MapKeys() {
+				attrs[toSnake(key.Interface().(string))] = reflect_value.MapIndex(key).Interface()
+			}
+		default:
+			m := &Model{data: values, do: s}
+			for _, field := range m.columnsHasValue("other") {
+				attrs[field.dbName] = field.Value
+			}
 		}
 	}
 	return attrs

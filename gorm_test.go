@@ -5,9 +5,11 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+
 	"os"
 	"reflect"
 	"strconv"
@@ -937,7 +939,7 @@ func TestUpdates(t *testing.T) {
 		t.Errorf("Product cde should be renamed to edf")
 	}
 
-	db.Table("products").Where("code in (?)", []string{"abc"}).Updates(map[string]interface{}{"code": "fgh", "price": 200})
+	db.Table("products").Where("code in (?)", []string{"abc"}).Updates(map[string]string{"code": "fgh", "price": "200"})
 	if db.First(&Product{}, "code = 'abc'").Error == nil {
 		t.Errorf("Product abc's code should be changed to fgh")
 	}
