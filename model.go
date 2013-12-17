@@ -127,14 +127,9 @@ func (m *Model) columnsHasValue(operation string) (fields []*Field) {
 }
 
 func (m *Model) updatedColumnsAndValues(values map[string]interface{}, ignore_protected_attrs bool) (results map[string]interface{}, any_updated bool) {
-	if m.data == nil {
-		return values, true
-	}
-
 	data := m.reflectData()
 	if !data.CanAddr() {
-		m.do.err(errors.New("Can't take address of the object"))
-		return
+		return values, true
 	}
 
 	for key, value := range values {

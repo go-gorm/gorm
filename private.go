@@ -34,7 +34,13 @@ func (s *DB) do(data interface{}) *Do {
 func (s *DB) err(err error) error {
 	if err != nil {
 		s.Error = err
-		s.warn(err)
+		if s.logMode == 0 {
+			if err != RecordNotFound {
+				go fmt.Println(err)
+			}
+		} else {
+			s.warn(err)
+		}
 	}
 	return err
 }
@@ -44,7 +50,7 @@ func (s *DB) hasError() bool {
 }
 
 func (s *DB) print(level string, v ...interface{}) {
-	if s.logMode || level == "debug" {
+	if s.logMode == 2 || level == "debug" {
 		if _, ok := s.parent.logger.(Logger); !ok {
 			fmt.Println("logger haven't been set, using os.Stdout")
 			s.parent.logger = default_logger

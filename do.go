@@ -262,8 +262,11 @@ func (s *Do) prepareUpdateSql(include_self bool) {
 	}
 
 	if include_self {
-		for key, value := range s.model.columnsAndValues("update") {
-			sqls = append(sqls, fmt.Sprintf("%v = %v", s.quote(key), s.addToVars(value)))
+		data := s.model.reflectData()
+		if data.CanAddr() {
+			for key, value := range s.model.columnsAndValues("update") {
+				sqls = append(sqls, fmt.Sprintf("%v = %v", s.quote(key), s.addToVars(value)))
+			}
 		}
 	}
 

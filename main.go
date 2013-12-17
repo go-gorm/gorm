@@ -16,7 +16,7 @@ type DB struct {
 	tagIdentifier string
 	singularTable bool
 	logger        Logger
-	logMode       bool
+	logMode       int
 }
 
 func Open(driver, source string) (db DB, err error) {
@@ -40,7 +40,11 @@ func (s *DB) SetLogger(l Logger) {
 }
 
 func (s *DB) LogMode(b bool) *DB {
-	s.logMode = b
+	if b {
+		s.logMode = 2
+	} else {
+		s.logMode = 1
+	}
 	return s
 }
 

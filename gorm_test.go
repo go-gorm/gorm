@@ -895,7 +895,7 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("Product 456 should be changed to 789")
 	}
 
-	if db.Model(&product2).Update("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
+	if db.Model(product2).Update("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
 		t.Error("No error should raise when update with CamelCase")
 	}
 
