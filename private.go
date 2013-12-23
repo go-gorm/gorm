@@ -2,6 +2,10 @@ package gorm
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -31,12 +35,22 @@ func (s *DB) do(data interface{}) *Do {
 	return &do
 }
 
+func (s *DB) fileWithLineNum() string {
+	for i := 5; i < 15; i++ {
+		_, file, line, ok := runtime.Caller(i)
+		if ok && (!regexp.MustCompile(`jinzhu/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`jinzhu/gorm/.*test.go`).MatchString(file)) {
+			return fmt.Sprintf("%v:%v", strings.TrimPrefix(file, os.Getenv("GOPATH")+"src/"), line)
+		}
+	}
+	return ""
+}
+
 func (s *DB) err(err error) error {
 	if err != nil {
 		s.Error = err
 		if s.logMode == 0 {
 			if err != RecordNotFound {
-				go fmt.Println(err)
+				go fmt.Println(s.fileWithLineNum(), err)
 			}
 		} else {
 			s.warn(err)
