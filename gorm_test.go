@@ -102,7 +102,7 @@ func init() {
 		db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	}
 	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	// db.LogMode(true)
+	db.LogMode(false)
 	if err != nil {
 		panic(fmt.Sprintf("No error should happen when connect database, but got %+v", err))
 	}
