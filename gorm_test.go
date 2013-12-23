@@ -1282,6 +1282,10 @@ func TestRelated(t *testing.T) {
 	if user3.Id != user.Id || user3.Name != user.Name {
 		t.Errorf("Should get user from credit card correctly")
 	}
+
+	if !db.Model(&CreditCard{}).Related(&User{}).RecordNotFound() {
+		t.Errorf("RecordNotFound for Related")
+	}
 }
 
 type Order struct {

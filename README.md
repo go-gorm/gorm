@@ -830,11 +830,16 @@ if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
 
 // If no record found, gorm will return RecordNotFound error, you could check it with
 db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
-// or use shortcut
+
+// Or use shortcut method
 if db.Where("name = ?", "hello world").First(&user).RecordNotFound() {
   panic("no record found")
 } else {
   user.Blalala()
+}
+
+if db.Model(&user).Related(&credit_card).RecordNotFound() {
+  panic("no credit card found")
 }
 ```
 
