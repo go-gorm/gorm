@@ -46,16 +46,23 @@ func (s *DB) fileWithLineNum() string {
 }
 
 func (s *DB) err(err error) error {
-	if err != nil {
-		s.Error = err
-		if s.logMode == 0 {
-			if err != RecordNotFound {
-				go fmt.Println(s.fileWithLineNum(), err)
-			}
-		} else {
-			s.warn(err)
-		}
+	if err == nil {
+		return nil
 	}
+
+	if s.logMode == 0 {
+		if err != RecordNotFound {
+			go fmt.Println(s.fileWithLineNum(), err)
+			error_str := err.Error()
+			if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(error_str) {
+				return nil
+			}
+		}
+	} else {
+		s.warn(err)
+	}
+
+	s.Error = err
 	return err
 }
 
