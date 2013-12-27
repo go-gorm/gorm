@@ -700,7 +700,7 @@ func (s *Do) joinsSql() string {
 }
 
 func (s *Do) combinedSql() string {
-	return s.whereSql() + s.orderSql() + s.limitSql() + s.offsetSql() + s.groupSql() + s.havingSql()
+	return s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
 }
 
 func (s *Do) createTable() *Do {
