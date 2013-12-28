@@ -103,7 +103,7 @@ func init() {
 
 // user.go
 package user
-import _ "db"
+import . "db"
 ...
 DB.Save(&User{Name: "xxx"})
 ...
