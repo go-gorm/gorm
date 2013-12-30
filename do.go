@@ -443,6 +443,8 @@ func (s *Do) query() *Do {
 			}
 			s.err(rows.Scan(values...))
 
+			m := &Model{data: dest.Addr().Interface(), do: s}
+			m.callMethod("AfterFind")
 			if is_slice {
 				dest_out.Set(reflect.Append(dest_out, dest))
 			}

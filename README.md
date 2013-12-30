@@ -6,7 +6,7 @@ Yet Another ORM library for Go, aims for developer friendly
 
 * Chainable API
 * Relations
-* Callbacks (before/after create/save/update/delete)
+* Callbacks (before/after create/save/update/delete/find)
 * Soft Delete
 * Auto Migration
 * Transaction
@@ -635,6 +635,13 @@ AfterSave
 BeforeDelete
 // delete self
 AfterDelete
+```
+
+### After Find
+
+```go
+// load record/records from database
+AfterFind
 ```
 
 Here is an example:
