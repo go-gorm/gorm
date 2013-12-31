@@ -214,6 +214,11 @@ func (m *Model) tableName() (str string) {
 	}
 
 	data := m.reflectData()
+
+	if data.Kind() == reflect.Slice {
+		data = reflect.New(data.Type().Elem()).Elem()
+	}
+
 	if fm := data.MethodByName("TableName"); fm.IsValid() {
 		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
 			if result, ok := v[0].Interface().(string); ok {
