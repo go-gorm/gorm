@@ -1,15 +1,15 @@
 # GORM
 
-Yet Another ORM library for Go, aims for developer friendly
+Yet Another ORM library for Go, aims to be developer friendly.
 
 ## Overview
 
 * Chainable API
 * Relations
 * Callbacks (before/after create/save/update/delete/find)
-* Soft Delete
-* Auto Migration
-* Transaction
+* Soft Deletes
+* Auto Migrations
+* Transactions
 * Logger Support
 * Bind struct with tag
 * Iteration Support via [Rows](#row--rows)
@@ -26,11 +26,16 @@ Yet Another ORM library for Go, aims for developer friendly
 * Column name is the snake case of field's name.
 * Use `Id int64` field as primary key.
 * Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`.
-* Use `CreatedAt` to store record's created time if it exist.
-* Use `UpdatedAt` to store record's updated time if it exist.
-* Use `DeletedAt` to store record's deleted time if it exist. [Soft Delete](#soft-delete)
+* Use `CreatedAt` to store record's created time if field exists.
+* Use `UpdatedAt` to store record's updated time if field exists.
+* Use `DeletedAt` to store record's deleted time if field exists. [Soft Delete](#soft-delete)
 
 ```go
+import (
+    "database/sql"
+    "time"
+)
+
 type User struct {
     Id           int64
     Birthday     time.Time
@@ -60,13 +65,14 @@ type Address struct {
     Address1 string         `sql:"not null;unique"` // Set this field as not nullable and unique in database
     Address2 string         `sql:"type:varchar(100);unique"`
     Post     sql.NullString `sql:not null`
-    // FYI, "NOT NULL" will only works well with NullXXX Scanner, because golang will initalize a default value for most type...
+    // FYI, "NOT NULL" will only work well with NullXXX Scanner, because golang will initalize a default value for most type...
 }
 ```
 
 ## Opening a Database
 
 ```go
+
 import "github.com/jinzhu/gorm"
 import _ "github.com/lib/pq"
 // import _ "github.com/go-sql-driver/mysql"
@@ -86,16 +92,39 @@ db.DB().Ping()
 
 // By default, table name is plural of struct type, you can use struct type as table name with:
 db.SingularTable(true)
+```
 
-
-// Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere in your project
+Gorm is goroutines friendly, so you can create a global variable to keep the connection and use it everywhere in your project.
+```go
 // db.go
 package db
+
+import (
+    "fmt"
+    "github.com/jinzhu/gorm"
+    _ "github.com/lib/pq"
+)
 
 var DB gorm.DB
 func init() {
     var err error
     DB, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+
+    // Connection string parameters for Postgres - http://godoc.org/github.com/lib/pq, if you are using another
+    // database refer to the relevant driver's documentation.
+
+    // * dbname - The name of the database to connect to
+    // * user - The user to sign in as
+    // * password - The user's password
+    // * host - The host to connect to. Values that start with / are for unix domain sockets.
+    //   (default is localhost)
+    // * port - The port to bind to. (default is 5432)
+    // * sslmode - Whether or not to use SSL (default is require, this is not the default for libpq)
+    //   Valid SSL modes:
+    //    * disable - No SSL
+    //    * require - Always SSL (skip verification)
+    //    * verify-full - Always SSL (require verification)
+
     if err != nil {
         panic(fmt.Sprintf("Got error when connect database, the error is '%v'", err))
     }
@@ -121,11 +150,12 @@ db.DropTable(User{})
 
 ### Automating Migrations
 
-Feel Free to update your struct, AutoMigrate will keep your database update to date.
+Feel free to update your struct, AutoMigrate will keep your database update to date.
 
-FYI, AutoMigrate will only add new columns, won't change current column's type or delete unused columns, to make sure your data is safe
+FYI, AutoMigrate will only add new columns, it won't change the current columns' types or delete unused columns, to make sure your data is safe.
 
-If table doesn't exist when AutoMigrate, gorm will run create table automatically.
+If the table doesn't exist when AutoMigrate, gorm will run create the table automatically.
+(the database first needs to be created manually though...).
 
 (only postgres and mysql supported)
 
@@ -154,7 +184,7 @@ db.NewRecord(user) // => false
 
 ### Create With SubStruct
 
-Refer [Query With Related](#query-with-related) for how to find associations
+Refer to [Query With Related](#query-with-related) for how to find associations
 
 ```go
 user := User{
@@ -165,11 +195,13 @@ user := User{
 }
 
 db.Save(&user)
+//// BEGIN TRANSACTION;
 //// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
 //// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
 //// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+//// COMMIT;
 ```
 
 ## Query
@@ -400,19 +432,19 @@ db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
 
 ### Soft Delete
 
-If a struct has DeletedAt field, it will get soft delete ability automatically!
+If a struct has a DeletedAt field, it will get soft delete ability automatically!
 
-For those don't have the filed, will be deleted from database permanently
+Structs that don't have a DeletedAt field will be deleted from the database permanently
 
 ```go
 db.Delete(&user)
 //// UPDATE users SET deleted_at="2013-10-29 10:23" WHERE id = 111;
 
-// Delete with search condiation
+// Delete with search condition
 db.Where("age = ?", 20).Delete(&User{})
 //// UPDATE users SET deleted_at="2013-10-29 10:23" WHERE age = 20;
 
-// Soft deleted records will be ignored when search
+// Soft deleted records will be ignored when searched
 db.Where("age = 20").Find(&user)
 //// SELECT * FROM users WHERE age = 100 AND (deleted_at IS NULL AND deleted_at <= '0001-01-02');
 
@@ -429,7 +461,7 @@ db.Unscoped().Delete(&order)
 
 Try to get the first record, if failed, will initialize the struct with search conditions.
 
-(only support search conditions map and struct)
+(only supports search conditions map and struct)
 
 ```go
 db.FirstOrInit(&user, User{Name: "non_existing"})
@@ -444,7 +476,7 @@ db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu"})
 
 ### FirstOrInit With Attrs
 
-Ignore Attrs's arguments when search, but use them to initialize the struct if no record found.
+Ignore Attrs's arguments when searching, but use them to initialize the struct if no record is found.
 
 ```go
 db.Where(User{Name: "non_existing"}).Attrs(User{Age: 20}).FirstOrInit(&user)
@@ -462,7 +494,7 @@ db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 30}).FirstOrInit(&user)
 
 ### FirstOrInit With Assign
 
-Ignore Assign's arguments when search, but use them to fill the struct regardless record found or not
+Ignore Assign's arguments when searching, but use them to fill the struct regardless, whether the record is found or not.
 
 ```go
 db.Where(User{Name: "non_existing"}).Assign(User{Age: 20}).FirstOrInit(&user)
@@ -474,7 +506,7 @@ db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 30}).FirstOrInit(&user)
 
 ## FirstOrCreate
 
-Try to get the first record, if failed, will initialize the struct with search conditions and insert it to database
+Try to get the first record, if failed, will initialize the struct with the search conditions and insert it in the database.
 
 ```go
 db.FirstOrCreate(&user, User{Name: "non_existing"})
@@ -489,7 +521,7 @@ db.FirstOrCreate(&user, map[string]interface{}{"name": "jinzhu", "age": 30})
 
 ### FirstOrCreate With Attrs
 
-Ignore Attrs's arguments when search, but use them to initialize the struct if no record found.
+Ignore Attrs's arguments when searching, but use them to initialize the struct if no record is found.
 
 ```go
 db.Where(User{Name: "non_existing"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
@@ -502,7 +534,7 @@ db.Where(User{Name: "jinzhu"}).Attrs(User{Age: 30}).FirstOrCreate(&user)
 
 ### FirstOrCreate With Assign
 
-Ignore Assign's arguments when search, but use them to fill the struct regardless record found or not, then save it back to database
+Ignore Assign's arguments when searching, but use them to fill the struct regardless, whether the record is found or not, then save it back to the database.
 
 ```go
 db.Where(User{Name: "non_existing"}).Assign(User{Age: 20}).FirstOrCreate(&user)
@@ -579,7 +611,7 @@ db.Table("deleted_users").Count(&count)
 
 ## Pluck
 
-Get struct's attribute as map
+Get struct's selected attributes as a map
 
 ```go
 var ages []int64
@@ -594,16 +626,35 @@ db.Model(&User{}).Pluck("name", &names)
 db.Table("deleted_users").Pluck("name", &names)
 //// SELECT name FROM deleted_users;
 
-// Pluck more than one column? Do it like this
+// Plucking more than one column? Do it like this:
 db.Select("name, age").Find(&users)
+```
+
+## Transactions
+All individual save and delete operations are run in a transaction by default.
+
+```go
+tx := db.Begin()
+
+user := User{Name: "transcation"}
+
+tx.Save(&u)
+tx.Update("age": 90)
+// do whatever
+
+// rollback
+tx.Rollback()
+
+// commit
+tx.Commit()
 ```
 
 ## Callbacks
 
-Callbacks are functions defined to struct's pointer, they would be run when save a struct to database.
-If any callback return error, gorm will stop future operations and rollback all changes
+Callbacks are methods defined on the struct's pointer.
+If any callback returns an error, gorm will stop future operations and rollback all changes.
 
-Here is a list with all available callbacks,
+Here is a list of all available callbacks,
 listed in the same order in which they will get called during the respective operations.
 
 ### Creating an Object
@@ -654,9 +705,9 @@ func (u *User) BeforeUpdate() (err error) {
     return
 }
 
-// Rollback the insertion if have more than 1000 users
+// Rollback the insertion if there are more than 1000 users (hypothetical example)
 func (u *User) AfterCreate() (err error) {
-    if (u.Id > 1000) { // Just as example, don't use Id to count users!
+    if (u.Id > 1000) { // Just as an example, don't use Id to count users!
         err = errors.New("Only 1000 users allowed!")
     }
     return
@@ -665,22 +716,22 @@ func (u *User) AfterCreate() (err error) {
 
 ```go
 // As you know, the save/delete operations are running in a transaction
-// This is means all your changes will be rollbacked if get any errors
+// This is means that all your changes will be rolled back if there are any errors
 // If you want your changes in callbacks be run in the same transaction
-// You have to pass the transaction as argument to the function
+// you have to pass the transaction as argument to the function
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
     tx.Model(u).Update("role", "admin")
     return
 }
 ```
 
-## Specify Table Name
+## Specifying the Table Name
 
 ```go
 // Create `deleted_users` table with User's fields
 db.Table("deleted_users").CreateTable(&User{})
 
-// Search from table `deleted_users`, and fill results to []User
+// Search from table `deleted_users`
 var deleted_users []User
 db.Table("deleted_users").Find(&deleted_users)
 //// SELECT * FROM deleted_users;
@@ -690,7 +741,7 @@ db.Table("deleted_users").Where("name = ?", "jinzhu").Delete()
 //// DELETE FROM deleted_users WHERE name = 'jinzhu';
 ```
 
-### Specify Table Name for Struct permanently with TableName method
+### Specifying the Table Name for Struct permanently with TableName
 
 ```go
 type Cart struct {
@@ -707,24 +758,6 @@ func (u User) TableName() string {
         return "users"
     }
 }
-```
-
-## Transaction
-
-```go
-tx := db.Begin()
-
-user := User{Name: "transcation"}
-
-tx.Save(&u)
-tx.Update("age": 90)
-// do whatever
-
-// rollback
-tx.Rollback()
-
-// commit
-tx.Commit()
 ```
 
 ## Scopes
@@ -760,7 +793,7 @@ db.Scopes(OrderStatus([]string{"paid", "shipped"})).Find(&orders)
 
 ## Logger
 
-Grom has builtin logger support, enable it with:
+Gorm has built-in logger support, enable it with:
 
 ```go
 db.LogMode(true)
@@ -770,13 +803,13 @@ db.LogMode(true)
 
 ```go
 // Use your own logger
-// Refer gorm's default logger for how to format messages: https://github.com/jinzhu/gorm/blob/master/logger.go#files
+// Refer to gorm's default logger for how to format messages: https://github.com/jinzhu/gorm/blob/master/logger.go#files
 db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 
-// Disable log
+// Disable logging
 db.LogMode(false)
 
-// Enable log for a single operation, make debug easy
+// Enable logging for a single operation, to make debugging easy
 db.Debug().Where("name = ?", "jinzhu").First(&User{})
 ```
 
@@ -811,14 +844,14 @@ for rows.Next() {
 }
 ```
 
-## Run Raw SQl
+## Run Raw SQL
 
 ```go
-// Raw sql
-db.Exec("drop table users;")
+// Raw SQL
+db.Exec("DROP TABLE users;")
 
-// Raw sql with arguments
-db.Exec("update orders set shipped_at=? where id in (?)", time.Now, []int64{11,22,33})
+// Raw SQL with arguments
+db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,22,33})
 ```
 
 ## Error Handling
@@ -826,16 +859,16 @@ db.Exec("update orders set shipped_at=? where id in (?)", time.Now, []int64{11,2
 ```go
 query := db.Where("name = ?", "jinzhu").First(&user)
 query := db.First(&user).Limit(10).Find(&users)
-//// query.Error keep the latest error happened
-//// query.Errors keep all errors happened
-//// If an error happened, gorm will stop following operations
+//// query.Error returns the last error
+//// query.Errors returns all errors that have taken place
+//// If an error has taken place, gorm will stop all following operations
 
-// I often use some code like below to do error handling when writting applicatoins
+// I often use some code like below to do error handling when writing applications
 if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
   // ...
 }
 
-// If no record found, gorm will return RecordNotFound error, you could check it with
+// If no record is found, gorm will return RecordNotFound error, you could check it with
 db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
 
 // Or use shortcut method
@@ -850,9 +883,9 @@ if db.Model(&user).Related(&credit_card).RecordNotFound() {
 }
 ```
 
-## Advanced Usage With Query Chain
+## Advanced Usage With Query Chaining
 
-Already excited about above usage? Let's see some magic!
+Already excited with what gorm has to offer? Let's see some magic!
 
 ```go
 db.First(&first_article).Count(&total_count).Limit(10).Find(&first_page_articles).Offset(10).Find(&second_page_articles)
@@ -868,7 +901,7 @@ db.Where("created_at > ?", "2013-10-10").Find(&cancelled_orders, "state = ?", "c
 //// SELECT * FROM orders WHERE created_at > '2013/10/10' AND state = 'shipped'; (shipped_orders)
 
 
-// Use variable to keep query chain
+// Use variables to keep query chain
 todays_orders := db.Where("created_at > ?", "2013-10-29")
 cancelled_orders := todays_orders.Where("state = ?", "cancelled")
 shipped_orders := todays_orders.Where("state = ?", "shipped")
@@ -886,7 +919,7 @@ db.Where("mail_type = ?", "TEXT").Find(&users1).Table("deleted_users").Find(&use
 //// SELECT * FROM deleted_users WHERE mail_type = 'TEXT'; (users2)
 
 
-// An example for how to use FirstOrCreate
+// An example on how to use FirstOrCreate
 db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111"}).FirstOrCreate(&user)
 //// SELECT * FROM users WHERE email = 'x@example.org';
 //// INSERT INTO "users" (email,registered_ip) VALUES ("x@example.org", "111.111.111.111")  // if no record found
