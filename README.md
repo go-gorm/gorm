@@ -1,6 +1,6 @@
 # GORM
 
-Yet Another ORM library for Go, aims to be developer friendly.
+The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Overview
 
@@ -926,11 +926,37 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* Joins
 * Scan
-* AlertColumn, DropColumn, AddIndex, RemoveIndex
+* Support plugin
+  BeforeQuery
+  BeforeSave
+  BeforeCreate
+  BeforeUpdate
+  BeforeDelete
+  AfterQuery
+  AfterSave
+  AfterCreate
+  AfterUpdate
+
+  SoftDelete
+      BeforeQuery
+      BeforeSave
+      BeforeDelete
+
+  db.RegisterPlugin("xxx")
+  db.RegisterCallback("BeforeQuery", func() {})
+  db.RegisterCallback("BeforeSave", func() {})
+  db.RegisterFuncation("Search", func() {})
+  db.Model(&[]User{}).Limit(10).Do("Search", "vip", "china")
+  db.Mode(&User{}).Do("EditForm").Get("edit_form_html")
+
+  DefaultValue, DefaultTimeZone, R/W Splitting, Validation
+* Getter/Setter
+  share or not? transaction?
+* Github Pages
+* Joins
 * Includes
-* Validations
+* AlertColumn, DropColumn, AddIndex, RemoveIndex
 
 # Author
 
