@@ -8,18 +8,18 @@ import (
 	"time"
 )
 
-type Logger interface {
+type logger interface {
 	Print(v ...interface{})
 }
 
-type defaultLogger struct {
+type Logger struct {
 	*log.Logger
 }
 
 //var default_logger = log.New(os.Stdout, "\r\n", 0)
-var default_logger = defaultLogger{log.New(os.Stdout, "\r\n", 0)}
+var default_logger = Logger{log.New(os.Stdout, "\r\n", 0)}
 
-func (logger defaultLogger) Print(v ...interface{}) {
+func (logger Logger) Print(v ...interface{}) {
 	if len(v) > 1 {
 		level := v[0]
 		tim := "\033[33m[" + time.Now().Format("2006-01-02 15:04:05") + "]\033[0m"

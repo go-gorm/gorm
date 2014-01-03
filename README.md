@@ -821,6 +821,9 @@ db.LogMode(true)
 // Refer to gorm's default logger for how to format messages: https://github.com/jinzhu/gorm/blob/master/logger.go#files
 db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 
+// If you want to use gorm's default log format, then you could just do it like this
+db.SetLogger(gorm.Logger{revel.TRACE})
+
 // Disable logging
 db.LogMode(false)
 

@@ -15,7 +15,7 @@ type DB struct {
 	dialect       dialect.Dialect
 	tagIdentifier string
 	singularTable bool
-	logger        Logger
+	logger        logger
 	logMode       int
 }
 
@@ -35,7 +35,7 @@ func (s *DB) SetTagIdentifier(str string) {
 	s.parent.tagIdentifier = str
 }
 
-func (s *DB) SetLogger(l Logger) {
+func (s *DB) SetLogger(l logger) {
 	s.parent.logger = l
 }
 
