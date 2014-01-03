@@ -1273,11 +1273,22 @@ func TestRelated(t *testing.T) {
 	if len(emails) != 2 {
 		t.Errorf("Should have two emails")
 	}
+	var user1 User
+	db.Model(&user).Related(&user1.Emails)
+	if len(user1.Emails) != 2 {
+		t.Errorf("Should have two emails")
+	}
 
 	var address1 Address
 	db.Model(&user).Related(&address1, "BillingAddressId")
 	if address1.Address1 != "Billing Address - Address 1" {
 		t.Errorf("Should get billing address from user correctly")
+	}
+
+	user1 = User{}
+	db.Model(&address1).Related(&user1, "BillingAddressId")
+	if db.NewRecord(user1) {
+		t.Errorf("Should get user from address correctly")
 	}
 
 	var user2 User
