@@ -1527,6 +1527,42 @@ func TestRows(t *testing.T) {
 	}
 }
 
+type result struct {
+	Name string
+	Age  int
+}
+
+func TestScan(t *testing.T) {
+	var res result
+	db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&res)
+	if res.Name != "3" {
+		t.Errorf("Scan into struct should works")
+	}
+
+	var ress []result
+	db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&ress)
+	if len(ress) != 2 || ress[0].Name != "3" || ress[1].Name != "3" {
+		t.Errorf("Scan into struct map")
+	}
+}
+
+func TestRaw(t *testing.T) {
+	var ress []result
+	db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&ress)
+	if len(ress) != 2 || ress[0].Name != "3" || ress[1].Name != "3" {
+		t.Errorf("Raw with scan")
+	}
+
+	rows, _ := db.Raw("select name, age from users where name = ?", 3).Rows()
+	count := 0
+	for rows.Next() {
+		count++
+	}
+	if count != 2 {
+		t.Errorf("Raw with Rows should find two records with name 3")
+	}
+}
+
 func TestGroup(t *testing.T) {
 	rows, err := db.Select("name").Table("users").Group("name").Rows()
 

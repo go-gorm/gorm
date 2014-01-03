@@ -128,6 +128,10 @@ func (s *DB) Rows() (*sql.Rows, error) {
 	return s.do(s.data).rows()
 }
 
+func (s *DB) Scan(dest interface{}) *DB {
+	return s.do(s.data).query(dest).db
+}
+
 func (s *DB) Attrs(attrs ...interface{}) *DB {
 	return s.clone().search.attrs(attrs...).db
 }
@@ -178,6 +182,10 @@ func (s *DB) Save(value interface{}) *DB {
 
 func (s *DB) Delete(value interface{}) *DB {
 	return s.clone().do(value).begin().delete().commit_or_rollback().db
+}
+
+func (s *DB) Raw(sql string, values ...interface{}) *DB {
+	return s.clone().search.setraw(true).where(sql, values...).db
 }
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {

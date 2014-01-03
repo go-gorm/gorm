@@ -327,7 +327,11 @@ func (s *Do) delete() *Do {
 }
 
 func (s *Do) prepareQuerySql() {
-	s.setSql(fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.table(), s.combinedSql()))
+	if s.search.raw {
+		s.setSql(strings.TrimLeft(s.combinedSql(), "WHERE "))
+	} else {
+		s.setSql(fmt.Sprintf("SELECT %v FROM %v %v", s.selectSql(), s.table(), s.combinedSql()))
+	}
 	return
 }
 
@@ -398,13 +402,18 @@ func (s *Do) rows() (*sql.Rows, error) {
 	return s.db.db.Query(s.sql, s.sqlVars...)
 }
 
-func (s *Do) query() *Do {
+func (s *Do) query(dests ...interface{}) *Do {
 	defer s.trace(time.Now())
 	var (
 		is_slice  bool
 		dest_type reflect.Type
 	)
-	dest_out := reflect.Indirect(reflect.ValueOf(s.value))
+	var dest_out reflect.Value
+	if len(dests) > 0 {
+		dest_out = reflect.Indirect(reflect.ValueOf(dests[0]))
+	} else {
+		dest_out = reflect.Indirect(reflect.ValueOf(s.value))
+	}
 
 	if dest_out.Kind() == reflect.Slice {
 		is_slice = true

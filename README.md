@@ -818,16 +818,42 @@ db.Debug().Where("name = ?", "jinzhu").First(&User{})
 Row & Rows is not chainable, it works just like `QueryRow` and `Query`
 
 ```go
-row := db.Where("name = ?", "jinzhu").select("name, age").Row() // (*sql.Row)
+row := db.Table("users").Where("name = ?", "jinzhu").select("name, age").Row() // (*sql.Row)
 row.Scan(&name, &age)
 
-rows, err := db.Where("name = ?", "jinzhu").select("name, age, email").Rows() // (*sql.Rows, error)
+rows, err := db.Model(User{}).Where("name = ?", "jinzhu").select("name, age, email").Rows() // (*sql.Rows, error)
 defer rows.Close()
 for rows.Next() {
   ...
   rows.Scan(&name, &age, &email)
   ...
 }
+
+// Rows() with raw sql
+rows, err := db.Raw("select name, age, email from users where name = ?", "jinzhu").Rows() // (*sql.Rows, error)
+defer rows.Close()
+for rows.Next() {
+  ...
+  rows.Scan(&name, &age, &email)
+  ...
+}
+```
+
+## Scan
+
+Scan sql results into strcut
+
+```go
+type Result struct {
+	Name string
+	Age  int
+}
+
+var result Result
+db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&result)
+
+// Scan raw sql
+db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
 ```
 
 ## Group & Having

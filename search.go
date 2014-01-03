@@ -21,6 +21,7 @@ type search struct {
 	groupStr     string
 	tableName    string
 	unscope      bool
+	raw          bool
 }
 
 func (s *search) clone() *search {
@@ -39,6 +40,7 @@ func (s *search) clone() *search {
 		groupStr:     s.groupStr,
 		joinsStr:     s.joinsStr,
 		tableName:    s.tableName,
+		raw:          s.raw,
 	}
 }
 
@@ -107,6 +109,11 @@ func (s *search) includes(value interface{}) *search {
 
 func (s *search) joins(query string) *search {
 	s.joinsStr = query
+	return s
+}
+
+func (s *search) setraw(b bool) *search {
+	s.raw = b
 	return s
 }
 
