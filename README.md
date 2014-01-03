@@ -29,6 +29,19 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * Use `CreatedAt` to store record's created time if field exists.
 * Use `UpdatedAt` to store record's updated time if field exists.
 * Use `DeletedAt` to store record's deleted time if field exists. [Soft Delete](#soft-delete)
+* Gorm uses reflection to know which tables to work with:
+
+```go
+// E.g Finding an existing User
+var user User
+// Gorm will now know to use table "users" ("user" if pluralisation has been disabled) for all operations.
+db.First(&user)
+
+// E.g creating a new User
+DB.Save(&User{Name: "xxx"}) // table "users"
+```
+
+# Getting Started
 
 ```go
 import (
@@ -162,6 +175,8 @@ If the table doesn't exist when AutoMigrate, gorm will run create the table auto
 ```go
 db.AutoMigrate(User{})
 ```
+
+# Gorm API
 
 ## Create
 
