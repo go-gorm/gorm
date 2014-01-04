@@ -105,6 +105,7 @@ func init() {
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
 	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+	db.LogMode(true)
 	db.LogMode(false)
 
 	if err != nil {

@@ -23,9 +23,8 @@ func (s *DB) clone() *DB {
 }
 
 func (s *DB) new() *DB {
-	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, search: &search{}}
-	db.search.db = &db
-	return &db
+	s.search = nil
+	return s.clone()
 }
 
 func (s *DB) do(data interface{}) *Do {
@@ -35,7 +34,28 @@ func (s *DB) do(data interface{}) *Do {
 	return &do
 }
 
-func (s *DB) fileWithLineNum() string {
+func (s *DB) err(err error) error {
+	if err != nil {
+		if s.logMode == 0 {
+			if err != RecordNotFound {
+				go s.print(fileWithLineNum(), err)
+				if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(err.Error()) {
+					return nil
+				}
+			}
+		} else {
+			s.log(err)
+		}
+		s.Error = err
+	}
+	return err
+}
+
+func (s *DB) hasError() bool {
+	return s.Error != nil
+}
+
+func fileWithLineNum() string {
 	for i := 5; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
 		if ok && (!regexp.MustCompile(`jinzhu/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`jinzhu/gorm/.*test.go`).MatchString(file)) {
@@ -45,49 +65,18 @@ func (s *DB) fileWithLineNum() string {
 	return ""
 }
 
-func (s *DB) err(err error) error {
-	if err == nil {
-		return nil
+func (s *DB) print(v ...interface{}) {
+	go s.parent.logger.(logger).Print(v...)
+}
+
+func (s *DB) log(v ...interface{}) {
+	if s.logMode == 2 {
+		s.print(append([]interface{}{"log", fileWithLineNum()}, v...)...)
 	}
-
-	if s.logMode == 0 {
-		if err != RecordNotFound {
-			go fmt.Println(s.fileWithLineNum(), err)
-			error_str := err.Error()
-			if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(error_str) {
-				return nil
-			}
-		}
-	} else {
-		s.warn(err)
-	}
-
-	s.Error = err
-	return err
-}
-
-func (s *DB) hasError() bool {
-	return s.Error != nil
-}
-
-func (s *DB) print(level string, v ...interface{}) {
-	if s.logMode == 2 || level == "debug" {
-		s.parent.logger.(logger).Print(append([]interface{}{level}, v...)...)
-	}
-}
-
-func (s *DB) warn(v ...interface{}) {
-	go s.print("warn", v...)
-}
-
-func (s *DB) info(v ...interface{}) {
-	go s.print("info", v...)
 }
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
-	go s.print("sql", time.Now().Sub(t), sql, vars)
-}
-
-func (s *DB) debug(v ...interface{}) {
-	go s.print("debug", v...)
+	if s.logMode == 2 {
+		s.print("sql", fileWithLineNum(), time.Now().Sub(t), sql, vars)
+	}
 }
