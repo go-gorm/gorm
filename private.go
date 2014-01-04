@@ -72,12 +72,7 @@ func (s *DB) hasError() bool {
 
 func (s *DB) print(level string, v ...interface{}) {
 	if s.logMode == 2 || level == "debug" {
-		if _, ok := s.parent.logger.(logger); !ok {
-			fmt.Println("logger haven't been set, using os.Stdout")
-			s.parent.logger = default_logger
-		}
-		args := []interface{}{level}
-		s.parent.logger.(logger).Print(append(args, v...)...)
+		s.parent.logger.(logger).Print(append([]interface{}{level}, v...)...)
 	}
 }
 

@@ -23,6 +23,7 @@ func Open(driver, source string) (db DB, err error) {
 	db.db, err = sql.Open(driver, source)
 	db.dialect = dialect.New(driver)
 	db.tagIdentifier = "sql"
+	db.logger = defaultLogger
 	db.parent = &db
 	return
 }

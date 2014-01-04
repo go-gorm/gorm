@@ -16,8 +16,8 @@ type Logger struct {
 	*log.Logger
 }
 
-//var default_logger = log.New(os.Stdout, "\r\n", 0)
-var default_logger = Logger{log.New(os.Stdout, "\r\n", 0)}
+//var defaultLogger = log.New(os.Stdout, "\r\n", 0)
+var defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
 
 func (logger Logger) Print(v ...interface{}) {
 	if len(v) > 1 {
