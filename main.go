@@ -7,10 +7,10 @@ import (
 )
 
 type DB struct {
+	Value         interface{}
 	db            sqlCommon
 	parent        *DB
 	search        *search
-	data          interface{}
 	Error         error
 	dialect       dialect.Dialect
 	tagIdentifier string
@@ -121,15 +121,15 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Row() *sql.Row {
-	return s.do(s.data).row()
+	return s.do(s.Value).row()
 }
 
 func (s *DB) Rows() (*sql.Rows, error) {
-	return s.do(s.data).rows()
+	return s.do(s.Value).rows()
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	return s.do(s.data).query(dest).db
+	return s.do(s.Value).query(dest).db
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
@@ -165,7 +165,7 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
-	return s.clone().do(s.data).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback().db
+	return s.clone().do(s.Value).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback().db
 }
 
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
@@ -173,7 +173,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 }
 
 func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *DB {
-	return s.clone().do(s.data).begin().updateColumns(values).commit_or_rollback().db
+	return s.clone().do(s.Value).begin().updateColumns(values).commit_or_rollback().db
 }
 
 func (s *DB) Save(value interface{}) *DB {
@@ -194,21 +194,21 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 
 func (s *DB) Model(value interface{}) *DB {
 	c := s.clone()
-	c.data = value
+	c.Value = value
 	return c
 }
 
 func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
-	old_data := s.data
+	old_data := s.Value
 	return s.do(value).related(old_data, foreign_keys...).db
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
-	return s.do(s.data).pluck(column, value).db
+	return s.do(s.Value).pluck(column, value).db
 }
 
 func (s *DB) Count(value interface{}) *DB {
-	return s.do(s.data).count(value).db
+	return s.do(s.Value).count(value).db
 }
 
 func (s *DB) Table(name string) *DB {
@@ -271,21 +271,21 @@ func (s *DB) AutoMigrate(value interface{}) *DB {
 }
 
 func (s *DB) ModifyColumn(column string, typ string) *DB {
-	s.clone().do(s.data).modifyColumn(column, typ)
+	s.clone().do(s.Value).modifyColumn(column, typ)
 	return s
 }
 
 func (s *DB) DropColumn(column string) *DB {
-	s.do(s.data).dropColumn(column)
+	s.do(s.Value).dropColumn(column)
 	return s
 }
 
 func (s *DB) AddIndex(column string, index_name ...string) *DB {
-	s.clone().do(s.data).addIndex(column, index_name...)
+	s.clone().do(s.Value).addIndex(column, index_name...)
 	return s
 }
 
 func (s *DB) RemoveIndex(column string) *DB {
-	s.clone().do(s.data).removeIndex(column)
+	s.clone().do(s.Value).removeIndex(column)
 	return s
 }

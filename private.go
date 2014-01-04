@@ -10,7 +10,7 @@ import (
 )
 
 func (s *DB) clone() *DB {
-	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, data: s.data, Error: s.Error}
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error}
 
 	if s.search == nil {
 		db.search = &search{}
@@ -23,13 +23,13 @@ func (s *DB) clone() *DB {
 }
 
 func (s *DB) new() *DB {
-	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, data: s.data, Error: s.Error, search: &search{}}
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, search: &search{}}
 	db.search.db = &db
 	return &db
 }
 
 func (s *DB) do(data interface{}) *Do {
-	s.data = data
+	s.Value = data
 	do := Do{db: s}
 	do.setModel(data)
 	return &do
