@@ -886,6 +886,23 @@ rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as
 for rows.Next() {
   ...
 }
+
+type Result struct {
+	Date  time.Time
+	Total int64
+}
+db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Scan(&results)
+```
+
+## Joins
+
+```go
+rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()
+for rows.Next() {
+  ...
+}
+
+db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)
 ```
 
 ## Run Raw SQL
@@ -970,7 +987,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* Scan
 * Support plugin
   BeforeQuery
   BeforeSave
@@ -998,7 +1014,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * Getter/Setter
   share or not? transaction?
 * Github Pages
-* Joins
 * Includes
 * AlertColumn, DropColumn, AddIndex, RemoveIndex
 

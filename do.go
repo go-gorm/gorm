@@ -707,11 +707,11 @@ func (s *Do) havingSql() string {
 }
 
 func (s *Do) joinsSql() string {
-	return ""
+	return s.search.joinsStr + " "
 }
 
 func (s *Do) combinedSql() string {
-	return s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
+	return s.joinsSql() + s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
 }
 
 func (s *Do) createTable() *Do {

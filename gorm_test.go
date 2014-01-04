@@ -1591,6 +1591,25 @@ func TestGroup(t *testing.T) {
 	}
 }
 
+func TestJoins(t *testing.T) {
+	type result struct {
+		Name  string
+		Email string
+	}
+
+	user := User{
+		Name:   "joins",
+		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+	}
+	db.Save(&user)
+
+	var results []result
+	db.Table("users").Select("name, email").Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").Scan(&results)
+	if len(results) != 2 || results[0].Email != "join1@example.com" || results[1].Email != "join2@example.com" {
+		t.Errorf("Should find all two emails with Join")
+	}
+}
+
 func NameIn1And2(d *DB) *DB {
 	return d.Where("name in (?)", []string{"1", "2"})
 }
