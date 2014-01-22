@@ -66,7 +66,7 @@ func fileWithLineNum() string {
 }
 
 func (s *DB) print(v ...interface{}) {
-	go s.parent.logger.(logger).Print(v...)
+	s.parent.logger.(logger).Print(v...)
 }
 
 func (s *DB) log(v ...interface{}) {
