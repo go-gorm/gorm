@@ -1003,7 +1003,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
   AfterSave
   AfterCreate
   AfterUpdate
-
   SoftDelete
       BeforeQuery
       BeforeSave

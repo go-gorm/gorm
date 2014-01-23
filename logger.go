@@ -16,7 +16,6 @@ type Logger struct {
 	*log.Logger
 }
 
-//var defaultLogger = log.New(os.Stdout, "\r\n", 0)
 var defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
 
 // Format log

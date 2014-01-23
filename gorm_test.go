@@ -87,6 +87,8 @@ var (
 )
 
 func init() {
+	db.Debug().Model(User{}).RemoveIndex("name")
+
 	var err error
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":

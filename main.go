@@ -8,24 +8,24 @@ import (
 
 type DB struct {
 	Value         interface{}
+	Callbacks     *callback
+	Error         error
 	db            sqlCommon
 	parent        *DB
 	search        *search
-	Error         error
+	logMode       int
+	logger        logger
 	dialect       dialect.Dialect
 	tagIdentifier string
 	singularTable bool
-	logger        logger
-	logMode       int
 }
 
-func Open(driver, source string) (db DB, err error) {
+func Open(driver, source string) (DB, error) {
+	var err error
+	db := DB{dialect: dialect.New(driver), tagIdentifier: "sql", logger: defaultLogger}
 	db.db, err = sql.Open(driver, source)
-	db.dialect = dialect.New(driver)
-	db.tagIdentifier = "sql"
-	db.logger = defaultLogger
 	db.parent = &db
-	return
+	return db, err
 }
 
 func (s *DB) DB() *sql.DB {
