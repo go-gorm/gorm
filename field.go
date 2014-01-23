@@ -14,6 +14,7 @@ type Field struct {
 	model             *Model
 	dbName            string
 	isBlank           bool
+	ignoreField       bool
 	isPrimaryKey      bool
 	autoCreateTime    bool
 	autoUpdateTime    bool
@@ -26,6 +27,14 @@ type Field struct {
 
 func (f *Field) parseBlank() {
 	f.isBlank = isBlank(f.reflectValue)
+}
+
+func (f *Field) parseIgnore() {
+	typ, _, _ := parseSqlTag(f.structField.Tag.Get(f.model.do.db.parent.tagIdentifier))
+
+	if typ == "-" {
+		f.ignoreField = true
+	}
 }
 
 func (f *Field) isScanner() bool {

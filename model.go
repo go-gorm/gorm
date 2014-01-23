@@ -102,6 +102,7 @@ func (m *Model) fields(operation string) (fields []*Field) {
 			field.Value = value.Interface()
 			field.parseAssociation()
 			field.parseBlank()
+			field.parseIgnore()
 			c <- &field
 		}(field_struct, c)
 	}
@@ -271,7 +272,7 @@ func (m *Model) setValueByColumn(name string, value interface{}, out interface{}
 
 func (m *Model) beforeAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		if field.beforeAssociation && !field.isBlank {
+		if field.beforeAssociation && !field.isBlank && !field.ignoreField {
 			fields = append(fields, field)
 		}
 	}
@@ -280,7 +281,7 @@ func (m *Model) beforeAssociations() (fields []*Field) {
 
 func (m *Model) afterAssociations() (fields []*Field) {
 	for _, field := range m.fields("null") {
-		if field.afterAssociation && !field.isBlank {
+		if field.afterAssociation && !field.isBlank && !field.ignoreField {
 			fields = append(fields, field)
 		}
 	}
