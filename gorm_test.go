@@ -17,24 +17,29 @@ import (
 	"time"
 )
 
+type IgnoredEmbedStruct struct {
+	Name string
+}
+
 type User struct {
-	Id                int64     // Id: Primary key
-	Birthday          time.Time // Time
-	Age               int64
-	Name              string        `sql:"size:255"`
-	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
-	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
-	DeletedAt         time.Time     // DeletedAt: Time of record is deleted, refer Soft Delete for more
-	Emails            []Email       // Embedded structs
-	BillingAddress    Address       // Embedded struct
-	BillingAddressId  sql.NullInt64 // Embedded struct's foreign key
-	ShippingAddress   Address       // Embedded struct
-	ShippingAddressId int64         // Embedded struct's foreign key
-	When              time.Time
-	CreditCard        CreditCard
-	Latitude          float64
-	PasswordHash      []byte
-	IgnoreMe          int64 `sql:"-"`
+	Id                 int64     // Id: Primary key
+	Birthday           time.Time // Time
+	Age                int64
+	Name               string             `sql:"size:255"`
+	CreatedAt          time.Time          // CreatedAt: Time of record is created, will be insert automatically
+	UpdatedAt          time.Time          // UpdatedAt: Time of record is updated, will be updated automatically
+	DeletedAt          time.Time          // DeletedAt: Time of record is deleted, refer Soft Delete for more
+	Emails             []Email            // Embedded structs
+	IgnoredEmbedStruct IgnoredEmbedStruct `sql:"-"`
+	BillingAddress     Address            // Embedded struct
+	BillingAddressId   sql.NullInt64      // Embedded struct's foreign key
+	ShippingAddress    Address            // Embedded struct
+	ShippingAddressId  int64              // Embedded struct's foreign key
+	When               time.Time
+	CreditCard         CreditCard
+	Latitude           float64
+	PasswordHash       []byte
+	IgnoreMe           int64 `sql:"-"`
 }
 
 type CreditCard struct {
@@ -1247,6 +1252,13 @@ func TestSubStruct(t *testing.T) {
 
 	comment3 := Comment{Content: "Comment 3", Post: Post{Title: "Title 3", Body: "Body 3"}}
 	db.Save(&comment3)
+}
+
+func TestIgnoreAssociation(t *testing.T) {
+	user := User{Name: "ignore", IgnoredEmbedStruct: IgnoredEmbedStruct{Name: "IgnoreMe"}}
+	if err := db.Save(&user).Error; err != nil {
+		t.Errorf("Should have no error with ignored association, but got ", err)
+	}
 }
 
 func TestRelated(t *testing.T) {
