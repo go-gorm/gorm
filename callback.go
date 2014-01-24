@@ -1,55 +1,87 @@
 package gorm
 
-import (
-	"fmt"
-	"time"
-)
-
 type callback struct {
-	Create []func()
-	Update []func()
-	Delete []func()
-	Query  []func()
+	create     []func()
+	update     []func()
+	delete     []func()
+	query      []func()
+	processors []*callback_processor
 }
 
-func (c *callback) RegisterCallback(typ string, fc func()) {
+type callback_processor struct {
+	name      string
+	before    string
+	after     string
+	replace   bool
+	typ       string
+	processor func()
+	callback  *callback
 }
 
-func query(db *DB) {
+func (c *callback) addProcessor(typ string) *callback_processor {
+	cp := &callback_processor{typ: typ, callback: c}
+	c.processors = append(c.processors, cp)
+	return cp
 }
 
-func save(db *DB) {
+func (c *callback) Create() *callback_processor {
+	return c.addProcessor("create")
 }
 
-func create(db *DB) {
+func (c *callback) Update() *callback_processor {
+	return c.addProcessor("update")
 }
 
-func update(db *DB) {
+func (c *callback) Delete() *callback_processor {
+	return c.addProcessor("delete")
 }
 
-func Delete(scope *Scope) {
-	scope.CallMethod("BeforeDelete")
+func (c *callback) Query() *callback_processor {
+	return c.addProcessor("query")
+}
 
-	if !scope.HasError() {
-		if !scope.Search.unscope && scope.HasColumn("DeletedAt") {
-			scope.Raw(fmt.Sprintf("UPDATE %v SET deleted_at=%v %v", scope.Table(), scope.AddToVars(time.Now()), scope.CombinedSql()))
-		} else {
-			scope.Raw(fmt.Sprintf("DELETE FROM %v %v", scope.Table(), scope.CombinedSql()))
+func (c *callback) Sort() {
+	creates, updates, deletes, queries := []*callback_processor{}, []*callback_processor{}, []*callback_processor{}, []*callback_processor{}
+
+	for _, processor := range c.processors {
+		switch processor.typ {
+		case "create":
+			creates = append(creates, processor)
+		case "update":
+			updates = append(updates, processor)
+		case "delete":
+			deletes = append(deletes, processor)
+		case "query":
+			queries = append(queries, processor)
 		}
-		scope.Exec()
-		scope.CallMethod("AfterDelete")
 	}
 }
 
-var DefaultCallback = &callback{}
-
-func init() {
-	DefaultCallback.Create().Before("Delete").After("Lalala").Register("delete", Delete)
-	DefaultCallback.Update().Before("Delete").After("Lalala").Remove("replace", Delete)
-	DefaultCallback.Delete().Before("Delete").After("Lalala").Replace("replace", Delete)
-	DefaultCallback.Query().Before("Delete").After("Lalala").Replace("replace", Delete)
+func (cp *callback_processor) Before(name string) *callback_processor {
+	cp.before = name
+	return cp
 }
 
-// Scope
-// HasError(), HasColumn(), CallMethod(), Raw(), Exec()
-// TableName(), CombinedQuerySQL()
+func (cp *callback_processor) After(name string) *callback_processor {
+	cp.after = name
+	return cp
+}
+
+func (cp *callback_processor) Register(name string, fc func()) {
+	cp.name = name
+	cp.processor = fc
+	cp.callback.Sort()
+}
+
+func (cp *callback_processor) Remove(name string) {
+	cp.Replace(name, func() {})
+}
+
+func (cp *callback_processor) Replace(name string, fc func()) {
+	cp.name = name
+	cp.processor = fc
+	cp.replace = true
+	cp.callback.Sort()
+}
+
+var DefaultCallback = &callback{processors: []*callback_processor{}}
