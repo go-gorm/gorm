@@ -75,3 +75,31 @@ func TestRegisterCallbackWithComplexOrder2(t *testing.T) {
 		t.Errorf("register callback with order")
 	}
 }
+
+func replace_create() {}
+
+func TestReplaceCallback(t *testing.T) {
+	var callback = &callback{processors: []*callback_processor{}}
+
+	callback.Create().Before("after_create1").After("before_create1").Register("create", create)
+	callback.Create().Register("before_create1", before_create1)
+	callback.Create().Register("after_create1", after_create1)
+	callback.Create().Replace("create", replace_create)
+
+	if !equalFuncs(callback.creates, []string{"before_create1", "replace_create", "after_create1"}) {
+		t.Errorf("replace callback")
+	}
+}
+
+func TestRemoveCallback(t *testing.T) {
+	var callback = &callback{processors: []*callback_processor{}}
+
+	callback.Create().Before("after_create1").After("before_create1").Register("create", create)
+	callback.Create().Register("before_create1", before_create1)
+	callback.Create().Register("after_create1", after_create1)
+	callback.Create().Remove("create")
+
+	if !equalFuncs(callback.creates, []string{"before_create1", "after_create1"}) {
+		t.Errorf("remove callback")
+	}
+}

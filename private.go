@@ -56,7 +56,7 @@ func (s *DB) hasError() bool {
 }
 
 func fileWithLineNum() string {
-	for i := 5; i < 15; i++ {
+	for i := 1; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
 		if ok && (!regexp.MustCompile(`jinzhu/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`jinzhu/gorm/.*test.go`).MatchString(file)) {
 			return fmt.Sprintf("%v:%v", strings.TrimPrefix(file, os.Getenv("GOPATH")+"src/"), line)

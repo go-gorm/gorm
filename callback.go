@@ -1,5 +1,7 @@
 package gorm
 
+import "fmt"
+
 type callback struct {
 	creates    []*func()
 	updates    []*func()
@@ -13,6 +15,7 @@ type callback_processor struct {
 	before    string
 	after     string
 	replace   bool
+	remove    bool
 	typ       string
 	processor *func()
 	callback  *callback
@@ -57,7 +60,9 @@ func (cp *callback_processor) Register(name string, fc func()) {
 }
 
 func (cp *callback_processor) Remove(name string) {
-	cp.Replace(name, func() {})
+	cp.name = name
+	cp.remove = true
+	cp.callback.sort()
 }
 
 func (cp *callback_processor) Replace(name string, fc func()) {
@@ -67,10 +72,10 @@ func (cp *callback_processor) Replace(name string, fc func()) {
 	cp.callback.sort()
 }
 
-func getIndex(strs []string, str string) int {
-	for index, value := range strs {
-		if str == value {
-			return index
+func getRIndex(strs []string, str string) int {
+	for i := len(strs) - 1; i >= 0; i-- {
+		if strs[i] == str {
+			return i
 		}
 	}
 	return -1
@@ -81,18 +86,27 @@ func sortProcessors(cps []*callback_processor) []*func() {
 	var names, sortedNames = []string{}, []string{}
 
 	for _, cp := range cps {
+		if index := getRIndex(names, cp.name); index > -1 {
+			if cp.replace {
+				fmt.Printf("[info] replacing callback `%v` from %v\n", cp.name, fileWithLineNum())
+			} else if cp.remove {
+				fmt.Printf("[info] removing callback `%v` from %v\n", cp.name, fileWithLineNum())
+			} else {
+				fmt.Println("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
+			}
+		}
 		names = append(names, cp.name)
 	}
 
 	sortCallbackProcessor = func(c *callback_processor, force bool) {
-		if getIndex(sortedNames, c.name) > -1 {
+		if getRIndex(sortedNames, c.name) > -1 {
 			return
 		}
 
 		if len(c.before) > 0 {
-			if index := getIndex(sortedNames, c.before); index > -1 {
+			if index := getRIndex(sortedNames, c.before); index > -1 {
 				sortedNames = append(sortedNames[:index], append([]string{c.name}, sortedNames[index:]...)...)
-			} else if index := getIndex(names, c.before); index > -1 {
+			} else if index := getRIndex(names, c.before); index > -1 {
 				sortedNames = append(sortedNames, c.name)
 				sortCallbackProcessor(cps[index], true)
 			} else {
@@ -101,9 +115,9 @@ func sortProcessors(cps []*callback_processor) []*func() {
 		}
 
 		if len(c.after) > 0 {
-			if index := getIndex(sortedNames, c.after); index > -1 {
+			if index := getRIndex(sortedNames, c.after); index > -1 {
 				sortedNames = append(sortedNames[:index+1], append([]string{c.name}, sortedNames[index+1:]...)...)
-			} else if index := getIndex(names, c.after); index > -1 {
+			} else if index := getRIndex(names, c.after); index > -1 {
 				cp := cps[index]
 				if len(cp.before) == 0 {
 					cp.before = c.name
@@ -114,7 +128,7 @@ func sortProcessors(cps []*callback_processor) []*func() {
 			}
 		}
 
-		if getIndex(sortedNames, c.name) == -1 && force {
+		if getRIndex(sortedNames, c.name) == -1 && force {
 			sortedNames = append(sortedNames, c.name)
 		}
 	}
@@ -126,13 +140,17 @@ func sortProcessors(cps []*callback_processor) []*func() {
 	var funcs = []*func(){}
 	var sortedFuncs = []*func(){}
 	for _, name := range sortedNames {
-		index := getIndex(names, name)
-		sortedFuncs = append(sortedFuncs, cps[index].processor)
+		index := getRIndex(names, name)
+		if !cps[index].remove {
+			sortedFuncs = append(sortedFuncs, cps[index].processor)
+		}
 	}
 
 	for _, cp := range cps {
-		if sindex := getIndex(sortedNames, cp.name); sindex == -1 {
-			funcs = append(funcs, cp.processor)
+		if sindex := getRIndex(sortedNames, cp.name); sindex == -1 {
+			if !cp.remove {
+				funcs = append(funcs, cp.processor)
+			}
 		}
 	}
 
