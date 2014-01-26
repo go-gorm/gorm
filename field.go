@@ -9,10 +9,18 @@ import (
 )
 
 type Field struct {
-	Name              string
-	Value             interface{}
-	model             *Model
+	Name          string
+	DBName        string
+	Value         interface{}
+	IsBlank       bool
+	IsIgnored     bool
+	Tag           string
+	AddationalTag string
+	Size          int
+	SqlTag        string
+
 	dbName            string
+	model             *Model
 	isBlank           bool
 	ignoreField       bool
 	isPrimaryKey      bool
@@ -23,6 +31,16 @@ type Field struct {
 	afterAssociation  bool
 	reflectValue      reflect.Value
 	structField       reflect.StructField
+}
+
+func (f *Field) IsScanner() bool {
+	_, is_scanner := reflect.New(reflect.ValueOf(f.Value).Type()).Interface().(sql.Scanner)
+	return is_scanner
+}
+
+func (f *Field) IsTime() bool {
+	_, is_time := f.Value.(time.Time)
+	return is_time
 }
 
 func (f *Field) parseBlank() {
@@ -38,7 +56,7 @@ func (f *Field) parseIgnore() {
 }
 
 func (f *Field) isScanner() bool {
-	_, is_scanner := reflect.New(f.reflectValue.Type()).Interface().(sql.Scanner)
+	_, is_scanner := reflect.New(reflect.ValueOf(f.Value).Type()).Interface().(sql.Scanner)
 	return is_scanner
 }
 

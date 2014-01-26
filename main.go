@@ -178,7 +178,12 @@ func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *
 }
 
 func (s *DB) Save(value interface{}) *DB {
-	return s.clone().do(value).begin().save().commit_or_rollback().db
+	scope := s.clone().newScope(value)
+	if scope.PrimaryKeyZero() {
+		return scope.callCallbacks(s.parent.callback.creates).db
+	} else {
+		return s.clone().do(value).begin().save().commit_or_rollback().db
+	}
 }
 
 func (s *DB) Delete(value interface{}) *DB {

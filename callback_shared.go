@@ -7,3 +7,9 @@ func BeginTransaction(scope *Scope) {
 func CommitOrRollbackTransaction(scope *Scope) {
 	scope.CommitOrRollback()
 }
+
+func SaveBeforeAssociations(scope *Scope) {
+}
+
+func SaveAfterAssociations(scope *Scope) {
+}

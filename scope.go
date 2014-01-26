@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm/dialect"
+	"go/ast"
 	"strings"
 	"time"
 
@@ -149,8 +150,77 @@ func (s *Scope) CombinedConditionSql() string {
 	return s.joinsSql() + s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
 }
 
+func (scope *Scope) SqlTagForField(field *Field) (tag string) {
+	value := field.Value
+	reflect_value := reflect.ValueOf(value)
+
+	if field.IsScanner() {
+		value = reflect_value.Field(0).Interface()
+	}
+
+	switch reflect_value.Kind() {
+	case reflect.Slice:
+		if _, ok := value.([]byte); !ok {
+			return
+		}
+	case reflect.Struct:
+		if !field.IsTime() && !field.IsScanner() {
+			return
+		}
+	}
+
+	if tag = field.Tag; len(tag) == 0 && tag != "-" {
+		if field.isPrimaryKey {
+			tag = scope.Dialect().PrimaryKeyTag(value, field.Size)
+		} else {
+			tag = scope.Dialect().SqlTag(value, field.Size)
+		}
+
+		if len(field.AddationalTag) > 0 {
+			tag = tag + " " + field.AddationalTag
+		}
+	}
+	return
+}
+
 func (scope *Scope) Fields() []*Field {
-	return []*Field{}
+	indirect_value := reflect.Indirect(reflect.ValueOf(scope.Value))
+	fields := []*Field{}
+
+	if !indirect_value.IsValid() {
+		return fields
+	}
+
+	typ := indirect_value.Type()
+	for i := 0; i < typ.NumField(); i++ {
+		field_struct := typ.Field(i)
+		if field_struct.Anonymous || !ast.IsExported(field_struct.Name) {
+			continue
+		}
+
+		var field Field
+		field.Name = field_struct.Name
+		field.DBName = toSnake(field_struct.Name)
+
+		value := indirect_value.FieldByName(field_struct.Name)
+		field.Value = value.Interface()
+		field.IsBlank = isBlank(value)
+
+		tag, addational_tag, size := parseSqlTag(field_struct.Tag.Get(scope.db.parent.tagIdentifier))
+		field.Tag = tag
+		field.AddationalTag = addational_tag
+		field.Size = size
+		field.SqlTag = scope.SqlTagForField(&field)
+
+		if tag == "-" {
+			field.IsIgnored = true
+		}
+
+		field.parseAssociation()
+		fields = append(fields, &field)
+	}
+
+	return fields
 }
 
 func (scope *Scope) Raw(sql string) {

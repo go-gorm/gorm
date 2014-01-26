@@ -311,21 +311,6 @@ func (s *Do) update() *Do {
 	return s
 }
 
-func (s *Do) delete() *Do {
-	s.model.callMethod("BeforeDelete")
-
-	if !s.db.hasError() {
-		if !s.search.unscope && s.model.hasColumn("DeletedAt") {
-			s.setSql(fmt.Sprintf("UPDATE %v SET deleted_at=%v %v", s.table(), s.addToVars(time.Now()), s.combinedSql()))
-		} else {
-			s.setSql(fmt.Sprintf("DELETE FROM %v %v", s.table(), s.combinedSql()))
-		}
-		s.exec()
-		s.model.callMethod("AfterDelete")
-	}
-	return s
-}
-
 func (s *Do) prepareQuerySql() {
 	if s.search.raw {
 		s.setSql(strings.TrimLeft(s.combinedSql(), "WHERE "))
