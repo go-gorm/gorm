@@ -116,7 +116,6 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	return s.clone().do(out).where(where...).last().db
 }
-
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.clone().do(out).where(where...).query().db
 }
@@ -180,7 +179,7 @@ func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().newScope(value)
 	if scope.PrimaryKeyZero() {
-		return scope.callCallbacks(s.parent.callback.creates).db
+		return scope.callCallbacks(s.parent.callback.creates).db.do(value).db
 	} else {
 		return s.clone().do(value).begin().save().commit_or_rollback().db
 	}

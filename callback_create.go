@@ -15,15 +15,17 @@ func Create(scope *Scope) {
 	defer scope.Trace(time.Now())
 
 	if !scope.HasError() {
+		scope.SetColumn("CreatedAt", time.Now())
+		scope.SetColumn("UpdatedAt", time.Now())
+
 		// set create sql
 		var sqls, columns []string
 
 		for _, field := range scope.Fields() {
-			if field.IsBlank || len(field.SqlTag) == 0 {
-				continue
+			if field.DBName != scope.PrimaryKey() && len(field.SqlTag) > 0 && !field.IsIgnored {
+				columns = append(columns, scope.quote(field.DBName))
+				sqls = append(sqls, scope.AddToVars(field.Value))
 			}
-			columns = append(columns, scope.quote(field.DBName))
-			sqls = append(sqls, scope.AddToVars(field.Value))
 		}
 
 		scope.Raw(fmt.Sprintf(

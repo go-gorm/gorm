@@ -22,10 +22,10 @@ type IgnoredEmbedStruct struct {
 }
 
 type User struct {
-	Id                 int64     // Id: Primary key
-	Birthday           time.Time // Time
+	Id                 int64 // Id: Primary key
 	Age                int64
 	Name               string             `sql:"size:255"`
+	Birthday           time.Time          // Time
 	CreatedAt          time.Time          // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt          time.Time          // UpdatedAt: Time of record is updated, will be updated automatically
 	DeletedAt          time.Time          // DeletedAt: Time of record is deleted, refer Soft Delete for more
@@ -189,6 +189,7 @@ func TestPrecision(t *testing.T) {
 
 	var u User
 	db.First(&u, "name = ?", "Precision")
+
 	if u.Latitude != f {
 		t.Errorf("Float64 should not be changed after query")
 	}
@@ -868,6 +869,7 @@ func TestUpdate(t *testing.T) {
 	product1 := Product{Code: "123"}
 	product2 := Product{Code: "234"}
 	db.Save(&product1).Save(&product2).Update("code", "456")
+
 	if product2.Code != "456" {
 		t.Errorf("Record should be updated with update attributes")
 	}

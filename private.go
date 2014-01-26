@@ -32,15 +32,15 @@ func (s *DB) do(data interface{}) *Do {
 
 func (s *DB) err(err error) error {
 	if err != nil {
-		if s.logMode == 0 {
-			if err != RecordNotFound {
+		if err != RecordNotFound {
+			if s.logMode == 0 {
 				go s.print(fileWithLineNum(), err)
-				if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(err.Error()) {
-					return nil
-				}
+			} else {
+				s.log(err)
 			}
-		} else {
-			s.log(err)
+			if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(err.Error()) {
+				return nil
+			}
 		}
 		s.Error = err
 	}
