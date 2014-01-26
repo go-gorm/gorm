@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func equalFuncs(funcs []*func(), fnames []string) bool {
+func equalFuncs(funcs []*func(s *Scope), fnames []string) bool {
 	var names []string
 	for _, f := range funcs {
 		fnames := strings.Split(runtime.FuncForPC(reflect.ValueOf(*f).Pointer()).Name(), ".")
@@ -16,11 +16,11 @@ func equalFuncs(funcs []*func(), fnames []string) bool {
 	return reflect.DeepEqual(names, fnames)
 }
 
-func create()         {}
-func before_create1() {}
-func before_create2() {}
-func after_create1()  {}
-func after_create2()  {}
+func create(s *Scope)         {}
+func before_create1(s *Scope) {}
+func before_create2(s *Scope) {}
+func after_create1(s *Scope)  {}
+func after_create2(s *Scope)  {}
 
 func TestRegisterCallback(t *testing.T) {
 	var callback = &callback{processors: []*callback_processor{}}
@@ -76,7 +76,7 @@ func TestRegisterCallbackWithComplexOrder2(t *testing.T) {
 	}
 }
 
-func replace_create() {}
+func replace_create(s *Scope) {}
 
 func TestReplaceCallback(t *testing.T) {
 	var callback = &callback{processors: []*callback_processor{}}

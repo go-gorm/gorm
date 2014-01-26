@@ -1,12 +1,14 @@
 package gorm
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type callback struct {
-	creates    []*func()
-	updates    []*func()
-	deletes    []*func()
-	queries    []*func()
+	creates    []*func(scope *Scope)
+	updates    []*func(scope *Scope)
+	deletes    []*func(scope *Scope)
+	queries    []*func(scope *Scope)
 	processors []*callback_processor
 }
 
@@ -17,7 +19,7 @@ type callback_processor struct {
 	replace   bool
 	remove    bool
 	typ       string
-	processor *func()
+	processor *func(scope *Scope)
 	callback  *callback
 }
 
@@ -53,7 +55,7 @@ func (cp *callback_processor) After(name string) *callback_processor {
 	return cp
 }
 
-func (cp *callback_processor) Register(name string, fc func()) {
+func (cp *callback_processor) Register(name string, fc func(scope *Scope)) {
 	cp.name = name
 	cp.processor = &fc
 	cp.callback.sort()
@@ -65,7 +67,7 @@ func (cp *callback_processor) Remove(name string) {
 	cp.callback.sort()
 }
 
-func (cp *callback_processor) Replace(name string, fc func()) {
+func (cp *callback_processor) Replace(name string, fc func(scope *Scope)) {
 	cp.name = name
 	cp.processor = &fc
 	cp.replace = true
@@ -81,7 +83,7 @@ func getRIndex(strs []string, str string) int {
 	return -1
 }
 
-func sortProcessors(cps []*callback_processor) []*func() {
+func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
 	var sortCallbackProcessor func(c *callback_processor, force bool)
 	var names, sortedNames = []string{}, []string{}
 
@@ -137,8 +139,8 @@ func sortProcessors(cps []*callback_processor) []*func() {
 		sortCallbackProcessor(cp, false)
 	}
 
-	var funcs = []*func(){}
-	var sortedFuncs = []*func(){}
+	var funcs = []*func(scope *Scope){}
+	var sortedFuncs = []*func(scope *Scope){}
 	for _, name := range sortedNames {
 		index := getRIndex(names, name)
 		if !cps[index].remove {

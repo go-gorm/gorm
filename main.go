@@ -8,7 +8,7 @@ import (
 
 type DB struct {
 	Value         interface{}
-	Callbacks     *callback
+	callback      *callback
 	Error         error
 	db            sqlCommon
 	parent        *DB
@@ -22,7 +22,7 @@ type DB struct {
 
 func Open(driver, source string) (DB, error) {
 	var err error
-	db := DB{dialect: dialect.New(driver), tagIdentifier: "sql", logger: defaultLogger}
+	db := DB{dialect: dialect.New(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback}
 	db.db, err = sql.Open(driver, source)
 	db.parent = &db
 	return db, err
