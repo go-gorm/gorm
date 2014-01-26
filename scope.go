@@ -86,8 +86,6 @@ func (scope *Scope) CallMethod(name string) {
 		} else {
 			scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
 		}
-	} else {
-		scope.Err(errors.New(fmt.Sprintf("no valid function %v found", name)))
 	}
 }
 
