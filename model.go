@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"errors"
 	"go/ast"
 	"reflect"
 	"regexp"
@@ -210,7 +209,6 @@ func (m *Model) typeName() string {
 
 func (m *Model) tableName() (str string) {
 	if m.data == nil {
-		m.do.err(errors.New("Model haven't been set"))
 		return
 	}
 

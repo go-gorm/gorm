@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm/dialect"
+	"strings"
 
 	"reflect"
+	"regexp"
 )
 
 type Scope struct {
@@ -89,21 +91,56 @@ func (scope *Scope) CallMethod(name string) {
 	}
 }
 
+func (scope *Scope) AddToVars(value interface{}) string {
+	scope.SqlVars = append(scope.SqlVars, value)
+	return scope.Dialect().BinVar(len(scope.SqlVars))
+}
+
+func (scope *Scope) TableName() string {
+	if len(scope.Search.tableName) > 0 {
+		return scope.Search.tableName
+	} else {
+		data := reflect.Indirect(reflect.ValueOf(scope.Value))
+
+		if data.Kind() == reflect.Slice {
+			data = reflect.New(data.Type().Elem()).Elem()
+		}
+
+		if fm := data.MethodByName("TableName"); fm.IsValid() {
+			if v := fm.Call([]reflect.Value{}); len(v) > 0 {
+				if result, ok := v[0].Interface().(string); ok {
+					return result
+				}
+			}
+		}
+
+		str := toSnake(data.Type().Name())
+
+		if !scope.db.parent.singularTable {
+			pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
+			for key, value := range pluralMap {
+				reg := regexp.MustCompile(key + "$")
+				if reg.MatchString(str) {
+					return reg.ReplaceAllString(str, value)
+				}
+			}
+		}
+
+		return str
+	}
+}
+
 func (scope *Scope) CombinedConditionSql() string {
 	return ""
 }
 
-func (scope *Scope) AddToVars(value interface{}) string {
-	return ""
-}
-
-func (scope *Scope) TableName() string {
-	return ""
-}
-
-func (scope *Scope) Raw(sql string, values ...interface{}) {
-	fmt.Println(sql, values)
+func (scope *Scope) Raw(sql string) {
+	scope.Sql = strings.Replace(sql, "$$", "?", -1)
 }
 
 func (scope *Scope) Exec() {
+	if !scope.HasError() {
+		_, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
+		scope.Err(err)
+	}
 }
