@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm/dialect"
 	"strings"
+	"time"
 
 	"reflect"
 	"regexp"
 )
 
 type Scope struct {
-	Value   interface{}
-	Search  *search
-	Sql     string
-	SqlVars []interface{}
-	db      *DB
+	Value              interface{}
+	Search             *search
+	Sql                string
+	SqlVars            []interface{}
+	db                 *DB
+	startedTransaction bool
 }
 
 func (db *DB) newScope(value interface{}) *Scope {
@@ -50,6 +52,21 @@ func (scope *Scope) HasError() bool {
 
 func (scope *Scope) PrimaryKey() string {
 	return "id"
+}
+
+func (scope *Scope) PrimaryKeyZero() bool {
+	return isBlank(reflect.ValueOf(scope.PrimaryKeyValue()))
+}
+
+func (scope *Scope) PrimaryKeyValue() interface{} {
+	data := reflect.Indirect(reflect.ValueOf(scope.Value))
+
+	if data.Kind() == reflect.Struct {
+		if field := data.FieldByName(snakeToUpperCamel(scope.PrimaryKey())); field.IsValid() {
+			return field.Interface()
+		}
+	}
+	return 0
 }
 
 func (scope *Scope) HasColumn(name string) bool {
@@ -145,4 +162,32 @@ func (scope *Scope) Exec() {
 		_, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
 		scope.Err(err)
 	}
+}
+
+func (scope *Scope) Trace(t time.Time) {
+	if len(scope.Sql) > 0 {
+		scope.db.slog(scope.Sql, t, scope.SqlVars...)
+	}
+}
+
+func (scope *Scope) Begin() *Scope {
+	if tx, err := scope.DB().(sqlDb).Begin(); err == nil {
+		scope.db.db = interface{}(tx).(sqlCommon)
+		scope.startedTransaction = true
+	}
+	return scope
+}
+
+func (scope *Scope) CommitOrRollback() *Scope {
+	if scope.startedTransaction {
+		if db, ok := scope.db.db.(sqlTx); ok {
+			if scope.HasError() {
+				db.Rollback()
+			} else {
+				db.Commit()
+			}
+			scope.db.db = scope.db.parent.db
+		}
+	}
+	return scope
 }

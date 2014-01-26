@@ -1504,7 +1504,6 @@ func TestTransaction(t *testing.T) {
 	if err := tx2.Save(&u2).Error; err != nil {
 		t.Errorf("No error should raise, but got", err)
 	}
-	tx2.Update("age", 90)
 
 	if err := tx2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should find saved record, but got", err)

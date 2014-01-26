@@ -10,6 +10,8 @@ func BeforeDelete(scope *Scope) {
 }
 
 func Delete(scope *Scope) {
+	defer scope.Trace(time.Now())
+
 	if scope.HasError() {
 		return
 	}
@@ -33,7 +35,9 @@ func AfterDelete(scope *Scope) {
 }
 
 func init() {
+	DefaultCallback.Delete().Register("begin_transaction", BeginTransaction)
 	DefaultCallback.Delete().Register("before_delete", BeforeDelete)
 	DefaultCallback.Delete().Register("delete", Delete)
 	DefaultCallback.Delete().Register("after_delete", AfterDelete)
+	DefaultCallback.Delete().Register("commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }
