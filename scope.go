@@ -49,7 +49,7 @@ func (scope *Scope) HasError() bool {
 }
 
 func (scope *Scope) PrimaryKey() string {
-	return "Id"
+	return "id"
 }
 
 func (scope *Scope) HasColumn(name string) bool {
@@ -128,8 +128,12 @@ func (scope *Scope) TableName() string {
 	}
 }
 
-func (scope *Scope) CombinedConditionSql() string {
-	return ""
+func (s *Scope) CombinedConditionSql() string {
+	return s.joinsSql() + s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
+}
+
+func (scope *Scope) Fields() []*Field {
+	return []*Field{}
 }
 
 func (scope *Scope) Raw(sql string) {
