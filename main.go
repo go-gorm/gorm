@@ -182,7 +182,7 @@ func (s *DB) Save(value interface{}) *DB {
 }
 
 func (s *DB) Delete(value interface{}) *DB {
-	return s.clone().do(value).begin().delete().commit_or_rollback().db
+	return s.clone().newScope(value).callCallbacks(s.parent.callback.deletes).db
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
