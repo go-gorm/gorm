@@ -58,10 +58,8 @@ func (f *Field) parseAssociation() {
 		if _, ok := f.Value.([]byte); !ok {
 			foreignKey := typ.Name() + "Id"
 			if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-				f.ForeignKey = foreignKey
 				f.foreignKey = foreignKey
 			}
-			f.AfterAssociation = true
 			f.afterAssociation = true
 		}
 	case reflect.Struct:
@@ -69,16 +67,12 @@ func (f *Field) parseAssociation() {
 			if elem.FieldByName(f.Name + "Id").IsValid() {
 				f.foreignKey = f.Name + "Id"
 				f.beforeAssociation = true
-				f.ForeignKey = f.Name + "Id"
-				f.BeforeAssociation = true
 			} else {
 				foreignKey := typ.Name() + "Id"
 				if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
 					f.foreignKey = foreignKey
-					f.ForeignKey = foreignKey
 				}
 				f.afterAssociation = true
-				f.AfterAssociation = true
 			}
 		}
 	}

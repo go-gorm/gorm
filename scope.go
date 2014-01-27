@@ -37,7 +37,7 @@ func (scope *Scope) New(value interface{}) *Scope {
 }
 
 func (scope *Scope) NewDB() *DB {
-	return scope.db.parent
+	return scope.db.new()
 }
 
 func (scope *Scope) DB() sqlCommon {
@@ -199,9 +199,9 @@ func (scope *Scope) Fields() []*Field {
 		return fields
 	}
 
-	typ := indirect_value.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		field_struct := typ.Field(i)
+	scope_typ := indirect_value.Type()
+	for i := 0; i < scope_typ.NumField(); i++ {
+		field_struct := scope_typ.Field(i)
 		if field_struct.Anonymous || !ast.IsExported(field_struct.Name) {
 			continue
 		}
@@ -224,7 +224,35 @@ func (scope *Scope) Fields() []*Field {
 			field.IsIgnored = true
 		}
 
-		field.parseAssociation()
+		// parse association
+		elem := reflect.Indirect(value)
+		typ := elem.Type()
+
+		switch elem.Kind() {
+		case reflect.Slice:
+			typ = typ.Elem()
+
+			if _, ok := field.Value.([]byte); !ok {
+				foreignKey := scope_typ.Name() + "Id"
+				if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+					field.ForeignKey = foreignKey
+				}
+				field.AfterAssociation = true
+			}
+		case reflect.Struct:
+			if !field.IsTime() && !field.IsScanner() {
+				if scope.HasColumn(field.Name + "Id") {
+					field.ForeignKey = field.Name + "Id"
+					field.BeforeAssociation = true
+				} else {
+					foreignKey := scope_typ.Name() + "Id"
+					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+						field.ForeignKey = foreignKey
+					}
+					field.AfterAssociation = true
+				}
+			}
+		}
 		fields = append(fields, &field)
 	}
 
@@ -249,9 +277,11 @@ func (scope *Scope) Trace(t time.Time) {
 }
 
 func (scope *Scope) Begin() *Scope {
-	if tx, err := scope.DB().(sqlDb).Begin(); err == nil {
-		scope.db.db = interface{}(tx).(sqlCommon)
-		scope.startedTransaction = true
+	if db, ok := scope.DB().(sqlDb); ok {
+		if tx, err := db.Begin(); err == nil {
+			scope.db.db = interface{}(tx).(sqlCommon)
+			scope.startedTransaction = true
+		}
 	}
 	return scope
 }
