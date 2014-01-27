@@ -22,6 +22,7 @@ type Scope struct {
 }
 
 func (db *DB) NewScope(value interface{}) *Scope {
+	db.Value = value
 	return &Scope{db: db, Search: db.search, Value: value}
 }
 

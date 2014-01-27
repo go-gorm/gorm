@@ -164,8 +164,9 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.Updates(toSearchableMap(attrs...), true)
 }
 
-func (s *DB) Updates(values interface{}, ignore_protected_attrs ...bool) *DB {
-	return s.clone().do(s.Value).begin().updateAttrs(values, ignore_protected_attrs...).update().commit_or_rollback().db
+func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
+	return s.clone().do(s.Value).begin().updateAttrs(values, ignoreProtectedAttrs...).update().commit_or_rollback().db
+	// return s.clone().NewScope(s.Value).callCallbacks(s.parent.callback.updates).db
 }
 
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
@@ -179,9 +180,9 @@ func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
-		return scope.callCallbacks(s.parent.callback.creates).db.do(value).db
+		return scope.callCallbacks(s.parent.callback.creates).db
 	} else {
-		return s.clone().do(value).begin().save().commit_or_rollback().db
+		return scope.callCallbacks(s.parent.callback.updates).db
 	}
 }
 

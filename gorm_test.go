@@ -1318,7 +1318,7 @@ func TestRelated(t *testing.T) {
 	var credit_card CreditCard
 	var user3 User
 	db.First(&credit_card, "number = ?", "1234567890")
-	db.Debug().Model(&credit_card).Related(&user3)
+	db.Model(&credit_card).Related(&user3)
 	if user3.Id != user.Id || user3.Name != user.Name {
 		t.Errorf("Should get user from credit card correctly")
 	}
