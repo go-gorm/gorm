@@ -21,7 +21,7 @@ type Scope struct {
 	startedTransaction bool
 }
 
-func (db *DB) newScope(value interface{}) *Scope {
+func (db *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: db, Search: db.search, Value: value}
 }
 
@@ -30,6 +30,14 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 		(*f)(scope)
 	}
 	return scope
+}
+
+func (scope *Scope) New(value interface{}) *Scope {
+	return &Scope{db: scope.db.parent, Search: &search{}, Value: value}
+}
+
+func (scope *Scope) NewDB() *DB {
+	return scope.db.parent
 }
 
 func (scope *Scope) DB() sqlCommon {

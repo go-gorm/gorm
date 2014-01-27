@@ -9,28 +9,32 @@ import (
 )
 
 type Field struct {
-	Name          string
-	DBName        string
-	Value         interface{}
-	IsBlank       bool
-	IsIgnored     bool
-	Tag           string
-	AddationalTag string
-	Size          int
-	SqlTag        string
+	Name              string
+	DBName            string
+	Value             interface{}
+	IsBlank           bool
+	IsIgnored         bool
+	Tag               string
+	AddationalTag     string
+	Size              int
+	SqlTag            string
+	ForeignKey        string
+	BeforeAssociation bool
+	AfterAssociation  bool
 
-	dbName            string
-	model             *Model
-	isBlank           bool
-	ignoreField       bool
-	isPrimaryKey      bool
-	autoCreateTime    bool
-	autoUpdateTime    bool
 	foreignKey        string
 	beforeAssociation bool
 	afterAssociation  bool
-	reflectValue      reflect.Value
-	structField       reflect.StructField
+
+	dbName         string
+	model          *Model
+	isBlank        bool
+	ignoreField    bool
+	isPrimaryKey   bool
+	autoCreateTime bool
+	autoUpdateTime bool
+	reflectValue   reflect.Value
+	structField    reflect.StructField
 }
 
 func (f *Field) IsScanner() bool {
@@ -41,6 +45,43 @@ func (f *Field) IsScanner() bool {
 func (f *Field) IsTime() bool {
 	_, is_time := f.Value.(time.Time)
 	return is_time
+}
+
+func (f *Field) parseAssociation() {
+	elem := reflect.Indirect(reflect.ValueOf(f.Value))
+	typ := elem.Type()
+
+	switch elem.Kind() {
+	case reflect.Slice:
+		typ = typ.Elem()
+
+		if _, ok := f.Value.([]byte); !ok {
+			foreignKey := typ.Name() + "Id"
+			if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+				f.ForeignKey = foreignKey
+				f.foreignKey = foreignKey
+			}
+			f.AfterAssociation = true
+			f.afterAssociation = true
+		}
+	case reflect.Struct:
+		if !f.IsTime() && !f.IsScanner() {
+			if elem.FieldByName(f.Name + "Id").IsValid() {
+				f.foreignKey = f.Name + "Id"
+				f.beforeAssociation = true
+				f.ForeignKey = f.Name + "Id"
+				f.BeforeAssociation = true
+			} else {
+				foreignKey := typ.Name() + "Id"
+				if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+					f.foreignKey = foreignKey
+					f.ForeignKey = foreignKey
+				}
+				f.afterAssociation = true
+				f.AfterAssociation = true
+			}
+		}
+	}
 }
 
 func (f *Field) parseBlank() {
@@ -101,34 +142,6 @@ func (f *Field) sqlTag() (str string) {
 		typ = typ + " " + addational_typ
 	}
 	return typ
-}
-
-func (f *Field) parseAssociation() {
-	reflect_value := f.reflectValue
-
-	switch reflect_value.Kind() {
-	case reflect.Slice:
-		if _, ok := f.Value.([]byte); !ok {
-			foreign_key := f.model.typeName() + "Id"
-			if reflect.New(reflect_value.Type().Elem()).Elem().FieldByName(foreign_key).IsValid() {
-				f.foreignKey = foreign_key
-			}
-			f.afterAssociation = true
-		}
-	case reflect.Struct:
-		if !f.isTime() && !f.isScanner() {
-			if f.model.reflectData().FieldByName(f.Name + "Id").IsValid() {
-				f.foreignKey = f.Name + "Id"
-				f.beforeAssociation = true
-			} else {
-				foreign_key := f.model.typeName() + "Id"
-				if reflect.New(reflect_value.Type()).Elem().FieldByName(foreign_key).IsValid() {
-					f.foreignKey = foreign_key
-				}
-				f.afterAssociation = true
-			}
-		}
-	}
 }
 
 func parseSqlTag(str string) (typ string, addational_typ string, size int) {

@@ -177,7 +177,7 @@ func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *
 }
 
 func (s *DB) Save(value interface{}) *DB {
-	scope := s.clone().newScope(value)
+	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
 		return scope.callCallbacks(s.parent.callback.creates).db.do(value).db
 	} else {
@@ -186,7 +186,7 @@ func (s *DB) Save(value interface{}) *DB {
 }
 
 func (s *DB) Delete(value interface{}) *DB {
-	return s.clone().newScope(value).callCallbacks(s.parent.callback.deletes).db
+	return s.clone().NewScope(value).callCallbacks(s.parent.callback.deletes).db
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
