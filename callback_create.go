@@ -11,7 +11,7 @@ func BeforeCreate(scope *Scope) {
 	scope.CallMethod("BeforeCreate")
 }
 
-func UpdateCreateTimeStamp(scope *Scope) {
+func UpdateTimeStampWhenCreate(scope *Scope) {
 	if !scope.HasError() {
 		scope.SetColumn("CreatedAt", time.Now())
 		scope.SetColumn("UpdatedAt", time.Now())
@@ -66,7 +66,7 @@ func init() {
 	DefaultCallback.Create().Register("begin_transaction", BeginTransaction)
 	DefaultCallback.Create().Register("before_create", BeforeCreate)
 	DefaultCallback.Create().Register("save_before_associations", SaveBeforeAssociations)
-	DefaultCallback.Create().Register("update_create_time_stamp", UpdateCreateTimeStamp)
+	DefaultCallback.Create().Register("update_time_stamp_when_create", UpdateTimeStampWhenCreate)
 	DefaultCallback.Create().Register("create", Create)
 	DefaultCallback.Create().Register("save_after_associations", SaveAfterAssociations)
 	DefaultCallback.Create().Register("after_create", AfterCreate)

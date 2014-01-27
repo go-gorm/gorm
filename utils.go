@@ -124,3 +124,37 @@ func setFieldValue(field reflect.Value, value interface{}) bool {
 func isBlank(value reflect.Value) bool {
 	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
 }
+
+func convertInterfaceToMap(values interface{}) map[string]interface{} {
+	attrs := map[string]interface{}{}
+
+	switch value := values.(type) {
+	case map[string]interface{}:
+		for k, v := range value {
+			attrs[toSnake(k)] = v
+		}
+	case []interface{}:
+		for _, v := range value {
+			for key, value := range convertInterfaceToMap(v) {
+				attrs[key] = value
+			}
+		}
+	case interface{}:
+		reflectValue := reflect.ValueOf(values)
+
+		switch reflectValue.Kind() {
+		case reflect.Map:
+			for _, key := range reflectValue.MapKeys() {
+				attrs[toSnake(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
+			}
+		default:
+			scope := Scope{Value: values}
+			for _, field := range scope.Fields() {
+				if !field.IsBlank {
+					attrs[field.DBName] = field.Value
+				}
+			}
+		}
+	}
+	return attrs
+}

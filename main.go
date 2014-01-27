@@ -165,8 +165,10 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.clone().do(s.Value).begin().updateAttrs(values, ignoreProtectedAttrs...).update().commit_or_rollback().db
-	// return s.clone().NewScope(s.Value).callCallbacks(s.parent.callback.updates).db
+	return s.clone().NewScope(s.Value).
+		Set("gorm:update_interface", values).
+		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
+		callCallbacks(s.parent.callback.updates).db
 }
 
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {

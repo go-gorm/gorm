@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm/dialect"
 	"go/ast"
+	"strconv"
 	"strings"
 	"time"
 
@@ -13,12 +14,13 @@ import (
 )
 
 type Scope struct {
-	Value   interface{}
-	Search  *search
-	Sql     string
-	SqlVars []interface{}
-	db      *DB
-	_values map[string]interface{}
+	Value    interface{}
+	Search   *search
+	Sql      string
+	SqlVars  []interface{}
+	db       *DB
+	_values  map[string]interface{}
+	skipLeft bool
 }
 
 func (db *DB) NewScope(value interface{}) *Scope {
@@ -26,9 +28,16 @@ func (db *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: db, Search: db.search, Value: value, _values: map[string]interface{}{}}
 }
 
+func (scope *Scope) SkipLeft() {
+	scope.skipLeft = true
+}
+
 func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 	for _, f := range funcs {
 		(*f)(scope)
+		if scope.skipLeft {
+			break
+		}
 	}
 	return scope
 }
@@ -90,12 +99,54 @@ func (scope *Scope) HasColumn(name string) bool {
 	return false
 }
 
+func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignoreProtectedAttrs bool) (results map[string]interface{}, hasUpdate bool) {
+	data := reflect.Indirect(reflect.ValueOf(scope.Value))
+	if !data.CanAddr() {
+		return values, true
+	}
+
+	for key, value := range values {
+		if field := data.FieldByName(snakeToUpperCamel(key)); field.IsValid() {
+			if field.Interface() != value {
+
+				switch field.Kind() {
+				case reflect.Int, reflect.Int32, reflect.Int64:
+					if s, ok := value.(string); ok {
+						i, err := strconv.Atoi(s)
+						if scope.Err(err) == nil {
+							value = i
+						}
+					}
+
+					scope.db.log(field.Int() != reflect.ValueOf(value).Int())
+					if field.Int() != reflect.ValueOf(value).Int() {
+						hasUpdate = true
+						setFieldValue(field, value)
+					}
+				default:
+					hasUpdate = true
+					setFieldValue(field, value)
+				}
+			}
+		}
+	}
+	return
+}
+
 func (scope *Scope) SetColumn(column string, value interface{}) {
+	if scope.Value == nil {
+		return
+	}
+
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
 	setFieldValue(data.FieldByName(snakeToUpperCamel(column)), value)
 }
 
 func (scope *Scope) CallMethod(name string) {
+	if scope.Value == nil {
+		return
+	}
+
 	if fm := reflect.ValueOf(scope.Value).MethodByName(name); fm.IsValid() {
 		fi := fm.Interface()
 		if f, ok := fi.(func()); ok {
@@ -193,64 +244,66 @@ func (scope *Scope) SqlTagForField(field *Field) (tag string) {
 }
 
 func (scope *Scope) Fields() []*Field {
-	indirect_value := reflect.Indirect(reflect.ValueOf(scope.Value))
+	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
 	fields := []*Field{}
 
-	if !indirect_value.IsValid() {
+	if !indirectValue.IsValid() {
 		return fields
 	}
 
-	scope_typ := indirect_value.Type()
-	for i := 0; i < scope_typ.NumField(); i++ {
-		field_struct := scope_typ.Field(i)
-		if field_struct.Anonymous || !ast.IsExported(field_struct.Name) {
+	scopeTyp := indirectValue.Type()
+	for i := 0; i < scopeTyp.NumField(); i++ {
+		fieldStruct := scopeTyp.Field(i)
+		if fieldStruct.Anonymous || !ast.IsExported(fieldStruct.Name) {
 			continue
 		}
 
 		var field Field
-		field.Name = field_struct.Name
-		field.DBName = toSnake(field_struct.Name)
+		field.Name = fieldStruct.Name
+		field.DBName = toSnake(fieldStruct.Name)
 
-		value := indirect_value.FieldByName(field_struct.Name)
+		value := indirectValue.FieldByName(fieldStruct.Name)
 		field.Value = value.Interface()
 		field.IsBlank = isBlank(value)
 
-		tag, addational_tag, size := parseSqlTag(field_struct.Tag.Get(scope.db.parent.tagIdentifier))
-		field.Tag = tag
-		field.AddationalTag = addational_tag
-		field.Size = size
-		field.SqlTag = scope.SqlTagForField(&field)
+		if scope.db != nil {
+			tag, addationalTag, size := parseSqlTag(fieldStruct.Tag.Get(scope.db.parent.tagIdentifier))
+			field.Tag = tag
+			field.AddationalTag = addationalTag
+			field.Size = size
+			field.SqlTag = scope.SqlTagForField(&field)
 
-		if tag == "-" {
-			field.IsIgnored = true
-		}
-
-		// parse association
-		elem := reflect.Indirect(value)
-		typ := elem.Type()
-
-		switch elem.Kind() {
-		case reflect.Slice:
-			typ = typ.Elem()
-
-			if _, ok := field.Value.([]byte); !ok {
-				foreignKey := scope_typ.Name() + "Id"
-				if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-					field.ForeignKey = foreignKey
-				}
-				field.AfterAssociation = true
+			if tag == "-" {
+				field.IsIgnored = true
 			}
-		case reflect.Struct:
-			if !field.IsTime() && !field.IsScanner() {
-				if scope.HasColumn(field.Name + "Id") {
-					field.ForeignKey = field.Name + "Id"
-					field.BeforeAssociation = true
-				} else {
-					foreignKey := scope_typ.Name() + "Id"
+
+			// parse association
+			elem := reflect.Indirect(value)
+			typ := elem.Type()
+
+			switch elem.Kind() {
+			case reflect.Slice:
+				typ = typ.Elem()
+
+				if _, ok := field.Value.([]byte); !ok {
+					foreignKey := scopeTyp.Name() + "Id"
 					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
 						field.ForeignKey = foreignKey
 					}
 					field.AfterAssociation = true
+				}
+			case reflect.Struct:
+				if !field.IsTime() && !field.IsScanner() {
+					if scope.HasColumn(field.Name + "Id") {
+						field.ForeignKey = field.Name + "Id"
+						field.BeforeAssociation = true
+					} else {
+						foreignKey := scopeTyp.Name() + "Id"
+						if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+							field.ForeignKey = foreignKey
+						}
+						field.AfterAssociation = true
+					}
 				}
 			}
 		}
@@ -276,8 +329,9 @@ func (scope *Scope) Get(name string) (value interface{}, ok bool) {
 	return
 }
 
-func (scope *Scope) Set(name string, value interface{}) {
+func (scope *Scope) Set(name string, value interface{}) *Scope {
 	scope._values[name] = value
+	return scope
 }
 
 func (scope *Scope) Trace(t time.Time) {

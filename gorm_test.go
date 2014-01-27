@@ -929,7 +929,8 @@ func TestUpdate(t *testing.T) {
 func TestUpdates(t *testing.T) {
 	product1 := Product{Code: "abc", Price: 10}
 	product2 := Product{Code: "cde", Price: 20}
-	db.Save(&product1).Save(&product2).Updates(map[string]interface{}{"code": "edf", "price": 100})
+	db.Save(&product1).Save(&product2)
+	db.Model(&product2).Updates(map[string]interface{}{"code": "edf", "price": 100})
 	if product2.Code != "edf" || product2.Price != 100 {
 		t.Errorf("Record should be updated also with update attributes")
 	}
