@@ -424,3 +424,9 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	}
 	return scope
 }
+
+func (scope *Scope) count(value interface{}) *Scope {
+	scope.Search = scope.Search.clone().selects("count(*)")
+	scope.Err(scope.row().Scan(value))
+	return scope
+}

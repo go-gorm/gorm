@@ -228,7 +228,7 @@ func (s *DB) Pluck(column string, value interface{}) *DB {
 }
 
 func (s *DB) Count(value interface{}) *DB {
-	return s.do(s.Value).count(value).db
+	return s.NewScope(s.Value).count(value).db
 }
 
 func (s *DB) Table(name string) *DB {
