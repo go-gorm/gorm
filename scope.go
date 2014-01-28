@@ -65,6 +65,10 @@ func (scope *Scope) Err(err error) error {
 	return err
 }
 
+func (scope *Scope) Log(v ...interface{}) {
+	scope.db.log(v...)
+}
+
 func (scope *Scope) HasError() bool {
 	return scope.db.hasError()
 }

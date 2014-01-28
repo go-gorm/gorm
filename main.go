@@ -172,11 +172,14 @@ func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
 }
 
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
-	return s.UpdateColumns(toSearchableMap(attrs...), true)
+	return s.UpdateColumns(toSearchableMap(attrs...))
 }
 
-func (s *DB) UpdateColumns(values interface{}, ignore_protected_attrs ...bool) *DB {
-	return s.clone().do(s.Value).begin().updateColumns(values).commit_or_rollback().db
+func (s *DB) UpdateColumns(values interface{}) *DB {
+	return s.clone().NewScope(s.Value).
+		Set("gorm:update_interface", values).
+		Set("gorm:update_column", true).
+		callCallbacks(s.parent.callback.updates).db
 }
 
 func (s *DB) Save(value interface{}) *DB {
