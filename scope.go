@@ -332,11 +332,12 @@ func (scope *Scope) Raw(sql string) {
 	scope.Sql = strings.Replace(sql, "$$", "?", -1)
 }
 
-func (scope *Scope) Exec() {
+func (scope *Scope) Exec() *Scope {
 	if !scope.HasError() {
 		_, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
 		scope.Err(err)
 	}
+	return scope
 }
 
 func (scope *Scope) Get(name string) (value interface{}, ok bool) {

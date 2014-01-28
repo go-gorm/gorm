@@ -150,9 +150,9 @@ func (s *DB) Scan(dest interface{}) *DB {
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
-		return c.NewScope(out).inlineCondition(where).initialize().db
-	} else if len(s.search.assignAttrs) > 0 {
-		return c.do(out).updateAttrs(s.search.assignAttrs).db
+		c.NewScope(out).inlineCondition(where).initialize()
+	} else {
+		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.assignAttrs), false)
 	}
 	return c
 }
@@ -160,9 +160,9 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
-		return c.do(out).where(where...).initialize().db.Save(out)
+		c.NewScope(out).inlineCondition(where).initialize().callCallbacks(s.parent.callback.creates)
 	} else if len(s.search.assignAttrs) > 0 {
-		return c.do(out).updateAttrs(s.search.assignAttrs).update().db
+		c.NewScope(out).Set("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates)
 	}
 	return c
 }
@@ -268,7 +268,7 @@ func (s *DB) Rollback() *DB {
 }
 
 func (s *DB) NewRecord(value interface{}) bool {
-	return s.clone().do(value).model.primaryKeyZero()
+	return s.clone().NewScope(value).PrimaryKeyZero()
 }
 
 func (s *DB) RecordNotFound() bool {
