@@ -1,9 +1,7 @@
 package gorm
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -25,6 +23,9 @@ func Query(scope *Scope) {
 	)
 
 	var dest = reflect.Indirect(reflect.ValueOf(scope.Value))
+	if value, ok := scope.Get("gorm:query_destination"); ok {
+		dest = reflect.Indirect(reflect.ValueOf(value))
+	}
 
 	if dest.Kind() == reflect.Slice {
 		isSlice = true
@@ -33,11 +34,7 @@ func Query(scope *Scope) {
 		scope.Search = scope.Search.clone().limit(1)
 	}
 
-	if scope.Search.raw {
-		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
-	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.SelectSql(), scope.TableName(), scope.CombinedConditionSql()))
-	}
+	scope.prepareQuerySql()
 
 	if !scope.HasError() {
 		rows, err := scope.DB().Query(scope.Sql, scope.SqlVars...)

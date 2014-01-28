@@ -109,6 +109,14 @@ func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }
 
+func (s *DB) Attrs(attrs ...interface{}) *DB {
+	return s.clone().search.attrs(attrs...).db
+}
+
+func (s *DB) Assign(attrs ...interface{}) *DB {
+	return s.clone().search.assign(attrs...).db
+}
+
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
 	scope.Search = scope.Search.clone().order(scope.PrimaryKey()).limit(1)
@@ -126,23 +134,17 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Row() *sql.Row {
-	return s.do(s.Value).row()
+	return s.NewScope(s.Value).row()
 }
 
 func (s *DB) Rows() (*sql.Rows, error) {
-	return s.do(s.Value).rows()
+	return s.NewScope(s.Value).rows()
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	return s.do(s.Value).query(dest).db
-}
-
-func (s *DB) Attrs(attrs ...interface{}) *DB {
-	return s.clone().search.attrs(attrs...).db
-}
-
-func (s *DB) Assign(attrs ...interface{}) *DB {
-	return s.clone().search.assign(attrs...).db
+	scope := s.clone().NewScope(s.Value).Set("gorm:query_destination", dest)
+	Query(scope)
+	return scope.db
 }
 
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {

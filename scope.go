@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm/dialect"
@@ -378,10 +379,23 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	return scope
 }
 
-func (scope *Scope) SelectSql() string {
-	if len(scope.Search.selectStr) == 0 {
-		return "*"
+func (scope *Scope) prepareQuerySql() {
+	if scope.Search.raw {
+		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
-		return scope.Search.selectStr
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.TableName(), scope.CombinedConditionSql()))
 	}
+	return
+}
+
+func (scope *Scope) row() *sql.Row {
+	defer scope.Trace(time.Now())
+	scope.prepareQuerySql()
+	return scope.DB().QueryRow(scope.Sql, scope.SqlVars...)
+}
+
+func (scope *Scope) rows() (*sql.Rows, error) {
+	defer scope.Trace(time.Now())
+	scope.prepareQuerySql()
+	return scope.DB().Query(scope.Sql, scope.SqlVars...)
 }
