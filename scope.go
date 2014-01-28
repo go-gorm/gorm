@@ -94,14 +94,21 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 }
 
 func (scope *Scope) HasColumn(name string) bool {
+	_, result := scope.FieldByName(name)
+	return result
+}
+
+func (scope *Scope) FieldByName(name string) (interface{}, bool) {
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
 
 	if data.Kind() == reflect.Struct {
-		return data.FieldByName(name).IsValid()
+		if field := data.FieldByName(name); field.IsValid() {
+			return field.Interface(), true
+		}
 	} else if data.Kind() == reflect.Slice {
-		return reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		return nil, reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
 	}
-	return false
+	return nil, false
 }
 
 func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignoreProtectedAttrs bool) (results map[string]interface{}, hasUpdate bool) {
@@ -428,5 +435,28 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 func (scope *Scope) count(value interface{}) *Scope {
 	scope.Search = scope.Search.clone().selects("count(*)")
 	scope.Err(scope.row().Scan(value))
+	return scope
+}
+
+func (scope *Scope) typeName() string {
+	value := reflect.Indirect(reflect.ValueOf(scope.Value))
+	if value.Kind() == reflect.Slice {
+		return value.Type().Elem().Name()
+	} else {
+		return value.Type().Name()
+	}
+}
+
+func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
+	toScope := scope.New(value)
+
+	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
+		if foreignValue, ok := scope.FieldByName(foreignKey); ok {
+			return toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
+		} else if toScope.HasColumn(foreignKey) {
+			sql := fmt.Sprintf("%v = ?", scope.quote(toSnake(foreignKey)))
+			return toScope.inlineCondition(sql, scope.PrimaryKeyValue()).callCallbacks(scope.db.parent.callback.queries)
+		}
+	}
 	return scope
 }

@@ -120,17 +120,17 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
 	scope.Search = scope.Search.clone().order(scope.PrimaryKey()).limit(1)
-	return scope.inlineCondition(where).callCallbacks(s.parent.callback.queries).db
+	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
 	scope.Search = scope.Search.clone().order(scope.PrimaryKey() + " DESC").limit(1)
-	return scope.inlineCondition(where).callCallbacks(s.parent.callback.queries).db
+	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(out).inlineCondition(where).callCallbacks(s.parent.callback.queries).db
+	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Row() *sql.Row {
@@ -150,7 +150,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
-		c.NewScope(out).inlineCondition(where).initialize()
+		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
 		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.assignAttrs), false)
 	}
@@ -160,7 +160,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
-		c.NewScope(out).inlineCondition(where).initialize().callCallbacks(s.parent.callback.creates)
+		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
 	} else if len(s.search.assignAttrs) > 0 {
 		c.NewScope(out).Set("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates)
 	}
@@ -219,8 +219,7 @@ func (s *DB) Model(value interface{}) *DB {
 }
 
 func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
-	old_data := s.Value
-	return s.do(value).related(old_data, foreign_keys...).db
+	return s.clone().NewScope(s.Value).related(value, foreign_keys...).db
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {

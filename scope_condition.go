@@ -243,7 +243,7 @@ func (scope *Scope) prepareQuerySql() {
 	return
 }
 
-func (scope *Scope) inlineCondition(values []interface{}) *Scope {
+func (scope *Scope) inlineCondition(values ...interface{}) *Scope {
 	if len(values) > 0 {
 		scope.Search = scope.Search.clone().where(values[0], values[1:]...)
 	}
