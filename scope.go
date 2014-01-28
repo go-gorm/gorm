@@ -460,7 +460,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 		if foreignValue, ok := scope.FieldByName(foreignKey); ok {
 			return toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
 		} else if toScope.HasColumn(foreignKey) {
-			sql := fmt.Sprintf("%v = ?", scope.quote(toSnake(foreignKey)))
+			sql := fmt.Sprintf("%v = ?", scope.Quote(toSnake(foreignKey)))
 			return toScope.inlineCondition(sql, scope.PrimaryKeyValue()).callCallbacks(scope.db.parent.callback.queries)
 		}
 	}

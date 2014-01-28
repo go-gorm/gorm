@@ -9,7 +9,7 @@ func (scope *Scope) createTable() *Scope {
 	var sqls []string
 	for _, field := range scope.Fields() {
 		if !field.IsIgnored && len(field.SqlTag) > 0 {
-			sqls = append(sqls, scope.quote(field.DBName)+" "+field.SqlTag)
+			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
 		}
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.TableName(), strings.Join(sqls, ","))).Exec()
@@ -22,11 +22,11 @@ func (scope *Scope) dropTable() *Scope {
 }
 
 func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.TableName(), scope.quote(column), typ)).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.TableName(), scope.Quote(column), typ)).Exec()
 }
 
 func (scope *Scope) dropColumn(column string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.TableName(), scope.quote(column))).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.TableName(), scope.Quote(column))).Exec()
 }
 
 func (scope *Scope) addIndex(column string, names ...string) {
@@ -37,7 +37,7 @@ func (scope *Scope) addIndex(column string, names ...string) {
 		indexName = fmt.Sprintf("index_%v_on_%v", scope.TableName(), column)
 	}
 
-	scope.Raw(fmt.Sprintf("CREATE INDEX %v ON %v(%v);", indexName, scope.TableName(), scope.quote(column))).Exec()
+	scope.Raw(fmt.Sprintf("CREATE INDEX %v ON %v(%v);", indexName, scope.TableName(), scope.Quote(column))).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {

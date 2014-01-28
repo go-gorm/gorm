@@ -49,12 +49,12 @@ func Update(scope *Scope) {
 		updateAttrs, ok := scope.Get("gorm:update_attrs")
 		if ok {
 			for key, value := range updateAttrs.(map[string]interface{}) {
-				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.quote(key), scope.AddToVars(value)))
+				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
 			}
 		} else {
 			for _, field := range scope.Fields() {
 				if field.DBName != scope.PrimaryKey() && len(field.SqlTag) > 0 && !field.IsIgnored {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.quote(field.DBName), scope.AddToVars(field.Value)))
+					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
 				}
 			}
 		}

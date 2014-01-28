@@ -10,12 +10,12 @@ import (
 	"strings"
 )
 
-func (scope *Scope) quote(str string) string {
+func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
 func (scope *Scope) primaryCondiation(value interface{}) string {
-	return fmt.Sprintf("(%v = %v)", scope.quote(scope.PrimaryKey()), value)
+	return fmt.Sprintf("(%v = %v)", scope.Quote(scope.PrimaryKey()), value)
 }
 
 func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str string) {
@@ -33,19 +33,19 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	case sql.NullInt64:
 		return scope.primaryCondiation(scope.AddToVars(value.Int64))
 	case []int64, []int, []int32, []string:
-		str = fmt.Sprintf("(%v in (?))", scope.quote(scope.PrimaryKey()))
+		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
-			sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.quote(key), scope.AddToVars(value)))
+			sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(key), scope.AddToVars(value)))
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		var sqls []string
 		for _, field := range scope.New(value).Fields() {
 			if !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.quote(field.DBName), scope.AddToVars(field.Value)))
+				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
 			}
 		}
 		return strings.Join(sqls, " AND ")
@@ -79,19 +79,19 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 	case string:
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
-			return fmt.Sprintf("(%v <> %v)", scope.quote(scope.PrimaryKey()), id)
+			return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), id)
 		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
 			not_equal_sql = fmt.Sprintf("NOT (%v)", value)
 		} else {
-			str = fmt.Sprintf("(%v NOT IN (?))", scope.quote(value))
-			not_equal_sql = fmt.Sprintf("(%v <> ?)", scope.quote(value))
+			str = fmt.Sprintf("(%v NOT IN (?))", scope.Quote(value))
+			not_equal_sql = fmt.Sprintf("(%v <> ?)", scope.Quote(value))
 		}
 	case int, int64, int32:
-		return fmt.Sprintf("(%v <> %v)", scope.quote(scope.PrimaryKey()), value)
+		return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), value)
 	case []int64, []int, []int32, []string:
 		if reflect.ValueOf(value).Len() > 0 {
-			str = fmt.Sprintf("(%v not in (?))", scope.quote(scope.PrimaryKey()))
+			str = fmt.Sprintf("(%v not in (?))", scope.Quote(scope.PrimaryKey()))
 			clause["args"] = []interface{}{value}
 		} else {
 			return ""
@@ -99,14 +99,14 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
-			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.quote(key), scope.AddToVars(value)))
+			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(key), scope.AddToVars(value)))
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		var sqls []string
 		for _, field := range scope.New(value).Fields() {
 			if !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.quote(field.DBName), scope.AddToVars(field.Value)))
+				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
 			}
 		}
 		return strings.Join(sqls, " AND ")
