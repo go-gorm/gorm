@@ -255,16 +255,17 @@ func (scope *Scope) SqlTagForField(field *Field) (tag string) {
 		}
 	}
 
-	if tag = field.Tag; len(tag) == 0 && tag != "-" {
+	tag = field.Tag
+	if len(tag) == 0 && tag != "-" {
 		if field.isPrimaryKey {
 			tag = scope.Dialect().PrimaryKeyTag(value, field.Size)
 		} else {
 			tag = scope.Dialect().SqlTag(value, field.Size)
 		}
+	}
 
-		if len(field.AddationalTag) > 0 {
-			tag = tag + " " + field.AddationalTag
-		}
+	if len(field.AddationalTag) > 0 {
+		tag = tag + " " + field.AddationalTag
 	}
 	return
 }
@@ -296,7 +297,9 @@ func (scope *Scope) Fields() []*Field {
 			tag, addationalTag, size := parseSqlTag(fieldStruct.Tag.Get(scope.db.parent.tagIdentifier))
 			field.Tag = tag
 			field.AddationalTag = addationalTag
+			field.isPrimaryKey = scope.PrimaryKey() == field.DBName
 			field.Size = size
+
 			field.SqlTag = scope.SqlTagForField(&field)
 
 			if tag == "-" {
@@ -339,11 +342,14 @@ func (scope *Scope) Fields() []*Field {
 	return fields
 }
 
-func (scope *Scope) Raw(sql string) {
+func (scope *Scope) Raw(sql string) *Scope {
 	scope.Sql = strings.Replace(sql, "$$", "?", -1)
+	return scope
 }
 
 func (scope *Scope) Exec() *Scope {
+	defer scope.Trace(time.Now())
+
 	if !scope.HasError() {
 		_, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
 		scope.Err(err)

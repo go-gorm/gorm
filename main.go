@@ -278,33 +278,33 @@ func (s *DB) RecordNotFound() bool {
 
 // Migrations
 func (s *DB) CreateTable(value interface{}) *DB {
-	return s.clone().do(value).createTable().db
+	return s.clone().NewScope(value).createTable().db
 }
 
 func (s *DB) DropTable(value interface{}) *DB {
-	return s.clone().do(value).dropTable().db
+	return s.clone().NewScope(value).dropTable().db
 }
 
 func (s *DB) AutoMigrate(value interface{}) *DB {
-	return s.clone().do(value).autoMigrate().db
+	return s.clone().NewScope(value).autoMigrate().db
 }
 
 func (s *DB) ModifyColumn(column string, typ string) *DB {
-	s.clone().do(s.Value).modifyColumn(column, typ)
+	s.clone().NewScope(s.Value).modifyColumn(column, typ)
 	return s
 }
 
 func (s *DB) DropColumn(column string) *DB {
-	s.do(s.Value).dropColumn(column)
+	s.clone().NewScope(s.Value).dropColumn(column)
 	return s
 }
 
 func (s *DB) AddIndex(column string, index_name ...string) *DB {
-	s.clone().do(s.Value).addIndex(column, index_name...)
+	s.clone().NewScope(s.Value).addIndex(column, index_name...)
 	return s
 }
 
 func (s *DB) RemoveIndex(column string) *DB {
-	s.clone().do(s.Value).removeIndex(column)
+	s.clone().NewScope(s.Value).removeIndex(column)
 	return s
 }
