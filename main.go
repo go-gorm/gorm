@@ -110,12 +110,17 @@ func (s *DB) Unscoped() *DB {
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	return s.clone().do(out).where(where...).first().db
+	scope := s.clone().NewScope(out)
+	scope.Search = scope.Search.clone().order(scope.PrimaryKey()).limit(1)
+	return scope.Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	return s.clone().do(out).where(where...).last().db
+	scope := s.clone().NewScope(out)
+	scope.Search = scope.Search.clone().order(scope.PrimaryKey() + " DESC").limit(1)
+	return scope.Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
 }
+
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.clone().NewScope(out).Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
 }
