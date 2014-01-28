@@ -152,7 +152,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	if c.First(out, where...).Error == RecordNotFound {
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.assignAttrs), false)
+		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.AssignAttrs), false)
 	}
 	return c
 }
@@ -161,8 +161,8 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
-	} else if len(s.search.assignAttrs) > 0 {
-		c.NewScope(out).Set("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates)
+	} else if len(s.search.AssignAttrs) > 0 {
+		c.NewScope(out).Set("gorm:update_interface", s.search.AssignAttrs).callCallbacks(s.parent.callback.updates)
 	}
 	return c
 }
@@ -203,7 +203,7 @@ func (s *DB) Delete(value interface{}) *DB {
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
-	return s.clone().search.setraw(true).where(sql, values...).db
+	return s.clone().search.raw(true).where(sql, values...).db
 }
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {

@@ -12,19 +12,19 @@ func TestCloneSearch(t *testing.T) {
 	s1 := s.clone()
 	s1.where("age = ?", 20).order("age").attrs("email", "a@e.org").selects("email")
 
-	if reflect.DeepEqual(s.whereClause, s1.whereClause) {
+	if reflect.DeepEqual(s.WhereConditions, s1.WhereConditions) {
 		t.Errorf("Where should be copied")
 	}
 
-	if reflect.DeepEqual(s.orders, s1.orders) {
+	if reflect.DeepEqual(s.Orders, s1.Orders) {
 		t.Errorf("Order should be copied")
 	}
 
-	if reflect.DeepEqual(s.initAttrs, s1.initAttrs) {
-		t.Errorf("initAttrs should be copied")
+	if reflect.DeepEqual(s.InitAttrs, s1.InitAttrs) {
+		t.Errorf("InitAttrs should be copied")
 	}
 
-	if reflect.DeepEqual(s.selectStr, s1.selectStr) {
+	if reflect.DeepEqual(s.Select, s1.Select) {
 		t.Errorf("selectStr should be copied")
 	}
 }

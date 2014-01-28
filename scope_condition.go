@@ -137,7 +137,7 @@ func (scope *Scope) where(where ...interface{}) {
 func (scope *Scope) whereSql() (sql string) {
 	var primary_condiations, and_conditions, or_conditions []string
 
-	if !scope.Search.unscope && scope.HasColumn("DeletedAt") {
+	if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
 		primary_condiations = append(primary_condiations, "(deleted_at IS NULL OR deleted_at <= '0001-01-02')")
 	}
 
@@ -145,15 +145,15 @@ func (scope *Scope) whereSql() (sql string) {
 		primary_condiations = append(primary_condiations, scope.primaryCondiation(scope.AddToVars(scope.PrimaryKeyValue())))
 	}
 
-	for _, clause := range scope.Search.whereClause {
+	for _, clause := range scope.Search.WhereConditions {
 		and_conditions = append(and_conditions, scope.buildWhereCondition(clause))
 	}
 
-	for _, clause := range scope.Search.orClause {
+	for _, clause := range scope.Search.OrConditions {
 		or_conditions = append(or_conditions, scope.buildWhereCondition(clause))
 	}
 
-	for _, clause := range scope.Search.notClause {
+	for _, clause := range scope.Search.NotConditions {
 		and_conditions = append(and_conditions, scope.buildNotCondition(clause))
 	}
 
@@ -179,59 +179,59 @@ func (scope *Scope) whereSql() (sql string) {
 }
 
 func (s *Scope) selectSql() string {
-	if len(s.Search.selectStr) == 0 {
+	if len(s.Search.Select) == 0 {
 		return "*"
 	} else {
-		return s.Search.selectStr
+		return s.Search.Select
 	}
 }
 
 func (s *Scope) orderSql() string {
-	if len(s.Search.orders) == 0 {
+	if len(s.Search.Orders) == 0 {
 		return ""
 	} else {
-		return " ORDER BY " + strings.Join(s.Search.orders, ",")
+		return " ORDER BY " + strings.Join(s.Search.Orders, ",")
 	}
 }
 
 func (s *Scope) limitSql() string {
-	if len(s.Search.limitStr) == 0 {
+	if len(s.Search.Limit) == 0 {
 		return ""
 	} else {
-		return " LIMIT " + s.Search.limitStr
+		return " LIMIT " + s.Search.Limit
 	}
 }
 
 func (s *Scope) offsetSql() string {
-	if len(s.Search.offsetStr) == 0 {
+	if len(s.Search.Offset) == 0 {
 		return ""
 	} else {
-		return " OFFSET " + s.Search.offsetStr
+		return " OFFSET " + s.Search.Offset
 	}
 }
 
 func (s *Scope) groupSql() string {
-	if len(s.Search.groupStr) == 0 {
+	if len(s.Search.Group) == 0 {
 		return ""
 	} else {
-		return " GROUP BY " + s.Search.groupStr
+		return " GROUP BY " + s.Search.Group
 	}
 }
 
 func (s *Scope) havingSql() string {
-	if s.Search.havingClause == nil {
+	if s.Search.HavingCondition == nil {
 		return ""
 	} else {
-		return " HAVING " + s.buildWhereCondition(s.Search.havingClause)
+		return " HAVING " + s.buildWhereCondition(s.Search.HavingCondition)
 	}
 }
 
 func (s *Scope) joinsSql() string {
-	return s.Search.joinsStr + " "
+	return s.Search.Joins + " "
 }
 
 func (scope *Scope) prepareQuerySql() {
-	if scope.Search.raw {
+	if scope.Search.Raw {
 		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
 		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.TableName(), scope.CombinedConditionSql()))

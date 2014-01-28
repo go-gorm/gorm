@@ -199,8 +199,8 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 func (scope *Scope) TableName() string {
-	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		return scope.Search.tableName
+	if scope.Search != nil && len(scope.Search.TableName) > 0 {
+		return scope.Search.TableName
 	} else {
 		if scope.Value == nil {
 			scope.Err(errors.New("can't get table name"))
@@ -414,11 +414,11 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 }
 
 func (scope *Scope) initialize() *Scope {
-	for _, clause := range scope.Search.whereClause {
+	for _, clause := range scope.Search.WhereConditions {
 		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]), false)
 	}
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs), false)
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.InitAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.AssignAttrs), false)
 	return scope
 }
 

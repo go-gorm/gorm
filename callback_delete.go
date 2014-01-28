@@ -13,7 +13,7 @@ func Delete(scope *Scope) {
 	defer scope.Trace(time.Now())
 
 	if !scope.HasError() {
-		if !scope.Search.unscope && scope.HasColumn("DeletedAt") {
+		if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
 			scope.Raw(
 				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
 					scope.TableName(),
