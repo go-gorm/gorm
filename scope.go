@@ -195,7 +195,7 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 func (scope *Scope) TableName() string {
-	if len(scope.Search.tableName) > 0 {
+	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		return scope.Search.tableName
 	} else {
 		if scope.Value == nil {

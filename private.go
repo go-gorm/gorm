@@ -23,13 +23,6 @@ func (s *DB) new() *DB {
 	return s.clone()
 }
 
-func (s *DB) do(data interface{}) *Do {
-	s.Value = data
-	do := Do{db: s}
-	do.setModel(data)
-	return &do
-}
-
 func (s *DB) err(err error) error {
 	if err != nil {
 		if err != RecordNotFound {

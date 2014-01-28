@@ -1340,53 +1340,52 @@ func (c Cart) TableName() string {
 }
 
 func TestTableName(t *testing.T) {
-	db := db.clone()
-	if db.do(Order{}).table() != "orders" {
+	if db.NewScope(Order{}).TableName() != "orders" {
 		t.Errorf("Order's table name should be orders")
 	}
 
-	if db.do(&Order{}).table() != "orders" {
+	if db.NewScope(&Order{}).TableName() != "orders" {
 		t.Errorf("&Order's table name should be orders")
 	}
 
-	if db.do([]Order{}).table() != "orders" {
+	if db.NewScope([]Order{}).TableName() != "orders" {
 		t.Errorf("[]Order's table name should be orders")
 	}
 
-	if db.do(&[]Order{}).table() != "orders" {
+	if db.NewScope(&[]Order{}).TableName() != "orders" {
 		t.Errorf("&[]Order's table name should be orders")
 	}
 
 	db.SingularTable(true)
-	if db.do(Order{}).table() != "order" {
+	if db.NewScope(Order{}).TableName() != "order" {
 		t.Errorf("Order's singular table name should be order")
 	}
 
-	if db.do(&Order{}).table() != "order" {
+	if db.NewScope(&Order{}).TableName() != "order" {
 		t.Errorf("&Order's singular table name should be order")
 	}
 
-	if db.do([]Order{}).table() != "order" {
+	if db.NewScope([]Order{}).TableName() != "order" {
 		t.Errorf("[]Order's singular table name should be order")
 	}
 
-	if db.do(&[]Order{}).table() != "order" {
+	if db.NewScope(&[]Order{}).TableName() != "order" {
 		t.Errorf("&[]Order's singular table name should be order")
 	}
 
-	if db.do(&Cart{}).table() != "shopping_cart" {
+	if db.NewScope(&Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("&Cart's singular table name should be shopping_cart")
 	}
 
-	if db.do(Cart{}).table() != "shopping_cart" {
+	if db.NewScope(Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("Cart's singular table name should be shopping_cart")
 	}
 
-	if db.do(&[]Cart{}).table() != "shopping_cart" {
+	if db.NewScope(&[]Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("&[]Cart's singular table name should be shopping_cart")
 	}
 
-	if db.do([]Cart{}).table() != "shopping_cart" {
+	if db.NewScope([]Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("[]Cart's singular table name should be shopping_cart")
 	}
 	db.SingularTable(false)
