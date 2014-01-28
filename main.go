@@ -218,8 +218,8 @@ func (s *DB) Model(value interface{}) *DB {
 	return c
 }
 
-func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
-	return s.clone().NewScope(s.Value).related(value, foreign_keys...).db
+func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
+	return s.clone().NewScope(s.Value).related(value, foreignKeys...).db
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
@@ -299,8 +299,8 @@ func (s *DB) DropColumn(column string) *DB {
 	return s
 }
 
-func (s *DB) AddIndex(column string, index_name ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(column, index_name...)
+func (s *DB) AddIndex(column string, indexName ...string) *DB {
+	s.clone().NewScope(s.Value).addIndex(column, indexName...)
 	return s
 }
 

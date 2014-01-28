@@ -52,11 +52,11 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		switch reflect.TypeOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			values := reflect.ValueOf(arg)
-			var temp_marks []string
+			var tempMarks []string
 			for i := 0; i < values.Len(); i++ {
-				temp_marks = append(temp_marks, scope.AddToVars(values.Index(i).Interface()))
+				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 			}
-			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
+			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 		default:
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = valuer.Value()
@@ -69,7 +69,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 }
 
 func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string) {
-	var not_equal_sql string
+	var notEqualSql string
 
 	switch value := clause["query"].(type) {
 	case string:
@@ -78,10 +78,10 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 			return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), id)
 		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
-			not_equal_sql = fmt.Sprintf("NOT (%v)", value)
+			notEqualSql = fmt.Sprintf("NOT (%v)", value)
 		} else {
 			str = fmt.Sprintf("(%v NOT IN (?))", scope.Quote(value))
-			not_equal_sql = fmt.Sprintf("(%v <> ?)", scope.Quote(value))
+			notEqualSql = fmt.Sprintf("(%v <> ?)", scope.Quote(value))
 		}
 	case int, int64, int32:
 		return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), value)
@@ -113,16 +113,16 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		switch reflect.TypeOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			values := reflect.ValueOf(arg)
-			var temp_marks []string
+			var tempMarks []string
 			for i := 0; i < values.Len(); i++ {
-				temp_marks = append(temp_marks, scope.AddToVars(values.Index(i).Interface()))
+				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 			}
-			str = strings.Replace(str, "?", strings.Join(temp_marks, ","), 1)
+			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 		default:
 			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = scanner.Value()
 			}
-			str = strings.Replace(not_equal_sql, "?", scope.AddToVars(arg), 1)
+			str = strings.Replace(notEqualSql, "?", scope.AddToVars(arg), 1)
 		}
 	}
 	return
@@ -135,45 +135,45 @@ func (scope *Scope) where(where ...interface{}) {
 }
 
 func (scope *Scope) whereSql() (sql string) {
-	var primary_condiations, and_conditions, or_conditions []string
+	var primaryCondiations, andConditions, orConditions []string
 
 	if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
-		primary_condiations = append(primary_condiations, "(deleted_at IS NULL OR deleted_at <= '0001-01-02')")
+		primaryCondiations = append(primaryCondiations, "(deleted_at IS NULL OR deleted_at <= '0001-01-02')")
 	}
 
 	if !scope.PrimaryKeyZero() {
-		primary_condiations = append(primary_condiations, scope.primaryCondiation(scope.AddToVars(scope.PrimaryKeyValue())))
+		primaryCondiations = append(primaryCondiations, scope.primaryCondiation(scope.AddToVars(scope.PrimaryKeyValue())))
 	}
 
 	for _, clause := range scope.Search.WhereConditions {
-		and_conditions = append(and_conditions, scope.buildWhereCondition(clause))
+		andConditions = append(andConditions, scope.buildWhereCondition(clause))
 	}
 
 	for _, clause := range scope.Search.OrConditions {
-		or_conditions = append(or_conditions, scope.buildWhereCondition(clause))
+		orConditions = append(orConditions, scope.buildWhereCondition(clause))
 	}
 
 	for _, clause := range scope.Search.NotConditions {
-		and_conditions = append(and_conditions, scope.buildNotCondition(clause))
+		andConditions = append(andConditions, scope.buildNotCondition(clause))
 	}
 
-	or_sql := strings.Join(or_conditions, " OR ")
-	combined_sql := strings.Join(and_conditions, " AND ")
-	if len(combined_sql) > 0 {
-		if len(or_sql) > 0 {
-			combined_sql = combined_sql + " OR " + or_sql
+	orSql := strings.Join(orConditions, " OR ")
+	combinedSql := strings.Join(andConditions, " AND ")
+	if len(combinedSql) > 0 {
+		if len(orSql) > 0 {
+			combinedSql = combinedSql + " OR " + orSql
 		}
 	} else {
-		combined_sql = or_sql
+		combinedSql = orSql
 	}
 
-	if len(primary_condiations) > 0 {
-		sql = "WHERE " + strings.Join(primary_condiations, " AND ")
-		if len(combined_sql) > 0 {
-			sql = sql + " AND (" + combined_sql + ")"
+	if len(primaryCondiations) > 0 {
+		sql = "WHERE " + strings.Join(primaryCondiations, " AND ")
+		if len(combinedSql) > 0 {
+			sql = sql + " AND (" + combinedSql + ")"
 		}
-	} else if len(combined_sql) > 0 {
-		sql = "WHERE " + combined_sql
+	} else if len(combinedSql) > 0 {
+		sql = "WHERE " + combinedSql
 	}
 	return
 }
