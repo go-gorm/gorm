@@ -117,7 +117,7 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	return s.clone().do(out).where(where...).last().db
 }
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().do(out).where(where...).query().db
+	return s.clone().NewScope(out).Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Row() *sql.Row {

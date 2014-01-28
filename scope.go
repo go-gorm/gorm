@@ -151,23 +151,33 @@ func (scope *Scope) CallMethod(name string) {
 		return
 	}
 
-	if fm := reflect.ValueOf(scope.Value).MethodByName(name); fm.IsValid() {
-		fi := fm.Interface()
-		if f, ok := fi.(func()); ok {
-			f()
-		} else if f, ok := fi.(func(s *Scope)); ok {
-			f(scope)
-		} else if f, ok := fi.(func(s *DB)); ok {
-			f(scope.db.new())
-		} else if f, ok := fi.(func() error); ok {
-			scope.Err(f())
-		} else if f, ok := fi.(func(s *Scope) error); ok {
-			scope.Err(f(scope))
-		} else if f, ok := fi.(func(s *DB) error); ok {
-			scope.Err(f(scope.db.new()))
-		} else {
-			scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+	call := func(value interface{}) {
+		if fm := reflect.ValueOf(value).MethodByName(name); fm.IsValid() {
+			fi := fm.Interface()
+			if f, ok := fi.(func()); ok {
+				f()
+			} else if f, ok := fi.(func(s *Scope)); ok {
+				f(scope)
+			} else if f, ok := fi.(func(s *DB)); ok {
+				f(scope.db.new())
+			} else if f, ok := fi.(func() error); ok {
+				scope.Err(f())
+			} else if f, ok := fi.(func(s *Scope) error); ok {
+				scope.Err(f(scope))
+			} else if f, ok := fi.(func(s *DB) error); ok {
+				scope.Err(f(scope.db.new()))
+			} else {
+				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+			}
 		}
+	}
+
+	if values := reflect.Indirect(reflect.ValueOf(scope.Value)); values.Kind() == reflect.Slice {
+		for i := 0; i < values.Len(); i++ {
+			call(values.Index(i).Addr().Interface())
+		}
+	} else {
+		call(scope.Value)
 	}
 }
 
@@ -366,4 +376,12 @@ func (scope *Scope) CommitOrRollback() *Scope {
 		}
 	}
 	return scope
+}
+
+func (scope *Scope) SelectSql() string {
+	if len(scope.Search.selectStr) == 0 {
+		return "*"
+	} else {
+		return scope.Search.selectStr
+	}
 }

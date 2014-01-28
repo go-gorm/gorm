@@ -43,8 +43,10 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		var sqls []string
-		for _, field := range scope.Fields() {
-			sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.quote(field.dbName), scope.AddToVars(field.Value)))
+		for _, field := range scope.New(value).Fields() {
+			if !field.IsBlank {
+				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.quote(field.DBName), scope.AddToVars(field.Value)))
+			}
 		}
 		return strings.Join(sqls, " AND ")
 	}
@@ -102,8 +104,10 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		return strings.Join(sqls, " AND ")
 	case interface{}:
 		var sqls []string
-		for _, field := range scope.Fields() {
-			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.quote(field.dbName), scope.AddToVars(field.Value)))
+		for _, field := range scope.New(value).Fields() {
+			if !field.IsBlank {
+				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.quote(field.DBName), scope.AddToVars(field.Value)))
+			}
 		}
 		return strings.Join(sqls, " AND ")
 	}
