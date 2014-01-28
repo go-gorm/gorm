@@ -207,7 +207,9 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 }
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
-	return s.clone().do(nil).raw(sql, values...).exec().db
+	scope := s.clone().NewScope(nil)
+	scope.Raw(scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values}))
+	return scope.Exec().db
 }
 
 func (s *DB) Model(value interface{}) *DB {
