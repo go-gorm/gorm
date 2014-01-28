@@ -24,6 +24,10 @@ type Scope struct {
 	skipLeft bool
 }
 
+func (scope *Scope) Quote(str string) string {
+	return scope.Dialect().Quote(str)
+}
+
 func (db *DB) NewScope(value interface{}) *Scope {
 	db.Value = value
 	return &Scope{db: db, Search: db.search, Value: value, _values: map[string]interface{}{}}
@@ -71,7 +75,7 @@ func (scope *Scope) Log(v ...interface{}) {
 }
 
 func (scope *Scope) HasError() bool {
-	return scope.db.hasError()
+	return scope.db.Error != nil
 }
 
 func (scope *Scope) PrimaryKey() string {

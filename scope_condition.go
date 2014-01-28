@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-func (scope *Scope) Quote(str string) string {
-	return scope.Dialect().Quote(str)
-}
-
 func (scope *Scope) primaryCondiation(value interface{}) string {
 	return fmt.Sprintf("(%v = %v)", scope.Quote(scope.PrimaryKey()), value)
 }

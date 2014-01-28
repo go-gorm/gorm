@@ -40,10 +40,6 @@ func (s *DB) err(err error) error {
 	return err
 }
 
-func (s *DB) hasError() bool {
-	return s.Error != nil
-}
-
 func (s *DB) print(v ...interface{}) {
 	s.parent.logger.(logger).Print(v...)
 }
