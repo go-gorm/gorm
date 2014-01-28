@@ -8,14 +8,6 @@ import (
 func Query(scope *Scope) {
 	defer scope.Trace(time.Now())
 
-	inlineCondition, ok := scope.Get("gorm:inline_condition")
-	if ok {
-		inlineConditions := inlineCondition.([]interface{})
-		if len(inlineConditions) > 0 {
-			scope.Search = scope.Search.clone().where(inlineConditions[0], inlineConditions[1:]...)
-		}
-	}
-
 	var (
 		isSlice        bool
 		anyRecordFound bool

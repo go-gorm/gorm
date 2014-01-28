@@ -388,6 +388,13 @@ func (scope *Scope) prepareQuerySql() {
 	return
 }
 
+func (scope *Scope) inlineCondition(values []interface{}) *Scope {
+	if len(values) > 0 {
+		scope.Search = scope.Search.clone().where(values[0], values[1:]...)
+	}
+	return scope
+}
+
 func (scope *Scope) row() *sql.Row {
 	defer scope.Trace(time.Now())
 	scope.prepareQuerySql()
@@ -398,4 +405,13 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 	defer scope.Trace(time.Now())
 	scope.prepareQuerySql()
 	return scope.DB().Query(scope.Sql, scope.SqlVars...)
+}
+
+func (scope *Scope) initialize() *Scope {
+	for _, clause := range scope.Search.whereClause {
+		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]), false)
+	}
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs), false)
+	return scope
 }

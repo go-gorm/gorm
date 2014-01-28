@@ -120,17 +120,17 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
 	scope.Search = scope.Search.clone().order(scope.PrimaryKey()).limit(1)
-	return scope.Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
+	return scope.inlineCondition(where).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
 	scope.Search = scope.Search.clone().order(scope.PrimaryKey() + " DESC").limit(1)
-	return scope.Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
+	return scope.inlineCondition(where).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(out).Set("gorm:inline_condition", where).callCallbacks(s.parent.callback.queries).db
+	return s.clone().NewScope(out).inlineCondition(where).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Row() *sql.Row {
@@ -150,7 +150,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if c.First(out, where...).Error == RecordNotFound {
-		return c.do(out).where(where).initialize().db
+		return c.NewScope(out).inlineCondition(where).initialize().db
 	} else if len(s.search.assignAttrs) > 0 {
 		return c.do(out).updateAttrs(s.search.assignAttrs).db
 	}
