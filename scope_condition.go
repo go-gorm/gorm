@@ -233,3 +233,19 @@ func (s *Scope) havingSql() string {
 func (s *Scope) joinsSql() string {
 	return s.Search.joinsStr + " "
 }
+
+func (scope *Scope) prepareQuerySql() {
+	if scope.Search.raw {
+		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
+	} else {
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.TableName(), scope.CombinedConditionSql()))
+	}
+	return
+}
+
+func (scope *Scope) inlineCondition(values []interface{}) *Scope {
+	if len(values) > 0 {
+		scope.Search = scope.Search.clone().where(values[0], values[1:]...)
+	}
+	return scope
+}

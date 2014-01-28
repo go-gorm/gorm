@@ -224,7 +224,7 @@ func (s *DB) Related(value interface{}, foreign_keys ...string) *DB {
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
-	return s.do(s.Value).pluck(column, value).db
+	return s.NewScope(s.Value).pluck(column, value).db
 }
 
 func (s *DB) Count(value interface{}) *DB {
