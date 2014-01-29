@@ -236,8 +236,9 @@ func (scope *Scope) TableName() string {
 	}
 }
 
-func (s *Scope) CombinedConditionSql() string {
-	return s.joinsSql() + s.whereSql() + s.groupSql() + s.havingSql() + s.orderSql() + s.limitSql() + s.offsetSql()
+func (scope *Scope) CombinedConditionSql() string {
+	return scope.joinsSql() + scope.whereSql() + scope.groupSql() +
+		scope.havingSql() + scope.orderSql() + scope.limitSql() + scope.offsetSql()
 }
 
 func (scope *Scope) SqlTagForField(field *Field) (tag string) {
