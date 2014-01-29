@@ -58,8 +58,11 @@ There are four kinds of callbacks corresponds to sql's CURD: create callbacks, u
 Gorm is powered by callbacks, so you could refer below links to learn how to write callbacks
 
 [Create callbacks](https://github.com/jinzhu/gorm/blob/master/callback_create.go)
+
 [Update callbacks](https://github.com/jinzhu/gorm/blob/master/callback_update.go)
+
 [Query callbacks](https://github.com/jinzhu/gorm/blob/master/callback_create.go)
+
 [Delete callbacks](https://github.com/jinzhu/gorm/blob/master/callback_delete.go)
 
 View [https://github.com/jinzhu/gorm/blob/master/scope.go](https://github.com/jinzhu/gorm/blob/master/scope.go) for all available API
