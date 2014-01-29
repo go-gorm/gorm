@@ -242,6 +242,12 @@ func (scope *Scope) CombinedConditionSql() string {
 }
 
 func (scope *Scope) SqlTagForField(field *Field) (tag string) {
+	tag, addationalTag, size := parseSqlTag(field.Tag.Get(scope.db.parent.tagIdentifier))
+
+	if tag == "-" {
+		field.IsIgnored = true
+	}
+
 	value := field.Value
 	reflectValue := reflect.ValueOf(value)
 
@@ -260,17 +266,16 @@ func (scope *Scope) SqlTagForField(field *Field) (tag string) {
 		}
 	}
 
-	tag = field.Tag
 	if len(tag) == 0 && tag != "-" {
 		if field.isPrimaryKey {
-			tag = scope.Dialect().PrimaryKeyTag(value, field.Size)
+			tag = scope.Dialect().PrimaryKeyTag(value, size)
 		} else {
-			tag = scope.Dialect().SqlTag(value, field.Size)
+			tag = scope.Dialect().SqlTag(value, size)
 		}
 	}
 
-	if len(field.AddationalTag) > 0 {
-		tag = tag + " " + field.AddationalTag
+	if len(addationalTag) > 0 {
+		tag = tag + " " + addationalTag
 	}
 	return
 }
@@ -297,19 +302,11 @@ func (scope *Scope) Fields() []*Field {
 		value := indirectValue.FieldByName(fieldStruct.Name)
 		field.Value = value.Interface()
 		field.IsBlank = isBlank(value)
+		field.isPrimaryKey = scope.PrimaryKey() == field.DBName
 
 		if scope.db != nil {
-			tag, addationalTag, size := parseSqlTag(fieldStruct.Tag.Get(scope.db.parent.tagIdentifier))
-			field.Tag = tag
-			field.AddationalTag = addationalTag
-			field.isPrimaryKey = scope.PrimaryKey() == field.DBName
-			field.Size = size
-
+			field.Tag = fieldStruct.Tag
 			field.SqlTag = scope.SqlTagForField(&field)
-
-			if tag == "-" {
-				field.IsIgnored = true
-			}
 
 			// parse association
 			elem := reflect.Indirect(value)

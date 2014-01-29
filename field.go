@@ -14,9 +14,7 @@ type Field struct {
 	Value             interface{}
 	IsBlank           bool
 	IsIgnored         bool
-	Tag               string
-	AddationalTag     string
-	Size              int
+	Tag               reflect.StructTag
 	SqlTag            string
 	ForeignKey        string
 	BeforeAssociation bool
