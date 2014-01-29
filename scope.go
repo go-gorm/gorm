@@ -22,35 +22,43 @@ type Scope struct {
 	skipLeft bool
 }
 
+// NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
 	db.Value = value
 	return &Scope{db: db, Search: db.search, Value: value, _values: map[string]interface{}{}}
 }
 
+// New create a new Scope without search information
 func (scope *Scope) New(value interface{}) *Scope {
 	return &Scope{db: scope.db.parent, Search: &search{}, Value: value}
 }
 
+// NewDB create a new DB without search information
 func (scope *Scope) NewDB() *DB {
 	return scope.db.new()
 }
 
+// DB get *sql.DB
 func (scope *Scope) DB() sqlCommon {
 	return scope.db.db
 }
 
+// SkipLeft skip remaining callbacks
 func (scope *Scope) SkipLeft() {
 	scope.skipLeft = true
 }
 
+// Quote used to quote database column name according to database dialect
 func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
+// Dialect get dialect
 func (scope *Scope) Dialect() dialect.Dialect {
 	return scope.db.parent.dialect
 }
 
+// Err write error
 func (scope *Scope) Err(err error) error {
 	if err != nil {
 		scope.db.err(err)
@@ -58,22 +66,27 @@ func (scope *Scope) Err(err error) error {
 	return err
 }
 
+// Log print log message
 func (scope *Scope) Log(v ...interface{}) {
 	scope.db.log(v...)
 }
 
+// HasError check if there are any error
 func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
 
+// PrimaryKey get the primary key's column name
 func (scope *Scope) PrimaryKey() string {
 	return "id"
 }
 
+// PrimaryKeyZero check the primary key is blank or not
 func (scope *Scope) PrimaryKeyZero() bool {
 	return isBlank(reflect.ValueOf(scope.PrimaryKeyValue()))
 }
 
+// PrimaryKeyValue get the primary key's value
 func (scope *Scope) PrimaryKeyValue() interface{} {
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
 
@@ -85,11 +98,13 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 	return 0
 }
 
+// HasColumn to check if has column
 func (scope *Scope) HasColumn(name string) bool {
 	_, result := scope.FieldByName(name)
 	return result
 }
 
+// FieldByName to get column's value and existence
 func (scope *Scope) FieldByName(name string) (interface{}, bool) {
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
 
@@ -103,6 +118,7 @@ func (scope *Scope) FieldByName(name string) (interface{}, bool) {
 	return nil, false
 }
 
+// SetColumn to set the column's value
 func (scope *Scope) SetColumn(column string, value interface{}) {
 	if scope.Value == nil {
 		return
@@ -112,6 +128,7 @@ func (scope *Scope) SetColumn(column string, value interface{}) {
 	setFieldValue(data.FieldByName(snakeToUpperCamel(column)), value)
 }
 
+// CallMethod invoke method with necessary argument
 func (scope *Scope) CallMethod(name string) {
 	if scope.Value == nil {
 		return
@@ -147,11 +164,13 @@ func (scope *Scope) CallMethod(name string) {
 	}
 }
 
+// AddToVars add value as sql's vars, gorm will escape them
 func (scope *Scope) AddToVars(value interface{}) string {
 	scope.SqlVars = append(scope.SqlVars, value)
 	return scope.Dialect().BinVar(len(scope.SqlVars))
 }
 
+// TableName get table name
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
@@ -190,11 +209,13 @@ func (scope *Scope) TableName() string {
 	}
 }
 
+// CombinedConditionSql get combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
 	return scope.joinsSql() + scope.whereSql() + scope.groupSql() +
 		scope.havingSql() + scope.orderSql() + scope.limitSql() + scope.offsetSql()
 }
 
+// Fields get value's fields
 func (scope *Scope) Fields() []*Field {
 	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
 	fields := []*Field{}
@@ -259,11 +280,13 @@ func (scope *Scope) Fields() []*Field {
 	return fields
 }
 
+// Raw set sql
 func (scope *Scope) Raw(sql string) *Scope {
 	scope.Sql = strings.Replace(sql, "$$", "?", -1)
 	return scope
 }
 
+// Exec invoke sql
 func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(time.Now())
 
@@ -274,22 +297,26 @@ func (scope *Scope) Exec() *Scope {
 	return scope
 }
 
-func (scope *Scope) Get(name string) (value interface{}, ok bool) {
-	value, ok = scope._values[name]
-	return
-}
-
+// Set set value by name
 func (scope *Scope) Set(name string, value interface{}) *Scope {
 	scope._values[name] = value
 	return scope
 }
 
+// Get get value by name
+func (scope *Scope) Get(name string) (value interface{}, ok bool) {
+	value, ok = scope._values[name]
+	return
+}
+
+// Trace print sql log
 func (scope *Scope) Trace(t time.Time) {
 	if len(scope.Sql) > 0 {
 		scope.db.slog(scope.Sql, t, scope.SqlVars...)
 	}
 }
 
+// Begin start a transaction
 func (scope *Scope) Begin() *Scope {
 	if db, ok := scope.DB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
@@ -300,6 +327,7 @@ func (scope *Scope) Begin() *Scope {
 	return scope
 }
 
+// CommitOrRollback commit current transaction if there is no error, otherwise rollback it
 func (scope *Scope) CommitOrRollback() *Scope {
 	if _, ok := scope.Get("gorm:started_transaction"); ok {
 		if db, ok := scope.db.db.(sqlTx); ok {
