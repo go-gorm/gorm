@@ -29,6 +29,10 @@ func (c *callback) addProcessor(typ string) *callback_processor {
 	return cp
 }
 
+func (c *callback) clone() *callback {
+	return &callback{processors: c.processors}
+}
+
 func (c *callback) Create() *callback_processor {
 	return c.addProcessor("create")
 }

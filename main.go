@@ -32,6 +32,11 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
+func (s *DB) Callback() *callback {
+	s.parent.callback = s.parent.callback.clone()
+	return s.parent.callback
+}
+
 func (s *DB) SetTagIdentifier(str string) {
 	s.parent.tagIdentifier = str
 }
