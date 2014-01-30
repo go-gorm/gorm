@@ -266,27 +266,34 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 
 	for key, value := range values {
 		if field := data.FieldByName(snakeToUpperCamel(key)); field.IsValid() {
-			if field.Interface() != value {
-
-				switch field.Kind() {
-				case reflect.Int, reflect.Int32, reflect.Int64:
-					if s, ok := value.(string); ok {
-						i, err := strconv.Atoi(s)
-						if scope.Err(err) == nil {
-							value = i
-						}
-					}
-
-					scope.db.log(field.Int() != reflect.ValueOf(value).Int())
-					if field.Int() != reflect.ValueOf(value).Int() {
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
 						hasUpdate = true
 						setFieldValue(field, value)
 					}
-				default:
-					hasUpdate = true
-					setFieldValue(field, value)
+				}()
+
+				if field.Interface() != value {
+					switch field.Kind() {
+					case reflect.Int, reflect.Int32, reflect.Int64:
+						if s, ok := value.(string); ok {
+							i, err := strconv.Atoi(s)
+							if scope.Err(err) == nil {
+								value = i
+							}
+						}
+
+						if field.Int() != reflect.ValueOf(value).Int() {
+							hasUpdate = true
+							setFieldValue(field, value)
+						}
+					default:
+						hasUpdate = true
+						setFieldValue(field, value)
+					}
 				}
-			}
+			}()
 		}
 	}
 	return
