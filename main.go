@@ -8,8 +8,8 @@ import (
 
 type DB struct {
 	Value         interface{}
-	callback      *callback
 	Error         error
+	callback      *callback
 	db            sqlCommon
 	parent        *DB
 	search        *search

@@ -324,7 +324,7 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 		}
 	}
 
-	if len(tag) == 0 && tag != "-" {
+	if len(tag) == 0 {
 		if field.isPrimaryKey {
 			tag = scope.Dialect().PrimaryKeyTag(value, size)
 		} else {

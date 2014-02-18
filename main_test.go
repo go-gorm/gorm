@@ -10,7 +10,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 
 	"os"
 	"reflect"
@@ -1103,6 +1102,12 @@ func TestFindOrCreate(t *testing.T) {
 	db.Where(&User{Name: "find or create 3"}).Attrs("age", 44).FirstOrCreate(&user4)
 	if user4.Name != "find or create 3" || user4.Id == 0 || user4.Age != 44 {
 		t.Errorf("user should be created with search value and attrs")
+	}
+
+	updated_at1 := user4.UpdatedAt
+	db.Where(&User{Name: "find or create 3"}).Assign("age", 55).FirstOrCreate(&user4)
+	if updated_at1.Format(time.RFC3339Nano) == user4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("UpdateAt should be changed when update values with assign")
 	}
 
 	db.Where(&User{Name: "find or create 4"}).Assign(User{Age: 44}).FirstOrCreate(&user4)
