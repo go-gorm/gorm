@@ -10,8 +10,6 @@ func BeforeDelete(scope *Scope) {
 }
 
 func Delete(scope *Scope) {
-	defer scope.Trace(time.Now())
-
 	if !scope.HasError() {
 		if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
 			scope.Raw(
