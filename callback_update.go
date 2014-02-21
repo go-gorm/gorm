@@ -41,8 +41,6 @@ func UpdateTimeStampWhenUpdate(scope *Scope) {
 }
 
 func Update(scope *Scope) {
-	defer scope.Trace(time.Now())
-
 	if !scope.HasError() {
 		var sqls []string
 
