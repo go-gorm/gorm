@@ -574,9 +574,10 @@ func TestCount(t *testing.T) {
 	}
 }
 
-func TestCreatedAtAndUpdatedAt(t *testing.T) {
-	name := "check_created_at_and_updated_at"
+func TestCreatedAtAndUpdatedAtUpdateCorrectly(t *testing.T) {
+	name := "check_created_at_and_updated_at_update_correctly"
 	u := User{Name: name, Age: 1}
+
 	db.Save(&u)
 	created_at := u.CreatedAt
 	updated_at := u.UpdatedAt
@@ -599,6 +600,22 @@ func TestCreatedAtAndUpdatedAt(t *testing.T) {
 
 	if updated_at == updated_at2 {
 		t.Errorf("Updated At should be changed after update")
+	}
+}
+
+func TestCreatedAtAndUpdatedAtAreSavedAsUTC(t *testing.T) {
+	name := "check_created_at_and_updated_at_saved_as_utc"
+	u := User{Name: name, Age: 1}
+
+	db.Save(&u)
+	created_at := u.CreatedAt
+	updated_at := u.UpdatedAt
+
+	if created_at.Location() != time.UTC {
+		t.Errorf("created_at should be UTC")
+	}
+	if updated_at.Location() != time.UTC {
+		t.Errorf("updated_at should be UTC")
 	}
 }
 

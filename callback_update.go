@@ -36,7 +36,7 @@ func BeforeUpdate(scope *Scope) {
 func UpdateTimeStampWhenUpdate(scope *Scope) {
 	_, ok := scope.Get("gorm:update_column")
 	if !ok {
-		scope.SetColumn("UpdatedAt", time.Now())
+		scope.SetColumn("UpdatedAt", time.Now().UTC())
 	}
 }
 
