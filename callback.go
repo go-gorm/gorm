@@ -98,7 +98,7 @@ func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
 			} else if cp.remove {
 				fmt.Printf("[info] removing callback `%v` from %v\n", cp.name, fileWithLineNum())
 			} else {
-				fmt.Println("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
+				fmt.Printf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
 			}
 		}
 		names = append(names, cp.name)
