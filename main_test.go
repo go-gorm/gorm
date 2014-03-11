@@ -40,7 +40,8 @@ type User struct {
 	CreditCard         CreditCard
 	Latitude           float64
 	PasswordHash       []byte
-	IgnoreMe           int64 `sql:"-"`
+	IgnoreMe           int64    `sql:"-"`
+	IgnoreStringSlice  []string `sql:"-"`
 }
 
 type CreditCard struct {

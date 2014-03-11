@@ -252,7 +252,7 @@ func (scope *Scope) Fields() []*Field {
 			case reflect.Slice:
 				typ = typ.Elem()
 
-				if _, ok := field.Value.([]byte); !ok {
+				if typ.Kind() == reflect.Struct {
 					foreignKey := scopeTyp.Name() + "Id"
 					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
 						field.ForeignKey = foreignKey
