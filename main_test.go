@@ -1702,6 +1702,36 @@ func TestExecRawSql(t *testing.T) {
 	}
 }
 
+func TestTimeWithZone(t *testing.T) {
+	var format = "2006-01-02 15:04:05 -0700"
+	var times []time.Time
+	GMT8, _ := time.LoadLocation("Asia/Shanghai")
+	times = append(times, time.Date(2013, 02, 19, 1, 51, 49, 123456789, GMT8))
+	times = append(times, time.Date(2013, 02, 18, 17, 51, 49, 123456789, time.UTC))
+
+	for _, vtime := range times {
+		user := User{Name: "time_with_zone", Birthday: vtime}
+		db.Save(&user)
+		if user.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
+			t.Errorf("User's birthday should not be changed after save")
+		}
+
+		if user.DeletedAt.UTC().Format(format) != "0001-01-01 00:00:00 +0000" {
+			t.Errorf("User's deleted at should be zero")
+		}
+
+		var findUser User
+		db.First(&findUser, "name = ?", "time_with_zone")
+		if findUser.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
+			t.Errorf("User's birthday should not be changed after find")
+		}
+
+		if findUser.DeletedAt.UTC().Format(format) != "0001-01-01 00:00:00 +0000" {
+			t.Errorf("User's deleted at should be zero")
+		}
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
