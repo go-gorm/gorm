@@ -22,6 +22,16 @@ type IgnoredEmbedStruct struct {
 	Name string
 }
 
+type NamedInt int64
+func (i *NamedInt) Scan(src interface{}) error {
+        v := reflect.ValueOf(src)
+        if v.Kind() != reflect.Int64 {
+                return errors.New("Cannot scan NamedInt from " + v.String())
+        }
+        *i = NamedInt(v.Int())
+        return nil
+}
+
 type User struct {
 	Id                 int64 // Id: Primary key
 	Age                int64
@@ -42,6 +52,7 @@ type User struct {
 	PasswordHash       []byte
 	IgnoreMe           int64    `sql:"-"`
 	IgnoreStringSlice  []string `sql:"-"`
+	NamedInt           NamedInt `sql:"type:bigint"`
 }
 
 type CreditCard struct {

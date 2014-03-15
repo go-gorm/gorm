@@ -309,7 +309,7 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 	value := field.Value
 	reflectValue := reflect.ValueOf(value)
 
-	if field.IsScanner() {
+	if field.IsScanner() && reflectValue.Kind() == reflect.Struct {
 		value = reflectValue.Field(0).Interface()
 	}
 
