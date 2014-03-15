@@ -1,7 +1,6 @@
 package dialect
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 )
@@ -20,13 +19,13 @@ func (d *mysql) SqlTag(column interface{}, size int) string {
 	switch column.(type) {
 	case time.Time:
 		return "datetime"
-	case bool, sql.NullBool:
+	case bool:
 		return "boolean"
 	case int, int8, int16, int32, uint, uint8, uint16, uint32:
 		return "int"
-	case int64, uint64, sql.NullInt64:
+	case int64, uint64:
 		return "bigint"
-	case float32, float64, sql.NullFloat64:
+	case float32, float64:
 		return "double"
 	case []byte:
 		if size > 0 && size < 65532 {
@@ -34,7 +33,7 @@ func (d *mysql) SqlTag(column interface{}, size int) string {
 		} else {
 			return "longblob"
 		}
-	case string, sql.NullString:
+	case string:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("varchar(%d)", size)
 		} else {
