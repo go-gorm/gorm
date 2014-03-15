@@ -1709,8 +1709,9 @@ func TestTimeWithZone(t *testing.T) {
 	times = append(times, time.Date(2013, 02, 19, 1, 51, 49, 123456789, GMT8))
 	times = append(times, time.Date(2013, 02, 18, 17, 51, 49, 123456789, time.UTC))
 
-	for _, vtime := range times {
-		user := User{Name: "time_with_zone", Birthday: vtime}
+	for index, vtime := range times {
+		name := "time_with_zone_" + strconv.Itoa(index)
+		user := User{Name: name, Birthday: vtime}
 		db.Save(&user)
 		if user.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
 			t.Errorf("User's birthday should not be changed after save")
@@ -1721,7 +1722,7 @@ func TestTimeWithZone(t *testing.T) {
 		}
 
 		var findUser User
-		db.First(&findUser, "name = ?", "time_with_zone")
+		db.First(&findUser, "name = ?", name)
 		if findUser.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
 			t.Errorf("User's birthday should not be changed after find")
 		}
