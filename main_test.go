@@ -1721,7 +1721,7 @@ func TestTimeWithZone(t *testing.T) {
 			t.Errorf("User's deleted at should be zero")
 		}
 
-		var findUser User
+		var findUser, findUser2, findUser3 User
 		db.First(&findUser, "name = ?", name)
 		if findUser.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
 			t.Errorf("User's birthday should not be changed after find")
@@ -1729,6 +1729,14 @@ func TestTimeWithZone(t *testing.T) {
 
 		if findUser.DeletedAt.UTC().Format(format) != "0001-01-01 00:00:00 +0000" {
 			t.Errorf("User's deleted at should be zero")
+		}
+
+		if db.Where("birthday >= ?", vtime.Add(-time.Minute)).First(&findUser2).RecordNotFound() {
+			t.Errorf("User should be found")
+		}
+
+		if !db.Where("birthday >= ?", vtime.Add(time.Minute)).First(&findUser3).RecordNotFound() {
+			t.Errorf("User should not be found")
 		}
 	}
 }
