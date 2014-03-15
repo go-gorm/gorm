@@ -15,7 +15,7 @@ func Delete(scope *Scope) {
 			scope.Raw(
 				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
 					scope.TableName(),
-					scope.AddToVars(time.Now()),
+					scope.AddToVars(time.Now().UTC()),
 					scope.CombinedConditionSql(),
 				))
 		} else {
