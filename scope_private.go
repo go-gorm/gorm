@@ -309,26 +309,24 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 	value := field.Value
 	reflectValue := reflect.ValueOf(value)
 
-	if field.IsScanner() {
-		value = reflectValue.Field(0).Interface()
-	}
-
 	switch reflectValue.Kind() {
 	case reflect.Slice:
 		if _, ok := value.([]byte); !ok {
 			return
 		}
 	case reflect.Struct:
-		if !field.IsTime() && !field.IsScanner() {
+		if field.IsScanner() {
+			reflectValue = reflectValue.Field(0)
+		} else if !field.IsTime() {
 			return
 		}
 	}
 
 	if len(tag) == 0 {
 		if field.isPrimaryKey {
-			tag = scope.Dialect().PrimaryKeyTag(value, size)
+			tag = scope.Dialect().PrimaryKeyTag(reflectValue, size)
 		} else {
-			tag = scope.Dialect().SqlTag(value, size)
+			tag = scope.Dialect().SqlTag(reflectValue, size)
 		}
 	}
 

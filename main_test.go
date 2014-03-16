@@ -22,6 +22,17 @@ type IgnoredEmbedStruct struct {
 	Name string
 }
 
+type Num int64
+
+func (i *Num) Scan(src interface{}) error {
+	v := reflect.ValueOf(src)
+	if v.Kind() != reflect.Int64 {
+		return errors.New("Cannot scan NamedInt from " + v.String())
+	}
+	*i = Num(v.Int())
+	return nil
+}
+
 type User struct {
 	Id                 int64 // Id: Primary key
 	Age                int64
@@ -42,6 +53,7 @@ type User struct {
 	PasswordHash       []byte
 	IgnoreMe           int64    `sql:"-"`
 	IgnoreStringSlice  []string `sql:"-"`
+	UserNum            Num
 }
 
 type CreditCard struct {
@@ -156,7 +168,7 @@ func init() {
 	t3, _ = time.Parse(shortForm, "2005-01-01 00:00:00")
 	t4, _ = time.Parse(shortForm, "2010-01-01 00:00:00")
 	t5, _ = time.Parse(shortForm, "2020-01-01 00:00:00")
-	db.Save(&User{Name: "1", Age: 18, Birthday: t1, When: time.Now()})
+	db.Save(&User{Name: "1", Age: 18, Birthday: t1, When: time.Now(), UserNum: Num(111)})
 	db.Save(&User{Name: "2", Age: 20, Birthday: t2})
 	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
 	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
@@ -178,6 +190,22 @@ func TestFirstAndLast(t *testing.T) {
 	db.First(&users)
 	if len(users) != 1 {
 		t.Errorf("Find first record as map")
+	}
+}
+
+func TestSaveCustomType(t *testing.T) {
+	var user, user1 User
+	db.First(&user, "name = ?", "1")
+	if user.UserNum != Num(111) {
+		t.Errorf("UserNum should be saved correctly")
+	}
+
+	user.UserNum = Num(222)
+	db.Save(&user)
+
+	db.First(&user1, "name = ?", "1")
+	if user1.UserNum != Num(222) {
+		t.Errorf("UserNum should be updated correctly")
 	}
 }
 

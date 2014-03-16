@@ -2,7 +2,7 @@ package dialect
 
 import (
 	"fmt"
-	"time"
+	"reflect"
 )
 
 type postgres struct {
@@ -16,36 +16,38 @@ func (s *postgres) SupportLastInsertId() bool {
 	return false
 }
 
-func (d *postgres) SqlTag(column interface{}, size int) string {
-	switch column.(type) {
-	case time.Time:
-		return "timestamp with time zone"
-	case bool:
+func (d *postgres) SqlTag(value reflect.Value, size int) string {
+	switch value.Kind() {
+	case reflect.Bool:
 		return "boolean"
-	case int, int8, int16, int32, uint, uint8, uint16, uint32:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 		return "integer"
-	case int64, uint64:
+	case reflect.Int64, reflect.Uint64:
 		return "bigint"
-	case float32, float64:
+	case reflect.Float32, reflect.Float64:
 		return "numeric"
-	case []byte:
-		return "bytea"
-	case string:
+	case reflect.String:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("varchar(%d)", size)
-		} else {
-			return "text"
+		}
+		return "text"
+	case reflect.Struct:
+		if value.Type() == timeType {
+			return "timestamp with time zone"
 		}
 	default:
-		panic("Invalid sql type for postgres")
+		if _, ok := value.Interface().([]byte); ok {
+			return "bytea"
+		}
 	}
+	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", value.Type().Name(), value.Kind().String()))
 }
 
-func (s *postgres) PrimaryKeyTag(column interface{}, size int) string {
-	switch column.(type) {
-	case int, int8, int16, int32, uint, uint8, uint16, uint32:
+func (s *postgres) PrimaryKeyTag(value reflect.Value, size int) string {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 		return "serial PRIMARY KEY"
-	case int64, uint64:
+	case reflect.Int64, reflect.Uint64:
 		return "bigserial PRIMARY KEY"
 	default:
 		panic("Invalid primary key type")
