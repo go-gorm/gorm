@@ -25,17 +25,20 @@ type IgnoredEmbedStruct struct {
 type Num int64
 
 func (i *Num) Scan(src interface{}) error {
-	v := reflect.ValueOf(src)
-	if v.Kind() != reflect.Int64 {
-		return errors.New("Cannot scan NamedInt from " + v.String())
+	switch s := src.(type) {
+	case []byte:
+	case int64:
+		*i = Num(s)
+	default:
+		return errors.New("Cannot scan NamedInt from " + reflect.ValueOf(src).String())
 	}
-	*i = Num(v.Int())
 	return nil
 }
 
 type User struct {
 	Id                 int64 // Id: Primary key
 	Age                int64
+	UserNum            Num
 	Name               string             `sql:"size:255"`
 	Birthday           time.Time          // Time
 	CreatedAt          time.Time          // CreatedAt: Time of record is created, will be insert automatically
@@ -53,7 +56,6 @@ type User struct {
 	PasswordHash       []byte
 	IgnoreMe           int64    `sql:"-"`
 	IgnoreStringSlice  []string `sql:"-"`
-	UserNum            Num
 }
 
 type CreditCard struct {
