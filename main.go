@@ -28,8 +28,20 @@ func Open(driver, source string) (DB, error) {
 	return db, err
 }
 
+// Return the underlying sql.DB instance.
+//
+// If called inside a transaction, it will panic.
+// Use Tx() instead in this case.
 func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
+}
+
+// Return the underlying sql.Tx instance.
+//
+// If called outside of a transaction, it will panic.
+// Use DB() instead in this case.
+func (s *DB) Tx() *sql.Tx {
+	return s.db.(*sql.Tx)
 }
 
 func (s *DB) Callback() *callback {
