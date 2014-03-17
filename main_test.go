@@ -1542,6 +1542,10 @@ func TestTransaction(t *testing.T) {
 		t.Errorf("Should find saved record, but got", err)
 	}
 
+        if sql_tx, ok := tx.CommonDB().(*sql.Tx); !ok || sql_tx == nil {
+                t.Errorf("Should return the underlying sql.Tx")
+        }
+
 	tx.Rollback()
 
 	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
