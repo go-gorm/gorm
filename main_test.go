@@ -169,6 +169,7 @@ func init() {
 	db.Exec("drop table addresses")
 	db.Exec("drop table credit_cards")
 	db.Exec("drop table roles")
+	db.Exec("drop table companies")
 
 	if err = db.CreateTable(&User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -191,6 +192,10 @@ func init() {
 	}
 
 	if err = db.AutoMigrate(Company{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	if err = db.AutoMigrate(Role{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
