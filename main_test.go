@@ -35,9 +35,26 @@ func (i *Num) Scan(src interface{}) error {
 	return nil
 }
 
-type Role struct {
+type Company struct {
 	Id   int64
 	Name string
+}
+
+type Role struct {
+	Name string
+}
+
+func (role *Role) Scan(value interface{}) error {
+	role.Name = string(value.([]uint8))
+	return nil
+}
+
+func (role Role) Value() (driver.Value, error) {
+	return role.Name, nil
+}
+
+func (role Role) IsAdmin() bool {
+	return role.Name == "admin"
 }
 
 type User struct {
@@ -58,8 +75,9 @@ type User struct {
 	When               time.Time
 	CreditCard         CreditCard
 	Latitude           float64
+	CompanyId          int64
+	Company
 	Role
-	RoleId            int64
 	PasswordHash      []byte
 	IgnoreMe          int64    `sql:"-"`
 	IgnoreStringSlice []string `sql:"-"`
@@ -172,7 +190,7 @@ func init() {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	if err = db.AutoMigrate(Role{}).Error; err != nil {
+	if err = db.AutoMigrate(Company{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -1749,14 +1767,29 @@ func TestHaving(t *testing.T) {
 }
 
 func TestAnonymousField(t *testing.T) {
-	user := User{Name: "anonymous_field", Role: Role{Name: "admin"}}
+	user := User{Name: "anonymous_field", Company: Company{Name: "company"}}
 	db.Save(&user)
 
 	var user2 User
 	db.First(&user2, "name = ?", "anonymous_field")
-	db.Model(&user2).Related(&user2.Role)
-	if user2.Role.Name != "admin" {
+	db.Model(&user2).Related(&user2.Company)
+	if user2.Company.Name != "company" {
 		t.Errorf("Should be able to get anonymous field")
+	}
+}
+
+func TestAnonymousScanner(t *testing.T) {
+	user := User{Name: "anonymous_scanner", Role: Role{Name: "admin"}}
+	db.Save(&user)
+
+	var user2 User
+	db.First(&user2, "name = ?", "anonymous_scanner")
+	if user2.Role.Name != "admin" {
+		t.Errorf("Should be able to get anonymous scanner")
+	}
+
+	if !user2.IsAdmin() {
+		t.Errorf("Should be able to get anonymous scanner")
 	}
 }
 
