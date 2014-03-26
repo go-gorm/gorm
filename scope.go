@@ -227,7 +227,7 @@ func (scope *Scope) Fields() []*Field {
 	scopeTyp := indirectValue.Type()
 	for i := 0; i < scopeTyp.NumField(); i++ {
 		fieldStruct := scopeTyp.Field(i)
-		if fieldStruct.Anonymous || !ast.IsExported(fieldStruct.Name) {
+		if !ast.IsExported(fieldStruct.Name) {
 			continue
 		}
 

@@ -35,6 +35,11 @@ func (i *Num) Scan(src interface{}) error {
 	return nil
 }
 
+type Role struct {
+	Id   int64
+	Name string
+}
+
 type User struct {
 	Id                 int64 // Id: Primary key
 	Age                int64
@@ -53,9 +58,11 @@ type User struct {
 	When               time.Time
 	CreditCard         CreditCard
 	Latitude           float64
-	PasswordHash       []byte
-	IgnoreMe           int64    `sql:"-"`
-	IgnoreStringSlice  []string `sql:"-"`
+	Role
+	RoleId            int64
+	PasswordHash      []byte
+	IgnoreMe          int64    `sql:"-"`
+	IgnoreStringSlice []string `sql:"-"`
 }
 
 type CreditCard struct {
@@ -143,6 +150,7 @@ func init() {
 	db.Exec("drop table emails;")
 	db.Exec("drop table addresses")
 	db.Exec("drop table credit_cards")
+	db.Exec("drop table roles")
 
 	if err = db.CreateTable(&User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -161,6 +169,10 @@ func init() {
 	}
 
 	if err = db.AutoMigrate(&CreditCard{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	if err = db.AutoMigrate(Role{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -1726,6 +1738,18 @@ func TestHaving(t *testing.T) {
 		}
 	} else {
 		t.Errorf("Should not raise any error", err)
+	}
+}
+
+func TestAnonymousField(t *testing.T) {
+	user := User{Name: "anonymous_field", Role: Role{Name: "admin"}}
+	db.Save(&user)
+
+	var user2 User
+	db.First(&user2, "name = ?", "anonymous_field")
+	db.Model(&user2).Related(&user2.Role)
+	if user2.Role.Name != "admin" {
+		t.Errorf("Should be able to get anonymous field")
 	}
 }
 
