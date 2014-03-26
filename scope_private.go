@@ -393,8 +393,7 @@ func (scope *Scope) typeName() string {
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
-	toScope := scope.New(value)
-	toScope.db = scope.db
+	toScope := scope.db.NewScope(value)
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
 		if foreignValue, ok := scope.FieldByName(foreignKey); ok {
