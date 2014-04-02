@@ -28,7 +28,7 @@ go get github.com/jinzhu/gorm
 ## Conventions
 
 * Table name is the plural of struct name's snake case.
-  Disable pluralization with `db.SingularTable(true)`, or [specify your table name](#specify-table-name)
+  Disable pluralization with `db.SingularTable(true)`, or [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName)
 * Column name is the snake case of field's name.
 * Use `Id int64` field as primary key.
 * Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`.
@@ -45,6 +45,19 @@ db.First(&user)
 
 // E.g creating a new User
 DB.Save(&User{Name: "xxx"}) // table "users"
+```
+
+## Existing schema
+
+If you have and existing database schema and some of your tables does not follow the conventions, (and you can't rename your table names), please use: [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName).
+
+If your primary key field is different from `id`, you can add a tag to the field structure to specify that this field is a primary key.
+
+```go
+type Animal struct { // animals
+    AnimalId     int64 `primaryKey:"yes"`
+    Birthday     time.Time
+    Age          int64
 ```
 
 # Getting Started
