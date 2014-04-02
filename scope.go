@@ -20,6 +20,7 @@ type Scope struct {
 	db       *DB
 	_values  map[string]interface{}
 	skipLeft bool
+    primaryKey string
 }
 
 // NewScope create scope for callbacks, including DB's search information
@@ -78,7 +79,12 @@ func (scope *Scope) HasError() bool {
 
 // PrimaryKey get the primary key's column name
 func (scope *Scope) PrimaryKey() string {
-	return "id"
+    if scope.primaryKey != "" {
+        return scope.primaryKey
+    }
+
+    scope.primaryKey = scope.getPrimaryKey()
+	return scope.primaryKey
 }
 
 // PrimaryKeyZero check the primary key is blank or not
@@ -238,7 +244,13 @@ func (scope *Scope) Fields() []*Field {
 		value := indirectValue.FieldByName(fieldStruct.Name)
 		field.Value = value.Interface()
 		field.IsBlank = isBlank(value)
-		field.isPrimaryKey = scope.PrimaryKey() == field.DBName
+
+		// Search for primary key tag identifier
+		field.isPrimaryKey = scope.PrimaryKey() == field.DBName || fieldStruct.Tag.Get("primaryKey") != ""
+        fmt.Printf("Name: %s\n isPrimaryKey: %v\n\n",field.DBName, field.isPrimaryKey)
+        if field.isPrimaryKey {
+            scope.primaryKey = field.DBName
+        }
 
 		if scope.db != nil {
 			field.Tag = fieldStruct.Tag
