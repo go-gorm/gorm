@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -471,4 +472,34 @@ func (scope *Scope) autoMigrate() *Scope {
 		}
 	}
 	return scope
+}
+
+func (scope *Scope) getPrimaryKey() string {
+	var indirectValue reflect.Value
+
+	indirectValue = reflect.Indirect(reflect.ValueOf(scope.Value))
+
+	if indirectValue.Kind() == reflect.Slice {
+		indirectValue = reflect.New(indirectValue.Type().Elem()).Elem()
+	}
+
+	if !indirectValue.IsValid() {
+		return "id"
+	}
+
+	scopeTyp := indirectValue.Type()
+	for i := 0; i < scopeTyp.NumField(); i++ {
+		fieldStruct := scopeTyp.Field(i)
+		if !ast.IsExported(fieldStruct.Name) {
+			continue
+		}
+
+		// if primaryKey tag found, return column name
+		if fieldStruct.Tag.Get("primaryKey") != "" {
+			return toSnake(fieldStruct.Name)
+		}
+	}
+
+	//If primaryKey tag not found, fallback to id
+	return "id"
 }
