@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "go/ast"
 )
 
 func (scope *Scope) primaryCondiation(value interface{}) string {
@@ -471,4 +472,28 @@ func (scope *Scope) autoMigrate() *Scope {
 		}
 	}
 	return scope
+}
+
+func (scope *Scope) getPrimaryKey() string {
+	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
+
+	if !indirectValue.IsValid() {
+		return "id"
+	}
+
+	scopeTyp := indirectValue.Type()
+	for i := 0; i < scopeTyp.NumField(); i++ {
+		fieldStruct := scopeTyp.Field(i)
+		if !ast.IsExported(fieldStruct.Name) {
+			continue
+		}
+
+        // if primaryKey tag found, return column name
+        if fieldStruct.Tag.Get("primaryKey") != "" {
+            return toSnake(fieldStruct.Name)
+        }
+    }
+
+    //If primaryKey tag not found, fallback to id
+    return "id"
 }
