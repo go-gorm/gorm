@@ -475,7 +475,13 @@ func (scope *Scope) autoMigrate() *Scope {
 }
 
 func (scope *Scope) getPrimaryKey() string {
-	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
+	var indirectValue reflect.Value
+
+	indirectValue = reflect.Indirect(reflect.ValueOf(scope.Value))
+
+	if indirectValue.Kind() == reflect.Slice {
+		indirectValue = reflect.New(indirectValue.Type().Elem()).Elem()
+	}
 
 	if !indirectValue.IsValid() {
 		return "id"

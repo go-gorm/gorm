@@ -247,7 +247,7 @@ func (scope *Scope) Fields() []*Field {
 
 		// Search for primary key tag identifier
 		field.isPrimaryKey = scope.PrimaryKey() == field.DBName || fieldStruct.Tag.Get("primaryKey") != ""
-		fmt.Printf("Name: %s\n isPrimaryKey: %v\n\n", field.DBName, field.isPrimaryKey)
+
 		if field.isPrimaryKey {
 			scope.primaryKey = field.DBName
 		}
