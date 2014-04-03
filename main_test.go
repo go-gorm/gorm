@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/nerdzeu/gorm"
 
 	"os"
 	"reflect"
@@ -127,6 +127,11 @@ type Product struct {
 	AfterDeleteCallTimes  int64
 }
 
+type Animal struct {
+	Counter int64 `primaryKey:"yes"`
+	Name    string
+}
+
 var (
 	db                 gorm.DB
 	t1, t2, t3, t4, t5 time.Time
@@ -170,6 +175,11 @@ func init() {
 	db.Exec("drop table credit_cards")
 	db.Exec("drop table roles")
 	db.Exec("drop table companies")
+	db.Exec("drop table animals")
+
+	if err = db.CreateTable(&Animal{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
 
 	if err = db.CreateTable(&User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -210,6 +220,11 @@ func init() {
 	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
 	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
+
+	db.Save(&Animal{Name: "First"})
+	db.Save(&Animal{Name: "Amazing"})
+	db.Save(&Animal{Name: "Horse"})
+	db.Save(&Animal{Name: "Last"})
 }
 
 func TestFirstAndLast(t *testing.T) {
@@ -226,6 +241,24 @@ func TestFirstAndLast(t *testing.T) {
 	var users []User
 	db.First(&users)
 	if len(users) != 1 {
+		t.Errorf("Find first record as map")
+	}
+}
+
+func TestFirstAndLastForTableWithNoStdPrimaryKey(t *testing.T) {
+	var animal1, animal2, animal3, animal4 Animal
+	db.First(&animal1)
+	db.Order("counter").Find(&animal2)
+
+	db.Last(&animal3)
+	db.Order("counter desc").Find(&animal4)
+	if animal1.Counter != animal2.Counter || animal3.Counter != animal4.Counter {
+		t.Errorf("First and Last should works correctly")
+	}
+
+	var animals []Animal
+	db.First(&animals)
+	if len(animals) != 1 {
 		t.Errorf("Find first record as map")
 	}
 }
