@@ -5,12 +5,12 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-    "go/ast"
 )
 
 func (scope *Scope) primaryCondiation(value interface{}) string {
@@ -488,12 +488,12 @@ func (scope *Scope) getPrimaryKey() string {
 			continue
 		}
 
-        // if primaryKey tag found, return column name
-        if fieldStruct.Tag.Get("primaryKey") != "" {
-            return toSnake(fieldStruct.Name)
-        }
-    }
+		// if primaryKey tag found, return column name
+		if fieldStruct.Tag.Get("primaryKey") != "" {
+			return toSnake(fieldStruct.Name)
+		}
+	}
 
-    //If primaryKey tag not found, fallback to id
-    return "id"
+	//If primaryKey tag not found, fallback to id
+	return "id"
 }

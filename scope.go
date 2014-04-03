@@ -13,14 +13,14 @@ import (
 )
 
 type Scope struct {
-	Value    interface{}
-	Search   *search
-	Sql      string
-	SqlVars  []interface{}
-	db       *DB
-	_values  map[string]interface{}
-	skipLeft bool
-    primaryKey string
+	Value      interface{}
+	Search     *search
+	Sql        string
+	SqlVars    []interface{}
+	db         *DB
+	_values    map[string]interface{}
+	skipLeft   bool
+	primaryKey string
 }
 
 // NewScope create scope for callbacks, including DB's search information
@@ -79,11 +79,11 @@ func (scope *Scope) HasError() bool {
 
 // PrimaryKey get the primary key's column name
 func (scope *Scope) PrimaryKey() string {
-    if scope.primaryKey != "" {
-        return scope.primaryKey
-    }
+	if scope.primaryKey != "" {
+		return scope.primaryKey
+	}
 
-    scope.primaryKey = scope.getPrimaryKey()
+	scope.primaryKey = scope.getPrimaryKey()
 	return scope.primaryKey
 }
 
@@ -247,10 +247,10 @@ func (scope *Scope) Fields() []*Field {
 
 		// Search for primary key tag identifier
 		field.isPrimaryKey = scope.PrimaryKey() == field.DBName || fieldStruct.Tag.Get("primaryKey") != ""
-        fmt.Printf("Name: %s\n isPrimaryKey: %v\n\n",field.DBName, field.isPrimaryKey)
-        if field.isPrimaryKey {
-            scope.primaryKey = field.DBName
-        }
+		fmt.Printf("Name: %s\n isPrimaryKey: %v\n\n", field.DBName, field.isPrimaryKey)
+		if field.isPrimaryKey {
+			scope.primaryKey = field.DBName
+		}
 
 		if scope.db != nil {
 			field.Tag = fieldStruct.Tag
