@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/nerdzeu/gorm"
 
 	"os"
 	"reflect"
@@ -127,6 +127,13 @@ type Product struct {
 	AfterDeleteCallTimes  int64
 }
 
+type Animal struct {
+	Counter   int64 `primaryKey:"yes"`
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 var (
 	db                 gorm.DB
 	t1, t2, t3, t4, t5 time.Time
@@ -170,6 +177,11 @@ func init() {
 	db.Exec("drop table credit_cards")
 	db.Exec("drop table roles")
 	db.Exec("drop table companies")
+	db.Exec("drop table animals")
+
+	if err = db.CreateTable(&Animal{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
 
 	if err = db.CreateTable(&User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -210,6 +222,11 @@ func init() {
 	db.Save(&User{Name: "3", Age: 22, Birthday: t3})
 	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
+
+	db.Save(&Animal{Name: "First"})
+	db.Save(&Animal{Name: "Amazing"})
+	db.Save(&Animal{Name: "Horse"})
+	db.Save(&Animal{Name: "Last"})
 }
 
 func TestFirstAndLast(t *testing.T) {
@@ -226,6 +243,24 @@ func TestFirstAndLast(t *testing.T) {
 	var users []User
 	db.First(&users)
 	if len(users) != 1 {
+		t.Errorf("Find first record as map")
+	}
+}
+
+func TestFirstAndLastForTableWithNoStdPrimaryKey(t *testing.T) {
+	var animal1, animal2, animal3, animal4 Animal
+	db.First(&animal1)
+	db.Order("counter").Find(&animal2)
+
+	db.Last(&animal3)
+	db.Order("counter desc").Find(&animal4)
+	if animal1.Counter != animal2.Counter || animal3.Counter != animal4.Counter {
+		t.Errorf("First and Last should works correctly")
+	}
+
+	var animals []Animal
+	db.First(&animals)
+	if len(animals) != 1 {
 		t.Errorf("Find first record as map")
 	}
 }
@@ -935,9 +970,18 @@ func TestSetTableDirectly(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	product1 := Product{Code: "123"}
 	product2 := Product{Code: "234"}
+	animal1 := Animal{Name: "Ferdinand"}
+	animal2 := Animal{Name: "nerdz"}
+
 	db.Save(&product1).Save(&product2).Update("code", "456")
 
 	if product2.Code != "456" {
+		t.Errorf("Record should be updated with update attributes")
+	}
+
+	db.Save(&animal1).Save(&animal2).Update("name", "Francis")
+
+	if animal2.Name != "Francis" {
 		t.Errorf("Record should be updated with update attributes")
 	}
 
@@ -945,6 +989,11 @@ func TestUpdate(t *testing.T) {
 	db.First(&product2, product2.Id)
 	updated_at1 := product1.UpdatedAt
 	updated_at2 := product2.UpdatedAt
+
+	db.First(&animal1, animal1.Counter)
+	db.First(&animal2, animal2.Counter)
+	animalUpdated_at1 := animal1.UpdatedAt
+	animalUpdated_at2 := animal2.UpdatedAt
 
 	var product3 Product
 	db.First(&product3, product2.Id).Update("code", "456")
@@ -962,6 +1011,25 @@ func TestUpdate(t *testing.T) {
 
 	if db.First(&Product{}, "code = '456'").Error != nil {
 		t.Errorf("Product 234 should be changed to 456")
+	}
+
+	var animal3 Animal
+	db.First(&animal3, animal2.Counter).Update("Name", "Robert")
+
+	if animalUpdated_at2.Format(time.RFC3339Nano) != animal2.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("updated_at should not be updated if nothing changed")
+	}
+
+	if db.First(&Animal{}, "name = 'Ferdinand'").Error != nil {
+		t.Errorf("Animal 'Ferdinand' should not be updated")
+	}
+
+	if db.First(&Animal{}, "name = 'nerdz'").Error == nil {
+		t.Errorf("Animal 'nerdz' should be changed to 'Francis'")
+	}
+
+	if db.First(&Animal{}, "name = 'Robert'").Error != nil {
+		t.Errorf("Animal 'nerdz' should be changed to 'Robert'")
 	}
 
 	db.Table("products").Where("code in (?)", []string{"123"}).Update("code", "789")
@@ -989,6 +1057,34 @@ func TestUpdate(t *testing.T) {
 	}
 
 	if db.Model(&product2).UpdateColumn("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
+		t.Error("No error should raise when update_column with CamelCase")
+	}
+
+	db.Table("animals").Where("name in (?)", []string{"Ferdinand"}).Update("name", "Franz")
+
+	var animal4 Animal
+	db.First(&animal4, animal1.Counter)
+	if animalUpdated_at1.Format(time.RFC3339Nano) != animal4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("animalUpdated_at should be updated if something changed")
+	}
+
+	if db.First(&Animal{}, "name = 'Ferdinand'").Error == nil {
+		t.Errorf("Animal 'Fredinand' should be changed to 'Franz'")
+	}
+
+	if db.First(&Animal{}, "name = 'Robert'").Error != nil {
+		t.Errorf("Animal 'Robert' should not be changed to 'Francis'")
+	}
+
+	if db.First(&Animal{}, "name = 'Franz'").Error != nil {
+		t.Errorf("Product 'nerdz' should be changed to 'Franz'")
+	}
+
+	if db.Model(animal2).Update("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
+		t.Error("No error should raise when update with CamelCase")
+	}
+
+	if db.Model(&animal2).UpdateColumn("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
 		t.Error("No error should raise when update_column with CamelCase")
 	}
 }
