@@ -247,6 +247,18 @@ func TestFirstAndLast(t *testing.T) {
 	}
 }
 
+func TestFirstAndLastWithJoins(t *testing.T) {
+	var user1, user2, user3, user4 User
+	db.Joins("left join emails on emails.user_id = users.id").First(&user1)
+	db.Order("id").Find(&user2)
+
+	db.Joins("left join emails on emails.user_id = users.id").Last(&user3)
+	db.Order("id desc").Find(&user4)
+	if user1.Id != user2.Id || user3.Id != user4.Id {
+		t.Errorf("First and Last should works correctly")
+	}
+}
+
 func TestFirstAndLastForTableWithNoStdPrimaryKey(t *testing.T) {
 	var animal1, animal2, animal3, animal4 Animal
 	db.First(&animal1)
