@@ -237,7 +237,7 @@ func TestFirstAndLast(t *testing.T) {
 	db.Last(&user3)
 	db.Order("id desc").Find(&user4)
 	if user1.Id != user2.Id || user3.Id != user4.Id {
-		t.Errorf("First and Last should works correctly")
+		t.Errorf("First and Last should work correctly")
 	}
 
 	var users []User
@@ -255,7 +255,7 @@ func TestFirstAndLastWithJoins(t *testing.T) {
 	db.Joins("left join emails on emails.user_id = users.id").Last(&user3)
 	db.Order("id desc").Find(&user4)
 	if user1.Id != user2.Id || user3.Id != user4.Id {
-		t.Errorf("First and Last should works correctly")
+		t.Errorf("First and Last should work correctly with Joins")
 	}
 }
 
@@ -267,7 +267,7 @@ func TestFirstAndLastForTableWithNoStdPrimaryKey(t *testing.T) {
 	db.Last(&animal3)
 	db.Order("counter desc").Find(&animal4)
 	if animal1.Counter != animal2.Counter || animal3.Counter != animal4.Counter {
-		t.Errorf("First and Last should works correctly")
+		t.Errorf("First and Last should work correctly")
 	}
 
 	var animals []Animal
@@ -631,7 +631,7 @@ func TestOrderAndPluck(t *testing.T) {
 
 	db.Model(&User{}).Order("age desc").Pluck("age", &ages3).Order("age", true).Pluck("age", &ages4)
 	if reflect.DeepEqual(ages3, ages4) {
-		t.Errorf("Reorder should works")
+		t.Errorf("Reorder should work")
 	}
 
 	var names []string
@@ -648,7 +648,7 @@ func TestLimit(t *testing.T) {
 	db.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
 
 	if len(users1) != 3 || len(users2) != 5 || len(users3) <= 5 {
-		t.Errorf("Limit should works")
+		t.Errorf("Limit should work")
 	}
 }
 
@@ -657,7 +657,7 @@ func TestOffset(t *testing.T) {
 	db.Limit(100).Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
 
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
-		t.Errorf("Offset should works")
+		t.Errorf("Offset should work")
 	}
 }
 
@@ -674,7 +674,7 @@ func TestCount(t *testing.T) {
 	var users []User
 
 	if err := db.Where("name = ?", "1").Or("name = ?", "3").Find(&users).Count(&count).Error; err != nil {
-		t.Errorf("Count should works", err)
+		t.Errorf("Count should work", err)
 	}
 
 	if count != int64(len(users)) {
@@ -683,7 +683,7 @@ func TestCount(t *testing.T) {
 
 	db.Model(&User{}).Where("name = ?", "1").Count(&count1).Or("name = ?", "3").Count(&count2)
 	if count1 != 1 || count2 != 3 {
-		t.Errorf("Multiple count should works")
+		t.Errorf("Multiple count should work")
 	}
 }
 
@@ -801,7 +801,7 @@ func TestRunCallbacks(t *testing.T) {
 	var products []Product
 	db.Find(&products, "code = ?", "unique_code")
 	if products[0].AfterFindCallTimes != 2 {
-		t.Errorf("AfterFind callbacks should works with slice")
+		t.Errorf("AfterFind callbacks should work with slice")
 	}
 
 	db.Where("Code = ?", "unique_code").First(&p)
@@ -1765,7 +1765,7 @@ func TestScan(t *testing.T) {
 	var res result
 	db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&res)
 	if res.Name != "3" {
-		t.Errorf("Scan into struct should works")
+		t.Errorf("Scan into struct should work")
 	}
 
 	var ress []result
