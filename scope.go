@@ -237,12 +237,21 @@ func (scope *Scope) Fields() []*Field {
 			continue
 		}
 
+		value := indirectValue.FieldByName(fieldStruct.Name)
+		iface := value.Interface()
+		elem := reflect.Indirect(value)
+
+		if fieldStruct.Anonymous && elem.Kind() == reflect.Struct {
+			inner_fields := scope.New(iface).Fields()
+			fields = append(fields, inner_fields...)
+			continue
+		}
+
 		var field Field
 		field.Name = fieldStruct.Name
 		field.DBName = toSnake(fieldStruct.Name)
 
-		value := indirectValue.FieldByName(fieldStruct.Name)
-		field.Value = value.Interface()
+		field.Value = iface
 		field.IsBlank = isBlank(value)
 
 		// Search for primary key tag identifier
@@ -257,7 +266,6 @@ func (scope *Scope) Fields() []*Field {
 			field.SqlTag = scope.sqlTagForField(&field)
 
 			// parse association
-			elem := reflect.Indirect(value)
 			typ := elem.Type()
 
 			switch elem.Kind() {
