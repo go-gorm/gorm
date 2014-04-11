@@ -58,6 +58,7 @@ type Animal struct { // animals
     AnimalId     int64 `primaryKey:"yes"`
     Birthday     time.Time
     Age          int64
+}
 ```
 
 # Getting Started
