@@ -224,10 +224,10 @@ func (scope *Scope) CombinedConditionSql() string {
 // Fields get value's fields
 func (scope *Scope) Fields() []*Field {
 	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
-	fields := []*Field{}
+	fields := make(map[string]*Field)
 
 	if !indirectValue.IsValid() {
-		return fields
+		return []*Field{}
 	}
 
 	scopeTyp := indirectValue.Type()
@@ -242,8 +242,11 @@ func (scope *Scope) Fields() []*Field {
 		elem := reflect.Indirect(value)
 
 		if fieldStruct.Anonymous && elem.Kind() == reflect.Struct {
-			inner_fields := scope.New(iface).Fields()
-			fields = append(fields, inner_fields...)
+			for _, f := range scope.New(iface).Fields() {
+				if _, ok := fields[f.Name]; !ok {
+					fields[f.Name] = f
+				}
+			}
 			continue
 		}
 
@@ -294,10 +297,14 @@ func (scope *Scope) Fields() []*Field {
 				}
 			}
 		}
-		fields = append(fields, &field)
+		fields[field.Name] = &field
 	}
 
-	return fields
+	field_list := make([]*Field, len(fields))
+	for _, field := range fields {
+		append(field_list, field)
+	}
+	return field_list
 }
 
 // Raw set sql
