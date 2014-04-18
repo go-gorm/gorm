@@ -1,9 +1,8 @@
 package dialect
 
 import (
-	"database/sql"
 	"fmt"
-	"time"
+	"reflect"
 )
 
 type sqlite3 struct{}
@@ -16,33 +15,41 @@ func (s *sqlite3) SupportLastInsertId() bool {
 	return true
 }
 
-func (s *sqlite3) SqlTag(column interface{}, size int) string {
-	switch column.(type) {
-	case time.Time:
-		return "datetime"
-	case bool, sql.NullBool:
+func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
+	switch value.Kind() {
+	case reflect.Bool:
 		return "bool"
-	case int, int8, int16, int32, uint, uint8, uint16, uint32:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 		return "integer"
-	case int64, uint64, sql.NullInt64:
+	case reflect.Int64, reflect.Uint64:
 		return "bigint"
-	case float32, float64, sql.NullFloat64:
+	case reflect.Float32, reflect.Float64:
 		return "real"
-	case []byte:
-		return "blob"
-	case string, sql.NullString:
+	case reflect.String:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("varchar(%d)", size)
 		} else {
 			return "text"
 		}
+	case reflect.Struct:
+		if value.Type() == timeType {
+			return "datetime"
+		}
 	default:
-		panic("Invalid sql type for sqlite3")
+		if _, ok := value.Interface().([]byte); ok {
+			return "blob"
+		}
 	}
+	panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", value.Type().Name(), value.Kind().String()))
 }
 
-func (s *sqlite3) PrimaryKeyTag(column interface{}, size int) string {
-	return "INTEGER PRIMARY KEY"
+func (s *sqlite3) PrimaryKeyTag(value reflect.Value, size int) string {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr, reflect.Int64, reflect.Uint64:
+		return "INTEGER PRIMARY KEY"
+	default:
+		panic("Invalid primary key type")
+	}
 }
 
 func (s *sqlite3) ReturningStr(key string) (str string) {

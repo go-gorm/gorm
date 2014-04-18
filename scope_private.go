@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -309,26 +310,24 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 	value := field.Value
 	reflectValue := reflect.ValueOf(value)
 
-	if field.IsScanner() {
-		value = reflectValue.Field(0).Interface()
-	}
-
 	switch reflectValue.Kind() {
 	case reflect.Slice:
 		if _, ok := value.([]byte); !ok {
 			return
 		}
 	case reflect.Struct:
-		if !field.IsTime() && !field.IsScanner() {
+		if field.IsScanner() {
+			reflectValue = reflectValue.Field(0)
+		} else if !field.IsTime() {
 			return
 		}
 	}
 
 	if len(tag) == 0 {
 		if field.isPrimaryKey {
-			tag = scope.Dialect().PrimaryKeyTag(value, size)
+			tag = scope.Dialect().PrimaryKeyTag(reflectValue, size)
 		} else {
-			tag = scope.Dialect().SqlTag(value, size)
+			tag = scope.Dialect().SqlTag(reflectValue, size)
 		}
 	}
 
@@ -395,7 +394,7 @@ func (scope *Scope) typeName() string {
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
-	toScope := scope.New(value)
+	toScope := scope.db.NewScope(value)
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
 		if foreignValue, ok := scope.FieldByName(foreignKey); ok {
@@ -473,4 +472,34 @@ func (scope *Scope) autoMigrate() *Scope {
 		}
 	}
 	return scope
+}
+
+func (scope *Scope) getPrimaryKey() string {
+	var indirectValue reflect.Value
+
+	indirectValue = reflect.Indirect(reflect.ValueOf(scope.Value))
+
+	if indirectValue.Kind() == reflect.Slice {
+		indirectValue = reflect.New(indirectValue.Type().Elem()).Elem()
+	}
+
+	if !indirectValue.IsValid() {
+		return "id"
+	}
+
+	scopeTyp := indirectValue.Type()
+	for i := 0; i < scopeTyp.NumField(); i++ {
+		fieldStruct := scopeTyp.Field(i)
+		if !ast.IsExported(fieldStruct.Name) {
+			continue
+		}
+
+		// if primaryKey tag found, return column name
+		if fieldStruct.Tag.Get("primaryKey") != "" {
+			return toSnake(fieldStruct.Name)
+		}
+	}
+
+	//If primaryKey tag not found, fallback to id
+	return "id"
 }

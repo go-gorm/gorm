@@ -28,7 +28,7 @@ go get github.com/jinzhu/gorm
 ## Conventions
 
 * Table name is the plural of struct name's snake case.
-  Disable pluralization with `db.SingularTable(true)`, or [specify your table name](#specify-table-name)
+  Disable pluralization with `db.SingularTable(true)`, or [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName)
 * Column name is the snake case of field's name.
 * Use `Id int64` field as primary key.
 * Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`.
@@ -45,6 +45,20 @@ db.First(&user)
 
 // E.g creating a new User
 DB.Save(&User{Name: "xxx"}) // table "users"
+```
+
+## Existing schema
+
+If you have and existing database schema and some of your tables does not follow the conventions, (and you can't rename your table names), please use: [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName).
+
+If your primary key field is different from `id`, you can add a tag to the field structure to specify that this field is a primary key.
+
+```go
+type Animal struct { // animals
+    AnimalId     int64 `primaryKey:"yes"`
+    Birthday     time.Time
+    Age          int64
+}
 ```
 
 # Getting Started
@@ -97,9 +111,9 @@ import _ "github.com/lib/pq"
 // import _ "github.com/go-sql-driver/mysql"
 // import _ "github.com/mattn/go-sqlite3"
 
-db, err := Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-// db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
-// db, err = Open("sqlite3", "/tmp/gorm.db")
+db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+// db, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+// db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 
 // Get database connection handle [*sql.DB](http://golang.org/pkg/database/sql/#DB)
 d := db.DB()

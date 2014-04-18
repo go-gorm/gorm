@@ -1,10 +1,17 @@
 package dialect
 
+import (
+	"reflect"
+	"time"
+)
+
+var timeType = reflect.TypeOf(time.Time{})
+
 type Dialect interface {
 	BinVar(i int) string
 	SupportLastInsertId() bool
-	SqlTag(column interface{}, size int) string
-	PrimaryKeyTag(column interface{}, size int) string
+	SqlTag(value reflect.Value, size int) string
+	PrimaryKeyTag(value reflect.Value, size int) string
 	ReturningStr(key string) string
 	Quote(key string) string
 }
