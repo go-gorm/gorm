@@ -28,7 +28,7 @@ go get github.com/jinzhu/gorm
 ## Conventions
 
 * Table name is the plural of struct name's snake case.
-  Disable pluralization with `db.SingularTable(true)`, or [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName)
+  Disable pluralization with `db.SingularTable(true)`, or [Specifying The Table Name For A Struct Permanently With TableName](#specifying-the-table-name-for-a-struct-permanently-with-tablename)
 * Column name is the snake case of field's name.
 * Use `Id int64` field as primary key.
 * Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`.
@@ -47,9 +47,9 @@ db.First(&user)
 DB.Save(&User{Name: "xxx"}) // table "users"
 ```
 
-## Existing schema
+## Existing Schema
 
-If you have and existing database schema and some of your tables does not follow the conventions, (and you can't rename your table names), please use: [Specifying the Table Name for Struct permanently with TableName](#Specifying-the-Table-Name-for-Struct-permanently-with-TableName).
+If you have an existing database schema and some of your tables do not follow the conventions, (and you can't rename your table names), please use: [Specifying The Table Name For A Struct Permanently With TableName](#specifying-the-table-name-for-a-struct-permanently-with-tableName).
 
 If your primary key field is different from `id`, you can add a tag to the field structure to specify that this field is a primary key.
 
@@ -183,11 +183,11 @@ db.DropTable(User{})
 
 ### Automating Migrations
 
-Feel free to update your struct, AutoMigrate will keep your database update to date.
+Feel free to update your struct, AutoMigrate will keep your database up-to-date.
 
 FYI, AutoMigrate will only add new columns, it won't change the current columns' types or delete unused columns, to make sure your data is safe.
 
-If the table doesn't exist when AutoMigrate, gorm will run create the table automatically.
+If the table doesn't exist when AutoMigrate is called, gorm will create the table automatically.
 (the database first needs to be created manually though...).
 
 (only postgres and mysql supported)
@@ -251,7 +251,7 @@ db.First(&user)
 db.Last(&user)
 //// SELECT * FROM users ORDER BY id DESC LIMIT 1;
 
-// Get All records
+// Get all records
 db.Find(&users)
 //// SELECT * FROM users;
 
@@ -282,7 +282,7 @@ db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
 db.Where("name LIKE ?", "%jin%").Find(&users)
 //// SELECT * FROM users WHERE name LIKE "%jin%";
 
-// Multiple Conditions
+// Multiple conditions
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
 //// SELECT * FROM users WHERE name = 'jinzhu' AND age >= 22;
 ```
@@ -298,7 +298,7 @@ db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
 db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).Find(&users)
 //// SELECT * FROM users WHERE name = "jinzhu" AND age = 20;
 
-// IN for primary Keys
+// IN for primary keys
 db.Where([]int64{20, 21, 22}).Find(&users)
 //// SELECT * FROM users WHERE id IN (20, 21, 22);
 ```
@@ -341,7 +341,7 @@ db.First(&user, 23)
 db.Find(&user, "name = ?", "jinzhu")
 //// SELECT * FROM users WHERE name = "jinzhu";
 
-// Multiple Conditions
+// Multiple conditions
 db.Find(&users, "name <> ? and age > ?", "jinzhu", 20)
 //// SELECT * FROM users WHERE name <> "jinzhu" AND age > 20;
 
@@ -397,7 +397,7 @@ db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jin
 
 ## Update
 
-### Update an existing struct
+### Update An Existing Struct
 
 ```go
 user.Name = "jinzhu 2"
@@ -406,7 +406,7 @@ db.Save(&user)
 //// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111;
 ```
 
-### Update one attribute with `Update`
+### Update One Attribute With `Update`
 
 ```go
 // Update existing user's name if it is changed
@@ -423,7 +423,7 @@ db.Table("users").Where(10).Update("name", "hello")
 //// UPDATE users SET name='hello' WHERE id = 10;
 ```
 
-### Update multiple attributes with `Updates`
+### Update Multiple Attributes With `Updates`
 
 ```go
 // Update user's name and age if they are changed
@@ -439,7 +439,7 @@ db.Model(User{}).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18;
 ```
 
-### Update attributes without callbacks
+### Update Attributes Without Callbacks
 
 ```go
 db.Model(&user).UpdateColumn("name", "hello")
@@ -451,14 +451,14 @@ db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
 
 ## Delete
 
-### Delete an existing struct
+### Delete An Existing Struct
 
 ```go
 db.Delete(&email)
 // DELETE from emails where id=10;
 ```
 
-### Batch Delete with search
+### Batch Delete With Search
 
 ```go
 db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
@@ -467,9 +467,9 @@ db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
 
 ### Soft Delete
 
-If a struct has a DeletedAt field, it will get soft delete ability automatically!
+If a struct has a DeletedAt field, it will get a soft delete ability automatically!
 
-Structs that don't have a DeletedAt field will be deleted from the database permanently
+Structs that don't have a DeletedAt field will be deleted from the database permanently.
 
 ```go
 db.Delete(&user)
@@ -646,7 +646,7 @@ db.Table("deleted_users").Count(&count)
 
 ## Pluck
 
-Get struct's selected attributes as a map
+Get struct's selected attributes as a map.
 
 ```go
 var ages []int64
@@ -692,7 +692,7 @@ If any callback returns an error, gorm will stop future operations and rollback 
 Here is a list of all available callbacks,
 listed in the same order in which they will get called during the respective operations.
 
-### Creating an Object
+### Creating An Object
 
 ```go
 BeforeSave
@@ -703,7 +703,7 @@ BeforeCreate
 AfterCreate
 AfterSave
 ```
-### Updating an Object
+### Updating An Object
 
 ```go
 BeforeSave
@@ -715,7 +715,7 @@ AfterUpdate
 AfterSave
 ```
 
-### Destroying an Object
+### Destroying An Object
 
 ```go
 BeforeDelete
@@ -760,7 +760,7 @@ func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 }
 ```
 
-## Specifying the Table Name
+## Specifying The Table Name
 
 ```go
 // Create `deleted_users` table with User's fields
@@ -776,7 +776,7 @@ db.Table("deleted_users").Where("name = ?", "jinzhu").Delete()
 //// DELETE FROM deleted_users WHERE name = 'jinzhu';
 ```
 
-### Specifying the Table Name for Struct permanently with TableName
+### Specifying The Table Name For A Struct Permanently with TableName
 
 ```go
 type Cart struct {
@@ -853,7 +853,7 @@ db.Debug().Where("name = ?", "jinzhu").First(&User{})
 
 ## Row & Rows
 
-Row & Rows is not chainable, it works just like `QueryRow` and `Query`
+Row & Rows is not chainable, it works just like `QueryRow` and `Query`.
 
 ```go
 row := db.Table("users").Where("name = ?", "jinzhu").select("name, age").Row() // (*sql.Row)
@@ -879,7 +879,7 @@ for rows.Next() {
 
 ## Scan
 
-Scan sql results into strcut
+Scan sql results into a struct.
 
 ```go
 type Result struct {
@@ -952,7 +952,7 @@ if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
 // If no record is found, gorm will return RecordNotFound error, you could check it with
 db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
 
-// Or use shortcut method
+// Or use the shortcut method
 if db.Where("name = ?", "hello world").First(&user).RecordNotFound() {
   panic("no record found")
 } else {
