@@ -28,6 +28,10 @@ func Open(driver, source string) (DB, error) {
 	return db, err
 }
 
+func (s *DB) Close() error {
+	return s.parent.db.(*sql.DB).Close()
+}
+
 func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
@@ -131,13 +135,13 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
-	scope.Search = scope.Search.clone().order(scope.TableName()+"."+scope.PrimaryKey()).limit(1)
+	scope.Search = scope.Search.clone().order(scope.TableName() + "." + scope.PrimaryKey()).limit(1)
 	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
-	scope.Search = scope.Search.clone().order(scope.TableName()+"."+scope.PrimaryKey() + " DESC").limit(1)
+	scope.Search = scope.Search.clone().order(scope.TableName() + "." + scope.PrimaryKey() + " DESC").limit(1)
 	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
