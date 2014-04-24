@@ -447,8 +447,18 @@ func (scope *Scope) removeIndex(indexName string) {
 }
 
 func (scope *Scope) autoMigrate() *Scope {
+	// scope.db.source sample: root:@/testdatabase?parseTime=true
+	from := strings.Index(scope.db.source, "/")
+	to := strings.Index(scope.db.source, "?")
+	if to == -1 {
+		to = len(scope.db.source)
+	}
+	databaseName := scope.db.source[from:to]
+
 	var tableName string
-	scope.Raw(fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_name = %v", scope.AddToVars(scope.TableName())))
+	scope.Raw(fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_schema = %v AND table_name = %v",
+		scope.AddToVars(databaseName),
+		scope.AddToVars(scope.TableName())))
 	scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&tableName)
 	scope.SqlVars = []interface{}{}
 
@@ -458,7 +468,8 @@ func (scope *Scope) autoMigrate() *Scope {
 	} else {
 		for _, field := range scope.Fields() {
 			var column, data string
-			scope.Raw(fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v and column_name = %v",
+			scope.Raw(fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_schema = %v AND table_name = %v AND column_name = %v",
+				scope.AddToVars(databaseName),
 				scope.AddToVars(scope.TableName()),
 				scope.AddToVars(field.DBName),
 			))
