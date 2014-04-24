@@ -1,4 +1,4 @@
-package dialect
+package gorm
 
 import (
 	"fmt"
@@ -54,10 +54,10 @@ func (s *postgres) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *postgres) ReturningStr(key string) (str string) {
+func (s *postgres) ReturningStr(key string) string {
 	return fmt.Sprintf("RETURNING \"%v\"", key)
 }
 
-func (s *postgres) Quote(key string) (str string) {
+func (s *postgres) Quote(key string) string {
 	return fmt.Sprintf("\"%s\"", key)
 }

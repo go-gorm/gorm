@@ -1,4 +1,4 @@
-package dialect
+package gorm
 
 import (
 	"reflect"
@@ -16,7 +16,7 @@ type Dialect interface {
 	Quote(key string) string
 }
 
-func New(driver string) Dialect {
+func NewDialect(driver string) Dialect {
 	var d Dialect
 	switch driver {
 	case "postgres":

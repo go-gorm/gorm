@@ -1,7 +1,8 @@
-package dialect
+package gorm
 
 import (
 	"fmt"
+
 	"reflect"
 )
 
@@ -59,10 +60,18 @@ func (s *mysql) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *mysql) ReturningStr(key string) (str string) {
-	return
+func (s *mysql) ReturningStr(key string) string {
+	return ""
 }
 
-func (s *mysql) Quote(key string) (str string) {
+func (s *mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
+}
+
+func (s *mysql) HasTable(tableName string) bool {
+	return true
+}
+
+func (s *mysql) HasColumn(tableName string, columnName string) bool {
+	return true
 }

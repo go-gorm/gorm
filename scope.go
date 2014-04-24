@@ -3,7 +3,6 @@ package gorm
 import (
 	"errors"
 	"fmt"
-	"github.com/jinzhu/gorm/dialect"
 	"go/ast"
 	"strings"
 	"time"
@@ -55,7 +54,7 @@ func (scope *Scope) Quote(str string) string {
 }
 
 // Dialect get dialect
-func (scope *Scope) Dialect() dialect.Dialect {
+func (scope *Scope) Dialect() Dialect {
 	return scope.db.parent.dialect
 }
 

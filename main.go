@@ -2,8 +2,6 @@ package gorm
 
 import (
 	"database/sql"
-
-	"github.com/jinzhu/gorm/dialect"
 )
 
 type DB struct {
@@ -15,14 +13,14 @@ type DB struct {
 	search        *search
 	logMode       int
 	logger        logger
-	dialect       dialect.Dialect
+	dialect       Dialect
 	tagIdentifier string
 	singularTable bool
 }
 
 func Open(driver, source string) (DB, error) {
 	var err error
-	db := DB{dialect: dialect.New(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback}
+	db := DB{dialect: NewDialect(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback}
 	db.db, err = sql.Open(driver, source)
 	db.parent = &db
 	return db, err
