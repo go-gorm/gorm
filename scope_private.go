@@ -448,7 +448,8 @@ func (scope *Scope) removeIndex(indexName string) {
 
 func (scope *Scope) autoMigrate() *Scope {
 	var tableName string
-	scope.Raw(fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_name = %v", scope.AddToVars(scope.TableName())))
+	scope.Raw(fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_name = %v",
+		scope.AddToVars(scope.TableName())))
 	scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&tableName)
 	scope.SqlVars = []interface{}{}
 
@@ -458,7 +459,7 @@ func (scope *Scope) autoMigrate() *Scope {
 	} else {
 		for _, field := range scope.Fields() {
 			var column, data string
-			scope.Raw(fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v and column_name = %v",
+			scope.Raw(fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v AND column_name = %v",
 				scope.AddToVars(scope.TableName()),
 				scope.AddToVars(field.DBName),
 			))

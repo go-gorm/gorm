@@ -16,11 +16,12 @@ type DB struct {
 	dialect       Dialect
 	tagIdentifier string
 	singularTable bool
+	source        string
 }
 
 func Open(driver, source string) (DB, error) {
 	var err error
-	db := DB{dialect: NewDialect(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback}
+	db := DB{dialect: NewDialect(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source}
 	db.db, err = sql.Open(driver, source)
 	db.parent = &db
 	return db, err
