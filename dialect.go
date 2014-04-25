@@ -14,6 +14,8 @@ type Dialect interface {
 	PrimaryKeyTag(value reflect.Value, size int) string
 	ReturningStr(key string) string
 	Quote(key string) string
+	HasTable(scope *Scope, tableName string) bool
+	HasColumn(scope *Scope, tableName string, columnName string) bool
 }
 
 func NewDialect(driver string) Dialect {

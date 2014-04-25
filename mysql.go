@@ -68,10 +68,21 @@ func (s *mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }
 
-func (s *mysql) HasTable(tableName string) bool {
-	return true
+func (s *mysql) HasTable(scope *Scope, tableName string) bool {
+	var count int
+	newScope := scope.New(nil)
+	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v", newScope.AddToVars(tableName)))
+	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	return count > 0
 }
 
-func (s *mysql) HasColumn(tableName string, columnName string) bool {
-	return true
+func (s *mysql) HasColumn(scope *Scope, tableName string, columnName string) bool {
+	var count int
+	newScope := scope.New(nil)
+	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM information_schema.columns WHERE table_name = %v AND column_name = %v",
+		newScope.AddToVars(tableName),
+		newScope.AddToVars(columnName),
+	))
+	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	return count > 0
 }

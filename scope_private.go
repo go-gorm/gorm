@@ -447,28 +447,14 @@ func (scope *Scope) removeIndex(indexName string) {
 }
 
 func (scope *Scope) autoMigrate() *Scope {
-	var tableName string
-	scope.Raw(fmt.Sprintf("SELECT table_name FROM INFORMATION_SCHEMA.tables where table_name = %v",
-		scope.AddToVars(scope.TableName())))
-	scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&tableName)
-	scope.SqlVars = []interface{}{}
-
-	// If table doesn't exist
-	if len(tableName) == 0 {
+	if !scope.Dialect().HasTable(scope, scope.TableName()) {
 		scope.createTable()
 	} else {
 		for _, field := range scope.Fields() {
-			var column, data string
-			scope.Raw(fmt.Sprintf("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = %v AND column_name = %v",
-				scope.AddToVars(scope.TableName()),
-				scope.AddToVars(field.DBName),
-			))
-			scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&column, &data)
-			scope.SqlVars = []interface{}{}
-
-			// If column doesn't exist
-			if len(column) == 0 && len(field.SqlTag) > 0 && !field.IsIgnored {
-				scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.TableName(), field.DBName, field.SqlTag)).Exec()
+			if !scope.Dialect().HasColumn(scope, scope.TableName(), field.DBName) {
+				if len(field.SqlTag) > 0 && !field.IsIgnored {
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.TableName(), field.DBName, field.SqlTag)).Exec()
+				}
 			}
 		}
 	}
