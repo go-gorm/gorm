@@ -7,9 +7,10 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
+	//	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/nerdzeu/gorm"
 
 	"os"
 	"reflect"
@@ -130,6 +131,7 @@ type Product struct {
 type Animal struct {
 	Counter   int64 `primaryKey:"yes"`
 	Name      string
+	From      string //test reserverd sql keyword as field name
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -223,10 +225,10 @@ func init() {
 	db.Save(&User{Name: "3", Age: 24, Birthday: t4})
 	db.Save(&User{Name: "5", Age: 26, Birthday: t4})
 
-	db.Save(&Animal{Name: "First"})
-	db.Save(&Animal{Name: "Amazing"})
-	db.Save(&Animal{Name: "Horse"})
-	db.Save(&Animal{Name: "Last"})
+	db.Save(&Animal{Name: "First", From: "hello"})
+	db.Save(&Animal{Name: "Amazing", From: "nerdz"})
+	db.Save(&Animal{Name: "Horse", From: "gorm"})
+	db.Save(&Animal{Name: "Last", From: "epic"})
 }
 
 func TestFirstAndLast(t *testing.T) {
@@ -1996,5 +1998,14 @@ func BenchmarkRawSql(b *testing.B) {
 		db.Exec(update_sql, "new-"+e, time.Now(), id)
 		// Delete
 		db.Exec(delete_sql, id)
+	}
+}
+
+func TestSelectWithEscapedFieldName(t *testing.T) {
+	var names []string
+	db.Model(Animal{}).Where(&Animal{From: "nerdz"}).Pluck("\"name\"", &names)
+
+	if len(names) != 1 {
+		t.Errorf("Expected one name, but got: %d", len(names))
 	}
 }
