@@ -1768,6 +1768,12 @@ func TestScan(t *testing.T) {
 		t.Errorf("Scan into struct should work")
 	}
 
+	var doubleAgeRes result
+	db.Table("users").Select("age + age as age").Where("name = ?", 3).Scan(&doubleAgeRes)
+	if doubleAgeRes.Age != res.Age*2 {
+		t.Errorf("Scan double age as age")
+	}
+
 	var ress []result
 	db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&ress)
 	if len(ress) != 2 || ress[0].Name != "3" || ress[1].Name != "3" {

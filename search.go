@@ -141,7 +141,7 @@ func (s *search) getInterfaceAsSql(value interface{}) (str string) {
 		s.db.err(InvalidSql)
 	}
 
-	if !regexp.MustCompile("^\\s*[\\w\\s,.*()]*\\s*$").MatchString(str) {
+	if !regexp.MustCompile("^\\s*[\\w\\s,.*\\+\\-()]*\\s*$").MatchString(str) {
 		s.db.err(InvalidSql)
 	}
 	return
