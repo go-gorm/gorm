@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/jinzhu/gorm"
 
 	"os"
 	"reflect"
@@ -149,12 +149,12 @@ func init() {
 		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 		fmt.Println("testing mysql...")
 		db, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
-	case "sqlite":
-		fmt.Println("testing sqlite3...")
-		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
-	default:
+	case "postgres":
 		fmt.Println("testing postgres...")
 		db, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+	default:
+		fmt.Println("testing sqlite3...")
+		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	}
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
