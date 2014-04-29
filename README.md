@@ -190,8 +190,6 @@ FYI, AutoMigrate will only add new columns, it won't change the current columns'
 If the table doesn't exist when AutoMigrate is called, gorm will create the table automatically.
 (the database first needs to be created manually though...).
 
-(only postgres and mysql supported)
-
 ```go
 db.AutoMigrate(User{})
 ```
