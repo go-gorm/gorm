@@ -1,9 +1,6 @@
 package gorm
 
-import (
-	"regexp"
-	"strconv"
-)
+import "strconv"
 
 type search struct {
 	db              *DB
@@ -138,10 +135,6 @@ func (s *search) getInterfaceAsSql(value interface{}) (str string) {
 			str = strconv.Itoa(value)
 		}
 	default:
-		s.db.err(InvalidSql)
-	}
-
-	if regexp.MustCompile(";").MatchString(str) {
 		s.db.err(InvalidSql)
 	}
 	return
