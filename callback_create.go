@@ -13,8 +13,9 @@ func BeforeCreate(scope *Scope) {
 
 func UpdateTimeStampWhenCreate(scope *Scope) {
 	if !scope.HasError() {
-		scope.SetColumn("CreatedAt", time.Now())
-		scope.SetColumn("UpdatedAt", time.Now())
+		now := time.Now()
+		scope.SetColumn("CreatedAt", now)
+		scope.SetColumn("UpdatedAt", now)
 	}
 }
 
