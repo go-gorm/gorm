@@ -35,13 +35,13 @@ func Create(scope *Scope) {
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v",
-				scope.TableName(),
+				scope.Quote(scope.TableName()),
 				scope.Dialect().ReturningStr(scope.PrimaryKey()),
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
 				"INSERT INTO %v (%v) VALUES (%v) %v",
-				scope.TableName(),
+				scope.Quote(scope.TableName()),
 				strings.Join(columns, ","),
 				strings.Join(sqls, ","),
 				scope.Dialect().ReturningStr(scope.PrimaryKey()),

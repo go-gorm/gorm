@@ -237,7 +237,7 @@ func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
 		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.TableName(), scope.CombinedConditionSql()))
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.Quote(scope.TableName()), scope.CombinedConditionSql()))
 	}
 	return
 }
@@ -414,21 +414,21 @@ func (scope *Scope) createTable() *Scope {
 			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
 		}
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.TableName(), strings.Join(sqls, ","))).Exec()
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.Quote(scope.TableName()), strings.Join(sqls, ","))).Exec()
 	return scope
 }
 
 func (scope *Scope) dropTable() *Scope {
-	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.TableName())).Exec()
+	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.Quote(scope.TableName()))).Exec()
 	return scope
 }
 
 func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.TableName(), scope.Quote(column), typ)).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.Quote(scope.TableName()), scope.Quote(column), typ)).Exec()
 }
 
 func (scope *Scope) dropColumn(column string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.TableName(), scope.Quote(column))).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.Quote(scope.TableName()), scope.Quote(column))).Exec()
 }
 
 func (scope *Scope) addIndex(column string, names ...string) {
@@ -439,11 +439,11 @@ func (scope *Scope) addIndex(column string, names ...string) {
 		indexName = fmt.Sprintf("index_%v_on_%v", scope.TableName(), column)
 	}
 
-	scope.Raw(fmt.Sprintf("CREATE INDEX %v ON %v(%v);", indexName, scope.TableName(), scope.Quote(column))).Exec()
+	scope.Raw(fmt.Sprintf("CREATE INDEX %v ON %v(%v);", indexName, scope.Quote(scope.TableName()), scope.Quote(column))).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
-	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.TableName())).Exec()
+	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.Quote(scope.TableName()))).Exec()
 }
 
 func (scope *Scope) autoMigrate() *Scope {
@@ -453,7 +453,7 @@ func (scope *Scope) autoMigrate() *Scope {
 		for _, field := range scope.Fields() {
 			if !scope.Dialect().HasColumn(scope, scope.TableName(), field.DBName) {
 				if len(field.SqlTag) > 0 && !field.IsIgnored {
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.TableName(), field.DBName, field.SqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.Quote(scope.TableName()), field.DBName, field.SqlTag)).Exec()
 				}
 			}
 		}
