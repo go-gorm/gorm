@@ -133,6 +133,15 @@ type Animal struct {
 	From      string //test reserverd sql keyword as field name
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	PersonId  int64
+}
+
+type Person struct {
+	Id        int64
+	Name      string
+	Pets      []Animal
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 var (
@@ -179,6 +188,7 @@ func init() {
 	db.Exec("drop table roles")
 	db.Exec("drop table companies")
 	db.Exec("drop table animals")
+	db.Exec("drop table persons")
 
 	if err = db.CreateTable(&Animal{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -196,6 +206,10 @@ func init() {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
+	if err = db.CreateTable(Person{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
 	if err = db.AutoMigrate(Address{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
@@ -209,6 +223,10 @@ func init() {
 	}
 
 	if err = db.AutoMigrate(Role{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	if err = db.AutoMigrate(Person{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -711,6 +729,22 @@ func TestCreatedAtAndUpdatedAt(t *testing.T) {
 	}
 }
 
+func TestUpdatedAtWhenSelectingWithPrimaryKeyOfAForeignObject(t *testing.T) {
+	animal := Animal{Name: "Ninja"}
+	person := Person{Name: "Joe", Pets: []Animal{animal}}
+	now := time.Now()
+	db.Save(&person)
+
+	db.First(&animal, animal.Counter)
+	if animal.UpdatedAt.Before(now) {
+		t.Errorf("Animal's updated time should not be %v", animal.UpdatedAt)
+	}
+
+	if animal.CreatedAt.Before(now) {
+		t.Errorf("Animal's created time should not be %v", animal.UpdatedAt)
+	}
+}
+
 func (s *Product) BeforeCreate() (err error) {
 	if s.Code == "Invalid" {
 		err = errors.New("invalid product")
@@ -1094,6 +1128,26 @@ func TestUpdate(t *testing.T) {
 
 	if db.Model(&animal2).UpdateColumn("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
 		t.Error("No error should raise when update_column with CamelCase")
+	}
+}
+
+func TestUpdateWithForeignKey(t *testing.T) {
+	animal1 := Animal{Name: "Ferdinand"}
+	animal2 := Animal{Name: "nerdz"}
+
+	person := Person{Name: "Joe"}
+	person.Pets = []Animal{animal1, animal2}
+	if db.Save(&person).Error != nil {
+		t.Errorf("No error should raise when saving Person")
+	}
+
+	db.First(&animal1, animal1.Counter)
+	animal1Updated_at1 := animal1.UpdatedAt
+
+	db.Model(&person).Update("name", "john")
+	db.First(&animal1, animal1.Counter)
+	if animal1.UpdatedAt.After(animal1Updated_at1) {
+		t.Errorf("Animal should not be updated when only updating an attribute of Person")
 	}
 }
 
