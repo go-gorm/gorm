@@ -2026,7 +2026,15 @@ func TestIndices(t *testing.T) {
 	if err := db.Model(&UserCompany{}).RemoveIndex("idx_user_company_user").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
+
 	if err := db.Model(&UserCompany{}).AddIndex("idx_user_company_user_company", "user_id", "company_id").Error; err != nil {
+		t.Errorf("Got error when tried to create index: %+v", err)
+	}
+	if err := db.Model(&UserCompany{}).RemoveIndex("idx_user_company_user_company").Error; err != nil {
+		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if err := db.Model(&UserCompany{}).AddUniqueIndex("idx_user_company_user_company", "user_id", "company_id").Error; err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 }

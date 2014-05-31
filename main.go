@@ -315,7 +315,12 @@ func (s *DB) DropColumn(column string) *DB {
 }
 
 func (s *DB) AddIndex(indexName string, column ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(indexName, column...)
+	s.clone().NewScope(s.Value).addIndex(false, indexName, column...)
+	return s
+}
+
+func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
+	s.clone().NewScope(s.Value).addIndex(true, indexName, column...)
 	return s
 }
 

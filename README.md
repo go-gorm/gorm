@@ -930,7 +930,13 @@ db.Table("users").Select("users.name, emails.email").Joins("left join emails on 
 db.Model(User{}).AddIndex("idx_user_name", "name")
 
 // multiple column index
-db.Model(User{}).AddIndex("idx_user_name", "name", "age")
+db.Model(User{}).AddIndex("idx_user_name_age", "name", "age")
+
+// single column unique index
+db.Model(User{}).AddUniqueIndex("idx_user_name", "name")
+
+// multiple column unique index
+db.Model(User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
 ```
 
 ## Run Raw SQL
