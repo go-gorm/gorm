@@ -314,8 +314,8 @@ func (s *DB) DropColumn(column string) *DB {
 	return s
 }
 
-func (s *DB) AddIndex(column string, indexName ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(column, indexName...)
+func (s *DB) AddIndex(indexName string, column ...string) *DB {
+	s.clone().NewScope(s.Value).addIndex(indexName, column...)
 	return s
 }
 
