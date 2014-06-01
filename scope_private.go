@@ -431,15 +431,18 @@ func (scope *Scope) dropColumn(column string) {
 	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.Quote(scope.TableName()), scope.Quote(column))).Exec()
 }
 
-func (scope *Scope) addIndex(column string, names ...string) {
-	var indexName string
-	if len(names) > 0 {
-		indexName = names[0]
-	} else {
-		indexName = fmt.Sprintf("index_%v_on_%v", scope.TableName(), column)
+func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
+	var columns []string
+	for _, name := range column {
+		columns = append(columns, scope.Quote(name))
 	}
 
-	scope.Raw(fmt.Sprintf("CREATE INDEX %v ON %v(%v);", indexName, scope.Quote(scope.TableName()), scope.Quote(column))).Exec()
+	sqlCreate := "CREATE INDEX"
+	if unique {
+		sqlCreate = "CREATE UNIQUE INDEX"
+	}
+
+	scope.Raw(fmt.Sprintf("%s %v ON %v(%v);", sqlCreate, indexName, scope.Quote(scope.TableName()), strings.Join(columns, ", "))).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {

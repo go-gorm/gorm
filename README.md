@@ -923,6 +923,22 @@ for rows.Next() {
 db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)
 ```
 
+## Indices
+
+```go
+// single column index
+db.Model(User{}).AddIndex("idx_user_name", "name")
+
+// multiple column index
+db.Model(User{}).AddIndex("idx_user_name_age", "name", "age")
+
+// single column unique index
+db.Model(User{}).AddUniqueIndex("idx_user_name", "name")
+
+// multiple column unique index
+db.Model(User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
+```
+
 ## Run Raw SQL
 
 ```go
@@ -1032,7 +1048,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
   share or not? transaction?
 * Github Pages
 * Includes
-* AlertColumn, DropColumn, AddIndex, RemoveIndex
+* AlertColumn, DropColumn
 
 # Author
 

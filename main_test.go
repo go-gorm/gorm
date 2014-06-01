@@ -83,6 +83,16 @@ type User struct {
 	IgnoreStringSlice []string `sql:"-"`
 }
 
+type UserCompany struct {
+	Id        int64
+	UserId    int64
+	CompanyId int64
+}
+
+func (t UserCompany) TableName() string {
+	return "user_companies"
+}
+
 type CreditCard struct {
 	Id        int8
 	Number    string
@@ -179,6 +189,7 @@ func init() {
 	db.Exec("drop table roles")
 	db.Exec("drop table companies")
 	db.Exec("drop table animals")
+	db.Exec("drop table user_companies")
 
 	if err = db.CreateTable(&Animal{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -209,6 +220,10 @@ func init() {
 	}
 
 	if err = db.AutoMigrate(Role{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	if err = db.AutoMigrate(UserCompany{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -2001,5 +2016,25 @@ func TestSelectWithEscapedFieldName(t *testing.T) {
 
 	if len(names) != 1 {
 		t.Errorf("Expected one name, but got: %d", len(names))
+	}
+}
+
+func TestIndices(t *testing.T) {
+	if err := db.Model(&UserCompany{}).AddIndex("idx_user_company_user", "user_id").Error; err != nil {
+		t.Errorf("Got error when tried to create index: %+v", err)
+	}
+	if err := db.Model(&UserCompany{}).RemoveIndex("idx_user_company_user").Error; err != nil {
+		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if err := db.Model(&UserCompany{}).AddIndex("idx_user_company_user_company", "user_id", "company_id").Error; err != nil {
+		t.Errorf("Got error when tried to create index: %+v", err)
+	}
+	if err := db.Model(&UserCompany{}).RemoveIndex("idx_user_company_user_company").Error; err != nil {
+		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if err := db.Model(&UserCompany{}).AddUniqueIndex("idx_user_company_user_company", "user_id", "company_id").Error; err != nil {
+		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 }
