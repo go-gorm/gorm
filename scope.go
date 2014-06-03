@@ -214,6 +214,14 @@ func (scope *Scope) TableName() string {
 	}
 }
 
+func (scope *Scope) QuotedTableName() string {
+	if scope.Search != nil && len(scope.Search.TableName) > 0 {
+		return scope.Search.TableName
+	} else {
+		return scope.Quote(scope.TableName())
+	}
+}
+
 // CombinedConditionSql get combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
 	return scope.joinsSql() + scope.whereSql() + scope.groupSql() +

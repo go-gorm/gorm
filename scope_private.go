@@ -237,7 +237,7 @@ func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
 		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.TableName(), scope.CombinedConditionSql()))
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
 	}
 	return
 }
@@ -414,21 +414,21 @@ func (scope *Scope) createTable() *Scope {
 			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
 		}
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.TableName(), strings.Join(sqls, ","))).Exec()
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
 	return scope
 }
 
 func (scope *Scope) dropTable() *Scope {
-	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.TableName())).Exec()
+	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.QuotedTableName())).Exec()
 	return scope
 }
 
 func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.TableName(), scope.Quote(column), typ)).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.QuotedTableName(), scope.Quote(column), typ)).Exec()
 }
 
 func (scope *Scope) dropColumn(column string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.TableName(), scope.Quote(column))).Exec()
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.QuotedTableName(), scope.Quote(column))).Exec()
 }
 
 func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
@@ -446,7 +446,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) removeIndex(indexName string) {
-	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.TableName())).Exec()
+	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Exec()
 }
 
 func (scope *Scope) autoMigrate() *Scope {
@@ -456,7 +456,7 @@ func (scope *Scope) autoMigrate() *Scope {
 		for _, field := range scope.Fields() {
 			if !scope.Dialect().HasColumn(scope, scope.TableName(), field.DBName) {
 				if len(field.SqlTag) > 0 && !field.IsIgnored {
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.TableName(), field.DBName, field.SqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.QuotedTableName(), field.DBName, field.SqlTag)).Exec()
 				}
 			}
 		}
