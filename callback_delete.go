@@ -14,12 +14,12 @@ func Delete(scope *Scope) {
 		if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
 			scope.Raw(
 				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
-					scope.Quote(scope.TableName()),
+					scope.TableName(),
 					scope.AddToVars(time.Now()),
 					scope.CombinedConditionSql(),
 				))
 		} else {
-			scope.Raw(fmt.Sprintf("DELETE FROM %v %v", scope.Quote(scope.TableName()), scope.CombinedConditionSql()))
+			scope.Raw(fmt.Sprintf("DELETE FROM %v %v", scope.TableName(), scope.CombinedConditionSql()))
 		}
 
 		scope.Exec()

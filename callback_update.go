@@ -59,7 +59,7 @@ func Update(scope *Scope) {
 
 		scope.Raw(fmt.Sprintf(
 			"UPDATE %v SET %v %v",
-			scope.Quote(scope.TableName()),
+			scope.TableName(),
 			strings.Join(sqls, ", "),
 			scope.CombinedConditionSql(),
 		))
