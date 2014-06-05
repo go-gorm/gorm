@@ -447,6 +447,11 @@ db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18 WHERE id = 111;
 ```
 
+### Get Affected Records Count
+
+```go
+db.Model(User{}).Updates(User{Name: "hello", Age: 18}).RowsAffected
+```
 ## Delete
 
 ### Delete An Existing Struct
@@ -937,6 +942,9 @@ db.Model(User{}).AddUniqueIndex("idx_user_name", "name")
 
 // multiple column unique index
 db.Model(User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
+
+// remove index
+db.Model(User{}).RemoveIndex("idx_user_name")
 ```
 
 ## Run Raw SQL
