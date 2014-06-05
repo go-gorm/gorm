@@ -7,6 +7,7 @@ import (
 type DB struct {
 	Value         interface{}
 	Error         error
+	RowsAffected  int64
 	callback      *callback
 	db            sqlCommon
 	parent        *DB

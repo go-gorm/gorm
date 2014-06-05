@@ -310,8 +310,12 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(time.Now())
 
 	if !scope.HasError() {
-		_, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
-		scope.Err(err)
+		result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
+		if scope.Err(err) == nil {
+			if count, err := result.RowsAffected(); err == nil {
+				scope.db.RowsAffected = count
+			}
+		}
 	}
 	return scope
 }

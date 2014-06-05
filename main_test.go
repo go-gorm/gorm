@@ -329,24 +329,19 @@ func TestCreateAndUpdate(t *testing.T) {
 	name, name2, new_name := "update", "update2", "new_update"
 	user := User{Name: name, Age: 1, PasswordHash: []byte{'f', 'a', 'k', '4'}}
 
-	if !db.NewRecord(user) {
+	if !db.NewRecord(user) || !db.NewRecord(&user) {
 		t.Error("User should be new record")
 	}
 
-	if !db.NewRecord(&user) {
-		t.Error("User should be new record")
+	if count := db.Save(&user).RowsAffected; count != 1 {
+		t.Error("There should be one record be affected when create record")
 	}
 
-	db.Save(&user)
 	if user.Id == 0 {
 		t.Errorf("Should have ID after create")
 	}
 
-	if db.NewRecord(user) {
-		t.Error("User should not new record after save")
-	}
-
-	if db.NewRecord(&user) {
+	if db.NewRecord(user) || db.NewRecord(&user) {
 		t.Error("User should not new record after save")
 	}
 
@@ -356,7 +351,9 @@ func TestCreateAndUpdate(t *testing.T) {
 		t.Errorf("User's Password should be saved")
 	}
 
-	db.Save(&User{Name: name2, Age: 1})
+	if count := db.Save(&User{Name: name2, Age: 1}).RowsAffected; count != 1 {
+		t.Error("There should be one record be affected when update a record")
+	}
 
 	user.Name = new_name
 	db.Save(&user)
@@ -1105,6 +1102,12 @@ func TestUpdate(t *testing.T) {
 
 	if db.Model(&animal2).UpdateColumn("CreatedAt", time.Now().Add(time.Hour)).Error != nil {
 		t.Error("No error should raise when update_column with CamelCase")
+	}
+
+	var animals []Animal
+	db.Find(&animals)
+	if count := db.Model(Animal{}).Update("CreatedAt", time.Now()).RowsAffected; count != int64(len(animals)) {
+		t.Error("RowsAffected should be correct when do batch update")
 	}
 }
 

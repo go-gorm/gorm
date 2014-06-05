@@ -51,9 +51,13 @@ func Create(scope *Scope) {
 		// execute create sql
 		var id interface{}
 		if scope.Dialect().SupportLastInsertId() {
-			if sql_result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
-				id, err = sql_result.LastInsertId()
-				scope.Err(err)
+			if result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+				id, err = result.LastInsertId()
+				if scope.Err(err) == nil {
+					if count, err := result.RowsAffected(); err == nil {
+						scope.db.RowsAffected = count
+					}
+				}
 			}
 		} else {
 			scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id))
