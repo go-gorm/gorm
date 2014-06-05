@@ -419,12 +419,8 @@ func TestWhere(t *testing.T) {
 	}
 
 	var users []User
-	if db.Where("name = ?", "none-noexisting").Find(&users).Error != nil {
-		t.Errorf("Shouldn't return error when looking for none existing records with find")
-	}
-
-	if len(users) != 0 {
-		t.Errorf("Users should be empty")
+	if !db.Where("name = ?", "none-noexisting").Find(&users).RecordNotFound() {
+		t.Errorf("Should get RecordNotFound error when looking for none existing records")
 	}
 }
 
