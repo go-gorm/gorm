@@ -145,6 +145,11 @@ type Animal struct {
 	UpdatedAt time.Time
 }
 
+type Details struct {
+	Id   int64
+	Bulk gorm.Hstore
+}
+
 var (
 	db                 gorm.DB
 	t1, t2, t3, t4, t5 time.Time
@@ -2036,4 +2041,45 @@ func TestIndices(t *testing.T) {
 	if err := db.Model(&UserCompany{}).AddUniqueIndex("idx_user_company_user_company", "user_id", "company_id").Error; err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
+}
+
+func TestHstore(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
+		t.Skip()
+	}
+
+	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS hstore").Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create hstore extension, but got %+v", err))
+	}
+
+	db.Exec("drop table details")
+
+	if err := db.CreateTable(&Details{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	bankAccountId, phoneNumber, opinion := "123456", "14151321232", "sharkbait"
+	bulk := map[string]*string{
+		"bankAccountId": &bankAccountId,
+		"phoneNumber":   &phoneNumber,
+		"opinion":       &opinion,
+	}
+	d := Details{Bulk: bulk}
+	db.Save(&d)
+
+	var d2 Details
+	if err := db.First(&d2).Error; err != nil {
+		t.Errorf("Got error when tried to fetch details: %+v", err)
+	}
+
+	for k := range bulk {
+		r, ok := d2.Bulk[k]
+		if !ok {
+			t.Errorf("Details should be existed")
+		}
+		if res, _ := bulk[k]; *res != *r {
+			t.Errorf("Details should be equal")
+		}
+	}
+
 }

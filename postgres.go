@@ -1,8 +1,12 @@
 package gorm
 
 import (
+	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"reflect"
+
+	"github.com/lib/pq/hstore"
 )
 
 type postgres struct {
@@ -34,6 +38,10 @@ func (d *postgres) SqlTag(value reflect.Value, size int) string {
 	case reflect.Struct:
 		if value.Type() == timeType {
 			return "timestamp with time zone"
+		}
+	case reflect.Map:
+		if value.Type() == hstoreType {
+			return "hstore"
 		}
 	default:
 		if _, ok := value.Interface().([]byte); ok {
@@ -79,4 +87,44 @@ func (s *postgres) HasColumn(scope *Scope, tableName string, columnName string) 
 	))
 	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
+}
+
+var hstoreType = reflect.TypeOf(Hstore{})
+
+type Hstore map[string]*string
+
+func (h Hstore) Value() (driver.Value, error) {
+	hstore := hstore.Hstore{Map: map[string]sql.NullString{}}
+	if len(h) == 0 {
+		return nil, nil
+	}
+
+	for key, value := range h {
+		hstore.Map[key] = sql.NullString{*value, true}
+	}
+	return hstore.Value()
+}
+
+func (h *Hstore) Scan(value interface{}) error {
+	hstore := hstore.Hstore{}
+
+	if err := hstore.Scan(value); err != nil {
+		return err
+	}
+
+	if len(hstore.Map) == 0 {
+		return nil
+	}
+
+	*h = Hstore{}
+	for k := range hstore.Map {
+		if hstore.Map[k].Valid {
+			s := hstore.Map[k].String
+			(*h)[k] = &s
+		} else {
+			(*h)[k] = nil
+		}
+	}
+
+	return nil
 }
