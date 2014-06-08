@@ -146,13 +146,15 @@ type Animal struct {
 }
 
 var (
-	db                 gorm.DB
-	t1, t2, t3, t4, t5 time.Time
+	db                  gorm.DB
+	t1, t2, t3, t4, t5  time.Time
+	supportLastInsertId bool
 )
 
 func init() {
 	var err error
-	switch os.Getenv("GORM_DIALECT") {
+	env := os.Getenv("GORM_DIALECT")
+	switch env {
 	case "mysql":
 		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
 		// CREATE DATABASE gorm;
@@ -163,9 +165,13 @@ func init() {
 		fmt.Println("testing postgres...")
 		db, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	default:
+		env = "sqlite3"
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	}
+
+	dialect := gorm.NewDialect(env)
+	supportLastInsertId = dialect.SupportLastInsertId()
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
 	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
@@ -333,7 +339,7 @@ func TestCreateAndUpdate(t *testing.T) {
 		t.Error("User should be new record")
 	}
 
-	if count := db.Save(&user).RowsAffected; count != 1 {
+	if count := db.Save(&user).RowsAffected; supportLastInsertId && count != 1 {
 		t.Error("There should be one record be affected when create record")
 	}
 
@@ -351,7 +357,7 @@ func TestCreateAndUpdate(t *testing.T) {
 		t.Errorf("User's Password should be saved")
 	}
 
-	if count := db.Save(&User{Name: name2, Age: 1}).RowsAffected; count != 1 {
+	if count := db.Save(&User{Name: name2, Age: 1}).RowsAffected; supportLastInsertId && count != 1 {
 		t.Error("There should be one record be affected when update a record")
 	}
 
