@@ -60,7 +60,9 @@ func Create(scope *Scope) {
 				}
 			}
 		} else {
-			scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id))
+			if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id)) == nil {
+				scope.db.RowsAffected = 1
+			}
 		}
 
 		if !scope.HasError() {

@@ -1111,7 +1111,7 @@ func TestUpdate(t *testing.T) {
 
 	var animals []Animal
 	db.Find(&animals)
-	if count := db.Model(Animal{}).Update("CreatedAt", time.Now()).RowsAffected; count != int64(len(animals)) {
+	if count := db.Model(Animal{}).Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
 		t.Error("RowsAffected should be correct when do batch update")
 	}
 }
