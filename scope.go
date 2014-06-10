@@ -218,7 +218,11 @@ func (scope *Scope) QuotedTableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
 	} else {
-		return scope.Quote(scope.TableName())
+		keys := strings.Split(scope.TableName(), ".")
+		for i, v := range keys {
+			keys[i] = scope.Quote(v)
+		}
+		return strings.Join(keys, ".")
 	}
 }
 
