@@ -214,6 +214,11 @@ func (s *DB) Save(value interface{}) *DB {
 	}
 }
 
+func (s *DB) Create(value interface{}) *DB {
+	scope := s.clone().NewScope(value)
+	return scope.callCallbacks(s.parent.callback.creates).db
+}
+
 func (s *DB) Delete(value interface{}) *DB {
 	return s.clone().NewScope(value).callCallbacks(s.parent.callback.deletes).db
 }

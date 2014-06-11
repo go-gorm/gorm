@@ -26,8 +26,15 @@ func Create(scope *Scope) {
 		// set create sql
 		var sqls, columns []string
 
+		primaryKeyPredefined := false
 		for _, field := range scope.Fields() {
-			if field.DBName != scope.PrimaryKey() && len(field.SqlTag) > 0 && !field.IsIgnored {
+			if field.DBName == scope.PrimaryKey() {
+				primaryKeyValue := fmt.Sprintf("%v", field.Value)
+				if primaryKeyValue != "" && primaryKeyValue != "0" {
+					primaryKeyPredefined = true
+				}
+			}
+			if len(field.SqlTag) > 0 && !field.IsIgnored && (field.DBName != scope.PrimaryKey() || primaryKeyPredefined) {
 				columns = append(columns, scope.Quote(field.DBName))
 				sqls = append(sqls, scope.AddToVars(field.Value))
 			}
@@ -65,7 +72,7 @@ func Create(scope *Scope) {
 			}
 		}
 
-		if !scope.HasError() {
+		if !scope.HasError() && !primaryKeyPredefined {
 			scope.SetColumn(scope.PrimaryKey(), id)
 		}
 	}

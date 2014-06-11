@@ -237,6 +237,12 @@ db.Save(&user)
 //// COMMIT;
 ```
 
+### Create With Predefined Primary key
+
+```go
+db.Create(&User{Id: 999, Name: "user 999"})
+```
+
 ## Query
 
 ```go
