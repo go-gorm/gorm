@@ -2049,6 +2049,7 @@ func TestHstore(t *testing.T) {
 	}
 
 	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS hstore").Error; err != nil {
+		fmt.Println("\033[31mHINT: Must be superuser to create hstore extension (ALTER USER gorm WITH SUPERUSER;)\033[0m")
 		panic(fmt.Sprintf("No error should happen when create hstore extension, but got %+v", err))
 	}
 
