@@ -1,4 +1,4 @@
-package gorm_test
+package gorm
 
 import (
 	"database/sql"
@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -147,11 +146,11 @@ type Animal struct {
 
 type Details struct {
 	Id   int64
-	Bulk gorm.Hstore
+	Bulk Hstore
 }
 
 var (
-	db                 gorm.DB
+	db                 DB
 	t1, t2, t3, t4, t5 time.Time
 )
 
@@ -163,13 +162,13 @@ func init() {
 		// CREATE DATABASE gorm;
 		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 		fmt.Println("testing mysql...")
-		db, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+		db, err = Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 	case "postgres":
 		fmt.Println("testing postgres...")
-		db, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+		db, err = Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 	default:
 		fmt.Println("testing sqlite3...")
-		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+		db, err = Open("sqlite3", "/tmp/gorm.db")
 	}
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
@@ -362,7 +361,7 @@ func TestCreateAndUpdate(t *testing.T) {
 
 	user.Name = new_name
 	db.Save(&user)
-	if db.Where("name = ?", name).First(&User{}).Error != gorm.RecordNotFound {
+	if db.Where("name = ?", name).First(&User{}).Error != RecordNotFound {
 		t.Errorf("Should raise RecordNotFound error when looking with an outdated name")
 	}
 
@@ -752,7 +751,7 @@ func (s *Product) AfterFind() {
 	s.AfterFindCallTimes = s.AfterFindCallTimes + 1
 }
 
-func (s *Product) AfterCreate(db *gorm.DB) {
+func (s *Product) AfterCreate(db *DB) {
 	db.Model(s).UpdateColumn(Product{AfterCreateCallTimes: s.AfterCreateCallTimes + 1})
 }
 
@@ -1846,16 +1845,16 @@ func TestJoins(t *testing.T) {
 	}
 }
 
-func NameIn1And2(d *gorm.DB) *gorm.DB {
+func NameIn1And2(d *DB) *DB {
 	return d.Where("name in (?)", []string{"1", "2"})
 }
 
-func NameIn2And3(d *gorm.DB) *gorm.DB {
+func NameIn2And3(d *DB) *DB {
 	return d.Where("name in (?)", []string{"2", "3"})
 }
 
-func NameIn(names []string) func(d *gorm.DB) *gorm.DB {
-	return func(d *gorm.DB) *gorm.DB {
+func NameIn(names []string) func(d *DB) *DB {
+	return func(d *DB) *DB {
 		return d.Where("name in (?)", names)
 	}
 }
@@ -1929,7 +1928,7 @@ func TestAnonymousScanner(t *testing.T) {
 
 func TestExecRawSql(t *testing.T) {
 	db.Exec("update users set name=? where name in (?)", "jinzhu", []string{"1", "2", "3"})
-	if db.Where("name in (?)", []string{"1", "2", "3"}).First(&User{}).Error != gorm.RecordNotFound {
+	if db.Where("name in (?)", []string{"1", "2", "3"}).First(&User{}).Error != RecordNotFound {
 		t.Error("Raw sql should be able to parse argument")
 	}
 }
