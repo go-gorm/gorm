@@ -185,7 +185,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 			return r
 		}
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
-	} else if len(s.search.AssignAttrs) > 0 {
+	} else if len(c.search.AssignAttrs) > 0 {
 		c.NewScope(out).Set("gorm:update_interface", s.search.AssignAttrs).callCallbacks(s.parent.callback.updates)
 	}
 	return c
