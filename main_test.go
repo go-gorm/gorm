@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -2096,5 +2097,24 @@ func TestCreate(t *testing.T) {
 
 	if err := db.Create(&UserCompany{Id: 10, UserId: 10, CompanyId: 10}).Error; err == nil {
 		t.Error("Should not be able to create record with predefined duplicate Id")
+	}
+}
+
+func TestCompatibilityMode(t *testing.T) {
+	db, _ := gorm.Open("testdb", "")
+	testdb.SetQueryFunc(func(query string) (driver.Rows, error) {
+		columns := []string{"id", "name", "age"}
+		result := `
+		1,Tim,20
+		2,Joe,25
+		3,Bob,30
+		`
+		return testdb.RowsFromCSVString(columns, result), nil
+	})
+
+	var users []User
+	db.Find(&users)
+	if (users[0].Name != "Tim") || len(users) != 3 {
+		t.Errorf("Unexcepted result returned")
 	}
 }

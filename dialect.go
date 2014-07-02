@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 )
@@ -27,6 +28,9 @@ func NewDialect(driver string) Dialect {
 		d = &mysql{}
 	case "sqlite3":
 		d = &sqlite3{}
+	default:
+		fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", driver)
+		d = &commonDialect{}
 	}
 	return d
 }
