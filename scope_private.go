@@ -450,13 +450,16 @@ func (scope *Scope) removeIndex(indexName string) {
 }
 
 func (scope *Scope) autoMigrate() *Scope {
-	if !scope.Dialect().HasTable(scope, scope.TableName()) {
+	tableName := scope.TableName()
+	quotedTableName := scope.QuotedTableName()
+
+	if !scope.Dialect().HasTable(scope, tableName) {
 		scope.createTable()
 	} else {
 		for _, field := range scope.Fields() {
-			if !scope.Dialect().HasColumn(scope, scope.TableName(), field.DBName) {
+			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if len(field.SqlTag) > 0 && !field.IsIgnored {
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", scope.QuotedTableName(), field.DBName, field.SqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, field.SqlTag)).Exec()
 				}
 			}
 		}

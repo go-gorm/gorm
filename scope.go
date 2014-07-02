@@ -176,6 +176,9 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 // TableName get table name
+var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
+var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${1}s"}
+
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
@@ -201,11 +204,9 @@ func (scope *Scope) TableName() string {
 		str := toSnake(data.Type().Name())
 
 		if !scope.db.parent.singularTable {
-			pluralMap := map[string]string{"ch": "ches", "ss": "sses", "sh": "shes", "day": "days", "y": "ies", "x": "xes", "s?": "s"}
-			for key, value := range pluralMap {
-				reg := regexp.MustCompile(key + "$")
+			for index, reg := range pluralMapKeys {
 				if reg.MatchString(str) {
-					return reg.ReplaceAllString(str, value)
+					return reg.ReplaceAllString(str, pluralMapValues[index])
 				}
 			}
 		}
