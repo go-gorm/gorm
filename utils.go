@@ -37,20 +37,31 @@ func newSafeMap() *safeMap {
 var smap = newSafeMap()
 var umap = newSafeMap()
 
-func toSnake(u string) string {
-	if v := smap.Get(u); v != "" {
-		return v
-	}
-
+func toSnakeBody(u string) string {
 	buf := bytes.NewBufferString("")
+	caps := 0
+	length := len(u)
 	for i, v := range u {
-		if i > 0 && v >= 'A' && v <= 'Z' {
-			buf.WriteRune('_')
+		if i > 0 && v >= 'A' && v <= 'Z' {	
+			caps++
+			if caps == 1 || (i < length-1 && !(u[i+1] >= 'A' && u[i+1] <= 'Z')) {
+				buf.WriteRune('_')
+			}
+		} else {
+			caps = 0
 		}
 		buf.WriteRune(v)
 	}
 
-	s := strings.ToLower(buf.String())
+	return strings.ToLower(buf.String())
+}
+
+func toSnake(u string) string {
+	if v := smap.Get(u); v != "" {
+		return v
+	}
+	s := toSnakeBody(u)
+
 	go smap.Set(u, s)
 	return s
 }
