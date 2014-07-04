@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -46,7 +47,7 @@ func Query(scope *Scope) {
 			columns, _ := rows.Columns()
 			var values []interface{}
 			for _, value := range columns {
-				field := elem.FieldByName(snakeToUpperCamel(value))
+				field := elem.FieldByName(snakeToUpperCamel(strings.ToLower(value)))
 				if field.IsValid() {
 					values = append(values, field.Addr().Interface())
 				} else {
