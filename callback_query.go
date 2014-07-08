@@ -11,6 +11,7 @@ func Query(scope *Scope) {
 
 	var (
 		isSlice        bool
+		isPtr          bool
 		anyRecordFound bool
 		destType       reflect.Type
 	)
@@ -23,6 +24,10 @@ func Query(scope *Scope) {
 	if dest.Kind() == reflect.Slice {
 		isSlice = true
 		destType = dest.Type().Elem()
+		if destType.Kind() == reflect.Ptr {
+			isPtr = true
+			destType = destType.Elem()
+		}
 	} else {
 		scope.Search = scope.Search.clone().limit(1)
 	}
@@ -58,7 +63,11 @@ func Query(scope *Scope) {
 			scope.Err(rows.Scan(values...))
 
 			if isSlice {
-				dest.Set(reflect.Append(dest, elem))
+				if isPtr {
+					dest.Set(reflect.Append(dest, elem.Addr()))
+				} else {
+					dest.Set(reflect.Append(dest, elem))
+				}
 			}
 		}
 

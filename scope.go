@@ -118,7 +118,12 @@ func (scope *Scope) FieldByName(name string) (interface{}, bool) {
 			return field.Interface(), true
 		}
 	} else if data.Kind() == reflect.Slice {
-		return nil, reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		elem := data.Type().Elem()
+		if elem.Kind() == reflect.Ptr {
+			return nil, reflect.New(data.Type().Elem().Elem()).Elem().FieldByName(name).IsValid()
+		} else {
+			return nil, reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		}
 	}
 	return nil, false
 }
@@ -190,7 +195,11 @@ func (scope *Scope) TableName() string {
 		data := reflect.Indirect(reflect.ValueOf(scope.Value))
 
 		if data.Kind() == reflect.Slice {
-			data = reflect.New(data.Type().Elem()).Elem()
+			elem := data.Type().Elem()
+			if elem.Kind() == reflect.Ptr {
+				elem = elem.Elem()
+			}
+			data = reflect.New(elem).Elem()
 		}
 
 		if fm := data.MethodByName("TableName"); fm.IsValid() {

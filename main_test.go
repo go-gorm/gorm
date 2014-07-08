@@ -269,6 +269,18 @@ func TestFirstAndLast(t *testing.T) {
 	}
 }
 
+func TestFindSliceOfPointers(t *testing.T) {
+	var users []User
+	db.Find(&users)
+
+	var userPointers []*User
+	db.Find(&userPointers)
+
+	if len(users) == 0 || len(users) != len(userPointers) {
+		t.Errorf("Find slice of pointers")
+	}
+}
+
 func TestFirstAndLastWithJoins(t *testing.T) {
 	var user1, user2, user3, user4 User
 	db.Joins("left join emails on emails.user_id = users.id").First(&user1)
