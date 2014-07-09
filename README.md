@@ -201,6 +201,9 @@ db.AutoMigrate(User{})
 ```go
 user := User{Name: "jinzhu", Age: 18, Birthday: time.Now()}
 db.Save(&user)
+
+// create with predefined primary key
+db.Create(&User{Id: 999, Name: "user 999"})
 ```
 
 ### NewRecord
@@ -235,12 +238,6 @@ db.Save(&user)
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
 //// COMMIT;
-```
-
-### Create With Predefined Primary key
-
-```go
-db.Create(&User{Id: 999, Name: "user 999"})
 ```
 
 ## Query
