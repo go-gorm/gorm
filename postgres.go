@@ -100,7 +100,7 @@ func (h Hstore) Value() (driver.Value, error) {
 	}
 
 	for key, value := range h {
-		hstore.Map[key] = sql.NullString{*value, true}
+		hstore.Map[key] = sql.NullString{String: *value, Valid: true}
 	}
 	return hstore.Value()
 }
