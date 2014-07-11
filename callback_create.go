@@ -65,7 +65,7 @@ func Create(scope *Scope) {
 			}
 		}
 
-		if !scope.HasError() {
+		if !scope.HasError() && scope.PrimaryKeyZero() {
 			scope.SetColumn(scope.PrimaryKey(), id)
 		}
 	}
