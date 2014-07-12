@@ -141,7 +141,7 @@ type Product struct {
 type Animal struct {
 	Counter   int64 `primaryKey:"yes"`
 	Name      string
-	From      string //test reserverd sql keyword as field name
+	From      string //test reserved sql keyword as field name
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -1103,7 +1103,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	if db.First(&Animal{}, "name = 'Ferdinand'").Error == nil {
-		t.Errorf("Animal 'Fredinand' should be changed to 'Franz'")
+		t.Errorf("Animal 'Ferdinand' should be changed to 'Franz'")
 	}
 
 	if db.First(&Animal{}, "name = 'Robert'").Error != nil {
