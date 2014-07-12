@@ -49,7 +49,7 @@ DB.Save(&User{Name: "xxx"}) // table "users"
 
 ## Existing Schema
 
-If you have an existing database schema and some of your tables do not follow the conventions, (and you can't rename your table names), please use: [Specifying The Table Name For A Struct Permanently With TableName](#specifying-the-table-name-for-a-struct-permanently-with-tableName).
+If you have an existing database schema and some of your tables do not follow the conventions, (and you can't rename your table names), please use: [Specifying The Table Name For A Struct Permanently With TableName](#specifying-the-table-name-for-a-struct-permanently-with-tablename).
 
 If your primary key field is different from `id`, you can add a tag to the field structure to specify that this field is a primary key.
 
