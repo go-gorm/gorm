@@ -141,6 +141,7 @@ import (
 var DB gorm.DB
 func init() {
     var err error
+    //Pls note that it's "=" rather than ":="
     DB, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 
     // Connection string parameters for Postgres - http://godoc.org/github.com/lib/pq, if you are using another
