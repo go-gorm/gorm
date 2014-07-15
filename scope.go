@@ -111,21 +111,7 @@ func (scope *Scope) HasColumn(name string) bool {
 
 // FieldByName to get column's value and existence
 func (scope *Scope) FieldByName(name string) (interface{}, bool) {
-	data := reflect.Indirect(reflect.ValueOf(scope.Value))
-
-	if data.Kind() == reflect.Struct {
-		if field := data.FieldByName(name); field.IsValid() {
-			return field.Interface(), true
-		}
-	} else if data.Kind() == reflect.Slice {
-		elem := data.Type().Elem()
-		if elem.Kind() == reflect.Ptr {
-			return nil, reflect.New(data.Type().Elem().Elem()).Elem().FieldByName(name).IsValid()
-		} else {
-			return nil, reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
-		}
-	}
-	return nil, false
+	return FieldByName(name, scope.Value)
 }
 
 // SetColumn to set the column's value

@@ -30,6 +30,29 @@ func (s *safeMap) Get(key string) string {
 	return s.m[key]
 }
 
+func FieldByName(name string, value interface{}, withAddr ...bool) (interface{}, bool) {
+	data := reflect.Indirect(reflect.ValueOf(value))
+	name = snakeToUpperCamel(name)
+
+	if data.Kind() == reflect.Struct {
+		if field := data.FieldByName(name); field.IsValid() {
+			if len(withAddr) > 0 && field.CanAddr() {
+				return field.Addr().Interface(), true
+			} else {
+				return field.Interface(), true
+			}
+		}
+	} else if data.Kind() == reflect.Slice {
+		elem := data.Type().Elem()
+		if elem.Kind() == reflect.Ptr {
+			return nil, reflect.New(data.Type().Elem().Elem()).Elem().FieldByName(name).IsValid()
+		} else {
+			return nil, reflect.New(data.Type().Elem()).Elem().FieldByName(name).IsValid()
+		}
+	}
+	return nil, false
+}
+
 func newSafeMap() *safeMap {
 	return &safeMap{l: new(sync.RWMutex), m: make(map[string]string)}
 }
