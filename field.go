@@ -57,6 +57,11 @@ func parseSqlTag(str string) (typ string, addational_typ string, size int) {
 		}
 
 		addational_typ = m["NOT NULL"] + " " + m["UNIQUE"]
+
+		if len(m["DEFAULT"]) > 0 {
+			addational_typ = addational_typ + "DEFAULT " + m["DEFAULT"]
+		}
+
 	}
 	return
 }
