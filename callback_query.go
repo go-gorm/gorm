@@ -52,7 +52,7 @@ func Query(scope *Scope) {
 			columns, _ := rows.Columns()
 			var values []interface{}
 			for _, value := range columns {
-				field := elem.FieldByName(snakeToUpperCamel(strings.ToLower(value)))
+				field := elem.FieldByName(SnakeToUpperCamel(strings.ToLower(value)))
 				if field.IsValid() {
 					values = append(values, field.Addr().Interface())
 				} else {

@@ -96,7 +96,7 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
 
 	if data.Kind() == reflect.Struct {
-		if field := data.FieldByName(snakeToUpperCamel(scope.PrimaryKey())); field.IsValid() {
+		if field := data.FieldByName(SnakeToUpperCamel(scope.PrimaryKey())); field.IsValid() {
 			return field.Interface()
 		}
 	}
@@ -121,7 +121,7 @@ func (scope *Scope) SetColumn(column string, value interface{}) {
 	}
 
 	data := reflect.Indirect(reflect.ValueOf(scope.Value))
-	setFieldValue(data.FieldByName(snakeToUpperCamel(column)), value)
+	setFieldValue(data.FieldByName(SnakeToUpperCamel(column)), value)
 }
 
 // CallMethod invoke method with necessary argument
@@ -196,7 +196,7 @@ func (scope *Scope) TableName() string {
 			}
 		}
 
-		str := toSnake(data.Type().Name())
+		str := ToSnake(data.Type().Name())
 
 		if !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
@@ -246,7 +246,7 @@ func (scope *Scope) Fields() []*Field {
 
 		var field Field
 		field.Name = fieldStruct.Name
-		field.DBName = toSnake(fieldStruct.Name)
+		field.DBName = ToSnake(fieldStruct.Name)
 
 		value := indirectValue.FieldByName(fieldStruct.Name)
 		field.Value = value.Interface()
