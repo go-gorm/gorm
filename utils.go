@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -123,25 +122,19 @@ func fileWithLineNum() string {
 	return ""
 }
 
-func setFieldValue(field reflect.Value, value interface{}) bool {
+func setFieldValue(field reflect.Value, value interface{}) (result bool) {
+	result = false
 	if field.IsValid() && field.CanAddr() {
-		switch field.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			if str, ok := value.(string); ok {
-				value, _ = strconv.Atoi(str)
-			}
-			field.SetInt(reflect.ValueOf(value).Int())
-		default:
-			if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
-				scanner.Scan(value)
-			} else {
-				field.Set(reflect.ValueOf(value))
-			}
+		result = true
+		if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
+			scanner.Scan(value)
+		} else if reflect.TypeOf(value).ConvertibleTo(field.Type()) {
+			field.Set(reflect.ValueOf(value).Convert(field.Type()))
+		} else {
+			result = false
 		}
-		return true
 	}
-
-	return false
+	return
 }
 
 func isBlank(value reflect.Value) bool {
