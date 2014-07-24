@@ -227,8 +227,8 @@ func (s *DB) Create(value interface{}) *DB {
 	return scope.callCallbacks(s.parent.callback.creates).db
 }
 
-func (s *DB) Delete(value interface{}) *DB {
-	return s.clone().NewScope(value).callCallbacks(s.parent.callback.deletes).db
+func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
+	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callback.deletes).db
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {

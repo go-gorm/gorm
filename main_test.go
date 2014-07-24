@@ -407,6 +407,29 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestInlineDelete(t *testing.T) {
+	name, name2 := "inline_delete", "inline_delete2"
+	user := User{Name: name, Age: 1}
+	db.Save(&user)
+	db.Save(&User{Name: name2, Age: 1})
+
+	if db.Delete(&User{}, user.Id).Error != nil {
+		t.Errorf("Shouldn't raise any error when delete a user")
+	}
+
+	if db.Where("name = ?", name).First(&User{}).Error == nil {
+		t.Errorf("User can't be found after delete")
+	}
+
+	if db.Delete(&User{}, "name = ?", name2).Error != nil {
+		t.Errorf("Shouldn't raise any error when delete a user")
+	}
+
+	if db.Where("name = ?", name2).First(&User{}).Error == nil {
+		t.Errorf("User can't be found after delete")
+	}
+}
+
 func TestWhere(t *testing.T) {
 	name := "where"
 	db.Save(&User{Name: name, Age: 1})
