@@ -82,7 +82,7 @@ func (scope *Scope) PrimaryKey() string {
 		return scope.primaryKey
 	}
 
-	scope.primaryKey = scope.getPrimaryKey()
+	scope.primaryKey = ToSnake(GetPrimaryKey(scope.Value))
 	return scope.primaryKey
 }
 

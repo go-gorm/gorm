@@ -23,13 +23,13 @@ type Field struct {
 }
 
 func (f *Field) IsScanner() bool {
-	_, is_scanner := reflect.New(reflect.ValueOf(f.Value).Type()).Interface().(sql.Scanner)
-	return is_scanner
+	_, isScanner := reflect.New(reflect.ValueOf(f.Value).Type()).Interface().(sql.Scanner)
+	return isScanner
 }
 
 func (f *Field) IsTime() bool {
-	_, is_time := f.Value.(time.Time)
-	return is_time
+	_, isTime := f.Value.(time.Time)
+	return isTime
 }
 
 func parseSqlTag(str string) (typ string, additionalType string, size int) {
