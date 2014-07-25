@@ -32,7 +32,7 @@ func (f *Field) IsTime() bool {
 	return is_time
 }
 
-func parseSqlTag(str string) (typ string, addational_typ string, size int) {
+func parseSqlTag(str string) (typ string, additionalType string, size int) {
 	if str == "-" {
 		typ = str
 	} else if str != "" {
@@ -56,10 +56,10 @@ func parseSqlTag(str string) (typ string, addational_typ string, size int) {
 			typ = m["TYPE"]
 		}
 
-		addational_typ = m["NOT NULL"] + " " + m["UNIQUE"]
+		additionalType = m["NOT NULL"] + " " + m["UNIQUE"]
 
 		if len(m["DEFAULT"]) > 0 {
-			addational_typ = addational_typ + "DEFAULT " + m["DEFAULT"]
+			additionalType = additionalType + "DEFAULT " + m["DEFAULT"]
 		}
 
 	}
