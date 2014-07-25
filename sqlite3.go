@@ -68,6 +68,6 @@ func (s *sqlite3) HasTable(scope *Scope, tableName string) bool {
 
 func (s *sqlite3) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
-	scope.DB().QueryRow(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = '%v' AND (sql LIKE '%%(\"%v\" %%' OR sql LIKE '%%,\"%v\" %%');\n", tableName, columnName, columnName)).Scan(&count)
+	scope.DB().QueryRow(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = '%v' AND (sql LIKE '%%(\"%v\" %%' OR sql LIKE '%%,\"%v\" %%' OR sql LIKE '%%( %v  %%' OR sql LIKE '%%, %v %%');\n", tableName, columnName, columnName, columnName, columnName)).Scan(&count)
 	return count > 0
 }
