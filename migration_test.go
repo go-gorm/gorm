@@ -51,6 +51,10 @@ func runMigration() {
 	if err := db.AutoMigrate(Role{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
+
+	if err := db.AutoMigrate(Language{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
 }
 
 func TestIndexes(t *testing.T) {

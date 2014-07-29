@@ -338,7 +338,11 @@ func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
 	return s
 }
 
-func (s *DB) RemoveIndex(column string) *DB {
-	s.clone().NewScope(s.Value).removeIndex(column)
+func (s *DB) RemoveIndex(indexName string) *DB {
+	s.clone().NewScope(s.Value).removeIndex(indexName)
+	return s
+}
+
+func (s *DB) Many2Many(column string) *DB {
 	return s
 }

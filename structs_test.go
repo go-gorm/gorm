@@ -24,6 +24,7 @@ type User struct {
 	ShippingAddressId int64         // Embedded struct's foreign key
 	CreditCard        CreditCard
 	Latitude          float64
+	Languages         []Language `gorm:"many2many:user_languages;"`
 	CompanyId         int64
 	Company
 	Role
@@ -58,6 +59,11 @@ type Address struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt time.Time
+}
+
+type Language struct {
+	Id   int
+	Name string
 }
 
 type Product struct {

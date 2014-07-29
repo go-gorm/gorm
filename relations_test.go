@@ -127,10 +127,25 @@ func TestRelated(t *testing.T) {
 }
 
 func TestQueryManyToManyWithRelated(t *testing.T) {
-	// db.Model(&User{}).Related(&[]Language{}, "Languages")
-	// SELECT `languages`.* FROM `languages` INNER JOIN `user_languages` ON `languages`.`id` = `user_languages`.`language_id` WHERE `user_languages`.`user_id` = 111
-	// db.Model(&User{}).Many2Many("Languages").Find(&[]Language{})
+	var languages = []Language{{Name: "ZH"}, {Name: "EN"}, {Name: "DE"}}
+	user := User{Name: "Many2Many", Languages: languages}
+	db.Debug().Save(&user)
+
+	var newLanguages []Language
+	db.Model(&user).Related(&newLanguages, "Languages")
+	if len(newLanguages) != 3 {
+		t.Errorf("Query many to many relations")
+	}
+
+	newLanguages = []Language{}
+	db.Model(&user).Many2Many("Languages").Find(&newLanguages)
+	if len(newLanguages) != 3 {
+		t.Errorf("Query many to many relations")
+	}
+
 	// db.Model(&User{}).Many2Many("Languages").Add(&Language{})
 	// db.Model(&User{}).Many2Many("Languages").Remove(&Language{})
 	// db.Model(&User{}).Many2Many("Languages").Replace(&[]Language{})
+	// db.Model(&User{}).Related(&[]Language{}, "Languages")
+	// SELECT `languages`.* FROM `languages` INNER JOIN `user_languages` ON `languages`.`id` = `user_languages`.`language_id` WHERE `user_languages`.`user_id` = 111
 }

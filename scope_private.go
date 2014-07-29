@@ -300,7 +300,7 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 }
 
 func (scope *Scope) sqlTagForField(field *Field) (tag string) {
-	tag, addationalTag, size := parseSqlTag(field.Tag.Get(scope.db.parent.tagIdentifier))
+	tag, additionalTag, size := parseSqlTag(field.Tag.Get(scope.db.parent.tagIdentifier))
 
 	if tag == "-" {
 		field.IsIgnored = true
@@ -330,8 +330,8 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 		}
 	}
 
-	if len(addationalTag) > 0 {
-		tag = tag + " " + addationalTag
+	if len(additionalTag) > 0 {
+		tag = tag + " " + additionalTag
 	}
 	return
 }
