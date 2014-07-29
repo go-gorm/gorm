@@ -5,55 +5,9 @@ import (
 	"database/sql/driver"
 	"errors"
 
-	"github.com/jinzhu/gorm"
-
 	"reflect"
 	"time"
 )
-
-type Company struct {
-	Id   int64
-	Name string
-}
-
-type Role struct {
-	Name string
-}
-
-func (role *Role) Scan(value interface{}) error {
-	role.Name = string(value.([]uint8))
-	return nil
-}
-
-func (role Role) Value() (driver.Value, error) {
-	return role.Name, nil
-}
-
-func (role Role) IsAdmin() bool {
-	return role.Name == "admin"
-}
-
-type Language struct {
-	Id   int
-	Name string
-}
-
-type Ignored struct {
-	Name string
-}
-
-type Num int64
-
-func (i *Num) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-	case int64:
-		*i = Num(s)
-	default:
-		return errors.New("Cannot scan NamedInt from " + reflect.ValueOf(src).String())
-	}
-	return nil
-}
 
 type User struct {
 	Id                int64
@@ -64,7 +18,6 @@ type User struct {
 	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
 	Emails            []Email       // Embedded structs
-	Ignored           Ignored       `sql:"-"`
 	BillingAddress    Address       // Embedded struct
 	BillingAddressId  sql.NullInt64 // Embedded struct's foreign key
 	ShippingAddress   Address       // Embedded struct
@@ -75,18 +28,9 @@ type User struct {
 	Company
 	Role
 	PasswordHash      []byte
-	IgnoreMe          int64    `sql:"-"`
-	IgnoreStringSlice []string `sql:"-"`
-}
-
-type UserCompany struct {
-	Id        int64
-	UserId    int64
-	CompanyId int64
-}
-
-func (t UserCompany) TableName() string {
-	return "user_companies"
+	IgnoreMe          int64                 `sql:"-"`
+	IgnoreStringSlice []string              `sql:"-"`
+	Ignored           struct{ Name string } `sql:"-"`
 }
 
 type CreditCard struct {
@@ -133,22 +77,47 @@ type Product struct {
 	AfterDeleteCallTimes  int64
 }
 
+type Company struct {
+	Id   int64
+	Name string
+}
+
+type Role struct {
+	Name string
+}
+
+func (role *Role) Scan(value interface{}) error {
+	role.Name = string(value.([]uint8))
+	return nil
+}
+
+func (role Role) Value() (driver.Value, error) {
+	return role.Name, nil
+}
+
+func (role Role) IsAdmin() bool {
+	return role.Name == "admin"
+}
+
+type Num int64
+
+func (i *Num) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+	case int64:
+		*i = Num(s)
+	default:
+		return errors.New("Cannot scan NamedInt from " + reflect.ValueOf(src).String())
+	}
+	return nil
+}
+
 type Animal struct {
 	Counter   int64 `primaryKey:"yes"`
 	Name      string
 	From      string //test reserved sql keyword as field name
 	CreatedAt time.Time
 	UpdatedAt time.Time
-}
-
-type Details struct {
-	Id   int64
-	Bulk gorm.Hstore
-}
-
-type Category struct {
-	Id   int64
-	Name string
 }
 
 type Post struct {
@@ -162,6 +131,11 @@ type Post struct {
 	MainCategory   Category
 }
 
+type Category struct {
+	Id   int64
+	Name string
+}
+
 type Comment struct {
 	Id      int64
 	PostId  int64
@@ -169,14 +143,14 @@ type Comment struct {
 	Post    Post
 }
 
-type Order struct {
-}
-
-type Cart struct {
-}
-
-func (c Cart) TableName() string {
-	return "shopping_cart"
+// Scanner
+type NullValue struct {
+	Id      int64
+	Name    sql.NullString `sql:"not null"`
+	Age     sql.NullInt64
+	Male    sql.NullBool
+	Height  sql.NullFloat64
+	AddedAt NullTime
 }
 
 type NullTime struct {
@@ -198,13 +172,4 @@ func (nt NullTime) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return nt.Time, nil
-}
-
-type NullValue struct {
-	Id      int64
-	Name    sql.NullString `sql:"not null"`
-	Age     sql.NullInt64
-	Male    sql.NullBool
-	Height  sql.NullFloat64
-	AddedAt NullTime
 }

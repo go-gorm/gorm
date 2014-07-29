@@ -117,6 +117,16 @@ func TestSetTable(t *testing.T) {
 	}
 }
 
+type Order struct {
+}
+
+type Cart struct {
+}
+
+func (c Cart) TableName() string {
+	return "shopping_cart"
+}
+
 func TestTableName(t *testing.T) {
 	db := db.Model("")
 	if db.NewScope(Order{}).TableName() != "orders" {
@@ -439,6 +449,11 @@ func TestTimeWithZone(t *testing.T) {
 }
 
 func TestHstore(t *testing.T) {
+	type Details struct {
+		Id   int64
+		Bulk gorm.Hstore
+	}
+
 	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
 		t.Skip()
 	}
