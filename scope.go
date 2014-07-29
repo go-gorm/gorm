@@ -231,10 +231,10 @@ func (scope *Scope) CombinedConditionSql() string {
 // Fields get value's fields
 func (scope *Scope) Fields() []*Field {
 	indirectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
-	fields := []*Field{}
+	fields := make(map[string]*Field)
 
 	if !indirectValue.IsValid() {
-		return fields
+		return []*Field{}
 	}
 
 	scopeTyp := indirectValue.Type()
@@ -244,12 +244,24 @@ func (scope *Scope) Fields() []*Field {
 			continue
 		}
 
+		value := indirectValue.FieldByName(fieldStruct.Name)
+		iface := value.Interface()
+		elem := reflect.Indirect(value)
+
+		if fieldStruct.Anonymous && elem.Kind() == reflect.Struct {
+			for _, f := range scope.New(iface).Fields() {
+				if _, ok := fields[f.Name]; !ok {
+					fields[f.Name] = f
+				}
+			}
+			continue
+		}
+
 		var field Field
 		field.Name = fieldStruct.Name
 		field.DBName = ToSnake(fieldStruct.Name)
 
-		value := indirectValue.FieldByName(fieldStruct.Name)
-		field.Value = value.Interface()
+		field.Value = iface
 		field.IsBlank = isBlank(value)
 
 		// Search for primary key tag identifier
@@ -267,7 +279,6 @@ func (scope *Scope) Fields() []*Field {
 			field.SqlTag = scope.sqlTagForField(&field)
 
 			// parse association
-			elem := reflect.Indirect(value)
 			typ := elem.Type()
 
 			switch elem.Kind() {
@@ -296,10 +307,14 @@ func (scope *Scope) Fields() []*Field {
 				}
 			}
 		}
-		fields = append(fields, &field)
+		fields[field.Name] = &field
 	}
 
-	return fields
+	field_list := make([]*Field, len(fields))
+	for _, field := range fields {
+		append(field_list, field)
+	}
+	return field_list
 }
 
 // Raw set sql
