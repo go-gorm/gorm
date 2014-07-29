@@ -99,6 +99,7 @@ func GetPrimaryKey(value interface{}) string {
 	}
 
 	if indirectValue.IsValid() {
+		hasId := false
 		scopeTyp := indirectValue.Type()
 		for i := 0; i < scopeTyp.NumField(); i++ {
 			fieldStruct := scopeTyp.Field(i)
@@ -109,11 +110,16 @@ func GetPrimaryKey(value interface{}) string {
 			settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
 			if _, ok := settings["PRIMARY_KEY"]; ok {
 				return fieldStruct.Name
+			} else if fieldStruct.Name == "Id" {
+				hasId = true
 			}
+		}
+		if hasId {
+			return "Id"
 		}
 	}
 
-	return "Id"
+	return ""
 }
 
 func parseTagSetting(str string) map[string]string {

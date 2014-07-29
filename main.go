@@ -135,13 +135,21 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
-	scope.Search = scope.Search.clone().order(scope.TableName() + "." + scope.PrimaryKey()).limit(1)
+	if primaryKey := scope.PrimaryKey(); primaryKey != "" {
+		scope.Search = scope.Search.clone().order(scope.TableName() + "." + primaryKey).limit(1)
+	} else {
+		scope.Search = scope.Search.clone().limit(1)
+	}
 	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	scope := s.clone().NewScope(out)
-	scope.Search = scope.Search.clone().order(scope.TableName() + "." + scope.PrimaryKey() + " DESC").limit(1)
+	if primaryKey := scope.PrimaryKey(); primaryKey != "" {
+		scope.Search = scope.Search.clone().order(scope.TableName() + "." + primaryKey + " DESC").limit(1)
+	} else {
+		scope.Search = scope.Search.clone().limit(1)
+	}
 	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
