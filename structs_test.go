@@ -101,7 +101,7 @@ type CreditCard struct {
 type Email struct {
 	Id        int16
 	UserId    int
-	Email     string `sql:"type:varchar(100); unique"`
+	Email     string `sql:"type:varchar(100);"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

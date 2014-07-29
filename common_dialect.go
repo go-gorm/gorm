@@ -98,3 +98,7 @@ func (s *commonDialect) HasColumn(scope *Scope, tableName string, columnName str
 	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
+
+func (s *commonDialect) RemoveIndex(scope *Scope, indexName string) {
+	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Exec()
+}

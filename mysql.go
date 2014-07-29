@@ -99,3 +99,7 @@ func (s *mysql) HasColumn(scope *Scope, tableName string, columnName string) boo
 	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
+
+func (s *mysql) RemoveIndex(scope *Scope, indexName string) {
+	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Exec()
+}

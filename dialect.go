@@ -17,6 +17,7 @@ type Dialect interface {
 	Quote(key string) string
 	HasTable(scope *Scope, tableName string) bool
 	HasColumn(scope *Scope, tableName string, columnName string) bool
+	RemoveIndex(scope *Scope, indexName string)
 }
 
 func NewDialect(driver string) Dialect {

@@ -89,6 +89,10 @@ func (s *postgres) HasColumn(scope *Scope, tableName string, columnName string) 
 	return count > 0
 }
 
+func (s *postgres) RemoveIndex(scope *Scope, indexName string) {
+	scope.Raw(fmt.Sprintf("DROP INDEX %v", indexName)).Exec()
+}
+
 var hstoreType = reflect.TypeOf(Hstore{})
 
 type Hstore map[string]*string

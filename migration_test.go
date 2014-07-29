@@ -68,6 +68,7 @@ func TestIndexes(t *testing.T) {
 	if err := db.Model(&Email{}).AddIndex("idx_email_email_and_user_id", "user_id", "email").Error; err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
+
 	if err := db.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
@@ -76,8 +77,15 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
-	fmt.Println(db.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error)
-	if db.Debug().Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error == nil {
+	if db.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error == nil {
 		t.Errorf("Should get to create duplicate record when having unique index")
+	}
+
+	if err := db.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
+		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if db.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error != nil {
+		t.Errorf("Should be able to create duplicated emails after remove unique index")
 	}
 }

@@ -71,3 +71,7 @@ func (s *sqlite3) HasColumn(scope *Scope, tableName string, columnName string) b
 	scope.DB().QueryRow(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = '%v' AND (sql LIKE '%%(\"%v\" %%' OR sql LIKE '%%,\"%v\" %%' OR sql LIKE '%%( %v %%' OR sql LIKE '%%, %v %%');\n", tableName, columnName, columnName, columnName, columnName)).Scan(&count)
 	return count > 0
 }
+
+func (s *sqlite3) RemoveIndex(scope *Scope, indexName string) {
+	scope.Raw(fmt.Sprintf("DROP INDEX %v", indexName)).Exec()
+}

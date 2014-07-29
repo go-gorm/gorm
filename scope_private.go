@@ -445,7 +445,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) removeIndex(indexName string) {
-	scope.Raw(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Exec()
+	scope.Dialect().RemoveIndex(scope, indexName)
 }
 
 func (scope *Scope) autoMigrate() *Scope {
