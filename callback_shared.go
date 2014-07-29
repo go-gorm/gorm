@@ -17,14 +17,14 @@ func SaveBeforeAssociations(scope *Scope) {
 			newDB := scope.NewDB()
 
 			if value.CanAddr() {
-				newDB.Save(value.Addr().Interface())
+				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 			} else {
 				// If can't take address, then clone the value and set it back
 				value = reflect.New(reflect.ValueOf(field.Value).Type()).Elem()
 				for _, f := range newDB.NewScope(field.Value).Fields() {
 					value.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
 				}
-				newDB.Save(value.Addr().Interface())
+				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 				scope.SetColumn(field.Name, value.Interface())
 			}
 
@@ -50,13 +50,13 @@ func SaveAfterAssociations(scope *Scope) {
 						newDB.NewScope(elem).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
 					}
 
-					newDB.Save(elem)
+					scope.Err(newDB.Save(elem).Error)
 				}
 			default:
 				newDB := scope.NewDB()
 				if value.CanAddr() {
 					newDB.NewScope(field.Value).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
-					newDB.Save(field.Value)
+					scope.Err(newDB.Save(field.Value).Error)
 				} else {
 					destValue := reflect.New(reflect.TypeOf(field.Value)).Elem()
 
@@ -66,7 +66,7 @@ func SaveAfterAssociations(scope *Scope) {
 
 					elem := destValue.Addr().Interface()
 					newDB.NewScope(elem).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
-					newDB.Save(elem)
+					scope.Err(newDB.Save(elem).Error)
 					scope.SetColumn(field.Name, destValue.Interface())
 				}
 			}
