@@ -45,7 +45,7 @@ func (s *DB) print(v ...interface{}) {
 }
 
 func (s *DB) log(v ...interface{}) {
-	if s.logMode == 2 {
+	if s != nil && s.logMode == 2 {
 		s.print(append([]interface{}{"log", fileWithLineNum()}, v...)...)
 	}
 }

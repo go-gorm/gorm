@@ -253,7 +253,10 @@ func (scope *Scope) Fields() []*Field {
 		field.IsBlank = isBlank(value)
 
 		// Search for primary key tag identifier
-		field.isPrimaryKey = scope.PrimaryKey() == field.DBName || fieldStruct.Tag.Get("primaryKey") != ""
+		settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
+		if _, ok := settings["PRIMARY_KEY"]; scope.PrimaryKey() == field.DBName || ok {
+			field.isPrimaryKey = true
+		}
 
 		if field.isPrimaryKey {
 			scope.primaryKey = field.DBName

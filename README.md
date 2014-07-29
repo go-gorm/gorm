@@ -891,7 +891,7 @@ If you have an existing database schema, and the primary key field is different 
 
 ```go
 type Animal struct {
-    AnimalId     int64 `primaryKey:"yes"`
+    AnimalId     int64 `gorm:"primary_key:yes"`
     Birthday     time.Time
     Age          int64
 }

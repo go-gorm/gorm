@@ -56,6 +56,17 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateWithNoStdPrimaryKey(t *testing.T) {
+	animal := Animal{Name: "Ferdinand"}
+	if db.Save(&animal).Error != nil {
+		t.Errorf("No error should happen when create an record without std primary key")
+	}
+
+	if animal.Counter == 0 {
+		t.Errorf("No std primary key should be filled value after create")
+	}
+}
+
 func TestAnonymousScanner(t *testing.T) {
 	user := User{Name: "anonymous_scanner", Role: Role{Name: "admin"}}
 	db.Save(&user)

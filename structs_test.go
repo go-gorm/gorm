@@ -119,7 +119,7 @@ func (i *Num) Scan(src interface{}) error {
 }
 
 type Animal struct {
-	Counter   int64 `primaryKey:"yes"`
+	Counter   int64 `gorm:"primary_key:yes"`
 	Name      string
 	From      string //test reserved sql keyword as field name
 	CreatedAt time.Time
