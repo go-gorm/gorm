@@ -299,11 +299,31 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 	return
 }
 
-func (scope *Scope) sqlTagForField(field *Field) (tag string) {
-	tag, additionalTag, size := parseSqlTag(field.Tag.Get(scope.db.parent.tagIdentifier))
+func (scope *Scope) sqlTagForField(field *Field) (typ string) {
+	var size = 255
 
-	if tag == "-" {
+	fieldTag := field.Tag.Get(scope.db.parent.tagIdentifier)
+	if fieldTag == "-" {
 		field.IsIgnored = true
+	}
+
+	var setting = parseTagSetting(fieldTag)
+
+	if value, ok := setting["SIZE"]; ok {
+		if i, err := strconv.Atoi(value); err == nil {
+			size = i
+		} else {
+			size = 0
+		}
+	}
+
+	if value, ok := setting["TYPE"]; ok {
+		typ = value
+	}
+
+	additionalType := setting["NOT NULL"] + " " + setting["UNIQUE"]
+	if value, ok := setting["DEFAULT"]; ok {
+		additionalType = additionalType + "DEFAULT " + value
 	}
 
 	value := field.Value
@@ -322,16 +342,16 @@ func (scope *Scope) sqlTagForField(field *Field) (tag string) {
 		}
 	}
 
-	if len(tag) == 0 {
+	if len(typ) == 0 {
 		if field.isPrimaryKey {
-			tag = scope.Dialect().PrimaryKeyTag(reflectValue, size)
+			typ = scope.Dialect().PrimaryKeyTag(reflectValue, size)
 		} else {
-			tag = scope.Dialect().SqlTag(reflectValue, size)
+			typ = scope.Dialect().SqlTag(reflectValue, size)
 		}
 	}
 
-	if len(additionalTag) > 0 {
-		tag = tag + " " + additionalTag
+	if len(additionalType) > 0 {
+		typ = typ + " " + additionalType
 	}
 	return
 }
