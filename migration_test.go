@@ -3,6 +3,7 @@ package gorm_test
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func runMigration() {
@@ -87,5 +88,34 @@ func TestIndexes(t *testing.T) {
 
 	if db.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error != nil {
 		t.Errorf("Should be able to create duplicated emails after remove unique index")
+	}
+}
+
+type BigEmail struct {
+	Id           int64
+	UserId       int64
+	Email        string
+	UserAgent    string
+	RegisteredAt time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (b BigEmail) TableName() string {
+	return "emails"
+}
+
+func TestAutoMigration(t *testing.T) {
+	db.AutoMigrate(Address{})
+	if err := db.Table("emails").AutoMigrate(BigEmail{}).Error; err != nil {
+		t.Errorf("Auto Migrate should not raise any error")
+	}
+
+	db.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
+
+	var bigemail BigEmail
+	db.First(&bigemail, "user_agent = ?", "pc")
+	if bigemail.Email != "jinzhu@example.org" || bigemail.UserAgent != "pc" || bigemail.RegisteredAt.IsZero() {
+		t.Error("Big Emails should be saved and fetched correctly")
 	}
 }

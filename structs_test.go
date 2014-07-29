@@ -179,20 +179,6 @@ func (c Cart) TableName() string {
 	return "shopping_cart"
 }
 
-type BigEmail struct {
-	Id           int64
-	UserId       int64
-	Email        string
-	UserAgent    string
-	RegisteredAt time.Time
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-}
-
-func (b BigEmail) TableName() string {
-	return "emails"
-}
-
 type NullTime struct {
 	Time  time.Time
 	Valid bool
