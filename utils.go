@@ -109,6 +109,9 @@ func GetPrimaryKey(value interface{}) string {
 
 			settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
 			if _, ok := settings["PRIMARY_KEY"]; ok {
+				if colName, ok2 := settings["COLUMN"]; ok2 {
+					return colName
+				}
 				return fieldStruct.Name
 			} else if fieldStruct.Name == "Id" {
 				hasId = true

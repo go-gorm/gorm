@@ -258,6 +258,10 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 
 	// Search for primary key tag identifier
 	settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
+	if colName, ok := settings["COLUMN"]; ok && colName != "" {
+		field.DBName = colName
+	}
+
 	if scope.PrimaryKey() == field.DBName {
 		field.IsPrimaryKey = true
 	}

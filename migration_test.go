@@ -20,6 +20,7 @@ func runMigration() {
 	db.Exec("drop table animals")
 	db.Exec("drop table user_languages")
 	db.Exec("drop table languages")
+	db.Exec("drop table mapped_fields")
 
 	if err := db.CreateTable(&Animal{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -34,6 +35,10 @@ func runMigration() {
 	}
 
 	if err := db.CreateTable(Email{}).Error; err != nil {
+		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
+	}
+
+	if err := db.CreateTable(MappedFields{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
