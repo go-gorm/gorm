@@ -315,24 +315,18 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 }
 
 // Fields get value's fields
-func (scope *Scope) Fields() []*Field {
-	indirectValue := scope.IndirectValue()
-	fields := []*Field{}
-
-	if !indirectValue.IsValid() {
-		return fields
-	}
-
-	scopeTyp := indirectValue.Type()
-	for i := 0; i < scopeTyp.NumField(); i++ {
-		fieldStruct := scopeTyp.Field(i)
-		if !ast.IsExported(fieldStruct.Name) {
-			continue
+func (scope *Scope) Fields() (fields []*Field) {
+	if scope.IndirectValue().IsValid() {
+		scopeTyp := scope.IndirectValue().Type()
+		for i := 0; i < scopeTyp.NumField(); i++ {
+			fieldStruct := scopeTyp.Field(i)
+			if !ast.IsExported(fieldStruct.Name) {
+				continue
+			}
+			fields = append(fields, scope.fieldFromStruct(fieldStruct))
 		}
-		fields = append(fields, scope.fieldFromStruct(fieldStruct))
 	}
-
-	return fields
+	return
 }
 
 // Raw set sql
