@@ -65,6 +65,7 @@ type User struct {
     ShippingAddress   Address         // Embedded struct (has one)
     ShippingAddressId int64           // Foreign key of ShippingAddress
     IgnoreMe          int64 `sql:"-"` // Ignore this field
+    Languages         []Language `gorm:"many2many:user_languages;"` // Many To Many, user_languages is the join table
 }
 
 type Email struct {
@@ -79,6 +80,11 @@ type Address struct {
     Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
     Address2 string         `sql:"type:varchar(100);unique"`
     Post     sql.NullString `sql:not null`
+}
+
+type Language struct {
+    Id   int64
+    Name string
 }
 ```
 
@@ -165,6 +171,7 @@ user := User{
         BillingAddress:  Address{Address1: "Billing Address - Address 1"},
         ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
         Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+        Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
 }
 
 db.Create(&user)
@@ -174,10 +181,14 @@ db.Create(&user)
 //// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
 //// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+//// INSERT INTO "languages" ("name") VALUES ('ZH');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 1);
+//// INSERT INTO "languages" ("name") VALUES ('EN');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
 //// COMMIT;
 ```
 
-Refer [Query With Related](#query-with-related) for how to find associations
+Refer [Associations](#associations) for how to works with associations
 
 ## Query
 
@@ -301,21 +312,6 @@ db.Where("name = 'jinzhu'").Or(User{Name: "jinzhu 2"}).Find(&users)
 db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(&users)
 ```
 
-### Query With Related
-
-```go
-// Find associations with guessed foreign key
-db.Model(&user).Related(&emails)
-//// SELECT * FROM emails WHERE user_id = 111; // 111 is user's Id
-
-db.Model(&email).Related(&user)
-//// SELECT * FROM users WHERE id = 111; // 111 is email's UserId
-
-// Find associations with specified foreign key
-db.Model(&user).Related(&address1, "BillingAddressId")
-//// SELECT * FROM addresses WHERE id = 123; // 123 is user's BillingAddressId
-```
-
 ### Query Chains
 
 Gorm has a chainable API, you could use it like this
@@ -417,6 +413,87 @@ db.Unscoped().Where("age = 20").Find(&users)
 // Delete record permanently with Unscoped
 db.Unscoped().Delete(&order)
 // DELETE FROM orders WHERE id=10;
+```
+
+## Associations
+
+### Has One
+
+```go
+// User has one address
+db.Model(&user).Related(&address)
+//// SELECT * FROM addresses WHERE id = 123; // 123 is user's foreign key AddressId
+
+// Specify the foreign key
+db.Model(&user).Related(&address1, "BillingAddressId")
+//// SELECT * FROM addresses WHERE id = 123; // 123 is user's foreign key BillingAddressId
+```
+
+### Belongs To
+
+```go
+// Email belongs to user
+db.Model(&email).Related(&user)
+//// SELECT * FROM users WHERE id = 111; // 111 is email's foreign key UserId
+
+// Specify the foreign key
+db.Model(&email).Related(&user, "ProfileId")
+//// SELECT * FROM users WHERE id = 111; // 111 is email's foreign key ProfileId
+```
+
+### Has Many
+
+```go
+// User has many emails
+db.Model(&user).Related(&emails)
+//// SELECT * FROM emails WHERE user_id = 111;
+// user_id is the foreign key, 111 is user's primary key's value
+
+// Specify the foreign key
+db.Model(&user).Related(&emails, "ProfileId")
+//// SELECT * FROM emails WHERE profile_id = 111;
+// profile_id is the foreign key, 111 is user's primary key's value
+```
+
+### Many To Many
+
+```go
+// User has many languages and belongs to many languages
+db.Model(&user).Related(&languages, "Languages")
+//// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
+// `Languages` is user's column name, this column's tag defined join table like this `gorm:"many2many:user_languages;"`
+```
+
+There is also a mode used to handle many to many relations easily
+
+```go
+// Query
+db.Model(&user).Association("Languages").Find(&languages)
+// same as `db.Model(&user).Related(&languages, "Languages")`
+
+db.Where("name = ?", "ZH").First(&languageZH)
+db.Where("name = ?", "EN").First(&languageEN)
+
+// Append
+db.Model(&user).Association("Languages").Append([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Append([]Language{{Name: "DE"}})
+db.Model(&user).Association("Languages").Append(Language{Name: "DE"})
+
+// Delete
+db.Model(&user).Association("Languages").Delete([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Delete(languageZH, languageEN)
+
+// Replace
+db.Model(&user).Association("Languages").Replace([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, languageEN)
+
+// Count
+db.Model(&user).Association("Languages").Count()
+// Return the count of languages the user has
+
+// Clear
+db.Model(&user).Association("Languages").Clear()
+// Remove all relations between the user and languages
 ```
 
 ## Advanced Usage

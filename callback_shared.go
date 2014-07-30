@@ -82,9 +82,7 @@ func SaveAfterAssociations(scope *Scope) {
 								scope.Quote(associationForeignKey),
 								newScope.AddToVars(associationForeignValue),
 							))
-							if _, err := scope.DB().Exec(newScope.Sql, newScope.SqlVars...); err != nil {
-								scope.Err(err)
-							}
+							scope.Err(scope.NewDB().Exec(newScope.Sql, newScope.SqlVars...).Error)
 						}
 					}
 				default:
