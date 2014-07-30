@@ -145,6 +145,10 @@ func TestManyToMany(t *testing.T) {
 		t.Errorf("Should be able to find many to many relations")
 	}
 
+	if db.Model(&user).Association("Languages").Count() != len([]string{"ZH", "EN"}) {
+		t.Errorf("Count should return correct result")
+	}
+
 	// Append
 	db.Model(&user).Association("Languages").Append(&Language{Name: "DE"})
 	if db.Where("name = ?", "DE").First(&Language{}).RecordNotFound() {
@@ -161,9 +165,7 @@ func TestManyToMany(t *testing.T) {
 
 	totalLanguages := []string{"ZH", "EN", "DE", "AA", "BB", "CC", "DD", "EE"}
 
-	newLanguages = []Language{}
-	db.Model(&user).Related(&newLanguages, "Languages")
-	if len(newLanguages) != len(totalLanguages) {
+	if db.Model(&user).Association("Languages").Count() != len(totalLanguages) {
 		t.Errorf("All appended languages should be saved")
 	}
 
@@ -171,10 +173,7 @@ func TestManyToMany(t *testing.T) {
 	var language Language
 	db.Where("name = ?", "EE").First(&language)
 	db.Model(&user).Association("Languages").Delete(language, &language)
-
-	newLanguages = []Language{}
-	db.Model(&user).Related(&newLanguages, "Languages")
-	if len(newLanguages) != len(totalLanguages)-1 {
+	if db.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 {
 		t.Errorf("Relations should be deleted with Delete")
 	}
 	if db.Where("name = ?", "EE").First(&Language{}).RecordNotFound() {
@@ -184,9 +183,7 @@ func TestManyToMany(t *testing.T) {
 	languages = []Language{}
 	db.Where("name IN (?)", []string{"CC", "DD"}).Find(&languages)
 	db.Model(&user).Association("Languages").Delete(languages, &languages)
-	newLanguages = []Language{}
-	db.Model(&user).Related(&newLanguages, "Languages")
-	if len(newLanguages) != len(totalLanguages)-3 {
+	if db.Model(&user).Association("Languages").Count() != len(totalLanguages)-3 {
 		t.Errorf("Relations should be deleted with Delete")
 	}
 
