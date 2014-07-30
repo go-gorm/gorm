@@ -426,25 +426,29 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	return scope
 }
 
+func (scope *Scope) createJoinTable(field *Field) {
+	if field.JoinTable != nil && field.JoinTable.joinTable != "" {
+		if !scope.Dialect().HasTable(scope, field.JoinTable.joinTable) {
+			newScope := scope.db.NewScope("")
+			primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
+			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
+				field.JoinTable.joinTable,
+				strings.Join([]string{
+					scope.Quote(ToSnake(field.JoinTable.foreignKey)) + " " + primaryKeySqlType,
+					scope.Quote(ToSnake(field.JoinTable.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
+			).Exec()
+			scope.Err(newScope.db.Error)
+		}
+	}
+}
+
 func (scope *Scope) createTable() *Scope {
 	var sqls []string
 	for _, field := range scope.Fields() {
 		if !field.IsIgnored && len(field.SqlTag) > 0 {
 			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
 		}
-		if field.JoinTable != nil && field.JoinTable.joinTable != "" {
-			if !scope.Dialect().HasTable(scope, field.JoinTable.joinTable) {
-				newScope := scope.db.NewScope("")
-				primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
-				newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
-					field.JoinTable.joinTable,
-					strings.Join([]string{
-						scope.Quote(ToSnake(field.JoinTable.foreignKey)) + " " + primaryKeySqlType,
-						scope.Quote(ToSnake(field.JoinTable.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
-				).Exec()
-				scope.Err(newScope.db.Error)
-			}
-		}
+		scope.createJoinTable(field)
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
 	return scope
@@ -494,6 +498,7 @@ func (scope *Scope) autoMigrate() *Scope {
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, field.SqlTag)).Exec()
 				}
 			}
+			scope.createJoinTable(field)
 		}
 	}
 	return scope
