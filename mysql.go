@@ -65,6 +65,10 @@ func (s *mysql) ReturningStr(key string) string {
 	return ""
 }
 
+func (s *mysql) SelectFromDummyTable() string {
+	return "FROM DUAL"
+}
+
 func (s *mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

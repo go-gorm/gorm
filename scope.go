@@ -269,8 +269,8 @@ func (scope *Scope) Fields() []*Field {
 
 			// parse association
 			typ := indirectValue.Type()
-			foreignKey := settings["FOREIGNKEY"]
-			associationForeignKey := settings["ASSOCIATIONFOREIGNKEY"]
+			foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
+			associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
 			many2many := settings["MANY2MANY"]
 
 			switch indirectValue.Kind() {

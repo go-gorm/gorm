@@ -64,6 +64,10 @@ func (s *commonDialect) ReturningStr(key string) string {
 	return ""
 }
 
+func (s *commonDialect) SelectFromDummyTable() string {
+	return ""
+}
+
 func (s *commonDialect) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

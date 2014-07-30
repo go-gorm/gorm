@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 func BeginTransaction(scope *Scope) {
@@ -49,12 +50,36 @@ func SaveAfterAssociations(scope *Scope) {
 					newDB := scope.NewDB()
 					elem := value.Index(i).Addr().Interface()
 
-					if field.JoinTable != nil && field.JoinTable.foreignKey != "" {
+					if field.JoinTable != nil && field.JoinTable.joinTable == "" && field.JoinTable.foreignKey != "" {
 						newDB.NewScope(elem).SetColumn(field.JoinTable.foreignKey, scope.PrimaryKeyValue())
 					}
 
 					scope.Err(newDB.Save(elem).Error)
-					fmt.Sprintf("INSERT INTO %v (%v, %v) SELECT (%v, %v) FROM %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v = %v AND %v = %v) limit 1;")
+
+					if field.JoinTable != nil && field.JoinTable.joinTable != "" {
+						newScope := scope.New(elem)
+						joinTable := field.JoinTable.joinTable
+						foreignKey := ToSnake(field.JoinTable.foreignKey)
+						foreignValue := fmt.Sprintf("%v", scope.PrimaryKeyValue())
+						associationForeignKey := ToSnake(field.JoinTable.associationForeignKey)
+						associationForeignValue := fmt.Sprintf("%v", newScope.PrimaryKeyValue())
+
+						newScope.Raw(fmt.Sprintf(
+							"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v = %v AND %v = %v);",
+							joinTable,
+							strings.Join([]string{scope.Quote(foreignKey), scope.Quote(associationForeignKey)}, ","),
+							strings.Join([]string{newScope.AddToVars(foreignValue), newScope.AddToVars(associationForeignValue)}, ","),
+							scope.Dialect().SelectFromDummyTable(),
+							joinTable,
+							scope.Quote(foreignKey),
+							newScope.AddToVars(foreignValue),
+							scope.Quote(associationForeignKey),
+							newScope.AddToVars(associationForeignValue),
+						))
+						if _, err := scope.DB().Exec(newScope.Sql, newScope.SqlVars...); err != nil {
+							scope.Err(err)
+						}
+					}
 				}
 			default:
 				newDB := scope.NewDB()

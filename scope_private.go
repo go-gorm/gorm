@@ -432,6 +432,19 @@ func (scope *Scope) createTable() *Scope {
 		if !field.IsIgnored && len(field.SqlTag) > 0 {
 			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
 		}
+		if field.JoinTable != nil && field.JoinTable.joinTable != "" {
+			if !scope.Dialect().HasTable(scope, field.JoinTable.joinTable) {
+				newScope := scope.db.NewScope("")
+				primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
+				newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
+					field.JoinTable.joinTable,
+					strings.Join([]string{
+						scope.Quote(ToSnake(field.JoinTable.foreignKey)) + " " + primaryKeySqlType,
+						scope.Quote(ToSnake(field.JoinTable.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
+				).Exec()
+				scope.Err(newScope.db.Error)
+			}
+		}
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
 	return scope

@@ -66,6 +66,10 @@ func (s *postgres) ReturningStr(key string) string {
 	return fmt.Sprintf("RETURNING \"%v\"", key)
 }
 
+func (s *postgres) SelectFromDummyTable() string {
+	return ""
+}
+
 func (s *postgres) Quote(key string) string {
 	return fmt.Sprintf("\"%s\"", key)
 }

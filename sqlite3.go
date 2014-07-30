@@ -56,6 +56,10 @@ func (s *sqlite3) ReturningStr(key string) string {
 	return ""
 }
 
+func (s *sqlite3) SelectFromDummyTable() string {
+	return ""
+}
+
 func (s *sqlite3) Quote(key string) string {
 	return fmt.Sprintf("\"%s\"", key)
 }
