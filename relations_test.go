@@ -115,8 +115,8 @@ func TestRelated(t *testing.T) {
 
 	var creditcard CreditCard
 	var user3 User
-	db.First(&creditcard, "number = ?", "1234567890")
-	db.Model(&creditcard).Related(&user3)
+	db.Debug().First(&creditcard, "number = ?", "1234567890")
+	db.Debug().Model(&creditcard).Related(&user3)
 	if user3.Id != user.Id || user3.Name != user.Name {
 		t.Errorf("Should get user from credit card correctly")
 	}
@@ -131,17 +131,17 @@ func TestQueryManyToManyWithRelated(t *testing.T) {
 	user := User{Name: "Many2Many", Languages: languages}
 	db.Save(&user)
 
-	// var newLanguages []Language
+	var newLanguages []Language
 	// db.Model(&user).Related(&newLanguages, "Languages")
 	// if len(newLanguages) != 3 {
 	// 	t.Errorf("Query many to many relations")
 	// }
 
-	// newLanguages = []Language{}
-	// db.Model(&user).Many2Many("Languages").Find(&newLanguages)
-	// if len(newLanguages) != 3 {
-	// 	t.Errorf("Query many to many relations")
-	// }
+	newLanguages = []Language{}
+	db.Model(&user).Many2Many("Languages").Find(&newLanguages)
+	if len(newLanguages) != 3 {
+		t.Errorf("Query many to many relations")
+	}
 
 	// db.Model(&User{}).Many2Many("Languages").Add(&Language{})
 	// db.Model(&User{}).Many2Many("Languages").Remove(&Language{})

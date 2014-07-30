@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type joinTable struct {
+	joinTable             string
+	foreignKey            string
+	associationForeignKey string
+}
+
 type Field struct {
 	Name              string
 	DBName            string
@@ -14,10 +20,10 @@ type Field struct {
 	IsIgnored         bool
 	Tag               reflect.StructTag
 	SqlTag            string
-	ForeignKey        string
 	BeforeAssociation bool
 	AfterAssociation  bool
 	isPrimaryKey      bool
+	JoinTable         *joinTable
 }
 
 func (f *Field) IsScanner() bool {

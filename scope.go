@@ -263,33 +263,56 @@ func (scope *Scope) Fields() []*Field {
 		}
 
 		if scope.db != nil {
+			indirectValue := reflect.Indirect(value)
 			field.Tag = fieldStruct.Tag
 			field.SqlTag = scope.sqlTagForField(&field)
 
 			// parse association
-			elem := reflect.Indirect(value)
-			typ := elem.Type()
+			typ := indirectValue.Type()
+			foreignKey := settings["FOREIGNKEY"]
+			associationForeignKey := settings["ASSOCIATIONFOREIGNKEY"]
+			many2many := settings["MANY2MANY"]
 
-			switch elem.Kind() {
+			switch indirectValue.Kind() {
 			case reflect.Slice:
 				typ = typ.Elem()
 
 				if typ.Kind() == reflect.Struct {
-					foreignKey := scopeTyp.Name() + "Id"
-					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						field.ForeignKey = foreignKey
+					if foreignKey == "" {
+						foreignKey = scopeTyp.Name() + "Id"
 					}
+					if associationForeignKey == "" {
+						associationForeignKey = typ.Name() + "Id"
+					}
+
+					// if not many to many, foreign key could be null
+					if many2many == "" {
+						if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+							foreignKey = ""
+						}
+					}
+
 					field.AfterAssociation = true
+					field.JoinTable = &joinTable{
+						joinTable:             many2many,
+						foreignKey:            foreignKey,
+						associationForeignKey: associationForeignKey,
+					}
 				}
 			case reflect.Struct:
 				if !field.IsTime() && !field.IsScanner() {
-					if scope.HasColumn(field.Name + "Id") {
-						field.ForeignKey = field.Name + "Id"
+					if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
+						field.JoinTable = &joinTable{foreignKey: field.Name + "Id"}
+						field.BeforeAssociation = true
+					} else if scope.HasColumn(foreignKey) {
+						field.JoinTable = &joinTable{foreignKey: foreignKey}
 						field.BeforeAssociation = true
 					} else {
-						foreignKey := scopeTyp.Name() + "Id"
+						if foreignKey == "" {
+							foreignKey = scopeTyp.Name() + "Id"
+						}
 						if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-							field.ForeignKey = foreignKey
+							field.JoinTable = &joinTable{foreignKey: foreignKey}
 						}
 						field.AfterAssociation = true
 					}

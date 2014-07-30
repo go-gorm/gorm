@@ -1,6 +1,9 @@
 package gorm
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 func BeginTransaction(scope *Scope) {
 	scope.Begin()
@@ -28,8 +31,8 @@ func SaveBeforeAssociations(scope *Scope) {
 				scope.SetColumn(field.Name, value.Interface())
 			}
 
-			if len(field.ForeignKey) > 0 {
-				scope.SetColumn(field.ForeignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
+			if field.JoinTable != nil && field.JoinTable.foreignKey != "" {
+				scope.SetColumn(field.JoinTable.foreignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
 			}
 		}
 	}
@@ -46,16 +49,19 @@ func SaveAfterAssociations(scope *Scope) {
 					newDB := scope.NewDB()
 					elem := value.Index(i).Addr().Interface()
 
-					if len(field.ForeignKey) > 0 {
-						newDB.NewScope(elem).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
+					if field.JoinTable != nil && field.JoinTable.foreignKey != "" {
+						newDB.NewScope(elem).SetColumn(field.JoinTable.foreignKey, scope.PrimaryKeyValue())
 					}
 
 					scope.Err(newDB.Save(elem).Error)
+					fmt.Sprintf("INSERT INTO %v (%v, %v) SELECT (%v, %v) FROM %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v = %v AND %v = %v) limit 1;")
 				}
 			default:
 				newDB := scope.NewDB()
 				if value.CanAddr() {
-					newDB.NewScope(field.Value).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
+					if field.JoinTable != nil {
+						newDB.NewScope(field.Value).SetColumn(field.JoinTable.foreignKey, scope.PrimaryKeyValue())
+					}
 					scope.Err(newDB.Save(field.Value).Error)
 				} else {
 					destValue := reflect.New(reflect.TypeOf(field.Value)).Elem()
@@ -65,7 +71,9 @@ func SaveAfterAssociations(scope *Scope) {
 					}
 
 					elem := destValue.Addr().Interface()
-					newDB.NewScope(elem).SetColumn(field.ForeignKey, scope.PrimaryKeyValue())
+					if field.JoinTable != nil {
+						newDB.NewScope(elem).SetColumn(field.JoinTable.foreignKey, scope.PrimaryKeyValue())
+					}
 					scope.Err(newDB.Save(elem).Error)
 					scope.SetColumn(field.Name, destValue.Interface())
 				}
