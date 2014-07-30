@@ -138,7 +138,7 @@ func TestQueryManyToManyWithRelated(t *testing.T) {
 	// }
 
 	newLanguages = []Language{}
-	db.Model(&user).Many2Many("Languages").Find(&newLanguages)
+	db.Model(&user).Association("Languages").Find(&newLanguages)
 	if len(newLanguages) != 3 {
 		t.Errorf("Query many to many relations")
 	}

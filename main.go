@@ -351,6 +351,7 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return s
 }
 
-func (s *DB) Many2Many(column string) *DB {
-	return s
+func (s *DB) Association(column string) *Association {
+	scope := s.clone().NewScope(s.Value)
+	return &Association{Scope: scope, Column: column}
 }
