@@ -138,7 +138,15 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	return association
 }
 
-func (association *Association) Clear(value interface{}) *Association {
+func (association *Association) Clear() *Association {
+	relationship := association.Field.Relationship
+	scope := association.Scope
+	if relationship.kind == "many_to_many" {
+		whereSql := fmt.Sprintf("%v.%v = ?", relationship.joinTable, scope.Quote(ToSnake(relationship.foreignKey)))
+		scope.db.Model("").Table(relationship.joinTable).Where(whereSql, association.PrimaryKey).Delete("")
+	} else {
+		association.err(errors.New("clear only support many to many"))
+	}
 	return association
 }
 

@@ -190,17 +190,19 @@ func TestManyToMany(t *testing.T) {
 	// Replace
 	var languageB Language
 	db.Where("name = ?", "BB").First(&languageB)
-	db.Debug().Model(&user).Association("Languages").Replace(languageB)
+	db.Model(&user).Association("Languages").Replace(languageB)
 	if db.Model(&user).Association("Languages").Count() != 1 {
-		t.Errorf("Relations should be deleted with Delete")
+		t.Errorf("Relations should be replaced")
 	}
 
 	db.Model(&user).Association("Languages").Replace(&[]Language{{Name: "FF"}, {Name: "JJ"}})
 	if db.Model(&user).Association("Languages").Count() != len([]string{"FF", "JJ"}) {
-		t.Errorf("Relations should be deleted with Delete")
+		t.Errorf("Relations should be replaced")
 	}
 
-	// db.Model(&User{}).Many2Many("Languages").Replace(&[]Language{})
-	// db.Model(&User{}).Related(&[]Language{}, "Languages")
-	// SELECT `languages`.* FROM `languages` INNER JOIN `user_languages` ON `languages`.`id` = `user_languages`.`language_id` WHERE `user_languages`.`user_id` = 111
+	// Clear
+	db.Model(&user).Association("Languages").Clear()
+	if db.Model(&user).Association("Languages").Count() != 0 {
+		t.Errorf("Relations should be cleared")
+	}
 }
