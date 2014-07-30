@@ -284,29 +284,30 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 					}
 				}
 
-				field.AfterAssociation = true
 				field.Relationship = &relationship{
 					joinTable:             many2many,
 					foreignKey:            foreignKey,
 					associationForeignKey: associationForeignKey,
+					kind: "has_many",
+				}
+
+				if many2many != "" {
+					field.Relationship.kind = "many_to_many"
 				}
 			}
 		case reflect.Struct:
 			if !field.IsTime() && !field.IsScanner() {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
-					field.Relationship = &relationship{foreignKey: field.Name + "Id"}
-					field.BeforeAssociation = true
+					field.Relationship = &relationship{foreignKey: field.Name + "Id", kind: "belongs_to"}
 				} else if scope.HasColumn(foreignKey) {
-					field.Relationship = &relationship{foreignKey: foreignKey}
-					field.BeforeAssociation = true
+					field.Relationship = &relationship{foreignKey: foreignKey, kind: "belongs_to"}
 				} else {
 					if foreignKey == "" {
 						foreignKey = scopeTyp.Name() + "Id"
 					}
 					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						field.Relationship = &relationship{foreignKey: foreignKey}
+						field.Relationship = &relationship{foreignKey: foreignKey, kind: "has_one"}
 					}
-					field.AfterAssociation = true
 				}
 			}
 		}

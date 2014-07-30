@@ -10,20 +10,19 @@ type relationship struct {
 	joinTable             string
 	foreignKey            string
 	associationForeignKey string
+	kind                  string
 }
 
 type Field struct {
-	Name              string
-	DBName            string
-	Value             interface{}
-	IsBlank           bool
-	IsIgnored         bool
-	Tag               reflect.StructTag
-	SqlTag            string
-	BeforeAssociation bool
-	AfterAssociation  bool
-	isPrimaryKey      bool
-	Relationship      *relationship
+	Name         string
+	DBName       string
+	Value        interface{}
+	IsBlank      bool
+	IsIgnored    bool
+	Tag          reflect.StructTag
+	SqlTag       string
+	isPrimaryKey bool
+	Relationship *relationship
 }
 
 func (f *Field) IsScanner() bool {
