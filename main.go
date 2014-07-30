@@ -366,7 +366,7 @@ func (s *DB) Association(column string) *Association {
 	scopeType := scope.IndirectValue().Type()
 	if f, ok := scopeType.FieldByName(SnakeToUpperCamel(column)); ok {
 		field = scope.fieldFromStruct(f)
-		if field.JoinTable == nil || field.JoinTable.foreignKey == "" {
+		if field.Relationship == nil || field.Relationship.foreignKey == "" {
 			scope.Err(errors.New(fmt.Sprintf("invalid association %v for %v", column, scopeType)))
 		}
 	} else {

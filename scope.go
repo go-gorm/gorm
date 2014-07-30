@@ -285,7 +285,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 				}
 
 				field.AfterAssociation = true
-				field.JoinTable = &joinTable{
+				field.Relationship = &relationship{
 					joinTable:             many2many,
 					foreignKey:            foreignKey,
 					associationForeignKey: associationForeignKey,
@@ -294,17 +294,17 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 		case reflect.Struct:
 			if !field.IsTime() && !field.IsScanner() {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
-					field.JoinTable = &joinTable{foreignKey: field.Name + "Id"}
+					field.Relationship = &relationship{foreignKey: field.Name + "Id"}
 					field.BeforeAssociation = true
 				} else if scope.HasColumn(foreignKey) {
-					field.JoinTable = &joinTable{foreignKey: foreignKey}
+					field.Relationship = &relationship{foreignKey: foreignKey}
 					field.BeforeAssociation = true
 				} else {
 					if foreignKey == "" {
 						foreignKey = scopeTyp.Name() + "Id"
 					}
 					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						field.JoinTable = &joinTable{foreignKey: foreignKey}
+						field.Relationship = &relationship{foreignKey: foreignKey}
 					}
 					field.AfterAssociation = true
 				}

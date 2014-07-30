@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type joinTable struct {
+type relationship struct {
 	joinTable             string
 	foreignKey            string
 	associationForeignKey string
@@ -23,7 +23,7 @@ type Field struct {
 	BeforeAssociation bool
 	AfterAssociation  bool
 	isPrimaryKey      bool
-	JoinTable         *joinTable
+	Relationship      *relationship
 }
 
 func (f *Field) IsScanner() bool {

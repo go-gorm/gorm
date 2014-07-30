@@ -85,11 +85,11 @@ func (association *Association) Delete(values ...interface{}) *Association {
 	if len(primaryKeys) == 0 {
 		association.err(errors.New("no primary key found"))
 	} else {
-		joinTable := association.Field.JoinTable
+		relationship := association.Field.Relationship
 		// many to many
-		if joinTable.joinTable != "" {
-			whereSql := fmt.Sprintf("%v.%v IN (?)", joinTable.joinTable, scope.Quote(ToSnake(joinTable.associationForeignKey)))
-			scope.db.Table(joinTable.joinTable).Where(whereSql, primaryKeys).Delete("")
+		if relationship.joinTable != "" {
+			whereSql := fmt.Sprintf("%v.%v IN (?)", relationship.joinTable, scope.Quote(ToSnake(relationship.associationForeignKey)))
+			scope.db.Table(relationship.joinTable).Where(whereSql, primaryKeys).Delete("")
 		} else {
 			association.err(errors.New("only many to many support delete"))
 		}
@@ -106,22 +106,22 @@ func (association *Association) Clear(value interface{}) *Association {
 }
 
 func (association *Association) Count() (count int) {
-	joinTable := association.Field.JoinTable
+	relationship := association.Field.Relationship
 	scope := association.Scope
 	field := scope.IndirectValue().FieldByName(association.Column)
 	fieldValue := field.Interface()
 
 	// many to many
-	if joinTable.joinTable != "" {
+	if relationship.joinTable != "" {
 		newScope := scope.New(fieldValue)
 		whereSql := fmt.Sprintf("%v.%v IN (SELECT %v.%v FROM %v WHERE %v.%v = ?)",
 			newScope.QuotedTableName(),
 			scope.Quote(newScope.PrimaryKey()),
-			joinTable.joinTable,
-			scope.Quote(joinTable.associationForeignKey),
-			joinTable.joinTable,
-			joinTable.joinTable,
-			scope.Quote(joinTable.foreignKey))
+			relationship.joinTable,
+			scope.Quote(relationship.associationForeignKey),
+			relationship.joinTable,
+			relationship.joinTable,
+			scope.Quote(relationship.foreignKey))
 		scope.db.Table(newScope.QuotedTableName()).Where(whereSql, scope.PrimaryKey()).Count(&count)
 	}
 	// association.Scope.related(value, association.Column)

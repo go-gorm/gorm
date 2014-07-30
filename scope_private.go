@@ -419,20 +419,20 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 		scopeType := scope.IndirectValue().Type()
 		if f, ok := scopeType.FieldByName(SnakeToUpperCamel(foreignKey)); ok {
 			field := scope.fieldFromStruct(f)
-			joinTable := field.JoinTable
-			if joinTable != nil && joinTable.foreignKey != "" {
-				foreignKey = joinTable.foreignKey
+			relationship := field.Relationship
+			if relationship != nil && relationship.foreignKey != "" {
+				foreignKey = relationship.foreignKey
 
 				// many to many relations
-				if joinTable.joinTable != "" {
+				if relationship.joinTable != "" {
 					joinSql := fmt.Sprintf(
 						"INNER JOIN %v ON %v.%v = %v.%v",
-						scope.Quote(joinTable.joinTable),
-						scope.Quote(joinTable.joinTable),
-						scope.Quote(ToSnake(joinTable.associationForeignKey)),
+						scope.Quote(relationship.joinTable),
+						scope.Quote(relationship.joinTable),
+						scope.Quote(ToSnake(relationship.associationForeignKey)),
 						toScope.QuotedTableName(),
 						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(joinTable.joinTable), scope.Quote(ToSnake(joinTable.foreignKey)))
+					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.joinTable), scope.Quote(ToSnake(relationship.foreignKey)))
 					toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value)
 					return scope
 				}
@@ -451,20 +451,20 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			return toScope.inlineCondition(sql, scope.PrimaryKeyValue()).callCallbacks(scope.db.parent.callback.queries)
 		}
 	}
-	scope.Err(errors.New(fmt.Sprintf("invalid association %v", foreignKeys)))
+	scope.Err(fmt.Errorf("invalid association %v", foreignKeys))
 	return scope
 }
 
 func (scope *Scope) createJoinTable(field *Field) {
-	if field.JoinTable != nil && field.JoinTable.joinTable != "" {
-		if !scope.Dialect().HasTable(scope, field.JoinTable.joinTable) {
+	if field.Relationship != nil && field.Relationship.joinTable != "" {
+		if !scope.Dialect().HasTable(scope, field.Relationship.joinTable) {
 			newScope := scope.db.NewScope("")
 			primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
 			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
-				field.JoinTable.joinTable,
+				field.Relationship.joinTable,
 				strings.Join([]string{
-					scope.Quote(ToSnake(field.JoinTable.foreignKey)) + " " + primaryKeySqlType,
-					scope.Quote(ToSnake(field.JoinTable.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
+					scope.Quote(ToSnake(field.Relationship.foreignKey)) + " " + primaryKeySqlType,
+					scope.Quote(ToSnake(field.Relationship.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
 			).Exec()
 			scope.Err(newScope.db.Error)
 		}
