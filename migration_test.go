@@ -18,7 +18,7 @@ func runMigration() {
 	db.Exec("drop table roles")
 	db.Exec("drop table companies")
 	db.Exec("drop table animals")
-	db.Exec("drop table user_companies")
+	db.Exec("drop table user_languages")
 
 	if err := db.CreateTable(&Animal{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
