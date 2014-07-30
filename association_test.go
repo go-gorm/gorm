@@ -2,7 +2,7 @@ package gorm_test
 
 import "testing"
 
-func TestSubStruct(t *testing.T) {
+func TestHasOneAndHasManyAssociation(t *testing.T) {
 	db.DropTable(Category{})
 	db.DropTable(Post{})
 	db.DropTable(Comment{})
@@ -115,8 +115,8 @@ func TestRelated(t *testing.T) {
 
 	var creditcard CreditCard
 	var user3 User
-	db.Debug().First(&creditcard, "number = ?", "1234567890")
-	db.Debug().Model(&creditcard).Related(&user3)
+	db.First(&creditcard, "number = ?", "1234567890")
+	db.Model(&creditcard).Related(&user3)
 	if user3.Id != user.Id || user3.Name != user.Name {
 		t.Errorf("Should get user from credit card correctly")
 	}
@@ -126,7 +126,7 @@ func TestRelated(t *testing.T) {
 	}
 }
 
-func TestQueryManyToManyWithRelated(t *testing.T) {
+func TestManyToMany(t *testing.T) {
 	var languages = []Language{{Name: "ZH"}, {Name: "EN"}, {Name: "DE"}}
 	user := User{Name: "Many2Many", Languages: languages}
 	db.Save(&user)

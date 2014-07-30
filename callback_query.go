@@ -16,7 +16,7 @@ func Query(scope *Scope) {
 		destType       reflect.Type
 	)
 
-	var dest = reflect.Indirect(reflect.ValueOf(scope.Value))
+	var dest = scope.IndirectValue()
 	if value, ok := scope.Get("gorm:query_destination"); ok {
 		dest = reflect.Indirect(reflect.ValueOf(value))
 	}

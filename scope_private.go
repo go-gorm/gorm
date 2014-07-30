@@ -259,7 +259,7 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 }
 
 func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignoreProtectedAttrs bool) (results map[string]interface{}, hasUpdate bool) {
-	data := reflect.Indirect(reflect.ValueOf(scope.Value))
+	data := scope.IndirectValue()
 	if !data.CanAddr() {
 		return values, true
 	}
@@ -381,7 +381,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
 	scope.Search = scope.Search.clone().selects(column)
 	if dest.Kind() != reflect.Slice {
-		scope.Err(errors.New("Results should be a slice"))
+		scope.Err(errors.New("results should be a slice"))
 		return scope
 	}
 
@@ -404,7 +404,7 @@ func (scope *Scope) count(value interface{}) *Scope {
 }
 
 func (scope *Scope) typeName() string {
-	value := reflect.Indirect(reflect.ValueOf(scope.Value))
+	value := scope.IndirectValue()
 	if value.Kind() == reflect.Slice {
 		return value.Type().Elem().Name()
 	} else {
