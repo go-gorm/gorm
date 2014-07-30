@@ -416,13 +416,42 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		if foreignValue, ok := scope.FieldByName(foreignKey); ok {
-			return toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
-		} else if toScope.HasColumn(foreignKey) {
+		scopeType := scope.IndirectValue().Type()
+		if f, ok := scopeType.FieldByName(SnakeToUpperCamel(foreignKey)); ok {
+			field := scope.fieldFromStruct(f)
+			joinTable := field.JoinTable
+			if joinTable != nil && joinTable.foreignKey != "" {
+				foreignKey = joinTable.foreignKey
+
+				// many to many relations
+				if joinTable.joinTable != "" {
+					joinSql := fmt.Sprintf(
+						"INNER JOIN %v ON %v.%v = %v.%v",
+						scope.Quote(joinTable.joinTable),
+						scope.Quote(joinTable.joinTable),
+						scope.Quote(ToSnake(joinTable.associationForeignKey)),
+						toScope.QuotedTableName(),
+						scope.Quote(toScope.PrimaryKey()))
+					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(joinTable.joinTable), scope.Quote(ToSnake(joinTable.foreignKey)))
+					toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value)
+					return scope
+				}
+			}
+
+			// has one
+			if foreignValue, ok := scope.FieldByName(foreignKey); ok {
+				toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
+				return scope
+			}
+		}
+
+		// has many
+		if toScope.HasColumn(foreignKey) {
 			sql := fmt.Sprintf("%v = ?", scope.Quote(ToSnake(foreignKey)))
 			return toScope.inlineCondition(sql, scope.PrimaryKeyValue()).callCallbacks(scope.db.parent.callback.queries)
 		}
 	}
+	scope.Err(errors.New(fmt.Sprintf("invalid association %v", foreignKeys)))
 	return scope
 }
 

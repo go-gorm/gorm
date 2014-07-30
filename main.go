@@ -2,6 +2,9 @@ package gorm
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
+	"reflect"
 )
 
 type DB struct {
@@ -353,5 +356,22 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 
 func (s *DB) Association(column string) *Association {
 	scope := s.clone().NewScope(s.Value)
-	return &Association{Scope: scope, Column: column}
+
+	primaryKey := scope.PrimaryKeyValue()
+	if reflect.DeepEqual(reflect.ValueOf(primaryKey), reflect.Zero(reflect.ValueOf(primaryKey).Type())) {
+		scope.Err(errors.New("primary key can't be nil"))
+	}
+
+	var field *Field
+	scopeType := scope.IndirectValue().Type()
+	if f, ok := scopeType.FieldByName(SnakeToUpperCamel(column)); ok {
+		field = scope.fieldFromStruct(f)
+		if field.JoinTable == nil || field.JoinTable.foreignKey == "" {
+			scope.Err(errors.New(fmt.Sprintf("invalid association %v for %v", column, scopeType)))
+		}
+	} else {
+		scope.Err(errors.New(fmt.Sprintf("%v doesn't have column %v", scopeType, column)))
+	}
+
+	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, Field: field}
 }

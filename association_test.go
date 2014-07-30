@@ -127,24 +127,69 @@ func TestRelated(t *testing.T) {
 }
 
 func TestManyToMany(t *testing.T) {
-	var languages = []Language{{Name: "ZH"}, {Name: "EN"}, {Name: "DE"}}
+	db.Raw("delete from languages")
+	var languages = []Language{{Name: "ZH"}, {Name: "EN"}}
 	user := User{Name: "Many2Many", Languages: languages}
 	db.Save(&user)
 
+	// Query
 	var newLanguages []Language
-	// db.Model(&user).Related(&newLanguages, "Languages")
-	// if len(newLanguages) != 3 {
-	// 	t.Errorf("Query many to many relations")
-	// }
+	db.Model(&user).Related(&newLanguages, "Languages")
+	if len(newLanguages) != len([]string{"ZH", "EN"}) {
+		t.Errorf("Query many to many relations")
+	}
 
 	newLanguages = []Language{}
 	db.Model(&user).Association("Languages").Find(&newLanguages)
-	if len(newLanguages) != 3 {
+	if len(newLanguages) != len([]string{"ZH", "EN"}) {
 		t.Errorf("Should be able to find many to many relations")
 	}
 
-	// db.Model(&User{}).Many2Many("Languages").Add(&Language{})
-	// db.Model(&User{}).Many2Many("Languages").Remove(&Language{})
+	// Append
+	db.Model(&user).Association("Languages").Append(&Language{Name: "DE"})
+	if db.Where("name = ?", "DE").First(&Language{}).RecordNotFound() {
+		t.Errorf("New record should be saved when append")
+	}
+
+	languageA := Language{Name: "AA"}
+	db.Save(&languageA)
+	db.Model(&User{Id: user.Id}).Association("Languages").Append(languageA)
+	languageC := Language{Name: "CC"}
+	db.Save(&languageC)
+	db.Model(&user).Association("Languages").Append(&[]Language{{Name: "BB"}, languageC})
+	db.Model(&User{Id: user.Id}).Association("Languages").Append([]Language{{Name: "DD"}, {Name: "EE"}})
+
+	totalLanguages := []string{"ZH", "EN", "DE", "AA", "BB", "CC", "DD", "EE"}
+
+	newLanguages = []Language{}
+	db.Model(&user).Related(&newLanguages, "Languages")
+	if len(newLanguages) != len(totalLanguages) {
+		t.Errorf("All appended languages should be saved")
+	}
+
+	// Delete
+	var language Language
+	db.Where("name = ?", "EE").First(&language)
+	db.Model(&user).Association("Languages").Delete(language, &language)
+
+	newLanguages = []Language{}
+	db.Model(&user).Related(&newLanguages, "Languages")
+	if len(newLanguages) != len(totalLanguages)-1 {
+		t.Errorf("Relations should be deleted with Delete")
+	}
+	if db.Where("name = ?", "EE").First(&Language{}).RecordNotFound() {
+		t.Errorf("Language EE should not be deleted")
+	}
+
+	languages = []Language{}
+	db.Where("name IN (?)", []string{"CC", "DD"}).Find(&languages)
+	db.Model(&user).Association("Languages").Delete(languages, &languages)
+	newLanguages = []Language{}
+	db.Model(&user).Related(&newLanguages, "Languages")
+	if len(newLanguages) != len(totalLanguages)-3 {
+		t.Errorf("Relations should be deleted with Delete")
+	}
+
 	// db.Model(&User{}).Many2Many("Languages").Replace(&[]Language{})
 	// db.Model(&User{}).Related(&[]Language{}, "Languages")
 	// SELECT `languages`.* FROM `languages` INNER JOIN `user_languages` ON `languages`.`id` = `user_languages`.`language_id` WHERE `user_languages`.`user_id` = 111

@@ -122,12 +122,12 @@ func (scope *Scope) FieldByName(name string) (interface{}, bool) {
 }
 
 // SetColumn to set the column's value
-func (scope *Scope) SetColumn(column string, value interface{}) {
+func (scope *Scope) SetColumn(column string, value interface{}) bool {
 	if scope.Value == nil {
-		return
+		return false
 	}
 
-	setFieldValue(scope.IndirectValue().FieldByName(SnakeToUpperCamel(column)), value)
+	return setFieldValue(scope.IndirectValue().FieldByName(SnakeToUpperCamel(column)), value)
 }
 
 // CallMethod invoke method with necessary argument
