@@ -112,13 +112,13 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 
 // HasColumn to check if has column
 func (scope *Scope) HasColumn(name string) bool {
-	_, result := scope.FieldByName(name)
+	_, result := scope.FieldValueByName(name)
 	return result
 }
 
-// FieldByName to get column's value and existence
-func (scope *Scope) FieldByName(name string) (interface{}, bool) {
-	return FieldByName(name, scope.Value)
+// FieldValueByName to get column's value and existence
+func (scope *Scope) FieldValueByName(name string) (interface{}, bool) {
+	return FieldValueByName(name, scope.Value)
 }
 
 // SetColumn to set the column's value
@@ -234,6 +234,18 @@ func (scope *Scope) CombinedConditionSql() string {
 		scope.havingSql() + scope.orderSql() + scope.limitSql() + scope.offsetSql()
 }
 
+func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
+	var f reflect.StructField
+	if scope.Value != nil {
+		if scope.IndirectValue().Kind() == reflect.Struct {
+			if f, ok = scope.IndirectValue().Type().FieldByName(SnakeToUpperCamel(name)); ok {
+				field = scope.fieldFromStruct(f)
+			}
+		}
+	}
+	return
+}
+
 func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 	var field Field
 	field.Name = fieldStruct.Name
@@ -246,68 +258,62 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 
 	// Search for primary key tag identifier
 	settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
-	if _, ok := settings["PRIMARY_KEY"]; scope.PrimaryKey() == field.DBName || ok {
-		field.isPrimaryKey = true
+	if scope.PrimaryKey() == field.DBName {
+		field.IsPrimaryKey = true
 	}
 
-	if field.isPrimaryKey {
-		scope.primaryKey = field.DBName
-	}
+	field.Tag = fieldStruct.Tag
+	field.SqlTag = scope.sqlTagForField(&field)
 
-	if scope.db != nil {
-		field.Tag = fieldStruct.Tag
-		field.SqlTag = scope.sqlTagForField(&field)
+	// parse association
+	typ := indirectValue.Type()
+	foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
+	associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
+	many2many := settings["MANY2MANY"]
+	scopeTyp := scope.IndirectValue().Type()
 
-		// parse association
-		typ := indirectValue.Type()
-		foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
-		associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
-		many2many := settings["MANY2MANY"]
-		scopeTyp := scope.IndirectValue().Type()
+	switch indirectValue.Kind() {
+	case reflect.Slice:
+		typ = typ.Elem()
 
-		switch indirectValue.Kind() {
-		case reflect.Slice:
-			typ = typ.Elem()
+		if typ.Kind() == reflect.Struct {
+			if foreignKey == "" {
+				foreignKey = scopeTyp.Name() + "Id"
+			}
+			if associationForeignKey == "" {
+				associationForeignKey = typ.Name() + "Id"
+			}
 
-			if typ.Kind() == reflect.Struct {
+			// if not many to many, foreign key could be null
+			if many2many == "" {
+				if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+					foreignKey = ""
+				}
+			}
+
+			field.Relationship = &relationship{
+				JoinTable:             many2many,
+				ForeignKey:            foreignKey,
+				AssociationForeignKey: associationForeignKey,
+				Kind: "has_many",
+			}
+
+			if many2many != "" {
+				field.Relationship.Kind = "many_to_many"
+			}
+		}
+	case reflect.Struct:
+		if !field.IsTime() && !field.IsScanner() {
+			if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
+				field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}
+			} else if scope.HasColumn(foreignKey) {
+				field.Relationship = &relationship{ForeignKey: foreignKey, Kind: "belongs_to"}
+			} else {
 				if foreignKey == "" {
 					foreignKey = scopeTyp.Name() + "Id"
 				}
-				if associationForeignKey == "" {
-					associationForeignKey = typ.Name() + "Id"
-				}
-
-				// if not many to many, foreign key could be null
-				if many2many == "" {
-					if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						foreignKey = ""
-					}
-				}
-
-				field.Relationship = &relationship{
-					joinTable:             many2many,
-					foreignKey:            foreignKey,
-					associationForeignKey: associationForeignKey,
-					kind: "has_many",
-				}
-
-				if many2many != "" {
-					field.Relationship.kind = "many_to_many"
-				}
-			}
-		case reflect.Struct:
-			if !field.IsTime() && !field.IsScanner() {
-				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
-					field.Relationship = &relationship{foreignKey: field.Name + "Id", kind: "belongs_to"}
-				} else if scope.HasColumn(foreignKey) {
-					field.Relationship = &relationship{foreignKey: foreignKey, kind: "belongs_to"}
-				} else {
-					if foreignKey == "" {
-						foreignKey = scopeTyp.Name() + "Id"
-					}
-					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						field.Relationship = &relationship{foreignKey: foreignKey, kind: "has_one"}
-					}
+				if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+					field.Relationship = &relationship{ForeignKey: foreignKey, Kind: "has_one"}
 				}
 			}
 		}

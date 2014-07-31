@@ -25,7 +25,7 @@ func (s *safeMap) Get(key string) string {
 	return s.m[key]
 }
 
-func FieldByName(name string, value interface{}, withAddr ...bool) (interface{}, bool) {
+func FieldValueByName(name string, value interface{}, withAddr ...bool) (interface{}, bool) {
 	data := reflect.Indirect(reflect.ValueOf(value))
 	name = SnakeToUpperCamel(name)
 

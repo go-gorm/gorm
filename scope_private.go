@@ -300,6 +300,9 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 }
 
 func (scope *Scope) sqlTagForField(field *Field) (typ string) {
+	if scope.db == nil {
+		return ""
+	}
 	var size = 255
 
 	fieldTag := field.Tag.Get(scope.db.parent.tagIdentifier)
@@ -343,7 +346,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 	}
 
 	if len(typ) == 0 {
-		if field.isPrimaryKey {
+		if field.IsPrimaryKey {
 			typ = scope.Dialect().PrimaryKeyTag(reflectValue, size)
 		} else {
 			typ = scope.Dialect().SqlTag(reflectValue, size)
@@ -416,30 +419,27 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		scopeType := scope.IndirectValue().Type()
-		if f, ok := scopeType.FieldByName(SnakeToUpperCamel(foreignKey)); ok {
-			field := scope.fieldFromStruct(f)
+		if field, ok := scope.FieldByName(foreignKey); ok {
 			relationship := field.Relationship
-			if relationship != nil && relationship.foreignKey != "" {
-				foreignKey = relationship.foreignKey
+			if relationship != nil && relationship.ForeignKey != "" {
+				foreignKey = relationship.ForeignKey
 
-				// many to many relations
-				if relationship.joinTable != "" {
+				if relationship.Kind == "many_to_many" {
 					joinSql := fmt.Sprintf(
 						"INNER JOIN %v ON %v.%v = %v.%v",
-						scope.Quote(relationship.joinTable),
-						scope.Quote(relationship.joinTable),
-						scope.Quote(ToSnake(relationship.associationForeignKey)),
+						scope.Quote(relationship.JoinTable),
+						scope.Quote(relationship.JoinTable),
+						scope.Quote(ToSnake(relationship.AssociationForeignKey)),
 						toScope.QuotedTableName(),
 						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.joinTable), scope.Quote(ToSnake(relationship.foreignKey)))
+					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(ToSnake(relationship.ForeignKey)))
 					toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value)
 					return scope
 				}
 			}
 
 			// has one
-			if foreignValue, ok := scope.FieldByName(foreignKey); ok {
+			if foreignValue, ok := scope.FieldValueByName(foreignKey); ok {
 				toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
 				return scope
 			}
@@ -456,15 +456,15 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 func (scope *Scope) createJoinTable(field *Field) {
-	if field.Relationship != nil && field.Relationship.joinTable != "" {
-		if !scope.Dialect().HasTable(scope, field.Relationship.joinTable) {
+	if field.Relationship != nil && field.Relationship.JoinTable != "" {
+		if !scope.Dialect().HasTable(scope, field.Relationship.JoinTable) {
 			newScope := scope.db.NewScope("")
 			primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
 			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
-				field.Relationship.joinTable,
+				field.Relationship.JoinTable,
 				strings.Join([]string{
-					scope.Quote(ToSnake(field.Relationship.foreignKey)) + " " + primaryKeySqlType,
-					scope.Quote(ToSnake(field.Relationship.associationForeignKey)) + " " + primaryKeySqlType}, ",")),
+					scope.Quote(ToSnake(field.Relationship.ForeignKey)) + " " + primaryKeySqlType,
+					scope.Quote(ToSnake(field.Relationship.AssociationForeignKey)) + " " + primaryKeySqlType}, ",")),
 			).Exec()
 			scope.Err(newScope.db.Error)
 		}

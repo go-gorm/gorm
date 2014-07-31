@@ -18,7 +18,7 @@ func SaveBeforeAssociations(scope *Scope) {
 	for _, field := range scope.Fields() {
 		if !field.IsBlank && !field.IsIgnored {
 			relationship := field.Relationship
-			if relationship != nil && relationship.kind == "belongs_to" {
+			if relationship != nil && relationship.Kind == "belongs_to" {
 				value := reflect.ValueOf(field.Value)
 				newDB := scope.NewDB()
 
@@ -34,8 +34,8 @@ func SaveBeforeAssociations(scope *Scope) {
 					scope.SetColumn(field.Name, value.Interface())
 				}
 
-				if relationship.foreignKey != "" {
-					scope.SetColumn(relationship.foreignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
+				if relationship.ForeignKey != "" {
+					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
 				}
 			}
 		}
@@ -47,7 +47,7 @@ func SaveAfterAssociations(scope *Scope) {
 		if !field.IsBlank && !field.IsIgnored {
 			relationship := field.Relationship
 			if relationship != nil &&
-				(relationship.kind == "has_one" || relationship.kind == "has_many" || relationship.kind == "many_to_many") {
+				(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {
 				value := reflect.ValueOf(field.Value)
 
 				switch value.Kind() {
@@ -56,18 +56,18 @@ func SaveAfterAssociations(scope *Scope) {
 						newDB := scope.NewDB()
 						elem := value.Index(i).Addr().Interface()
 
-						if relationship.joinTable == "" && relationship.foreignKey != "" {
-							newDB.NewScope(elem).SetColumn(relationship.foreignKey, scope.PrimaryKeyValue())
+						if relationship.JoinTable == "" && relationship.ForeignKey != "" {
+							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
 
 						scope.Err(newDB.Save(elem).Error)
 
-						if relationship.joinTable != "" {
+						if relationship.JoinTable != "" {
 							newScope := scope.New(elem)
-							joinTable := relationship.joinTable
-							foreignKey := ToSnake(relationship.foreignKey)
+							joinTable := relationship.JoinTable
+							foreignKey := ToSnake(relationship.ForeignKey)
 							foreignValue := fmt.Sprintf("%v", scope.PrimaryKeyValue())
-							associationForeignKey := ToSnake(relationship.associationForeignKey)
+							associationForeignKey := ToSnake(relationship.AssociationForeignKey)
 							associationForeignValue := fmt.Sprintf("%v", newScope.PrimaryKeyValue())
 
 							newScope.Raw(fmt.Sprintf(
@@ -88,8 +88,8 @@ func SaveAfterAssociations(scope *Scope) {
 				default:
 					newDB := scope.NewDB()
 					if value.CanAddr() {
-						if relationship.foreignKey != "" {
-							newDB.NewScope(field.Value).SetColumn(relationship.foreignKey, scope.PrimaryKeyValue())
+						if relationship.ForeignKey != "" {
+							newDB.NewScope(field.Value).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
 						scope.Err(newDB.Save(field.Value).Error)
 					} else {
@@ -100,8 +100,8 @@ func SaveAfterAssociations(scope *Scope) {
 						}
 
 						elem := destValue.Addr().Interface()
-						if relationship.foreignKey != "" {
-							newDB.NewScope(elem).SetColumn(relationship.foreignKey, scope.PrimaryKeyValue())
+						if relationship.ForeignKey != "" {
+							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
 						scope.Err(newDB.Save(elem).Error)
 						scope.SetColumn(field.Name, destValue.Interface())
