@@ -339,7 +339,14 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 		}
 	case reflect.Struct:
 		if field.IsScanner() {
-			reflectValue = reflectValue.Field(0)
+			var getScannerValue func(reflect.Value)
+			getScannerValue = func(value reflect.Value) {
+				reflectValue = value
+				if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner {
+					getScannerValue(reflectValue.Field(0))
+				}
+			}
+			getScannerValue(reflectValue.Field(0))
 		} else if !field.IsTime() {
 			return
 		}
