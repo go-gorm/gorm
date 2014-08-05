@@ -23,11 +23,26 @@ type DB struct {
 	source        string
 }
 
-func Open(driver, source string) (DB, error) {
+func Open(dialect string, drivesources ...string) (DB, error) {
+	var db DB
 	var err error
-	db := DB{dialect: NewDialect(driver), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source}
-	db.db, err = sql.Open(driver, source)
-	db.parent = &db
+	var driver = dialect
+	var source string
+
+	if len(drivesources) == 0 {
+		err = errors.New("invalid database source")
+	} else {
+		if len(drivesources) == 1 {
+			source = drivesources[0]
+		} else if len(drivesources) >= 2 {
+			driver = drivesources[0]
+			source = drivesources[1]
+		}
+
+		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source}
+		db.db, err = sql.Open(driver, source)
+		db.parent = &db
+	}
 	return db, err
 }
 
