@@ -340,6 +340,10 @@ func (s *DB) DropTable(value interface{}) *DB {
 	return s.clone().NewScope(value).dropTable().db
 }
 
+func (s *DB) DropTableIfExists(value interface{}) *DB {
+	return s.clone().NewScope(value).dropTableIfExists().db
+}
+
 func (s *DB) AutoMigrate(value interface{}) *DB {
 	return s.clone().NewScope(value).autoMigrate().db
 }
