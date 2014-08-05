@@ -124,6 +124,9 @@ db.CreateTable(User{})
 // Drop table
 db.DropTable(User{})
 
+// Drop table if exists
+db.DropTableIfExists(User{})
+
 // Automating Migration
 db.AutoMigrate(User{})
 
