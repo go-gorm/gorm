@@ -367,10 +367,10 @@ func (s *DB) Association(column string) *Association {
 	if f, ok := scopeType.FieldByName(SnakeToUpperCamel(column)); ok {
 		field = scope.fieldFromStruct(f)
 		if field.Relationship == nil || field.Relationship.ForeignKey == "" {
-			scope.Err(errors.New(fmt.Sprintf("invalid association %v for %v", column, scopeType)))
+			scope.Err(fmt.Errorf("invalid association %v for %v", column, scopeType))
 		}
 	} else {
-		scope.Err(errors.New(fmt.Sprintf("%v doesn't have column %v", scopeType, column)))
+		scope.Err(fmt.Errorf("%v doesn't have column %v", scopeType, column))
 	}
 
 	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, Field: field}
