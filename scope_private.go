@@ -308,6 +308,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 	fieldTag := field.Tag.Get(scope.db.parent.tagIdentifier)
 	if fieldTag == "-" {
 		field.IsIgnored = true
+		return
 	}
 
 	var setting = parseTagSetting(fieldTag)
