@@ -41,6 +41,19 @@ func Query(scope *Scope) {
 			return
 		}
 
+		colToFieldMap := make(map[string]string)
+		if destType != nil && destType.Kind() == reflect.Struct {
+			for i := 0; i < destType.NumField(); i++ {
+				fieldName := destType.Field(i).Name
+				dbColumnName := ToSnake(fieldName)
+				settings := parseTagSetting(destType.Field(i).Tag.Get("gorm"))
+				if colName, ok := settings["COLUMN"]; ok && colName != "" {
+					dbColumnName = colName
+				}
+				colToFieldMap[dbColumnName] = fieldName
+			}
+		}
+
 		defer rows.Close()
 		for rows.Next() {
 			anyRecordFound = true
@@ -52,7 +65,11 @@ func Query(scope *Scope) {
 			columns, _ := rows.Columns()
 			var values []interface{}
 			for _, value := range columns {
-				field := elem.FieldByName(SnakeToUpperCamel(strings.ToLower(value)))
+				fieldName, ok := colToFieldMap[value]
+				if !ok {
+					fieldName = SnakeToUpperCamel(strings.ToLower(value))
+				}
+				field := elem.FieldByName(fieldName)
 				if field.IsValid() {
 					values = append(values, field.Addr().Interface())
 				} else {

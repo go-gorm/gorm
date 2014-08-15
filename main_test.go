@@ -553,3 +553,40 @@ func BenchmarkRawSql(b *testing.B) {
 		db.Exec(delete_sql, id)
 	}
 }
+
+type MappedFields struct {
+	Id   int64     `gorm:"column:mapped_id; primary_key:yes"`
+	Name string    `gorm:"column:mapped_name"`
+	Date time.Time `gorm:"column:mapped_time"`
+}
+
+func TestMappedFields(t *testing.T) {
+	col := "mapped_name"
+	db := db.Model("")
+	scope := db.NewScope(&MappedFields{})
+	if !scope.Dialect().HasColumn(scope, "mapped_fields", col) {
+		t.Errorf("MappedFields should have column %s", col)
+	}
+	col = "mapped_id"
+	if scope.PrimaryKey() != col {
+		t.Errorf("MappedFields should have primary key %s, but got %q", col, scope.PrimaryKey())
+	}
+
+	expected := "foo"
+	mf := MappedFields{Id: 666, Name: expected, Date: time.Now()}
+	if !db.NewRecord(mf) || !db.NewRecord(&mf) {
+		t.Error("MappedFields should be new record before create")
+	}
+	if count := db.Save(&mf).RowsAffected; count != 1 {
+		t.Error("There should be one record be affected when create record")
+	}
+
+	var mfs []MappedFields
+	db.Table("mapped_fields").Find(&mfs)
+	if len(mfs) != 1 {
+		t.Errorf("Query from specified table")
+	}
+	if len(mfs) > 0 && mfs[0].Name != expected {
+		t.Errorf("Failed to query MappedFields, expected %q, got %q", expected, mfs[0].Name)
+	}
+}
