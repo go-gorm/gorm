@@ -32,6 +32,7 @@ type User struct {
 	IgnoreMe          int64                 `sql:"-"`
 	IgnoreStringSlice []string              `sql:"-"`
 	Ignored           struct{ Name string } `sql:"-"`
+	IgnoredPointer    *User                 `sql:"-"`
 }
 
 type CreditCard struct {

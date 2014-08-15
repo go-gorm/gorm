@@ -267,6 +267,9 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 
 	if !field.IsIgnored {
 		// parse association
+		if !indirectValue.IsValid() {
+			indirectValue = reflect.New(value.Type())
+		}
 		typ := indirectValue.Type()
 		foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
 		associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
