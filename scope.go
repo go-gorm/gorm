@@ -18,7 +18,6 @@ type Scope struct {
 	Sql           string
 	SqlVars       []interface{}
 	db            *DB
-	_values       map[string]interface{}
 	skipLeft      bool
 	primaryKey    string
 }
@@ -34,7 +33,7 @@ func (scope *Scope) IndirectValue() reflect.Value {
 // NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
 	db.Value = value
-	return &Scope{db: db, Search: db.search, Value: value, _values: map[string]interface{}{}}
+	return &Scope{db: db, Search: db.search, Value: value}
 }
 
 // New create a new Scope without search information
@@ -363,15 +362,13 @@ func (scope *Scope) Exec() *Scope {
 }
 
 // Set set value by name
-func (scope *Scope) Set(name string, value interface{}) *Scope {
-	scope._values[name] = value
-	return scope
+func (scope *Scope) Set(name string, value interface{}) {
+	scope.db.Set(name, value)
 }
 
 // Get get value by name
-func (scope *Scope) Get(name string) (value interface{}, ok bool) {
-	value, ok = scope._values[name]
-	return
+func (scope *Scope) Get(name string) (interface{}, bool) {
+	return scope.db.Get(name)
 }
 
 // Trace print sql log

@@ -21,6 +21,7 @@ type DB struct {
 	tagIdentifier string
 	singularTable bool
 	source        string
+	values        map[string]interface{}
 }
 
 func Open(dialect string, drivesources ...string) (DB, error) {
@@ -39,7 +40,7 @@ func Open(dialect string, drivesources ...string) (DB, error) {
 			source = drivesources[1]
 		}
 
-		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source}
+		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source, values: map[string]interface{}{}}
 		db.db, err = sql.Open(driver, source)
 		db.parent = &db
 	}
@@ -184,7 +185,7 @@ func (s *DB) Rows() (*sql.Rows, error) {
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	scope := s.clone().NewScope(s.Value).Set("gorm:query_destination", dest)
+	scope := s.clone().Set("gorm:query_destination", dest).NewScope(s.Value)
 	Query(scope)
 	return scope.db
 }
@@ -212,7 +213,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
 	} else if len(c.search.AssignAttrs) > 0 {
-		c.NewScope(out).Set("gorm:update_interface", s.search.AssignAttrs).callCallbacks(s.parent.callback.updates)
+		c.Set("gorm:update_interface", s.search.AssignAttrs).NewScope(out).callCallbacks(s.parent.callback.updates)
 	}
 	return c
 }
@@ -222,9 +223,10 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.clone().NewScope(s.Value).
+	return s.clone().
 		Set("gorm:update_interface", values).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
+		NewScope(s.Value).
 		callCallbacks(s.parent.callback.updates).db
 }
 
@@ -233,9 +235,10 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 }
 
 func (s *DB) UpdateColumns(values interface{}) *DB {
-	return s.clone().NewScope(s.Value).
+	return s.clone().
 		Set("gorm:update_interface", values).
 		Set("gorm:update_column", true).
+		NewScope(s.Value).
 		callCallbacks(s.parent.callback.updates).db
 }
 
@@ -397,4 +400,16 @@ func (s *DB) Association(column string) *Association {
 	}
 
 	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, Field: field}
+}
+
+// Set set value by name
+func (s *DB) Set(name string, value interface{}) *DB {
+	s.values[name] = value
+	return s
+}
+
+// Get get value by name
+func (s *DB) Get(name string) (value interface{}, ok bool) {
+	value, ok = s.values[name]
+	return
 }
