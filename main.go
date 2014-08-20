@@ -344,8 +344,12 @@ func (s *DB) DropTableIfExists(value interface{}) *DB {
 	return s.clone().NewScope(value).dropTableIfExists().db
 }
 
-func (s *DB) AutoMigrate(value interface{}) *DB {
-	return s.clone().NewScope(value).autoMigrate().db
+func (s *DB) AutoMigrate(values ...interface{}) *DB {
+	db := s.clone()
+	for _, value := range values {
+		db = db.NewScope(value).autoMigrate().db
+	}
+	return db
 }
 
 func (s *DB) ModifyColumn(column string, typ string) *DB {

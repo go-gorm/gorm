@@ -25,35 +25,11 @@ func runMigration() {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	if err := db.CreateTable(&User{}).Error; err != nil {
+	if err := db.CreateTable(User{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	if err := db.CreateTable(&Product{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.CreateTable(Email{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.AutoMigrate(Address{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.AutoMigrate(&CreditCard{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.AutoMigrate(Company{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.AutoMigrate(Role{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := db.AutoMigrate(Language{}).Error; err != nil {
+	if err := db.AutoMigrate(&Product{}, Email{}, Address{}, CreditCard{}, Company{}, Role{}, Language{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 }
