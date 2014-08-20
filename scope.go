@@ -204,7 +204,7 @@ func (scope *Scope) TableName() string {
 
 		str := ToSnake(data.Type().Name())
 
-		if !scope.db.parent.singularTable {
+		if scope.db != nil && !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
 				if reg.MatchString(str) {
 					return reg.ReplaceAllString(str, pluralMapValues[index])
