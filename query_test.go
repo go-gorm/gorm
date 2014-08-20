@@ -332,7 +332,6 @@ func TestCount(t *testing.T) {
 func TestNot(t *testing.T) {
 	var users1, users2, users3, users4, users5, users6, users7, users8 []User
 	db.Find(&users1)
-
 	db.Not(users1[0].Id).Find(&users2)
 
 	if len(users1)-len(users2) != 1 {

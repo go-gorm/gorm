@@ -185,7 +185,7 @@ func (s *DB) Rows() (*sql.Rows, error) {
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	scope := s.clone().Set("gorm:query_destination", dest).NewScope(s.Value)
+	scope := s.clone().NewScope(s.Value).InstanceSet("gorm:query_destination", dest)
 	Query(scope)
 	return scope.db
 }
@@ -213,7 +213,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
 	} else if len(c.search.AssignAttrs) > 0 {
-		c.Set("gorm:update_interface", s.search.AssignAttrs).NewScope(out).callCallbacks(s.parent.callback.updates)
+		c.NewScope(out).InstanceSet("gorm:update_interface", s.search.AssignAttrs).callCallbacks(s.parent.callback.updates)
 	}
 	return c
 }
@@ -223,10 +223,9 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 }
 
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.clone().
-		Set("gorm:update_interface", values).
+	return s.clone().NewScope(s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
-		NewScope(s.Value).
+		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callback.updates).db
 }
 
@@ -235,10 +234,9 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 }
 
 func (s *DB) UpdateColumns(values interface{}) *DB {
-	return s.clone().
-		Set("gorm:update_interface", values).
+	return s.clone().NewScope(s.Value).
 		Set("gorm:update_column", true).
-		NewScope(s.Value).
+		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callback.updates).db
 }
 
@@ -404,6 +402,10 @@ func (s *DB) Association(column string) *Association {
 
 // Set set value by name
 func (s *DB) Set(name string, value interface{}) *DB {
+	return s.clone().set(name, value)
+}
+
+func (s *DB) set(name string, value interface{}) *DB {
 	s.values[name] = value
 	return s
 }

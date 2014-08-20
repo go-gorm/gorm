@@ -20,6 +20,7 @@ type Scope struct {
 	db            *DB
 	skipLeft      bool
 	primaryKey    string
+	instanceId    string
 }
 
 func (scope *Scope) IndirectValue() reflect.Value {
@@ -362,13 +363,30 @@ func (scope *Scope) Exec() *Scope {
 }
 
 // Set set value by name
-func (scope *Scope) Set(name string, value interface{}) {
-	scope.db.Set(name, value)
+func (scope *Scope) Set(name string, value interface{}) *Scope {
+	scope.db.set(name, value)
+	return scope
 }
 
 // Get get value by name
 func (scope *Scope) Get(name string) (interface{}, bool) {
 	return scope.db.Get(name)
+}
+
+// InstanceId get InstanceId for scope
+func (scope *Scope) InstanceId() string {
+	if scope.instanceId == "" {
+		scope.instanceId = fmt.Sprintf("%v", &scope)
+	}
+	return scope.instanceId
+}
+
+func (scope *Scope) InstanceSet(name string, value interface{}) *Scope {
+	return scope.Set(name+scope.InstanceId(), value)
+}
+
+func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
+	return scope.Get(name + scope.InstanceId())
 }
 
 // Trace print sql log
@@ -383,7 +401,7 @@ func (scope *Scope) Begin() *Scope {
 	if db, ok := scope.DB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
 			scope.db.db = interface{}(tx).(sqlCommon)
-			scope.Set("gorm:started_transaction", true)
+			scope.InstanceSet("gorm:started_transaction", true)
 		}
 	}
 	return scope
@@ -391,7 +409,7 @@ func (scope *Scope) Begin() *Scope {
 
 // CommitOrRollback commit current transaction if there is no error, otherwise rollback it
 func (scope *Scope) CommitOrRollback() *Scope {
-	if _, ok := scope.Get("gorm:started_transaction"); ok {
+	if _, ok := scope.InstanceGet("gorm:started_transaction"); ok {
 		if db, ok := scope.db.db.(sqlTx); ok {
 			if scope.HasError() {
 				db.Rollback()

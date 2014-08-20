@@ -6,7 +6,11 @@ import (
 )
 
 func (s *DB) clone() *DB {
-	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, values: s.values}
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, values: map[string]interface{}{}}
+
+	for key, value := range s.values {
+		db.values[key] = value
+	}
 
 	if s.search == nil {
 		db.search = &search{}

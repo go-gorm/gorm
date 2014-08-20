@@ -494,6 +494,20 @@ func TestHstore(t *testing.T) {
 	}
 }
 
+func TestSetAndGet(t *testing.T) {
+	if value, ok := db.Set("hello", "world").Get("hello"); !ok {
+		t.Errorf("Should be able to get setting after set")
+	} else {
+		if value.(string) != "world" {
+			t.Errorf("Setted value should not be changed")
+		}
+	}
+
+	if _, ok := db.Get("non_existing"); ok {
+		t.Errorf("Get non existing key should return error")
+	}
+}
+
 func TestCompatibilityMode(t *testing.T) {
 	db, _ := gorm.Open("testdb", "")
 	testdb.SetQueryFunc(func(query string) (driver.Rows, error) {

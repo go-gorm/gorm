@@ -63,7 +63,7 @@ func TestRelated(t *testing.T) {
 		CreditCard:      CreditCard{Number: "1234567890"},
 	}
 
-	db.Debug().Save(&user)
+	db.Save(&user)
 
 	if user.CreditCard.Id == 0 {
 		t.Errorf("After user save, credit card should have id")
