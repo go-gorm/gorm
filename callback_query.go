@@ -3,11 +3,10 @@ package gorm
 import (
 	"reflect"
 	"strings"
-	"time"
 )
 
 func Query(scope *Scope) {
-	defer scope.Trace(time.Now())
+	defer scope.Trace(NowFunc())
 
 	var (
 		isSlice        bool

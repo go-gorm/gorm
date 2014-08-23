@@ -24,7 +24,7 @@ var sqlRegexp = regexp.MustCompile(`(\$\d+)|\?`)
 func (logger Logger) Print(v ...interface{}) {
 	if len(v) > 1 {
 		level := v[0]
-		currentTime := "\n\033[33m[" + time.Now().Format("2006-01-02 15:04:05") + "]\033[0m"
+		currentTime := "\n\033[33m[" + NowFunc().Format("2006-01-02 15:04:05") + "]\033[0m"
 		source := fmt.Sprintf("\033[35m(%v)\033[0m", v[1])
 		messages := []interface{}{source, currentTime}
 
