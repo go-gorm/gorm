@@ -392,10 +392,10 @@ func (s *DB) Association(column string) *Association {
 
 // Set set value by name
 func (s *DB) Set(name string, value interface{}) *DB {
-	return s.clone().set(name, value)
+	return s.clone().InstantSet(name, value)
 }
 
-func (s *DB) set(name string, value interface{}) *DB {
+func (s *DB) InstantSet(name string, value interface{}) *DB {
 	s.values[name] = value
 	return s
 }

@@ -364,7 +364,7 @@ func (scope *Scope) Exec() *Scope {
 
 // Set set value by name
 func (scope *Scope) Set(name string, value interface{}) *Scope {
-	scope.db.set(name, value)
+	scope.db.InstantSet(name, value)
 	return scope
 }
 
