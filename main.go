@@ -153,23 +153,13 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	scope := s.clone().NewScope(out)
-	if primaryKey := scope.PrimaryKey(); primaryKey != "" {
-		scope.Search = scope.Search.clone().order(scope.TableName() + "." + primaryKey).limit(1)
-	} else {
-		scope.Search = scope.Search.clone().limit(1)
-	}
-	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
+	return s.clone().Limit(1).NewScope(out).InstanceSet("gorm:order_by_primary_key", "ASC").
+		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	scope := s.clone().NewScope(out)
-	if primaryKey := scope.PrimaryKey(); primaryKey != "" {
-		scope.Search = scope.Search.clone().order(scope.TableName() + "." + primaryKey + " DESC").limit(1)
-	} else {
-		scope.Search = scope.Search.clone().limit(1)
-	}
-	return scope.inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
+	return s.clone().Limit(1).NewScope(out).InstanceSet("gorm:order_by_primary_key", "DESC").
+		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {

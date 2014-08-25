@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"time"
@@ -19,6 +20,12 @@ func Query(scope *Scope) {
 	var dest = scope.IndirectValue()
 	if value, ok := scope.InstanceGet("gorm:query_destination"); ok {
 		dest = reflect.Indirect(reflect.ValueOf(value))
+	}
+
+	if orderBy, ok := scope.InstanceGet("gorm:order_by_primary_key"); ok {
+		if primaryKey := scope.PrimaryKey(); primaryKey != "" {
+			scope.Search = scope.Search.clone().order(fmt.Sprintf("%v.%v %v", scope.TableName(), primaryKey, orderBy))
+		}
 	}
 
 	if dest.Kind() == reflect.Slice {
