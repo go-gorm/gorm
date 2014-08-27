@@ -36,42 +36,49 @@ func TestRegisterCallback(t *testing.T) {
 	}
 }
 
-func TestRegisterCallbackWithBasicOrder(t *testing.T) {
-	var callback = &callback{processors: []*callback_processor{}}
+func TestRegisterCallbackWithOrder(t *testing.T) {
+	var callback1 = &callback{processors: []*callback_processor{}}
+	callback1.Create().Register("before_create1", before_create1)
+	callback1.Create().Register("create", create)
+	callback1.Create().Register("after_create1", after_create1)
+	callback1.Create().Before("after_create1").Register("after_create2", after_create2)
+	if !equalFuncs(callback1.creates, []string{"before_create1", "create", "after_create2", "after_create1"}) {
+		t.Errorf("register callback with order")
+	}
 
-	callback.Update().Register("create", create)
-	callback.Update().Before("create").Register("before_create1", before_create1)
-	callback.Update().After("after_create2").Register("after_create1", after_create1)
-	callback.Update().Before("before_create1").Register("before_create2", before_create2)
-	callback.Update().Register("after_create2", after_create2)
+	var callback2 = &callback{processors: []*callback_processor{}}
 
-	if !equalFuncs(callback.updates, []string{"before_create2", "before_create1", "create", "after_create2", "after_create1"}) {
+	callback2.Update().Register("create", create)
+	callback2.Update().Before("create").Register("before_create1", before_create1)
+	callback2.Update().After("after_create2").Register("after_create1", after_create1)
+	callback2.Update().Before("before_create1").Register("before_create2", before_create2)
+	callback2.Update().Register("after_create2", after_create2)
+
+	if !equalFuncs(callback2.updates, []string{"before_create2", "before_create1", "create", "after_create2", "after_create1"}) {
 		t.Errorf("register callback with order")
 	}
 }
 
-func TestRegisterCallbackWithComplexOrder1(t *testing.T) {
-	var callback = &callback{processors: []*callback_processor{}}
+func TestRegisterCallbackWithComplexOrder(t *testing.T) {
+	var callback1 = &callback{processors: []*callback_processor{}}
 
-	callback.Query().Before("after_create1").After("before_create1").Register("create", create)
-	callback.Query().Register("before_create1", before_create1)
-	callback.Query().Register("after_create1", after_create1)
+	callback1.Query().Before("after_create1").After("before_create1").Register("create", create)
+	callback1.Query().Register("before_create1", before_create1)
+	callback1.Query().Register("after_create1", after_create1)
 
-	if !equalFuncs(callback.queries, []string{"before_create1", "create", "after_create1"}) {
+	if !equalFuncs(callback1.queries, []string{"before_create1", "create", "after_create1"}) {
 		t.Errorf("register callback with order")
 	}
-}
 
-func TestRegisterCallbackWithComplexOrder2(t *testing.T) {
-	var callback = &callback{processors: []*callback_processor{}}
+	var callback2 = &callback{processors: []*callback_processor{}}
 
-	callback.Delete().Before("after_create1").After("before_create1").Register("create", create)
-	callback.Delete().Before("create").Register("before_create1", before_create1)
-	callback.Delete().After("before_create1").Register("before_create2", before_create2)
-	callback.Delete().Register("after_create1", after_create1)
-	callback.Delete().After("after_create1").Register("after_create2", after_create2)
+	callback2.Delete().Before("after_create1").After("before_create1").Register("create", create)
+	callback2.Delete().Before("create").Register("before_create1", before_create1)
+	callback2.Delete().After("before_create1").Register("before_create2", before_create2)
+	callback2.Delete().Register("after_create1", after_create1)
+	callback2.Delete().After("after_create1").Register("after_create2", after_create2)
 
-	if !equalFuncs(callback.deletes, []string{"before_create1", "before_create2", "create", "after_create1", "after_create2"}) {
+	if !equalFuncs(callback2.deletes, []string{"before_create1", "before_create2", "create", "after_create1", "after_create2"}) {
 		t.Errorf("register callback with order")
 	}
 }

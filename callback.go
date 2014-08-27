@@ -88,7 +88,7 @@ func getRIndex(strs []string, str string) int {
 }
 
 func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
-	var sortCallbackProcessor func(c *callback_processor, force bool)
+	var sortCallbackProcessor func(c *callback_processor)
 	var names, sortedNames = []string{}, []string{}
 
 	for _, cp := range cps {
@@ -104,7 +104,7 @@ func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
 		names = append(names, cp.name)
 	}
 
-	sortCallbackProcessor = func(c *callback_processor, force bool) {
+	sortCallbackProcessor = func(c *callback_processor) {
 		if getRIndex(sortedNames, c.name) > -1 {
 			return
 		}
@@ -114,7 +114,7 @@ func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
 				sortedNames = append(sortedNames[:index], append([]string{c.name}, sortedNames[index:]...)...)
 			} else if index := getRIndex(names, c.before); index > -1 {
 				sortedNames = append(sortedNames, c.name)
-				sortCallbackProcessor(cps[index], true)
+				sortCallbackProcessor(cps[index])
 			} else {
 				sortedNames = append(sortedNames, c.name)
 			}
@@ -128,19 +128,19 @@ func sortProcessors(cps []*callback_processor) []*func(scope *Scope) {
 				if len(cp.before) == 0 {
 					cp.before = c.name
 				}
-				sortCallbackProcessor(cp, true)
+				sortCallbackProcessor(cp)
 			} else {
 				sortedNames = append(sortedNames, c.name)
 			}
 		}
 
-		if getRIndex(sortedNames, c.name) == -1 && force {
+		if getRIndex(sortedNames, c.name) == -1 {
 			sortedNames = append(sortedNames, c.name)
 		}
 	}
 
 	for _, cp := range cps {
-		sortCallbackProcessor(cp, false)
+		sortCallbackProcessor(cp)
 	}
 
 	var funcs = []*func(scope *Scope){}
