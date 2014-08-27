@@ -129,7 +129,7 @@ db.DropTableIfExists(User{})
 
 // Automating Migration
 db.AutoMigrate(User{})
-db.AutoMigrate(User{}, Proudct{}, Order{})
+db.AutoMigrate(User{}, Product{}, Order{})
 
 // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 // Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
