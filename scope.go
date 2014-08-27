@@ -349,7 +349,7 @@ func (scope *Scope) Raw(sql string) *Scope {
 
 // Exec invoke sql
 func (scope *Scope) Exec() *Scope {
-	defer scope.Trace(time.Now())
+	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
 		result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)

@@ -5,7 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 )
+
+// NowFunc returns current time, this function is exported in order to be able
+// to give the flexiblity to the developer to costumize it accoring to their
+// needs
+//
+//   e.g: return time.Now().UTC()
+//
+var NowFunc = func() time.Time {
+	return time.Now()
+}
 
 type DB struct {
 	Value         interface{}

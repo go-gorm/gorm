@@ -27,7 +27,7 @@ There are four kinds of callbacks corresponds to sql's CURD: create callbacks, u
 
     func updateCreated(scope *Scope) {
         if scope.HasColumn("Created") {
-            scope.SetColumn("Created", time.Now())
+            scope.SetColumn("Created", NowFunc())
         }
     }
 
