@@ -39,7 +39,7 @@ func (db *DB) NewScope(value interface{}) *Scope {
 
 // New create a new Scope without search information
 func (scope *Scope) New(value interface{}) *Scope {
-	return &Scope{db: scope.db.parent, Search: &search{}, Value: value}
+	return &Scope{db: scope.db, Search: &search{}, Value: value}
 }
 
 // NewDB create a new DB without search information
