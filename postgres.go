@@ -77,7 +77,7 @@ func (s *postgres) Quote(key string) string {
 func (s *postgres) HasTable(scope *Scope, tableName string) bool {
 	var count int
 	newScope := scope.New(nil)
-	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v", newScope.AddToVars(tableName)))
+	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v and table_type = 'BASE TABLE'", newScope.AddToVars(tableName)))
 	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
