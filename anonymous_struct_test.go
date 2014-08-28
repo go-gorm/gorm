@@ -3,18 +3,17 @@ package gorm_test
 import "testing"
 
 type BasePost struct {
+	Id    int64
 	Title string
 	Url   string
 }
 
 type HNPost struct {
-	Id       int64
 	BasePost `gorm:"embedded"`
 	Upvotes  int32
 }
 
 type EngadgetPost struct {
-	Id int64
 	BasePost
 	ImageUrl string
 }

@@ -11,15 +11,14 @@ func runMigration() {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
 
-	DB.Exec("drop table products;")
-	DB.Exec("drop table emails;")
-	DB.Exec("drop table addresses")
-	DB.Exec("drop table credit_cards")
-	DB.Exec("drop table roles")
-	DB.Exec("drop table companies")
-	DB.Exec("drop table animals")
-	DB.Exec("drop table user_languages")
-	DB.Exec("drop table languages")
+	for _, table := range []string{"animals", "user_languages"} {
+		DB.Exec(fmt.Sprintf("drop table %v;", table))
+	}
+
+	values := []interface{}{&Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}}
+	for _, value := range values {
+		DB.DropTable(value)
+	}
 
 	if err := DB.CreateTable(&Animal{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
@@ -29,7 +28,7 @@ func runMigration() {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	if err := DB.AutoMigrate(&Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}).Error; err != nil {
+	if err := DB.AutoMigrate(values...).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 }

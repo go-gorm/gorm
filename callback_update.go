@@ -50,7 +50,7 @@ func Update(scope *Scope) {
 			}
 		} else {
 			for _, field := range scope.Fields() {
-				if field.DBName != scope.PrimaryKey() && len(field.SqlTag) > 0 && !field.IsIgnored {
+				if !field.IsPrimaryKey && len(field.SqlTag) > 0 && !field.IsIgnored {
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
 				}
 			}
