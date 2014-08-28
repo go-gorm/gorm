@@ -16,6 +16,7 @@ type relationship struct {
 type Field struct {
 	Name         string
 	DBName       string
+	Field        reflect.Value
 	Value        interface{}
 	Tag          reflect.StructTag
 	SqlTag       string

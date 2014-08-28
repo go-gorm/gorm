@@ -3,7 +3,6 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 func Query(scope *Scope) {
@@ -57,10 +56,10 @@ func Query(scope *Scope) {
 
 			columns, _ := rows.Columns()
 			var values []interface{}
+			fields := scope.New(elem.Addr().Interface()).Fields()
 			for _, value := range columns {
-				field := elem.FieldByName(SnakeToUpperCamel(strings.ToLower(value)))
-				if field.IsValid() {
-					values = append(values, field.Addr().Interface())
+				if field, ok := fields[value]; ok {
+					values = append(values, field.Field.Addr().Interface())
 				} else {
 					var ignore interface{}
 					values = append(values, &ignore)

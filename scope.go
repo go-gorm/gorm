@@ -33,6 +33,10 @@ func (scope *Scope) IndirectValue() reflect.Value {
 
 // NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
+	// reflectKind := reflect.ValueOf(value).Kind()
+	// if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
+	// 	fmt.Printf("%v %v\n", fileWithLineNum(), "using unaddressable value")
+	// }
 	db.Value = value
 	return &Scope{db: db, Search: db.search, Value: value}
 }
@@ -252,6 +256,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
+	field.Field = value
 	field.Value = value.Interface()
 	field.IsBlank = isBlank(value)
 
@@ -315,7 +320,12 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 		case reflect.Struct:
 			embedded := settings["EMBEDDED"]
 			if embedded != "" {
-				return scope.New(field.Value).Fields()
+				var fields []*Field
+				for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
+					field.DBName = prefix + field.DBName
+					fields = append(fields, field)
+				}
+				return fields
 			} else if !field.IsTime() && !field.IsScanner() {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
 					field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}
@@ -336,7 +346,8 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 }
 
 // Fields get value's fields
-func (scope *Scope) Fields() (fields []*Field) {
+func (scope *Scope) Fields() map[string]*Field {
+	var fields = map[string]*Field{}
 	if scope.IndirectValue().IsValid() {
 		scopeTyp := scope.IndirectValue().Type()
 		for i := 0; i < scopeTyp.NumField(); i++ {
@@ -344,10 +355,12 @@ func (scope *Scope) Fields() (fields []*Field) {
 			if !ast.IsExported(fieldStruct.Name) {
 				continue
 			}
-			fields = append(fields, scope.fieldFromStruct(fieldStruct)...)
+			for _, field := range scope.fieldFromStruct(fieldStruct) {
+				fields[field.DBName] = field
+			}
 		}
 	}
-	return
+	return fields
 }
 
 // Raw set sql
