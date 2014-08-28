@@ -263,11 +263,6 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 	// Search for primary key tag identifier
 	settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
 
-	prefix := settings["PREFIX"]
-	if prefix == "-" {
-		prefix = ""
-	}
-
 	if scope.PrimaryKey() == field.DBName {
 		field.IsPrimaryKey = true
 	}
@@ -322,7 +317,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 			if embedded != "" {
 				var fields []*Field
 				for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
-					field.DBName = prefix + field.DBName
+					field.DBName = field.DBName
 					fields = append(fields, field)
 				}
 				return fields
@@ -356,7 +351,11 @@ func (scope *Scope) Fields() map[string]*Field {
 				continue
 			}
 			for _, field := range scope.fieldFromStruct(fieldStruct) {
-				fields[field.DBName] = field
+				if _, ok := fields[field.DBName]; ok {
+					panic(fmt.Sprintf("Duplicated column name for %v (%v)\n", scope.typeName(), fileWithLineNum()))
+				} else {
+					fields[field.DBName] = field
+				}
 			}
 		}
 	}
