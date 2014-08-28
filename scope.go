@@ -235,20 +235,20 @@ func (scope *Scope) CombinedConditionSql() string {
 }
 
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
-	var f reflect.StructField
 	if scope.Value != nil {
 		if scope.IndirectValue().Kind() == reflect.Struct {
-			if f, ok = scope.IndirectValue().Type().FieldByName(SnakeToUpperCamel(name)); ok {
-				field = scope.fieldFromStruct(f)
+			if f, ok := scope.IndirectValue().Type().FieldByName(SnakeToUpperCamel(name)); ok {
+				return scope.fieldFromStruct(f)[0], true
 			}
 		}
 	}
-	return
+	return nil, false
 }
 
-func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
+func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 	var field Field
 	field.Name = fieldStruct.Name
+	field.DBName = ToSnake(fieldStruct.Name)
 
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
@@ -262,7 +262,6 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 	if prefix == "-" {
 		prefix = ""
 	}
-	field.DBName = prefix + ToSnake(fieldStruct.Name)
 
 	if scope.PrimaryKey() == field.DBName {
 		field.IsPrimaryKey = true
@@ -314,7 +313,10 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 				}
 			}
 		case reflect.Struct:
-			if !field.IsTime() && !field.IsScanner() {
+			embedded := settings["EMBEDDED"]
+			if embedded != "" {
+				return scope.New(field.Value).Fields()
+			} else if !field.IsTime() && !field.IsScanner() {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
 					field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}
 				} else if scope.HasColumn(foreignKey) {
@@ -330,7 +332,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 			}
 		}
 	}
-	return &field
+	return []*Field{&field}
 }
 
 // Fields get value's fields
@@ -342,7 +344,7 @@ func (scope *Scope) Fields() (fields []*Field) {
 			if !ast.IsExported(fieldStruct.Name) {
 				continue
 			}
-			fields = append(fields, scope.fieldFromStruct(fieldStruct))
+			fields = append(fields, scope.fieldFromStruct(fieldStruct)...)
 		}
 	}
 	return

@@ -29,11 +29,9 @@ func runMigration() {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
-	if err := DB.AutoMigrate(&Product{}, Email{}, Address{}, CreditCard{}, Company{}, Role{}, Language{}).Error; err != nil {
+	if err := DB.AutoMigrate(&Product{}, Email{}, Address{}, CreditCard{}, Company{}, Role{}, Language{}, HNPost{}, EngadgetPost{}).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
-
-	DB.AutoMigrate(HNPost{}, EngadgetPost{})
 }
 
 func TestIndexes(t *testing.T) {

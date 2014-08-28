@@ -394,14 +394,13 @@ func (s *DB) Association(column string) *Association {
 	}
 
 	var field *Field
-	scopeType := scope.IndirectValue().Type()
-	if f, ok := scopeType.FieldByName(SnakeToUpperCamel(column)); ok {
-		field = scope.fieldFromStruct(f)
+	var ok bool
+	if field, ok = scope.FieldByName(SnakeToUpperCamel(column)); ok {
 		if field.Relationship == nil || field.Relationship.ForeignKey == "" {
-			scope.Err(fmt.Errorf("invalid association %v for %v", column, scopeType))
+			scope.Err(fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type()))
 		}
 	} else {
-		scope.Err(fmt.Errorf("%v doesn't have column %v", scopeType, column))
+		scope.Err(fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column))
 	}
 
 	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, Field: field}
