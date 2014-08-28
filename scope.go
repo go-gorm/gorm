@@ -249,7 +249,6 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 	var field Field
 	field.Name = fieldStruct.Name
-	field.DBName = ToSnake(fieldStruct.Name)
 
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
@@ -258,6 +257,13 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 
 	// Search for primary key tag identifier
 	settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
+
+	prefix := settings["PREFIX"]
+	if prefix == "-" {
+		prefix = ""
+	}
+	field.DBName = prefix + ToSnake(fieldStruct.Name)
+
 	if scope.PrimaryKey() == field.DBName {
 		field.IsPrimaryKey = true
 	}
@@ -271,10 +277,11 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) *Field {
 			indirectValue = reflect.New(value.Type())
 		}
 		typ := indirectValue.Type()
+		scopeTyp := scope.IndirectValue().Type()
+
 		foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
 		associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
 		many2many := settings["MANY2MANY"]
-		scopeTyp := scope.IndirectValue().Type()
 
 		switch indirectValue.Kind() {
 		case reflect.Slice:

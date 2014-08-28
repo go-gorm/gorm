@@ -10,20 +10,20 @@ func TestCreate(t *testing.T) {
 	float := 35.03554004971999
 	user := User{Name: "CreateUser", Age: 18, Birthday: time.Now(), UserNum: Num(111), PasswordHash: []byte{'f', 'a', 'k', '4'}, Latitude: float}
 
-	if !db.NewRecord(user) || !db.NewRecord(&user) {
+	if !DB.NewRecord(user) || !DB.NewRecord(&user) {
 		t.Error("User should be new record before create")
 	}
 
-	if count := db.Save(&user).RowsAffected; count != 1 {
+	if count := DB.Save(&user).RowsAffected; count != 1 {
 		t.Error("There should be one record be affected when create record")
 	}
 
-	if db.NewRecord(user) || db.NewRecord(&user) {
+	if DB.NewRecord(user) || DB.NewRecord(&user) {
 		t.Error("User should not new record after save")
 	}
 
 	var newUser User
-	db.First(&newUser, user.Id)
+	DB.First(&newUser, user.Id)
 
 	if !reflect.DeepEqual(newUser.PasswordHash, []byte{'f', 'a', 'k', '4'}) {
 		t.Errorf("User's PasswordHash should be saved ([]byte)")
@@ -49,8 +49,8 @@ func TestCreate(t *testing.T) {
 		t.Errorf("Should have created_at after create")
 	}
 
-	db.Model(user).Update("name", "create_user_new_name")
-	db.First(&user, user.Id)
+	DB.Model(user).Update("name", "create_user_new_name")
+	DB.First(&user, user.Id)
 	if user.CreatedAt != newUser.CreatedAt {
 		t.Errorf("CreatedAt should not be changed after update")
 	}
@@ -58,7 +58,7 @@ func TestCreate(t *testing.T) {
 
 func TestCreateWithNoStdPrimaryKey(t *testing.T) {
 	animal := Animal{Name: "Ferdinand"}
-	if db.Save(&animal).Error != nil {
+	if DB.Save(&animal).Error != nil {
 		t.Errorf("No error should happen when create an record without std primary key")
 	}
 
@@ -69,10 +69,10 @@ func TestCreateWithNoStdPrimaryKey(t *testing.T) {
 
 func TestAnonymousScanner(t *testing.T) {
 	user := User{Name: "anonymous_scanner", Role: Role{Name: "admin"}}
-	db.Save(&user)
+	DB.Save(&user)
 
 	var user2 User
-	db.First(&user2, "name = ?", "anonymous_scanner")
+	DB.First(&user2, "name = ?", "anonymous_scanner")
 	if user2.Role.Name != "admin" {
 		t.Errorf("Should be able to get anonymous scanner")
 	}
@@ -84,11 +84,11 @@ func TestAnonymousScanner(t *testing.T) {
 
 func TestAnonymousField(t *testing.T) {
 	user := User{Name: "anonymous_field", Company: Company{Name: "company"}}
-	db.Save(&user)
+	DB.Save(&user)
 
 	var user2 User
-	db.First(&user2, "name = ?", "anonymous_field")
-	db.Model(&user2).Related(&user2.Company)
+	DB.First(&user2, "name = ?", "anonymous_field")
+	DB.Model(&user2).Related(&user2.Company)
 	if user2.Company.Name != "company" {
 		t.Errorf("Should be able to get anonymous field")
 	}

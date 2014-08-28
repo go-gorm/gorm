@@ -7,36 +7,36 @@ import (
 
 func TestDelete(t *testing.T) {
 	user1, user2 := User{Name: "delete1"}, User{Name: "delete2"}
-	db.Save(&user1)
-	db.Save(&user2)
+	DB.Save(&user1)
+	DB.Save(&user2)
 
-	if db.Delete(&user1).Error != nil {
+	if DB.Delete(&user1).Error != nil {
 		t.Errorf("No error should happen when delete a record")
 	}
 
-	if !db.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
+	if !DB.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("User can't be found after delete")
 	}
 
-	if db.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
+	if DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("Other users that not deleted should be found-able")
 	}
 }
 
 func TestInlineDelete(t *testing.T) {
 	user1, user2 := User{Name: "inline_delete1"}, User{Name: "inline_delete2"}
-	db.Save(&user1)
-	db.Save(&user2)
+	DB.Save(&user1)
+	DB.Save(&user2)
 
-	if db.Delete(&User{}, user1.Id).Error != nil {
+	if DB.Delete(&User{}, user1.Id).Error != nil {
 		t.Errorf("No error should happen when delete a record")
-	} else if !db.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
+	} else if !DB.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("User can't be found after delete")
 	}
 
-	if db.Delete(&User{}, "name = ?", user2.Name).Error != nil {
+	if DB.Delete(&User{}, "name = ?", user2.Name).Error != nil {
 		t.Errorf("No error should happen when delete a record")
-	} else if !db.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
+	} else if !DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("User can't be found after delete")
 	}
 }
@@ -47,22 +47,22 @@ func TestSoftDelete(t *testing.T) {
 		Name      string
 		DeletedAt time.Time
 	}
-	db.AutoMigrate(&User{})
+	DB.AutoMigrate(&User{})
 
 	user := User{Name: "soft_delete"}
-	db.Save(&user)
-	db.Delete(&user)
+	DB.Save(&user)
+	DB.Delete(&user)
 
-	if db.First(&User{}, "name = ?", user.Name).Error == nil {
+	if DB.First(&User{}, "name = ?", user.Name).Error == nil {
 		t.Errorf("Can't find a soft deleted record")
 	}
 
-	if db.Unscoped().First(&User{}, "name = ?", user.Name).Error != nil {
+	if DB.Unscoped().First(&User{}, "name = ?", user.Name).Error != nil {
 		t.Errorf("Should be able to find soft deleted record with Unscoped")
 	}
 
-	db.Unscoped().Delete(&user)
-	if !db.Unscoped().First(&User{}, "name = ?", user.Name).RecordNotFound() {
+	DB.Unscoped().Delete(&user)
+	if !DB.Unscoped().First(&User{}, "name = ?", user.Name).RecordNotFound() {
 		t.Errorf("Can't find permanently deleted record")
 	}
 }
