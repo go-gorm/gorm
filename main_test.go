@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"strconv"
+
 	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/now"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"strconv"
 
 	"os"
 	"testing"
@@ -125,6 +126,22 @@ type Cart struct {
 
 func (c Cart) TableName() string {
 	return "shopping_cart"
+}
+
+func TestHasTable(t *testing.T) {
+	type Foo struct {
+		Id    int
+		Stuff string
+	}
+	if table_ok := db.HasTable(&Foo{}); table_ok {
+		t.Errorf("Table should not exist, but does")
+	}
+	if err := db.CreateTable(&Foo{}).Error; err != nil {
+		t.Errorf("Table should be created")
+	}
+	if table_ok := db.HasTable(&Foo{}); !table_ok {
+		t.Errorf("Table should exist, but HasTable informs it does not")
+	}
 }
 
 func TestTableName(t *testing.T) {
