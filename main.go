@@ -346,6 +346,12 @@ func (s *DB) DropTableIfExists(value interface{}) *DB {
 	return s.clone().NewScope(value).dropTableIfExists().db
 }
 
+func (s *DB) HasTable(value interface{}) bool {
+	scope := s.clone().NewScope(value)
+	tableName := scope.TableName()
+	return scope.Dialect().HasTable(scope, tableName)
+}
+
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
