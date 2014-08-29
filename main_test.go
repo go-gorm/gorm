@@ -133,6 +133,7 @@ func TestHasTable(t *testing.T) {
 		Id    int
 		Stuff string
 	}
+	db.DropTable(&Foo{})
 	if table_ok := db.HasTable(&Foo{}); table_ok {
 		t.Errorf("Table should not exist, but does")
 	}
