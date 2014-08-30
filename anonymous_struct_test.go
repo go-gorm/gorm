@@ -9,8 +9,8 @@ type BasePost struct {
 }
 
 type HNPost struct {
-	BasePost `gorm:"embedded"`
-	Upvotes  int32
+	BasePost
+	Upvotes int32
 }
 
 type EngadgetPost struct {

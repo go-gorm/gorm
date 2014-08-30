@@ -338,16 +338,15 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 				field.IsNormal = true
 			}
 		case reflect.Struct:
-			embedded := settings["EMBEDDED"]
-			if embedded != "" {
+			if field.IsTime() || field.IsScanner() {
+				field.IsNormal = true
+			} else if embedded := settings["EMBEDDED"]; strings.ToUpper(embedded) == "EMBEDDED" || (embedded == "" && fieldStruct.Anonymous) {
 				var fields []*Field
 				for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
 					field.DBName = field.DBName
 					fields = append(fields, field)
 				}
 				return fields
-			} else if field.IsTime() || field.IsScanner() {
-				field.IsNormal = true
 			} else {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
 					field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}

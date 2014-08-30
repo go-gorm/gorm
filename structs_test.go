@@ -26,7 +26,7 @@ type User struct {
 	Latitude          float64
 	Languages         []Language `gorm:"many2many:user_languages;"`
 	CompanyId         int64
-	Company
+	Company           Company
 	Role
 	PasswordHash      []byte
 	IgnoreMe          int64                 `sql:"-"`
