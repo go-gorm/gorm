@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"bytes"
-	"go/ast"
 	"reflect"
 	"strings"
 	"sync"
@@ -89,37 +88,6 @@ func SnakeToUpperCamel(s string) string {
 	u := buf.String()
 	go umap.Set(s, u)
 	return u
-}
-
-func GetPrimaryKey(value interface{}) string {
-	var indirectValue = reflect.Indirect(reflect.ValueOf(value))
-
-	if indirectValue.Kind() == reflect.Slice {
-		indirectValue = reflect.New(indirectValue.Type().Elem()).Elem()
-	}
-
-	if indirectValue.IsValid() {
-		hasId := false
-		scopeTyp := indirectValue.Type()
-		for i := 0; i < scopeTyp.NumField(); i++ {
-			fieldStruct := scopeTyp.Field(i)
-			if !ast.IsExported(fieldStruct.Name) {
-				continue
-			}
-
-			settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
-			if _, ok := settings["PRIMARY_KEY"]; ok {
-				return fieldStruct.Name
-			} else if fieldStruct.Name == "Id" {
-				hasId = true
-			}
-		}
-		if hasId {
-			return "Id"
-		}
-	}
-
-	return ""
 }
 
 func parseTagSetting(str string) map[string]string {

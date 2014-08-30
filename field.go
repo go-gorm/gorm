@@ -19,8 +19,8 @@ type Field struct {
 	Field        reflect.Value
 	Value        interface{}
 	Tag          reflect.StructTag
-	SqlTag       string
 	Relationship *relationship
+	IsNormal     bool
 	IsBlank      bool
 	IsIgnored    bool
 	IsPrimaryKey bool

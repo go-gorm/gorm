@@ -305,11 +305,6 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 	var size = 255
 
 	fieldTag := field.Tag.Get(scope.db.parent.tagIdentifier)
-	if fieldTag == "-" {
-		field.IsIgnored = true
-		return
-	}
-
 	var setting = parseTagSetting(fieldTag)
 
 	if value, ok := setting["SIZE"]; ok {
@@ -481,8 +476,9 @@ func (scope *Scope) createJoinTable(field *Field) {
 func (scope *Scope) createTable() *Scope {
 	var sqls []string
 	for _, field := range scope.Fields() {
-		if !field.IsIgnored && len(field.SqlTag) > 0 {
-			sqls = append(sqls, scope.Quote(field.DBName)+" "+field.SqlTag)
+		if field.IsNormal {
+			sqlTag := scope.sqlTagForField(field)
+			sqls = append(sqls, scope.Quote(field.DBName)+" "+sqlTag)
 		}
 		scope.createJoinTable(field)
 	}
@@ -535,8 +531,9 @@ func (scope *Scope) autoMigrate() *Scope {
 	} else {
 		for _, field := range scope.Fields() {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
-				if len(field.SqlTag) > 0 && !field.IsIgnored {
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, field.SqlTag)).Exec()
+				if field.IsNormal {
+					sqlTag := scope.sqlTagForField(field)
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, sqlTag)).Exec()
 				}
 			}
 			scope.createJoinTable(field)
