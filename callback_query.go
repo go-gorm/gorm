@@ -6,6 +6,30 @@ import (
 	"time"
 )
 
+func getColumnMap(destType reflect.Type) map[string]string {
+	colToFieldMap := make(map[string]string)
+	if destType != nil && destType.Kind() == reflect.Struct {
+		for i := 0; i < destType.NumField(); i++ {
+			field := destType.Field(i)
+			if field.Anonymous {
+				embeddedStructFields := getColumnMap(field.Type)
+				for k, v := range embeddedStructFields {
+					colToFieldMap[k] = v
+				}
+				continue
+			}
+			fieldName := field.Name
+			dbColumnName := ToSnake(fieldName)
+			settings := parseTagSetting(destType.Field(i).Tag.Get("gorm"))
+			if colName, ok := settings["COLUMN"]; ok && colName != "" {
+				dbColumnName = colName
+			}
+			colToFieldMap[dbColumnName] = fieldName
+		}
+	}
+	return colToFieldMap
+}
+
 func Query(scope *Scope) {
 	defer scope.Trace(time.Now())
 
@@ -41,18 +65,7 @@ func Query(scope *Scope) {
 			return
 		}
 
-		colToFieldMap := make(map[string]string)
-		if destType != nil && destType.Kind() == reflect.Struct {
-			for i := 0; i < destType.NumField(); i++ {
-				fieldName := destType.Field(i).Name
-				dbColumnName := ToSnake(fieldName)
-				settings := parseTagSetting(destType.Field(i).Tag.Get("gorm"))
-				if colName, ok := settings["COLUMN"]; ok && colName != "" {
-					dbColumnName = colName
-				}
-				colToFieldMap[dbColumnName] = fieldName
-			}
-		}
+		colToFieldMap := getColumnMap(destType)
 
 		defer rows.Close()
 		for rows.Next() {
