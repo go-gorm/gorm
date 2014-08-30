@@ -5,6 +5,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 ## Overview
 
 * Chainable API
+* Embedded Structs
 * Relations
 * Callbacks (before/after create/save/update/delete/find)
 * Soft Deletes
@@ -59,13 +60,13 @@ type User struct {
     UpdatedAt    time.Time
     DeletedAt    time.Time
 
-    Emails            []Email         // Embedded structs (has many)
-    BillingAddress    Address         // Embedded struct (has one)
+    Emails            []Email         // One-To-Many relationship (has many)
+    BillingAddress    Address         // One-To-One relationship (has one)
     BillingAddressId  sql.NullInt64   // Foreign key of BillingAddress
-    ShippingAddress   Address         // Embedded struct (has one)
+    ShippingAddress   Address         // One-To-One relationship (has one)
     ShippingAddressId int64           // Foreign key of ShippingAddress
     IgnoreMe          int64 `sql:"-"` // Ignore this field
-    Languages         []Language `gorm:"many2many:user_languages;"` // Many To Many, user_languages is the join table
+    Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
 }
 
 type Email struct {
