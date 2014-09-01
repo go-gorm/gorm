@@ -342,9 +342,11 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 				field.IsNormal = true
 			} else if embedded := settings["EMBEDDED"]; strings.ToUpper(embedded) == "EMBEDDED" || (embedded == "" && fieldStruct.Anonymous) {
 				var fields []*Field
-				for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
-					field.DBName = field.DBName
-					fields = append(fields, field)
+				if field.Field.CanAddr() {
+					for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
+						field.DBName = field.DBName
+						fields = append(fields, field)
+					}
 				}
 				return fields
 			} else {
