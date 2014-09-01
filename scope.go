@@ -21,6 +21,7 @@ type Scope struct {
 	skipLeft      bool
 	primaryKey    string
 	instanceId    string
+	fields        map[string]*Field
 }
 
 func (scope *Scope) IndirectValue() reflect.Value {
@@ -128,9 +129,19 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 }
 
 // HasColumn to check if has column
-func (scope *Scope) HasColumn(name string) bool {
-	_, result := scope.FieldValueByName(name)
-	return result
+func (scope *Scope) HasColumn(column string) bool {
+	clone := scope
+	if scope.IndirectValue().Kind() == reflect.Slice {
+		value := reflect.New(scope.IndirectValue().Type().Elem()).Interface()
+		clone = scope.New(value)
+	}
+
+	for _, field := range clone.Fields(false) {
+		if field.Name == column || field.DBName == column {
+			return true
+		}
+	}
+	return false
 }
 
 // FieldValueByName to get column's value and existence
@@ -259,14 +270,14 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	if scope.Value != nil {
 		if scope.IndirectValue().Kind() == reflect.Struct {
 			if f, ok := scope.IndirectValue().Type().FieldByName(SnakeToUpperCamel(name)); ok {
-				return scope.fieldFromStruct(f)[0], true
+				return scope.fieldFromStruct(f, true)[0], true
 			}
 		}
 	}
 	return nil, false
 }
 
-func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
+func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelation bool) []*Field {
 	var field Field
 	field.Name = fieldStruct.Name
 	field.DBName = ToSnake(fieldStruct.Name)
@@ -309,7 +320,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 		case reflect.Slice:
 			typ = typ.Elem()
 
-			if typ.Kind() == reflect.Struct {
+			if (typ.Kind() == reflect.Struct) && withRelation {
 				if foreignKey == "" {
 					foreignKey = scopeTyp.Name() + "Id"
 				}
@@ -349,7 +360,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 					}
 				}
 				return fields
-			} else {
+			} else if withRelation {
 				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
 					field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}
 				} else if scope.HasColumn(foreignKey) {
@@ -371,9 +382,14 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField) []*Field {
 }
 
 // Fields get value's fields
-func (scope *Scope) Fields() map[string]*Field {
+func (scope *Scope) Fields(noRelations ...bool) map[string]*Field {
+	if scope.fields != nil {
+		return scope.fields
+	}
+	var withRelation = len(noRelations) == 0
+
 	var fields = map[string]*Field{}
-	if scope.IndirectValue().IsValid() {
+	if scope.IndirectValue().IsValid() && scope.IndirectValue().Kind() == reflect.Struct {
 		scopeTyp := scope.IndirectValue().Type()
 		var hasPrimaryKey = false
 		for i := 0; i < scopeTyp.NumField(); i++ {
@@ -381,7 +397,7 @@ func (scope *Scope) Fields() map[string]*Field {
 			if !ast.IsExported(fieldStruct.Name) {
 				continue
 			}
-			for _, field := range scope.fieldFromStruct(fieldStruct) {
+			for _, field := range scope.fieldFromStruct(fieldStruct, withRelation) {
 				if field.IsPrimaryKey {
 					hasPrimaryKey = true
 				}
@@ -399,6 +415,11 @@ func (scope *Scope) Fields() map[string]*Field {
 			}
 		}
 	}
+
+	// if withRelation {
+	// 	scope.fields = fields
+	// }
+
 	return fields
 }
 
