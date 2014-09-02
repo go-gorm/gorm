@@ -66,14 +66,14 @@ func (cp *callback_processor) Register(name string, fc func(scope *Scope)) {
 }
 
 func (cp *callback_processor) Remove(name string) {
-	fmt.Printf("[info] removing callback `%v` from %v\n", cp.name, fileWithLineNum())
+	fmt.Printf("[info] removing callback `%v` from %v\n", name, fileWithLineNum())
 	cp.name = name
 	cp.remove = true
 	cp.callback.sort()
 }
 
 func (cp *callback_processor) Replace(name string, fc func(scope *Scope)) {
-	fmt.Printf("[info] replacing callback `%v` from %v\n", cp.name, fileWithLineNum())
+	fmt.Printf("[info] replacing callback `%v` from %v\n", name, fileWithLineNum())
 	cp.name = name
 	cp.processor = &fc
 	cp.replace = true
