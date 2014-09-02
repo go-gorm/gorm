@@ -38,6 +38,10 @@ func (field *Field) IsTime() bool {
 func (field *Field) Set(value interface{}) (result bool) {
 	if field.Field.IsValid() && field.Field.CanAddr() {
 		result = true
+		if rvalue, ok := value.(reflect.Value); ok {
+			value = rvalue.Interface()
+		}
+
 		if scanner, ok := field.Field.Addr().Interface().(sql.Scanner); ok {
 			scanner.Scan(value)
 		} else if reflect.TypeOf(value).ConvertibleTo(field.Field.Type()) {
