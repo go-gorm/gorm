@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"reflect"
@@ -11,28 +10,13 @@ import (
 )
 
 func fileWithLineNum() string {
-	for i := 1; i < 15; i++ {
+	for i := 2; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
 		if ok && (!regexp.MustCompile(`jinzhu/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`jinzhu/gorm/.*test.go`).MatchString(file)) {
 			return fmt.Sprintf("%v:%v", strings.TrimPrefix(file, os.Getenv("GOPATH")+"src/"), line)
 		}
 	}
 	return ""
-}
-
-func setFieldValue(field reflect.Value, value interface{}) (result bool) {
-	result = false
-	if field.IsValid() && field.CanAddr() {
-		result = true
-		if scanner, ok := field.Addr().Interface().(sql.Scanner); ok {
-			scanner.Scan(value)
-		} else if reflect.TypeOf(value).ConvertibleTo(field.Type()) {
-			field.Set(reflect.ValueOf(value).Convert(field.Type()))
-		} else {
-			result = false
-		}
-	}
-	return
 }
 
 func isBlank(value reflect.Value) bool {
@@ -82,7 +66,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 			scope := Scope{Value: values}
 			for _, field := range scope.Fields() {
 				if !field.IsBlank {
-					attrs[field.DBName] = field.Value
+					attrs[field.DBName] = field.Field.Interface()
 				}
 			}
 		}

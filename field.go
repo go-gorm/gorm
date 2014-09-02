@@ -17,7 +17,6 @@ type Field struct {
 	Name         string
 	DBName       string
 	Field        reflect.Value
-	Value        interface{}
 	Tag          reflect.StructTag
 	Relationship *relationship
 	IsNormal     bool
@@ -26,12 +25,29 @@ type Field struct {
 	IsPrimaryKey bool
 }
 
-func (f *Field) IsScanner() bool {
-	_, isScanner := reflect.New(reflect.ValueOf(f.Value).Type()).Interface().(sql.Scanner)
+func (field *Field) IsScanner() bool {
+	_, isScanner := reflect.New(field.Field.Type()).Interface().(sql.Scanner)
 	return isScanner
 }
 
-func (f *Field) IsTime() bool {
-	_, isTime := f.Value.(time.Time)
+func (field *Field) IsTime() bool {
+	_, isTime := field.Field.Interface().(time.Time)
 	return isTime
+}
+
+func (field *Field) Set(value interface{}) (result bool) {
+	if field.Field.IsValid() && field.Field.CanAddr() {
+		result = true
+		if scanner, ok := field.Field.Addr().Interface().(sql.Scanner); ok {
+			scanner.Scan(value)
+		} else if reflect.TypeOf(value).ConvertibleTo(field.Field.Type()) {
+			field.Field.Set(reflect.ValueOf(value).Convert(field.Field.Type()))
+		} else {
+			result = false
+		}
+	}
+	if result {
+		field.IsBlank = isBlank(field.Field)
+	}
+	return
 }

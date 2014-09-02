@@ -150,13 +150,17 @@ func (scope *Scope) FieldValueByName(name string) (interface{}, bool) {
 }
 
 // SetColumn to set the column's value
-func (scope *Scope) SetColumn(column string, value interface{}) bool {
-	if scope.Value == nil {
-		return false
-	}
-	for _, field := range scope.Fields() {
-		if field.Name == column || field.DBName == column {
-			return setFieldValue(field.Field, value)
+func (scope *Scope) SetColumn(column interface{}, value interface{}) bool {
+	if field, ok := column.(*Field); ok {
+		return field.Set(value)
+	} else if str, ok := column.(string); ok {
+		if scope.Value == nil {
+			return false
+		}
+		for _, field := range scope.Fields() {
+			if field.Name == str || field.DBName == str {
+				return field.Set(value)
+			}
 		}
 	}
 	return false
@@ -267,11 +271,9 @@ func (scope *Scope) CombinedConditionSql() string {
 }
 
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
-	if scope.Value != nil {
-		if scope.IndirectValue().Kind() == reflect.Struct {
-			if f, ok := scope.IndirectValue().Type().FieldByName(SnakeToUpperCamel(name)); ok {
-				return scope.fieldFromStruct(f, true)[0], true
-			}
+	for _, field := range scope.Fields() {
+		if field.Name == name {
+			return field, true
 		}
 	}
 	return nil, false
@@ -285,7 +287,6 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
 	field.Field = value
-	field.Value = value.Interface()
 	field.IsBlank = isBlank(value)
 
 	// Search for primary key tag identifier
@@ -416,9 +417,9 @@ func (scope *Scope) Fields(noRelations ...bool) map[string]*Field {
 		}
 	}
 
-	// if withRelation {
-	// 	scope.fields = fields
-	// }
+	if withRelation {
+		scope.fields = fields
+	}
 
 	return fields
 }

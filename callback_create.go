@@ -28,7 +28,7 @@ func Create(scope *Scope) {
 		for _, field := range scope.Fields() {
 			if field.IsNormal && (!field.IsPrimaryKey || !scope.PrimaryKeyZero()) {
 				columns = append(columns, scope.Quote(field.DBName))
-				sqls = append(sqls, scope.AddToVars(field.Value))
+				sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
 			}
 		}
 

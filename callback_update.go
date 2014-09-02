@@ -49,7 +49,7 @@ func Update(scope *Scope) {
 		} else {
 			for _, field := range scope.Fields() {
 				if !field.IsPrimaryKey && field.IsNormal && !field.IsIgnored {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
+					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				}
 			}
 		}

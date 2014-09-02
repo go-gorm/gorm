@@ -28,27 +28,29 @@ func (association *Association) Find(value interface{}) *Association {
 
 func (association *Association) Append(values ...interface{}) *Association {
 	scope := association.Scope
-	field := scope.IndirectValue().FieldByName(association.Column)
+	field := association.Field
+	fieldType := field.Field.Type()
+
 	for _, value := range values {
 		reflectvalue := reflect.ValueOf(value)
 		if reflectvalue.Kind() == reflect.Ptr {
 			if reflectvalue.Elem().Kind() == reflect.Struct {
-				if field.Type().Elem().Kind() == reflect.Ptr {
-					field.Set(reflect.Append(field, reflectvalue))
-				} else if field.Type().Elem().Kind() == reflect.Struct {
-					field.Set(reflect.Append(field, reflectvalue.Elem()))
+				if fieldType.Elem().Kind() == reflect.Ptr {
+					field.Set(reflect.Append(field.Field, reflectvalue))
+				} else if fieldType.Elem().Kind() == reflect.Struct {
+					field.Set(reflect.Append(field.Field, reflectvalue.Elem()))
 				}
 			} else if reflectvalue.Elem().Kind() == reflect.Slice {
-				if field.Type().Elem().Kind() == reflect.Ptr {
-					field.Set(reflect.AppendSlice(field, reflectvalue))
-				} else if field.Type().Elem().Kind() == reflect.Struct {
-					field.Set(reflect.AppendSlice(field, reflectvalue.Elem()))
+				if fieldType.Elem().Kind() == reflect.Ptr {
+					field.Set(reflect.AppendSlice(field.Field, reflectvalue))
+				} else if fieldType.Elem().Kind() == reflect.Struct {
+					field.Set(reflect.AppendSlice(field.Field, reflectvalue.Elem()))
 				}
 			}
-		} else if reflectvalue.Kind() == reflect.Struct && field.Type().Elem().Kind() == reflect.Struct {
-			field.Set(reflect.Append(field, reflectvalue))
-		} else if reflectvalue.Kind() == reflect.Slice && field.Type().Elem() == reflectvalue.Type().Elem() {
-			field.Set(reflect.AppendSlice(field, reflectvalue))
+		} else if reflectvalue.Kind() == reflect.Struct && fieldType.Elem().Kind() == reflect.Struct {
+			field.Set(reflect.Append(field.Field, reflectvalue))
+		} else if reflectvalue.Kind() == reflect.Slice && fieldType.Elem() == reflectvalue.Type().Elem() {
+			field.Set(reflect.AppendSlice(field.Field, reflectvalue))
 		} else {
 			association.err(errors.New("invalid association type"))
 		}
@@ -107,7 +109,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	relationship := association.Field.Relationship
 	scope := association.Scope
 	if relationship.Kind == "many_to_many" {
-		field := scope.IndirectValue().FieldByName(association.Column)
+		field := association.Field.Field
 
 		oldPrimaryKeys := association.getPrimaryKeys(field.Interface())
 		association.Append(values...)
@@ -154,7 +156,7 @@ func (association *Association) Count() int {
 	count := -1
 	relationship := association.Field.Relationship
 	scope := association.Scope
-	field := scope.IndirectValue().FieldByName(association.Column)
+	field := association.Field.Field
 	fieldValue := field.Interface()
 	newScope := scope.New(fieldValue)
 

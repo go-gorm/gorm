@@ -42,7 +42,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		var sqls []string
 		for _, field := range scope.New(value).Fields() {
 			if !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
+				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 			}
 		}
 		return strings.Join(sqls, " AND ")
@@ -103,7 +103,7 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		var sqls []string
 		for _, field := range scope.New(value).Fields() {
 			if !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(field.DBName), scope.AddToVars(field.Value)))
+				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 			}
 		}
 		return strings.Join(sqls, " AND ")
@@ -264,17 +264,17 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 	}
 
 	for key, value := range values {
-		if field := data.FieldByName(SnakeToUpperCamel(key)); field.IsValid() {
+		if field, ok := scope.FieldByName(SnakeToUpperCamel(key)); ok && field.Field.IsValid() {
 			func() {
 				defer func() {
 					if err := recover(); err != nil {
 						hasUpdate = true
-						setFieldValue(field, value)
+						field.Set(value)
 					}
 				}()
 
-				if field.Interface() != value {
-					switch field.Kind() {
+				if field.Field.Interface() != value {
+					switch field.Field.Kind() {
 					case reflect.Int, reflect.Int32, reflect.Int64:
 						if s, ok := value.(string); ok {
 							i, err := strconv.Atoi(s)
@@ -283,13 +283,13 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 							}
 						}
 
-						if field.Int() != reflect.ValueOf(value).Int() {
+						if field.Field.Int() != reflect.ValueOf(value).Int() {
 							hasUpdate = true
-							setFieldValue(field, value)
+							field.Set(value)
 						}
 					default:
 						hasUpdate = true
-						setFieldValue(field, value)
+						field.Set(value)
 					}
 				}
 			}()
@@ -324,8 +324,8 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 		additionalType = additionalType + "DEFAULT " + value
 	}
 
-	value := field.Value
-	reflectValue := reflect.ValueOf(value)
+	value := field.Field.Interface()
+	reflectValue := field.Field
 
 	switch reflectValue.Kind() {
 	case reflect.Slice:

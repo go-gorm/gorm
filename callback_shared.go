@@ -19,20 +19,18 @@ func SaveBeforeAssociations(scope *Scope) {
 		if !field.IsBlank && !field.IsIgnored {
 			relationship := field.Relationship
 			if relationship != nil && relationship.Kind == "belongs_to" {
-				value := reflect.ValueOf(field.Value)
+				value := field.Field
 				newDB := scope.NewDB()
 
-				if value.CanAddr() {
-					scope.Err(newDB.Save(value.Addr().Interface()).Error)
-				} else {
+				if !value.CanAddr() {
 					// If can't take address, then clone the value and set it back
-					value = reflect.New(reflect.ValueOf(field.Value).Type()).Elem()
-					for _, f := range newDB.NewScope(field.Value).Fields() {
-						value.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
+					value = reflect.New(value.Type()).Elem()
+					for _, f := range newDB.NewScope(field.Field.Interface()).Fields() {
+						value.FieldByName(f.Name).Set(reflect.ValueOf(f.Field.Interface()))
 					}
-					scope.Err(newDB.Save(value.Addr().Interface()).Error)
 					scope.SetColumn(field.Name, value.Interface())
 				}
+				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 
 				if relationship.ForeignKey != "" {
 					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
@@ -48,7 +46,7 @@ func SaveAfterAssociations(scope *Scope) {
 			relationship := field.Relationship
 			if relationship != nil &&
 				(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {
-				value := reflect.ValueOf(field.Value)
+				value := field.Field
 
 				switch value.Kind() {
 				case reflect.Slice:
@@ -89,14 +87,14 @@ func SaveAfterAssociations(scope *Scope) {
 					newDB := scope.NewDB()
 					if value.CanAddr() {
 						if relationship.ForeignKey != "" {
-							newDB.NewScope(field.Value).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
+							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
-						scope.Err(newDB.Save(field.Value).Error)
+						scope.Err(newDB.Save(value.Addr().Interface()).Error)
 					} else {
-						destValue := reflect.New(reflect.TypeOf(field.Value)).Elem()
+						destValue := reflect.New(field.Field.Type()).Elem()
 
-						for _, f := range newDB.NewScope(field.Value).Fields() {
-							destValue.FieldByName(f.Name).Set(reflect.ValueOf(f.Value))
+						for _, f := range newDB.NewScope(field.Field.Interface()).Fields() {
+							destValue.FieldByName(f.Name).Set(f.Field)
 						}
 
 						elem := destValue.Addr().Interface()

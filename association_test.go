@@ -158,10 +158,12 @@ func TestManyToMany(t *testing.T) {
 	languageA := Language{Name: "AA"}
 	DB.Save(&languageA)
 	DB.Model(&User{Id: user.Id}).Association("Languages").Append(languageA)
+
 	languageC := Language{Name: "CC"}
 	DB.Save(&languageC)
 	DB.Model(&user).Association("Languages").Append(&[]Language{{Name: "BB"}, languageC})
-	DB.Model(&User{Id: user.Id}).Association("Languages").Append([]Language{{Name: "DD"}, {Name: "EE"}})
+
+	DB.Model(&User{Id: user.Id}).Association("Languages").Append(&[]Language{{Name: "DD"}, {Name: "EE"}})
 
 	totalLanguages := []string{"ZH", "EN", "DE", "AA", "BB", "CC", "DD", "EE"}
 

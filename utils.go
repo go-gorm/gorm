@@ -68,7 +68,7 @@ func ToSnake(u string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	go smap.Set(u, s)
+	smap.Set(u, s)
 	return s
 }
 
@@ -86,7 +86,7 @@ func SnakeToUpperCamel(s string) string {
 	}
 
 	u := buf.String()
-	go umap.Set(s, u)
+	umap.Set(s, u)
 	return u
 }
 
