@@ -30,7 +30,7 @@ var user User
 db.First(&user)
 
 // creating a new User
-DB.Save(&User{Name: "xxx"}) // table "users"
+db.Save(&User{Name: "xxx"}) // table "users"
 ```
 
 * Column name is the snake case of field's name
