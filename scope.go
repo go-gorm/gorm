@@ -287,7 +287,6 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
 	field.Field = value
-	field.IsBlank = isBlank(value)
 
 	// Search for primary key tag identifier
 	settings := parseTagSetting(fieldStruct.Tag.Get("gorm"))
@@ -304,7 +303,11 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 	if fieldStruct.Tag.Get(tagIdentifier) == "-" {
 		field.IsIgnored = true
 	}
-
+	if _, ok := settings["UPDATE"]; ok {
+		field.IsBlank = false
+	} else {
+		field.IsBlank = isBlank(value)
+	}
 	if !field.IsIgnored {
 		// parse association
 		if !indirectValue.IsValid() {
