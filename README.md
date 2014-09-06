@@ -228,13 +228,13 @@ db.Where("name = ?", "jinzhu").Find(&users)
 
 db.Where("name <> ?", "jinzhu").Find(&users)
 
-// IN
+//// IN
 db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
 
-// LIKE
+//// LIKE
 db.Where("name LIKE ?", "%jin%").Find(&users)
 
-// AND
+//// AND
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
 ```
 
@@ -384,14 +384,14 @@ db.Model(User{}).Updates(User{Name: "hello", Age: 18}).RowsAffected
 ```go
 // Delete an existing record
 db.Delete(&email)
-// DELETE from emails where id=10;
+//// DELETE from emails where id=10;
 ```
 
 ### Batch Delete
 
 ```go
 db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
-// DELETE from emails where email LIKE "%jinhu%";
+//// DELETE from emails where email LIKE "%jinhu%";
 ```
 
 ### Soft Delete
@@ -417,7 +417,7 @@ db.Unscoped().Where("age = 20").Find(&users)
 
 // Delete record permanently with Unscoped
 db.Unscoped().Delete(&order)
-// DELETE FROM orders WHERE id=10;
+//// DELETE FROM orders WHERE id=10;
 ```
 
 ## Associations
@@ -721,8 +721,8 @@ Scan results into another struct.
 
 ```go
 type Result struct {
-	Name string
-	Age  int
+  Name string
+  Age  int
 }
 
 var result Result
@@ -746,8 +746,8 @@ for rows.Next() {
 }
 
 type Result struct {
-	Date  time.Time
-	Total int64
+  Date  time.Time
+  Total int64
 }
 db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Scan(&results)
 ```
