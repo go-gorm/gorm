@@ -23,6 +23,7 @@ type Field struct {
 	IsBlank      bool
 	IsIgnored    bool
 	IsPrimaryKey bool
+	AlwaysUpdate bool
 }
 
 func (field *Field) IsScanner() bool {
