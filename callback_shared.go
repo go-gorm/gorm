@@ -16,7 +16,7 @@ func CommitOrRollbackTransaction(scope *Scope) {
 
 func SaveBeforeAssociations(scope *Scope) {
 	for _, field := range scope.Fields() {
-		if !field.IsBlank && !field.IsIgnored {
+		if field.AlwaysUpdate || !field.IsBlank && !field.IsIgnored {
 			relationship := field.Relationship
 			if relationship != nil && relationship.Kind == "belongs_to" {
 				value := field.Field
@@ -42,7 +42,7 @@ func SaveBeforeAssociations(scope *Scope) {
 
 func SaveAfterAssociations(scope *Scope) {
 	for _, field := range scope.Fields() {
-		if !field.IsBlank && !field.IsIgnored {
+		if field.AlwaysUpdate || !field.IsBlank && !field.IsIgnored {
 			relationship := field.Relationship
 			if relationship != nil &&
 				(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {

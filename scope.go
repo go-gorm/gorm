@@ -304,7 +304,9 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 	if fieldStruct.Tag.Get(tagIdentifier) == "-" {
 		field.IsIgnored = true
 	}
-
+	if _, ok := settings["UPDATE"]; ok {
+		field.AlwaysUpdate = true
+	}
 	if !field.IsIgnored {
 		// parse association
 		if !indirectValue.IsValid() {

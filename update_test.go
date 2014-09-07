@@ -158,3 +158,55 @@ func TestUpdateColumn(t *testing.T) {
 		t.Errorf("updatedAt should not be updated with update column")
 	}
 }
+
+func TestAlwaysUpdate(t *testing.T) {
+	type Always struct {
+		Id    int64
+		Name  string
+		Code  string
+		Price int64 `gorm:"update"`
+	}
+
+	DB.DropTable(&Always{})
+	DB.CreateTable(&Always{})
+
+	obj1 := Always{Name: "obj1", Code: "code_1", Price: 10}
+	obj2 := Always{Name: "obj2", Code: "code_2", Price: 20}
+
+	// save initial
+	DB.Save(&obj1).Save(&obj2).UpdateColumn(map[string]interface{}{"code": "columnUpdate2"})
+
+	// fetch and verify
+	var obj3, obj4 Always
+	DB.First(&obj3, obj1.Id)
+	if obj3.Code != "code_1" || obj3.Price != 10 {
+		t.Errorf("obj1 was not saved correctly: expected: %#v got: %#v", obj1, obj3)
+	}
+	DB.First(&obj4, obj2.Id)
+	if obj4.Code != "columnUpdate2" || obj4.Price != 20 {
+		t.Errorf("obj2 was not saved correctly: expected: %#v got: %#v", obj2, obj4)
+	}
+
+	// now update via struct price should change to zero
+	obj5 := Always{Name: "obj2update", Code: "code_2"}
+	DB.Model(obj5).Updates(obj5)
+
+	var obj6 Always
+	DB.First(&obj6, obj2.Id)
+	if obj6.Code != "code_2" || obj6.Name != "obj2update" || obj6.Price != 0 {
+		t.Errorf("obj2 was not saved correctly: got: %#v", obj6)
+	}
+
+	var res []Always
+	DB.Find(&res)
+	if len(res) != 2 {
+		t.Error("Should have 2 objects")
+	}
+
+	// test where clause
+	var res1 []Always
+	DB.Where(Always{}).Find(&res1)
+	if len(res1) != 2 {
+		t.Error("Where() Should have 2 returned objects")
+	}
+}
