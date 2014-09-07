@@ -200,7 +200,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.AssignAttrs), false)
+		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.AssignAttrs, false), false)
 	}
 	return c
 }
@@ -221,6 +221,12 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 
 func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.Updates(toSearchableMap(attrs...), true)
+}
+
+func (s *DB) UpdateAll(value interface{}) *DB {
+	return s.clone().NewScope(value).
+		InstanceSet("gorm:update_interface", convertInterfaceToMap(value, true)).
+		callCallbacks(s.parent.callback.updates).db
 }
 
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {

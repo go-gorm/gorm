@@ -375,10 +375,10 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 
 func (scope *Scope) initialize() *Scope {
 	for _, clause := range scope.Search.WhereConditions {
-		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]), false)
+		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"], false), false)
 	}
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.InitAttrs), false)
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.AssignAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.InitAttrs, false), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.AssignAttrs, false), false)
 	return scope
 }
 
