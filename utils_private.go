@@ -40,7 +40,7 @@ func toSearchableMap(attrs ...interface{}) (result interface{}) {
 	return
 }
 
-func convertInterfaceToMap(values interface{}) map[string]interface{} {
+func convertInterfaceToMap(values interface{}, skipBlankCheck bool) map[string]interface{} {
 	attrs := map[string]interface{}{}
 
 	switch value := values.(type) {
@@ -50,7 +50,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 		}
 	case []interface{}:
 		for _, v := range value {
-			for key, value := range convertInterfaceToMap(v) {
+			for key, value := range convertInterfaceToMap(v, skipBlankCheck) {
 				attrs[key] = value
 			}
 		}
@@ -65,7 +65,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 		default:
 			scope := Scope{Value: values}
 			for _, field := range scope.Fields() {
-				if !field.IsBlank {
+				if skipBlankCheck || !field.IsBlank {
 					attrs[field.DBName] = field.Field.Interface()
 				}
 			}

@@ -158,3 +158,44 @@ func TestUpdateColumn(t *testing.T) {
 		t.Errorf("updatedAt should not be updated with update column")
 	}
 }
+
+func TestAlwaysUpdate(t *testing.T) {
+	type Always struct {
+		Id       int64
+		Name     string
+		Code     string
+		Price    int64
+		IsActive bool
+	}
+
+	DB.DropTable(&Always{})
+	DB.CreateTable(&Always{})
+
+	obj1 := Always{Name: "obj1", Code: "code_1", Price: 10, IsActive: true}
+	obj2 := Always{Name: "obj2", Code: "code_2", Price: 20, IsActive: true}
+	obj3 := Always{Name: "obj3", Code: "code_10", Price: 100, IsActive: true}
+
+	// save initial
+	DB.Save(&obj1).Save(&obj2).Save(&obj3)
+
+	// now update via struct price should change to zero
+	obj2.Price = 0
+	DB.UpdateAll(obj2)
+
+	var obj2_1 Always
+	DB.First(&obj2_1, obj2.Id)
+	if obj2_1.Price != 0 {
+		t.Errorf("UpdateAll did not update Price for obj2: %#v", obj2_1)
+	}
+
+	// test bool
+	obj3.IsActive = false
+	DB.UpdateAll(obj3)
+
+	var obj3_1 Always
+	DB.First(&obj3_1, obj3.Id)
+	if obj3_1.IsActive {
+		t.Errorf("UpdateAll did not update IsActive for obj3: %#v", obj3_1)
+	}
+
+}

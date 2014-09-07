@@ -7,7 +7,7 @@ import (
 
 func AssignUpdateAttributes(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
-		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
+		if maps := convertInterfaceToMap(attrs, false); len(maps) > 0 {
 			protected, ok := scope.Get("gorm:ignore_protected_attrs")
 			_, updateColumn := scope.Get("gorm:update_column")
 			updateAttrs, hasUpdate := scope.updatedAttrsWithValues(maps, ok && protected.(bool))
