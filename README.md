@@ -228,13 +228,13 @@ db.Where("name = ?", "jinzhu").Find(&users)
 
 db.Where("name <> ?", "jinzhu").Find(&users)
 
-//// IN
+// IN
 db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
 
-//// LIKE
+// LIKE
 db.Where("name LIKE ?", "%jin%").Find(&users)
 
-//// AND
+// AND
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
 ```
 
