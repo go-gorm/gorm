@@ -120,36 +120,36 @@ db.SingularTable(true)
 
 ```go
 // Create table
-db.CreateTable(User{})
+db.CreateTable(&User{})
 
 // Drop table
-db.DropTable(User{})
+db.DropTable(&User{})
 
 // Drop table if exists
-db.DropTableIfExists(User{})
+db.DropTableIfExists(&User{})
 
 // Automating Migration
-db.AutoMigrate(User{})
-db.AutoMigrate(User{}, Product{}, Order{})
+db.AutoMigrate(&User{})
+db.AutoMigrate(&User{}, &Product{}, &Order{})
 
 // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 // Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
 // If the table is not existing, AutoMigrate will create the table automatically.
 
 // Add index
-db.Model(User{}).AddIndex("idx_user_name", "name")
+db.Model(&User{}).AddIndex("idx_user_name", "name")
 
 // Multiple column index
-db.Model(User{}).AddIndex("idx_user_name_age", "name", "age")
+db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
 
 // Add unique index
-db.Model(User{}).AddUniqueIndex("idx_user_name", "name")
+db.Model(&User{}).AddUniqueIndex("idx_user_name", "name")
 
 // Multiple column unique index
-db.Model(User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
+db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
 
 // Remove index
-db.Model(User{}).RemoveIndex("idx_user_name")
+db.Model(&User{}).RemoveIndex("idx_user_name")
 ```
 
 # Basic CRUD
