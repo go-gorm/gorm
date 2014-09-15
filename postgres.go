@@ -20,6 +20,10 @@ func (s *postgres) SupportLastInsertId() bool {
 	return false
 }
 
+func (s *postgres) HasTop() bool {
+  return false
+}
+
 func (d *postgres) SqlTag(value reflect.Value, size int) string {
 	switch value.Kind() {
 	case reflect.Bool:

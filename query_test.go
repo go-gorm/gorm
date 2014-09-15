@@ -244,10 +244,9 @@ func TestOrderAndPluck(t *testing.T) {
 	}
 
 	var ages1, ages2 []int64
-	scopedb.Order("age desc").Pluck("age", &ages1).Order("age").Pluck("age", &ages2)
+	scopedb.Order("age desc").Pluck("age", &ages1).Pluck("age", &ages2)
 	if !reflect.DeepEqual(ages1, ages2) {
-		t.Errorf("The first order is the primary order")
-	}
+		t.Errorf("The first order is the primary order")	}
 
 	var ages3, ages4 []int64
 	scopedb.Model(&User{}).Order("age desc").Pluck("age", &ages3).Order("age", true).Pluck("age", &ages4)

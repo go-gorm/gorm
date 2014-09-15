@@ -26,18 +26,21 @@ var (
 func init() {
 	var err error
 	switch os.Getenv("GORM_DIALECT") {
-	case "mysql":
-		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
-		// CREATE DATABASE gorm;
-		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
-		fmt.Println("testing mysql...")
-		DB, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
-	case "postgres":
-		fmt.Println("testing postgres...")
-		DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
-	default:
-		fmt.Println("testing sqlite3...")
-		DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+		case "mysql":
+			// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
+			// CREATE DATABASE gorm;
+			// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
+			fmt.Println("testing mysql...")
+			DB, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+		case "postgres":
+			fmt.Println("testing postgres...")
+			DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
+		case "mssql":
+			fmt.Println("testing mssql...")
+			DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=DB_HERE;user id=USER_HERE;password=PW_HERE;port=1433")
+		default:
+			fmt.Println("testing sqlite3...")
+			DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	}
 
 	// DB.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
@@ -445,6 +448,11 @@ func TestTimeWithZone(t *testing.T) {
 	for index, vtime := range times {
 		name := "time_with_zone_" + strconv.Itoa(index)
 		user := User{Name: name, Birthday: vtime}
+
+		//mssql does not support time zones
+		if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
+			user.Birthday = vtime.UTC()
+		}
 		DB.Save(&user)
 		if user.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
 			t.Errorf("User's birthday should not be changed after save")

@@ -17,6 +17,10 @@ func (s *mysql) SupportLastInsertId() bool {
 	return true
 }
 
+func (s *mysql) HasTop() bool {
+  return false
+}
+
 func (d *mysql) SqlTag(value reflect.Value, size int) string {
 	switch value.Kind() {
 	case reflect.Bool:

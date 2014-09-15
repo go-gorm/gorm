@@ -11,6 +11,7 @@ var timeType = reflect.TypeOf(time.Time{})
 type Dialect interface {
 	BinVar(i int) string
 	SupportLastInsertId() bool
+	HasTop() bool
 	SqlTag(value reflect.Value, size int) string
 	PrimaryKeyTag(value reflect.Value, size int) string
 	ReturningStr(key string) string

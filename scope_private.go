@@ -196,7 +196,25 @@ func (s *Scope) orderSql() string {
 }
 
 func (s *Scope) limitSql() string {
-	if len(s.Search.Limit) == 0 {
+	if !s.Dialect().HasTop() {
+		if len(s.Search.Limit) == 0 {
+			return ""
+		} else {
+			return " LIMIT " + s.Search.Limit
+		}
+	} else{
+		return ""
+	}
+}
+
+func (s *Scope) topSql() string{
+	if s.Dialect().HasTop() && len(s.Search.Offset) == 0 {
+		if len(s.Search.Limit) == 0 {
+			return ""
+		} else{
+			return " TOP(" + s.Search.Limit + ")"
+		}
+	} else{
 		return ""
 	} else {
 		return " LIMIT " + s.Search.Limit
@@ -207,7 +225,15 @@ func (s *Scope) offsetSql() string {
 	if len(s.Search.Offset) == 0 {
 		return ""
 	} else {
-		return " OFFSET " + s.Search.Offset
+		if s.Dialect().HasTop(){
+			sql :=  " OFFSET " + s.Search.Offset + " ROW "
+			if len(s.Search.Limit) > 0{
+				sql += "FETCH NEXT " + s.Search.Limit + " ROWS ONLY"
+			}
+			return sql
+		}else{
+			return " OFFSET " + s.Search.Offset
+		}
 	}
 }
 
@@ -235,7 +261,11 @@ func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
 		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
+<<<<<<< HEAD
 		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
+=======
+		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
+>>>>>>> 15a20a4... GORM support for MSSQL, passes all tests
 	}
 	return
 }
