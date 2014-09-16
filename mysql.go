@@ -3,8 +3,8 @@ package gorm
 import (
 	"fmt"
 	"strings"
-
 	"reflect"
+	"strings"
 )
 
 type mysql struct{}
@@ -18,7 +18,7 @@ func (s *mysql) SupportLastInsertId() bool {
 }
 
 func (s *mysql) HasTop() bool {
-  return false
+	return false
 }
 
 func (d *mysql) SqlTag(value reflect.Value, size int) string {

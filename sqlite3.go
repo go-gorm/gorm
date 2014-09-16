@@ -16,7 +16,7 @@ func (s *sqlite3) SupportLastInsertId() bool {
 }
 
 func (s *sqlite3) HasTop() bool {
-  return false
+	return false
 }
 
 func (s *sqlite3) SqlTag(value reflect.Value, size int) string {

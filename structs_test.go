@@ -94,8 +94,13 @@ type Role struct {
 	Name string
 }
 
+
 func (role *Role) Scan(value interface{}) error {
-	role.Name = string(value.([]uint8))
+	if b, ok := value.([]uint8); ok {
+		role.Name = string(b)
+	} else {
+		role.Name = value.(string)
+	}
 	return nil
 }
 

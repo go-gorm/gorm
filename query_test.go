@@ -239,14 +239,19 @@ func TestOrderAndPluck(t *testing.T) {
 
 	var ages []int64
 	scopedb.Order("age desc").Pluck("age", &ages)
-	if ages[0] != 20 {
+	if ages != nil {
+		if ages[0] != 20 {
+			t.Errorf("The first age should be 20 when order with age desc")
+		}
+	} else {
 		t.Errorf("The first age should be 20 when order with age desc")
 	}
 
 	var ages1, ages2 []int64
 	scopedb.Order("age desc").Pluck("age", &ages1).Pluck("age", &ages2)
 	if !reflect.DeepEqual(ages1, ages2) {
-		t.Errorf("The first order is the primary order")	}
+		t.Errorf("The first order is the primary order")
+	}
 
 	var ages3, ages4 []int64
 	scopedb.Model(&User{}).Order("age desc").Pluck("age", &ages3).Order("age", true).Pluck("age", &ages4)
@@ -257,7 +262,11 @@ func TestOrderAndPluck(t *testing.T) {
 	var names []string
 	var ages5 []int64
 	scopedb.Model(User{}).Order("name").Order("age desc").Pluck("age", &ages5).Pluck("name", &names)
-	if !(names[0] == user1.Name && names[1] == user2.Name && names[2] == user3.Name && ages5[2] == 20) {
+	if names != nil && ages5 != nil {
+		if !(names[0] == user1.Name && names[1] == user2.Name && names[2] == user3.Name && ages5[2] == 20) {
+			t.Errorf("Order with multiple orders")
+		}
+	} else {
 		t.Errorf("Order with multiple orders")
 	}
 

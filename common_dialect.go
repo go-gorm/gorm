@@ -17,7 +17,7 @@ func (s *commonDialect) SupportLastInsertId() bool {
 }
 
 func (s *commonDialect) HasTop() bool {
-  return false
+	return false
 }
 
 func (d *commonDialect) SqlTag(value reflect.Value, size int) string {

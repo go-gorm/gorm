@@ -202,19 +202,19 @@ func (s *Scope) limitSql() string {
 		} else {
 			return " LIMIT " + s.Search.Limit
 		}
-	} else{
+	} else {
 		return ""
 	}
 }
 
-func (s *Scope) topSql() string{
+func (s *Scope) topSql() string {
 	if s.Dialect().HasTop() && len(s.Search.Offset) == 0 {
 		if len(s.Search.Limit) == 0 {
 			return ""
-		} else{
+		} else {
 			return " TOP(" + s.Search.Limit + ")"
 		}
-	} else{
+	} else {
 		return ""
 	} else {
 		return " LIMIT " + s.Search.Limit
@@ -225,13 +225,13 @@ func (s *Scope) offsetSql() string {
 	if len(s.Search.Offset) == 0 {
 		return ""
 	} else {
-		if s.Dialect().HasTop(){
-			sql :=  " OFFSET " + s.Search.Offset + " ROW "
-			if len(s.Search.Limit) > 0{
+		if s.Dialect().HasTop() {
+			sql := " OFFSET " + s.Search.Offset + " ROW "
+			if len(s.Search.Limit) > 0 {
 				sql += "FETCH NEXT " + s.Search.Limit + " ROWS ONLY"
 			}
 			return sql
-		}else{
+		} else {
 			return " OFFSET " + s.Search.Offset
 		}
 	}

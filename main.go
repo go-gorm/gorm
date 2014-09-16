@@ -51,8 +51,8 @@ func Open(dialect string, drivesources ...string) (DB, error) {
 			source = drivesources[1]
 		}
 
-		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql", 
-			logger: defaultLogger, callback: DefaultCallback, source: source, 
+		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql",
+			logger: defaultLogger, callback: DefaultCallback, source: source,
 			values: map[string]interface{}{}}
 		db.db, err = sql.Open(driver, source)
 		db.parent = &db
@@ -118,6 +118,7 @@ func (s *DB) Limit(value interface{}) *DB {
 }
 
 func (s *DB) Offset(value interface{}) *DB {
+	return s.clone().search.offset(value).db
 	return s.clone().search.offset(value).db
 }
 

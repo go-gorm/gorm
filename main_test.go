@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -26,21 +27,21 @@ var (
 func init() {
 	var err error
 	switch os.Getenv("GORM_DIALECT") {
-		case "mysql":
-			// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
-			// CREATE DATABASE gorm;
-			// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
-			fmt.Println("testing mysql...")
-			DB, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
-		case "postgres":
-			fmt.Println("testing postgres...")
-			DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
-		case "mssql":
-			fmt.Println("testing mssql...")
-			DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=DB_HERE;user id=USER_HERE;password=PW_HERE;port=1433")
-		default:
-			fmt.Println("testing sqlite3...")
-			DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+	case "mysql":
+		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
+		// CREATE DATABASE gorm;
+		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
+		fmt.Println("testing mysql...")
+		DB, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+	case "postgres":
+		fmt.Println("testing postgres...")
+		DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
+	case "mssql":
+		fmt.Println("testing mssql...")
+		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=DB_HERE;user id=USER_HERE;password=PW_HERE;port=1433")
+	default:
+		fmt.Println("testing sqlite3...")
+		DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	}
 
 	// DB.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
@@ -310,11 +311,13 @@ func TestRows(t *testing.T) {
 	}
 
 	count := 0
-	for rows.Next() {
-		var name string
-		var age int64
-		rows.Scan(&name, &age)
-		count++
+	if rows != nil {
+		for rows.Next() {
+			var name string
+			var age int64
+			rows.Scan(&name, &age)
+			count++
+		}
 	}
 	if count != 2 {
 		t.Errorf("Should found two records with name 3")

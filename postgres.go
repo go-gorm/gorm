@@ -5,8 +5,8 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-
 	"github.com/lib/pq/hstore"
+	"reflect"
 )
 
 type postgres struct {
@@ -21,7 +21,7 @@ func (s *postgres) SupportLastInsertId() bool {
 }
 
 func (s *postgres) HasTop() bool {
-  return false
+	return false
 }
 
 func (d *postgres) SqlTag(value reflect.Value, size int) string {
