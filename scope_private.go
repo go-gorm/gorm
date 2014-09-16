@@ -216,8 +216,6 @@ func (s *Scope) topSql() string {
 		}
 	} else {
 		return ""
-	} else {
-		return " LIMIT " + s.Search.Limit
 	}
 }
 
@@ -261,11 +259,7 @@ func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
 		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
-<<<<<<< HEAD
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
-=======
 		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
->>>>>>> 15a20a4... GORM support for MSSQL, passes all tests
 	}
 	return
 }

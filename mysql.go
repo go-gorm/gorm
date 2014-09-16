@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"reflect"
-	"strings"
 )
 
 type mysql struct{}

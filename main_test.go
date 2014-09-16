@@ -38,7 +38,7 @@ func init() {
 		DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
 	case "mssql":
 		fmt.Println("testing mssql...")
-		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=DB_HERE;user id=USER_HERE;password=PW_HERE;port=1433")
+		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
 	default:
 		fmt.Println("testing sqlite3...")
 		DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
