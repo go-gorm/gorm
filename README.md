@@ -52,40 +52,40 @@ go get -u github.com/jinzhu/gorm
 
 ```go
 type User struct {
-    Id           int64
-    Birthday     time.Time
-    Age          int64
-    Name         string  `sql:"size:255"`
-    CreatedAt    time.Time
-    UpdatedAt    time.Time
-    DeletedAt    time.Time
+	Id           int64
+	Birthday     time.Time
+	Age          int64
+	Name         string  `sql:"size:255"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    time.Time
 
-    Emails            []Email         // One-To-Many relationship (has many)
-    BillingAddress    Address         // One-To-One relationship (has one)
-    BillingAddressId  sql.NullInt64   // Foreign key of BillingAddress
-    ShippingAddress   Address         // One-To-One relationship (has one)
-    ShippingAddressId int64           // Foreign key of ShippingAddress
-    IgnoreMe          int64 `sql:"-"` // Ignore this field
-    Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
+	Emails            []Email         // One-To-Many relationship (has many)
+	BillingAddress    Address         // One-To-One relationship (has one)
+	BillingAddressId  sql.NullInt64   // Foreign key of BillingAddress
+	ShippingAddress   Address         // One-To-One relationship (has one)
+	ShippingAddressId int64           // Foreign key of ShippingAddress
+	IgnoreMe          int64 `sql:"-"` // Ignore this field
+	Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
 }
 
 type Email struct {
-    Id         int64
-    UserId     int64   // Foreign key for User (belongs to)
-    Email      string  `sql:"type:varchar(100);"` // Set field's type
-    Subscribed bool
+	Id         int64
+	UserId     int64   // Foreign key for User (belongs to)
+	Email      string  `sql:"type:varchar(100);"` // Set field's type
+	Subscribed bool
 }
 
 type Address struct {
-    Id       int64
-    Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
-    Address2 string         `sql:"type:varchar(100);unique"`
-    Post     sql.NullString `sql:not null`
+	Id       int64
+	Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
+	Address2 string         `sql:"type:varchar(100);unique"`
+	Post     sql.NullString `sql:not null`
 }
 
 type Language struct {
-    Id   int64
-    Name string
+	Id   int64
+	Name string
 }
 ```
 
@@ -94,10 +94,10 @@ type Language struct {
 ```go
 
 import (
-    "github.com/jinzhu/gorm"
-    _ "github.com/lib/pq"
-    _ "github.com/go-sql-driver/mysql"
-    _ "github.com/mattn/go-sqlite3"
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
@@ -172,11 +172,11 @@ db.Save(&user)
 
 // Associations will be saved automatically when insert the record
 user := User{
-        Name:            "jinzhu",
-        BillingAddress:  Address{Address1: "Billing Address - Address 1"},
-        ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-        Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
-        Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
+	Name:            "jinzhu",
+	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
 }
 
 db.Create(&user)
@@ -700,18 +700,18 @@ row.Scan(&name, &age)
 rows, err := db.Model(User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
 defer rows.Close()
 for rows.Next() {
-  ...
-  rows.Scan(&name, &age, &email)
-  ...
+	...
+	rows.Scan(&name, &age, &email)
+	...
 }
 
 // Raw SQL
 rows, err := db.Raw("select name, age, email from users where name = ?", "jinzhu").Rows() // (*sql.Rows, error)
 defer rows.Close()
 for rows.Next() {
-  ...
-  rows.Scan(&name, &age, &email)
-  ...
+	...
+	rows.Scan(&name, &age, &email)
+	...
 }
 ```
 
@@ -721,8 +721,8 @@ Scan results into another struct.
 
 ```go
 type Result struct {
-  Name string
-  Age  int
+	Name string
+	Age  int
 }
 
 var result Result
@@ -737,17 +737,17 @@ db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
 ```go
 rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Rows()
 for rows.Next() {
-  ...
+	...
 }
 
 rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Rows()
 for rows.Next() {
-  ...
+	...
 }
 
 type Result struct {
-  Date  time.Time
-  Total int64
+	Date  time.Time
+	Total int64
 }
 db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Scan(&results)
 ```
@@ -757,7 +757,7 @@ db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Grou
 ```go
 rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()
 for rows.Next() {
-  ...
+	...
 }
 
 db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)
@@ -782,21 +782,21 @@ tx.Commit()
 
 ```go
 func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
-  return db.Where("amount > ?", 1000)
+	return db.Where("amount > ?", 1000)
 }
 
 func PaidWithCreditCard(db *gorm.DB) *gorm.DB {
-  return db.Where("pay_mode_sign = ?", "C")
+	return db.Where("pay_mode_sign = ?", "C")
 }
 
 func PaidWithCod(db *gorm.DB) *gorm.DB {
-  return db.Where("pay_mode_sign = ?", "C")
+	return db.Where("pay_mode_sign = ?", "C")
 }
 
 func OrderStatus(status []string) func (db *gorm.DB) *gorm.DB {
-  return func (db *gorm.DB) *gorm.DB {
-     return db.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
-  }
+	return func (db *gorm.DB) *gorm.DB {
+		return db.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
+	}
 }
 
 db.Scopes(AmountGreaterThan1000, PaidWithCreditCard).Find(&orders)
@@ -859,18 +859,18 @@ AfterFind
 
 ```go
 func (u *User) BeforeUpdate() (err error) {
-    if u.readonly() {
-        err = errors.New("read only user")
-    }
-    return
+	if u.readonly() {
+		err = errors.New("read only user")
+	}
+	return
 }
 
 // Rollback the insertion if user's id greater than 1000
 func (u *User) AfterCreate() (err error) {
-    if (u.Id > 1000) {
-        err = errors.New("user id is already greater than 1000")
-    }
-    return
+	if (u.Id > 1000) {
+		err = errors.New("user id is already greater than 1000")
+	}
+	return
 }
 ```
 
@@ -881,8 +881,8 @@ Fortunately, gorm support pass transaction to callbacks as you needed, you could
 
 ```go
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
-    tx.Model(u).Update("role", "admin")
-    return
+	tx.Model(u).Update("role", "admin")
+	return
 }
 ```
 
@@ -907,15 +907,15 @@ type Cart struct {
 }
 
 func (c Cart) TableName() string {
-    return "shopping_cart"
+	return "shopping_cart"
 }
 
 func (u User) TableName() string {
-    if u.Role == "admin" {
-        return "admin_users"
-    } else {
-        return "users"
-    }
+	if u.Role == "admin" {
+		return "admin_users"
+	} else {
+		return "users"
+	}
 }
 ```
 
@@ -928,7 +928,7 @@ query := db.First(&user).Limit(10).Find(&users)
 
 // So you could do error handing in your application like this:
 if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
-  // error handling...
+	// error handling...
 }
 
 // RecordNotFound
@@ -938,7 +938,7 @@ db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
 db.Where("name = ?", "hello world").First(&user).RecordNotFound()
 
 if db.Model(&user).Related(&credit_card).RecordNotFound() {
-  // no credit card found error handling
+	// no credit card found error handling
 }
 ```
 
@@ -973,9 +973,9 @@ If you have an existing database schema, and the primary key field is different 
 
 ```go
 type Animal struct {
-    AnimalId     int64 `gorm:"primary_key:yes"`
-    Birthday     time.Time
-    Age          int64
+	AnimalId     int64 `gorm:"primary_key:yes"`
+	Birthday     time.Time
+	Age          int64
 }
 ```
 
