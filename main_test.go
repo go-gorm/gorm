@@ -311,13 +311,11 @@ func TestRows(t *testing.T) {
 	}
 
 	count := 0
-	if rows != nil {
-		for rows.Next() {
-			var name string
-			var age int64
-			rows.Scan(&name, &age)
-			count++
-		}
+	for rows.Next() {
+		var name string
+		var age int64
+		rows.Scan(&name, &age)
+		count++
 	}
 	if count != 2 {
 		t.Errorf("Should found two records with name 3")
@@ -452,7 +450,7 @@ func TestTimeWithZone(t *testing.T) {
 		name := "time_with_zone_" + strconv.Itoa(index)
 		user := User{Name: name, Birthday: vtime}
 
-		//mssql does not support time zones
+		// TODO mssql does not support time zones
 		if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
 			user.Birthday = vtime.UTC()
 		}

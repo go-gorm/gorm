@@ -119,7 +119,6 @@ func (s *DB) Limit(value interface{}) *DB {
 
 func (s *DB) Offset(value interface{}) *DB {
 	return s.clone().search.offset(value).db
-	return s.clone().search.offset(value).db
 }
 
 func (s *DB) Order(value string, reorder ...bool) *DB {

@@ -2,8 +2,9 @@ package gorm_test
 
 import (
 	"fmt"
-	"github.com/jinzhu/now"
 	"reflect"
+
+	"github.com/jinzhu/now"
 
 	"testing"
 	"time"
@@ -239,11 +240,7 @@ func TestOrderAndPluck(t *testing.T) {
 
 	var ages []int64
 	scopedb.Order("age desc").Pluck("age", &ages)
-	if ages != nil {
-		if ages[0] != 20 {
-			t.Errorf("The first age should be 20 when order with age desc")
-		}
-	} else {
+	if ages[0] != 20 {
 		t.Errorf("The first age should be 20 when order with age desc")
 	}
 
