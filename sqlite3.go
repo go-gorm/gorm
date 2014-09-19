@@ -15,6 +15,10 @@ func (s *sqlite3) SupportLastInsertId() bool {
 	return true
 }
 
+func (s *sqlite3) HasTop() bool {
+	return false
+}
+
 func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
 	switch value.Kind() {
 	case reflect.Bool:

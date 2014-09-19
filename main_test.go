@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -35,6 +36,9 @@ func init() {
 	case "postgres":
 		fmt.Println("testing postgres...")
 		DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
+	case "mssql":
+		fmt.Println("testing mssql...")
+		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
 	default:
 		fmt.Println("testing sqlite3...")
 		DB, err = gorm.Open("sqlite3", "/tmp/gorm.db")
@@ -445,6 +449,11 @@ func TestTimeWithZone(t *testing.T) {
 	for index, vtime := range times {
 		name := "time_with_zone_" + strconv.Itoa(index)
 		user := User{Name: name, Birthday: vtime}
+
+		// TODO mssql does not support time zones
+		if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
+			user.Birthday = vtime.UTC()
+		}
 		DB.Save(&user)
 		if user.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
 			t.Errorf("User's birthday should not be changed after save")

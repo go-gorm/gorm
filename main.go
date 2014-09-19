@@ -51,7 +51,9 @@ func Open(dialect string, drivesources ...string) (DB, error) {
 			source = drivesources[1]
 		}
 
-		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql", logger: defaultLogger, callback: DefaultCallback, source: source, values: map[string]interface{}{}}
+		db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql",
+			logger: defaultLogger, callback: DefaultCallback, source: source,
+			values: map[string]interface{}{}}
 		db.db, err = sql.Open(driver, source)
 		db.parent = &db
 	}

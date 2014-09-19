@@ -16,6 +16,10 @@ func (s *commonDialect) SupportLastInsertId() bool {
 	return true
 }
 
+func (s *commonDialect) HasTop() bool {
+	return false
+}
+
 func (d *commonDialect) SqlTag(value reflect.Value, size int) string {
 	switch value.Kind() {
 	case reflect.Bool:

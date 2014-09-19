@@ -2,8 +2,9 @@ package gorm_test
 
 import (
 	"fmt"
-	"github.com/jinzhu/now"
 	"reflect"
+
+	"github.com/jinzhu/now"
 
 	"testing"
 	"time"
@@ -244,7 +245,7 @@ func TestOrderAndPluck(t *testing.T) {
 	}
 
 	var ages1, ages2 []int64
-	scopedb.Order("age desc").Pluck("age", &ages1).Order("age").Pluck("age", &ages2)
+	scopedb.Order("age desc").Pluck("age", &ages1).Pluck("age", &ages2)
 	if !reflect.DeepEqual(ages1, ages2) {
 		t.Errorf("The first order is the primary order")
 	}
@@ -258,7 +259,11 @@ func TestOrderAndPluck(t *testing.T) {
 	var names []string
 	var ages5 []int64
 	scopedb.Model(User{}).Order("name").Order("age desc").Pluck("age", &ages5).Pluck("name", &names)
-	if !(names[0] == user1.Name && names[1] == user2.Name && names[2] == user3.Name && ages5[2] == 20) {
+	if names != nil && ages5 != nil {
+		if !(names[0] == user1.Name && names[1] == user2.Name && names[2] == user3.Name && ages5[2] == 20) {
+			t.Errorf("Order with multiple orders")
+		}
+	} else {
 		t.Errorf("Order with multiple orders")
 	}
 

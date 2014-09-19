@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-
 	"github.com/lib/pq/hstore"
 )
 
@@ -17,6 +16,10 @@ func (s *postgres) BinVar(i int) string {
 }
 
 func (s *postgres) SupportLastInsertId() bool {
+	return false
+}
+
+func (s *postgres) HasTop() bool {
 	return false
 }
 
