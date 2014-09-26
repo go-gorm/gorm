@@ -352,7 +352,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 		case reflect.Struct:
 			if field.IsTime() || field.IsScanner() {
 				field.IsNormal = true
-			} else if embedded := settings["EMBEDDED"]; strings.ToUpper(embedded) == "EMBEDDED" || (embedded == "" && fieldStruct.Anonymous) {
+			} else if _, ok := settings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 				var fields []*Field
 				if field.Field.CanAddr() {
 					for _, field := range scope.New(field.Field.Addr().Interface()).Fields() {
@@ -362,18 +362,25 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 				}
 				return fields
 			} else if withRelation {
-				if foreignKey == "" && scope.HasColumn(field.Name+"Id") {
-					field.Relationship = &relationship{ForeignKey: field.Name + "Id", Kind: "belongs_to"}
-				} else if scope.HasColumn(foreignKey) {
-					field.Relationship = &relationship{ForeignKey: foreignKey, Kind: "belongs_to"}
+				var belongsToForeignKey, hasOneForeignKey, kind string
+
+				if foreignKey == "" {
+					belongsToForeignKey = field.Name + "Id"
+					hasOneForeignKey = scopeTyp.Name() + "Id"
 				} else {
-					if foreignKey == "" {
-						foreignKey = scopeTyp.Name() + "Id"
-					}
-					if reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-						field.Relationship = &relationship{ForeignKey: foreignKey, Kind: "has_one"}
-					}
+					belongsToForeignKey = foreignKey
+					hasOneForeignKey = foreignKey
 				}
+
+				if scope.HasColumn(belongsToForeignKey) {
+					foreignKey = belongsToForeignKey
+					kind = "belongs_to"
+				} else {
+					foreignKey = hasOneForeignKey
+					kind = "has_one"
+				}
+
+				field.Relationship = &relationship{ForeignKey: foreignKey, Kind: kind}
 			}
 		default:
 			field.IsNormal = true
