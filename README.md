@@ -193,7 +193,7 @@ db.Create(&user)
 //// COMMIT;
 ```
 
-Refer [Associations](#associations) for how to works with associations
+Refer [Associations](#associations) for how to work with associations
 
 ## Query
 
