@@ -129,19 +129,18 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 }
 
 // HasColumn to check if has column
-func (scope *Scope) HasColumn(column string) bool {
+func (scope *Scope) HasColumn(column string) (hasColumn bool) {
 	clone := scope
 	if scope.IndirectValue().Kind() == reflect.Slice {
 		value := reflect.New(scope.IndirectValue().Type().Elem()).Interface()
 		clone = scope.New(value)
 	}
 
-	for _, field := range clone.Fields(false) {
-		if field.Name == column || field.DBName == column {
-			return true
-		}
-	}
-	return false
+	dbName := ToSnake(column)
+
+	_, hasColumn = clone.Fields(false)[dbName]
+
+	return
 }
 
 // FieldValueByName to get column's value and existence
@@ -150,20 +149,21 @@ func (scope *Scope) FieldValueByName(name string) (interface{}, bool) {
 }
 
 // SetColumn to set the column's value
-func (scope *Scope) SetColumn(column interface{}, value interface{}) bool {
+func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	if field, ok := column.(*Field); ok {
 		return field.Set(value)
 	} else if str, ok := column.(string); ok {
 		if scope.Value == nil {
-			return false
+			return errors.New("scope value must not be nil for string columns")
 		}
-		for _, field := range scope.Fields() {
-			if field.Name == str || field.DBName == str {
-				return field.Set(value)
-			}
+
+		dbName := ToSnake(str)
+
+		if field, ok := scope.Fields()[dbName]; ok {
+			return field.Set(value)
 		}
 	}
-	return false
+	return errors.New("could not convert column to field")
 }
 
 // CallMethod invoke method with necessary argument
