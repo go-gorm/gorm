@@ -474,7 +474,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 				}
 
 				// has one
-				if foreignValue, ok := scope.FieldValueByName(foreignKey); ok {
+				if foreignValue, err := scope.FieldValueByName(foreignKey); err == nil {
 					toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
 					return scope
 				}

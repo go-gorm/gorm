@@ -144,7 +144,7 @@ func (scope *Scope) HasColumn(column string) (hasColumn bool) {
 }
 
 // FieldValueByName to get column's value and existence
-func (scope *Scope) FieldValueByName(name string) (interface{}, bool) {
+func (scope *Scope) FieldValueByName(name string) (interface{}, error) {
 	return FieldValueByName(name, scope.Value)
 }
 

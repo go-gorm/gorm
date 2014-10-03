@@ -177,7 +177,7 @@ func (association *Association) Count() int {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), relationship.ForeignKey)
 		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
 	} else if relationship.Kind == "belongs_to" {
-		if v, ok := scope.FieldValueByName(association.Column); ok {
+		if v, err := scope.FieldValueByName(association.Column); err == nil {
 			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), relationship.ForeignKey)
 			scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, v).Count(&count)
 		}
