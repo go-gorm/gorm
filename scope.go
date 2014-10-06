@@ -174,21 +174,14 @@ func (scope *Scope) CallMethod(name string) {
 
 	call := func(value interface{}) {
 		if fm := reflect.ValueOf(value).MethodByName(name); fm.IsValid() {
-			fi := fm.Interface()
-			if f, ok := fi.(func()); ok {
-				f()
-			} else if f, ok := fi.(func(s *Scope)); ok {
-				f(scope)
-			} else if f, ok := fi.(func(s *DB)); ok {
-				f(scope.db.new())
-			} else if f, ok := fi.(func() error); ok {
-				scope.Err(f())
-			} else if f, ok := fi.(func(s *Scope) error); ok {
-				scope.Err(f(scope))
-			} else if f, ok := fi.(func(s *DB) error); ok {
-				scope.Err(f(scope.db.new()))
-			} else {
-				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+			switch f := fm.Interface().(type) {
+				case func(): f()
+				case func(s *Scope): f(scope)
+				case func(s *DB): f(scope.db.new())
+				case func() error: scope.Err(f())
+				case func(s *Scope) error: scope.Err(f(scope))
+				case func(s *DB) error: scope.Err(f(scope.db.new()))
+				default: scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
 			}
 		}
 	}
