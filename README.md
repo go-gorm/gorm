@@ -979,6 +979,16 @@ type Animal struct {
 }
 ```
 
+If your column names differ from the struct fields, you can specify them like this:
+
+```go
+type Animal struct {
+	AnimalId    int64     `gorm:"column:beast_id; primary_key:yes"`
+	Birthday    time.Time `gorm:"column:day_of_the_beast"`
+	Age         int64     `gorm:"column:age_of_the_beast"`
+}
+```
+
 ## More examples with query chain
 
 ```go

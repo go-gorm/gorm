@@ -175,13 +175,20 @@ func (scope *Scope) CallMethod(name string) {
 	call := func(value interface{}) {
 		if fm := reflect.ValueOf(value).MethodByName(name); fm.IsValid() {
 			switch f := fm.Interface().(type) {
-				case func(): f()
-				case func(s *Scope): f(scope)
-				case func(s *DB): f(scope.db.new())
-				case func() error: scope.Err(f())
-				case func(s *Scope) error: scope.Err(f(scope))
-				case func(s *DB) error: scope.Err(f(scope.db.new()))
-				default: scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+			case func():
+				f()
+			case func(s *Scope):
+				f(scope)
+			case func(s *DB):
+				f(scope.db.new())
+			case func() error:
+				scope.Err(f())
+			case func(s *Scope) error:
+				scope.Err(f(scope))
+			case func(s *DB) error:
+				scope.Err(f(scope.db.new()))
+			default:
+				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
 			}
 		}
 	}
@@ -275,7 +282,6 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelation bool) []*Field {
 	var field Field
 	field.Name = fieldStruct.Name
-	field.DBName = ToSnake(fieldStruct.Name)
 
 	value := scope.IndirectValue().FieldByName(fieldStruct.Name)
 	indirectValue := reflect.Indirect(value)
@@ -289,6 +295,12 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 	}
 
 	field.Tag = fieldStruct.Tag
+
+	if value, ok := settings["COLUMN"]; ok {
+		field.DBName = value
+	} else {
+		field.DBName = ToSnake(fieldStruct.Name)
+	}
 
 	tagIdentifier := "sql"
 	if scope.db != nil {
