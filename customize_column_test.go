@@ -11,6 +11,13 @@ type CustomizeColumn struct {
 	Date time.Time `gorm:"column:mapped_time"`
 }
 
+// Make sure an ignored field does not interfere with another field's custom
+// column name that matches the ignored field.
+type CustomColumnAndIgnoredFieldClash struct {
+	Body        string `sql:"-"`
+	RawBody     string `gorm:"column:body"`
+}
+
 func TestCustomizeColumn(t *testing.T) {
 	col := "mapped_name"
 	DB.DropTable(&CustomizeColumn{})
@@ -39,4 +46,9 @@ func TestCustomizeColumn(t *testing.T) {
 	if len(ccs) > 0 && ccs[0].Name != expected && ccs[0].Id != 666 {
 		t.Errorf("Failed to query CustomizeColumn")
 	}
+}
+
+func TestCustomColumnAndIgnoredFieldClash(t *testing.T) {
+	DB.DropTable(&CustomColumnAndIgnoredFieldClash{})
+	DB.AutoMigrate(&CustomColumnAndIgnoredFieldClash{})
 }
