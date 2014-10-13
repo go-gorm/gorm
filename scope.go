@@ -414,11 +414,12 @@ func (scope *Scope) Fields(noRelations ...bool) map[string]*Field {
 				if field.IsPrimaryKey {
 					hasPrimaryKey = true
 				}
-				if field.IsIgnored {
-					continue
-				}
-				if _, ok := fields[field.DBName]; ok {
-					panic(fmt.Sprintf("Duplicated column name for %v (%v)\n", scope.typeName(), fileWithLineNum()))
+				if value, ok := fields[field.DBName]; ok {
+					if value.IsIgnored {
+						fields[field.DBName] = field
+					} else if !value.IsIgnored {
+						panic(fmt.Sprintf("Duplicated column name for %v (%v)\n", scope.typeName(), fileWithLineNum()))
+					}
 				} else {
 					fields[field.DBName] = field
 				}
