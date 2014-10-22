@@ -125,17 +125,54 @@ func (s *search) table(name string) *search {
 }
 
 func (s *search) getInterfaceAsSql(value interface{}) (str string) {
-	switch value := value.(type) {
+	var s_num int64
+	var u_num uint64
+	var isString, unsigned bool = false, false
+
+	switch value.(type) {
 	case string:
-		str = value
+		str = value.(string)
+		isString = true
 	case int:
-		if value < 0 {
-			str = ""
-		} else {
-			str = strconv.Itoa(value)
-		}
+		s_num = int64(value.(int))
+	case int8:
+		s_num = int64(value.(int8))
+	case int16:
+		s_num = int64(value.(int16))
+	case int32:
+		s_num = int64(value.(int32))
+	case int64:
+		s_num = int64(value.(int64))
+	case uint:
+		u_num = uint64(value.(uint))
+		unsigned = true
+	case uint8:
+		u_num = uint64(value.(uint8))
+		unsigned = true
+	case uint16:
+		u_num = uint64(value.(uint16))
+		unsigned = true
+	case uint32:
+		u_num = uint64(value.(uint32))
+		unsigned = true
+	case uint64:
+		u_num = uint64(value.(uint64))
+		unsigned = true
 	default:
 		s.db.err(InvalidSql)
 	}
+
+	if !isString {
+		if unsigned {
+			str = strconv.FormatUint(u_num, 10)
+		} else {
+			if s_num < 0 {
+				str = ""
+			} else {
+				str = strconv.FormatInt(s_num, 10)
+			}
+		}
+	}
+
 	return
 }
