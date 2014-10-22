@@ -25,11 +25,11 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		} else {
 			str = value
 		}
-	case int, int64, int32:
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return scope.primaryCondiation(scope.AddToVars(value))
 	case sql.NullInt64:
 		return scope.primaryCondiation(scope.AddToVars(value.Int64))
-	case []int64, []int, []int32, []string:
+	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string:
 		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
 	case map[string]interface{}:
@@ -84,9 +84,9 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 			str = fmt.Sprintf("(%v NOT IN (?))", scope.Quote(value))
 			notEqualSql = fmt.Sprintf("(%v <> ?)", scope.Quote(value))
 		}
-	case int, int64, int32:
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), value)
-	case []int64, []int, []int32, []string:
+	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string:
 		if reflect.ValueOf(value).Len() > 0 {
 			str = fmt.Sprintf("(%v not in (?))", scope.Quote(scope.PrimaryKey()))
 			clause["args"] = []interface{}{value}
