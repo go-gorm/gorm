@@ -166,12 +166,18 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	return s.clone().Limit(1).NewScope(out).InstanceSet("gorm:order_by_primary_key", "ASC").
+	newScope := s.clone().NewScope(out)
+	newScope.Search = newScope.Search.clone()
+	newScope.Search.limit(1)
+	return newScope.InstanceSet("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	return s.clone().Limit(1).NewScope(out).InstanceSet("gorm:order_by_primary_key", "DESC").
+	newScope := s.clone().NewScope(out)
+	newScope.Search = newScope.Search.clone()
+	newScope.Search.limit(1)
+	return newScope.InstanceSet("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
