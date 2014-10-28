@@ -475,7 +475,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 
 				// has one
 				if foreignValue, err := scope.FieldValueByName(foreignKey); err == nil {
-					toScope.inlineCondition(foreignValue).callCallbacks(scope.db.parent.callback.queries)
+					sql := fmt.Sprintf("%v = ?", scope.Quote(ToSnake(toScope.PrimaryKey())))
+					toScope.inlineCondition(sql, foreignValue).callCallbacks(scope.db.parent.callback.queries)
 					return scope
 				}
 			}
