@@ -164,7 +164,7 @@ db.NewRecord(user) // => true
 
 db.Create(&user)
 
-// will ruturn false after `user` created
+// will return false after `user` created
 db.NewRecord(user) // => false
 
 // You could use `Save` to create record also if its primary key is null
@@ -691,7 +691,7 @@ db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,2
 
 ## Row & Rows
 
-You are even possible to get query result as `*sql.Row` or `*sql.Rows`
+It is even possible to get query result as `*sql.Row` or `*sql.Rows`
 
 ```go
 row := db.Table("users").Where("name = ?", "jinzhu").Select("name, age").Row() // (*sql.Row)
