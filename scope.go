@@ -12,16 +12,16 @@ import (
 )
 
 type Scope struct {
-	Value         interface{}
-	indirectValue *reflect.Value
-	Search        *search
-	Sql           string
-	SqlVars       []interface{}
-	db            *DB
-	skipLeft      bool
-	primaryKey    string
-	instanceId    string
-	fields        map[string]*Field
+	Value           interface{}
+	indirectValue   *reflect.Value
+	Search          *search
+	Sql             string
+	SqlVars         []interface{}
+	db              *DB
+	skipLeft        bool
+	primaryKeyField *Field
+	instanceId      string
+	fields          map[string]*Field
 }
 
 func (scope *Scope) IndirectValue() reflect.Value {
@@ -90,27 +90,33 @@ func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
 
-// PrimaryKey get the primary key's column name
-func (scope *Scope) PrimaryKey() string {
-	if scope.primaryKey != "" {
-		return scope.primaryKey
-	}
+func (scope *Scope) PrimaryKeyField() *Field {
+	if scope.primaryKeyField == nil {
+		var indirectValue = scope.IndirectValue()
 
-	var indirectValue = scope.IndirectValue()
+		clone := scope
+		if indirectValue.Kind() == reflect.Slice {
+			clone = scope.New(reflect.New(indirectValue.Type().Elem()).Elem().Interface())
+		}
 
-	clone := scope
-	if indirectValue.Kind() == reflect.Slice {
-		clone = scope.New(reflect.New(indirectValue.Type().Elem()).Elem().Interface())
-	}
-
-	for _, field := range clone.Fields() {
-		if field.IsPrimaryKey {
-			scope.primaryKey = field.DBName
-			break
+		for _, field := range clone.Fields() {
+			if field.IsPrimaryKey {
+				scope.primaryKeyField = field
+				break
+			}
 		}
 	}
 
-	return scope.primaryKey
+	return scope.primaryKeyField
+}
+
+// PrimaryKey get the primary key's column name
+func (scope *Scope) PrimaryKey() string {
+	if field := scope.PrimaryKeyField(); field != nil {
+		return field.DBName
+	} else {
+		return ""
+	}
 }
 
 // PrimaryKeyZero check the primary key is blank or not
@@ -120,12 +126,11 @@ func (scope *Scope) PrimaryKeyZero() bool {
 
 // PrimaryKeyValue get the primary key's value
 func (scope *Scope) PrimaryKeyValue() interface{} {
-	if scope.IndirectValue().Kind() == reflect.Struct {
-		if field := scope.IndirectValue().FieldByName(SnakeToUpperCamel(scope.PrimaryKey())); field.IsValid() {
-			return field.Interface()
-		}
+	if field := scope.PrimaryKeyField(); field != nil {
+		return field.Field.Interface()
+	} else {
+		return 0
 	}
-	return 0
 }
 
 // HasColumn to check if has column
