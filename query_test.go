@@ -50,6 +50,19 @@ func TestFirstAndLastWithNoStdPrimaryKey(t *testing.T) {
 	}
 }
 
+func TestUIntPrimaryKey(t *testing.T) {
+	var animal Animal
+	DB.First(&animal, uint64(1))
+	if animal.Counter != 1 {
+		t.Errorf("Fetch a record from with a non-int primary key should work, but failed")
+	}
+
+	DB.Model(Animal{}).Where(Animal{Counter: uint64(2)}).Scan(&animal)
+	if animal.Counter != 2 {
+		t.Errorf("Fetch a record from with a non-int primary key should work, but failed")
+	}
+}
+
 func TestFindAsSliceOfPointers(t *testing.T) {
 	DB.Save(&User{Name: "user"})
 

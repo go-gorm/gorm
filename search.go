@@ -1,6 +1,6 @@
 package gorm
 
-import "strconv"
+import "fmt"
 
 type search struct {
 	db              *DB
@@ -125,17 +125,15 @@ func (s *search) table(name string) *search {
 }
 
 func (s *search) getInterfaceAsSql(value interface{}) (str string) {
-	switch value := value.(type) {
-	case string:
-		str = value
-	case int:
-		if value < 0 {
-			str = ""
-		} else {
-			str = strconv.Itoa(value)
-		}
+	switch value.(type) {
+	case string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		str = fmt.Sprintf("%v", value)
 	default:
 		s.db.err(InvalidSql)
+	}
+
+	if str == "-1" {
+		return ""
 	}
 	return
 }
