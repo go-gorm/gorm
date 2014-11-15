@@ -299,6 +299,10 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 		field.IsPrimaryKey = true
 	}
 
+	if def, ok := parseTagSetting(fieldStruct.Tag.Get("sql"))["DEFAULT"]; ok {
+		field.DefaultValue = def
+	}
+
 	field.Tag = fieldStruct.Tag
 
 	if value, ok := settings["COLUMN"]; ok {

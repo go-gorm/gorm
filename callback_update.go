@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -49,6 +50,9 @@ func Update(scope *Scope) {
 		} else {
 			for _, field := range scope.Fields() {
 				if !field.IsPrimaryKey && field.IsNormal && !field.IsIgnored {
+					if field.DefaultValue != nil && reflect.DeepEqual(field.Field.Interface(), reflect.Zero(field.Field.Type()).Interface()) {
+						continue
+					}
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				}
 			}

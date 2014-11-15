@@ -24,6 +24,7 @@ type Field struct {
 	IsBlank      bool
 	IsIgnored    bool
 	IsPrimaryKey bool
+	DefaultValue interface{}
 }
 
 func (field *Field) IsScanner() bool {

@@ -974,7 +974,8 @@ If you have an existing database schema, and the primary key field is different 
 ```go
 type Animal struct {
 	AnimalId     int64 `gorm:"primary_key:yes"`
-	Birthday     time.Time
+	Birthday     time.Time `sql:"DEFAULT:NOW()"`
+    Name         string `sql:"default:'galeone'"`
 	Age          int64
 }
 ```
@@ -987,6 +988,46 @@ type Animal struct {
 	Birthday    time.Time `gorm:"column:day_of_the_beast"`
 	Age         int64     `gorm:"column:age_of_the_beast"`
 }
+```
+
+## Default values
+
+If you have defined a default value in the `sql` tag (see the struct Animal above) the generated queries will not contains the value for these fields if is not set.
+
+Eg.
+
+```go
+db.Save(&Animal{Age: 99})
+```
+
+The generated query will be:
+
+```sql
+INSERT INTO animals("birthday","age","name") values(NOW(), '99', 'galeone')
+```
+
+The same thing occurs in update statements.
+
+You should fetch the value again to get the default updated values in the struct.
+
+We can't do the same thing of the primary key (that is always filled with the right value) because default SQL values can be expressions and thus be different from the fields' type (eg. a time.Time fiels has a default value of "NOW()")
+
+So the right way to do an update/insert statement and be sure to get the default values in the struct is
+
+```go
+//Insert
+var animal Animal
+animal.Age = 99
+db.Save(&animal)
+db.First(&animal, animal.AnimalId)
+// Now wo have the animal struct with:
+// Birthday: the insert time
+// Name: the string galeone
+// Age: the setted one -> 99
+
+// For the update statements is the same
+// First save the struct
+// Than fetch it back again
 ```
 
 ## More examples with query chain
@@ -1032,7 +1073,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * db.RegisterFuncation("Search", func() {})
   db.Model(&[]User{}).Limit(10).Do("Search", "search func's argument")
   db.Mode(&User{}).Do("EditForm").Get("edit_form_html")
-  DefaultValue, DefaultTimeZone, R/W Splitting, Validation
+  DefaultTimeZone, R/W Splitting, Validation
 * Github Pages
 * Includes
 * AlertColumn, DropColumn

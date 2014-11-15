@@ -69,7 +69,7 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
-func TestUpdateWithNoStdPrimaryKey(t *testing.T) {
+func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	animal := Animal{Name: "Ferdinand"}
 	DB.Save(&animal)
 	updatedAt1 := animal.UpdatedAt
@@ -84,6 +84,21 @@ func TestUpdateWithNoStdPrimaryKey(t *testing.T) {
 	DB.Find(&animals)
 	if count := DB.Model(Animal{}).Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
 		t.Error("RowsAffected should be correct when do batch update")
+	}
+
+	animal = Animal{From: "somewhere"}              // No name fields, should be filled with the default value (galeone)
+	DB.Save(&animal).Update("From", "a nice place") // The name field shoul be untouched
+	DB.First(&animal, animal.Counter)
+	if animal.Name != "galeone" {
+		t.Errorf("Name fiels shouldn't be changed if untouched, but got %v", animal.Name)
+	}
+
+	// When changing a field with a default value, the change must occur
+	animal.Name = "amazing horse"
+	DB.Save(&animal)
+	DB.First(&animal, animal.Counter)
+	if animal.Name != "amazing horse" {
+		t.Errorf("Update a filed with a default value should occur. But got %v\n", animal.Name)
 	}
 }
 

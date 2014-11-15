@@ -56,7 +56,7 @@ func TestCreate(t *testing.T) {
 	}
 }
 
-func TestCreateWithNoStdPrimaryKey(t *testing.T) {
+func TestCreateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	animal := Animal{Name: "Ferdinand"}
 	if DB.Save(&animal).Error != nil {
 		t.Errorf("No error should happen when create an record without std primary key")
@@ -64,6 +64,26 @@ func TestCreateWithNoStdPrimaryKey(t *testing.T) {
 
 	if animal.Counter == 0 {
 		t.Errorf("No std primary key should be filled value after create")
+	}
+
+	if animal.Name != "Ferdinand" {
+		t.Errorf("Default value should be overrided")
+	}
+
+	// Test create with default value not overrided
+	an := Animal{From: "nerdz"}
+
+	if DB.Save(&an).Error != nil {
+		t.Errorf("No error should happen when create an record without std primary key")
+	}
+
+	// We must fetch the value again, to have the default fields updated
+	// (We can't do this in the update statements, since sql default can be expressions
+	// And be different from the fields' type (eg. a time.Time fiels has a default value of "now()"
+	DB.Model(Animal{}).Where(&Animal{Counter: an.Counter}).First(&an)
+
+	if an.Name != "galeone" {
+		t.Errorf("Default value should fill the field. But got %v", an.Name)
 	}
 }
 
