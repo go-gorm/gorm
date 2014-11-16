@@ -512,12 +512,17 @@ func (scope *Scope) createJoinTable(field *Field) {
 
 func (scope *Scope) createTable() *Scope {
 	var sqls []string
-	for _, field := range scope.Fields() {
-		if field.IsNormal {
-			sqlTag := scope.sqlTagForField(field)
-			sqls = append(sqls, scope.Quote(field.DBName)+" "+sqlTag)
+	fields := scope.Fields()
+	scopeType := scope.IndirectValue().Type()
+	for i := 0; i < scopeType.NumField(); i++ {
+		for _, field := range scope.fieldFromStruct(scopeType.Field(i), false) {
+			field = fields[field.DBName]
+			if field.IsNormal {
+				sqlTag := scope.sqlTagForField(field)
+				sqls = append(sqls, scope.Quote(field.DBName)+" "+sqlTag)
+			}
+			scope.createJoinTable(field)
 		}
-		scope.createJoinTable(field)
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
 	return scope
