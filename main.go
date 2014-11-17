@@ -125,8 +125,8 @@ func (s *DB) Order(value string, reorder ...bool) *DB {
 	return s.clone().search.order(value, reorder...).db
 }
 
-func (s *DB) Select(value interface{}) *DB {
-	return s.clone().search.selects(value).db
+func (s *DB) Select(query interface{}, args ...interface{}) *DB {
+	return s.clone().search.selects(query, args...).db
 }
 
 func (s *DB) Group(query string) *DB {

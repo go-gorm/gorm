@@ -12,7 +12,7 @@ type search struct {
 	HavingCondition map[string]interface{}
 	Orders          []string
 	Joins           string
-	Select          string
+	Selects         []map[string]interface{}
 	Offset          string
 	Limit           string
 	Group           string
@@ -30,7 +30,7 @@ func (s *search) clone() *search {
 		AssignAttrs:     s.AssignAttrs,
 		HavingCondition: s.HavingCondition,
 		Orders:          s.Orders,
-		Select:          s.Select,
+		Selects:         s.Selects,
 		Offset:          s.Offset,
 		Limit:           s.Limit,
 		Unscope:         s.Unscope,
@@ -75,8 +75,8 @@ func (s *search) order(value string, reorder ...bool) *search {
 	return s
 }
 
-func (s *search) selects(value interface{}) *search {
-	s.Select = s.getInterfaceAsSql(value)
+func (s *search) selects(query interface{}, args ...interface{}) *search {
+	s.Selects = append(s.Selects, map[string]interface{}{"query": query, "args": args})
 	return s
 }
 

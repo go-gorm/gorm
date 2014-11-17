@@ -129,6 +129,34 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 	return
 }
 
+func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string) {
+	switch value := clause["query"].(type) {
+	case string:
+		str = value
+	case []string:
+		str = strings.Join(value, ", ")
+	}
+
+	args := clause["args"].([]interface{})
+	for _, arg := range args {
+		switch reflect.TypeOf(arg).Kind() {
+		case reflect.Slice:
+			values := reflect.ValueOf(arg)
+			var tempMarks []string
+			for i := 0; i < values.Len(); i++ {
+				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
+			}
+			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
+		default:
+			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, _ = valuer.Value()
+			}
+			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+		}
+	}
+	return
+}
+
 func (scope *Scope) where(where ...interface{}) {
 	if len(where) > 0 {
 		scope.Search = scope.Search.clone().where(where[0], where[1:]...)
@@ -180,11 +208,18 @@ func (scope *Scope) whereSql() (sql string) {
 }
 
 func (s *Scope) selectSql() string {
-	if len(s.Search.Select) == 0 {
+	if len(s.Search.Selects) == 0 {
 		return "*"
-	} else {
-		return s.Search.Select
 	}
+
+	var selectQueries []string
+
+	for _, clause := range s.Search.Selects {
+		selectQueries = append(selectQueries, s.buildSelectQuery(clause))
+	}
+
+	return strings.Join(selectQueries, ", ")
+
 }
 
 func (s *Scope) orderSql() string {

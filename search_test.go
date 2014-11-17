@@ -24,7 +24,7 @@ func TestCloneSearch(t *testing.T) {
 		t.Errorf("InitAttrs should be copied")
 	}
 
-	if reflect.DeepEqual(s.Select, s1.Select) {
+	if reflect.DeepEqual(s.Selects, s1.Selects) {
 		t.Errorf("selectStr should be copied")
 	}
 }
