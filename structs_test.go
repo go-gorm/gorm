@@ -128,7 +128,7 @@ type Animal struct {
 	Counter   uint64    `gorm:"primary_key:yes"`
 	Name      string    `sql:"DEFAULT:'galeone'"`
 	From      string    //test reserved sql keyword as field name
-	Age       time.Time `sql:"DEFAULT:NOW()"`
+	Age       time.Time `sql:"DEFAULT:current_timestamp"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

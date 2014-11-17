@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -27,7 +26,7 @@ func Create(scope *Scope) {
 		var sqls, columns []string
 		for _, field := range scope.Fields() {
 			if field.IsNormal && (!field.IsPrimaryKey || !scope.PrimaryKeyZero()) {
-				if field.DefaultValue != nil && reflect.DeepEqual(field.Field.Interface(), reflect.Zero(field.Field.Type()).Interface()) {
+				if field.DefaultValue != nil && field.IsBlank {
 					continue
 				}
 				columns = append(columns, scope.Quote(field.DBName))
