@@ -609,6 +609,12 @@ db.Where(User{Name: "jinzhu"}).Assign(User{Age: 30}).FirstOrCreate(&user)
 ```go
 db.Select("name, age").Find(&users)
 //// SELECT name, age FROM users;
+
+db.Select([]string{"name", "age"}).Find(&users)
+//// SELECT name, age FROM users;
+
+db.Table("users").Select("COALESCE(age,?)", 42).Rows()
+//// SELECT COALESCE(age,'42') FROM users;
 ```
 
 ## Order
