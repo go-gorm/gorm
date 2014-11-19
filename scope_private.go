@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -550,6 +551,9 @@ func (scope *Scope) createTable() *Scope {
 	fields := scope.Fields()
 	scopeType := scope.IndirectValue().Type()
 	for i := 0; i < scopeType.NumField(); i++ {
+		if !ast.IsExported(scopeType.Field(i).Name) {
+			continue
+		}
 		for _, field := range scope.fieldFromStruct(scopeType.Field(i), false) {
 			field = fields[field.DBName]
 			if field.IsNormal {
