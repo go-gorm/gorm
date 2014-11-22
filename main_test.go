@@ -554,6 +554,22 @@ func TestCompatibilityMode(t *testing.T) {
 	}
 }
 
+func TestOpenExistingDB(t *testing.T) {
+	DB.Save(&User{Name: "jnfeinstein"})
+	dialect := os.Getenv("GORM_DIALECT")
+
+	db, err := gorm.Open(dialect, DB.DB())
+	if err != nil {
+		t.Errorf("Should have wrapped the existing DB connection")
+	}
+
+	var user User
+	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.RecordNotFound {
+		t.Errorf("Should have found existing record")
+	}
+
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
