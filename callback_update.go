@@ -52,6 +52,9 @@ func Update(scope *Scope) {
 					if field.DefaultValue != nil && field.IsBlank {
 						continue
 					}
+					if field.Name == "CreatedAt" {
+						continue
+					}
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				}
 			}
