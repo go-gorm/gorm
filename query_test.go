@@ -6,7 +6,6 @@ import (
 
 	"github.com/jinzhu/now"
 
-	"math/rand"
 	"testing"
 	"time"
 )
@@ -542,11 +541,15 @@ func TestSelectWithEscapedFieldName(t *testing.T) {
 func TestSelectWithVariables(t *testing.T) {
 	DB.Save(&User{Name: "jinzhu"})
 
-	randomNum := rand.Intn(1000000000)
-	rows, _ := DB.Table("users").Select("? as fake", randomNum).Where("fake = ?", randomNum).Rows()
+	rows, _ := DB.Table("users").Select("? as fake", "name").Rows()
 
 	if !rows.Next() {
 		t.Errorf("Should have returned at least one row")
+	} else {
+		columns, _ := rows.Columns()
+		if !reflect.DeepEqual(columns, []string{"fake"}) {
+			t.Errorf("Should only contains one column")
+		}
 	}
 }
 

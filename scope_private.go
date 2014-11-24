@@ -152,7 +152,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = valuer.Value()
 			}
-			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			str = strings.Replace(str, "?", scope.Dialect().Quote(fmt.Sprintf("%v", arg)), 1)
 		}
 	}
 	return
