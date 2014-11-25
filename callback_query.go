@@ -77,6 +77,15 @@ func Query(scope *Scope) {
 		}
 
 		if !anyRecordFound {
+			if isSlice && dest.IsNil() {
+				var emptySliceType reflect.Type
+				if isPtr {
+					emptySliceType = reflect.SliceOf(reflect.PtrTo(destType))
+				} else {
+					emptySliceType = reflect.SliceOf(destType)
+				}
+				dest.Set(reflect.MakeSlice(emptySliceType, 0, 0))
+			}
 			scope.Err(RecordNotFound)
 		}
 	}

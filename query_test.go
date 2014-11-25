@@ -77,6 +77,20 @@ func TestFindAsSliceOfPointers(t *testing.T) {
 	}
 }
 
+func TestFindWontReturnNilSlices(t *testing.T) {
+	randomNum := rand.Intn(1000000000)
+
+	var users []User
+	DB.Where("name = ?", randomNum).Find(&users)
+
+	var userPointers []*User
+	DB.Where("name = ?", randomNum).Find(&userPointers)
+
+	if reflect.ValueOf(users).IsNil() || reflect.ValueOf(userPointers).IsNil() {
+		t.Errorf("Should have returned empty slices")
+	}
+}
+
 func TestSearchWithPlainSQL(t *testing.T) {
 	user1 := User{Name: "PlainSqlUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
 	user2 := User{Name: "PlainSqlUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
