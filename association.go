@@ -170,15 +170,12 @@ func (association *Association) Count() int {
 			relationship.JoinTable,
 			scope.Quote(ToSnake(relationship.ForeignKey)))
 		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
-	} else if relationship.Kind == "has_many" {
+	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))
-		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
-	} else if relationship.Kind == "has_one" {
-		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), relationship.ForeignKey)
 		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
 	} else if relationship.Kind == "belongs_to" {
 		if v, err := scope.FieldValueByName(association.Column); err == nil {
-			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), relationship.ForeignKey)
+			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))
 			scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, v).Count(&count)
 		}
 	}
