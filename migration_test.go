@@ -82,8 +82,8 @@ func (b BigEmail) TableName() string {
 }
 
 func TestAutoMigration(t *testing.T) {
-	DB.AutoMigrate(Address{})
-	if err := DB.Table("emails").AutoMigrate(BigEmail{}).Error; err != nil {
+	DB.AutoMigrate(&Address{})
+	if err := DB.Table("emails").AutoMigrate(&BigEmail{}).Error; err != nil {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 
