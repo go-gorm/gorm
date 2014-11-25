@@ -34,12 +34,18 @@ func (scope *Scope) IndirectValue() reflect.Value {
 
 // NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
-	// reflectKind := reflect.ValueOf(value).Kind()
-	// if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
-	// 	fmt.Printf("%v %v\n", fileWithLineNum(), "using unaddressable value")
-	// }
 	db.Value = value
 	return &Scope{db: db, Search: db.search, Value: value}
+}
+
+func (scope *Scope) NeedPtr() *Scope {
+	reflectKind := reflect.ValueOf(scope.Value).Kind()
+	if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
+		err := errors.New(fmt.Sprintf("%v %v\n", fileWithLineNum(), "using unaddressable value"))
+		scope.Err(err)
+		fmt.Printf(err.Error())
+	}
+	return scope
 }
 
 // New create a new Scope without search information

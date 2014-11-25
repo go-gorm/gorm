@@ -363,7 +363,7 @@ func (s *DB) HasTable(value interface{}) bool {
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
-		db = db.NewScope(value).autoMigrate().db
+		db = db.NewScope(value).NeedPtr().autoMigrate().db
 	}
 	return db
 }
