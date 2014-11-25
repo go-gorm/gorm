@@ -56,11 +56,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 		}
 		dbSql, err = sql.Open(driver, source)
 	case sqlCommon:
-		if reflect.TypeOf(value).Kind() == reflect.Ptr {
-			source = reflect.ValueOf(value).Elem().FieldByName("dsn").String()
-		} else {
-			source = reflect.ValueOf(value).FieldByName("dsn").String()
-		}
+		source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 		dbSql = value
 	}
 

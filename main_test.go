@@ -8,8 +8,8 @@ import (
 
 	_ "github.com/denisenkom/go-mssqldb"
 	testdb "github.com/erikstmartin/go-testdb"
-	"github.com/jinzhu/gorm"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/now"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -567,7 +567,6 @@ func TestOpenExistingDB(t *testing.T) {
 	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.RecordNotFound {
 		t.Errorf("Should have found existing record")
 	}
-
 }
 
 func BenchmarkGorm(b *testing.B) {
