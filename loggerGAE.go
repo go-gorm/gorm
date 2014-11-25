@@ -1,3 +1,5 @@
+// +build appengine
+
 package gorm
 
 import (
@@ -39,5 +41,6 @@ func (logger Logger) Print(v ...interface{}) {
 			messages = append(messages, "\033[0m")
 		}
 		logger.Println(messages...)
+		log.Printf("%+v", messages)
 	}
 }
