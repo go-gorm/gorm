@@ -2,6 +2,8 @@
 
 The fantastic ORM library for Golang, aims to be developer friendly.
 
+[![wercker status](https://app.wercker.com/status/0cb7bb1039e21b74f8274941428e0921/s/master "wercker status")](https://app.wercker.com/project/bykey/0cb7bb1039e21b74f8274941428e0921)
+
 ## Overview
 
 * Chainable API
