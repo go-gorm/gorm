@@ -106,6 +106,10 @@ db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 // db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True")
 // db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 
+// You can also use an existing database connection handle
+// dbSql, _ := sql.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+// db := gorm.Open("postgres", dbSql)
+
 // Get database connection handle [*sql.DB](http://golang.org/pkg/database/sql/#DB)
 db.DB()
 
