@@ -334,8 +334,15 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 		scopeTyp := scope.IndirectValue().Type()
 
 		foreignKey := SnakeToUpperCamel(settings["FOREIGNKEY"])
+		foreignType := SnakeToUpperCamel(settings["FOREIGNTYPE"])
 		associationForeignKey := SnakeToUpperCamel(settings["ASSOCIATIONFOREIGNKEY"])
 		many2many := settings["MANY2MANY"]
+		polymorphic := SnakeToUpperCamel(settings["POLYMORPHIC"])
+
+		if polymorphic != "" {
+			foreignKey = polymorphic + "Id"
+			foreignType = polymorphic + "Type"
+		}
 
 		switch indirectValue.Kind() {
 		case reflect.Slice:
@@ -359,6 +366,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 				field.Relationship = &relationship{
 					JoinTable:             many2many,
 					ForeignKey:            foreignKey,
+					ForeignType:           foreignType,
 					AssociationForeignKey: associationForeignKey,
 					Kind: "has_many",
 				}
@@ -400,7 +408,7 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 					kind = "has_one"
 				}
 
-				field.Relationship = &relationship{ForeignKey: foreignKey, Kind: kind}
+				field.Relationship = &relationship{ForeignKey: foreignKey, ForeignType: foreignType, Kind: kind}
 			}
 		default:
 			field.IsNormal = true

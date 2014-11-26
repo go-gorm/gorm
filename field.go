@@ -10,6 +10,7 @@ import (
 type relationship struct {
 	JoinTable             string
 	ForeignKey            string
+	ForeignType           string
 	AssociationForeignKey string
 	Kind                  string
 }

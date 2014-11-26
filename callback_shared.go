@@ -35,6 +35,10 @@ func SaveBeforeAssociations(scope *Scope) {
 				if relationship.ForeignKey != "" {
 					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
 				}
+				if relationship.ForeignType != "" {
+					scope.Err(fmt.Errorf("gorm does not support polymorphic belongs_to associations"))
+					return
+				}
 			}
 		}
 	}
@@ -57,10 +61,17 @@ func SaveAfterAssociations(scope *Scope) {
 						if relationship.JoinTable == "" && relationship.ForeignKey != "" {
 							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
+						if relationship.ForeignType != "" {
+							newDB.NewScope(elem).SetColumn(relationship.ForeignType, scope.TableName())
+						}
 
 						scope.Err(newDB.Save(elem).Error)
 
 						if relationship.JoinTable != "" {
+							if relationship.ForeignType != "" {
+								scope.Err(fmt.Errorf("gorm does not support polymorphic many-to-many associations"))
+							}
+
 							newScope := scope.New(elem)
 							joinTable := relationship.JoinTable
 							foreignKey := ToSnake(relationship.ForeignKey)
@@ -89,6 +100,9 @@ func SaveAfterAssociations(scope *Scope) {
 						if relationship.ForeignKey != "" {
 							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
 						}
+						if relationship.ForeignType != "" {
+							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignType, scope.TableName())
+						}
 						scope.Err(newDB.Save(value.Addr().Interface()).Error)
 					} else {
 						destValue := reflect.New(field.Field.Type()).Elem()
@@ -100,6 +114,9 @@ func SaveAfterAssociations(scope *Scope) {
 						elem := destValue.Addr().Interface()
 						if relationship.ForeignKey != "" {
 							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
+						}
+						if relationship.ForeignType != "" {
+							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignType, scope.TableName())
 						}
 						scope.Err(newDB.Save(elem).Error)
 						scope.SetColumn(field.Name, destValue.Interface())
