@@ -1,6 +1,29 @@
 package gorm_test
 
 import "testing"
+import "github.com/jinzhu/gorm"
+
+type Cat struct {
+	Id   int
+	Name string
+	Toy  Toy `gorm:"polymorphic:Owner;"`
+}
+
+type Dog struct {
+	Id   int
+	Name string
+	Toys []Toy `gorm:"polymorphic:Owner;"`
+}
+
+type Toy struct {
+	Id        int
+	Name      string
+	OwnerId   int
+	OwnerType string
+
+	// Define the owner type as a belongs_to so we can ensure it throws an error
+	Owner Dog `gorm:"foreignkey:owner_id; foreigntype:owner_type;"`
+}
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
 	DB.DropTable(Category{})
@@ -206,5 +229,47 @@ func TestManyToMany(t *testing.T) {
 	DB.Model(&user).Association("Languages").Clear()
 	if DB.Model(&user).Association("Languages").Count() != 0 {
 		t.Errorf("Relations should be cleared")
+	}
+}
+
+func TestPolymorphic(t *testing.T) {
+	DB.DropTableIfExists(Cat{})
+	DB.DropTableIfExists(Dog{})
+	DB.DropTableIfExists(Toy{})
+
+	DB.AutoMigrate(&Cat{})
+	DB.AutoMigrate(&Dog{})
+	DB.AutoMigrate(&Toy{})
+
+	cat := Cat{Name: "Mr. Bigglesworth", Toy: Toy{Name: "cat nip"}}
+	dog := Dog{Name: "Pluto", Toys: []Toy{Toy{Name: "orange ball"}, Toy{Name: "yellow ball"}}}
+	DB.Save(&cat).Save(&dog)
+
+	var catToys []Toy
+	if err := DB.Model(&cat).Related(&catToys, "Toy").Error; err == gorm.RecordNotFound {
+		t.Errorf("Did not find any has one polymorphic association")
+	} else if len(catToys) != 1 {
+		t.Errorf("Should have found only one polymorphic has one association")
+	} else if catToys[0].Name != cat.Toy.Name {
+		t.Errorf("Should have found the proper has one polymorphic association")
+	}
+
+	var dogToys []Toy
+	if err := DB.Model(&dog).Related(&dogToys, "Toys").Error; err == gorm.RecordNotFound {
+		t.Errorf("Did not find any polymorphic has many associations")
+	} else if len(dogToys) != len(dog.Toys) {
+		t.Errorf("Should have found all polymorphic has many associations")
+	}
+
+	if DB.Model(&cat).Association("Toy").Count() != 1 {
+		t.Errorf("Should return one polymorphic has one association")
+	}
+
+	if DB.Model(&dog).Association("Toys").Count() != 2 {
+		t.Errorf("Should return two polymorphic has many associations")
+	}
+
+	if DB.Model(&Toy{OwnerId: dog.Id, OwnerType: "dog"}).Related(&dog, "Owner").Error == nil {
+		t.Errorf("Should have thrown unsupported belongs_to error")
 	}
 }
