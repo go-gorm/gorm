@@ -411,10 +411,11 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 
 // Fields get value's fields
 func (scope *Scope) Fields(noRelations ...bool) map[string]*Field {
-	if scope.fields != nil {
+	var withRelation = len(noRelations) == 0
+
+	if withRelation && scope.fields != nil {
 		return scope.fields
 	}
-	var withRelation = len(noRelations) == 0
 
 	var fields = map[string]*Field{}
 	if scope.IndirectValue().IsValid() && scope.IndirectValue().Kind() == reflect.Struct {
