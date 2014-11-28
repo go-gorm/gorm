@@ -7,11 +7,12 @@ import (
 )
 
 type Association struct {
-	Scope      *Scope
-	PrimaryKey interface{}
-	Column     string
-	Error      error
-	Field      *Field
+	Scope       *Scope
+	PrimaryKey  interface{}
+	PrimaryType interface{}
+	Column      string
+	Error       error
+	Field       *Field
 }
 
 func (association *Association) err(err error) *Association {
@@ -172,7 +173,11 @@ func (association *Association) Count() int {
 		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))
-		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
+		countScope := scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey)
+		if relationship.ForeignType != "" {
+			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignType))), association.PrimaryType)
+		}
+		countScope.Count(&count)
 	} else if relationship.Kind == "belongs_to" {
 		if v, err := scope.FieldValueByName(association.Column); err == nil {
 			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))

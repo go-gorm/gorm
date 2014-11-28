@@ -406,6 +406,7 @@ func (s *DB) Association(column string) *Association {
 	scope := s.clone().NewScope(s.Value)
 
 	primaryKey := scope.PrimaryKeyValue()
+	primaryType := scope.TableName()
 	if reflect.DeepEqual(reflect.ValueOf(primaryKey), reflect.Zero(reflect.ValueOf(primaryKey).Type())) {
 		scope.Err(errors.New("primary key can't be nil"))
 	}
@@ -420,7 +421,7 @@ func (s *DB) Association(column string) *Association {
 		scope.Err(fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column))
 	}
 
-	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, Field: field}
+	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, PrimaryType: primaryType, Field: field}
 }
 
 // Set set value by name
