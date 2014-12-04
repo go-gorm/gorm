@@ -25,7 +25,7 @@ func SaveBeforeAssociations(scope *Scope) {
 				if !value.CanAddr() {
 					// If can't take address, then clone the value and set it back
 					value = reflect.New(value.Type()).Elem()
-					for _, f := range newDB.NewScope(field.Field.Interface()).Fields() {
+					for _, f := range newDB.NewScope(field.Field.Addr().Interface()).Fields() {
 						value.FieldByName(f.Name).Set(reflect.ValueOf(f.Field.Interface()))
 					}
 					scope.SetColumn(field.Name, value.Interface())
@@ -33,7 +33,7 @@ func SaveBeforeAssociations(scope *Scope) {
 				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 
 				if relationship.ForeignKey != "" {
-					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Interface()).PrimaryKeyValue())
+					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Addr().Interface()).PrimaryKeyValue())
 				}
 				if relationship.ForeignType != "" {
 					scope.Err(fmt.Errorf("gorm does not support polymorphic belongs_to associations"))
@@ -107,7 +107,7 @@ func SaveAfterAssociations(scope *Scope) {
 					} else {
 						destValue := reflect.New(field.Field.Type()).Elem()
 
-						for _, f := range newDB.NewScope(field.Field.Interface()).Fields() {
+						for _, f := range newDB.NewScope(field.Field.Addr().Interface()).Fields() {
 							destValue.FieldByName(f.Name).Set(f.Field)
 						}
 
