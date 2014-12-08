@@ -72,7 +72,7 @@ func Create(scope *Scope) {
 					if names, columnsErr := rows.Columns(); columnsErr != nil {
 						ids := make([]interface{}, len(names))
 						if scope.Err(rows.Scan(ids...)) == nil {
-							scope.db.RowsAffected = int64(len(names))
+							scope.db.RowsAffected = 1
 						}
 					}
 				}
