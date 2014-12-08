@@ -56,10 +56,18 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateWithNoGORMPrimayKey(t *testing.T) {
+	jt := JoinTable{From: 1, To: 2}
+	err := DB.Create(&jt).Error
+	if err != nil {
+		t.Errorf("No error should happen when create a record without a GORM primary key. But in the database this primary key exists and is the union of 2 or more fields\n But got: %s", err)
+	}
+}
+
 func TestCreateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	animal := Animal{Name: "Ferdinand"}
 	if DB.Save(&animal).Error != nil {
-		t.Errorf("No error should happen when create an record without std primary key")
+		t.Errorf("No error should happen when create a record without std primary key")
 	}
 
 	if animal.Counter == 0 {

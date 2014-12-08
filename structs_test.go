@@ -134,6 +134,12 @@ type Animal struct {
 	UpdatedAt  time.Time
 }
 
+type JoinTable struct {
+	From uint64
+	To   uint64
+	Time time.Time `sql:"default: null"`
+}
+
 type Post struct {
 	Id             int64
 	CategoryId     sql.NullInt64

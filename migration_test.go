@@ -15,17 +15,9 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}}
+	values := []interface{}{&Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}}
 	for _, value := range values {
 		DB.DropTable(value)
-	}
-
-	if err := DB.CreateTable(&Animal{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
-	}
-
-	if err := DB.CreateTable(User{}).Error; err != nil {
-		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
 	if err := DB.AutoMigrate(values...).Error; err != nil {
