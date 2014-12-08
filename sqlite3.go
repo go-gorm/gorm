@@ -56,7 +56,7 @@ func (s *sqlite3) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *sqlite3) ReturningStr(key string) string {
+func (s *sqlite3) ReturningStr(tableName, key string) string {
 	return ""
 }
 

@@ -34,17 +34,17 @@ func Create(scope *Scope) {
 			}
 		}
 
-		returningField := ""
+		returningKey := "*"
 		if scope.PrimaryKey() == "" {
-			returningField = "*"
+			returningKey = "*"
 		} else {
-			returningField = scope.PrimaryKey()
+			returningKey = scope.PrimaryKey()
 		}
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v",
 				scope.QuotedTableName(),
-				scope.Dialect().ReturningStr(returningField),
+				scope.Dialect().ReturningStr(scope.TableName(), returningKey),
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
@@ -52,7 +52,7 @@ func Create(scope *Scope) {
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
 				strings.Join(sqls, ","),
-				scope.Dialect().ReturningStr(returningField),
+				scope.Dialect().ReturningStr(scope.TableName(), returningKey),
 			))
 		}
 
