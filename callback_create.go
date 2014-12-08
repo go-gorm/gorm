@@ -35,9 +35,7 @@ func Create(scope *Scope) {
 		}
 
 		returningKey := "*"
-		if scope.PrimaryKey() == "" {
-			returningKey = "*"
-		} else {
+		if scope.PrimaryKey() != "" {
 			returningKey = scope.PrimaryKey()
 		}
 
@@ -68,12 +66,24 @@ func Create(scope *Scope) {
 				}
 			}
 		} else {
-			if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id)) == nil {
-				scope.db.RowsAffected = 1
+			if scope.PrimaryKey() == "" {
+				if rows, err := scope.DB().Query(scope.Sql, scope.SqlVars...); err != nil {
+					//extract column name to get fields lenght
+					if names, columnsErr := rows.Columns(); columnsErr != nil {
+						ids := make([]interface{}, len(names))
+						if scope.Err(rows.Scan(ids...)) == nil {
+							scope.db.RowsAffected = int64(len(names))
+						}
+					}
+				}
+			} else {
+				if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id)) == nil {
+					scope.db.RowsAffected = 1
+				}
 			}
 		}
 
-		if !scope.HasError() && scope.PrimaryKeyZero() {
+		if scope.PrimaryKey() != "" && !scope.HasError() && scope.PrimaryKeyZero() {
 			scope.SetColumn(scope.PrimaryKey(), id)
 		}
 	}
