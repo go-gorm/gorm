@@ -14,7 +14,7 @@ type Dialect interface {
 	HasTop() bool
 	SqlTag(value reflect.Value, size int) string
 	PrimaryKeyTag(value reflect.Value, size int) string
-	ReturningStr(key string) string
+	ReturningStr(tableName, key string) string
 	SelectFromDummyTable() string
 	Quote(key string) string
 	HasTable(scope *Scope, tableName string) bool

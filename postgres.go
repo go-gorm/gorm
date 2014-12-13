@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"reflect"
 	"github.com/lib/pq/hstore"
+	"reflect"
 )
 
 type postgres struct {
@@ -65,8 +65,8 @@ func (s *postgres) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *postgres) ReturningStr(key string) string {
-	return fmt.Sprintf("RETURNING \"%v\"", key)
+func (s *postgres) ReturningStr(tableName, key string) string {
+	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 
 func (s *postgres) SelectFromDummyTable() string {

@@ -64,7 +64,7 @@ func (s *mssql) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *mssql) ReturningStr(key string) string {
+func (s *mssql) ReturningStr(tableName, key string) string {
 	return ""
 }
 

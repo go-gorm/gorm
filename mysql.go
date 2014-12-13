@@ -2,8 +2,8 @@ package gorm
 
 import (
 	"fmt"
-	"strings"
 	"reflect"
+	"strings"
 )
 
 type mysql struct{}
@@ -64,7 +64,7 @@ func (s *mysql) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *mysql) ReturningStr(key string) string {
+func (s *mysql) ReturningStr(tableName, key string) string {
 	return ""
 }
 

@@ -64,7 +64,7 @@ func (s *commonDialect) PrimaryKeyTag(value reflect.Value, size int) string {
 	}
 }
 
-func (s *commonDialect) ReturningStr(key string) string {
+func (s *commonDialect) ReturningStr(tableName, key string) string {
 	return ""
 }
 
