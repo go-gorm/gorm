@@ -66,7 +66,7 @@ func (s *postgres) PrimaryKeyTag(value reflect.Value, size int) string {
 }
 
 func (s *postgres) ReturningStr(tableName, key string) string {
-	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
+	return fmt.Sprintf("RETURNING \"%v\".%v", tableName, key)
 }
 
 func (s *postgres) SelectFromDummyTable() string {
