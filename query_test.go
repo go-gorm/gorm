@@ -146,8 +146,8 @@ func TestSearchWithPlainSQL(t *testing.T) {
 		t.Errorf("Should found 1 users, but got %v", len(users))
 	}
 
-	if !DB.Where("name = ?", "none existing").Find(&[]User{}).RecordNotFound() {
-		t.Errorf("Should get RecordNotFound error when looking for none existing records")
+	if DB.Where("name = ?", "none existing").Find(&[]User{}).RecordNotFound() {
+		t.Errorf("Should not get RecordNotFound error when looking for none existing records")
 	}
 }
 

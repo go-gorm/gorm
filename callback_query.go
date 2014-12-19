@@ -76,7 +76,7 @@ func Query(scope *Scope) {
 			}
 		}
 
-		if !anyRecordFound {
+		if !anyRecordFound && !isSlice {
 			scope.Err(RecordNotFound)
 		}
 	}
