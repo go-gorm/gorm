@@ -176,15 +176,21 @@ func (scope *Scope) whereSql() (sql string) {
 	}
 
 	for _, clause := range scope.Search.WhereConditions {
-		andConditions = append(andConditions, scope.buildWhereCondition(clause))
+		if sql := scope.buildWhereCondition(clause); sql != "" {
+			andConditions = append(andConditions, sql)
+		}
 	}
 
 	for _, clause := range scope.Search.OrConditions {
-		orConditions = append(orConditions, scope.buildWhereCondition(clause))
+		if sql := scope.buildWhereCondition(clause); sql != "" {
+			orConditions = append(orConditions, sql)
+		}
 	}
 
 	for _, clause := range scope.Search.NotConditions {
-		andConditions = append(andConditions, scope.buildNotCondition(clause))
+		if sql := scope.buildNotCondition(clause); sql != "" {
+			andConditions = append(andConditions, sql)
+		}
 	}
 
 	orSql := strings.Join(orConditions, " OR ")
