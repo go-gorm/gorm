@@ -229,6 +229,25 @@ func TestSearchWithMap(t *testing.T) {
 	}
 }
 
+func TestSearchWithEmptyChain(t *testing.T) {
+	user1 := User{Name: "ChainSearchUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
+	user2 := User{Name: "ChainearchUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
+	user3 := User{Name: "ChainearchUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	DB.Save(&user1).Save(&user2).Save(&user3)
+
+	if DB.Where("").Where("").First(&User{}).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty strings")
+	}
+
+	if DB.Where(&User{}).Where("name = ?", user1.Name).First(&User{}).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty struct")
+	}
+
+	if DB.Where(map[string]interface{}{}).Where("name = ?", user1.Name).First(&User{}).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty map")
+	}
+}
+
 func TestSelect(t *testing.T) {
 	user1 := User{Name: "SelectUser1"}
 	DB.Save(&user1)
