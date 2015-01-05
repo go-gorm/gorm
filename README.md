@@ -1105,6 +1105,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 
 ## License
 
-Released under the [MIT License](http://www.opensource.org/licenses/MIT).
+Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License).
 
 [![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.png)](http://godoc.org/github.com/jinzhu/gorm)
