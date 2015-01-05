@@ -396,7 +396,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 	switch reflectValue.Kind() {
 	case reflect.Slice:
 		if _, ok := value.([]byte); !ok {
-			return
+			return typ + " " + additionalType
 		}
 	case reflect.Struct:
 		if field.IsScanner() {
@@ -409,7 +409,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 			}
 			getScannerValue(reflectValue.Field(0))
 		} else if !field.IsTime() {
-			return
+			return typ + " " + additionalType
 		}
 	}
 
@@ -421,10 +421,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 		}
 	}
 
-	if len(additionalType) > 0 {
-		typ = typ + " " + additionalType
-	}
-	return
+	return typ + " " + additionalType
 }
 
 func (scope *Scope) row() *sql.Row {
