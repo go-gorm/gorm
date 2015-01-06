@@ -55,7 +55,7 @@ func (scope *Scope) New(value interface{}) *Scope {
 
 // NewDB create a new DB without search information
 func (scope *Scope) NewDB() *DB {
-	return scope.db.new()
+	return scope.db.New()
 }
 
 // DB get *sql.DB
@@ -191,13 +191,13 @@ func (scope *Scope) CallMethod(name string) {
 			case func(s *Scope):
 				f(scope)
 			case func(s *DB):
-				f(scope.db.new())
+				f(scope.db.New())
 			case func() error:
 				scope.Err(f())
 			case func(s *Scope) error:
 				scope.Err(f(scope))
 			case func(s *DB) error:
-				scope.Err(f(scope.db.new()))
+				scope.Err(f(scope.db.New()))
 			default:
 				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
 			}

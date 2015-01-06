@@ -77,6 +77,11 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
+func (s *DB) New() *DB {
+	s.search = nil
+	return s.clone()
+}
+
 // Return the underlying sql.DB or sql.Tx instance.
 // Use of this method is discouraged. It's mainly intended to allow
 // coexistence with legacy non-GORM code.

@@ -22,11 +22,6 @@ func (s *DB) clone() *DB {
 	return &db
 }
 
-func (s *DB) new() *DB {
-	s.search = nil
-	return s.clone()
-}
-
 func (s *DB) err(err error) error {
 	if err != nil {
 		if err != RecordNotFound {
