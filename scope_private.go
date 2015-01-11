@@ -168,7 +168,8 @@ func (scope *Scope) whereSql() (sql string) {
 	var primaryCondiations, andConditions, orConditions []string
 
 	if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
-		primaryCondiations = append(primaryCondiations, "(deleted_at IS NULL OR deleted_at <= '0001-01-02')")
+		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
+		primaryCondiations = append(primaryCondiations, sql)
 	}
 
 	if !scope.PrimaryKeyZero() {
