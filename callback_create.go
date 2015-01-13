@@ -36,7 +36,7 @@ func Create(scope *Scope) {
 
 		returningKey := "*"
 		if scope.PrimaryKey() != "" {
-			returningKey = scope.PrimaryKey()
+			returningKey = scope.Quote(scope.PrimaryKey())
 		}
 
 		if len(columns) == 0 {
