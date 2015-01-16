@@ -1,6 +1,7 @@
 package gorm_test
 
 import "testing"
+
 import "github.com/jinzhu/gorm"
 
 type Cat struct {
@@ -207,9 +208,17 @@ func TestManyToMany(t *testing.T) {
 
 	languages = []Language{}
 	DB.Where("name IN (?)", []string{"CC", "DD"}).Find(&languages)
+
+	user2 := User{Name: "Many2Many_User2", Languages: languages}
+	DB.Save(&user2)
+
 	DB.Model(&user).Association("Languages").Delete(languages, &languages)
 	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-3 {
 		t.Errorf("Relations should be deleted with Delete")
+	}
+
+	if DB.Model(&user2).Association("Languages").Count() == 0 {
+		t.Errorf("Other user's relations should not be deleted")
 	}
 
 	// Replace

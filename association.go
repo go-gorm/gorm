@@ -97,8 +97,12 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		relationship := association.Field.Relationship
 		// many to many
 		if relationship.Kind == "many_to_many" {
-			whereSql := fmt.Sprintf("%v.%v IN (?)", relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignKey)))
-			association.Scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, primaryKeys).Delete("")
+			whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v IN (?)",
+				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignKey)),
+				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignKey)))
+
+			association.Scope.db.Model("").Table(relationship.JoinTable).
+				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("")
 		} else {
 			association.err(errors.New("delete only support many to many"))
 		}
