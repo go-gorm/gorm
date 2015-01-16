@@ -163,12 +163,16 @@ func (scope *Scope) FieldValueByName(name string) (interface{}, error) {
 func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	if field, ok := column.(*Field); ok {
 		return field.Set(value)
-	} else if str, ok := column.(string); ok {
+	} else if dbName, ok := column.(string); ok {
 		if scope.Value == nil {
 			return errors.New("scope value must not be nil for string columns")
 		}
 
-		dbName := ToSnake(str)
+		if field, ok := scope.Fields()[dbName]; ok {
+			return field.Set(value)
+		}
+
+		dbName = ToSnake(dbName)
 
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
