@@ -47,6 +47,7 @@ func Query(scope *Scope) {
 		}
 
 		defer rows.Close()
+		columns, _ := rows.Columns()
 		for rows.Next() {
 			anyRecordFound = true
 			elem := dest
@@ -54,18 +55,34 @@ func Query(scope *Scope) {
 				elem = reflect.New(destType).Elem()
 			}
 
-			columns, _ := rows.Columns()
-			var values []interface{}
+			var values = make([]interface{}, len(columns))
+
 			fields := scope.New(elem.Addr().Interface()).Fields()
-			for _, value := range columns {
-				if field, ok := fields[value]; ok {
-					values = append(values, field.Field.Addr().Interface())
+			for index, column := range columns {
+				if field, ok := fields[column]; ok {
+					if field.Field.Kind() == reflect.Ptr {
+						values[index] = field.Field.Addr().Interface()
+					} else {
+						values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
+					}
 				} else {
-					var ignore interface{}
-					values = append(values, &ignore)
+					var value interface{}
+					values[index] = &value
 				}
 			}
+
 			scope.Err(rows.Scan(values...))
+
+			for index, column := range columns {
+				value := values[index]
+				if field, ok := fields[column]; ok {
+					if field.Field.Kind() == reflect.Ptr {
+						field.Field.Set(reflect.ValueOf(value).Elem())
+					} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
+						field.Field.Set(v)
+					}
+				}
+			}
 
 			if isSlice {
 				if isPtr {

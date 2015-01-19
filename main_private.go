@@ -1,9 +1,6 @@
 package gorm
 
-import (
-	"regexp"
-	"time"
-)
+import "time"
 
 func (s *DB) clone() *DB {
 	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, values: map[string]interface{}{}}
@@ -29,9 +26,6 @@ func (s *DB) err(err error) error {
 				go s.print(fileWithLineNum(), err)
 			} else {
 				s.log(err)
-			}
-			if regexp.MustCompile(`^sql: Scan error on column index`).MatchString(err.Error()) {
-				return nil
 			}
 		}
 		s.Error = err
