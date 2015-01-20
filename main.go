@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -287,7 +288,9 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	scope := s.clone().NewScope(nil)
-	scope.Raw(scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values}))
+	generatedSql := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
+	generatedSql = strings.TrimSuffix(strings.TrimPrefix(generatedSql, "("), ")")
+	scope.Raw(generatedSql)
 	return scope.Exec().db
 }
 

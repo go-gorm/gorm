@@ -23,7 +23,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
 			return scope.primaryCondiation(scope.AddToVars(id))
-		} else {
+		} else if value != "" {
 			str = fmt.Sprintf("(%v)", value)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
@@ -300,7 +300,7 @@ func (s *Scope) joinsSql() string {
 
 func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
-		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
+		scope.Raw(strings.TrimRight(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE ("), ")"))
 	} else {
 		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
 	}
