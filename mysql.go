@@ -38,7 +38,7 @@ func (d *mysql) SqlTag(value reflect.Value, size int) string {
 		}
 	case reflect.Struct:
 		if value.Type() == timeType {
-			return "datetime"
+			return "timestamp"
 		}
 	default:
 		if _, ok := value.Interface().([]byte); ok {

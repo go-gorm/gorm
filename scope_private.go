@@ -24,7 +24,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 			id, _ := strconv.Atoi(value)
 			return scope.primaryCondiation(scope.AddToVars(id))
 		} else {
-			str = value
+			str = fmt.Sprintf("(%v)", value)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		return scope.primaryCondiation(scope.AddToVars(value))
