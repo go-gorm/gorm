@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -30,7 +31,11 @@ func Create(scope *Scope) {
 					continue
 				}
 				columns = append(columns, scope.Quote(field.DBName))
-				sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
+				val := field.Field
+				if val.Kind() == reflect.Struct {
+					val = val.Addr()
+				}
+				sqls = append(sqls, scope.AddToVars(val.Interface()))
 			}
 		}
 
