@@ -444,7 +444,7 @@ func (scope *Scope) Fields(noRelations ...bool) map[string]*Field {
 				if value, ok := fields[field.DBName]; ok {
 					if value.IsIgnored {
 						fields[field.DBName] = field
-					} else if !value.IsIgnored {
+					} else {
 						panic(fmt.Sprintf("Duplicated column name for %v (%v)\n", scope.typeName(), fileWithLineNum()))
 					}
 				} else {
