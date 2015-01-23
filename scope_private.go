@@ -300,7 +300,7 @@ func (s *Scope) joinsSql() string {
 
 func (scope *Scope) prepareQuerySql() {
 	if scope.Search.Raw {
-		scope.Raw(strings.TrimRight(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE ("), ")"))
+		scope.Raw(strings.TrimLeft(scope.CombinedConditionSql(), "WHERE "))
 	} else {
 		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
 	}
