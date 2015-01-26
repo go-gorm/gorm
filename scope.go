@@ -502,7 +502,7 @@ func (scope *Scope) Get(name string) (interface{}, bool) {
 // InstanceId get InstanceId for scope
 func (scope *Scope) InstanceId() string {
 	if scope.instanceId == "" {
-		scope.instanceId = fmt.Sprintf("%v", &scope)
+		scope.instanceId = fmt.Sprintf("%v%v", &scope, &scope.db)
 	}
 	return scope.instanceId
 }
