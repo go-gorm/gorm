@@ -41,14 +41,18 @@ func Query(scope *Scope) {
 
 	if !scope.HasError() {
 		rows, err := scope.DB().Query(scope.Sql, scope.SqlVars...)
+		scope.db.RowsAffected = 0
 
 		if scope.Err(err) != nil {
 			return
 		}
 
-		defer rows.Close()
 		columns, _ := rows.Columns()
+
+		defer rows.Close()
 		for rows.Next() {
+			scope.db.RowsAffected += 1
+
 			anyRecordFound = true
 			elem := dest
 			if isSlice {
