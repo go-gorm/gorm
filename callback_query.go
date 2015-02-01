@@ -3,6 +3,8 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/jinzhu/gorm"
 )
 
 func Query(scope *Scope) {
@@ -13,6 +15,7 @@ func Query(scope *Scope) {
 		isPtr          bool
 		anyRecordFound bool
 		destType       reflect.Type
+		primaryKeys    []interface{}
 	)
 
 	var dest = scope.IndirectValue()
@@ -47,8 +50,9 @@ func Query(scope *Scope) {
 			return
 		}
 
-		columns, _ := rows.Columns()
+		preloadMap := map[string]map[string]*gorm.Field{}
 
+		columns, _ := rows.Columns()
 		defer rows.Close()
 		for rows.Next() {
 			scope.db.RowsAffected += 1
@@ -62,12 +66,17 @@ func Query(scope *Scope) {
 			var values = make([]interface{}, len(columns))
 
 			fields := scope.New(elem.Addr().Interface()).Fields()
+			var primaryKey interface{}
 			for index, column := range columns {
 				if field, ok := fields[column]; ok {
 					if field.Field.Kind() == reflect.Ptr {
 						values[index] = field.Field.Addr().Interface()
 					} else {
 						values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
+					}
+					if field.IsPrimaryKey {
+						primaryKey = values[index]
+						primaryKeys = append(primaryKeys, primaryKey)
 					}
 				} else {
 					var value interface{}
@@ -94,6 +103,34 @@ func Query(scope *Scope) {
 				} else {
 					dest.Set(reflect.Append(dest, elem))
 				}
+			}
+
+			if scope.Search.Preload != nil {
+				for key := range scope.Search.Preload {
+					if field := fields[key]; field != nil {
+						if preloadMap[key] == nil {
+							preloadMap[key] = map[string]reflect.Value{}
+						}
+						preloadMap[key][fmt.Sprintf("%v", primaryKey)] = field
+					}
+				}
+			}
+		}
+
+		for _, value := range preloadMap {
+			var typ reflect.Type
+			var relation *Relation
+			for _, v := range value {
+				typ = v.Field.Type()
+				relation = v.Relationship
+				break
+			}
+			sliceType := reflect.SliceOf(typ)
+			slice := reflect.MakeSlice(sliceType, 0, 0)
+			slicePtr := reflect.New(sliceType)
+			slicePtr.Elem().Set(slice)
+			if relation == "has_many" {
+				scope.NewDB().Find(slicePtr.Interface(), primaryKeys)
 			}
 		}
 

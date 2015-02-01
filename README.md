@@ -1092,8 +1092,9 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
   db.Mode(&User{}).Do("EditForm").Get("edit_form_html")
   DefaultTimeZone, R/W Splitting, Validation
 * Github Pages
-* Includes
 * AlertColumn, DropColumn
+* db.Preload("Addresses.Map", "active = ?", true).Preload("Profile").Find(&users)
+* db.Find(&users).Related(&users)
 
 # Author
 

@@ -13,6 +13,7 @@ type search struct {
 	Orders          []string
 	Joins           string
 	Selects         []map[string]interface{}
+	Preload         map[string][]interface{}
 	Offset          string
 	Limit           string
 	Group           string
@@ -23,6 +24,7 @@ type search struct {
 
 func (s *search) clone() *search {
 	return &search{
+		Preload:         s.Preload,
 		WhereConditions: s.WhereConditions,
 		OrConditions:    s.OrConditions,
 		NotConditions:   s.NotConditions,
@@ -100,12 +102,16 @@ func (s *search) having(query string, values ...interface{}) *search {
 	return s
 }
 
-func (s *search) includes(value interface{}) *search {
+func (s *search) joins(query string) *search {
+	s.Joins = query
 	return s
 }
 
-func (s *search) joins(query string) *search {
-	s.Joins = query
+func (s *search) preload(column string, values ...interface{}) *search {
+	if s.Preload == nil {
+		s.Preload = map[string][]interface{}{}
+	}
+	s.Preload[column] = values
 	return s
 }
 

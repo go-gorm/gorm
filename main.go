@@ -156,10 +156,6 @@ func (s *DB) Joins(query string) *DB {
 	return s.clone().search.joins(query).db
 }
 
-func (s *DB) Includes(value interface{}) *DB {
-	return s.clone().search.includes(value).db
-}
-
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	c := s
 	for _, f := range funcs {
@@ -430,6 +426,10 @@ func (s *DB) Association(column string) *Association {
 	}
 
 	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, PrimaryType: primaryType, Field: field}
+}
+
+func (s *DB) Preload(column string, conditions ...interface{}) *DB {
+	return s.clone().search.preload(column, conditions...).db
 }
 
 // Set set value by name
