@@ -59,5 +59,7 @@ func TestCustomizeColumn(t *testing.T) {
 
 func TestCustomColumnAndIgnoredFieldClash(t *testing.T) {
 	DB.DropTable(&CustomColumnAndIgnoredFieldClash{})
-	DB.AutoMigrate(&CustomColumnAndIgnoredFieldClash{})
+	if err := DB.AutoMigrate(&CustomColumnAndIgnoredFieldClash{}).Error; err != nil {
+		t.Errorf("Should not raise error: %s", err)
+	}
 }
