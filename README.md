@@ -146,6 +146,13 @@ db.AutoMigrate(&User{}, &Product{}, &Order{})
 // Add index
 db.Model(&User{}).AddIndex("idx_user_name", "name")
 
+// Add foreign key
+// 1st param : foreignkey field
+// 2nd param : destination table(id)
+// 3rd param : ONDELETE
+// 4th param : ONUPDATE
+db.Model(&User{}).AddForeignKey("user_id", "destination_table(id)", "CASCADE", "RESTRICT")
+
 // Multiple column index
 db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
 
