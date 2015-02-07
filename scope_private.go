@@ -630,6 +630,20 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 	scope.Raw(fmt.Sprintf("%s %v ON %v(%v);", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "))).Exec()
 }
 
+func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
+	var table string = scope.TableName()
+	var keyName string = fmt.Sprintf("%s_%s_foreign", table, field)
+	var query string = `
+		ALTER TABLE %s
+		ADD CONSTRAINT %s
+		FOREIGN KEY (%s)
+		REFERENCES %s
+		ON DELETE %s
+		ON UPDATE %s;
+	`
+	scope.Raw(fmt.Sprintf(query, table, keyName, field, dest, onDelete, onUpdate)).Exec()
+}
+
 func (scope *Scope) removeIndex(indexName string) {
 	scope.Dialect().RemoveIndex(scope, indexName)
 }

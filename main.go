@@ -400,6 +400,17 @@ func (s *DB) AddIndex(indexName string, column ...string) *DB {
 	return s
 }
 
+/*
+Add foreign key to the given scope
+
+Example:
+	db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
+*/
+func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
+	s.clone().NewScope(s.Value).addForeignKey(field, dest, onDelete, onUpdate)
+	return s
+}
+
 func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
 	s.clone().NewScope(s.Value).addIndex(true, indexName, column...)
 	return s
