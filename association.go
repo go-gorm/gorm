@@ -137,8 +137,11 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			addedPrimaryKeys = append(addedPrimaryKeys, primaryKey)
 		}
 
-		whereSql := fmt.Sprintf("%v.%v NOT IN (?)", relationship.JoinTable, scope.Quote(ToSnake(relationship.AssociationForeignKey)))
-		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, addedPrimaryKeys).Delete("")
+		whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v NOT IN (?)",
+			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignKey)),
+			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignKey)))
+
+		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey, addedPrimaryKeys).Delete("")
 	} else {
 		association.err(errors.New("replace only support many to many"))
 	}
