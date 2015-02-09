@@ -393,6 +393,9 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 
 	value := field.Field.Interface()
 	reflectValue := field.Field
+	if reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflect.New(reflectValue.Type().Elem()).Elem()
+	}
 
 	switch reflectValue.Kind() {
 	case reflect.Slice:

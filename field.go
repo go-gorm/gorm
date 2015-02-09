@@ -34,7 +34,11 @@ func (field *Field) IsScanner() bool {
 }
 
 func (field *Field) IsTime() bool {
-	_, isTime := field.Field.Interface().(time.Time)
+	reflectValue := field.Field
+	if reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflect.New(reflectValue.Type().Elem()).Elem()
+	}
+	_, isTime := reflectValue.Interface().(time.Time)
 	return isTime
 }
 
