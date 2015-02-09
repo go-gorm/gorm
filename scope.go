@@ -351,7 +351,9 @@ func (scope *Scope) fieldFromStruct(fieldStruct reflect.StructField, withRelatio
 		case reflect.Slice:
 			typ = typ.Elem()
 
-			if (typ.Kind() == reflect.Struct) && withRelation {
+			if field.IsScanner() {
+				field.IsNormal = true
+			} else if (typ.Kind() == reflect.Struct) && withRelation {
 				if foreignKey == "" {
 					foreignKey = scopeTyp.Name() + "Id"
 				}
