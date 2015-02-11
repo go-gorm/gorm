@@ -101,8 +101,13 @@ func (scope *Scope) PrimaryKeyField() *Field {
 		var indirectValue = scope.IndirectValue()
 
 		clone := scope
+		// FIXME
 		if indirectValue.Kind() == reflect.Slice {
-			clone = scope.New(reflect.New(indirectValue.Type().Elem()).Elem().Interface())
+			typ := indirectValue.Type().Elem()
+			if typ.Kind() == reflect.Ptr {
+				typ = typ.Elem()
+			}
+			clone = scope.New(reflect.New(typ).Elem().Interface())
 		}
 
 		for _, field := range clone.Fields() {

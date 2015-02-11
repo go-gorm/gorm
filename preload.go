@@ -8,7 +8,7 @@ import (
 )
 
 func getFieldValue(value reflect.Value, field string) interface{} {
-	result := value.FieldByName(field).Interface()
+	result := reflect.Indirect(value).FieldByName(field).Interface()
 	if r, ok := result.(driver.Valuer); ok {
 		result, _ = r.Value()
 	}
@@ -25,7 +25,11 @@ func Preload(scope *Scope) {
 	var isSlice bool
 	if scope.IndirectValue().Kind() == reflect.Slice {
 		isSlice = true
-		elem := reflect.New(scope.IndirectValue().Type().Elem()).Elem()
+		typ := scope.IndirectValue().Type().Elem()
+		if typ.Kind() == reflect.Ptr {
+			typ = typ.Elem()
+		}
+		elem := reflect.New(typ).Elem()
 		fields = scope.New(elem.Addr().Interface()).Fields()
 	} else {
 		fields = scope.Fields()
@@ -53,7 +57,7 @@ func Preload(scope *Scope) {
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									if equalAsString(getFieldValue(objects.Index(j), primaryName), value) {
-										objects.Index(j).FieldByName(field.Name).Set(result)
+										reflect.Indirect(objects.Index(j)).FieldByName(field.Name).Set(result)
 										break
 									}
 								}
@@ -71,7 +75,7 @@ func Preload(scope *Scope) {
 								value := getFieldValue(result, relation.ForeignKey)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
-									object := objects.Index(j)
+									object := reflect.Indirect(objects.Index(j))
 									if equalAsString(getFieldValue(object, primaryName), value) {
 										f := object.FieldByName(field.Name)
 										f.Set(reflect.Append(f, result))
@@ -91,7 +95,7 @@ func Preload(scope *Scope) {
 								value := getFieldValue(result, associationPrimaryKey)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
-									object := objects.Index(j)
+									object := reflect.Indirect(objects.Index(j))
 									if equalAsString(getFieldValue(object, relation.ForeignKey), value) {
 										object.FieldByName(field.Name).Set(result)
 										break
@@ -130,7 +134,7 @@ func (scope *Scope) getColumnAsArray(column string) (primaryKeys []interface{}) 
 	case reflect.Slice:
 		for i := 0; i < values.Len(); i++ {
 			value := values.Index(i)
-			primaryKeys = append(primaryKeys, value.FieldByName(column).Interface())
+			primaryKeys = append(primaryKeys, reflect.Indirect(value).FieldByName(column).Interface())
 		}
 	case reflect.Struct:
 		return []interface{}{values.FieldByName(column).Interface()}

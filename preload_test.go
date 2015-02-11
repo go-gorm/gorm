@@ -76,4 +76,12 @@ func TestPreload(t *testing.T) {
 	for _, user := range users {
 		checkUserHasPreloadData(user, t)
 	}
+
+	var users2 []*User
+	DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
+		Preload("CreditCard").Preload("Emails").Find(&users2)
+
+	for _, user := range users2 {
+		checkUserHasPreloadData(*user, t)
+	}
 }
