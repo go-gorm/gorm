@@ -107,7 +107,7 @@ func (scope *Scope) PrimaryKeyField() *Field {
 			if typ.Kind() == reflect.Ptr {
 				typ = typ.Elem()
 			}
-			clone = scope.New(reflect.New(typ).Elem().Interface())
+			clone = scope.New(reflect.New(typ).Elem().Addr().Interface())
 		}
 
 		for _, field := range clone.Fields() {
