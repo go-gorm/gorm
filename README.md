@@ -12,6 +12,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * Callbacks (before/after create/save/update/delete/find)
 * Soft Deletes
 * Auto Migrations
+* Preloading (eager loading)
 * Transactions
 * Customizable Logger
 * Iteration Support via [Rows](#row--rows)
@@ -333,6 +334,28 @@ db.Where("name <> ?","jinzhu").Where("age >= ? and role <> ?",20,"admin").Find(&
 //// SELECT * FROM users WHERE name <> 'jinzhu' AND age >= 20 AND role <> 'admin';
 
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jinzhu").Find(&users)
+```
+
+### Preloading (Eager loading)
+
+```go
+db.Preload("Orders").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4);
+
+db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) AND state NOT IN ('cancelled');
+
+db.Where("state = ?", "active").Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
+//// SELECT * FROM users WHERE state = 'active';
+//// SELECT * FROM orders WHERE user_id IN (1,2) AND state NOT IN ('cancelled');
+
+db.Preload("Orders").Preload("Profile").Preload("Role").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many
+//// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one
+//// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to
 ```
 
 ## Update
