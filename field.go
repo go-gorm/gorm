@@ -15,6 +15,15 @@ type relationship struct {
 	Kind                  string
 }
 
+// FIXME
+func (r relationship) ForeignDBName() string {
+	return ToSnake(r.ForeignKey)
+}
+
+func (r relationship) AssociationForeignDBName(name string) string {
+	return ToSnake(r.AssociationForeignKey)
+}
+
 type Field struct {
 	Name         string
 	DBName       string
