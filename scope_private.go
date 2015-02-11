@@ -30,7 +30,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		return scope.primaryCondiation(scope.AddToVars(value))
 	case sql.NullInt64:
 		return scope.primaryCondiation(scope.AddToVars(value.Int64))
-	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string:
+	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string, []interface{}:
 		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
 	case map[string]interface{}:

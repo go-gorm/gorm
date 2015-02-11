@@ -79,8 +79,9 @@ func (s *DB) DB() *sql.DB {
 }
 
 func (s *DB) New() *DB {
-	s.search = nil
-	return s.clone()
+	clone := s.clone()
+	clone.search = nil
+	return clone
 }
 
 // Return the underlying sql.DB or sql.Tx instance.
