@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func (scope *Scope) primaryCondiation(value interface{}) string {
+func (scope *Scope) primaryCondition(value interface{}) string {
 	return fmt.Sprintf("(%v = %v)", scope.Quote(scope.PrimaryKey()), value)
 }
 
@@ -22,14 +22,14 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		// if string is number
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
-			return scope.primaryCondiation(scope.AddToVars(id))
+			return scope.primaryCondition(scope.AddToVars(id))
 		} else if value != "" {
 			str = fmt.Sprintf("(%v)", value)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return scope.primaryCondiation(scope.AddToVars(value))
+		return scope.primaryCondition(scope.AddToVars(value))
 	case sql.NullInt64:
-		return scope.primaryCondiation(scope.AddToVars(value.Int64))
+		return scope.primaryCondition(scope.AddToVars(value.Int64))
 	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string, []interface{}:
 		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
@@ -165,15 +165,15 @@ func (scope *Scope) where(where ...interface{}) {
 }
 
 func (scope *Scope) whereSql() (sql string) {
-	var primaryCondiations, andConditions, orConditions []string
+	var primaryConditions, andConditions, orConditions []string
 
 	if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
 		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
-		primaryCondiations = append(primaryCondiations, sql)
+		primaryConditions = append(primaryConditions, sql)
 	}
 
 	if !scope.PrimaryKeyZero() {
-		primaryCondiations = append(primaryCondiations, scope.primaryCondiation(scope.AddToVars(scope.PrimaryKeyValue())))
+		primaryConditions = append(primaryConditions, scope.primaryCondition(scope.AddToVars(scope.PrimaryKeyValue())))
 	}
 
 	for _, clause := range scope.Search.WhereConditions {
@@ -204,8 +204,8 @@ func (scope *Scope) whereSql() (sql string) {
 		combinedSql = orSql
 	}
 
-	if len(primaryCondiations) > 0 {
-		sql = "WHERE " + strings.Join(primaryCondiations, " AND ")
+	if len(primaryConditions) > 0 {
+		sql = "WHERE " + strings.Join(primaryConditions, " AND ")
 		if len(combinedSql) > 0 {
 			sql = sql + " AND (" + combinedSql + ")"
 		}
