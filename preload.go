@@ -36,7 +36,7 @@ func Preload(scope *Scope) {
 	}
 
 	if scope.Search.Preload != nil {
-		for key := range scope.Search.Preload {
+		for key, conditions := range scope.Search.Preload {
 			for _, field := range fields {
 				if field.Name == key && field.Relationship != nil {
 					results := makeSlice(field.Field)
@@ -47,7 +47,7 @@ func Preload(scope *Scope) {
 					switch relation.Kind {
 					case "has_one":
 						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName()))
-						scope.NewDB().Find(results, condition, scope.getColumnAsArray(primaryName))
+						scope.NewDB().Where(condition, scope.getColumnAsArray(primaryName)).Find(results, conditions...)
 
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						for i := 0; i < resultValues.Len(); i++ {
@@ -67,7 +67,7 @@ func Preload(scope *Scope) {
 						}
 					case "has_many":
 						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName()))
-						scope.NewDB().Find(results, condition, scope.getColumnAsArray(primaryName))
+						scope.NewDB().Where(condition, scope.getColumnAsArray(primaryName)).Find(results, conditions...)
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						if isSlice {
 							for i := 0; i < resultValues.Len(); i++ {
@@ -87,7 +87,7 @@ func Preload(scope *Scope) {
 							scope.SetColumn(field, resultValues)
 						}
 					case "belongs_to":
-						scope.NewDB().Find(results, scope.getColumnAsArray(relation.ForeignKey))
+						scope.NewDB().Where(scope.getColumnAsArray(relation.ForeignKey)).Find(results, conditions...)
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						for i := 0; i < resultValues.Len(); i++ {
 							result := resultValues.Index(i)

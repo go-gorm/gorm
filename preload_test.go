@@ -84,4 +84,17 @@ func TestPreload(t *testing.T) {
 	for _, user := range users2 {
 		checkUserHasPreloadData(*user, t)
 	}
+
+	var users3 []*User
+	DB.Where("role = ?", "Preload").Preload("Emails", "email = ?", user3.Emails[0].Email).Find(&users3)
+
+	for _, user := range users3 {
+		if user.Name == user3.Name {
+			if len(user.Emails) != 1 {
+				t.Errorf("should only preload one emails for user3 when with condition")
+			}
+		} else if len(user.Emails) != 0 {
+			t.Errorf("should not preload any emails for other users when with condition")
+		}
+	}
 }
