@@ -6,6 +6,9 @@ import (
 )
 
 func getPreloadUser(name string) User {
+	var company Company
+	DB.Where(Company{Name: "preload"}).FirstOrCreate(&company)
+
 	return User{
 		Name:            name,
 		Role:            Role{"Preload"},
@@ -15,6 +18,7 @@ func getPreloadUser(name string) User {
 		Emails: []Email{
 			{Email: fmt.Sprintf("user_%v@example1.com", name)}, {Email: fmt.Sprintf("user_%v@example2.com", name)},
 		},
+		Company: company,
 		Languages: []Language{
 			{Name: fmt.Sprintf("lang_1_%v", name)},
 			{Name: fmt.Sprintf("lang_2_%v", name)},
@@ -34,6 +38,10 @@ func checkUserHasPreloadData(user User, t *testing.T) {
 
 	if user.CreditCard.Number != u.CreditCard.Number {
 		t.Error("Failed to preload user's CreditCard")
+	}
+
+	if user.Company.Name != u.Company.Name {
+		t.Error("Failed to preload user's Company")
 	}
 
 	if len(user.Emails) != len(u.Emails) {
@@ -58,9 +66,10 @@ func TestPreload(t *testing.T) {
 	user1 := getPreloadUser("user1")
 	DB.Save(&user1)
 
+	preloadDB := DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
+		Preload("CreditCard").Preload("Emails").Preload("Company")
 	var user User
-	DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
-		Preload("CreditCard").Preload("Emails").Find(&user)
+	preloadDB.Find(&user)
 	checkUserHasPreloadData(user, t)
 
 	user2 := getPreloadUser("user2")
@@ -70,23 +79,21 @@ func TestPreload(t *testing.T) {
 	DB.Save(&user3)
 
 	var users []User
-	DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
-		Preload("CreditCard").Preload("Emails").Find(&users)
+	preloadDB.Find(&users)
 
 	for _, user := range users {
 		checkUserHasPreloadData(user, t)
 	}
 
 	var users2 []*User
-	DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
-		Preload("CreditCard").Preload("Emails").Find(&users2)
+	preloadDB.Find(&users2)
 
 	for _, user := range users2 {
 		checkUserHasPreloadData(*user, t)
 	}
 
 	var users3 []*User
-	DB.Where("role = ?", "Preload").Preload("Emails", "email = ?", user3.Emails[0].Email).Find(&users3)
+	preloadDB.Preload("Emails", "email = ?", user3.Emails[0].Email).Find(&users3)
 
 	for _, user := range users3 {
 		if user.Name == user3.Name {

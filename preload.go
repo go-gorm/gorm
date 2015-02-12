@@ -98,7 +98,6 @@ func Preload(scope *Scope) {
 									object := reflect.Indirect(objects.Index(j))
 									if equalAsString(getFieldValue(object, relation.ForeignKey), value) {
 										object.FieldByName(field.Name).Set(result)
-										break
 									}
 								}
 							} else {
