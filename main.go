@@ -429,7 +429,7 @@ func (s *DB) Association(column string) *Association {
 
 	var field *Field
 	var ok bool
-	if field, ok = scope.FieldByName(SnakeToUpperCamel(column)); ok {
+	if field, ok = scope.FieldByName(column); ok {
 		if field.Relationship == nil || field.Relationship.ForeignKey == "" {
 			scope.Err(fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type()))
 		}

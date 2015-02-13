@@ -15,7 +15,7 @@ type Association struct {
 	Field       *Field
 }
 
-func (association *Association) err(err error) *Association {
+func (association *Association) setErr(err error) *Association {
 	if err != nil {
 		association.Error = err
 	}
@@ -24,7 +24,7 @@ func (association *Association) err(err error) *Association {
 
 func (association *Association) Find(value interface{}) *Association {
 	association.Scope.related(value, association.Column)
-	return association.err(association.Scope.db.Error)
+	return association.setErr(association.Scope.db.Error)
 }
 
 func (association *Association) Append(values ...interface{}) *Association {
@@ -53,11 +53,11 @@ func (association *Association) Append(values ...interface{}) *Association {
 		} else if reflectvalue.Kind() == reflect.Slice && fieldType.Elem() == reflectvalue.Type().Elem() {
 			field.Set(reflect.AppendSlice(field.Field, reflectvalue))
 		} else {
-			association.err(errors.New("invalid association type"))
+			association.setErr(errors.New("invalid association type"))
 		}
 	}
 	scope.callCallbacks(scope.db.parent.callback.updates)
-	return association.err(scope.db.Error)
+	return association.setErr(scope.db.Error)
 }
 
 func (association *Association) getPrimaryKeys(values ...interface{}) []interface{} {
@@ -92,7 +92,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 	primaryKeys := association.getPrimaryKeys(values...)
 
 	if len(primaryKeys) == 0 {
-		association.err(errors.New("no primary key found"))
+		association.setErr(errors.New("no primary key found"))
 	} else {
 		relationship := association.Field.Relationship
 		// many to many
@@ -104,7 +104,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			association.Scope.db.Model("").Table(relationship.JoinTable).
 				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("")
 		} else {
-			association.err(errors.New("delete only support many to many"))
+			association.setErr(errors.New("delete only support many to many"))
 		}
 	}
 	return association
@@ -143,7 +143,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey, addedPrimaryKeys).Delete("")
 	} else {
-		association.err(errors.New("replace only support many to many"))
+		association.setErr(errors.New("replace only support many to many"))
 	}
 	return association
 }
@@ -155,7 +155,7 @@ func (association *Association) Clear() *Association {
 		whereSql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(ToSnake(relationship.ForeignKey)))
 		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey).Delete("")
 	} else {
-		association.err(errors.New("clear only support many to many"))
+		association.setErr(errors.New("clear only support many to many"))
 	}
 	return association
 }
