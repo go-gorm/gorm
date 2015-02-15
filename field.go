@@ -4,51 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"reflect"
-	"time"
 )
 
-type relationship struct {
-	JoinTable             string
-	ForeignKey            string
-	ForeignType           string
-	AssociationForeignKey string
-	Kind                  string
-}
-
-// FIXME
-func (r relationship) ForeignDBName() string {
-	return ToSnake(r.ForeignKey)
-}
-
-func (r relationship) AssociationForeignDBName(name string) string {
-	return ToSnake(r.AssociationForeignKey)
-}
-
 type Field struct {
-	Name         string
-	DBName       string
-	Field        reflect.Value
-	Tag          reflect.StructTag
-	Relationship *relationship
-	IsNormal     bool
-	IsBlank      bool
-	IsIgnored    bool
-	IsPrimaryKey bool
-	DefaultValue interface{}
-}
-
-func (field *Field) IsScanner() bool {
-	_, isScanner := reflect.New(field.Field.Type()).Interface().(sql.Scanner)
-	return isScanner
-}
-
-func (field *Field) IsTime() bool {
-	reflectValue := field.Field
-	if reflectValue.Kind() == reflect.Ptr {
-		reflectValue = reflect.New(reflectValue.Type().Elem()).Elem()
-	}
-	_, isTime := reflectValue.Interface().(time.Time)
-	return isTime
+	*StructField
+	Field reflect.Value
 }
 
 func (field *Field) Set(value interface{}) (err error) {
@@ -75,4 +35,21 @@ func (field *Field) Set(value interface{}) (err error) {
 	field.IsBlank = isBlank(field.Field)
 
 	return
+}
+
+type relationship struct {
+	JoinTable             string
+	ForeignKey            string
+	ForeignType           string
+	AssociationForeignKey string
+	Kind                  string
+}
+
+// FIXME
+func (r relationship) ForeignDBName() string {
+	return ToSnake(r.ForeignKey)
+}
+
+func (r relationship) AssociationForeignDBName(name string) string {
+	return ToSnake(r.AssociationForeignKey)
 }

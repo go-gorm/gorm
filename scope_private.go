@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"go/ast"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -403,7 +402,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 			return typ + " " + additionalType
 		}
 	case reflect.Struct:
-		if field.IsScanner() {
+		if field.IsScanner {
 			var getScannerValue func(reflect.Value)
 			getScannerValue = func(value reflect.Value) {
 				reflectValue = value
@@ -412,7 +411,7 @@ func (scope *Scope) sqlTagForField(field *Field) (typ string) {
 				}
 			}
 			getScannerValue(reflectValue.Field(0))
-		} else if !field.IsTime() {
+		} else if !field.IsTime {
 			return typ + " " + additionalType
 		}
 	}
@@ -578,24 +577,11 @@ func (scope *Scope) createJoinTable(field *Field) {
 
 func (scope *Scope) createTable() *Scope {
 	var sqls []string
-	fields := scope.Fields()
-	scopeType := scope.IndirectValue().Type()
-	for i := 0; i < scopeType.NumField(); i++ {
-		if !ast.IsExported(scopeType.Field(i).Name) {
-			continue
+	for _, structField := range scope.GetStructFields() {
+		if structField.IsNormal {
+			sqls = append(sqls, scope.Quote(structField.DBName)+" "+structField.SqlTag)
 		}
-		for _, field := range scope.fieldFromStruct(scopeType.Field(i), false) {
-			name := field.Name
-			for _, field := range fields {
-				if field.Name == name {
-					if field.IsNormal {
-						sqlTag := scope.sqlTagForField(field)
-						sqls = append(sqls, scope.Quote(field.DBName)+" "+sqlTag)
-					}
-					scope.createJoinTable(field)
-				}
-			}
-		}
+		scope.createJoinTable(structField)
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
 	return scope
