@@ -496,7 +496,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	return scope
 }
 
-func (scope *Scope) createJoinTable(field *Field) {
+func (scope *Scope) createJoinTable(field *StructField) {
 	if field.Relationship != nil && field.Relationship.JoinTable != "" {
 		if !scope.Dialect().HasTable(scope, field.Relationship.JoinTable) {
 			newScope := scope.db.NewScope("")
@@ -581,11 +581,10 @@ func (scope *Scope) autoMigrate() *Scope {
 	if !scope.Dialect().HasTable(scope, tableName) {
 		scope.createTable()
 	} else {
-		for _, field := range scope.Fields() {
+		for _, field := range scope.GetStructFields() {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if field.IsNormal {
-					sqlTag := scope.sqlTagForField(field)
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, sqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, field.SqlTag)).Exec()
 				}
 			}
 			scope.createJoinTable(field)

@@ -98,8 +98,8 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		// many to many
 		if relationship.Kind == "many_to_many" {
 			whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v IN (?)",
-				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignKey)),
-				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignKey)))
+				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignFieldName)),
+				relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignFieldName)))
 
 			association.Scope.db.Model("").Table(relationship.JoinTable).
 				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("")
@@ -138,8 +138,8 @@ func (association *Association) Replace(values ...interface{}) *Association {
 		}
 
 		whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v NOT IN (?)",
-			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignKey)),
-			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignKey)))
+			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.ForeignFieldName)),
+			relationship.JoinTable, association.Scope.Quote(ToSnake(relationship.AssociationForeignFieldName)))
 
 		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey, addedPrimaryKeys).Delete("")
 	} else {
@@ -152,7 +152,7 @@ func (association *Association) Clear() *Association {
 	relationship := association.Field.Relationship
 	scope := association.Scope
 	if relationship.Kind == "many_to_many" {
-		whereSql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(ToSnake(relationship.ForeignKey)))
+		whereSql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(ToSnake(relationship.ForeignFieldName)))
 		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey).Delete("")
 	} else {
 		association.setErr(errors.New("clear only support many to many"))
@@ -173,13 +173,13 @@ func (association *Association) Count() int {
 			newScope.QuotedTableName(),
 			scope.Quote(newScope.PrimaryKey()),
 			relationship.JoinTable,
-			scope.Quote(ToSnake(relationship.AssociationForeignKey)),
+			scope.Quote(ToSnake(relationship.AssociationForeignFieldName)),
 			relationship.JoinTable,
 			relationship.JoinTable,
-			scope.Quote(ToSnake(relationship.ForeignKey)))
+			scope.Quote(ToSnake(relationship.ForeignFieldName)))
 		scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
-		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))
+		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignFieldName)))
 		countScope := scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey)
 		if relationship.ForeignType != "" {
 			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignType))), association.PrimaryType)
@@ -187,7 +187,7 @@ func (association *Association) Count() int {
 		countScope.Count(&count)
 	} else if relationship.Kind == "belongs_to" {
 		if v, err := scope.FieldValueByName(association.Column); err == nil {
-			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignKey)))
+			whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignFieldName)))
 			scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, v).Count(&count)
 		}
 	}

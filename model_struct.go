@@ -123,9 +123,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		if !ast.IsExported(fieldStruct.Name) {
 			continue
 		}
-		var field *StructField
 
-		field.Struct = fieldStruct
+		field := &StructField{Struct: fieldStruct}
 		if fieldStruct.Tag.Get("sql") == "-" {
 			field.IsIgnored = true
 		} else {
