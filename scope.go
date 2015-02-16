@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"reflect"
-	"regexp"
 )
 
 type Scope struct {
@@ -227,8 +226,6 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 // TableName get table name
-var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
-var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${1}s"}
 
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {

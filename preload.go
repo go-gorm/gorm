@@ -46,14 +46,14 @@ func Preload(scope *Scope) {
 
 					switch relation.Kind {
 					case "has_one":
-						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName()))
+						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
 						scope.NewDB().Where(condition, scope.getColumnAsArray(primaryName)).Find(results, conditions...)
 
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						for i := 0; i < resultValues.Len(); i++ {
 							result := resultValues.Index(i)
 							if isSlice {
-								value := getFieldValue(result, relation.ForeignKey)
+								value := getFieldValue(result, relation.ForeignFieldName)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									if equalAsString(getFieldValue(objects.Index(j), primaryName), value) {
@@ -66,13 +66,13 @@ func Preload(scope *Scope) {
 							}
 						}
 					case "has_many":
-						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName()))
+						condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
 						scope.NewDB().Where(condition, scope.getColumnAsArray(primaryName)).Find(results, conditions...)
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						if isSlice {
 							for i := 0; i < resultValues.Len(); i++ {
 								result := resultValues.Index(i)
-								value := getFieldValue(result, relation.ForeignKey)
+								value := getFieldValue(result, relation.ForeignFieldName)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									object := reflect.Indirect(objects.Index(j))
@@ -87,7 +87,7 @@ func Preload(scope *Scope) {
 							scope.SetColumn(field, resultValues)
 						}
 					case "belongs_to":
-						scope.NewDB().Where(scope.getColumnAsArray(relation.ForeignKey)).Find(results, conditions...)
+						scope.NewDB().Where(scope.getColumnAsArray(relation.ForeignFieldName)).Find(results, conditions...)
 						resultValues := reflect.Indirect(reflect.ValueOf(results))
 						for i := 0; i < resultValues.Len(); i++ {
 							result := resultValues.Index(i)
@@ -96,7 +96,7 @@ func Preload(scope *Scope) {
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									object := reflect.Indirect(objects.Index(j))
-									if equalAsString(getFieldValue(object, relation.ForeignKey), value) {
+									if equalAsString(getFieldValue(object, relation.ForeignFieldName), value) {
 										object.FieldByName(field.Name).Set(result)
 									}
 								}

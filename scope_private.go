@@ -364,69 +364,6 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 	return
 }
 
-func (scope *Scope) sqlTagForField(field *Field) (typ string) {
-	if scope.db == nil {
-		return ""
-	}
-	var size = 255
-
-	fieldTag := field.Tag.Get(scope.db.parent.tagIdentifier)
-	var setting = parseTagSetting(fieldTag)
-
-	if value, ok := setting["SIZE"]; ok {
-		if i, err := strconv.Atoi(value); err == nil {
-			size = i
-		} else {
-			size = 0
-		}
-	}
-
-	if value, ok := setting["TYPE"]; ok {
-		typ = value
-	}
-
-	additionalType := setting["NOT NULL"] + " " + setting["UNIQUE"]
-	if value, ok := setting["DEFAULT"]; ok {
-		additionalType = additionalType + "DEFAULT " + value
-	}
-
-	value := field.Field.Interface()
-	reflectValue := field.Field
-	if reflectValue.Kind() == reflect.Ptr {
-		reflectValue = reflect.New(reflectValue.Type().Elem()).Elem()
-	}
-
-	switch reflectValue.Kind() {
-	case reflect.Slice:
-		if _, ok := value.([]byte); !ok {
-			return typ + " " + additionalType
-		}
-	case reflect.Struct:
-		if field.IsScanner {
-			var getScannerValue func(reflect.Value)
-			getScannerValue = func(value reflect.Value) {
-				reflectValue = value
-				if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner {
-					getScannerValue(reflectValue.Field(0))
-				}
-			}
-			getScannerValue(reflectValue.Field(0))
-		} else if !field.IsTime {
-			return typ + " " + additionalType
-		}
-	}
-
-	if len(typ) == 0 {
-		if field.IsPrimaryKey {
-			typ = scope.Dialect().PrimaryKeyTag(reflectValue, size)
-		} else {
-			typ = scope.Dialect().SqlTag(reflectValue, size)
-		}
-	}
-
-	return typ + " " + additionalType
-}
-
 func (scope *Scope) row() *sql.Row {
 	defer scope.Trace(NowFunc())
 	scope.prepareQuerySql()
@@ -495,7 +432,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			foreignKey = keys[1]
 		}
 
-		var relationship *relationship
+		var relationship *Relationship
 		var field *Field
 		var scopeHasField bool
 		if field, scopeHasField = scope.FieldByName(foreignKey); scopeHasField {
@@ -504,8 +441,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 
 		if scopeType == "" || scopeType == fromScopeType {
 			if scopeHasField {
-				if relationship != nil && relationship.ForeignKey != "" {
-					foreignKey = relationship.ForeignKey
+				if relationship != nil && relationship.ForeignFieldName != "" {
+					foreignKey = relationship.ForeignFieldName
 				}
 
 				if relationship != nil && relationship.Kind == "many_to_many" {
@@ -516,10 +453,10 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 						"INNER JOIN %v ON %v.%v = %v.%v",
 						scope.Quote(relationship.JoinTable),
 						scope.Quote(relationship.JoinTable),
-						scope.Quote(ToSnake(relationship.AssociationForeignKey)),
+						scope.Quote(ToSnake(relationship.AssociationForeignFieldName)),
 						toScope.QuotedTableName(),
 						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(ToSnake(relationship.ForeignKey)))
+					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(ToSnake(relationship.ForeignFieldName)))
 					toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value)
 					return scope
 				}
@@ -567,8 +504,8 @@ func (scope *Scope) createJoinTable(field *Field) {
 			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
 				field.Relationship.JoinTable,
 				strings.Join([]string{
-					scope.Quote(ToSnake(field.Relationship.ForeignKey)) + " " + primaryKeySqlType,
-					scope.Quote(ToSnake(field.Relationship.AssociationForeignKey)) + " " + primaryKeySqlType}, ",")),
+					scope.Quote(ToSnake(field.Relationship.ForeignFieldName)) + " " + primaryKeySqlType,
+					scope.Quote(ToSnake(field.Relationship.AssociationForeignFieldName)) + " " + primaryKeySqlType}, ",")),
 			).Exec()
 			scope.Err(newScope.db.Error)
 		}

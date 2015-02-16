@@ -32,8 +32,8 @@ func SaveBeforeAssociations(scope *Scope) {
 				}
 				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 
-				if relationship.ForeignKey != "" {
-					scope.SetColumn(relationship.ForeignKey, newDB.NewScope(value.Addr().Interface()).PrimaryKeyValue())
+				if relationship.ForeignFieldName != "" {
+					scope.SetColumn(relationship.ForeignFieldName, newDB.NewScope(value.Addr().Interface()).PrimaryKeyValue())
 				}
 				if relationship.ForeignType != "" {
 					scope.Err(fmt.Errorf("gorm does not support polymorphic belongs_to associations"))
@@ -58,8 +58,8 @@ func SaveAfterAssociations(scope *Scope) {
 						newDB := scope.NewDB()
 						elem := value.Index(i).Addr().Interface()
 
-						if relationship.JoinTable == "" && relationship.ForeignKey != "" {
-							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
+						if relationship.JoinTable == "" && relationship.ForeignFieldName != "" {
+							newDB.NewScope(elem).SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
 						}
 						if relationship.ForeignType != "" {
 							newDB.NewScope(elem).SetColumn(relationship.ForeignType, scope.TableName())
@@ -74,9 +74,9 @@ func SaveAfterAssociations(scope *Scope) {
 
 							newScope := scope.New(elem)
 							joinTable := relationship.JoinTable
-							foreignKey := ToSnake(relationship.ForeignKey)
+							foreignKey := ToSnake(relationship.ForeignFieldName)
 							foreignValue := fmt.Sprintf("%v", scope.PrimaryKeyValue())
-							associationForeignKey := ToSnake(relationship.AssociationForeignKey)
+							associationForeignKey := ToSnake(relationship.AssociationForeignFieldName)
 							associationForeignValue := fmt.Sprintf("%v", newScope.PrimaryKeyValue())
 
 							newScope.Raw(fmt.Sprintf(
@@ -97,8 +97,8 @@ func SaveAfterAssociations(scope *Scope) {
 				default:
 					newDB := scope.NewDB()
 					if value.CanAddr() {
-						if relationship.ForeignKey != "" {
-							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
+						if relationship.ForeignFieldName != "" {
+							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
 						}
 						if relationship.ForeignType != "" {
 							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignType, scope.TableName())
@@ -112,8 +112,8 @@ func SaveAfterAssociations(scope *Scope) {
 						}
 
 						elem := destValue.Addr().Interface()
-						if relationship.ForeignKey != "" {
-							newDB.NewScope(elem).SetColumn(relationship.ForeignKey, scope.PrimaryKeyValue())
+						if relationship.ForeignFieldName != "" {
+							newDB.NewScope(elem).SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
 						}
 						if relationship.ForeignType != "" {
 							newDB.NewScope(value.Addr().Interface()).SetColumn(relationship.ForeignType, scope.TableName())
