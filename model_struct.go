@@ -45,7 +45,7 @@ type Relationship struct {
 
 func (scope *Scope) GenerateSqlTag(field *StructField) {
 	var sqlType string
-	reflectValue := reflect.New(field.Struct.Type)
+	reflectValue := reflect.Indirect(reflect.New(field.Struct.Type))
 
 	if value, ok := field.SqlSettings["TYPE"]; ok {
 		sqlType = value
@@ -58,12 +58,13 @@ func (scope *Scope) GenerateSqlTag(field *StructField) {
 
 	if field.IsScanner {
 		var getScannerValue func(reflect.Value)
-		getScannerValue = func(reflectValue reflect.Value) {
-			if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner {
+		getScannerValue = func(value reflect.Value) {
+			reflectValue = value
+			if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner && reflectValue.Kind() == reflect.Struct {
 				getScannerValue(reflectValue.Field(0))
 			}
 		}
-		getScannerValue(reflectValue.Field(0))
+		getScannerValue(reflectValue)
 	}
 
 	if sqlType == "" {
@@ -188,7 +189,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 						if many2many != "" {
 							kind = "many_to_many"
-						} else if !reflect.New(typ).FieldByName(foreignKey).IsValid() {
+						} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
 							foreignKey = ""
 						}
 
@@ -239,12 +240,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	for _, field := range modelStruct.StructFields {
-		if modelStruct.PrimaryKeyField == nil && field.DBName == "id" {
-			field.IsPrimaryKey = true
-			modelStruct.PrimaryKeyField = field
-		}
+		if field.IsNormal {
+			if modelStruct.PrimaryKeyField == nil && field.DBName == "id" {
+				field.IsPrimaryKey = true
+				modelStruct.PrimaryKeyField = field
+			}
 
-		scope.GenerateSqlTag(field)
+			scope.GenerateSqlTag(field)
+		}
 	}
 
 	return &modelStruct
