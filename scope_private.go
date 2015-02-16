@@ -215,26 +215,26 @@ func (scope *Scope) whereSql() (sql string) {
 	return
 }
 
-func (s *Scope) selectSql() string {
-	if len(s.Search.Selects) == 0 {
+func (scope *Scope) selectSql() string {
+	if len(scope.Search.Selects) == 0 {
 		return "*"
 	}
 
 	var selectQueries []string
 
-	for _, clause := range s.Search.Selects {
-		selectQueries = append(selectQueries, s.buildSelectQuery(clause))
+	for _, clause := range scope.Search.Selects {
+		selectQueries = append(selectQueries, scope.buildSelectQuery(clause))
 	}
 
 	return strings.Join(selectQueries, ", ")
 
 }
 
-func (s *Scope) orderSql() string {
-	if len(s.Search.Orders) == 0 {
+func (scope *Scope) orderSql() string {
+	if len(scope.Search.Orders) == 0 {
 		return ""
 	} else {
-		return " ORDER BY " + strings.Join(s.Search.Orders, ",")
+		return " ORDER BY " + strings.Join(scope.Search.Orders, ",")
 	}
 }
 
@@ -245,9 +245,10 @@ func (s *Scope) limitSql() string {
 		} else {
 			return " LIMIT " + s.Search.Limit
 		}
-	} else {
-		return ""
 	}
+
+	return ""
+
 }
 
 func (s *Scope) topSql() string {
