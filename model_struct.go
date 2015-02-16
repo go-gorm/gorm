@@ -8,10 +8,15 @@ import (
 	"time"
 )
 
+type ModelStruct struct {
+	PrimaryKeyField *StructField
+	StructFields    []*StructField
+	TableName       string
+}
+
 type StructField struct {
 	Name         string
 	DBName       string
-	IsBlank      bool
 	IsPrimaryKey bool
 	IsScanner    bool
 	IsTime       bool
@@ -19,7 +24,17 @@ type StructField struct {
 	IsIgnored    bool
 	DefaultValue *string
 	SqlTag       string
-	Relationship *relationship
+	Relationship *Relationship
+}
+
+type Relationship struct {
+	Kind                        string
+	ForeignType                 string
+	ForeignFieldName            string
+	ForeignDBName               string
+	AssociationForeignFieldName string
+	AssociationForeignDBName    string
+	JoinTable                   string
 }
 
 func (scope *Scope) GetStructFields() (fields []*StructField) {
@@ -192,10 +207,8 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 		}
 		if field.IsNormal {
 			typ + " " + additionalType
-		}
-			} else if !field.IsTime {
-				return typ + " " + additionalType
-			}
+		} else if !field.IsTime {
+			return typ + " " + additionalType
 		}
 
 		if len(typ) == 0 {

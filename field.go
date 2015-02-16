@@ -8,7 +8,8 @@ import (
 
 type Field struct {
 	*StructField
-	Field reflect.Value
+	IsBlank bool
+	Field   reflect.Value
 }
 
 func (field *Field) Set(value interface{}) (err error) {
