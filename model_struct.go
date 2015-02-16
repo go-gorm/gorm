@@ -43,7 +43,7 @@ type Relationship struct {
 	JoinTable                   string
 }
 
-func (scope *Scope) GenerateSqlTag(field *StructField) {
+func (scope *Scope) generateSqlTag(field *StructField) {
 	var sqlType string
 	reflectValue := reflect.Indirect(reflect.New(field.Struct.Type))
 
@@ -246,7 +246,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				modelStruct.PrimaryKeyField = field
 			}
 
-			scope.GenerateSqlTag(field)
+			scope.generateSqlTag(field)
 		}
 	}
 

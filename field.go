@@ -38,19 +38,20 @@ func (field *Field) Set(value interface{}) (err error) {
 	return
 }
 
-type relationship struct {
-	JoinTable             string
-	ForeignKey            string
-	ForeignType           string
-	AssociationForeignKey string
-	Kind                  string
+// Fields get value's fields
+func (scope *Scope) Fields() map[string]*Field {
+	fields := map[string]*Field{}
+	structFields := scope.GetStructFields()
+
+	for _, structField := range structFields {
+		fields[structField.DBName] = scope.getField(structField)
+	}
+
+	return fields
 }
 
-// FIXME
-func (r relationship) ForeignDBName() string {
-	return ToSnake(r.ForeignKey)
-}
-
-func (r relationship) AssociationForeignDBName(name string) string {
-	return ToSnake(r.AssociationForeignKey)
+func (scope *Scope) getField(structField *StructField) *Field {
+	field := Field{StructField: structField}
+	field.Field = scope.IndirectValue().FieldByName(structField.Name)
+	return &field
 }

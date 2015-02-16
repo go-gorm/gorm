@@ -95,28 +95,7 @@ func (scope *Scope) HasError() bool {
 }
 
 func (scope *Scope) PrimaryKeyField() *Field {
-	if scope.primaryKeyField == nil {
-		var indirectValue = scope.IndirectValue()
-
-		clone := scope
-		// FIXME
-		if indirectValue.Kind() == reflect.Slice {
-			typ := indirectValue.Type().Elem()
-			if typ.Kind() == reflect.Ptr {
-				typ = typ.Elem()
-			}
-			clone = scope.New(reflect.New(typ).Elem().Addr().Interface())
-		}
-
-		for _, field := range clone.Fields() {
-			if field.IsPrimaryKey {
-				scope.primaryKeyField = field
-				break
-			}
-		}
-	}
-
-	return scope.primaryKeyField
+	return scope.getField(scope.GetModelStruct().PrimaryKeyField)
 }
 
 // PrimaryKey get the primary key's column name
@@ -135,7 +114,7 @@ func (scope *Scope) PrimaryKeyZero() bool {
 
 // PrimaryKeyValue get the primary key's value
 func (scope *Scope) PrimaryKeyValue() interface{} {
-	if field := scope.PrimaryKeyField(); field != nil {
+	if field := scope.PrimaryKeyField(); field != nil && field.Field.IsValid() {
 		return field.Field.Interface()
 	} else {
 		return 0
@@ -292,18 +271,6 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 		}
 	}
 	return nil, false
-}
-
-// Fields get value's fields
-func (scope *Scope) Fields() map[string]*Field {
-	fields := map[string]*Field{}
-	structFields := scope.GetStructFields()
-	for _, structField := range structFields {
-		field := Field{StructField: structField}
-		fields[field.DBName] = &field
-	}
-
-	return fields
 }
 
 // Raw set sql
