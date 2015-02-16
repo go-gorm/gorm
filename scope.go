@@ -41,7 +41,7 @@ func (db *DB) NewScope(value interface{}) *Scope {
 func (scope *Scope) NeedPtr() *Scope {
 	reflectKind := reflect.ValueOf(scope.Value).Kind()
 	if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
-		err := errors.New(fmt.Sprintf("%v %v\n", fileWithLineNum(), "using unaddressable value"))
+		err := fmt.Errorf("%v %v\n", fileWithLineNum(), "using unaddressable value")
 		scope.Err(err)
 		fmt.Printf(err.Error())
 	}
@@ -125,9 +125,8 @@ func (scope *Scope) PrimaryKeyField() *Field {
 func (scope *Scope) PrimaryKey() string {
 	if field := scope.PrimaryKeyField(); field != nil {
 		return field.DBName
-	} else {
-		return ""
 	}
+	return ""
 }
 
 // PrimaryKeyZero check the primary key is blank or not
@@ -139,9 +138,8 @@ func (scope *Scope) PrimaryKeyZero() bool {
 func (scope *Scope) PrimaryKeyValue() interface{} {
 	if field := scope.PrimaryKeyField(); field != nil {
 		return field.Field.Interface()
-	} else {
-		return 0
 	}
+	return 0
 }
 
 // HasColumn to check if has column
@@ -207,7 +205,7 @@ func (scope *Scope) CallMethod(name string) {
 			case func(s *DB) error:
 				scope.Err(f(scope.db.New()))
 			default:
-				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+				scope.Err(fmt.Errorf("unsupported function %v", name))
 			}
 		}
 	}
@@ -274,13 +272,14 @@ func (scope *Scope) TableName() string {
 func (scope *Scope) QuotedTableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
-	} else {
-		keys := strings.Split(scope.TableName(), ".")
-		for i, v := range keys {
-			keys[i] = scope.Quote(v)
-		}
-		return strings.Join(keys, ".")
 	}
+
+	keys := strings.Split(scope.TableName(), ".")
+	for i, v := range keys {
+		keys[i] = scope.Quote(v)
+	}
+	return strings.Join(keys, ".")
+
 }
 
 // CombinedConditionSql get combined condition sql
