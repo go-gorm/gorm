@@ -18,8 +18,9 @@ type ModelStruct struct {
 }
 
 type StructField struct {
-	Name         string
 	DBName       string
+	Name         string
+	Names        []string
 	IsPrimaryKey bool
 	IsScanner    bool
 	IsTime       bool
@@ -96,7 +97,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
 	if reflectValue.Kind() == reflect.Slice {
-		reflectValue = reflect.Indirect(reflect.New(reflectValue.Elem().Type()))
+		reflectValue = reflect.Indirect(reflect.New(reflectValue.Type().Elem()))
 	}
 	scopeTyp := reflectValue.Type()
 
@@ -125,7 +126,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			continue
 		}
 
-		field := &StructField{Struct: fieldStruct}
+		field := &StructField{Struct: fieldStruct, Name: fieldStruct.Name, Names: []string{fieldStruct.Name}}
 		if fieldStruct.Tag.Get("sql") == "-" {
 			field.IsIgnored = true
 		} else {
@@ -206,6 +207,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				case reflect.Struct:
 					if _, ok := field.GormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 						for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
+							field.Names = append([]string{fieldStruct.Name}, field.Names...)
 							modelStruct.StructFields = append(modelStruct.StructFields, field)
 						}
 						break

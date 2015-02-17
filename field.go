@@ -52,6 +52,12 @@ func (scope *Scope) Fields() map[string]*Field {
 
 func (scope *Scope) getField(structField *StructField) *Field {
 	field := Field{StructField: structField}
-	field.Field = scope.IndirectValue().FieldByName(structField.Name)
+	indirectValue := scope.IndirectValue()
+	if len(structField.Names) > 0 && indirectValue.Kind() == reflect.Struct {
+		for _, name := range structField.Names {
+			indirectValue = reflect.Indirect(indirectValue.FieldByName(name))
+		}
+		field.Field = indirectValue
+	}
 	return &field
 }

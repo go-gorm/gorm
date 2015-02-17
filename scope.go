@@ -95,7 +95,10 @@ func (scope *Scope) HasError() bool {
 }
 
 func (scope *Scope) PrimaryKeyField() *Field {
-	return scope.getField(scope.GetModelStruct().PrimaryKeyField)
+	if field := scope.GetModelStruct().PrimaryKeyField; field != nil {
+		return scope.getField(field)
+	}
+	return nil
 }
 
 // PrimaryKey get the primary key's column name
