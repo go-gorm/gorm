@@ -40,14 +40,17 @@ func (field *Field) Set(value interface{}) (err error) {
 
 // Fields get value's fields
 func (scope *Scope) Fields() map[string]*Field {
-	fields := map[string]*Field{}
-	structFields := scope.GetStructFields()
+	if scope.fields == nil {
+		fields := map[string]*Field{}
+		structFields := scope.GetStructFields()
 
-	for _, structField := range structFields {
-		fields[structField.DBName] = scope.getField(structField)
+		for _, structField := range structFields {
+			fields[structField.DBName] = scope.getField(structField)
+		}
+
+		scope.fields = fields
 	}
-
-	return fields
+	return scope.fields
 }
 
 func (scope *Scope) getField(structField *StructField) *Field {
@@ -55,9 +58,10 @@ func (scope *Scope) getField(structField *StructField) *Field {
 	indirectValue := scope.IndirectValue()
 	if len(structField.Names) > 0 && indirectValue.Kind() == reflect.Struct {
 		for _, name := range structField.Names {
-			indirectValue = reflect.Indirect(indirectValue.FieldByName(name))
+			indirectValue = reflect.Indirect(indirectValue).FieldByName(name)
 		}
 		field.Field = indirectValue
 	}
+	field.IsBlank = isBlank(indirectValue)
 	return &field
 }

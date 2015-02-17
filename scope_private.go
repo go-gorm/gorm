@@ -415,76 +415,47 @@ func (scope *Scope) typeName() string {
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
-	fromScopeType := scope.typeName()
-	toScopeType := toScope.typeName()
-	scopeType := ""
-
+	fromFields := scope.Fields()
+	toFields := toScope.Fields()
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		if keys := strings.Split(foreignKey, "."); len(keys) > 1 {
-			scopeType = keys[0]
-			foreignKey = keys[1]
-		}
+		fromField := fromFields[ToSnake(foreignKey)]
+		toField := toFields[ToSnake(foreignKey)]
 
-		var relationship *Relationship
-		var field *Field
-		var scopeHasField bool
-		if field, scopeHasField = scope.FieldByName(foreignKey); scopeHasField {
-			relationship = field.Relationship
-		}
-
-		if scopeType == "" || scopeType == fromScopeType {
-			if scopeHasField {
-				if relationship != nil && relationship.ForeignFieldName != "" {
-					foreignKey = relationship.ForeignFieldName
-				}
-
-				if relationship != nil && relationship.Kind == "many_to_many" {
-					if relationship.ForeignType != "" {
-						scope.Err(fmt.Errorf("gorm does not support polymorphic many-to-many associations"))
-					}
+		if fromField != nil {
+			if relationship := fromField.Relationship; relationship != nil {
+				if relationship.Kind == "many_to_many" {
 					joinSql := fmt.Sprintf(
 						"INNER JOIN %v ON %v.%v = %v.%v",
 						scope.Quote(relationship.JoinTable),
 						scope.Quote(relationship.JoinTable),
-						scope.Quote(ToSnake(relationship.AssociationForeignFieldName)),
+						scope.Quote(relationship.AssociationForeignDBName),
 						toScope.QuotedTableName(),
 						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(ToSnake(relationship.ForeignFieldName)))
-					toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value)
-					return scope
-				}
-
-				// has many or has one
-				if toScope.HasColumn(foreignKey) {
-					toScope.inlineCondition(fmt.Sprintf("%v = ?", scope.Quote(ToSnake(foreignKey))), scope.PrimaryKeyValue())
-					if relationship != nil && relationship.ForeignType != "" && toScope.HasColumn(relationship.ForeignType) {
-						toScope.inlineCondition(fmt.Sprintf("%v = ?", scope.Quote(ToSnake(relationship.ForeignType))), scope.TableName())
-					}
-					toScope.callCallbacks(scope.db.parent.callback.queries)
-					return scope
-				}
-
-				// belongs to
-				if foreignValue, err := scope.FieldValueByName(foreignKey); err == nil {
+					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(relationship.ForeignDBName))
+					scope.Err(toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value).Error)
+				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-					if relationship != nil && relationship.ForeignType != "" && scope.HasColumn(relationship.ForeignType) {
-						scope.Err(fmt.Errorf("gorm does not support polymorphic belongs_to associations"))
-						return scope
+					scope.Err(toScope.db.Where(sql, fromField.Field.Interface()).Find(value).Error)
+				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
+					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
+					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
+					if relationship.ForeignType != "" && toScope.HasColumn(relationship.ForeignType) {
+						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(ToSnake(relationship.ForeignType))), scope.TableName())
 					}
-					toScope.inlineCondition(sql, foreignValue).callCallbacks(scope.db.parent.callback.queries)
-					return scope
+					scope.Err(query.Find(value).Error)
 				}
+			} else {
+				sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
+				scope.Err(toScope.db.Where(sql, fromField.Field.Interface()).Find(value).Error)
 			}
-		}
-
-		if scopeType == "" || scopeType == toScopeType {
-			// has many or has one in foreign scope
-			if toScope.HasColumn(foreignKey) {
-				sql := fmt.Sprintf("%v = ?", scope.Quote(ToSnake(foreignKey)))
-				return toScope.inlineCondition(sql, scope.PrimaryKeyValue()).callCallbacks(scope.db.parent.callback.queries)
-			}
+			return scope
+		} else if toField != nil {
+			sql := fmt.Sprintf("%v = ?", scope.Quote(toField.DBName))
+			scope.Err(toScope.db.Where(sql, scope.PrimaryKeyValue()).Find(value).Error)
+			return scope
 		}
 	}
+
 	scope.Err(fmt.Errorf("invalid association %v", foreignKeys))
 	return scope
 }
@@ -553,12 +524,12 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	var table = scope.TableName()
 	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
 	var query = `
-		ALTER TABLE %s
-		ADD CONSTRAINT %s
-		FOREIGN KEY (%s)
-		REFERENCES %s
-		ON DELETE %s
-		ON UPDATE %s;
+	ALTER TABLE %s
+	ADD CONSTRAINT %s
+	FOREIGN KEY (%s)
+	REFERENCES %s
+	ON DELETE %s
+	ON UPDATE %s;
 	`
 	scope.Raw(fmt.Sprintf(query, table, keyName, field, dest, onDelete, onUpdate)).Exec()
 }

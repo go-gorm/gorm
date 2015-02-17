@@ -124,16 +124,14 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 
 // HasColumn to check if has column
 func (scope *Scope) HasColumn(column string) bool {
-	clone := scope
-	if scope.IndirectValue().Kind() == reflect.Slice {
-		value := reflect.New(scope.IndirectValue().Type().Elem()).Interface()
-		clone = scope.New(value)
+	for _, field := range scope.GetStructFields() {
+		if !field.IsIgnored {
+			if field.Name == column || field.DBName == column {
+				return true
+			}
+		}
 	}
-
-	dbName := ToSnake(column)
-
-	field, hasColumn := clone.Fields()[dbName]
-	return hasColumn && !field.IsIgnored
+	return false
 }
 
 // FieldValueByName to get column's value and existence

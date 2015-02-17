@@ -28,7 +28,7 @@ func SaveBeforeAssociations(scope *Scope) {
 					for _, f := range newDB.NewScope(field.Field.Addr().Interface()).Fields() {
 						value.FieldByName(f.Name).Set(reflect.ValueOf(f.Field.Interface()))
 					}
-					scope.SetColumn(field.Name, value.Interface())
+					scope.SetColumn(field, value.Interface())
 				}
 				scope.Err(newDB.Save(value.Addr().Interface()).Error)
 

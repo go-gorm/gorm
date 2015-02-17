@@ -96,20 +96,28 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	var modelStruct ModelStruct
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
+	if !reflectValue.IsValid() {
+		return &modelStruct
+	}
+
 	if reflectValue.Kind() == reflect.Slice {
 		reflectValue = reflect.Indirect(reflect.New(reflectValue.Type().Elem()))
 	}
-	scopeTyp := reflectValue.Type()
+	scopeType := reflectValue.Type()
+
+	if scopeType.Kind() != reflect.Struct {
+		return &modelStruct
+	}
 
 	// Set tablename
-	if fm := reflect.New(scopeTyp).MethodByName("TableName"); fm.IsValid() {
+	if fm := reflect.New(scopeType).MethodByName("TableName"); fm.IsValid() {
 		if results := fm.Call([]reflect.Value{}); len(results) > 0 {
 			if name, ok := results[0].Interface().(string); ok {
 				modelStruct.TableName = name
 			}
 		}
 	} else {
-		modelStruct.TableName = ToSnake(scopeTyp.Name())
+		modelStruct.TableName = ToSnake(scopeType.Name())
 		if scope.db == nil || !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
 				if reg.MatchString(modelStruct.TableName) {
@@ -120,8 +128,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Set fields
-	for i := 0; i < scopeTyp.NumField(); i++ {
-		fieldStruct := scopeTyp.Field(i)
+	for i := 0; i < scopeType.NumField(); i++ {
+		fieldStruct := scopeType.Field(i)
 		if !ast.IsExported(fieldStruct.Name) {
 			continue
 		}
@@ -156,7 +164,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				field.IsScanner, field.IsNormal = true, true
 			}
 
-			if _, isTime := reflect.New(indirectType).Interface().(time.Time); isTime {
+			if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
 				field.IsTime, field.IsNormal = true, true
 			}
 
@@ -181,7 +189,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						kind := "has_many"
 
 						if foreignKey == "" {
-							foreignKey = indirectType.Name() + "Id"
+							foreignKey = scopeType.Name() + "Id"
 						}
 
 						if associationForeignKey == "" {
@@ -199,6 +207,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							ForeignType:                 foreignType,
 							ForeignFieldName:            foreignKey,
 							AssociationForeignFieldName: associationForeignKey,
+							ForeignDBName:               ToSnake(foreignKey),
+							AssociationForeignDBName:    ToSnake(associationForeignKey),
 							Kind: kind,
 						}
 					} else {
@@ -215,22 +225,27 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						var belongsToForeignKey, hasOneForeignKey, kind string
 
 						if foreignKey == "" {
-							belongsToForeignKey = indirectType.Name() + "Id"
-							hasOneForeignKey = scopeTyp.Name() + "Id"
+							belongsToForeignKey = field.Name + "Id"
+							hasOneForeignKey = scopeType.Name() + "Id"
 						} else {
 							belongsToForeignKey = foreignKey
 							hasOneForeignKey = foreignKey
 						}
 
-						if _, ok := scopeTyp.FieldByName(belongsToForeignKey); ok {
-							foreignKey = belongsToForeignKey
+						if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
 							kind = "belongs_to"
+							foreignKey = belongsToForeignKey
 						} else {
 							foreignKey = hasOneForeignKey
 							kind = "has_one"
 						}
 
-						field.Relationship = &Relationship{ForeignFieldName: foreignKey, ForeignType: foreignType, Kind: kind}
+						field.Relationship = &Relationship{
+							ForeignFieldName: foreignKey,
+							ForeignDBName:    ToSnake(foreignKey),
+							ForeignType:      foreignType,
+							Kind:             kind,
+						}
 					}
 
 				default:
@@ -248,7 +263,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				modelStruct.PrimaryKeyField = field
 			}
 
-			scope.generateSqlTag(field)
+			if scope.db != nil {
+				scope.generateSqlTag(field)
+			}
 		}
 	}
 
