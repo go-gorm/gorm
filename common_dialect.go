@@ -20,7 +20,7 @@ func (s *commonDialect) HasTop() bool {
 	return false
 }
 
-func (d *commonDialect) SqlTag(value reflect.Value, size int) string {
+func (s *commonDialect) SqlTag(value reflect.Value, size int) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "BOOLEAN"
@@ -33,9 +33,8 @@ func (d *commonDialect) SqlTag(value reflect.Value, size int) string {
 	case reflect.String:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("VARCHAR(%d)", size)
-		} else {
-			return "VARCHAR(65532)"
 		}
+		return "VARCHAR(65532)"
 	case reflect.Struct:
 		if value.Type() == timeType {
 			return "TIMESTAMP"
@@ -44,21 +43,20 @@ func (d *commonDialect) SqlTag(value reflect.Value, size int) string {
 		if _, ok := value.Interface().([]byte); ok {
 			if size > 0 && size < 65532 {
 				return fmt.Sprintf("BINARY(%d)", size)
-			} else {
-				return "BINARY(65532)"
 			}
+			return "BINARY(65532)"
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", value.Type().Name(), value.Kind().String()))
 }
 
 func (s *commonDialect) PrimaryKeyTag(value reflect.Value, size int) string {
-	suffix_str := " NOT NULL PRIMARY KEY"
+	suffix := " NOT NULL PRIMARY KEY"
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		return "INTEGER" + suffix_str
+		return "INTEGER" + suffix
 	case reflect.Int64, reflect.Uint64:
-		return "BIGINT" + suffix_str
+		return "BIGINT" + suffix
 	default:
 		panic("Invalid primary key type")
 	}

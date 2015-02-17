@@ -41,7 +41,7 @@ func (db *DB) NewScope(value interface{}) *Scope {
 func (scope *Scope) NeedPtr() *Scope {
 	reflectKind := reflect.ValueOf(scope.Value).Kind()
 	if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
-		err := errors.New(fmt.Sprintf("%v %v\n", fileWithLineNum(), "using unaddressable value"))
+		err := fmt.Errorf("%v %v\n", fileWithLineNum(), "using unaddressable value")
 		scope.Err(err)
 		fmt.Printf(err.Error())
 	}
@@ -125,9 +125,8 @@ func (scope *Scope) PrimaryKeyField() *Field {
 func (scope *Scope) PrimaryKey() string {
 	if field := scope.PrimaryKeyField(); field != nil {
 		return field.DBName
-	} else {
-		return ""
 	}
+	return ""
 }
 
 // PrimaryKeyZero check the primary key is blank or not
@@ -139,9 +138,8 @@ func (scope *Scope) PrimaryKeyZero() bool {
 func (scope *Scope) PrimaryKeyValue() interface{} {
 	if field := scope.PrimaryKeyField(); field != nil {
 		return field.Field.Interface()
-	} else {
-		return 0
 	}
+	return 0
 }
 
 // HasColumn to check if has column
@@ -207,7 +205,7 @@ func (scope *Scope) CallMethod(name string) {
 			case func(s *DB) error:
 				scope.Err(f(scope.db.New()))
 			default:
-				scope.Err(errors.New(fmt.Sprintf("unsupported function %v", name)))
+				scope.Err(fmt.Errorf("unsupported function %v", name))
 			}
 		}
 	}
@@ -234,53 +232,54 @@ var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
-	} else {
-		if scope.Value == nil {
-			scope.Err(errors.New("can't get table name"))
-			return ""
-		}
-
-		data := scope.IndirectValue()
-		if data.Kind() == reflect.Slice {
-			elem := data.Type().Elem()
-			if elem.Kind() == reflect.Ptr {
-				elem = elem.Elem()
-			}
-			data = reflect.New(elem).Elem()
-		}
-
-		if fm := data.MethodByName("TableName"); fm.IsValid() {
-			if v := fm.Call([]reflect.Value{}); len(v) > 0 {
-				if result, ok := v[0].Interface().(string); ok {
-					return result
-				}
-			}
-		}
-
-		str := ToSnake(data.Type().Name())
-
-		if scope.db == nil || !scope.db.parent.singularTable {
-			for index, reg := range pluralMapKeys {
-				if reg.MatchString(str) {
-					return reg.ReplaceAllString(str, pluralMapValues[index])
-				}
-			}
-		}
-
-		return str
 	}
+
+	if scope.Value == nil {
+		scope.Err(errors.New("can't get table name"))
+		return ""
+	}
+
+	data := scope.IndirectValue()
+	if data.Kind() == reflect.Slice {
+		elem := data.Type().Elem()
+		if elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		data = reflect.New(elem).Elem()
+	}
+
+	if fm := data.MethodByName("TableName"); fm.IsValid() {
+		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
+			if result, ok := v[0].Interface().(string); ok {
+				return result
+			}
+		}
+	}
+
+	str := ToSnake(data.Type().Name())
+
+	if scope.db == nil || !scope.db.parent.singularTable {
+		for index, reg := range pluralMapKeys {
+			if reg.MatchString(str) {
+				return reg.ReplaceAllString(str, pluralMapValues[index])
+			}
+		}
+	}
+
+	return str
 }
 
 func (scope *Scope) QuotedTableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
-	} else {
-		keys := strings.Split(scope.TableName(), ".")
-		for i, v := range keys {
-			keys[i] = scope.Quote(v)
-		}
-		return strings.Join(keys, ".")
 	}
+
+	keys := strings.Split(scope.TableName(), ".")
+	for i, v := range keys {
+		keys[i] = scope.Quote(v)
+	}
+	return strings.Join(keys, ".")
+
 }
 
 // CombinedConditionSql get combined condition sql

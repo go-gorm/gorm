@@ -32,9 +32,8 @@ func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
 	case reflect.String:
 		if size > 0 && size < 65532 {
 			return fmt.Sprintf("varchar(%d)", size)
-		} else {
-			return "text"
 		}
+		return "text"
 	case reflect.Struct:
 		if value.Type() == timeType {
 			return "datetime"
