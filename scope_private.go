@@ -214,87 +214,80 @@ func (scope *Scope) whereSql() (sql string) {
 	return
 }
 
-func (s *Scope) selectSql() string {
-	if len(s.Search.Selects) == 0 {
+func (scope *Scope) selectSql() string {
+	if len(scope.Search.Selects) == 0 {
 		return "*"
 	}
 
 	var selectQueries []string
 
-	for _, clause := range s.Search.Selects {
-		selectQueries = append(selectQueries, s.buildSelectQuery(clause))
+	for _, clause := range scope.Search.Selects {
+		selectQueries = append(selectQueries, scope.buildSelectQuery(clause))
 	}
 
 	return strings.Join(selectQueries, ", ")
-
 }
 
-func (s *Scope) orderSql() string {
-	if len(s.Search.Orders) == 0 {
+func (scope *Scope) orderSql() string {
+	if len(scope.Search.Orders) == 0 {
 		return ""
-	} else {
-		return " ORDER BY " + strings.Join(s.Search.Orders, ",")
 	}
+	return " ORDER BY " + strings.Join(scope.Search.Orders, ",")
 }
 
-func (s *Scope) limitSql() string {
-	if !s.Dialect().HasTop() {
-		if len(s.Search.Limit) == 0 {
+func (scope *Scope) limitSql() string {
+	if !scope.Dialect().HasTop() {
+		if len(scope.Search.Limit) == 0 {
 			return ""
-		} else {
-			return " LIMIT " + s.Search.Limit
 		}
-	} else {
-		return ""
+		return " LIMIT " + scope.Search.Limit
 	}
+
+	return ""
 }
 
-func (s *Scope) topSql() string {
-	if s.Dialect().HasTop() && len(s.Search.Offset) == 0 {
-		if len(s.Search.Limit) == 0 {
+func (scope *Scope) topSql() string {
+	if scope.Dialect().HasTop() && len(scope.Search.Offset) == 0 {
+		if len(scope.Search.Limit) == 0 {
 			return ""
-		} else {
-			return " TOP(" + s.Search.Limit + ")"
 		}
-	} else {
-		return ""
+		return " TOP(" + scope.Search.Limit + ")"
 	}
+
+	return ""
 }
 
-func (s *Scope) offsetSql() string {
-	if len(s.Search.Offset) == 0 {
+func (scope *Scope) offsetSql() string {
+	if len(scope.Search.Offset) == 0 {
 		return ""
-	} else {
-		if s.Dialect().HasTop() {
-			sql := " OFFSET " + s.Search.Offset + " ROW "
-			if len(s.Search.Limit) > 0 {
-				sql += "FETCH NEXT " + s.Search.Limit + " ROWS ONLY"
-			}
-			return sql
-		} else {
-			return " OFFSET " + s.Search.Offset
+	}
+
+	if scope.Dialect().HasTop() {
+		sql := " OFFSET " + scope.Search.Offset + " ROW "
+		if len(scope.Search.Limit) > 0 {
+			sql += "FETCH NEXT " + scope.Search.Limit + " ROWS ONLY"
 		}
+		return sql
 	}
+	return " OFFSET " + scope.Search.Offset
 }
 
-func (s *Scope) groupSql() string {
-	if len(s.Search.Group) == 0 {
+func (scope *Scope) groupSql() string {
+	if len(scope.Search.Group) == 0 {
 		return ""
-	} else {
-		return " GROUP BY " + s.Search.Group
 	}
+	return " GROUP BY " + scope.Search.Group
 }
 
-func (s *Scope) havingSql() string {
-	if s.Search.HavingCondition == nil {
+func (scope *Scope) havingSql() string {
+	if scope.Search.HavingCondition == nil {
 		return ""
-	} else {
-		return " HAVING " + s.buildWhereCondition(s.Search.HavingCondition)
 	}
+	return " HAVING " + scope.buildWhereCondition(scope.Search.HavingCondition)
 }
 
-func (s *Scope) joinsSql() string {
-	return s.Search.Joins + " "
+func (scope *Scope) joinsSql() string {
+	return scope.Search.Joins + " "
 }
 
 func (scope *Scope) prepareQuerySql() {
@@ -415,9 +408,9 @@ func (scope *Scope) typeName() string {
 	value := scope.IndirectValue()
 	if value.Kind() == reflect.Slice {
 		return value.Type().Elem().Name()
-	} else {
-		return value.Type().Name()
 	}
+
+	return value.Type().Name()
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
@@ -557,9 +550,9 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	var table string = scope.TableName()
-	var keyName string = fmt.Sprintf("%s_%s_foreign", table, field)
-	var query string = `
+	var table = scope.TableName()
+	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
+	var query = `
 		ALTER TABLE %s
 		ADD CONSTRAINT %s
 		FOREIGN KEY (%s)

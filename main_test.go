@@ -588,10 +588,10 @@ func BenchmarkGorm(b *testing.B) {
 func BenchmarkRawSql(b *testing.B) {
 	DB, _ := sql.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
 	DB.SetMaxIdleConns(10)
-	insert_sql := "INSERT INTO emails (user_id,email,user_agent,registered_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
-	query_sql := "SELECT * FROM emails WHERE email = $1 ORDER BY id LIMIT 1"
-	update_sql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
-	delete_sql := "DELETE FROM orders WHERE id = $1"
+	insertSql := "INSERT INTO emails (user_id,email,user_agent,registered_at,created_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+	querySql := "SELECT * FROM emails WHERE email = $1 ORDER BY id LIMIT 1"
+	updateSql := "UPDATE emails SET email = $1, updated_at = $2 WHERE id = $3"
+	deleteSql := "DELETE FROM orders WHERE id = $1"
 
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
@@ -599,13 +599,13 @@ func BenchmarkRawSql(b *testing.B) {
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
 		// Insert
-		DB.QueryRow(insert_sql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
+		DB.QueryRow(insertSql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
 		// Query
-		rows, _ := DB.Query(query_sql, email.Email)
+		rows, _ := DB.Query(querySql, email.Email)
 		rows.Close()
 		// Update
-		DB.Exec(update_sql, "new-"+e, time.Now(), id)
+		DB.Exec(updateSql, "new-"+e, time.Now(), id)
 		// Delete
-		DB.Exec(delete_sql, id)
+		DB.Exec(deleteSql, id)
 	}
 }

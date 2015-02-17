@@ -3,9 +3,9 @@ package gorm
 import "errors"
 
 var (
-	RecordNotFound       = errors.New("Record Not Found")
-	InvalidSql           = errors.New("Invalid SQL")
-	NoNewAttrs           = errors.New("No new Attributes")
-	NoValidTransaction   = errors.New("No valid transaction")
-	CantStartTransaction = errors.New("Can't start transaction")
+	RecordNotFound       = errors.New("record not found")
+	InvalidSql           = errors.New("invalid sql")
+	NoNewAttrs           = errors.New("no new attributes")
+	NoValidTransaction   = errors.New("no valid transaction")
+	CantStartTransaction = errors.New("can't start transaction")
 )
