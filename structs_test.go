@@ -146,7 +146,7 @@ type Post struct {
 	MainCategoryId int64
 	Title          string
 	Body           string
-	Comments       []Comment
+	Comments       []*Comment
 	Category       Category
 	MainCategory   Category
 }

@@ -14,7 +14,7 @@ func TestHasOneAndHasManyAssociation(t *testing.T) {
 	post := Post{
 		Title:        "post 1",
 		Body:         "body 1",
-		Comments:     []Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
+		Comments:     []*Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
 		Category:     Category{Name: "Category 1"},
 		MainCategory: Category{Name: "Main Category 1"},
 	}
