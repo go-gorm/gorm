@@ -232,41 +232,41 @@ var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
-	} else {
-		if scope.Value == nil {
-			scope.Err(errors.New("can't get table name"))
-			return ""
-		}
-
-		data := scope.IndirectValue()
-		if data.Kind() == reflect.Slice {
-			elem := data.Type().Elem()
-			if elem.Kind() == reflect.Ptr {
-				elem = elem.Elem()
-			}
-			data = reflect.New(elem).Elem()
-		}
-
-		if fm := data.MethodByName("TableName"); fm.IsValid() {
-			if v := fm.Call([]reflect.Value{}); len(v) > 0 {
-				if result, ok := v[0].Interface().(string); ok {
-					return result
-				}
-			}
-		}
-
-		str := ToSnake(data.Type().Name())
-
-		if scope.db == nil || !scope.db.parent.singularTable {
-			for index, reg := range pluralMapKeys {
-				if reg.MatchString(str) {
-					return reg.ReplaceAllString(str, pluralMapValues[index])
-				}
-			}
-		}
-
-		return str
 	}
+
+	if scope.Value == nil {
+		scope.Err(errors.New("can't get table name"))
+		return ""
+	}
+
+	data := scope.IndirectValue()
+	if data.Kind() == reflect.Slice {
+		elem := data.Type().Elem()
+		if elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		data = reflect.New(elem).Elem()
+	}
+
+	if fm := data.MethodByName("TableName"); fm.IsValid() {
+		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
+			if result, ok := v[0].Interface().(string); ok {
+				return result
+			}
+		}
+	}
+
+	str := ToSnake(data.Type().Name())
+
+	if scope.db == nil || !scope.db.parent.singularTable {
+		for index, reg := range pluralMapKeys {
+			if reg.MatchString(str) {
+				return reg.ReplaceAllString(str, pluralMapValues[index])
+			}
+		}
+	}
+
+	return str
 }
 
 func (scope *Scope) QuotedTableName() string {

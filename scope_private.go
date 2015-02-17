@@ -227,73 +227,64 @@ func (scope *Scope) selectSql() string {
 	}
 
 	return strings.Join(selectQueries, ", ")
-
 }
 
 func (scope *Scope) orderSql() string {
 	if len(scope.Search.Orders) == 0 {
 		return ""
-	} else {
-		return " ORDER BY " + strings.Join(scope.Search.Orders, ",")
 	}
+	return " ORDER BY " + strings.Join(scope.Search.Orders, ",")
 }
 
-func (s *Scope) limitSql() string {
-	if !s.Dialect().HasTop() {
-		if len(s.Search.Limit) == 0 {
+func (scope *Scope) limitSql() string {
+	if !scope.Dialect().HasTop() {
+		if len(scope.Search.Limit) == 0 {
 			return ""
-		} else {
-			return " LIMIT " + s.Search.Limit
 		}
+		return " LIMIT " + scope.Search.Limit
 	}
 
 	return ""
-
 }
 
 func (scope *Scope) topSql() string {
 	if scope.Dialect().HasTop() && len(scope.Search.Offset) == 0 {
 		if len(scope.Search.Limit) == 0 {
 			return ""
-		} else {
-			return " TOP(" + scope.Search.Limit + ")"
 		}
+		return " TOP(" + scope.Search.Limit + ")"
 	}
 
 	return ""
-
 }
 
 func (scope *Scope) offsetSql() string {
 	if len(scope.Search.Offset) == 0 {
 		return ""
-	} else {
-		if scope.Dialect().HasTop() {
-			sql := " OFFSET " + scope.Search.Offset + " ROW "
-			if len(scope.Search.Limit) > 0 {
-				sql += "FETCH NEXT " + scope.Search.Limit + " ROWS ONLY"
-			}
-			return sql
-		} else {
-			return " OFFSET " + scope.Search.Offset
-		}
 	}
+
+	if scope.Dialect().HasTop() {
+		sql := " OFFSET " + scope.Search.Offset + " ROW "
+		if len(scope.Search.Limit) > 0 {
+			sql += "FETCH NEXT " + scope.Search.Limit + " ROWS ONLY"
+		}
+		return sql
+	}
+	return " OFFSET " + scope.Search.Offset
 }
 
 func (scope *Scope) groupSql() string {
 	if len(scope.Search.Group) == 0 {
 		return ""
-	} else {
-		return " GROUP BY " + scope.Search.Group
 	}
+	return " GROUP BY " + scope.Search.Group
 }
 
 func (scope *Scope) havingSql() string {
 	if scope.Search.HavingCondition == nil {
 		return ""
-	} else {
-		return " HAVING " + scope.buildWhereCondition(scope.Search.HavingCondition)
 	}
+	return " HAVING " + scope.buildWhereCondition(scope.Search.HavingCondition)
 }
 
 func (scope *Scope) joinsSql() string {
@@ -481,9 +472,9 @@ func (scope *Scope) typeName() string {
 	value := scope.IndirectValue()
 	if value.Kind() == reflect.Slice {
 		return value.Type().Elem().Name()
-	} else {
-		return value.Type().Name()
 	}
+
+	return value.Type().Name()
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
@@ -636,9 +627,9 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	var table string = scope.TableName()
-	var keyName string = fmt.Sprintf("%s_%s_foreign", table, field)
-	var query string = `
+	var table = scope.TableName()
+	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
+	var query = `
 		ALTER TABLE %s
 		ADD CONSTRAINT %s
 		FOREIGN KEY (%s)

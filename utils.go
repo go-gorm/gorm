@@ -34,7 +34,7 @@ func FieldValueByName(name string, value interface{}) (i interface{}, err error)
 		if field := data.FieldByName(name); field.IsValid() {
 			i = field.Interface()
 		} else {
-			return nil, errors.New(fmt.Sprintf("struct has no field with name %s", name))
+			return nil, fmt.Errorf("struct has no field with name %s", name)
 		}
 	} else {
 		return nil, errors.New("value must be of kind struct")

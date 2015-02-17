@@ -265,9 +265,8 @@ func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
 		return scope.callCallbacks(s.parent.callback.creates).db
-	} else {
-		return scope.callCallbacks(s.parent.callback.updates).db
 	}
+	return scope.callCallbacks(s.parent.callback.updates).db
 }
 
 func (s *DB) Create(value interface{}) *DB {

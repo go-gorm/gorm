@@ -50,7 +50,7 @@ func Query(scope *Scope) {
 		columns, _ := rows.Columns()
 		defer rows.Close()
 		for rows.Next() {
-			scope.db.RowsAffected += 1
+			scope.db.RowsAffected++
 
 			anyRecordFound = true
 			elem := dest
