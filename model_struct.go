@@ -27,9 +27,8 @@ type StructField struct {
 	IsNormal     bool
 	IsIgnored    bool
 	DefaultValue *string
-	GormSettings map[string]string
-	SqlSettings  map[string]string
 	SqlTag       string
+	Tag          reflect.StructTag
 	Struct       reflect.StructField
 	Relationship *Relationship
 }
@@ -47,13 +46,14 @@ type Relationship struct {
 func (scope *Scope) generateSqlTag(field *StructField) {
 	var sqlType string
 	reflectValue := reflect.Indirect(reflect.New(field.Struct.Type))
+	sqlSettings := parseTagSetting(field.Tag.Get("sql"))
 
-	if value, ok := field.SqlSettings["TYPE"]; ok {
+	if value, ok := sqlSettings["TYPE"]; ok {
 		sqlType = value
 	}
 
-	additionalType := field.SqlSettings["NOT NULL"] + " " + field.SqlSettings["UNIQUE"]
-	if value, ok := field.SqlSettings["DEFAULT"]; ok {
+	additionalType := sqlSettings["NOT NULL"] + " " + sqlSettings["UNIQUE"]
+	if value, ok := sqlSettings["DEFAULT"]; ok {
 		additionalType = additionalType + "DEFAULT " + value
 	}
 
@@ -71,7 +71,7 @@ func (scope *Scope) generateSqlTag(field *StructField) {
 	if sqlType == "" {
 		var size = 255
 
-		if value, ok := field.SqlSettings["SIZE"]; ok {
+		if value, ok := sqlSettings["SIZE"]; ok {
 			size, _ = strconv.Atoi(value)
 		}
 
@@ -138,22 +138,28 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			continue
 		}
 
-		field := &StructField{Struct: fieldStruct, Name: fieldStruct.Name, Names: []string{fieldStruct.Name}}
+		field := &StructField{
+			Struct: fieldStruct,
+			Name:   fieldStruct.Name,
+			Names:  []string{fieldStruct.Name},
+			Tag:    fieldStruct.Tag,
+		}
+
 		if fieldStruct.Tag.Get("sql") == "-" {
 			field.IsIgnored = true
 		} else {
-			field.SqlSettings = parseTagSetting(fieldStruct.Tag.Get("sql"))
-			field.GormSettings = parseTagSetting(fieldStruct.Tag.Get("gorm"))
-			if _, ok := field.GormSettings["PRIMARY_KEY"]; ok {
+			sqlSettings := parseTagSetting(field.Tag.Get("sql"))
+			gormSettings := parseTagSetting(field.Tag.Get("gorm"))
+			if _, ok := gormSettings["PRIMARY_KEY"]; ok {
 				field.IsPrimaryKey = true
 				modelStruct.PrimaryKeyField = field
 			}
 
-			if value, ok := field.SqlSettings["DEFAULT"]; ok {
+			if value, ok := sqlSettings["DEFAULT"]; ok {
 				field.DefaultValue = &value
 			}
 
-			if value, ok := field.GormSettings["COLUMN"]; ok {
+			if value, ok := gormSettings["COLUMN"]; ok {
 				field.DBName = value
 			} else {
 				field.DBName = ToSnake(fieldStruct.Name)
@@ -172,11 +178,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				field.IsTime, field.IsNormal = true, true
 			}
 
-			many2many := field.GormSettings["MANY2MANY"]
-			foreignKey := SnakeToUpperCamel(field.GormSettings["FOREIGNKEY"])
-			foreignType := SnakeToUpperCamel(field.GormSettings["FOREIGNTYPE"])
-			associationForeignKey := SnakeToUpperCamel(field.GormSettings["ASSOCIATIONFOREIGNKEY"])
-			if polymorphic := SnakeToUpperCamel(field.GormSettings["POLYMORPHIC"]); polymorphic != "" {
+			many2many := gormSettings["MANY2MANY"]
+			foreignKey := SnakeToUpperCamel(gormSettings["FOREIGNKEY"])
+			foreignType := SnakeToUpperCamel(gormSettings["FOREIGNTYPE"])
+			associationForeignKey := SnakeToUpperCamel(gormSettings["ASSOCIATIONFOREIGNKEY"])
+			if polymorphic := SnakeToUpperCamel(gormSettings["POLYMORPHIC"]); polymorphic != "" {
 				foreignKey = polymorphic + "Id"
 				foreignType = polymorphic + "Type"
 			}
@@ -219,7 +225,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						field.IsNormal = true
 					}
 				case reflect.Struct:
-					if _, ok := field.GormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
+					if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 						for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
 							field.Names = append([]string{fieldStruct.Name}, field.Names...)
 							modelStruct.StructFields = append(modelStruct.StructFields, field)
