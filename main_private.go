@@ -3,7 +3,7 @@ package gorm
 import "time"
 
 func (s *DB) clone() *DB {
-	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, Value: s.Value, Error: s.Error, values: map[string]interface{}{}}
+	db := DB{db: s.db, parent: s.parent, logMode: s.logMode, values: map[string]interface{}{}, Value: s.Value, Error: s.Error}
 
 	for key, value := range s.values {
 		db.values[key] = value

@@ -33,6 +33,24 @@ type StructField struct {
 	Relationship *Relationship
 }
 
+func (structField *StructField) clone() *StructField {
+	return &StructField{
+		DBName:       structField.DBName,
+		Name:         structField.Name,
+		Names:        structField.Names,
+		IsPrimaryKey: structField.IsPrimaryKey,
+		IsScanner:    structField.IsScanner,
+		IsTime:       structField.IsTime,
+		IsNormal:     structField.IsNormal,
+		IsIgnored:    structField.IsIgnored,
+		DefaultValue: structField.DefaultValue,
+		SqlTag:       structField.SqlTag,
+		Tag:          structField.Tag,
+		Struct:       structField.Struct,
+		Relationship: structField.Relationship,
+	}
+}
+
 type Relationship struct {
 	Kind                        string
 	ForeignType                 string
@@ -105,6 +123,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	scopeType := reflectValue.Type()
+	if scope.db != nil {
+		if value, ok := scope.db.parent.ModelStructs[scopeType]; ok {
+			return value
+		} else {
+			scope.db.parent.ModelStructs[scopeType] = &modelStruct
+		}
+	}
+
 	if scopeType.Kind() == reflect.Ptr {
 		scopeType = scopeType.Elem()
 	}
@@ -223,6 +249,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					case reflect.Struct:
 						if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 							for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
+								field = field.clone()
 								field.Names = append([]string{fieldStruct.Name}, field.Names...)
 								modelStruct.StructFields = append(modelStruct.StructFields, field)
 							}
