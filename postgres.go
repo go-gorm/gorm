@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/lib/pq/hstore"
 )
@@ -40,7 +41,7 @@ func (s *postgres) SqlTag(value reflect.Value, size int) string {
 		}
 		return "text"
 	case reflect.Struct:
-		if value.Type() == timeType {
+		if _, ok := value.Interface().(time.Time); ok {
 			return "timestamp with time zone"
 		}
 	case reflect.Map:

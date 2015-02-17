@@ -111,7 +111,8 @@ func (scope *Scope) PrimaryKey() string {
 
 // PrimaryKeyZero check the primary key is blank or not
 func (scope *Scope) PrimaryKeyZero() bool {
-	return isBlank(reflect.ValueOf(scope.PrimaryKeyValue()))
+	field := scope.PrimaryKeyField()
+	return field == nil || field.IsBlank
 }
 
 // PrimaryKeyValue get the primary key's value
@@ -125,18 +126,11 @@ func (scope *Scope) PrimaryKeyValue() interface{} {
 // HasColumn to check if has column
 func (scope *Scope) HasColumn(column string) bool {
 	for _, field := range scope.GetStructFields() {
-		if !field.IsIgnored {
-			if field.Name == column || field.DBName == column {
-				return true
-			}
+		if field.IsNormal && (field.Name == column || field.DBName == column) {
+			return true
 		}
 	}
 	return false
-}
-
-// FieldValueByName to get column's value and existence
-func (scope *Scope) FieldValueByName(name string) (interface{}, error) {
-	return FieldValueByName(name, scope.Value)
 }
 
 // SetColumn to set the column's value
@@ -144,16 +138,11 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	if field, ok := column.(*Field); ok {
 		return field.Set(value)
 	} else if dbName, ok := column.(string); ok {
-		if scope.Value == nil {
-			return errors.New("scope value must not be nil for string columns")
-		}
-
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
 		}
 
 		dbName = ToSnake(dbName)
-
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
 		}
@@ -204,45 +193,11 @@ func (scope *Scope) AddToVars(value interface{}) string {
 }
 
 // TableName get table name
-
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
 		return scope.Search.TableName
 	}
-
-	if scope.Value == nil {
-		scope.Err(errors.New("can't get table name"))
-		return ""
-	}
-
-	data := scope.IndirectValue()
-	if data.Kind() == reflect.Slice {
-		elem := data.Type().Elem()
-		if elem.Kind() == reflect.Ptr {
-			elem = elem.Elem()
-		}
-		data = reflect.New(elem).Elem()
-	}
-
-	if fm := data.MethodByName("TableName"); fm.IsValid() {
-		if v := fm.Call([]reflect.Value{}); len(v) > 0 {
-			if result, ok := v[0].Interface().(string); ok {
-				return result
-			}
-		}
-	}
-
-	str := ToSnake(data.Type().Name())
-
-	if scope.db == nil || !scope.db.parent.singularTable {
-		for index, reg := range pluralMapKeys {
-			if reg.MatchString(str) {
-				return reg.ReplaceAllString(str, pluralMapValues[index])
-			}
-		}
-	}
-
-	return str
+	return scope.GetModelStruct().TableName
 }
 
 func (scope *Scope) QuotedTableName() string {
@@ -284,8 +239,7 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
-		result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...)
-		if scope.Err(err) == nil {
+		if result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); err == nil {
 				scope.db.RowsAffected = count
 			}

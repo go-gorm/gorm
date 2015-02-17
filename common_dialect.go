@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type commonDialect struct{}
@@ -36,7 +37,7 @@ func (s *commonDialect) SqlTag(value reflect.Value, size int) string {
 		}
 		return "VARCHAR(65532)"
 	case reflect.Struct:
-		if value.Type() == timeType {
+		if _, ok := value.Interface().(time.Time); ok {
 			return "TIMESTAMP"
 		}
 	default:

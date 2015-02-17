@@ -12,7 +12,7 @@ type Field struct {
 	Field   reflect.Value
 }
 
-func (field *Field) Set(value interface{}) (err error) {
+func (field *Field) Set(value interface{}) error {
 	if !field.Field.IsValid() {
 		return errors.New("field value not valid")
 	}
@@ -26,16 +26,26 @@ func (field *Field) Set(value interface{}) (err error) {
 	}
 
 	if scanner, ok := field.Field.Addr().Interface().(sql.Scanner); ok {
-		scanner.Scan(value)
-	} else if reflect.TypeOf(value).ConvertibleTo(field.Field.Type()) {
-		field.Field.Set(reflect.ValueOf(value).Convert(field.Field.Type()))
+		if v, ok := value.(reflect.Value); ok {
+			scanner.Scan(v.Interface())
+		} else {
+			scanner.Scan(value)
+		}
 	} else {
-		return errors.New("could not convert argument")
+		reflectValue, ok := value.(reflect.Value)
+		if !ok {
+			reflectValue = reflect.ValueOf(value)
+		}
+
+		if reflectValue.Type().ConvertibleTo(field.Field.Type()) {
+			field.Field.Set(reflectValue.Convert(field.Field.Type()))
+		} else {
+			return errors.New("could not convert argument")
+		}
 	}
 
 	field.IsBlank = isBlank(field.Field)
-
-	return
+	return nil
 }
 
 // Fields get value's fields
@@ -44,8 +54,14 @@ func (scope *Scope) Fields() map[string]*Field {
 		fields := map[string]*Field{}
 		structFields := scope.GetStructFields()
 
+		indirectValue := scope.IndirectValue()
+		isStruct := indirectValue.Kind() == reflect.Struct
 		for _, structField := range structFields {
-			fields[structField.DBName] = scope.getField(structField)
+			if isStruct {
+				fields[structField.DBName] = getField(indirectValue, structField)
+			} else {
+				fields[structField.DBName] = &Field{StructField: structField, IsBlank: true}
+			}
 		}
 
 		scope.fields = fields
@@ -53,15 +69,12 @@ func (scope *Scope) Fields() map[string]*Field {
 	return scope.fields
 }
 
-func (scope *Scope) getField(structField *StructField) *Field {
-	field := Field{StructField: structField}
-	indirectValue := scope.IndirectValue()
-	if len(structField.Names) > 0 && indirectValue.Kind() == reflect.Struct {
-		for _, name := range structField.Names {
-			indirectValue = reflect.Indirect(indirectValue).FieldByName(name)
-		}
-		field.Field = indirectValue
+func getField(indirectValue reflect.Value, structField *StructField) *Field {
+	field := &Field{StructField: structField}
+	for _, name := range structField.Names {
+		indirectValue = reflect.Indirect(indirectValue).FieldByName(name)
 	}
+	field.Field = indirectValue
 	field.IsBlank = isBlank(indirectValue)
-	return &field
+	return field
 }

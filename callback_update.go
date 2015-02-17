@@ -41,18 +41,16 @@ func Update(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
 
-		updateAttrs, ok := scope.InstanceGet("gorm:update_attrs")
-		if ok {
+		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 			for key, value := range updateAttrs.(map[string]interface{}) {
 				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
 			}
 		} else {
 			for _, field := range scope.Fields() {
-				if !field.IsPrimaryKey && field.IsNormal && !field.IsIgnored {
-					if field.DefaultValue != nil && field.IsBlank {
-						continue
+				if !field.IsPrimaryKey && field.IsNormal {
+					if !field.IsBlank || field.DefaultValue == nil {
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 					}
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				}
 			}
 		}
@@ -68,8 +66,7 @@ func Update(scope *Scope) {
 }
 
 func AfterUpdate(scope *Scope) {
-	_, ok := scope.Get("gorm:update_column")
-	if !ok {
+	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.CallMethod("AfterUpdate")
 		scope.CallMethod("AfterSave")
 	}

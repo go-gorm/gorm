@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"time"
 )
 
 type sqlite3 struct{}
@@ -35,7 +36,7 @@ func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
 		}
 		return "text"
 	case reflect.Struct:
-		if value.Type() == timeType {
+		if _, ok := value.Interface().(time.Time); ok {
 			return "datetime"
 		}
 	default:

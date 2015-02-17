@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type mysql struct{}
@@ -36,7 +37,7 @@ func (s *mysql) SqlTag(value reflect.Value, size int) string {
 		}
 		return "longtext"
 	case reflect.Struct:
-		if value.Type() == timeType {
+		if _, ok := value.Interface().(time.Time); ok {
 			return "timestamp NULL"
 		}
 	default:

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type mssql struct{}
@@ -36,7 +37,7 @@ func (s *mssql) SqlTag(value reflect.Value, size int) string {
 		}
 		return "text"
 	case reflect.Struct:
-		if value.Type() == timeType {
+		if _, ok := value.Interface().(time.Time); ok {
 			return "datetime2"
 		}
 	default:

@@ -133,137 +133,134 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 	// Set fields
 	for i := 0; i < scopeType.NumField(); i++ {
-		fieldStruct := scopeType.Field(i)
-		if !ast.IsExported(fieldStruct.Name) {
-			continue
-		}
-
-		field := &StructField{
-			Struct: fieldStruct,
-			Name:   fieldStruct.Name,
-			Names:  []string{fieldStruct.Name},
-			Tag:    fieldStruct.Tag,
-		}
-
-		if fieldStruct.Tag.Get("sql") == "-" {
-			field.IsIgnored = true
-		} else {
-			sqlSettings := parseTagSetting(field.Tag.Get("sql"))
-			gormSettings := parseTagSetting(field.Tag.Get("gorm"))
-			if _, ok := gormSettings["PRIMARY_KEY"]; ok {
-				field.IsPrimaryKey = true
-				modelStruct.PrimaryKeyField = field
+		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
+			field := &StructField{
+				Struct: fieldStruct,
+				Name:   fieldStruct.Name,
+				Names:  []string{fieldStruct.Name},
+				Tag:    fieldStruct.Tag,
 			}
 
-			if value, ok := sqlSettings["DEFAULT"]; ok {
-				field.DefaultValue = &value
-			}
-
-			if value, ok := gormSettings["COLUMN"]; ok {
-				field.DBName = value
+			if fieldStruct.Tag.Get("sql") == "-" {
+				field.IsIgnored = true
 			} else {
-				field.DBName = ToSnake(fieldStruct.Name)
-			}
+				sqlSettings := parseTagSetting(field.Tag.Get("sql"))
+				gormSettings := parseTagSetting(field.Tag.Get("gorm"))
+				if _, ok := gormSettings["PRIMARY_KEY"]; ok {
+					field.IsPrimaryKey = true
+					modelStruct.PrimaryKeyField = field
+				}
 
-			fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
-			if indirectType.Kind() == reflect.Ptr {
-				indirectType = indirectType.Elem()
-			}
+				if value, ok := sqlSettings["DEFAULT"]; ok {
+					field.DefaultValue = &value
+				}
 
-			if _, isScanner := reflect.New(fieldType).Interface().(sql.Scanner); isScanner {
-				field.IsScanner, field.IsNormal = true, true
-			}
+				if value, ok := gormSettings["COLUMN"]; ok {
+					field.DBName = value
+				} else {
+					field.DBName = ToSnake(fieldStruct.Name)
+				}
 
-			if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
-				field.IsTime, field.IsNormal = true, true
-			}
+				fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
+				if indirectType.Kind() == reflect.Ptr {
+					indirectType = indirectType.Elem()
+				}
 
-			many2many := gormSettings["MANY2MANY"]
-			foreignKey := SnakeToUpperCamel(gormSettings["FOREIGNKEY"])
-			foreignType := SnakeToUpperCamel(gormSettings["FOREIGNTYPE"])
-			associationForeignKey := SnakeToUpperCamel(gormSettings["ASSOCIATIONFOREIGNKEY"])
-			if polymorphic := SnakeToUpperCamel(gormSettings["POLYMORPHIC"]); polymorphic != "" {
-				foreignKey = polymorphic + "Id"
-				foreignType = polymorphic + "Type"
-			}
+				if _, isScanner := reflect.New(fieldType).Interface().(sql.Scanner); isScanner {
+					field.IsScanner, field.IsNormal = true, true
+				}
 
-			if !field.IsNormal {
-				switch indirectType.Kind() {
-				case reflect.Slice:
-					typ := indirectType.Elem()
-					if typ.Kind() == reflect.Ptr {
-						typ = typ.Elem()
-					}
+				if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
+					field.IsTime, field.IsNormal = true, true
+				}
 
-					if typ.Kind() == reflect.Struct {
-						kind := "has_many"
+				many2many := gormSettings["MANY2MANY"]
+				foreignKey := SnakeToUpperCamel(gormSettings["FOREIGNKEY"])
+				foreignType := SnakeToUpperCamel(gormSettings["FOREIGNTYPE"])
+				associationForeignKey := SnakeToUpperCamel(gormSettings["ASSOCIATIONFOREIGNKEY"])
+				if polymorphic := SnakeToUpperCamel(gormSettings["POLYMORPHIC"]); polymorphic != "" {
+					foreignKey = polymorphic + "Id"
+					foreignType = polymorphic + "Type"
+				}
 
-						if foreignKey == "" {
-							foreignKey = scopeType.Name() + "Id"
+				if !field.IsNormal {
+					switch indirectType.Kind() {
+					case reflect.Slice:
+						typ := indirectType.Elem()
+						if typ.Kind() == reflect.Ptr {
+							typ = typ.Elem()
 						}
 
-						if associationForeignKey == "" {
-							associationForeignKey = typ.Name() + "Id"
+						if typ.Kind() == reflect.Struct {
+							kind := "has_many"
+
+							if foreignKey == "" {
+								foreignKey = scopeType.Name() + "Id"
+							}
+
+							if associationForeignKey == "" {
+								associationForeignKey = typ.Name() + "Id"
+							}
+
+							if many2many != "" {
+								kind = "many_to_many"
+							} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+								foreignKey = ""
+							}
+
+							field.Relationship = &Relationship{
+								JoinTable:                   many2many,
+								ForeignType:                 foreignType,
+								ForeignFieldName:            foreignKey,
+								AssociationForeignFieldName: associationForeignKey,
+								ForeignDBName:               ToSnake(foreignKey),
+								AssociationForeignDBName:    ToSnake(associationForeignKey),
+								Kind: kind,
+							}
+						} else {
+							field.IsNormal = true
+						}
+					case reflect.Struct:
+						if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
+							for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
+								field.Names = append([]string{fieldStruct.Name}, field.Names...)
+								modelStruct.StructFields = append(modelStruct.StructFields, field)
+							}
+							break
+						} else {
+							var belongsToForeignKey, hasOneForeignKey, kind string
+
+							if foreignKey == "" {
+								belongsToForeignKey = field.Name + "Id"
+								hasOneForeignKey = scopeType.Name() + "Id"
+							} else {
+								belongsToForeignKey = foreignKey
+								hasOneForeignKey = foreignKey
+							}
+
+							if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
+								kind = "belongs_to"
+								foreignKey = belongsToForeignKey
+							} else {
+								foreignKey = hasOneForeignKey
+								kind = "has_one"
+							}
+
+							field.Relationship = &Relationship{
+								ForeignFieldName: foreignKey,
+								ForeignDBName:    ToSnake(foreignKey),
+								ForeignType:      foreignType,
+								Kind:             kind,
+							}
 						}
 
-						if many2many != "" {
-							kind = "many_to_many"
-						} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-							foreignKey = ""
-						}
-
-						field.Relationship = &Relationship{
-							JoinTable:                   many2many,
-							ForeignType:                 foreignType,
-							ForeignFieldName:            foreignKey,
-							AssociationForeignFieldName: associationForeignKey,
-							ForeignDBName:               ToSnake(foreignKey),
-							AssociationForeignDBName:    ToSnake(associationForeignKey),
-							Kind: kind,
-						}
-					} else {
+					default:
 						field.IsNormal = true
 					}
-				case reflect.Struct:
-					if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-						for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
-							field.Names = append([]string{fieldStruct.Name}, field.Names...)
-							modelStruct.StructFields = append(modelStruct.StructFields, field)
-						}
-						break
-					} else {
-						var belongsToForeignKey, hasOneForeignKey, kind string
-
-						if foreignKey == "" {
-							belongsToForeignKey = field.Name + "Id"
-							hasOneForeignKey = scopeType.Name() + "Id"
-						} else {
-							belongsToForeignKey = foreignKey
-							hasOneForeignKey = foreignKey
-						}
-
-						if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
-							kind = "belongs_to"
-							foreignKey = belongsToForeignKey
-						} else {
-							foreignKey = hasOneForeignKey
-							kind = "has_one"
-						}
-
-						field.Relationship = &Relationship{
-							ForeignFieldName: foreignKey,
-							ForeignDBName:    ToSnake(foreignKey),
-							ForeignType:      foreignType,
-							Kind:             kind,
-						}
-					}
-
-				default:
-					field.IsNormal = true
 				}
 			}
+			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
-		modelStruct.StructFields = append(modelStruct.StructFields, field)
 	}
 
 	for _, field := range modelStruct.StructFields {

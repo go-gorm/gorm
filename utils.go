@@ -2,9 +2,6 @@ package gorm
 
 import (
 	"bytes"
-	"errors"
-	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -24,23 +21,6 @@ func (s *safeMap) Get(key string) string {
 	s.l.RLock()
 	defer s.l.RUnlock()
 	return s.m[key]
-}
-
-func FieldValueByName(name string, value interface{}) (i interface{}, err error) {
-	data := reflect.Indirect(reflect.ValueOf(value))
-	name = SnakeToUpperCamel(name)
-
-	if data.Kind() == reflect.Struct {
-		if field := data.FieldByName(name); field.IsValid() {
-			i = field.Interface()
-		} else {
-			return nil, fmt.Errorf("struct has no field with name %s", name)
-		}
-	} else {
-		return nil, errors.New("value must be of kind struct")
-	}
-
-	return
 }
 
 func newSafeMap() *safeMap {

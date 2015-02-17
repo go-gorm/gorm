@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-func getFieldValue(value reflect.Value, field string) interface{} {
+func getRealValue(value reflect.Value, field string) interface{} {
 	result := reflect.Indirect(value).FieldByName(field).Interface()
 	if r, ok := result.(driver.Valuer); ok {
 		result, _ = r.Value()
@@ -20,26 +20,14 @@ func equalAsString(a interface{}, b interface{}) bool {
 }
 
 func Preload(scope *Scope) {
-	// Get Fields
-	var fields map[string]*Field
-	var isSlice bool
-	if scope.IndirectValue().Kind() == reflect.Slice {
-		isSlice = true
-		typ := scope.IndirectValue().Type().Elem()
-		if typ.Kind() == reflect.Ptr {
-			typ = typ.Elem()
-		}
-		elem := reflect.New(typ).Elem()
-		fields = scope.New(elem.Addr().Interface()).Fields()
-	} else {
-		fields = scope.Fields()
-	}
+	fields := scope.Fields()
+	isSlice := scope.IndirectValue().Kind() == reflect.Slice
 
 	if scope.Search.Preload != nil {
 		for key, conditions := range scope.Search.Preload {
 			for _, field := range fields {
 				if field.Name == key && field.Relationship != nil {
-					results := makeSlice(field.Field)
+					results := makeSlice(field.Struct.Type)
 					relation := field.Relationship
 					primaryName := scope.PrimaryKeyField().Name
 					associationPrimaryKey := scope.New(results).PrimaryKeyField().Name
@@ -53,10 +41,10 @@ func Preload(scope *Scope) {
 						for i := 0; i < resultValues.Len(); i++ {
 							result := resultValues.Index(i)
 							if isSlice {
-								value := getFieldValue(result, relation.ForeignFieldName)
+								value := getRealValue(result, relation.ForeignFieldName)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
-									if equalAsString(getFieldValue(objects.Index(j), primaryName), value) {
+									if equalAsString(getRealValue(objects.Index(j), primaryName), value) {
 										reflect.Indirect(objects.Index(j)).FieldByName(field.Name).Set(result)
 										break
 									}
@@ -72,11 +60,11 @@ func Preload(scope *Scope) {
 						if isSlice {
 							for i := 0; i < resultValues.Len(); i++ {
 								result := resultValues.Index(i)
-								value := getFieldValue(result, relation.ForeignFieldName)
+								value := getRealValue(result, relation.ForeignFieldName)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									object := reflect.Indirect(objects.Index(j))
-									if equalAsString(getFieldValue(object, primaryName), value) {
+									if equalAsString(getRealValue(object, primaryName), value) {
 										f := object.FieldByName(field.Name)
 										f.Set(reflect.Append(f, result))
 										break
@@ -92,11 +80,11 @@ func Preload(scope *Scope) {
 						for i := 0; i < resultValues.Len(); i++ {
 							result := resultValues.Index(i)
 							if isSlice {
-								value := getFieldValue(result, associationPrimaryKey)
+								value := getRealValue(result, associationPrimaryKey)
 								objects := scope.IndirectValue()
 								for j := 0; j < objects.Len(); j++ {
 									object := reflect.Indirect(objects.Index(j))
-									if equalAsString(getFieldValue(object, relation.ForeignFieldName), value) {
+									if equalAsString(getRealValue(object, relation.ForeignFieldName), value) {
 										object.FieldByName(field.Name).Set(result)
 									}
 								}
@@ -116,9 +104,8 @@ func Preload(scope *Scope) {
 	}
 }
 
-func makeSlice(value reflect.Value) interface{} {
-	typ := value.Type()
-	if value.Kind() == reflect.Slice {
+func makeSlice(typ reflect.Type) interface{} {
+	if typ.Kind() == reflect.Slice {
 		typ = typ.Elem()
 	}
 	sliceType := reflect.SliceOf(typ)
@@ -132,8 +119,7 @@ func (scope *Scope) getColumnAsArray(column string) (primaryKeys []interface{}) 
 	switch values.Kind() {
 	case reflect.Slice:
 		for i := 0; i < values.Len(); i++ {
-			value := values.Index(i)
-			primaryKeys = append(primaryKeys, reflect.Indirect(value).FieldByName(column).Interface())
+			primaryKeys = append(primaryKeys, reflect.Indirect(values.Index(i)).FieldByName(column).Interface())
 		}
 	case reflect.Struct:
 		return []interface{}{values.FieldByName(column).Interface()}

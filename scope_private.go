@@ -25,10 +25,8 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		} else if value != "" {
 			str = fmt.Sprintf("(%v)", value)
 		}
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, sql.NullInt64:
 		return scope.primaryCondition(scope.AddToVars(value))
-	case sql.NullInt64:
-		return scope.primaryCondition(scope.AddToVars(value.Int64))
 	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string, []interface{}:
 		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
@@ -71,12 +69,14 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 
 func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string) {
 	var notEqualSql string
+	var primaryKey = scope.PrimaryKey()
 
 	switch value := clause["query"].(type) {
 	case string:
+		// is number
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
-			return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), id)
+			return fmt.Sprintf("(%v <> %v)", scope.Quote(primaryKey), id)
 		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
 			notEqualSql = fmt.Sprintf("NOT (%v)", value)
@@ -84,15 +84,14 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 			str = fmt.Sprintf("(%v NOT IN (?))", scope.Quote(value))
 			notEqualSql = fmt.Sprintf("(%v <> ?)", scope.Quote(value))
 		}
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("(%v <> %v)", scope.Quote(scope.PrimaryKey()), value)
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, sql.NullInt64:
+		return fmt.Sprintf("(%v <> %v)", scope.Quote(primaryKey), value)
 	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string:
 		if reflect.ValueOf(value).Len() > 0 {
-			str = fmt.Sprintf("(%v not in (?))", scope.Quote(scope.PrimaryKey()))
+			str = fmt.Sprintf("(%v NOT IN (?))", scope.Quote(primaryKey))
 			clause["args"] = []interface{}{value}
-		} else {
-			return ""
 		}
+		return ""
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
@@ -157,16 +156,10 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 	return
 }
 
-func (scope *Scope) where(where ...interface{}) {
-	if len(where) > 0 {
-		scope.Search = scope.Search.clone().where(where[0], where[1:]...)
-	}
-}
-
 func (scope *Scope) whereSql() (sql string) {
 	var primaryConditions, andConditions, orConditions []string
 
-	if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
+	if !scope.Search.Unscope && scope.Fields()["deleted_at"] != nil {
 		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
 		primaryConditions = append(primaryConditions, sql)
 	}
@@ -317,41 +310,19 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 }
 
 func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignoreProtectedAttrs bool) (results map[string]interface{}, hasUpdate bool) {
-	data := scope.IndirectValue()
-	if !data.CanAddr() {
+	if !scope.IndirectValue().CanAddr() {
 		return values, true
 	}
 
+	fields := scope.Fields()
 	for key, value := range values {
-		if field, ok := scope.FieldByName(SnakeToUpperCamel(key)); ok && field.Field.IsValid() {
-			func() {
-				defer func() {
-					if err := recover(); err != nil {
-						hasUpdate = true
-						field.Set(value)
-					}
-				}()
-
-				if field.Field.Interface() != value {
-					switch field.Field.Kind() {
-					case reflect.Int, reflect.Int32, reflect.Int64:
-						if s, ok := value.(string); ok {
-							i, err := strconv.Atoi(s)
-							if scope.Err(err) == nil {
-								value = i
-							}
-						}
-
-						if field.Field.Int() != reflect.ValueOf(value).Int() {
-							hasUpdate = true
-							field.Set(value)
-						}
-					default:
-						hasUpdate = true
-						field.Set(value)
-					}
+		if field, ok := fields[ToSnake(key)]; ok && field.Field.IsValid() {
+			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
+				if !equalAsString(field.Field.Interface(), value) {
+					hasUpdate = true
+					field.Set(value)
 				}
-			}()
+			}
 		}
 	}
 	return
@@ -464,7 +435,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 	if field.Relationship != nil && field.Relationship.JoinTable != "" {
 		if !scope.Dialect().HasTable(scope, field.Relationship.JoinTable) {
 			newScope := scope.db.NewScope("")
-			primaryKeySqlType := scope.Dialect().SqlTag(reflect.ValueOf(scope.PrimaryKeyValue()), 255)
+			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryKeyField().Field, 255)
 			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
 				field.Relationship.JoinTable,
 				strings.Join([]string{
@@ -523,14 +494,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
 	var table = scope.TableName()
 	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
-	var query = `
-	ALTER TABLE %s
-	ADD CONSTRAINT %s
-	FOREIGN KEY (%s)
-	REFERENCES %s
-	ON DELETE %s
-	ON UPDATE %s;
-	`
+	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
 	scope.Raw(fmt.Sprintf(query, table, keyName, field, dest, onDelete, onUpdate)).Exec()
 }
 

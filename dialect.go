@@ -3,10 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"time"
 )
-
-var timeType = reflect.TypeOf(time.Time{})
 
 type Dialect interface {
 	BinVar(i int) string

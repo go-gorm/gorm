@@ -30,7 +30,6 @@ type DB struct {
 	logMode       int
 	logger        logger
 	dialect       Dialect
-	tagIdentifier string
 	singularTable bool
 	source        string
 	values        map[string]interface{}
@@ -39,33 +38,38 @@ type DB struct {
 func Open(dialect string, args ...interface{}) (DB, error) {
 	var db DB
 	var err error
-	var source string
-	var dbSql sqlCommon
 
 	if len(args) == 0 {
 		err = errors.New("invalid database source")
-	}
+	} else {
+		var source string
+		var dbSql sqlCommon
 
-	switch value := args[0].(type) {
-	case string:
-		var driver = dialect
-		if len(args) == 1 {
-			source = value
-		} else if len(args) >= 2 {
-			driver = value
-			source = args[1].(string)
+		switch value := args[0].(type) {
+		case string:
+			var driver = dialect
+			if len(args) == 1 {
+				source = value
+			} else if len(args) >= 2 {
+				driver = value
+				source = args[1].(string)
+			}
+			dbSql, err = sql.Open(driver, source)
+		case sqlCommon:
+			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
+			dbSql = value
 		}
-		dbSql, err = sql.Open(driver, source)
-	case sqlCommon:
-		source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
-		dbSql = value
-	}
 
-	db = DB{dialect: NewDialect(dialect), tagIdentifier: "sql",
-		logger: defaultLogger, callback: DefaultCallback, source: source,
-		values: map[string]interface{}{}}
-	db.db = dbSql
-	db.parent = &db
+		db = DB{
+			dialect:  NewDialect(dialect),
+			logger:   defaultLogger,
+			callback: DefaultCallback,
+			source:   source,
+			values:   map[string]interface{}{},
+			db:       dbSql,
+		}
+		db.parent = &db
+	}
 
 	return db, err
 }
@@ -84,7 +88,7 @@ func (s *DB) New() *DB {
 	return clone
 }
 
-// Return the underlying sql.DB or sql.Tx instance.
+// CommonDB Return the underlying sql.DB or sql.Tx instance.
 // Use of this method is discouraged. It's mainly intended to allow
 // coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() sqlCommon {
@@ -96,16 +100,12 @@ func (s *DB) Callback() *callback {
 	return s.parent.callback
 }
 
-func (s *DB) SetTagIdentifier(str string) {
-	s.parent.tagIdentifier = str
-}
-
 func (s *DB) SetLogger(l logger) {
 	s.parent.logger = l
 }
 
-func (s *DB) LogMode(b bool) *DB {
-	if b {
+func (s *DB) LogMode(enable bool) *DB {
+	if enable {
 		s.logMode = 2
 	} else {
 		s.logMode = 1
@@ -113,8 +113,8 @@ func (s *DB) LogMode(b bool) *DB {
 	return s
 }
 
-func (s *DB) SingularTable(b bool) {
-	s.parent.singularTable = b
+func (s *DB) SingularTable(enable bool) {
+	s.parent.singularTable = enable
 }
 
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
@@ -158,11 +158,10 @@ func (s *DB) Joins(query string) *DB {
 }
 
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
-	c := s
 	for _, f := range funcs {
-		c = f(c)
+		s = f(s)
 	}
-	return c
+	return s
 }
 
 func (s *DB) Unscoped() *DB {
@@ -179,16 +178,14 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
-	newScope.Search = newScope.Search.clone()
-	newScope.Search.limit(1)
+	newScope.Search = newScope.Search.clone().limit(1)
 	return newScope.InstanceSet("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
-	newScope.Search = newScope.Search.clone()
-	newScope.Search.limit(1)
+	newScope.Search = newScope.Search.clone().limit(1)
 	return newScope.InstanceSet("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
@@ -213,10 +210,9 @@ func (s *DB) Scan(dest interface{}) *DB {
 
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
-	r := c.First(out, where...)
-	if r.Error != nil {
-		if !r.RecordNotFound() {
-			return r
+	if result := c.First(out, where...); result.Error != nil {
+		if !result.RecordNotFound() {
+			return result
 		}
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
@@ -227,10 +223,9 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
-	r := c.First(out, where...)
-	if r.Error != nil {
-		if !r.RecordNotFound() {
-			return r
+	if result := c.First(out, where...); result.Error != nil {
+		if !result.RecordNotFound() {
+			return result
 		}
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
 	} else if len(c.search.AssignAttrs) > 0 {
@@ -418,25 +413,24 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 }
 
 func (s *DB) Association(column string) *Association {
+	var err error
 	scope := s.clone().NewScope(s.Value)
 
-	primaryKey := scope.PrimaryKeyValue()
-	primaryType := scope.TableName()
-	if reflect.DeepEqual(reflect.ValueOf(primaryKey), reflect.Zero(reflect.ValueOf(primaryKey).Type())) {
-		scope.Err(errors.New("primary key can't be nil"))
-	}
-
-	var field *Field
-	var ok bool
-	if field, ok = scope.FieldByName(column); ok {
-		if field.Relationship == nil || field.Relationship.ForeignFieldName == "" {
-			scope.Err(fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type()))
-		}
+	if primaryField := scope.PrimaryKeyField(); primaryField.IsBlank {
+		err = errors.New("primary key can't be nil")
 	} else {
-		scope.Err(fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column))
+		if field, ok := scope.FieldByName(column); ok {
+			if field.Relationship == nil || field.Relationship.ForeignFieldName == "" {
+				err = fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type())
+			} else {
+				return &Association{Scope: scope, Column: column, PrimaryKey: primaryField.Field.Interface(), Field: field}
+			}
+		} else {
+			err = fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column)
+		}
 	}
 
-	return &Association{Scope: scope, Column: column, Error: s.Error, PrimaryKey: primaryKey, PrimaryType: primaryType, Field: field}
+	return &Association{Error: err}
 }
 
 func (s *DB) Preload(column string, conditions ...interface{}) *DB {
