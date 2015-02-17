@@ -103,7 +103,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	if reflectValue.Kind() == reflect.Slice {
 		reflectValue = reflect.Indirect(reflect.New(reflectValue.Type().Elem()))
 	}
+
 	scopeType := reflectValue.Type()
+	if scopeType.Kind() == reflect.Ptr {
+		scopeType = scopeType.Elem()
+	}
 
 	if scopeType.Kind() != reflect.Struct {
 		return &modelStruct

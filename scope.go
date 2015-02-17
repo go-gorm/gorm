@@ -96,7 +96,7 @@ func (scope *Scope) HasError() bool {
 
 func (scope *Scope) PrimaryKeyField() *Field {
 	if field := scope.GetModelStruct().PrimaryKeyField; field != nil {
-		return scope.getField(field)
+		return scope.Fields()[field.DBName]
 	}
 	return nil
 }
