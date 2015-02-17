@@ -25,7 +25,7 @@ func Create(scope *Scope) {
 		// set create sql
 		var sqls, columns []string
 		for _, field := range scope.Fields() {
-			if field.IsNormal && (!field.IsPrimaryKey || !scope.PrimaryKeyZero()) {
+			if (field.IsNormal && !field.IsPrimaryKey) || (field.IsPrimaryKey && !field.IsBlank) {
 				if field.DefaultValue != nil && field.IsBlank {
 					continue
 				}
@@ -35,8 +35,9 @@ func Create(scope *Scope) {
 		}
 
 		returningKey := "*"
-		if scope.PrimaryKey() != "" {
-			returningKey = scope.Quote(scope.PrimaryKey())
+		primaryField := scope.PrimaryKeyField()
+		if primaryField != nil {
+			returningKey = scope.Quote(primaryField.DBName)
 		}
 
 		if len(columns) == 0 {
@@ -64,19 +65,17 @@ func Create(scope *Scope) {
 				}
 			}
 		} else {
-			if scope.PrimaryKey() == "" {
+			if primaryField == nil {
 				if results, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); err != nil {
 					scope.db.RowsAffected, _ = results.RowsAffected()
 				}
-			} else {
-				if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id)) == nil {
-					scope.db.RowsAffected = 1
-				}
+			} else if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(&id)) == nil {
+				scope.db.RowsAffected = 1
 			}
 		}
 
-		if scope.PrimaryKey() != "" && !scope.HasError() && scope.PrimaryKeyZero() {
-			scope.SetColumn(scope.PrimaryKey(), id)
+		if primaryField != nil && primaryField.IsBlank && !scope.HasError() {
+			scope.SetColumn(primaryField, id)
 		}
 	}
 }

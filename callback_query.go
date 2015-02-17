@@ -46,9 +46,9 @@ func Query(scope *Scope) {
 		if scope.Err(err) != nil {
 			return
 		}
+		defer rows.Close()
 
 		columns, _ := rows.Columns()
-		defer rows.Close()
 		for rows.Next() {
 			scope.db.RowsAffected++
 

@@ -53,14 +53,12 @@ func (association *Association) getPrimaryKeys(values ...interface{}) []interfac
 		reflectValue := reflect.Indirect(reflect.ValueOf(value))
 		if reflectValue.Kind() == reflect.Slice {
 			for i := 0; i < reflectValue.Len(); i++ {
-				primaryField := scope.New(reflectValue.Index(i).Interface()).PrimaryKeyField()
-				if !primaryField.IsBlank {
+				if primaryField := scope.New(reflectValue.Index(i).Interface()).PrimaryKeyField(); !primaryField.IsBlank {
 					primaryKeys = append(primaryKeys, primaryField.Field.Interface())
 				}
 			}
 		} else if reflectValue.Kind() == reflect.Struct {
-			primaryField := scope.New(value).PrimaryKeyField()
-			if !primaryField.IsBlank {
+			if primaryField := scope.New(value).PrimaryKeyField(); !primaryField.IsBlank {
 				primaryKeys = append(primaryKeys, primaryField.Field.Interface())
 			}
 		}
@@ -144,9 +142,7 @@ func (association *Association) Count() int {
 	count := -1
 	relationship := association.Field.Relationship
 	scope := association.Scope
-	field := association.Field.Field
-	fieldValue := field.Interface()
-	newScope := scope.New(fieldValue)
+	newScope := scope.New(association.Field.Field.Interface())
 
 	if relationship.Kind == "many_to_many" {
 		whereSql := fmt.Sprintf("%v.%v IN (SELECT %v.%v FROM %v WHERE %v.%v = ?)",
