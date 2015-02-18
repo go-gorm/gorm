@@ -19,13 +19,13 @@ type User struct {
 	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
 	Emails            []Email       // Embedded structs
 	BillingAddress    Address       // Embedded struct
-	BillingAddressId  sql.NullInt64 // Embedded struct's foreign key
+	BillingAddressID  sql.NullInt64 // Embedded struct's foreign key
 	ShippingAddress   Address       // Embedded struct
 	ShippingAddressId int64         // Embedded struct's foreign key
 	CreditCard        CreditCard
 	Latitude          float64
 	Languages         []Language `gorm:"many2many:user_languages;"`
-	CompanyId         int64
+	CompanyID         int64
 	Company           Company
 	Role
 	PasswordHash      []byte
