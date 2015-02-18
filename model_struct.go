@@ -146,7 +146,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 		}
 	} else {
-		modelStruct.TableName = ToSnake(scopeType.Name())
+		modelStruct.TableName = ToDBColumnName(scopeType.Name())
 		if scope.db == nil || !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
 				if reg.MatchString(modelStruct.TableName) {
@@ -183,7 +183,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				if value, ok := gormSettings["COLUMN"]; ok {
 					field.DBName = value
 				} else {
-					field.DBName = ToSnake(fieldStruct.Name)
+					field.DBName = ToDBColumnName(fieldStruct.Name)
 				}
 
 				fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
@@ -200,10 +200,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				many2many := gormSettings["MANY2MANY"]
-				foreignKey := SnakeToUpperCamel(gormSettings["FOREIGNKEY"])
-				foreignType := SnakeToUpperCamel(gormSettings["FOREIGNTYPE"])
-				associationForeignKey := SnakeToUpperCamel(gormSettings["ASSOCIATIONFOREIGNKEY"])
-				if polymorphic := SnakeToUpperCamel(gormSettings["POLYMORPHIC"]); polymorphic != "" {
+				foreignKey := gormSettings["FOREIGNKEY"]
+				foreignType := gormSettings["FOREIGNTYPE"]
+				associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
+				if polymorphic := gormSettings["POLYMORPHIC"]; polymorphic != "" {
 					foreignKey = polymorphic + "Id"
 					foreignType = polymorphic + "Type"
 				}
@@ -238,8 +238,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								ForeignType:                 foreignType,
 								ForeignFieldName:            foreignKey,
 								AssociationForeignFieldName: associationForeignKey,
-								ForeignDBName:               ToSnake(foreignKey),
-								AssociationForeignDBName:    ToSnake(associationForeignKey),
+								ForeignDBName:               ToDBColumnName(foreignKey),
+								AssociationForeignDBName:    ToDBColumnName(associationForeignKey),
 								Kind: kind,
 							}
 						} else {
@@ -274,7 +274,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 							field.Relationship = &Relationship{
 								ForeignFieldName: foreignKey,
-								ForeignDBName:    ToSnake(foreignKey),
+								ForeignDBName:    ToDBColumnName(foreignKey),
 								ForeignType:      foreignType,
 								Kind:             kind,
 							}

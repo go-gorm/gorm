@@ -157,7 +157,7 @@ func (association *Association) Count() int {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.ForeignDBName))
 		countScope := scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey)
 		if relationship.ForeignType != "" {
-			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToSnake(relationship.ForeignType))), scope.TableName())
+			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToDBColumnName(relationship.ForeignType))), scope.TableName())
 		}
 		countScope.Count(&count)
 	} else if relationship.Kind == "belongs_to" {

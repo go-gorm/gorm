@@ -3,35 +3,12 @@ package gorm
 import (
 	"bytes"
 	"strings"
-	"sync"
 )
 
-type safeMap struct {
-	m map[string]string
-	l *sync.RWMutex
-}
+var smap = map[string]string{}
 
-func (s *safeMap) Set(key string, value string) {
-	s.l.Lock()
-	defer s.l.Unlock()
-	s.m[key] = value
-}
-
-func (s *safeMap) Get(key string) string {
-	s.l.RLock()
-	defer s.l.RUnlock()
-	return s.m[key]
-}
-
-func newSafeMap() *safeMap {
-	return &safeMap{l: new(sync.RWMutex), m: make(map[string]string)}
-}
-
-var smap = newSafeMap()
-var umap = newSafeMap()
-
-func ToSnake(u string) string {
-	if v := smap.Get(u); v != "" {
+func ToDBColumnName(u string) string {
+	if v, ok := smap[u]; ok {
 		return v
 	}
 
@@ -44,26 +21,8 @@ func ToSnake(u string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	smap.Set(u, s)
+	smap[u] = s
 	return s
-}
-
-func SnakeToUpperCamel(s string) string {
-	if v := umap.Get(s); v != "" {
-		return v
-	}
-
-	buf := bytes.NewBufferString("")
-	for _, v := range strings.Split(s, "_") {
-		if len(v) > 0 {
-			buf.WriteString(strings.ToUpper(v[:1]))
-			buf.WriteString(v[1:])
-		}
-	}
-
-	u := buf.String()
-	umap.Set(s, u)
-	return u
 }
 
 func parseTagSetting(str string) map[string]string {

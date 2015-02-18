@@ -316,7 +316,7 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 
 	fields := scope.Fields()
 	for key, value := range values {
-		if field, ok := fields[ToSnake(key)]; ok && field.Field.IsValid() {
+		if field, ok := fields[ToDBColumnName(key)]; ok && field.Field.IsValid() {
 			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
 				if !equalAsString(field.Field.Interface(), value) {
 					hasUpdate = true
@@ -389,8 +389,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	fromFields := scope.Fields()
 	toFields := toScope.Fields()
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		fromField := fromFields[ToSnake(foreignKey)]
-		toField := toFields[ToSnake(foreignKey)]
+		fromField := fromFields[ToDBColumnName(foreignKey)]
+		toField := toFields[ToDBColumnName(foreignKey)]
 
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
@@ -411,7 +411,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
 					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
 					if relationship.ForeignType != "" && toScope.HasColumn(relationship.ForeignType) {
-						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(ToSnake(relationship.ForeignType))), scope.TableName())
+						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(ToDBColumnName(relationship.ForeignType))), scope.TableName())
 					}
 					scope.Err(query.Find(value).Error)
 				}
@@ -439,8 +439,8 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
 				field.Relationship.JoinTable,
 				strings.Join([]string{
-					scope.Quote(ToSnake(field.Relationship.ForeignFieldName)) + " " + primaryKeySqlType,
-					scope.Quote(ToSnake(field.Relationship.AssociationForeignFieldName)) + " " + primaryKeySqlType}, ",")),
+					scope.Quote(field.Relationship.ForeignDBName) + " " + primaryKeySqlType,
+					scope.Quote(field.Relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
 			).Exec()
 			scope.Err(newScope.db.Error)
 		}

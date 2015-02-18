@@ -145,7 +145,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 			return field.Set(value)
 		}
 
-		dbName = ToSnake(dbName)
+		dbName = ToDBColumnName(dbName)
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
 		}
