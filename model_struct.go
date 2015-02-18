@@ -112,7 +112,7 @@ func (scope *Scope) generateSqlTag(field *StructField) {
 var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
 var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${1}s"}
 
-func (scope *Scope) GetModelStruct() *ModelStruct {
+func (scope *Scope) GetModelStruct(noRelationship ...bool) *ModelStruct {
 	var modelStruct ModelStruct
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
@@ -210,9 +210,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				field.IsNormal = true
 			}
 
-			if !field.IsNormal {
+			if !field.IsNormal && len(noRelationship) == 0 {
 				gormSettings := parseTagSetting(field.Tag.Get("gorm"))
-				toModelStruct := scope.New(reflect.New(fieldStruct.Type).Interface()).GetModelStruct()
+				toModelStruct := scope.New(reflect.New(fieldStruct.Type).Interface()).GetModelStruct(true)
 				getForeignField := func(column string, fields []*StructField) *StructField {
 					for _, field := range fields {
 						if field.Name == column || field.DBName == ToDBName(column) {
@@ -327,7 +327,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		modelStruct.StructFields = append(modelStruct.StructFields, field)
 	}
 
-	if scope.db != nil {
+	if scope.db != nil && len(noRelationship) == 0 {
 		scope.db.parent.ModelStructs[scopeType] = &modelStruct
 	}
 
