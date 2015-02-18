@@ -156,7 +156,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	// Set fields
+	// Get all fields
+	fields := []*StructField{}
 	for i := 0; i < scopeType.NumField(); i++ {
 		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
 			field := &StructField{
@@ -185,20 +186,29 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				} else {
 					field.DBName = ToDBName(fieldStruct.Name)
 				}
+			}
+			fields = append(fields, field)
+		}
+	}
 
-				fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
-				if indirectType.Kind() == reflect.Ptr {
-					indirectType = indirectType.Elem()
-				}
+	for _, field := range fields {
+		if !field.IsIgnored {
+			fieldStruct := field.Struct
+			fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
+			if indirectType.Kind() == reflect.Ptr {
+				indirectType = indirectType.Elem()
+			}
 
-				if _, isScanner := reflect.New(fieldType).Interface().(sql.Scanner); isScanner {
-					field.IsScanner, field.IsNormal = true, true
-				}
+			if _, isScanner := reflect.New(fieldType).Interface().(sql.Scanner); isScanner {
+				field.IsScanner, field.IsNormal = true, true
+			}
 
-				if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
-					field.IsNormal = true
-				}
+			if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
+				field.IsNormal = true
+			}
 
+			if !field.IsNormal {
+				gormSettings := parseTagSetting(field.Tag.Get("gorm"))
 				many2many := gormSettings["MANY2MANY"]
 				foreignKey := gormSettings["FOREIGNKEY"]
 				foreignType := gormSettings["FOREIGNTYPE"]
@@ -208,98 +218,93 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					foreignType = polymorphic + "Type"
 				}
 
-				if !field.IsNormal {
-					switch indirectType.Kind() {
-					case reflect.Slice:
-						typ := indirectType.Elem()
-						if typ.Kind() == reflect.Ptr {
-							typ = typ.Elem()
+				switch indirectType.Kind() {
+				case reflect.Slice:
+					typ := indirectType.Elem()
+					if typ.Kind() == reflect.Ptr {
+						typ = typ.Elem()
+					}
+
+					if typ.Kind() == reflect.Struct {
+						kind := "has_many"
+
+						if foreignKey == "" {
+							foreignKey = scopeType.Name() + "Id"
 						}
 
-						if typ.Kind() == reflect.Struct {
-							kind := "has_many"
-
-							if foreignKey == "" {
-								foreignKey = scopeType.Name() + "Id"
-							}
-
-							if associationForeignKey == "" {
-								associationForeignKey = typ.Name() + "Id"
-							}
-
-							if many2many != "" {
-								kind = "many_to_many"
-							} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-								foreignKey = ""
-							}
-
-							field.Relationship = &Relationship{
-								JoinTable:                   many2many,
-								ForeignType:                 foreignType,
-								ForeignFieldName:            foreignKey,
-								AssociationForeignFieldName: associationForeignKey,
-								ForeignDBName:               ToDBName(foreignKey),
-								AssociationForeignDBName:    ToDBName(associationForeignKey),
-								Kind: kind,
-							}
-						} else {
-							field.IsNormal = true
-						}
-					case reflect.Struct:
-						if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-							for _, field := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
-								field = field.clone()
-								field.Names = append([]string{fieldStruct.Name}, field.Names...)
-								modelStruct.StructFields = append(modelStruct.StructFields, field)
-							}
-							break
-						} else {
-							var belongsToForeignKey, hasOneForeignKey, kind string
-
-							if foreignKey == "" {
-								belongsToForeignKey = field.Name + "Id"
-								hasOneForeignKey = scopeType.Name() + "Id"
-							} else {
-								belongsToForeignKey = foreignKey
-								hasOneForeignKey = foreignKey
-							}
-
-							if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
-								kind = "belongs_to"
-								foreignKey = belongsToForeignKey
-							} else {
-								foreignKey = hasOneForeignKey
-								kind = "has_one"
-							}
-
-							field.Relationship = &Relationship{
-								ForeignFieldName: foreignKey,
-								ForeignDBName:    ToDBName(foreignKey),
-								ForeignType:      foreignType,
-								Kind:             kind,
-							}
+						if associationForeignKey == "" {
+							associationForeignKey = typ.Name() + "Id"
 						}
 
-					default:
+						if many2many != "" {
+							kind = "many_to_many"
+						} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
+							foreignKey = ""
+						}
+
+						field.Relationship = &Relationship{
+							JoinTable:                   many2many,
+							ForeignType:                 foreignType,
+							ForeignFieldName:            foreignKey,
+							AssociationForeignFieldName: associationForeignKey,
+							ForeignDBName:               ToDBName(foreignKey),
+							AssociationForeignDBName:    ToDBName(associationForeignKey),
+							Kind: kind,
+						}
+					} else {
 						field.IsNormal = true
 					}
+				case reflect.Struct:
+					if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
+						for _, f := range scope.New(reflect.New(indirectType).Interface()).GetStructFields() {
+							f = f.clone()
+							f.Names = append([]string{fieldStruct.Name}, f.Names...)
+							modelStruct.StructFields = append(modelStruct.StructFields, f)
+						}
+						break
+					} else {
+						var belongsToForeignKey, hasOneForeignKey, kind string
+
+						if foreignKey == "" {
+							belongsToForeignKey = field.Name + "Id"
+							hasOneForeignKey = scopeType.Name() + "Id"
+						} else {
+							belongsToForeignKey = foreignKey
+							hasOneForeignKey = foreignKey
+						}
+
+						if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
+							kind = "belongs_to"
+							foreignKey = belongsToForeignKey
+						} else {
+							foreignKey = hasOneForeignKey
+							kind = "has_one"
+						}
+
+						field.Relationship = &Relationship{
+							ForeignFieldName: foreignKey,
+							ForeignDBName:    ToDBName(foreignKey),
+							ForeignType:      foreignType,
+							Kind:             kind,
+						}
+					}
+				default:
+					field.IsNormal = true
 				}
 			}
-			modelStruct.StructFields = append(modelStruct.StructFields, field)
-		}
-	}
 
-	for _, field := range modelStruct.StructFields {
-		if field.IsNormal {
-			if modelStruct.PrimaryKeyField == nil && field.DBName == "id" {
-				field.IsPrimaryKey = true
-				modelStruct.PrimaryKeyField = field
-			}
+			if field.IsNormal {
+				if modelStruct.PrimaryKeyField == nil && field.DBName == "id" {
+					field.IsPrimaryKey = true
+					modelStruct.PrimaryKeyField = field
+				}
 
-			if scope.db != nil {
-				scope.generateSqlTag(field)
+				if scope.db != nil {
+					scope.generateSqlTag(field)
+				}
 			}
 		}
+		modelStruct.StructFields = append(modelStruct.StructFields, field)
 	}
 
 	if scope.db != nil {
