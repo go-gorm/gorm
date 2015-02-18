@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The most notable component of Gorm is `gorm.DB`, which hold database connection. It could be initialized like this:
+The most notable component of Gorm is`gorm.DB`, which hold database connection. It could be initialized like this:
 
     db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 

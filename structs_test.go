@@ -36,7 +36,7 @@ type User struct {
 }
 
 type CreditCard struct {
-	Id        int8
+	ID        int8
 	Number    string
 	UserId    sql.NullInt64
 	CreatedAt time.Time
@@ -53,7 +53,7 @@ type Email struct {
 }
 
 type Address struct {
-	Id        int
+	ID        int
 	Address1  string
 	Address2  string
 	Post      string

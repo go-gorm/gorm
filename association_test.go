@@ -65,11 +65,11 @@ func TestRelated(t *testing.T) {
 
 	DB.Save(&user)
 
-	if user.CreditCard.Id == 0 {
+	if user.CreditCard.ID == 0 {
 		t.Errorf("After user save, credit card should have id")
 	}
 
-	if user.BillingAddress.Id == 0 {
+	if user.BillingAddress.ID == 0 {
 		t.Errorf("After user save, billing address should have id")
 	}
 

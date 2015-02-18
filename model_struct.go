@@ -18,36 +18,36 @@ type ModelStruct struct {
 }
 
 type StructField struct {
-	DBName       string
-	Name         string
-	Names        []string
-	IsPrimaryKey bool
-	IsScanner    bool
-	IsTime       bool
-	IsNormal     bool
-	IsIgnored    bool
-	DefaultValue *string
-	SqlTag       string
-	Tag          reflect.StructTag
-	Struct       reflect.StructField
-	Relationship *Relationship
+	DBName          string
+	Name            string
+	Names           []string
+	IsPrimaryKey    bool
+	IsNormal        bool
+	IsIgnored       bool
+	IsScanner       bool
+	HasDefaultValue bool
+	SqlTag          string
+	Tag             reflect.StructTag
+	Struct          reflect.StructField
+	IsForeignKey    bool
+	Relationship    *Relationship
 }
 
 func (structField *StructField) clone() *StructField {
 	return &StructField{
-		DBName:       structField.DBName,
-		Name:         structField.Name,
-		Names:        structField.Names,
-		IsPrimaryKey: structField.IsPrimaryKey,
-		IsScanner:    structField.IsScanner,
-		IsTime:       structField.IsTime,
-		IsNormal:     structField.IsNormal,
-		IsIgnored:    structField.IsIgnored,
-		DefaultValue: structField.DefaultValue,
-		SqlTag:       structField.SqlTag,
-		Tag:          structField.Tag,
-		Struct:       structField.Struct,
-		Relationship: structField.Relationship,
+		DBName:          structField.DBName,
+		Name:            structField.Name,
+		Names:           structField.Names,
+		IsPrimaryKey:    structField.IsPrimaryKey,
+		IsNormal:        structField.IsNormal,
+		IsIgnored:       structField.IsIgnored,
+		IsScanner:       structField.IsScanner,
+		HasDefaultValue: structField.HasDefaultValue,
+		SqlTag:          structField.SqlTag,
+		Tag:             structField.Tag,
+		Struct:          structField.Struct,
+		IsForeignKey:    structField.IsForeignKey,
+		Relationship:    structField.Relationship,
 	}
 }
 
@@ -146,7 +146,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 		}
 	} else {
-		modelStruct.TableName = ToDBColumnName(scopeType.Name())
+		modelStruct.TableName = ToDBName(scopeType.Name())
 		if scope.db == nil || !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
 				if reg.MatchString(modelStruct.TableName) {
@@ -176,14 +176,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					modelStruct.PrimaryKeyField = field
 				}
 
-				if value, ok := sqlSettings["DEFAULT"]; ok {
-					field.DefaultValue = &value
+				if _, ok := sqlSettings["DEFAULT"]; ok {
+					field.HasDefaultValue = true
 				}
 
 				if value, ok := gormSettings["COLUMN"]; ok {
 					field.DBName = value
 				} else {
-					field.DBName = ToDBColumnName(fieldStruct.Name)
+					field.DBName = ToDBName(fieldStruct.Name)
 				}
 
 				fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
@@ -196,7 +196,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
-					field.IsTime, field.IsNormal = true, true
+					field.IsNormal = true
 				}
 
 				many2many := gormSettings["MANY2MANY"]
@@ -238,8 +238,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								ForeignType:                 foreignType,
 								ForeignFieldName:            foreignKey,
 								AssociationForeignFieldName: associationForeignKey,
-								ForeignDBName:               ToDBColumnName(foreignKey),
-								AssociationForeignDBName:    ToDBColumnName(associationForeignKey),
+								ForeignDBName:               ToDBName(foreignKey),
+								AssociationForeignDBName:    ToDBName(associationForeignKey),
 								Kind: kind,
 							}
 						} else {
@@ -274,7 +274,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 							field.Relationship = &Relationship{
 								ForeignFieldName: foreignKey,
-								ForeignDBName:    ToDBColumnName(foreignKey),
+								ForeignDBName:    ToDBName(foreignKey),
 								ForeignType:      foreignType,
 								Kind:             kind,
 							}

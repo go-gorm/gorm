@@ -5,15 +5,28 @@ import (
 	"strings"
 )
 
+// Copied from golint
+var commonInitialisms = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}
+var commonInitialismsReplacer *strings.Replacer
+
+func init() {
+	var commonInitialismsForReplacer []string
+	for _, initialism := range commonInitialisms {
+		commonInitialismsForReplacer = append(commonInitialismsForReplacer, initialism, strings.Title(strings.ToLower(initialism)))
+	}
+	commonInitialismsReplacer = strings.NewReplacer(commonInitialismsForReplacer...)
+}
+
 var smap = map[string]string{}
 
-func ToDBColumnName(u string) string {
-	if v, ok := smap[u]; ok {
+func ToDBName(name string) string {
+	if v, ok := smap[name]; ok {
 		return v
 	}
 
+	value := commonInitialismsReplacer.Replace(name)
 	buf := bytes.NewBufferString("")
-	for i, v := range u {
+	for i, v := range value {
 		if i > 0 && v >= 'A' && v <= 'Z' {
 			buf.WriteRune('_')
 		}
@@ -21,7 +34,7 @@ func ToDBColumnName(u string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	smap[u] = s
+	smap[name] = s
 	return s
 }
 

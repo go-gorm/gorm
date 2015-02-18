@@ -44,7 +44,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 	switch value := values.(type) {
 	case map[string]interface{}:
 		for k, v := range value {
-			attrs[ToDBColumnName(k)] = v
+			attrs[ToDBName(k)] = v
 		}
 	case []interface{}:
 		for _, v := range value {
@@ -58,7 +58,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 		switch reflectValue.Kind() {
 		case reflect.Map:
 			for _, key := range reflectValue.MapKeys() {
-				attrs[ToDBColumnName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
+				attrs[ToDBName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
 			}
 		default:
 			scope := Scope{Value: values}

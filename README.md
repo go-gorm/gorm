@@ -39,7 +39,6 @@ db.Save(&User{Name: "xxx"}) // table "users"
 
 * Column name is the snake case of field's name
 * Use `Id` field as primary key
-* Use tag `sql` to change field's property, change the tag name with `db.SetTagIdentifier(new_name)`
 * Use `CreatedAt` to store record's created time if field exists
 * Use `UpdatedAt` to store record's updated time if field exists
 * Use `DeletedAt` to store record's deleted time if field exists [Soft Delete](#soft-delete)
