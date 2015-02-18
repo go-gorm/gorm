@@ -123,16 +123,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	scopeType := reflectValue.Type()
-	if scope.db != nil {
-		if value, ok := scope.db.parent.ModelStructs[scopeType]; ok {
-			return value
-		} else {
-			scope.db.parent.ModelStructs[scopeType] = &modelStruct
-		}
-	}
 
 	if scopeType.Kind() == reflect.Ptr {
 		scopeType = scopeType.Elem()
+	}
+
+	if scope.db != nil {
+		if value, ok := scope.db.parent.ModelStructs[scopeType]; ok {
+			return value
+		}
 	}
 
 	if scopeType.Kind() != reflect.Struct {
@@ -301,6 +300,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				scope.generateSqlTag(field)
 			}
 		}
+	}
+
+	if scope.db != nil {
+		scope.db.parent.ModelStructs[scopeType] = &modelStruct
 	}
 
 	return &modelStruct
