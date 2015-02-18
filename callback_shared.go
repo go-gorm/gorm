@@ -46,8 +46,8 @@ func SaveAfterAssociations(scope *Scope) {
 							newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
 						}
 
-						if relationship.ForeignType != "" {
-							newScope.SetColumn(relationship.ForeignType, scope.TableName())
+						if relationship.PolymorphicType != "" {
+							newScope.SetColumn(relationship.PolymorphicType, scope.TableName())
 						}
 
 						scope.Err(newDB.Save(elem).Error)
@@ -80,8 +80,8 @@ func SaveAfterAssociations(scope *Scope) {
 						newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
 					}
 
-					if relationship.ForeignType != "" {
-						newScope.SetColumn(relationship.ForeignType, scope.TableName())
+					if relationship.PolymorphicType != "" {
+						newScope.SetColumn(relationship.PolymorphicType, scope.TableName())
 					}
 					scope.Err(scope.NewDB().Save(elem).Error)
 				}

@@ -156,8 +156,8 @@ func (association *Association) Count() int {
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.ForeignDBName))
 		countScope := scope.db.Model("").Table(newScope.QuotedTableName()).Where(whereSql, association.PrimaryKey)
-		if relationship.ForeignType != "" {
-			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(ToDBName(relationship.ForeignType))), scope.TableName())
+		if relationship.PolymorphicType != "" {
+			countScope = countScope.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 		}
 		countScope.Count(&count)
 	} else if relationship.Kind == "belongs_to" {

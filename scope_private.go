@@ -410,8 +410,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
 					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
-					if relationship.ForeignType != "" && toScope.HasColumn(relationship.ForeignType) {
-						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(ToDBName(relationship.ForeignType))), scope.TableName())
+					if relationship.PolymorphicType != "" {
+						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 					}
 					scope.Err(query.Find(value).Error)
 				}

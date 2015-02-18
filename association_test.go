@@ -50,8 +50,8 @@ func TestHasOneAndHasManyAssociation(t *testing.T) {
 		t.Errorf("Comment 2 Should have post id")
 	}
 
-	comment3 := Comment{Content: "Comment 3", Post: Post{Title: "Title 3", Body: "Body 3"}}
-	DB.Save(&comment3)
+	// comment3 := Comment{Content: "Comment 3", Post: Post{Title: "Title 3", Body: "Body 3"}}
+	// DB.Save(&comment3)
 }
 
 func TestRelated(t *testing.T) {

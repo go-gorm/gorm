@@ -14,6 +14,7 @@ import (
 type ModelStruct struct {
 	PrimaryKeyField *StructField
 	StructFields    []*StructField
+	ModelType       reflect.Type
 	TableName       string
 }
 
@@ -53,7 +54,8 @@ func (structField *StructField) clone() *StructField {
 
 type Relationship struct {
 	Kind                        string
-	ForeignType                 string
+	PolymorphicType             string
+	PolymorphicDBName           string
 	ForeignFieldName            string
 	ForeignDBName               string
 	AssociationForeignFieldName string
@@ -134,6 +136,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
+	modelStruct.ModelType = scopeType
 	if scopeType.Kind() != reflect.Struct {
 		return &modelStruct
 	}
@@ -209,47 +212,63 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 			if !field.IsNormal {
 				gormSettings := parseTagSetting(field.Tag.Get("gorm"))
-				many2many := gormSettings["MANY2MANY"]
+				toModelStruct := scope.New(reflect.New(fieldStruct.Type).Interface()).GetModelStruct()
+				getForeignField := func(column string, fields []*StructField) *StructField {
+					for _, field := range fields {
+						if field.Name == column || field.DBName == ToDBName(column) {
+							return field
+						}
+					}
+					return nil
+				}
+
+				var relationship = &Relationship{}
+
 				foreignKey := gormSettings["FOREIGNKEY"]
-				foreignType := gormSettings["FOREIGNTYPE"]
-				associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 				if polymorphic := gormSettings["POLYMORPHIC"]; polymorphic != "" {
-					foreignKey = polymorphic + "Id"
-					foreignType = polymorphic + "Type"
+					if polymorphicField := getForeignField(polymorphic+"Id", toModelStruct.StructFields); polymorphicField != nil {
+						if polymorphicType := getForeignField(polymorphic+"Type", toModelStruct.StructFields); polymorphicType != nil {
+							relationship.ForeignFieldName = polymorphicField.Name
+							relationship.ForeignDBName = polymorphicField.DBName
+							relationship.PolymorphicType = polymorphicType.Name
+							relationship.PolymorphicDBName = polymorphicType.DBName
+							polymorphicType.IsForeignKey = true
+							polymorphicField.IsForeignKey = true
+						}
+					}
 				}
 
 				switch indirectType.Kind() {
 				case reflect.Slice:
-					typ := indirectType.Elem()
-					if typ.Kind() == reflect.Ptr {
-						typ = typ.Elem()
-					}
-
-					if typ.Kind() == reflect.Struct {
-						kind := "has_many"
-
+					if len(toModelStruct.StructFields) > 0 {
 						if foreignKey == "" {
 							foreignKey = scopeType.Name() + "Id"
 						}
 
-						if associationForeignKey == "" {
-							associationForeignKey = typ.Name() + "Id"
-						}
+						if many2many := gormSettings["MANY2MANY"]; many2many != "" {
+							relationship.Kind = "many_to_many"
+							relationship.JoinTable = many2many
 
-						if many2many != "" {
-							kind = "many_to_many"
-						} else if !reflect.New(typ).Elem().FieldByName(foreignKey).IsValid() {
-							foreignKey = ""
-						}
+							associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
+							if associationForeignKey == "" {
+								associationForeignKey = toModelStruct.ModelType.Name() + "Id"
+							}
 
-						field.Relationship = &Relationship{
-							JoinTable:                   many2many,
-							ForeignType:                 foreignType,
-							ForeignFieldName:            foreignKey,
-							AssociationForeignFieldName: associationForeignKey,
-							ForeignDBName:               ToDBName(foreignKey),
-							AssociationForeignDBName:    ToDBName(associationForeignKey),
-							Kind: kind,
+							relationship.ForeignFieldName = foreignKey
+							relationship.ForeignDBName = ToDBName(foreignKey)
+							relationship.AssociationForeignFieldName = associationForeignKey
+							relationship.AssociationForeignDBName = ToDBName(associationForeignKey)
+							field.Relationship = relationship
+						} else {
+							relationship.Kind = "has_many"
+							if foreignField := getForeignField(foreignKey, toModelStruct.StructFields); foreignField != nil {
+								relationship.ForeignFieldName = foreignField.Name
+								relationship.ForeignDBName = foreignField.DBName
+								foreignField.IsForeignKey = true
+								field.Relationship = relationship
+							} else if relationship.ForeignFieldName != "" {
+								field.Relationship = relationship
+							}
 						}
 					} else {
 						field.IsNormal = true
@@ -263,29 +282,30 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						}
 						break
 					} else {
-						var belongsToForeignKey, hasOneForeignKey, kind string
-
-						if foreignKey == "" {
+						belongsToForeignKey := foreignKey
+						if belongsToForeignKey == "" {
 							belongsToForeignKey = field.Name + "Id"
-							hasOneForeignKey = scopeType.Name() + "Id"
-						} else {
-							belongsToForeignKey = foreignKey
-							hasOneForeignKey = foreignKey
 						}
 
-						if _, ok := scopeType.FieldByName(belongsToForeignKey); ok {
-							kind = "belongs_to"
-							foreignKey = belongsToForeignKey
+						if foreignField := getForeignField(belongsToForeignKey, fields); foreignField != nil {
+							relationship.Kind = "belongs_to"
+							relationship.ForeignFieldName = foreignField.Name
+							relationship.ForeignDBName = foreignField.DBName
+							foreignField.IsForeignKey = true
+							field.Relationship = relationship
 						} else {
-							foreignKey = hasOneForeignKey
-							kind = "has_one"
-						}
-
-						field.Relationship = &Relationship{
-							ForeignFieldName: foreignKey,
-							ForeignDBName:    ToDBName(foreignKey),
-							ForeignType:      foreignType,
-							Kind:             kind,
+							if foreignKey == "" {
+								foreignKey = modelStruct.ModelType.Name() + "Id"
+							}
+							relationship.Kind = "has_one"
+							if foreignField := getForeignField(foreignKey, toModelStruct.StructFields); foreignField != nil {
+								relationship.ForeignFieldName = foreignField.Name
+								relationship.ForeignDBName = foreignField.DBName
+								foreignField.IsForeignKey = true
+								field.Relationship = relationship
+							} else if relationship.ForeignFieldName != "" {
+								field.Relationship = relationship
+							}
 						}
 					}
 				default:

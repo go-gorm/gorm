@@ -160,7 +160,7 @@ type Comment struct {
 	Id      int64
 	PostId  int64
 	Content string
-	Post    Post
+	// Post    Post
 }
 
 // Scanner
