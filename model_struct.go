@@ -65,7 +65,11 @@ type Relationship struct {
 
 func (scope *Scope) generateSqlTag(field *StructField) {
 	var sqlType string
-	reflectValue := reflect.Indirect(reflect.New(field.Struct.Type))
+	structType := field.Struct.Type
+	if structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
+	}
+	reflectValue := reflect.Indirect(reflect.New(structType))
 	sqlSettings := parseTagSetting(field.Tag.Get("sql"))
 
 	if value, ok := sqlSettings["TYPE"]; ok {

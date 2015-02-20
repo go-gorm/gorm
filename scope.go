@@ -35,8 +35,9 @@ func (scope *Scope) IndirectValue() reflect.Value {
 
 // NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
-	db.Value = value
-	return &Scope{db: db, Search: db.search, Value: value}
+	dbClone := db.clone()
+	dbClone.Value = value
+	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
 }
 
 func (scope *Scope) NeedPtr() *Scope {
