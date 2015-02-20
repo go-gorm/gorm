@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
 	"time"
 )
@@ -32,7 +33,21 @@ func (logger Logger) Print(values ...interface{}) {
 			// duration
 			messages = append(messages, fmt.Sprintf(" \033[36;1m[%.2fms]\033[0m ", float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0))
 			// sql
-			messages = append(messages, fmt.Sprintf(sqlRegexp.ReplaceAllString(values[3].(string), "'%v'"), values[4].([]interface{})...))
+			var formatedValues []interface{}
+			for _, value := range values[4].([]interface{}) {
+				indirectValue := reflect.Indirect(reflect.ValueOf(value))
+				if indirectValue.IsValid() {
+					value = indirectValue.Interface()
+					if t, ok := value.(time.Time); ok {
+						formatedValues = append(formatedValues, t.Format(time.RFC3339))
+					} else {
+						formatedValues = append(formatedValues, value)
+					}
+				} else {
+					formatedValues = append(formatedValues, value)
+				}
+			}
+			messages = append(messages, fmt.Sprintf(sqlRegexp.ReplaceAllString(values[3].(string), "'%v'"), formatedValues...))
 		} else {
 			messages = append(messages, "\033[31;1m")
 			messages = append(messages, values[2:]...)
