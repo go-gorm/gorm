@@ -370,7 +370,9 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
-	scope.Search = scope.Search.clone().selects("count(*)")
+	scope.Search = scope.Search.clone()
+	scope.Search.Selects = []map[string]interface{}{}
+	scope.Search.selects("count(*)")
 	scope.Err(scope.row().Scan(value))
 	return scope
 }
