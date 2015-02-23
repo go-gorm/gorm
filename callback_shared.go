@@ -21,7 +21,7 @@ func SaveBeforeAssociations(scope *Scope) {
 				value := field.Field
 				scope.Err(scope.NewDB().Save(value.Addr().Interface()).Error)
 				if relationship.ForeignFieldName != "" {
-					scope.SetColumn(relationship.ForeignFieldName, scope.New(value.Addr().Interface()).PrimaryKeyValue())
+					scope.Err(scope.SetColumn(relationship.ForeignFieldName, scope.New(value.Addr().Interface()).PrimaryKeyValue()))
 				}
 			}
 		}
@@ -43,11 +43,11 @@ func SaveAfterAssociations(scope *Scope) {
 						newScope := newDB.NewScope(elem)
 
 						if relationship.JoinTable == "" && relationship.ForeignFieldName != "" {
-							newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
+							scope.Err(newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue()))
 						}
 
 						if relationship.PolymorphicType != "" {
-							newScope.SetColumn(relationship.PolymorphicType, scope.TableName())
+							scope.Err(newScope.SetColumn(relationship.PolymorphicType, scope.TableName()))
 						}
 
 						scope.Err(newDB.Save(elem).Error)
@@ -77,11 +77,11 @@ func SaveAfterAssociations(scope *Scope) {
 					elem := value.Addr().Interface()
 					newScope := scope.New(elem)
 					if relationship.ForeignFieldName != "" {
-						newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue())
+						scope.Err(newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue()))
 					}
 
 					if relationship.PolymorphicType != "" {
-						newScope.SetColumn(relationship.PolymorphicType, scope.TableName())
+						scope.Err(newScope.SetColumn(relationship.PolymorphicType, scope.TableName()))
 					}
 					scope.Err(scope.NewDB().Save(elem).Error)
 				}

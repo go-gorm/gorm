@@ -61,7 +61,7 @@ func Create(scope *Scope) {
 				if scope.Err(err) == nil {
 					scope.db.RowsAffected, _ = result.RowsAffected()
 					if primaryField != nil {
-						scope.SetColumn(primaryField, id)
+						scope.Err(scope.SetColumn(primaryField, id))
 					}
 				}
 			}

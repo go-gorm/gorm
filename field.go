@@ -18,7 +18,7 @@ func (field *Field) Set(value interface{}) error {
 	}
 
 	if !field.Field.CanAddr() {
-		return errors.New("field value not addressable")
+		return errors.New("unaddressable value")
 	}
 
 	if rvalue, ok := value.(reflect.Value); ok {
