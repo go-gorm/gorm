@@ -7,12 +7,12 @@ type search struct {
 	WhereConditions []map[string]interface{}
 	OrConditions    []map[string]interface{}
 	NotConditions   []map[string]interface{}
+	HavingCondition map[string]interface{}
 	InitAttrs       []interface{}
 	AssignAttrs     []interface{}
-	HavingCondition map[string]interface{}
+	Selects         map[string]interface{}
 	Orders          []string
 	Joins           string
-	Selects         []map[string]interface{}
 	Preload         map[string][]interface{}
 	Offset          string
 	Limit           string
@@ -28,17 +28,17 @@ func (s *search) clone() *search {
 		WhereConditions: s.WhereConditions,
 		OrConditions:    s.OrConditions,
 		NotConditions:   s.NotConditions,
+		HavingCondition: s.HavingCondition,
 		InitAttrs:       s.InitAttrs,
 		AssignAttrs:     s.AssignAttrs,
-		HavingCondition: s.HavingCondition,
-		Orders:          s.Orders,
 		Selects:         s.Selects,
+		Orders:          s.Orders,
+		Joins:           s.Joins,
 		Offset:          s.Offset,
 		Limit:           s.Limit,
-		Unscope:         s.Unscope,
 		Group:           s.Group,
-		Joins:           s.Joins,
 		TableName:       s.TableName,
+		Unscope:         s.Unscope,
 		Raw:             s.Raw,
 	}
 }
@@ -78,7 +78,7 @@ func (s *search) order(value string, reorder ...bool) *search {
 }
 
 func (s *search) selects(query interface{}, args ...interface{}) *search {
-	s.Selects = append(s.Selects, map[string]interface{}{"query": query, "args": args})
+	s.Selects = map[string]interface{}{"query": query, "args": args}
 	return s
 }
 
