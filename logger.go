@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"log"
 	"os"
@@ -39,15 +40,23 @@ func (logger Logger) Print(values ...interface{}) {
 				if indirectValue.IsValid() {
 					value = indirectValue.Interface()
 					if t, ok := value.(time.Time); ok {
-						formatedValues = append(formatedValues, t.Format(time.RFC3339))
+						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", t.Format(time.RFC3339)))
+					} else if b, ok := value.([]byte); ok {
+						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", string(b)))
+					} else if r, ok := value.(driver.Valuer); ok {
+						if value, err := r.Value(); err == nil && value != nil {
+							formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
+						} else {
+							formatedValues = append(formatedValues, "NULL")
+						}
 					} else {
-						formatedValues = append(formatedValues, value)
+						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
 					}
 				} else {
-					formatedValues = append(formatedValues, value)
+					formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
 				}
 			}
-			messages = append(messages, fmt.Sprintf(sqlRegexp.ReplaceAllString(values[3].(string), "'%v'"), formatedValues...))
+			messages = append(messages, fmt.Sprintf(sqlRegexp.ReplaceAllString(values[3].(string), "%v"), formatedValues...))
 		} else {
 			messages = append(messages, "\033[31;1m")
 			messages = append(messages, values[2:]...)
