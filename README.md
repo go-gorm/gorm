@@ -374,9 +374,15 @@ user.Age = 100
 db.Save(&user)
 //// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111;
 
+db.Where("active = ?", true).Save(&user)
+//// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111 AND active = true;
+
 // Update an attribute if it is changed
 db.Model(&user).Update("name", "hello")
 //// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111;
+
+db.Model(&user).Where("active = ?", true).Update("name", "hello")
+//// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111 AND active = true;
 
 db.First(&user, 111).Update("name", "hello")
 //// SELECT * FROM users LIMIT 1;
@@ -1116,12 +1122,13 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* db.RegisterFuncation("Search", func() {})
-  db.Model(&[]User{}).Limit(10).Do("Search", "search func's argument")
-  db.Mode(&User{}).Do("EditForm").Get("edit_form_html")
-  DefaultTimeZone, R/W Splitting, Validation
+* db.Select("Languages", "Name").Update(&user)
+  db.Omit("Languages").Update(&user)
+* Auto migrate indexes
+* db.Model(&product).Update("quantity", db.RawString("quantity - 1"))
 * Github Pages
 * AlertColumn, DropColumn
+* R/W Splitting, Validation
 
 # Author
 
