@@ -103,7 +103,7 @@ func Query(scope *Scope) {
 }
 
 func AfterQuery(scope *Scope) {
-	scope.CallMethod("AfterFind")
+	scope.CallMethodWithErrorCheck("AfterFind")
 }
 
 func init() {

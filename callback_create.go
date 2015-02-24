@@ -6,8 +6,8 @@ import (
 )
 
 func BeforeCreate(scope *Scope) {
-	scope.CallMethod("BeforeSave")
-	scope.CallMethod("BeforeCreate")
+	scope.CallMethodWithErrorCheck("BeforeSave")
+	scope.CallMethodWithErrorCheck("BeforeCreate")
 }
 
 func UpdateTimeStampWhenCreate(scope *Scope) {
@@ -78,8 +78,8 @@ func Create(scope *Scope) {
 }
 
 func AfterCreate(scope *Scope) {
-	scope.CallMethod("AfterCreate")
-	scope.CallMethod("AfterSave")
+	scope.CallMethodWithErrorCheck("AfterCreate")
+	scope.CallMethodWithErrorCheck("AfterSave")
 }
 
 func init() {

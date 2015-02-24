@@ -3,7 +3,7 @@ package gorm
 import "fmt"
 
 func BeforeDelete(scope *Scope) {
-	scope.CallMethod("BeforeDelete")
+	scope.CallMethodWithErrorCheck("BeforeDelete")
 }
 
 func Delete(scope *Scope) {
@@ -24,7 +24,7 @@ func Delete(scope *Scope) {
 }
 
 func AfterDelete(scope *Scope) {
-	scope.CallMethod("AfterDelete")
+	scope.CallMethodWithErrorCheck("AfterDelete")
 }
 
 func init() {
