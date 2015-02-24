@@ -10,7 +10,7 @@ import (
 )
 
 // NowFunc returns current time, this function is exported in order to be able
-// to give the flexiblity to the developer to costumize it accoring to their
+// to give the flexibility to the developer to customize it according to their
 // needs
 //
 //   e.g: return time.Now().UTC()
