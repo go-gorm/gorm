@@ -6,22 +6,68 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Overview
 
+* Full-Featured ORM (almost)
 * Chainable API
-* Embedded Structs
-* Relations
-* Callbacks (before/after create/save/update/delete/find)
-* Soft Deletes
 * Auto Migrations
+* Relations (Has One, Has Many, Belongs To, Many To Many, [Polymorphism](#polymorphism))
+* Callbacks (Before/After Create/Save/Update/Delete/Find)
 * Preloading (eager loading)
 * Transactions
+* Embed Anonymous Struct
+* Soft Deletes
 * Customizable Logger
 * Iteration Support via [Rows](#row--rows)
-* Scopes
-* sql.Scanner support
-* Polymorphism
 * Every feature comes with tests
-* Convention Over Configuration
 * Developer Friendly
+
+# Getting Started
+
+## Install
+
+```
+go get -u github.com/jinzhu/gorm
+```
+
+## Define Models (Structs)
+
+```go
+type User struct {
+	ID           int
+	Birthday     time.Time
+	Age          int
+	Name         string  `sql:"size:255"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    time.Time
+
+	Emails            []Email         // One-To-Many relationship (has many)
+	BillingAddress    Address         // One-To-One relationship (has one)
+	BillingAddressID  sql.NullInt64   // Foreign key of BillingAddress
+	ShippingAddress   Address         // One-To-One relationship (has one)
+	ShippingAddressID int             // Foreign key of ShippingAddress
+	IgnoreMe          int `sql:"-"`   // Ignore this field
+	Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
+}
+
+type Email struct {
+	ID         int
+	UserID     int     // Foreign key for User (belongs to)
+	Email      string  `sql:"type:varchar(100);"` // Set field's type
+	Subscribed bool
+}
+
+type Address struct {
+	ID       int
+	Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
+	Address2 string         `sql:"type:varchar(100);unique"`
+	Post     sql.NullString `sql:not null`
+}
+
+type Language struct {
+	ID   int
+	Name string
+}
+```
 
 ## Conventions
 
@@ -38,59 +84,10 @@ db.Save(&User{Name: "xxx"}) // table "users"
 ```
 
 * Column name is the snake case of field's name
-* Use `Id` field as primary key
+* Use `ID` field as primary key
 * Use `CreatedAt` to store record's created time if field exists
 * Use `UpdatedAt` to store record's updated time if field exists
 * Use `DeletedAt` to store record's deleted time if field exists [Soft Delete](#soft-delete)
-
-# Getting Started
-
-## Install
-
-```
-go get -u github.com/jinzhu/gorm
-```
-
-## Define Models (Structs)
-
-```go
-type User struct {
-	Id           int64
-	Birthday     time.Time
-	Age          int64
-	Name         string  `sql:"size:255"`
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	DeletedAt    time.Time
-
-	Emails            []Email         // One-To-Many relationship (has many)
-	BillingAddress    Address         // One-To-One relationship (has one)
-	BillingAddressId  sql.NullInt64   // Foreign key of BillingAddress
-	ShippingAddress   Address         // One-To-One relationship (has one)
-	ShippingAddressId int64           // Foreign key of ShippingAddress
-	IgnoreMe          int64 `sql:"-"` // Ignore this field
-	Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
-}
-
-type Email struct {
-	Id         int64
-	UserId     int64   // Foreign key for User (belongs to)
-	Email      string  `sql:"type:varchar(100);"` // Set field's type
-	Subscribed bool
-}
-
-type Address struct {
-	Id       int64
-	Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
-	Address2 string         `sql:"type:varchar(100);unique"`
-	Post     sql.NullString `sql:not null`
-}
-
-type Language struct {
-	Id   int64
-	Name string
-}
-```
 
 ## Initialize Database
 
@@ -419,6 +416,22 @@ db.Model(User{}).Updates(User{Name: "hello", Age: 18})
 // You may would like to know how many records updated when do batch updates
 // You could get it with `RowsAffected`
 db.Model(User{}).Updates(User{Name: "hello", Age: 18}).RowsAffected
+```
+
+### Update with SQL Expression
+
+```go
+DB.Model(&product).Update("price", gorm.Expr("price * ? + ?", 2, 100))
+//// UPDATE "products" SET "code" = 'L1212', "price" = price * '2' + '100', "updated_at" = '2013-11-17 21:34:10' WHERE "id" = '2';
+
+DB.Model(&product).Updates(map[string]interface{}{"price": gorm.Expr("price * ? + ?", 2, 100)})
+//// UPDATE "products" SET "code" = 'L1212', "price" = price * '2' + '100', "updated_at" = '2013-11-17 21:34:10' WHERE "id" = '2';
+
+DB.Model(&product).UpdateColumn("quantity", gorm.Expr("quantity - ?", 1))
+//// UPDATE "products" SET "quantity" = quantity - 1 WHERE "id" = '2';
+
+DB.Model(&product).Where("quantity > 1").UpdateColumn("quantity", gorm.Expr("quantity - ?", 1))
+//// UPDATE "products" SET "quantity" = quantity - 1 WHERE "id" = '2' AND quantity > 1;
 ```
 
 ## Delete
@@ -1125,7 +1138,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * db.Select("Languages", "Name").Update(&user)
   db.Omit("Languages").Update(&user)
 * Auto migrate indexes
-* db.Model(&product).Update("quantity", db.RawString("quantity - 1"))
 * Github Pages
 * AlertColumn, DropColumn
 * R/W Splitting, Validation
