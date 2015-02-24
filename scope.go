@@ -72,7 +72,16 @@ func (scope *Scope) SkipLeft() {
 
 // Quote used to quote database column name according to database dialect
 func (scope *Scope) Quote(str string) string {
-	return scope.Dialect().Quote(str)
+	if strings.Index(str, ".") != -1 {
+		strs := strings.Split(str, ".")
+		newStrs := []string{}
+		for _, str := range strs {
+			newStrs = append(newStrs, scope.Dialect().Quote(str))
+		}
+		return strings.Join(newStrs, ".")
+	} else {
+		return scope.Dialect().Quote(str)
+	}
 }
 
 // Dialect get dialect
