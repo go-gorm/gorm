@@ -307,16 +307,30 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 		return values, true
 	}
 
+	var hasExpr bool
 	fields := scope.Fields()
 	for key, value := range values {
 		if field, ok := fields[ToDBName(key)]; ok && field.Field.IsValid() {
 			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
-				if !equalAsString(field.Field.Interface(), value) {
+				if _, ok := value.(*expr); ok {
+					hasExpr = true
+				} else if !equalAsString(field.Field.Interface(), value) {
 					hasUpdate = true
 					field.Set(value)
 				}
 			}
 		}
+	}
+	if hasExpr {
+		var updateMap = map[string]interface{}{}
+		for key, value := range fields {
+			if v, ok := values[key]; ok {
+				updateMap[key] = v
+			} else {
+				updateMap[key] = value.Field.Interface()
+			}
+		}
+		return updateMap, true
 	}
 	return
 }

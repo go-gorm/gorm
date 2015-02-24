@@ -38,17 +38,11 @@ func ToDBName(name string) string {
 	return s
 }
 
-func parseTagSetting(str string) map[string]string {
-	tags := strings.Split(str, ";")
-	setting := map[string]string{}
-	for _, value := range tags {
-		v := strings.Split(value, ":")
-		k := strings.TrimSpace(strings.ToUpper(v[0]))
-		if len(v) == 2 {
-			setting[k] = v[1]
-		} else {
-			setting[k] = k
-		}
-	}
-	return setting
+type expr struct {
+	expr string
+	args []interface{}
+}
+
+func Expr(expression string, args ...interface{}) *expr {
+	return &expr{expr: expression, args: args}
 }

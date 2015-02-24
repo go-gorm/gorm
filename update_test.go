@@ -3,6 +3,8 @@ package gorm_test
 import (
 	"testing"
 	"time"
+
+	"github.com/jinzhu/gorm"
 )
 
 func TestUpdate(t *testing.T) {
@@ -66,6 +68,17 @@ func TestUpdate(t *testing.T) {
 	DB.Find(&products)
 	if count := DB.Model(Product{}).Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(products)) {
 		t.Error("RowsAffected should be correct when do batch update")
+	}
+
+	DB.First(&product4, product4.Id)
+	DB.Model(&product4).Update("price", gorm.Expr("price + ? - ?", 100, 50))
+	var product5 Product
+	DB.First(&product5, product4.Id)
+	if product5.Price != product4.Price+100-50 {
+		t.Errorf("Update with expression")
+	}
+	if product5.UpdatedAt.Format(time.RFC3339Nano) == product4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("Update with expression should update UpdatedAt")
 	}
 }
 
@@ -148,6 +161,16 @@ func TestUpdates(t *testing.T) {
 	if DB.First(&Product{}, "code = ?", "product2newcode").RecordNotFound() {
 		t.Errorf("product2's code should be updated")
 	}
+
+	DB.Model(&product4).Updates(map[string]interface{}{"price": gorm.Expr("price + ?", 100)})
+	var product5 Product
+	DB.First(&product5, product4.Id)
+	if product5.Price != product4.Price+100 {
+		t.Errorf("Updates with expression")
+	}
+	if product5.UpdatedAt.Format(time.RFC3339Nano) == product4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("Updates with expression should update UpdatedAt")
+	}
 }
 
 func TestUpdateColumn(t *testing.T) {
@@ -171,5 +194,15 @@ func TestUpdateColumn(t *testing.T) {
 	DB.First(&product4, product2.Id)
 	if updatedAt2.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("updatedAt should not be updated with update column")
+	}
+
+	DB.Model(&product4).UpdateColumn("price", gorm.Expr("price + 100 - 50"))
+	var product5 Product
+	DB.First(&product5, product4.Id)
+	if product5.Price != product4.Price+100-50 {
+		t.Errorf("UpdateColumn with expression")
+	}
+	if product5.UpdatedAt.Format(time.RFC3339Nano) != product4.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("UpdateColumn with expression should not update UpdatedAt")
 	}
 }

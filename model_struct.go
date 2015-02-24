@@ -63,56 +63,6 @@ type Relationship struct {
 	JoinTable                   string
 }
 
-func (scope *Scope) generateSqlTag(field *StructField) {
-	var sqlType string
-	structType := field.Struct.Type
-	if structType.Kind() == reflect.Ptr {
-		structType = structType.Elem()
-	}
-	reflectValue := reflect.Indirect(reflect.New(structType))
-	sqlSettings := parseTagSetting(field.Tag.Get("sql"))
-
-	if value, ok := sqlSettings["TYPE"]; ok {
-		sqlType = value
-	}
-
-	additionalType := sqlSettings["NOT NULL"] + " " + sqlSettings["UNIQUE"]
-	if value, ok := sqlSettings["DEFAULT"]; ok {
-		additionalType = additionalType + "DEFAULT " + value
-	}
-
-	if field.IsScanner {
-		var getScannerValue func(reflect.Value)
-		getScannerValue = func(value reflect.Value) {
-			reflectValue = value
-			if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner && reflectValue.Kind() == reflect.Struct {
-				getScannerValue(reflectValue.Field(0))
-			}
-		}
-		getScannerValue(reflectValue)
-	}
-
-	if sqlType == "" {
-		var size = 255
-
-		if value, ok := sqlSettings["SIZE"]; ok {
-			size, _ = strconv.Atoi(value)
-		}
-
-		if field.IsPrimaryKey {
-			sqlType = scope.Dialect().PrimaryKeyTag(reflectValue, size)
-		} else {
-			sqlType = scope.Dialect().SqlTag(reflectValue, size)
-		}
-	}
-
-	if strings.TrimSpace(additionalType) == "" {
-		field.SqlTag = sqlType
-	} else {
-		field.SqlTag = fmt.Sprintf("%v %v", sqlType, additionalType)
-	}
-}
-
 var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
 var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${1}s"}
 
@@ -340,4 +290,69 @@ func (scope *Scope) GetModelStruct(noRelationship ...bool) *ModelStruct {
 
 func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
+}
+
+func (scope *Scope) generateSqlTag(field *StructField) {
+	var sqlType string
+	structType := field.Struct.Type
+	if structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
+	}
+	reflectValue := reflect.Indirect(reflect.New(structType))
+	sqlSettings := parseTagSetting(field.Tag.Get("sql"))
+
+	if value, ok := sqlSettings["TYPE"]; ok {
+		sqlType = value
+	}
+
+	additionalType := sqlSettings["NOT NULL"] + " " + sqlSettings["UNIQUE"]
+	if value, ok := sqlSettings["DEFAULT"]; ok {
+		additionalType = additionalType + "DEFAULT " + value
+	}
+
+	if field.IsScanner {
+		var getScannerValue func(reflect.Value)
+		getScannerValue = func(value reflect.Value) {
+			reflectValue = value
+			if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner && reflectValue.Kind() == reflect.Struct {
+				getScannerValue(reflectValue.Field(0))
+			}
+		}
+		getScannerValue(reflectValue)
+	}
+
+	if sqlType == "" {
+		var size = 255
+
+		if value, ok := sqlSettings["SIZE"]; ok {
+			size, _ = strconv.Atoi(value)
+		}
+
+		if field.IsPrimaryKey {
+			sqlType = scope.Dialect().PrimaryKeyTag(reflectValue, size)
+		} else {
+			sqlType = scope.Dialect().SqlTag(reflectValue, size)
+		}
+	}
+
+	if strings.TrimSpace(additionalType) == "" {
+		field.SqlTag = sqlType
+	} else {
+		field.SqlTag = fmt.Sprintf("%v %v", sqlType, additionalType)
+	}
+}
+
+func parseTagSetting(str string) map[string]string {
+	tags := strings.Split(str, ";")
+	setting := map[string]string{}
+	for _, value := range tags {
+		v := strings.Split(value, ":")
+		k := strings.TrimSpace(strings.ToUpper(v[0]))
+		if len(v) == 2 {
+			setting[k] = v[1]
+		} else {
+			setting[k] = k
+		}
+	}
+	return setting
 }

@@ -204,8 +204,16 @@ func (scope *Scope) CallMethodWithErrorCheck(name string) {
 
 // AddToVars add value as sql's vars, gorm will escape them
 func (scope *Scope) AddToVars(value interface{}) string {
-	scope.SqlVars = append(scope.SqlVars, value)
-	return scope.Dialect().BinVar(len(scope.SqlVars))
+	if expr, ok := value.(*expr); ok {
+		exp := expr.expr
+		for _, arg := range expr.args {
+			exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+		}
+		return exp
+	} else {
+		scope.SqlVars = append(scope.SqlVars, value)
+		return scope.Dialect().BinVar(len(scope.SqlVars))
+	}
 }
 
 // TableName get table name
