@@ -118,8 +118,12 @@ func (scope *Scope) getColumnAsArray(column string) (primaryKeys []interface{}) 
 	values := scope.IndirectValue()
 	switch values.Kind() {
 	case reflect.Slice:
+		primaryKeyMap := map[interface{}]bool{}
 		for i := 0; i < values.Len(); i++ {
-			primaryKeys = append(primaryKeys, reflect.Indirect(values.Index(i)).FieldByName(column).Interface())
+			primaryKeyMap[reflect.Indirect(values.Index(i)).FieldByName(column).Interface()] = true
+		}
+		for key := range primaryKeyMap {
+			primaryKeys = append(primaryKeys, key)
 		}
 	case reflect.Struct:
 		return []interface{}{values.FieldByName(column).Interface()}
