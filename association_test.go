@@ -1,6 +1,9 @@
 package gorm_test
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
 	DB.DropTable(Category{})
@@ -172,11 +175,15 @@ func TestManyToMany(t *testing.T) {
 	}
 
 	// Delete
+	user.Languages = []Language{}
+	DB.Model(&user).Association("Languages").Find(&user.Languages)
+
 	var language Language
 	DB.Where("name = ?", "EE").First(&language)
 	DB.Model(&user).Association("Languages").Delete(language, &language)
-	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 {
+	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 || len(user.Languages) != len(totalLanguages)-1 {
 		t.Errorf("Relations should be deleted with Delete")
+		os.Exit(1)
 	}
 	if DB.Where("name = ?", "EE").First(&Language{}).RecordNotFound() {
 		t.Errorf("Language EE should not be deleted")
@@ -189,7 +196,7 @@ func TestManyToMany(t *testing.T) {
 	DB.Save(&user2)
 
 	DB.Model(&user).Association("Languages").Delete(languages, &languages)
-	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-3 {
+	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-3 || len(user.Languages) != len(totalLanguages)-3 {
 		t.Errorf("Relations should be deleted with Delete")
 	}
 
@@ -201,18 +208,18 @@ func TestManyToMany(t *testing.T) {
 	var languageB Language
 	DB.Where("name = ?", "BB").First(&languageB)
 	DB.Model(&user).Association("Languages").Replace(languageB)
-	if DB.Model(&user).Association("Languages").Count() != 1 {
+	if len(user.Languages) != 1 || DB.Model(&user).Association("Languages").Count() != 1 {
 		t.Errorf("Relations should be replaced")
 	}
 
 	DB.Model(&user).Association("Languages").Replace(&[]Language{{Name: "FF"}, {Name: "JJ"}})
-	if DB.Model(&user).Association("Languages").Count() != len([]string{"FF", "JJ"}) {
+	if len(user.Languages) != 2 || DB.Model(&user).Association("Languages").Count() != len([]string{"FF", "JJ"}) {
 		t.Errorf("Relations should be replaced")
 	}
 
 	// Clear
 	DB.Model(&user).Association("Languages").Clear()
-	if DB.Model(&user).Association("Languages").Count() != 0 {
+	if len(user.Languages) != 0 || DB.Model(&user).Association("Languages").Count() != 0 {
 		t.Errorf("Relations should be cleared")
 	}
 }

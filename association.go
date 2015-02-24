@@ -78,8 +78,25 @@ func (association *Association) Delete(values ...interface{}) *Association {
 				relationship.JoinTable, association.Scope.Quote(relationship.ForeignDBName),
 				relationship.JoinTable, association.Scope.Quote(relationship.AssociationForeignDBName))
 
-			association.Scope.db.Model("").Table(relationship.JoinTable).
-				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("")
+			if err := association.Scope.db.Model("").Table(relationship.JoinTable).
+				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("").Error; err == nil {
+				leftValues := reflect.Zero(association.Field.Field.Type())
+				for i := 0; i < association.Field.Field.Len(); i++ {
+					value := association.Field.Field.Index(i)
+					if primaryField := association.Scope.New(value.Interface()).PrimaryKeyField(); primaryField != nil {
+						var included = false
+						for _, primaryKey := range primaryKeys {
+							if equalAsString(primaryKey, primaryField.Field.Interface()) {
+								included = true
+							}
+						}
+						if !included {
+							leftValues = reflect.Append(leftValues, value)
+						}
+					}
+				}
+				association.Field.Set(leftValues)
+			}
 		} else {
 			association.setErr(errors.New("delete only support many to many"))
 		}
@@ -94,6 +111,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 		field := association.Field.Field
 
 		oldPrimaryKeys := association.getPrimaryKeys(field.Interface())
+		association.Field.Set(reflect.Zero(association.Field.Field.Type()))
 		association.Append(values...)
 		newPrimaryKeys := association.getPrimaryKeys(field.Interface())
 
@@ -130,7 +148,11 @@ func (association *Association) Clear() *Association {
 	scope := association.Scope
 	if relationship.Kind == "many_to_many" {
 		whereSql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(relationship.ForeignDBName))
-		scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey).Delete("")
+		if err := scope.db.Model("").Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey).Delete("").Error; err == nil {
+			association.Field.Set(reflect.Zero(association.Field.Field.Type()))
+		} else {
+			association.setErr(err)
+		}
 	} else {
 		association.setErr(errors.New("clear only support many to many"))
 	}
