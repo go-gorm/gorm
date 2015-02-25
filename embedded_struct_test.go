@@ -35,4 +35,8 @@ func TestSaveAndQueryEmbeddedStruct(t *testing.T) {
 	} else if egNews.BasePost.Title != "engadget_news" {
 		t.Errorf("embedded struct's value should be scanned correctly")
 	}
+
+	if DB.NewScope(&HNPost{}).PrimaryKeyField() == nil {
+		t.Errorf("primary key with embedded struct should works")
+	}
 }

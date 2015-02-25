@@ -233,6 +233,9 @@ func (scope *Scope) GetModelStruct(noRelationship ...bool) *ModelStruct {
 							f = f.clone()
 							f.Names = append([]string{fieldStruct.Name}, f.Names...)
 							modelStruct.StructFields = append(modelStruct.StructFields, f)
+							if f.IsPrimaryKey {
+								modelStruct.PrimaryKeyField = f
+							}
 						}
 						break
 					} else {
