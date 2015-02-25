@@ -237,7 +237,7 @@ func (scope *Scope) GetModelStruct(noRelationship ...bool) *ModelStruct {
 								modelStruct.PrimaryKeyField = f
 							}
 						}
-						break
+						continue
 					} else {
 						belongsToForeignKey := foreignKey
 						if belongsToForeignKey == "" {

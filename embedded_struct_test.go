@@ -39,4 +39,10 @@ func TestSaveAndQueryEmbeddedStruct(t *testing.T) {
 	if DB.NewScope(&HNPost{}).PrimaryKeyField() == nil {
 		t.Errorf("primary key with embedded struct should works")
 	}
+
+	for _, field := range DB.NewScope(&HNPost{}).Fields() {
+		if field.Name == "BasePost" {
+			t.Errorf("scope Fields should not contain embedded struct")
+		}
+	}
 }
