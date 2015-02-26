@@ -30,7 +30,13 @@ func (c *callback) addProcessor(typ string) *callbackProcessor {
 }
 
 func (c *callback) clone() *callback {
-	return &callback{processors: c.processors}
+	return &callback{
+		creates:    c.creates,
+		updates:    c.updates,
+		deletes:    c.deletes,
+		queries:    c.queries,
+		processors: c.processors,
+	}
 }
 
 func (c *callback) Create() *callbackProcessor {
