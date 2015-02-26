@@ -40,7 +40,7 @@ func Query(scope *Scope) {
 	scope.prepareQuerySql()
 
 	if !scope.HasError() {
-		rows, err := scope.DB().Query(scope.Sql, scope.SqlVars...)
+		rows, err := scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
 		scope.db.RowsAffected = 0
 
 		if scope.Err(err) != nil {

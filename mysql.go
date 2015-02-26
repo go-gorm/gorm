@@ -90,7 +90,7 @@ func (s *mysql) HasTable(scope *Scope, tableName string) bool {
 	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v AND table_schema = %v",
 		newScope.AddToVars(tableName),
 		newScope.AddToVars(s.databaseName(scope))))
-	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
 
@@ -102,7 +102,7 @@ func (s *mysql) HasColumn(scope *Scope, tableName string, columnName string) boo
 		newScope.AddToVars(tableName),
 		newScope.AddToVars(columnName),
 	))
-	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
 

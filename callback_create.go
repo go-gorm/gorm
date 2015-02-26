@@ -56,7 +56,7 @@ func Create(scope *Scope) {
 
 		// execute create sql
 		if scope.Dialect().SupportLastInsertId() {
-			if result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+			if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 				id, err := result.LastInsertId()
 				if scope.Err(err) == nil {
 					scope.db.RowsAffected, _ = result.RowsAffected()
@@ -67,10 +67,10 @@ func Create(scope *Scope) {
 			}
 		} else {
 			if primaryField == nil {
-				if results, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); err != nil {
+				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err != nil {
 					scope.db.RowsAffected, _ = results.RowsAffected()
 				}
-			} else if scope.Err(scope.DB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())) == nil {
+			} else if scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())) == nil {
 				scope.db.RowsAffected = 1
 			}
 		}

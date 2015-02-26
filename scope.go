@@ -33,13 +33,6 @@ func (scope *Scope) IndirectValue() reflect.Value {
 	return *scope.indirectValue
 }
 
-// NewScope create scope for callbacks, including DB's search information
-func (db *DB) NewScope(value interface{}) *Scope {
-	dbClone := db.clone()
-	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
-}
-
 func (scope *Scope) NeedPtr() *Scope {
 	reflectKind := reflect.ValueOf(scope.Value).Kind()
 	if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
@@ -52,16 +45,21 @@ func (scope *Scope) NeedPtr() *Scope {
 
 // New create a new Scope without search information
 func (scope *Scope) New(value interface{}) *Scope {
-	return &Scope{db: scope.db, Search: &search{}, Value: value}
+	return &Scope{db: scope.NewDB(), Search: &search{}, Value: value}
 }
 
 // NewDB create a new DB without search information
 func (scope *Scope) NewDB() *DB {
-	return scope.db.New()
+	if scope.db != nil {
+		db := scope.db.clone()
+		db.search = nil
+		return db
+	}
+	return nil
 }
 
-// DB get *sql.DB
-func (scope *Scope) DB() sqlCommon {
+// SqlDB return *sql.DB
+func (scope *Scope) SqlDB() sqlCommon {
 	return scope.db.db
 }
 
@@ -73,9 +71,8 @@ func (scope *Scope) SkipLeft() {
 // Quote used to quote database column name according to database dialect
 func (scope *Scope) Quote(str string) string {
 	if strings.Index(str, ".") != -1 {
-		strs := strings.Split(str, ".")
 		newStrs := []string{}
-		for _, str := range strs {
+		for _, str := range strings.Split(str, ".") {
 			newStrs = append(newStrs, scope.Dialect().Quote(str))
 		}
 		return strings.Join(newStrs, ".")
@@ -176,13 +173,13 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			case func(s *Scope):
 				f(scope)
 			case func(s *DB):
-				f(scope.db.New())
+				f(scope.NewDB())
 			case func() error:
 				scope.Err(f())
 			case func(s *Scope) error:
 				scope.Err(f(scope))
 			case func(s *DB) error:
-				scope.Err(f(scope.db.New()))
+				scope.Err(f(scope.NewDB()))
 			default:
 				scope.Err(fmt.Errorf("unsupported function %v", name))
 			}
@@ -229,12 +226,7 @@ func (scope *Scope) QuotedTableName() string {
 		return scope.Search.TableName
 	}
 
-	keys := strings.Split(scope.TableName(), ".")
-	for i, v := range keys {
-		keys[i] = scope.Quote(v)
-	}
-	return strings.Join(keys, ".")
-
+	return scope.Quote(scope.TableName())
 }
 
 // CombinedConditionSql get combined condition sql
@@ -263,7 +255,7 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.DB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); err == nil {
 				scope.db.RowsAffected = count
 			}
@@ -308,7 +300,7 @@ func (scope *Scope) Trace(t time.Time) {
 
 // Begin start a transaction
 func (scope *Scope) Begin() *Scope {
-	if db, ok := scope.DB().(sqlDb); ok {
+	if db, ok := scope.SqlDB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
 			scope.db.db = interface{}(tx).(sqlCommon)
 			scope.InstanceSet("gorm:started_transaction", true)

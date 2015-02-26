@@ -83,7 +83,7 @@ func (s *postgres) HasTable(scope *Scope, tableName string) bool {
 	var count int
 	newScope := scope.New(nil)
 	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v and table_type = 'BASE TABLE'", newScope.AddToVars(tableName)))
-	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
 
@@ -94,7 +94,7 @@ func (s *postgres) HasColumn(scope *Scope, tableName string, columnName string) 
 		newScope.AddToVars(tableName),
 		newScope.AddToVars(columnName),
 	))
-	newScope.DB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
 	return count > 0
 }
 

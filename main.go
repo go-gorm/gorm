@@ -84,10 +84,25 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
-func (s *DB) New() *DB {
-	clone := s.clone()
-	clone.search = nil
-	return clone
+// NewScope create scope for callbacks, including DB's search information
+func (db *DB) NewScope(value interface{}) *Scope {
+	dbClone := db.clone()
+	dbClone.Value = value
+	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
+}
+
+func (s *DB) FreshDB() *DB {
+	newDB := &DB{
+		dialect:      s.dialect,
+		logger:       s.logger,
+		callback:     s.parent.callback.clone(),
+		source:       s.source,
+		values:       map[string]interface{}{},
+		db:           s.db,
+		ModelStructs: map[reflect.Type]*ModelStruct{},
+	}
+	newDB.parent = newDB
+	return newDB
 }
 
 // CommonDB Return the underlying sql.DB or sql.Tx instance.

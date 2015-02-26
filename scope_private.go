@@ -338,13 +338,13 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 func (scope *Scope) row() *sql.Row {
 	defer scope.Trace(NowFunc())
 	scope.prepareQuerySql()
-	return scope.DB().QueryRow(scope.Sql, scope.SqlVars...)
+	return scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
 	defer scope.Trace(NowFunc())
 	scope.prepareQuerySql()
-	return scope.DB().Query(scope.Sql, scope.SqlVars...)
+	return scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) initialize() *Scope {
