@@ -322,7 +322,10 @@ func (s *DB) Count(value interface{}) *DB {
 }
 
 func (s *DB) Table(name string) *DB {
-	return s.clone().search.table(name).db
+	clone := s.clone()
+	clone.search.table(name)
+	clone.Value = nil
+	return clone
 }
 
 func (s *DB) Debug() *DB {

@@ -53,9 +53,14 @@ func (scope *Scope) NewDB() *DB {
 	if scope.db != nil {
 		db := scope.db.clone()
 		db.search = nil
+		db.Value = nil
 		return db
 	}
 	return nil
+}
+
+func (scope *Scope) DB() *DB {
+	return scope.db
 }
 
 // SqlDB return *sql.DB
@@ -221,12 +226,12 @@ func (scope *Scope) TableName() string {
 	return scope.GetModelStruct().TableName
 }
 
-func (scope *Scope) QuotedTableName() string {
+func (scope *Scope) QuotedTableName() (name string) {
 	if scope.Search != nil && len(scope.Search.TableName) > 0 {
-		return scope.Search.TableName
+		return scope.Quote(scope.Search.TableName)
+	} else {
+		return scope.Quote(scope.TableName())
 	}
-
-	return scope.Quote(scope.TableName())
 }
 
 // CombinedConditionSql get combined condition sql

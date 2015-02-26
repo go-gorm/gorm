@@ -1,9 +1,6 @@
 package gorm_test
 
-import (
-	"os"
-	"testing"
-)
+import "testing"
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
 	DB.DropTable(Category{})
@@ -183,7 +180,6 @@ func TestManyToMany(t *testing.T) {
 	DB.Model(&user).Association("Languages").Delete(language, &language)
 	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 || len(user.Languages) != len(totalLanguages)-1 {
 		t.Errorf("Relations should be deleted with Delete")
-		os.Exit(1)
 	}
 	if DB.Where("name = ?", "EE").First(&Language{}).RecordNotFound() {
 		t.Errorf("Language EE should not be deleted")
