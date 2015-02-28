@@ -63,8 +63,9 @@ type Address struct {
 }
 
 type Language struct {
-	Id   int
-	Name string
+	Id    int
+	Name  string
+	Users []User `gorm:"many2many:user_languages;"`
 }
 
 type Product struct {

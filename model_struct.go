@@ -195,7 +195,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 				switch indirectType.Kind() {
 				case reflect.Slice:
-					if toStructFields := toScope.GetStructFields(); len(toStructFields) > 0 {
+					elemType := indirectType.Elem()
+					if elemType.Kind() == reflect.Ptr {
+						elemType = elemType.Elem()
+					}
+
+					if elemType.Kind() == reflect.Struct {
 						if foreignKey == "" {
 							foreignKey = scopeType.Name() + "Id"
 						}
@@ -206,7 +211,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 							associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 							if associationForeignKey == "" {
-								associationForeignKey = toScope.GetModelStruct().ModelType.Name() + "Id"
+								associationForeignKey = elemType.Name() + "Id"
 							}
 
 							relationship.ForeignFieldName = foreignKey
@@ -216,7 +221,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							field.Relationship = relationship
 						} else {
 							relationship.Kind = "has_many"
-							if foreignField := getForeignField(foreignKey, toStructFields); foreignField != nil {
+							if foreignField := getForeignField(foreignKey, toScope.GetStructFields()); foreignField != nil {
 								relationship.ForeignFieldName = foreignField.Name
 								relationship.ForeignDBName = foreignField.DBName
 								foreignField.IsForeignKey = true
