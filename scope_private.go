@@ -471,7 +471,9 @@ func (scope *Scope) dropTable() *Scope {
 }
 
 func (scope *Scope) dropTableIfExists() *Scope {
-	scope.Raw(fmt.Sprintf("DROP TABLE IF EXISTS %v", scope.QuotedTableName())).Exec()
+	if scope.Dialect().HasTable(scope, scope.TableName()) {
+		scope.dropTable()
+	}
 	return scope
 }
 

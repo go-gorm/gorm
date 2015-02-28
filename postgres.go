@@ -81,25 +81,18 @@ func (s *postgres) Quote(key string) string {
 
 func (s *postgres) HasTable(scope *Scope, tableName string) bool {
 	var count int
-	newScope := scope.New(nil)
-	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM INFORMATION_SCHEMA.tables where table_name = %v and table_type = 'BASE TABLE'", newScope.AddToVars(tableName)))
-	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_type = 'BASE TABLE'", tableName).Row().Scan(&count)
 	return count > 0
 }
 
 func (s *postgres) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
-	newScope := scope.New(nil)
-	newScope.Raw(fmt.Sprintf("SELECT count(*) FROM information_schema.columns WHERE table_name = %v AND column_name = %v",
-		newScope.AddToVars(tableName),
-		newScope.AddToVars(columnName),
-	))
-	newScope.SqlDB().QueryRow(newScope.Sql, newScope.SqlVars...).Scan(&count)
+	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_name = ? AND column_name = ?", tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
 func (s *postgres) RemoveIndex(scope *Scope, indexName string) {
-	scope.Raw(fmt.Sprintf("DROP INDEX %v", s.Quote(indexName))).Exec()
+	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 }
 
 var hstoreType = reflect.TypeOf(Hstore{})

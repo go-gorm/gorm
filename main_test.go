@@ -35,7 +35,7 @@ func init() {
 		DB, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
 	case "postgres":
 		fmt.Println("testing postgres...")
-		DB, err = gorm.Open("postgres", "user=gorm DB.ame=gorm sslmode=disable")
+		DB, err = gorm.Open("postgres", "user=gorm DB.name=gorm sslmode=disable")
 	case "mssql":
 		fmt.Println("testing mssql...")
 		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")

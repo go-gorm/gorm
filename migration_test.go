@@ -7,7 +7,7 @@ import (
 )
 
 func runMigration() {
-	if err := DB.DropTable(&User{}).Error; err != nil {
+	if err := DB.DropTableIfExists(&User{}).Error; err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
 
