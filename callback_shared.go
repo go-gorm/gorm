@@ -1,10 +1,6 @@
 package gorm
 
-import (
-	"fmt"
-	"reflect"
-	"strings"
-)
+import "reflect"
 
 func BeginTransaction(scope *Scope) {
 	scope.Begin()
@@ -53,24 +49,8 @@ func SaveAfterAssociations(scope *Scope) {
 						scope.Err(newDB.Save(elem).Error)
 
 						if joinTable := relationship.JoinTable; joinTable != "" {
-							quotedForeignDBName := scope.Quote(relationship.ForeignDBName)
-							foreignValue := scope.PrimaryKeyValue()
-							quoteAssociationForeignDBName := scope.Quote(relationship.AssociationForeignDBName)
-							associationForeignValue := newScope.PrimaryKeyValue()
-
-							newScope.Raw(fmt.Sprintf(
-								"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v = %v AND %v = %v);",
-								joinTable,
-								strings.Join([]string{quotedForeignDBName, quoteAssociationForeignDBName}, ","),
-								strings.Join([]string{newScope.AddToVars(foreignValue), newScope.AddToVars(associationForeignValue)}, ","),
-								scope.Dialect().SelectFromDummyTable(),
-								joinTable,
-								quotedForeignDBName,
-								newScope.AddToVars(foreignValue),
-								quoteAssociationForeignDBName,
-								newScope.AddToVars(associationForeignValue),
-							))
-							scope.Err(scope.NewDB().Exec(newScope.Sql, newScope.SqlVars...).Error)
+							scope.Err(scope.db.GetJoinTableHandler(joinTable).
+								Add(scope.NewDB(), relationship, scope.PrimaryKeyValue(), newScope.PrimaryKeyValue()))
 						}
 					}
 				default:

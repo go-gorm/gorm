@@ -71,15 +71,15 @@ func (association *Association) Delete(values ...interface{}) *Association {
 	if len(primaryKeys) == 0 {
 		association.setErr(errors.New("no primary key found"))
 	} else {
+		scope := association.Scope
 		relationship := association.Field.Relationship
 		// many to many
 		if relationship.Kind == "many_to_many" {
-			whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v IN (?)",
-				relationship.JoinTable, association.Scope.Quote(relationship.ForeignDBName),
-				relationship.JoinTable, association.Scope.Quote(relationship.AssociationForeignDBName))
-
-			if err := association.Scope.DB().Table(relationship.JoinTable).
-				Where(whereSql, association.PrimaryKey, primaryKeys).Delete("").Error; err == nil {
+			sql := fmt.Sprintf("%v.%v = ? AND %v.%v IN (?)",
+				scope.Quote(relationship.JoinTable), scope.Quote(relationship.ForeignDBName),
+				scope.Quote(relationship.JoinTable), scope.Quote(relationship.AssociationForeignDBName))
+			query := scope.NewDB().Table(relationship.JoinTable).Where(sql, association.PrimaryKey, primaryKeys)
+			if err := scope.db.GetJoinTableHandler(relationship.JoinTable).Delete(query, relationship); err == nil {
 				leftValues := reflect.Zero(association.Field.Field.Type())
 				for i := 0; i < association.Field.Field.Len(); i++ {
 					value := association.Field.Field.Index(i)
@@ -132,11 +132,9 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			addedPrimaryKeys = append(addedPrimaryKeys, primaryKey)
 		}
 
-		whereSql := fmt.Sprintf("%v.%v = ? AND %v.%v NOT IN (?)",
-			relationship.JoinTable, association.Scope.Quote(relationship.ForeignDBName),
-			relationship.JoinTable, association.Scope.Quote(relationship.AssociationForeignDBName))
-
-		scope.DB().Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey, addedPrimaryKeys).Delete("")
+		sql := fmt.Sprintf("%v.%v = ? AND %v.%v NOT IN (?)", scope.Quote(relationship.JoinTable), scope.Quote(relationship.ForeignDBName), scope.Quote(relationship.JoinTable), scope.Quote(relationship.AssociationForeignDBName))
+		query := scope.NewDB().Table(relationship.JoinTable).Where(sql, association.PrimaryKey, addedPrimaryKeys)
+		association.setErr(scope.db.GetJoinTableHandler(relationship.JoinTable).Delete(query, relationship))
 	} else {
 		association.setErr(errors.New("replace only support many to many"))
 	}
@@ -147,8 +145,9 @@ func (association *Association) Clear() *Association {
 	relationship := association.Field.Relationship
 	scope := association.Scope
 	if relationship.Kind == "many_to_many" {
-		whereSql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(relationship.ForeignDBName))
-		if err := scope.DB().Table(relationship.JoinTable).Where(whereSql, association.PrimaryKey).Delete("").Error; err == nil {
+		sql := fmt.Sprintf("%v.%v = ?", relationship.JoinTable, scope.Quote(relationship.ForeignDBName))
+		query := scope.NewDB().Table(relationship.JoinTable).Where(sql, association.PrimaryKey)
+		if err := scope.db.GetJoinTableHandler(relationship.JoinTable).Delete(query, relationship); err == nil {
 			association.Field.Set(reflect.Zero(association.Field.Field.Type()))
 		} else {
 			association.setErr(err)
@@ -166,9 +165,10 @@ func (association *Association) Count() int {
 	newScope := scope.New(association.Field.Field.Interface())
 
 	if relationship.Kind == "many_to_many" {
-		scope.DB().Table(relationship.JoinTable).
+		query := scope.DB().Table(relationship.JoinTable).
 			Select("COUNT(DISTINCT ?)", relationship.AssociationForeignDBName).
-			Where(relationship.ForeignDBName+" = ?", association.PrimaryKey).Row().Scan(&count)
+			Where(relationship.ForeignDBName+" = ?", association.PrimaryKey)
+		scope.db.GetJoinTableHandler(relationship.JoinTable).Scope(query, relationship).Row().Scan(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.ForeignDBName))
 		countScope := scope.DB().Table(newScope.TableName()).Where(whereSql, association.PrimaryKey)

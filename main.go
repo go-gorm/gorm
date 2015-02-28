@@ -20,20 +20,21 @@ var NowFunc = func() time.Time {
 }
 
 type DB struct {
-	Value         interface{}
-	Error         error
-	RowsAffected  int64
-	ModelStructs  map[reflect.Type]*ModelStruct
-	callback      *callback
-	db            sqlCommon
-	parent        *DB
-	search        *search
-	logMode       int
-	logger        logger
-	dialect       Dialect
-	singularTable bool
-	source        string
-	values        map[string]interface{}
+	Value             interface{}
+	Error             error
+	RowsAffected      int64
+	ModelStructs      map[reflect.Type]*ModelStruct
+	callback          *callback
+	db                sqlCommon
+	parent            *DB
+	search            *search
+	logMode           int
+	logger            logger
+	dialect           Dialect
+	singularTable     bool
+	source            string
+	values            map[string]interface{}
+	joinTableHandlers map[string]JoinTableHandler
 }
 
 func Open(dialect string, args ...interface{}) (DB, error) {
@@ -89,20 +90,6 @@ func (db *DB) NewScope(value interface{}) *Scope {
 	dbClone := db.clone()
 	dbClone.Value = value
 	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
-}
-
-func (s *DB) FreshDB() *DB {
-	newDB := &DB{
-		dialect:      s.dialect,
-		logger:       s.logger,
-		callback:     s.parent.callback.clone(),
-		source:       s.source,
-		values:       map[string]interface{}{},
-		db:           s.db,
-		ModelStructs: map[reflect.Type]*ModelStruct{},
-	}
-	newDB.parent = newDB
-	return newDB
 }
 
 // CommonDB Return the underlying sql.DB or sql.Tx instance.
@@ -472,4 +459,30 @@ func (s *DB) InstantSet(name string, value interface{}) *DB {
 func (s *DB) Get(name string) (value interface{}, ok bool) {
 	value, ok = s.values[name]
 	return
+}
+
+func (s *DB) GetJoinTableHandler(table string) JoinTableHandler {
+	if s.parent.joinTableHandlers != nil {
+		if joinTableHandler, ok := s.parent.joinTableHandlers[table]; ok {
+			return joinTableHandler
+		}
+		if joinTableHandler, ok := s.parent.joinTableHandlers["*"]; ok {
+			return joinTableHandler
+		}
+	}
+	return DefaultJoinTableHandler
+}
+
+func (s *DB) SetJoinTableHandler(joinTableHandler JoinTableHandler, tables ...string) {
+	if s.parent.joinTableHandlers == nil {
+		s.parent.joinTableHandlers = map[string]JoinTableHandler{}
+	}
+
+	if len(tables) > 0 {
+		for _, table := range tables {
+			s.parent.joinTableHandlers[table] = joinTableHandler
+		}
+	} else {
+		s.parent.joinTableHandlers["*"] = joinTableHandler
+	}
 }
