@@ -502,7 +502,7 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	var table = scope.TableName()
 	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, table, keyName, field, dest, onDelete, onUpdate)).Exec()
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), keyName, field, dest, onDelete, onUpdate)).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
