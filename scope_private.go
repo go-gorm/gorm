@@ -439,18 +439,17 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 func (scope *Scope) createJoinTable(field *StructField) {
-	if field.Relationship != nil && field.Relationship.JoinTable != "" {
-		if !scope.Dialect().HasTable(scope, field.Relationship.JoinTable) {
-			newScope := scope.db.NewScope("")
+	if relationship := field.Relationship; relationship != nil && relationship.JoinTable != "" {
+		if !scope.Dialect().HasTable(scope, relationship.JoinTable) {
 			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryKeyField().Field, 255)
-			newScope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)",
-				field.Relationship.JoinTable,
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
+				scope.Quote(relationship.JoinTable),
 				strings.Join([]string{
-					scope.Quote(field.Relationship.ForeignDBName) + " " + primaryKeySqlType,
-					scope.Quote(field.Relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
-			).Exec()
-			scope.Err(newScope.db.Error)
+					scope.Quote(relationship.ForeignDBName) + " " + primaryKeySqlType,
+					scope.Quote(relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
+			).Error)
 		}
+		scope.NewDB().Table(relationship.JoinTable).AutoMigrate(scope.db.GetJoinTableHandler(relationship.JoinTable))
 	}
 }
 

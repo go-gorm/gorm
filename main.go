@@ -481,6 +481,7 @@ func (s *DB) SetJoinTableHandler(joinTableHandler JoinTableHandler, tables ...st
 	if len(tables) > 0 {
 		for _, table := range tables {
 			s.parent.joinTableHandlers[table] = joinTableHandler
+			s.Table(table).AutoMigrate(joinTableHandler)
 		}
 	} else {
 		s.parent.joinTableHandlers["*"] = joinTableHandler
