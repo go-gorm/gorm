@@ -96,6 +96,12 @@ func (s *mysql) HasColumn(scope *Scope, tableName string, columnName string) boo
 	return count > 0
 }
 
+func (s *mysql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS where table_name = ? AND index_name = ?", tableName, indexName).Row().Scan(&count)
+	return count > 0
+}
+
 func (s *mysql) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
 }

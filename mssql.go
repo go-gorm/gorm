@@ -98,6 +98,12 @@ func (s *mssql) HasColumn(scope *Scope, tableName string, columnName string) boo
 	return count > 0
 }
 
+func (s *mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	scope.NewDB().Raw("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Row().Scan(&count)
+	return count > 0
+}
+
 func (s *mssql) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
 }

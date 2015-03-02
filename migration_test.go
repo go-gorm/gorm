@@ -30,20 +30,41 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
+	scope := DB.NewScope(&Email{})
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email") {
+		t.Errorf("Email should have index idx_email_email")
+	}
+
 	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email") {
+		t.Errorf("Email's index idx_email_email should be deleted")
 	}
 
 	if err := DB.Model(&Email{}).AddIndex("idx_email_email_and_user_id", "user_id", "email").Error; err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email_and_user_id") {
+		t.Errorf("Email should have index idx_email_email_and_user_id")
+	}
+
 	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
 
+	if scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email_and_user_id") {
+		t.Errorf("Email's index idx_email_email_and_user_id should be deleted")
+	}
+
 	if err := DB.Model(&Email{}).AddUniqueIndex("idx_email_email_and_user_id", "user_id", "email").Error; err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
+	}
+
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email_and_user_id") {
+		t.Errorf("Email should have index idx_email_email_and_user_id")
 	}
 
 	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error == nil {
@@ -52,6 +73,10 @@ func TestIndexes(t *testing.T) {
 
 	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
+	}
+
+	if scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_email_and_user_id") {
+		t.Errorf("Email's index idx_email_email_and_user_id should be deleted")
 	}
 
 	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error != nil {

@@ -80,6 +80,12 @@ func (s *sqlite3) HasColumn(scope *Scope, tableName string, columnName string) b
 	return count > 0
 }
 
+func (s *sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	scope.NewDB().Raw(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND sql LIKE '%%INDEX %v ON%%'", indexName), tableName).Row().Scan(&count)
+	return count > 0
+}
+
 func (s *sqlite3) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 }

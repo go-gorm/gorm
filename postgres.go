@@ -87,12 +87,18 @@ func (s *postgres) HasTable(scope *Scope, tableName string) bool {
 
 func (s *postgres) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_name = ? AND column_name = ?", tableName, columnName).Row().Scan(&count)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = ? AND column_name = ?", tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
 func (s *postgres) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName))
+}
+
+func (s *postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	scope.NewDB().Raw("SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName).Row().Scan(&count)
+	return count > 0
 }
 
 var hstoreType = reflect.TypeOf(Hstore{})

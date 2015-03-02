@@ -399,6 +399,16 @@ func (s *DB) AddIndex(indexName string, column ...string) *DB {
 	return s
 }
 
+func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
+	s.clone().NewScope(s.Value).addIndex(true, indexName, column...)
+	return s
+}
+
+func (s *DB) RemoveIndex(indexName string) *DB {
+	s.clone().NewScope(s.Value).removeIndex(indexName)
+	return s
+}
+
 /*
 Add foreign key to the given scope
 
@@ -407,16 +417,6 @@ Example:
 */
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
 	s.clone().NewScope(s.Value).addForeignKey(field, dest, onDelete, onUpdate)
-	return s
-}
-
-func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(true, indexName, column...)
-	return s
-}
-
-func (s *DB) RemoveIndex(indexName string) *DB {
-	s.clone().NewScope(s.Value).removeIndex(indexName)
 	return s
 }
 

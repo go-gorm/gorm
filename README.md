@@ -60,7 +60,7 @@ type Address struct {
 	ID       int
 	Address1 string         `sql:"not null;unique"` // Set field as not nullable and unique
 	Address2 string         `sql:"type:varchar(100);unique"`
-	Post     sql.NullString `sql:not null`
+	Post     sql.NullString `sql:"not null"`
 }
 
 type Language struct {
