@@ -64,6 +64,7 @@ func TestRelated(t *testing.T) {
 		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
 		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
 		CreditCard:      CreditCard{Number: "1234567890"},
+		Company:         Company{Name: "company1"},
 	}
 
 	DB.Save(&user)
@@ -125,6 +126,11 @@ func TestRelated(t *testing.T) {
 	}
 
 	if !DB.Model(&CreditCard{}).Related(&User{}).RecordNotFound() {
+		t.Errorf("RecordNotFound for Related")
+	}
+
+	var company Company
+	if DB.Model(&user).Related(&company, "Company").RecordNotFound() || company.Name != "company1" {
 		t.Errorf("RecordNotFound for Related")
 	}
 }

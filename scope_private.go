@@ -413,7 +413,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					scope.Err(toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-					scope.Err(toScope.db.Where(sql, fromField.Field.Interface()).Find(value).Error)
+					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
+					scope.Err(toScope.db.Where(sql, foreignKeyValue).Find(value).Error)
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
 					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
