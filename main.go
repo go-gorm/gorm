@@ -85,6 +85,13 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
+func (s *DB) New() *DB {
+	clone := s.clone()
+	clone.search = nil
+	clone.Value = nil
+	return clone
+}
+
 // NewScope create scope for callbacks, including DB's search information
 func (db *DB) NewScope(value interface{}) *Scope {
 	dbClone := db.clone()
