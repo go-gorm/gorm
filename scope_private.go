@@ -402,14 +402,17 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
+					joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
+					quotedJoinTable := scope.Quote(joinTableHandler.Table(scope.db, relationship))
+
 					joinSql := fmt.Sprintf(
 						"INNER JOIN %v ON %v.%v = %v.%v",
-						scope.Quote(relationship.JoinTable),
-						scope.Quote(relationship.JoinTable),
+						quotedJoinTable,
+						quotedJoinTable,
 						scope.Quote(relationship.AssociationForeignDBName),
 						toScope.QuotedTableName(),
 						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", scope.Quote(relationship.JoinTable), scope.Quote(relationship.ForeignDBName))
+					whereSql := fmt.Sprintf("%v.%v = ?", quotedJoinTable, scope.Quote(relationship.ForeignDBName))
 					scope.Err(toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
@@ -441,16 +444,18 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 
 func (scope *Scope) createJoinTable(field *StructField) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTable != "" {
-		if !scope.Dialect().HasTable(scope, relationship.JoinTable) {
+		joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
+		joinTable := joinTableHandler.Table(scope.db, relationship)
+		if !scope.Dialect().HasTable(scope, joinTable) {
 			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryKeyField().Field, 255)
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
-				scope.Quote(relationship.JoinTable),
+				scope.Quote(joinTable),
 				strings.Join([]string{
 					scope.Quote(relationship.ForeignDBName) + " " + primaryKeySqlType,
 					scope.Quote(relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
 			).Error)
 		}
-		scope.NewDB().Table(relationship.JoinTable).AutoMigrate(scope.db.GetJoinTableHandler(relationship.JoinTable))
+		scope.NewDB().Table(joinTable).AutoMigrate()
 	}
 }
 

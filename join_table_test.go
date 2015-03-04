@@ -21,6 +21,10 @@ type PersonAddress struct {
 	CreatedAt time.Time
 }
 
+func (*PersonAddress) Table(db *gorm.DB, relationship *gorm.Relationship) string {
+	return relationship.JoinTable
+}
+
 func (*PersonAddress) Add(db *gorm.DB, relationship *gorm.Relationship, foreignValue interface{}, associationValue interface{}) error {
 	return db.Where(map[string]interface{}{
 		relationship.ForeignDBName:            foreignValue,
@@ -36,8 +40,9 @@ func (*PersonAddress) Delete(db *gorm.DB, relationship *gorm.Relationship) error
 	return db.Delete(&PersonAddress{}).Error
 }
 
-func (*PersonAddress) Scope(db *gorm.DB, relationship *gorm.Relationship) *gorm.DB {
-	return db.Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", relationship.JoinTable, relationship.JoinTable))
+func (pa *PersonAddress) Scope(db *gorm.DB, relationship *gorm.Relationship) *gorm.DB {
+	table := pa.Table(db, relationship)
+	return db.Table(table).Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
 
 func TestJoinTable(t *testing.T) {
