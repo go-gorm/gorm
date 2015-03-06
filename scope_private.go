@@ -48,7 +48,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		switch reflect.TypeOf(arg).Kind() {
+		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			values := reflect.ValueOf(arg)
 			var tempMarks []string
@@ -110,7 +110,7 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		switch reflect.TypeOf(arg).Kind() {
+		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			values := reflect.ValueOf(arg)
 			var tempMarks []string
@@ -138,7 +138,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		switch reflect.TypeOf(arg).Kind() {
+		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice:
 			values := reflect.ValueOf(arg)
 			var tempMarks []string
