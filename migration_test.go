@@ -87,9 +87,9 @@ func TestIndexes(t *testing.T) {
 type BigEmail struct {
 	Id           int64
 	UserId       int64
-	Email        string
-	UserAgent    string
-	RegisteredAt time.Time
+	Email        string    `sql:"index:idx_email_agent"`
+	UserAgent    string    `sql:"index:idx_email_agent"`
+	RegisteredAt time.Time `sql:"unique_index"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -105,6 +105,15 @@ func TestAutoMigration(t *testing.T) {
 	}
 
 	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
+
+	scope := DB.NewScope(&BigEmail{})
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_agent") {
+		t.Errorf("Failed to create index")
+	}
+
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "uix_emails_registered_at") {
+		t.Errorf("Failed to create index")
+	}
 
 	var bigemail BigEmail
 	DB.First(&bigemail, "user_agent = ?", "pc")

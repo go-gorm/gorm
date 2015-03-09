@@ -532,5 +532,43 @@ func (scope *Scope) autoMigrate() *Scope {
 			scope.createJoinTable(field)
 		}
 	}
+
+	scope.autoIndex()
+	return scope
+}
+
+func (scope *Scope) autoIndex() *Scope {
+	var indexes = map[string][]string{}
+	var uniqueIndexes = map[string][]string{}
+
+	for _, field := range scope.GetStructFields() {
+		sqlSettings := parseTagSetting(field.Tag.Get("sql"))
+		if name, ok := sqlSettings["INDEX"]; ok {
+			if name == "INDEX" {
+				name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
+			}
+			indexes[name] = append(indexes[name], field.DBName)
+		}
+
+		if name, ok := sqlSettings["UNIQUE_INDEX"]; ok {
+			if name == "UNIQUE_INDEX" {
+				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+			}
+			uniqueIndexes[name] = append(indexes[name], field.DBName)
+		}
+	}
+
+	for name, columns := range indexes {
+		if !scope.Dialect().HasIndex(scope, scope.TableName(), name) {
+			scope.addIndex(false, name, columns...)
+		}
+	}
+
+	for name, columns := range uniqueIndexes {
+		if !scope.Dialect().HasIndex(scope, scope.TableName(), name) {
+			scope.addIndex(true, name, columns...)
+		}
+	}
+
 	return scope
 }

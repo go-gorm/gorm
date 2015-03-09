@@ -35,7 +35,7 @@ type User struct {
 	ID           int
 	Birthday     time.Time
 	Age          int
-	Name         string  `sql:"size:255"`
+	Name         string  `sql:"size:255"` // Default size for string is 255, you could reset it with this tag
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    time.Time
@@ -50,9 +50,9 @@ type User struct {
 }
 
 type Email struct {
-	ID         int
-	UserID     int     // Foreign key for User (belongs to)
-	Email      string  `sql:"type:varchar(100);"` // Set field's type
+	ID      int
+	UserID  int     `sql:"index"` // Foreign key (belongs to), tag `index` will create index for this field when using AutoMigrate
+	Email   string  `sql:"type:varchar(100);unique_index"` // Set field's sql type, tag `unique_index` will create unique index
 	Subscribed bool
 }
 
@@ -65,7 +65,8 @@ type Address struct {
 
 type Language struct {
 	ID   int
-	Name string
+	Name string `sql:"index:idx_name_code"` // Create index with name, and will create combined index if find other fields defined same name
+	Code string `sql:"index:idx_name_code"` // `unique_index` also works
 }
 ```
 
@@ -74,13 +75,7 @@ type Language struct {
 * Table name is the plural of struct name's snake case, you can disable pluralization with `db.SingularTable(true)`, or [Specifying The Table Name For A Struct Permanently With TableName](#specifying-the-table-name-for-a-struct-permanently-with-tablename)
 
 ```go
-// E.g finding an existing User
-var user User
-// Gorm will know to use table "users" ("user" if pluralisation has been disabled) for all operations.
-db.First(&user)
-
-// creating a new User
-db.Save(&User{Name: "xxx"}) // table "users"
+type User struct{} // struct User's database table name is "users" by default, will be "user" if you disabled pluralisation
 ```
 
 * Column name is the snake case of field's name
@@ -92,7 +87,6 @@ db.Save(&User{Name: "xxx"}) // table "users"
 ## Initialize Database
 
 ```go
-
 import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -101,7 +95,7 @@ import (
 )
 
 db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-// db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True")
+// db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 // db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 
 // You can also use an existing database connection handle
@@ -129,38 +123,13 @@ db.CreateTable(&User{})
 // Drop table
 db.DropTable(&User{})
 
-// Drop table if exists
-db.DropTableIfExists(&User{})
-
 // Automating Migration
 db.AutoMigrate(&User{})
 db.AutoMigrate(&User{}, &Product{}, &Order{})
-
 // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
-// Fyi, AutoMigrate will only *add new columns*, it won't update column's type or delete unused columns, to make sure your data is safe.
+// AutoMigrate will ONLY add *new columns* and *new indexes*,
+// WON'T update current column's type or delete unused columns, to protect your data.
 // If the table is not existing, AutoMigrate will create the table automatically.
-
-// Add index
-db.Model(&User{}).AddIndex("idx_user_name", "name")
-
-// Add foreign key
-// 1st param : foreignkey field
-// 2nd param : destination table(id)
-// 3rd param : ONDELETE
-// 4th param : ONUPDATE
-db.Model(&User{}).AddForeignKey("user_id", "destination_table(id)", "CASCADE", "RESTRICT")
-
-// Multiple column index
-db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
-
-// Add unique index
-db.Model(&User{}).AddUniqueIndex("idx_user_name", "name")
-
-// Multiple column unique index
-db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
-
-// Remove index
-db.Model(&User{}).RemoveIndex("idx_user_name")
 ```
 
 # Basic CRUD
@@ -170,18 +139,13 @@ db.Model(&User{}).RemoveIndex("idx_user_name")
 ```go
 user := User{Name: "Jinzhu", Age: 18, Birthday: time.Now()}
 
-// returns true if record hasn’t been saved (primary key `Id` is blank)
-db.NewRecord(user) // => true
+db.NewRecord(user) // => returns `true` if primary key is blank
 
 db.Create(&user)
 
-// will return false after `user` created
-db.NewRecord(user) // => false
+db.NewRecord(user) // => return `false` after `user` created
 
-// You could use `Save` to create record also if its primary key is null
-db.Save(&user)
-
-// Associations will be saved automatically when insert the record
+// Associations will be inserted automatically when save the record
 user := User{
 	Name:            "jinzhu",
 	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
@@ -204,7 +168,7 @@ db.Create(&user)
 //// COMMIT;
 ```
 
-Refer [Associations](#associations) for how to work with associations
+Refer [Associations](#associations) for more details
 
 ## Query
 
@@ -1094,6 +1058,32 @@ INSERT INTO animals("age") values('99');
 ```
 
 The same thing occurs in update statements.
+
+## Database Indexes & Foreign Key
+
+```go
+// Add foreign key
+// 1st param : foreignkey field
+// 2nd param : destination table(id)
+// 3rd param : ONDELETE
+// 4th param : ONUPDATE
+db.Model(&User{}).AddForeignKey("user_id", "destination_table(id)", "CASCADE", "RESTRICT")
+
+// Add index
+db.Model(&User{}).AddIndex("idx_user_name", "name")
+
+// Multiple column index
+db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
+
+// Add unique index
+db.Model(&User{}).AddUniqueIndex("idx_user_name", "name")
+
+// Multiple column unique index
+db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
+
+// Remove index
+db.Model(&User{}).RemoveIndex("idx_user_name")
+```
 
 ## More examples with query chain
 
