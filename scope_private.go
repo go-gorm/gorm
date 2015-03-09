@@ -492,6 +492,10 @@ func (scope *Scope) dropColumn(column string) {
 }
 
 func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
+	if scope.Dialect().HasIndex(scope, scope.TableName(), indexName) {
+		return
+	}
+
 	var columns []string
 	for _, name := range column {
 		columns = append(columns, scope.Quote(name))
@@ -559,15 +563,11 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		if !scope.Dialect().HasIndex(scope, scope.TableName(), name) {
-			scope.addIndex(false, name, columns...)
-		}
+		scope.addIndex(false, name, columns...)
 	}
 
 	for name, columns := range uniqueIndexes {
-		if !scope.Dialect().HasIndex(scope, scope.TableName(), name) {
-			scope.addIndex(true, name, columns...)
-		}
+		scope.addIndex(true, name, columns...)
 	}
 
 	return scope
