@@ -12,10 +12,10 @@ import (
 )
 
 type ModelStruct struct {
-	PrimaryKeyField *StructField
-	StructFields    []*StructField
-	ModelType       reflect.Type
-	TableName       string
+	PrimaryFields []*StructField
+	StructFields  []*StructField
+	ModelType     reflect.Type
+	TableName     string
 }
 
 type StructField struct {
@@ -131,7 +131,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				gormSettings := parseTagSetting(field.Tag.Get("gorm"))
 				if _, ok := gormSettings["PRIMARY_KEY"]; ok {
 					field.IsPrimaryKey = true
-					modelStruct.PrimaryKeyField = field
+					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
 
 				if _, ok := sqlSettings["DEFAULT"]; ok {
@@ -240,7 +240,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							toField.Names = append([]string{fieldStruct.Name}, toField.Names...)
 							modelStruct.StructFields = append(modelStruct.StructFields, toField)
 							if toField.IsPrimaryKey {
-								modelStruct.PrimaryKeyField = toField
+								modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, toField)
 							}
 						}
 						continue
@@ -277,9 +277,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 
 			if field.IsNormal {
-				if modelStruct.PrimaryKeyField == nil && field.DBName == "id" {
+				if len(modelStruct.PrimaryFields) == 0 && field.DBName == "id" {
 					field.IsPrimaryKey = true
-					modelStruct.PrimaryKeyField = field
+					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
 
 				if scope.db != nil {

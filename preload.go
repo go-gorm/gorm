@@ -29,8 +29,8 @@ func Preload(scope *Scope) {
 				if field.Name == key && field.Relationship != nil {
 					results := makeSlice(field.Struct.Type)
 					relation := field.Relationship
-					primaryName := scope.PrimaryKeyField().Name
-					associationPrimaryKey := scope.New(results).PrimaryKeyField().Name
+					primaryName := scope.PrimaryField().Name
+					associationPrimaryKey := scope.New(results).PrimaryField().Name
 
 					switch relation.Kind {
 					case "has_one":

@@ -52,12 +52,12 @@ func (association *Association) getPrimaryKeys(values ...interface{}) []interfac
 		reflectValue := reflect.Indirect(reflect.ValueOf(value))
 		if reflectValue.Kind() == reflect.Slice {
 			for i := 0; i < reflectValue.Len(); i++ {
-				if primaryField := scope.New(reflectValue.Index(i).Interface()).PrimaryKeyField(); !primaryField.IsBlank {
+				if primaryField := scope.New(reflectValue.Index(i).Interface()).PrimaryField(); !primaryField.IsBlank {
 					primaryKeys = append(primaryKeys, primaryField.Field.Interface())
 				}
 			}
 		} else if reflectValue.Kind() == reflect.Struct {
-			if primaryField := scope.New(value).PrimaryKeyField(); !primaryField.IsBlank {
+			if primaryField := scope.New(value).PrimaryField(); !primaryField.IsBlank {
 				primaryKeys = append(primaryKeys, primaryField.Field.Interface())
 			}
 		}
@@ -81,7 +81,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 				leftValues := reflect.Zero(association.Field.Field.Type())
 				for i := 0; i < association.Field.Field.Len(); i++ {
 					value := association.Field.Field.Index(i)
-					if primaryField := association.Scope.New(value.Interface()).PrimaryKeyField(); primaryField != nil {
+					if primaryField := association.Scope.New(value.Interface()).PrimaryField(); primaryField != nil {
 						var included = false
 						for _, primaryKey := range primaryKeys {
 							if equalAsString(primaryKey, primaryField.Field.Interface()) {

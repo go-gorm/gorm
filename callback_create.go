@@ -34,7 +34,7 @@ func Create(scope *Scope) {
 		}
 
 		returningKey := "*"
-		primaryField := scope.PrimaryKeyField()
+		primaryField := scope.PrimaryField()
 		if primaryField != nil {
 			returningKey = scope.Quote(primaryField.DBName)
 		}

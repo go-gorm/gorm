@@ -431,7 +431,7 @@ func (s *DB) Association(column string) *Association {
 	var err error
 	scope := s.clone().NewScope(s.Value)
 
-	if primaryField := scope.PrimaryKeyField(); primaryField.IsBlank {
+	if primaryField := scope.PrimaryField(); primaryField.IsBlank {
 		err = errors.New("primary key can't be nil")
 	} else {
 		if field, ok := scope.FieldByName(column); ok {

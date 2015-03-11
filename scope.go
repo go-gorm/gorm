@@ -109,16 +109,21 @@ func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
 
-func (scope *Scope) PrimaryKeyField() *Field {
-	if field := scope.GetModelStruct().PrimaryKeyField; field != nil {
-		return scope.Fields()[field.DBName]
+func (scope *Scope) PrimaryField() *Field {
+	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
+		if len(primaryFields) > 1 {
+			if field, ok := scope.Fields()["id"]; ok {
+				return field
+			}
+		}
+		return scope.Fields()[primaryFields[0].DBName]
 	}
 	return nil
 }
 
 // PrimaryKey get the primary key's column name
 func (scope *Scope) PrimaryKey() string {
-	if field := scope.PrimaryKeyField(); field != nil {
+	if field := scope.PrimaryField(); field != nil {
 		return field.DBName
 	}
 	return ""
@@ -126,13 +131,13 @@ func (scope *Scope) PrimaryKey() string {
 
 // PrimaryKeyZero check the primary key is blank or not
 func (scope *Scope) PrimaryKeyZero() bool {
-	field := scope.PrimaryKeyField()
+	field := scope.PrimaryField()
 	return field == nil || field.IsBlank
 }
 
 // PrimaryKeyValue get the primary key's value
 func (scope *Scope) PrimaryKeyValue() interface{} {
-	if field := scope.PrimaryKeyField(); field != nil && field.Field.IsValid() {
+	if field := scope.PrimaryField(); field != nil && field.Field.IsValid() {
 		return field.Field.Interface()
 	}
 	return 0

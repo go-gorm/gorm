@@ -447,7 +447,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 		joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
 		joinTable := joinTableHandler.Table(scope.db, relationship)
 		if !scope.Dialect().HasTable(scope, joinTable) {
-			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryKeyField().Field, 255)
+			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255)
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
 				scope.Quote(joinTable),
 				strings.Join([]string{
