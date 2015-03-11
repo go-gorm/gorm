@@ -350,6 +350,9 @@ db.First(&user, 111).Update("name", "hello")
 //// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111;
 
 // Update multiple attributes if they are changed
+db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
+
+// Update multiple attributes if they are changed (update with struct only works with none zero values)
 db.Model(&user).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;
 ```
@@ -362,6 +365,7 @@ By default, update will call BeforeUpdate, AfterUpdate callbacks, if you want to
 db.Model(&user).UpdateColumn("name", "hello")
 //// UPDATE users SET name='hello' WHERE id = 111;
 
+// Update with struct only works with none zero values, or use map[string]interface{}
 db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18 WHERE id = 111;
 ```
@@ -372,13 +376,13 @@ db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
 db.Table("users").Where("id = ?", 10).Updates(map[string]interface{}{"name": "hello", "age": 18})
 //// UPDATE users SET name='hello', age=18 WHERE id = 10;
 
+// Update with struct only works with none zero values, or use map[string]interface{}
 db.Model(User{}).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18;
 
-// Callbacks won't be run when do batch updates
+// Callbacks won't run when do batch updates
 
-// You may would like to know how many records updated when do batch updates
-// You could get it with `RowsAffected`
+// Use `RowsAffected` to get the count of affected records
 db.Model(User{}).Updates(User{Name: "hello", Age: 18}).RowsAffected
 ```
 
