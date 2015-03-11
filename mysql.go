@@ -21,13 +21,19 @@ func (s *mysql) HasTop() bool {
 	return false
 }
 
-func (s *mysql) SqlTag(value reflect.Value, size int) string {
+func (s *mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "boolean"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "int AUTO_INCREMENT"
+		}
 		return "int"
 	case reflect.Int64, reflect.Uint64:
+		if autoIncrease {
+			return "bigint AUTO_INCREMENT"
+		}
 		return "bigint"
 	case reflect.Float32, reflect.Float64:
 		return "double"
@@ -49,18 +55,6 @@ func (s *mysql) SqlTag(value reflect.Value, size int) string {
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mysql", value.Type().Name(), value.Kind().String()))
-}
-
-func (s *mysql) PrimaryKeyTag(value reflect.Value, size int) string {
-	suffix := " NOT NULL AUTO_INCREMENT PRIMARY KEY"
-	switch value.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		return "int" + suffix
-	case reflect.Int64, reflect.Uint64:
-		return "bigint" + suffix
-	default:
-		panic("Invalid primary key type")
-	}
 }
 
 func (s *mysql) ReturningStr(tableName, key string) string {

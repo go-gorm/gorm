@@ -20,13 +20,16 @@ func (s *sqlite3) HasTop() bool {
 	return false
 }
 
-func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
+func (s *sqlite3) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "bool"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 		return "integer"
 	case reflect.Int64, reflect.Uint64:
+		if autoIncrease {
+			return "integer"
+		}
 		return "bigint"
 	case reflect.Float32, reflect.Float64:
 		return "real"
@@ -45,15 +48,6 @@ func (s *sqlite3) SqlTag(value reflect.Value, size int) string {
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", value.Type().Name(), value.Kind().String()))
-}
-
-func (s *sqlite3) PrimaryKeyTag(value reflect.Value, size int) string {
-	switch value.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr, reflect.Int64, reflect.Uint64:
-		return "INTEGER PRIMARY KEY"
-	default:
-		panic("Invalid primary key type")
-	}
 }
 
 func (s *sqlite3) ReturningStr(tableName, key string) string {

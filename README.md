@@ -36,6 +36,7 @@ type User struct {
 	Birthday     time.Time
 	Age          int
 	Name         string  `sql:"size:255"` // Default size for string is 255, you could reset it with this tag
+	Num          int     `sql:"AUTO_INCREMENT"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	DeletedAt    time.Time

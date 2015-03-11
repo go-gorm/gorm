@@ -27,7 +27,6 @@ type StructField struct {
 	IsIgnored       bool
 	IsScanner       bool
 	HasDefaultValue bool
-	SqlTag          string
 	Tag             reflect.StructTag
 	Struct          reflect.StructField
 	IsForeignKey    bool
@@ -44,7 +43,6 @@ func (structField *StructField) clone() *StructField {
 		IsIgnored:       structField.IsIgnored,
 		IsScanner:       structField.IsScanner,
 		HasDefaultValue: structField.HasDefaultValue,
-		SqlTag:          structField.SqlTag,
 		Tag:             structField.Tag,
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
@@ -281,10 +279,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.IsPrimaryKey = true
 					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
-
-				if scope.db != nil {
-					scope.generateSqlTag(field)
-				}
 			}
 		}
 		modelStruct.StructFields = append(modelStruct.StructFields, field)
@@ -301,7 +295,7 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
 }
 
-func (scope *Scope) generateSqlTag(field *StructField) {
+func (scope *Scope) generateSqlTag(field *StructField) string {
 	var sqlType string
 	structType := field.Struct.Type
 	if structType.Kind() == reflect.Ptr {
@@ -337,17 +331,18 @@ func (scope *Scope) generateSqlTag(field *StructField) {
 			size, _ = strconv.Atoi(value)
 		}
 
+		_, autoIncrease := sqlSettings["AUTO_INCREMENT"]
 		if field.IsPrimaryKey {
-			sqlType = scope.Dialect().PrimaryKeyTag(reflectValue, size)
-		} else {
-			sqlType = scope.Dialect().SqlTag(reflectValue, size)
+			autoIncrease = true
 		}
+
+		sqlType = scope.Dialect().SqlTag(reflectValue, size, autoIncrease)
 	}
 
 	if strings.TrimSpace(additionalType) == "" {
-		field.SqlTag = sqlType
+		return sqlType
 	} else {
-		field.SqlTag = fmt.Sprintf("%v %v", sqlType, additionalType)
+		return fmt.Sprintf("%v %v", sqlType, additionalType)
 	}
 }
 

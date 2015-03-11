@@ -21,13 +21,19 @@ func (s *commonDialect) HasTop() bool {
 	return false
 }
 
-func (s *commonDialect) SqlTag(value reflect.Value, size int) string {
+func (s *commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "BOOLEAN"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "INTEGER AUTO_INCREMENT"
+		}
 		return "INTEGER"
 	case reflect.Int64, reflect.Uint64:
+		if autoIncrease {
+			return "BIGINT AUTO_INCREMENT"
+		}
 		return "BIGINT"
 	case reflect.Float32, reflect.Float64:
 		return "FLOAT"
@@ -49,18 +55,6 @@ func (s *commonDialect) SqlTag(value reflect.Value, size int) string {
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", value.Type().Name(), value.Kind().String()))
-}
-
-func (s *commonDialect) PrimaryKeyTag(value reflect.Value, size int) string {
-	suffix := " NOT NULL PRIMARY KEY"
-	switch value.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		return "INTEGER" + suffix
-	case reflect.Int64, reflect.Uint64:
-		return "BIGINT" + suffix
-	default:
-		panic("Invalid primary key type")
-	}
 }
 
 func (s *commonDialect) ReturningStr(tableName, key string) string {

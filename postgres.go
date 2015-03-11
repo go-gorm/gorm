@@ -25,13 +25,19 @@ func (s *postgres) HasTop() bool {
 	return false
 }
 
-func (s *postgres) SqlTag(value reflect.Value, size int) string {
+func (s *postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "boolean"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "serial"
+		}
 		return "integer"
 	case reflect.Int64, reflect.Uint64:
+		if autoIncrease {
+			return "bigserial"
+		}
 		return "bigint"
 	case reflect.Float32, reflect.Float64:
 		return "numeric"
@@ -54,17 +60,6 @@ func (s *postgres) SqlTag(value reflect.Value, size int) string {
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", value.Type().Name(), value.Kind().String()))
-}
-
-func (s *postgres) PrimaryKeyTag(value reflect.Value, size int) string {
-	switch value.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		return "serial PRIMARY KEY"
-	case reflect.Int64, reflect.Uint64:
-		return "bigserial PRIMARY KEY"
-	default:
-		panic("Invalid primary key type")
-	}
 }
 
 func (s *postgres) ReturningStr(tableName, key string) string {

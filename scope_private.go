@@ -447,7 +447,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 		joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
 		joinTable := joinTableHandler.Table(scope.db, relationship)
 		if !scope.Dialect().HasTable(scope, joinTable) {
-			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255)
+			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255, false)
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
 				scope.Quote(joinTable),
 				strings.Join([]string{
@@ -460,14 +460,25 @@ func (scope *Scope) createJoinTable(field *StructField) {
 }
 
 func (scope *Scope) createTable() *Scope {
-	var sqls []string
-	for _, structField := range scope.GetStructFields() {
-		if structField.IsNormal {
-			sqls = append(sqls, scope.Quote(structField.DBName)+" "+structField.SqlTag)
+	var tags []string
+	var primaryKeys []string
+	for _, field := range scope.GetStructFields() {
+		if field.IsNormal {
+			sqlTag := scope.generateSqlTag(field)
+			tags = append(tags, scope.Quote(field.DBName)+" "+sqlTag)
 		}
-		scope.createJoinTable(structField)
+
+		if field.IsPrimaryKey {
+			primaryKeys = append(primaryKeys, field.DBName)
+		}
+		scope.createJoinTable(field)
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v)", scope.QuotedTableName(), strings.Join(sqls, ","))).Exec()
+
+	var primaryKeyStr string
+	if len(primaryKeys) > 0 {
+		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
+	}
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr)).Exec()
 	return scope
 }
 
@@ -530,7 +541,8 @@ func (scope *Scope) autoMigrate() *Scope {
 		for _, field := range scope.GetStructFields() {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if field.IsNormal {
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, field.SqlTag)).Exec()
+					sqlTag := scope.generateSqlTag(field)
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, sqlTag)).Exec()
 				}
 			}
 			scope.createJoinTable(field)

@@ -21,13 +21,19 @@ func (s *mssql) HasTop() bool {
 	return true
 }
 
-func (s *mssql) SqlTag(value reflect.Value, size int) string {
+func (s *mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "bit"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "int IDENTITY(1,1)"
+		}
 		return "int"
 	case reflect.Int64, reflect.Uint64:
+		if autoIncrease {
+			return "bigint IDENTITY(1,1)"
+		}
 		return "bigint"
 	case reflect.Float32, reflect.Float64:
 		return "float"
@@ -49,18 +55,6 @@ func (s *mssql) SqlTag(value reflect.Value, size int) string {
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", value.Type().Name(), value.Kind().String()))
-}
-
-func (s *mssql) PrimaryKeyTag(value reflect.Value, size int) string {
-	suffix := " IDENTITY(1,1) PRIMARY KEY"
-	switch value.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		return "int" + suffix
-	case reflect.Int64, reflect.Uint64:
-		return "bigint" + suffix
-	default:
-		panic("Invalid primary key type")
-	}
 }
 
 func (s *mssql) ReturningStr(tableName, key string) string {
