@@ -23,7 +23,6 @@ type DB struct {
 	Value             interface{}
 	Error             error
 	RowsAffected      int64
-	ModelStructs      map[reflect.Type]*ModelStruct
 	callback          *callback
 	db                sqlCommon
 	parent            *DB
@@ -63,13 +62,12 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 		}
 
 		db = DB{
-			dialect:      NewDialect(dialect),
-			logger:       defaultLogger,
-			callback:     DefaultCallback,
-			source:       source,
-			values:       map[string]interface{}{},
-			db:           dbSql,
-			ModelStructs: map[reflect.Type]*ModelStruct{},
+			dialect:  NewDialect(dialect),
+			logger:   defaultLogger,
+			callback: DefaultCallback,
+			source:   source,
+			values:   map[string]interface{}{},
+			db:       dbSql,
 		}
 		db.parent = &db
 	}
@@ -125,7 +123,7 @@ func (s *DB) LogMode(enable bool) *DB {
 }
 
 func (s *DB) SingularTable(enable bool) {
-	s.parent.ModelStructs = map[reflect.Type]*ModelStruct{}
+	modelStructs = map[reflect.Type]*ModelStruct{}
 	s.parent.singularTable = enable
 }
 

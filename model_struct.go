@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var modelStructs = map[reflect.Type]*ModelStruct{}
+
 type ModelStruct struct {
 	PrimaryFields []*StructField
 	StructFields  []*StructField
@@ -82,10 +84,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		scopeType = scopeType.Elem()
 	}
 
-	if scope.db != nil {
-		if value, ok := scope.db.parent.ModelStructs[scopeType]; ok {
-			return value
-		}
+	if value, ok := modelStructs[scopeType]; ok {
+		return value
 	}
 
 	modelStruct.ModelType = scopeType
@@ -284,9 +284,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		modelStruct.StructFields = append(modelStruct.StructFields, field)
 	}
 
-	if scope.db != nil {
-		scope.db.parent.ModelStructs[scopeType] = &modelStruct
-	}
+	modelStructs[scopeType] = &modelStruct
 
 	return &modelStruct
 }
