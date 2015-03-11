@@ -1029,7 +1029,7 @@ If you have an existing database schema, and the primary key field is different 
 
 ```go
 type Animal struct {
-	AnimalId     int64 `gorm:"primary_key:yes"`
+	AnimalId     int64 `gorm:"primary_key"`
 	Birthday     time.Time `sql:"DEFAULT:current_timestamp"`
 	Name         string `sql:"default:'galeone'"`
 	Age          int64
@@ -1040,29 +1040,20 @@ If your column names differ from the struct fields, you can specify them like th
 
 ```go
 type Animal struct {
-	AnimalId    int64     `gorm:"column:beast_id; primary_key:yes"`
+	AnimalId    int64     `gorm:"column:beast_id;primary_key"`
 	Birthday    time.Time `gorm:"column:day_of_the_beast"`
 	Age         int64     `gorm:"column:age_of_the_beast"`
 }
 ```
 
-## Default values
-
-If you have defined a default value in the `sql` tag (see the struct Animal above) the generated create/update SQl will ignore these fields if is set blank data.
-
-Eg.
+## Composite Primary Key
 
 ```go
-db.Create(&Animal{Age: 99, Name: ""})
+type Product struct {
+	ID           string `gorm:"primary_key"`
+	LanguageCode string `gorm:"primary_key"`
+}
 ```
-
-The generated query will be:
-
-```sql
-INSERT INTO animals("age") values('99');
-```
-
-The same thing occurs in update statements.
 
 ## Database Indexes & Foreign Key
 
@@ -1089,6 +1080,24 @@ db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
 // Remove index
 db.Model(&User{}).RemoveIndex("idx_user_name")
 ```
+
+## Default values
+
+If you have defined a default value in the `sql` tag (see the struct Animal above) the generated create/update SQl will ignore these fields if is set blank data.
+
+Eg.
+
+```go
+db.Create(&Animal{Age: 99, Name: ""})
+```
+
+The generated query will be:
+
+```sql
+INSERT INTO animals("age") values('99');
+```
+
+The same thing occurs in update statements.
 
 ## More examples with query chain
 
