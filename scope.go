@@ -351,7 +351,7 @@ func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
 }
 
-func (scope *Scope) ValidField(field *Field) bool {
+func (scope *Scope) changeableField(field *Field) bool {
 	selectAttrs := scope.SelectAttrs()
 	omitAttrs := scope.OmitAttrs()
 

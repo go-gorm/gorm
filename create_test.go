@@ -124,7 +124,7 @@ func TestAnonymousField(t *testing.T) {
 
 func TestSelectWithCreate(t *testing.T) {
 	user := getPreparedUser("select_user", "select_with_create")
-	DB.Select("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(&user)
+	DB.Select("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(user)
 
 	var queryuser User
 	DB.Preload("BillingAddress").Preload("ShippingAddress").
@@ -142,7 +142,7 @@ func TestSelectWithCreate(t *testing.T) {
 
 func TestOmitWithCreate(t *testing.T) {
 	user := getPreparedUser("omit_user", "omit_with_create")
-	DB.Omit("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(&user)
+	DB.Omit("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(user)
 
 	var queryuser User
 	DB.Preload("BillingAddress").Preload("ShippingAddress").

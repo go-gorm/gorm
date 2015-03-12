@@ -46,10 +46,17 @@ func Update(scope *Scope) {
 				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
 			}
 		} else {
-			for _, field := range scope.Fields() {
-				if !field.IsPrimaryKey && field.IsNormal {
+			fields := scope.Fields()
+			for _, field := range fields {
+				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
 					if !field.IsBlank || !field.HasDefaultValue {
 						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+					}
+				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
+					if relationField := fields[relationship.ForeignDBName]; !scope.changeableField(relationField) {
+						if !relationField.IsBlank {
+							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(relationField.DBName), scope.AddToVars(relationField.Field.Interface())))
+						}
 					}
 				}
 			}

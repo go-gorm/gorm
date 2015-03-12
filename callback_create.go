@@ -26,7 +26,7 @@ func Create(scope *Scope) {
 		var sqls, columns []string
 		fields := scope.Fields()
 		for _, field := range fields {
-			if scope.ValidField(field) {
+			if scope.changeableField(field) {
 				if field.IsNormal {
 					if !field.IsPrimaryKey || (field.IsPrimaryKey && !field.IsBlank) {
 						if !field.IsBlank || !field.HasDefaultValue {
@@ -35,7 +35,7 @@ func Create(scope *Scope) {
 						}
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
-					if relationField := fields[relationship.ForeignDBName]; !scope.ValidField(relationField) {
+					if relationField := fields[relationship.ForeignDBName]; !scope.changeableField(relationField) {
 						columns = append(columns, scope.Quote(relationField.DBName))
 						sqls = append(sqls, scope.AddToVars(relationField.Field.Interface()))
 					}

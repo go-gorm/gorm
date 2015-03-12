@@ -12,7 +12,7 @@ func CommitOrRollbackTransaction(scope *Scope) {
 
 func SaveBeforeAssociations(scope *Scope) {
 	for _, field := range scope.Fields() {
-		if scope.ValidField(field) && !field.IsBlank && !field.IsIgnored {
+		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 				value := field.Field
 				scope.Err(scope.NewDB().Save(value.Addr().Interface()).Error)
@@ -26,7 +26,7 @@ func SaveBeforeAssociations(scope *Scope) {
 
 func SaveAfterAssociations(scope *Scope) {
 	for _, field := range scope.Fields() {
-		if scope.ValidField(field) && !field.IsBlank && !field.IsIgnored {
+		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil &&
 				(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {
 				value := field.Field
