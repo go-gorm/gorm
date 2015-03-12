@@ -18,7 +18,7 @@ type search struct {
 	limit           string
 	group           string
 	tableName       string
-	unscoped        bool
+	Unscoped        bool
 	raw             bool
 }
 
@@ -38,7 +38,7 @@ func (s *search) clone() *search {
 		limit:           s.limit,
 		group:           s.group,
 		tableName:       s.tableName,
-		unscoped:        s.unscoped,
+		Unscoped:        s.Unscoped,
 		raw:             s.raw,
 	}
 }
@@ -120,8 +120,8 @@ func (s *search) Raw(b bool) *search {
 	return s
 }
 
-func (s *search) Unscoped() *search {
-	s.unscoped = true
+func (s *search) unscoped() *search {
+	s.Unscoped = true
 	return s
 }
 

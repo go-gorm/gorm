@@ -175,7 +175,7 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 }
 
 func (s *DB) Unscoped() *DB {
-	return s.clone().search.Unscoped().db
+	return s.clone().search.unscoped().db
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
