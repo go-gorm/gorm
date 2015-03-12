@@ -23,8 +23,8 @@ func Preload(scope *Scope) {
 	fields := scope.Fields()
 	isSlice := scope.IndirectValue().Kind() == reflect.Slice
 
-	if scope.Search.Preload != nil {
-		for key, conditions := range scope.Search.Preload {
+	if scope.Search.preload != nil {
+		for key, conditions := range scope.Search.preload {
 			for _, field := range fields {
 				if field.Name == key && field.Relationship != nil {
 					results := makeSlice(field.Struct.Type)

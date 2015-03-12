@@ -8,7 +8,7 @@ func BeforeDelete(scope *Scope) {
 
 func Delete(scope *Scope) {
 	if !scope.HasError() {
-		if !scope.Search.Unscope && scope.HasColumn("DeletedAt") {
+		if !scope.Search.unscoped && scope.HasColumn("DeletedAt") {
 			scope.Raw(
 				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
 					scope.QuotedTableName(),

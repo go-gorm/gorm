@@ -10,15 +10,15 @@ import (
 )
 
 type Scope struct {
-	Value           interface{}
-	indirectValue   *reflect.Value
 	Search          *search
+	Value           interface{}
 	Sql             string
 	SqlVars         []interface{}
 	db              *DB
-	skipLeft        bool
-	primaryKeyField *Field
+	indirectValue   *reflect.Value
 	instanceId      string
+	primaryKeyField *Field
+	skipLeft        bool
 	fields          map[string]*Field
 }
 
@@ -225,15 +225,15 @@ func (scope *Scope) AddToVars(value interface{}) string {
 
 // TableName get table name
 func (scope *Scope) TableName() string {
-	if scope.Search != nil && len(scope.Search.TableName) > 0 {
-		return scope.Search.TableName
+	if scope.Search != nil && len(scope.Search.tableName) > 0 {
+		return scope.Search.tableName
 	}
 	return scope.GetModelStruct().TableName
 }
 
 func (scope *Scope) QuotedTableName() (name string) {
-	if scope.Search != nil && len(scope.Search.TableName) > 0 {
-		return scope.Quote(scope.Search.TableName)
+	if scope.Search != nil && len(scope.Search.tableName) > 0 {
+		return scope.Quote(scope.Search.tableName)
 	} else {
 		return scope.Quote(scope.TableName())
 	}

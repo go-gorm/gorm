@@ -7,20 +7,20 @@ import (
 
 func TestCloneSearch(t *testing.T) {
 	s := new(search)
-	s.where("name = ?", "jinzhu").order("name").attrs("name", "jinzhu").selects("name, age")
+	s.Where("name = ?", "jinzhu").Order("name").Attrs("name", "jinzhu").Selects("name, age")
 
 	s1 := s.clone()
-	s1.where("age = ?", 20).order("age").attrs("email", "a@e.org").selects("email")
+	s1.Where("age = ?", 20).Order("age").Attrs("email", "a@e.org").Selects("email")
 
-	if reflect.DeepEqual(s.WhereConditions, s1.WhereConditions) {
+	if reflect.DeepEqual(s.whereConditions, s1.whereConditions) {
 		t.Errorf("Where should be copied")
 	}
 
-	if reflect.DeepEqual(s.Orders, s1.Orders) {
+	if reflect.DeepEqual(s.orders, s1.orders) {
 		t.Errorf("Order should be copied")
 	}
 
-	if reflect.DeepEqual(s.InitAttrs, s1.InitAttrs) {
+	if reflect.DeepEqual(s.initAttrs, s1.initAttrs) {
 		t.Errorf("InitAttrs should be copied")
 	}
 

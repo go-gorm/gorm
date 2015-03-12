@@ -4,129 +4,129 @@ import "fmt"
 
 type search struct {
 	db              *DB
-	WhereConditions []map[string]interface{}
-	OrConditions    []map[string]interface{}
-	NotConditions   []map[string]interface{}
-	HavingCondition map[string]interface{}
-	InitAttrs       []interface{}
-	AssignAttrs     []interface{}
-	Selects         map[string]interface{}
-	Orders          []string
-	Joins           string
-	Preload         map[string][]interface{}
-	Offset          string
-	Limit           string
-	Group           string
-	TableName       string
-	Unscope         bool
-	Raw             bool
+	whereConditions []map[string]interface{}
+	orConditions    []map[string]interface{}
+	notConditions   []map[string]interface{}
+	havingCondition map[string]interface{}
+	initAttrs       []interface{}
+	assignAttrs     []interface{}
+	selects         map[string]interface{}
+	orders          []string
+	joins           string
+	preload         map[string][]interface{}
+	offset          string
+	limit           string
+	group           string
+	tableName       string
+	unscoped        bool
+	raw             bool
 }
 
 func (s *search) clone() *search {
 	return &search{
-		Preload:         s.Preload,
-		WhereConditions: s.WhereConditions,
-		OrConditions:    s.OrConditions,
-		NotConditions:   s.NotConditions,
-		HavingCondition: s.HavingCondition,
-		InitAttrs:       s.InitAttrs,
-		AssignAttrs:     s.AssignAttrs,
-		Selects:         s.Selects,
-		Orders:          s.Orders,
-		Joins:           s.Joins,
-		Offset:          s.Offset,
-		Limit:           s.Limit,
-		Group:           s.Group,
-		TableName:       s.TableName,
-		Unscope:         s.Unscope,
-		Raw:             s.Raw,
+		preload:         s.preload,
+		whereConditions: s.whereConditions,
+		orConditions:    s.orConditions,
+		notConditions:   s.notConditions,
+		havingCondition: s.havingCondition,
+		initAttrs:       s.initAttrs,
+		assignAttrs:     s.assignAttrs,
+		selects:         s.selects,
+		orders:          s.orders,
+		joins:           s.joins,
+		offset:          s.offset,
+		limit:           s.limit,
+		group:           s.group,
+		tableName:       s.tableName,
+		unscoped:        s.unscoped,
+		raw:             s.raw,
 	}
 }
 
-func (s *search) where(query interface{}, values ...interface{}) *search {
-	s.WhereConditions = append(s.WhereConditions, map[string]interface{}{"query": query, "args": values})
+func (s *search) Where(query interface{}, values ...interface{}) *search {
+	s.whereConditions = append(s.whereConditions, map[string]interface{}{"query": query, "args": values})
 	return s
 }
 
-func (s *search) not(query interface{}, values ...interface{}) *search {
-	s.NotConditions = append(s.NotConditions, map[string]interface{}{"query": query, "args": values})
+func (s *search) Not(query interface{}, values ...interface{}) *search {
+	s.notConditions = append(s.notConditions, map[string]interface{}{"query": query, "args": values})
 	return s
 }
 
-func (s *search) or(query interface{}, values ...interface{}) *search {
-	s.OrConditions = append(s.OrConditions, map[string]interface{}{"query": query, "args": values})
+func (s *search) Or(query interface{}, values ...interface{}) *search {
+	s.orConditions = append(s.orConditions, map[string]interface{}{"query": query, "args": values})
 	return s
 }
 
-func (s *search) attrs(attrs ...interface{}) *search {
-	s.InitAttrs = append(s.InitAttrs, toSearchableMap(attrs...))
+func (s *search) Attrs(attrs ...interface{}) *search {
+	s.initAttrs = append(s.initAttrs, toSearchableMap(attrs...))
 	return s
 }
 
-func (s *search) assign(attrs ...interface{}) *search {
-	s.AssignAttrs = append(s.AssignAttrs, toSearchableMap(attrs...))
+func (s *search) Assign(attrs ...interface{}) *search {
+	s.assignAttrs = append(s.assignAttrs, toSearchableMap(attrs...))
 	return s
 }
 
-func (s *search) order(value string, reorder ...bool) *search {
+func (s *search) Order(value string, reorder ...bool) *search {
 	if len(reorder) > 0 && reorder[0] {
-		s.Orders = []string{value}
+		s.orders = []string{value}
 	} else {
-		s.Orders = append(s.Orders, value)
+		s.orders = append(s.orders, value)
 	}
 	return s
 }
 
-func (s *search) selects(query interface{}, args ...interface{}) *search {
-	s.Selects = map[string]interface{}{"query": query, "args": args}
+func (s *search) Selects(query interface{}, args ...interface{}) *search {
+	s.selects = map[string]interface{}{"query": query, "args": args}
 	return s
 }
 
-func (s *search) limit(value interface{}) *search {
-	s.Limit = s.getInterfaceAsSql(value)
+func (s *search) Limit(value interface{}) *search {
+	s.limit = s.getInterfaceAsSql(value)
 	return s
 }
 
-func (s *search) offset(value interface{}) *search {
-	s.Offset = s.getInterfaceAsSql(value)
+func (s *search) Offset(value interface{}) *search {
+	s.offset = s.getInterfaceAsSql(value)
 	return s
 }
 
-func (s *search) group(query string) *search {
-	s.Group = s.getInterfaceAsSql(query)
+func (s *search) Group(query string) *search {
+	s.group = s.getInterfaceAsSql(query)
 	return s
 }
 
-func (s *search) having(query string, values ...interface{}) *search {
-	s.HavingCondition = map[string]interface{}{"query": query, "args": values}
+func (s *search) Having(query string, values ...interface{}) *search {
+	s.havingCondition = map[string]interface{}{"query": query, "args": values}
 	return s
 }
 
-func (s *search) joins(query string) *search {
-	s.Joins = query
+func (s *search) Joins(query string) *search {
+	s.joins = query
 	return s
 }
 
-func (s *search) preload(column string, values ...interface{}) *search {
-	if s.Preload == nil {
-		s.Preload = map[string][]interface{}{}
+func (s *search) Preload(column string, values ...interface{}) *search {
+	if s.preload == nil {
+		s.preload = map[string][]interface{}{}
 	}
-	s.Preload[column] = values
+	s.preload[column] = values
 	return s
 }
 
-func (s *search) raw(b bool) *search {
-	s.Raw = b
+func (s *search) Raw(b bool) *search {
+	s.raw = b
 	return s
 }
 
-func (s *search) unscoped() *search {
-	s.Unscope = true
+func (s *search) Unscoped() *search {
+	s.unscoped = true
 	return s
 }
 
-func (s *search) table(name string) *search {
-	s.TableName = name
+func (s *search) Table(name string) *search {
+	s.tableName = name
 	return s
 }
 

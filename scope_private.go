@@ -159,7 +159,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 func (scope *Scope) whereSql() (sql string) {
 	var primaryConditions, andConditions, orConditions []string
 
-	if !scope.Search.Unscope && scope.Fields()["deleted_at"] != nil {
+	if !scope.Search.unscoped && scope.Fields()["deleted_at"] != nil {
 		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
 		primaryConditions = append(primaryConditions, sql)
 	}
@@ -168,19 +168,19 @@ func (scope *Scope) whereSql() (sql string) {
 		primaryConditions = append(primaryConditions, scope.primaryCondition(scope.AddToVars(scope.PrimaryKeyValue())))
 	}
 
-	for _, clause := range scope.Search.WhereConditions {
+	for _, clause := range scope.Search.whereConditions {
 		if sql := scope.buildWhereCondition(clause); sql != "" {
 			andConditions = append(andConditions, sql)
 		}
 	}
 
-	for _, clause := range scope.Search.OrConditions {
+	for _, clause := range scope.Search.orConditions {
 		if sql := scope.buildWhereCondition(clause); sql != "" {
 			orConditions = append(orConditions, sql)
 		}
 	}
 
-	for _, clause := range scope.Search.NotConditions {
+	for _, clause := range scope.Search.notConditions {
 		if sql := scope.buildNotCondition(clause); sql != "" {
 			andConditions = append(andConditions, sql)
 		}
@@ -208,76 +208,76 @@ func (scope *Scope) whereSql() (sql string) {
 }
 
 func (scope *Scope) selectSql() string {
-	if len(scope.Search.Selects) == 0 {
+	if len(scope.Search.selects) == 0 {
 		return "*"
 	}
-	return scope.buildSelectQuery(scope.Search.Selects)
+	return scope.buildSelectQuery(scope.Search.selects)
 }
 
 func (scope *Scope) orderSql() string {
-	if len(scope.Search.Orders) == 0 {
+	if len(scope.Search.orders) == 0 {
 		return ""
 	}
-	return " ORDER BY " + strings.Join(scope.Search.Orders, ",")
+	return " ORDER BY " + strings.Join(scope.Search.orders, ",")
 }
 
 func (scope *Scope) limitSql() string {
 	if !scope.Dialect().HasTop() {
-		if len(scope.Search.Limit) == 0 {
+		if len(scope.Search.limit) == 0 {
 			return ""
 		}
-		return " LIMIT " + scope.Search.Limit
+		return " LIMIT " + scope.Search.limit
 	}
 
 	return ""
 }
 
 func (scope *Scope) topSql() string {
-	if scope.Dialect().HasTop() && len(scope.Search.Offset) == 0 {
-		if len(scope.Search.Limit) == 0 {
+	if scope.Dialect().HasTop() && len(scope.Search.offset) == 0 {
+		if len(scope.Search.limit) == 0 {
 			return ""
 		}
-		return " TOP(" + scope.Search.Limit + ")"
+		return " TOP(" + scope.Search.limit + ")"
 	}
 
 	return ""
 }
 
 func (scope *Scope) offsetSql() string {
-	if len(scope.Search.Offset) == 0 {
+	if len(scope.Search.offset) == 0 {
 		return ""
 	}
 
 	if scope.Dialect().HasTop() {
-		sql := " OFFSET " + scope.Search.Offset + " ROW "
-		if len(scope.Search.Limit) > 0 {
-			sql += "FETCH NEXT " + scope.Search.Limit + " ROWS ONLY"
+		sql := " OFFSET " + scope.Search.offset + " ROW "
+		if len(scope.Search.limit) > 0 {
+			sql += "FETCH NEXT " + scope.Search.limit + " ROWS ONLY"
 		}
 		return sql
 	}
-	return " OFFSET " + scope.Search.Offset
+	return " OFFSET " + scope.Search.offset
 }
 
 func (scope *Scope) groupSql() string {
-	if len(scope.Search.Group) == 0 {
+	if len(scope.Search.group) == 0 {
 		return ""
 	}
-	return " GROUP BY " + scope.Search.Group
+	return " GROUP BY " + scope.Search.group
 }
 
 func (scope *Scope) havingSql() string {
-	if scope.Search.HavingCondition == nil {
+	if scope.Search.havingCondition == nil {
 		return ""
 	}
-	return " HAVING " + scope.buildWhereCondition(scope.Search.HavingCondition)
+	return " HAVING " + scope.buildWhereCondition(scope.Search.havingCondition)
 }
 
 func (scope *Scope) joinsSql() string {
-	return scope.Search.Joins + " "
+	return scope.Search.joins + " "
 }
 
 func (scope *Scope) prepareQuerySql() {
-	if scope.Search.Raw {
+	if scope.Search.raw {
 		scope.Raw(strings.TrimSuffix(strings.TrimPrefix(scope.CombinedConditionSql(), " WHERE ("), ")"))
 	} else {
 		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
@@ -287,7 +287,7 @@ func (scope *Scope) prepareQuerySql() {
 
 func (scope *Scope) inlineCondition(values ...interface{}) *Scope {
 	if len(values) > 0 {
-		scope.Search = scope.Search.clone().where(values[0], values[1:]...)
+		scope.Search.Where(values[0], values[1:]...)
 	}
 	return scope
 }
@@ -348,17 +348,17 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 }
 
 func (scope *Scope) initialize() *Scope {
-	for _, clause := range scope.Search.WhereConditions {
+	for _, clause := range scope.Search.whereConditions {
 		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]), false)
 	}
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.InitAttrs), false)
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.AssignAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs), false)
 	return scope
 }
 
 func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
-	scope.Search = scope.Search.clone().selects(column)
+	scope.Search.Selects(column)
 	if dest.Kind() != reflect.Slice {
 		scope.Err(errors.New("results should be a slice"))
 		return scope
@@ -377,7 +377,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
-	scope.Search = scope.Search.clone().selects("count(*)")
+	scope.Search.Selects("count(*)")
 	scope.Err(scope.row().Scan(value))
 	return scope
 }

@@ -94,7 +94,7 @@ func (s *DB) New() *DB {
 func (db *DB) NewScope(value interface{}) *Scope {
 	dbClone := db.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
+	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
 // CommonDB Return the underlying sql.DB or sql.Tx instance.
@@ -128,43 +128,43 @@ func (s *DB) SingularTable(enable bool) {
 }
 
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.where(query, args...).db
+	return s.clone().search.Where(query, args...).db
 }
 
 func (s *DB) Or(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.or(query, args...).db
+	return s.clone().search.Or(query, args...).db
 }
 
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.not(query, args...).db
+	return s.clone().search.Not(query, args...).db
 }
 
 func (s *DB) Limit(value interface{}) *DB {
-	return s.clone().search.limit(value).db
+	return s.clone().search.Limit(value).db
 }
 
 func (s *DB) Offset(value interface{}) *DB {
-	return s.clone().search.offset(value).db
+	return s.clone().search.Offset(value).db
 }
 
 func (s *DB) Order(value string, reorder ...bool) *DB {
-	return s.clone().search.order(value, reorder...).db
+	return s.clone().search.Order(value, reorder...).db
 }
 
 func (s *DB) Select(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.selects(query, args...).db
+	return s.clone().search.Selects(query, args...).db
 }
 
 func (s *DB) Group(query string) *DB {
-	return s.clone().search.group(query).db
+	return s.clone().search.Group(query).db
 }
 
 func (s *DB) Having(query string, values ...interface{}) *DB {
-	return s.clone().search.having(query, values...).db
+	return s.clone().search.Having(query, values...).db
 }
 
 func (s *DB) Joins(query string) *DB {
-	return s.clone().search.joins(query).db
+	return s.clone().search.Joins(query).db
 }
 
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
@@ -175,27 +175,27 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 }
 
 func (s *DB) Unscoped() *DB {
-	return s.clone().search.unscoped().db
+	return s.clone().search.Unscoped().db
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
-	return s.clone().search.attrs(attrs...).db
+	return s.clone().search.Attrs(attrs...).db
 }
 
 func (s *DB) Assign(attrs ...interface{}) *DB {
-	return s.clone().search.assign(attrs...).db
+	return s.clone().search.Assign(attrs...).db
 }
 
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
-	newScope.Search = newScope.Search.clone().limit(1)
+	newScope.Search.Limit(1)
 	return newScope.InstanceSet("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
-	newScope.Search = newScope.Search.clone().limit(1)
+	newScope.Search.Limit(1)
 	return newScope.InstanceSet("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
@@ -226,7 +226,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.AssignAttrs), false)
+		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.assignAttrs), false)
 	}
 	return c
 }
@@ -238,8 +238,8 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 			return result
 		}
 		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
-	} else if len(c.search.AssignAttrs) > 0 {
-		c.NewScope(out).InstanceSet("gorm:update_interface", s.search.AssignAttrs).callCallbacks(s.parent.callback.updates)
+	} else if len(c.search.assignAttrs) > 0 {
+		c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates)
 	}
 	return c
 }
@@ -284,7 +284,7 @@ func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
-	return s.clone().search.raw(true).where(sql, values...).db
+	return s.clone().search.Raw(true).Where(sql, values...).db
 }
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
@@ -315,7 +315,7 @@ func (s *DB) Count(value interface{}) *DB {
 
 func (s *DB) Table(name string) *DB {
 	clone := s.clone()
-	clone.search.table(name)
+	clone.search.Table(name)
 	clone.Value = nil
 	return clone
 }
@@ -447,7 +447,7 @@ func (s *DB) Association(column string) *Association {
 }
 
 func (s *DB) Preload(column string, conditions ...interface{}) *DB {
-	return s.clone().search.preload(column, conditions...).db
+	return s.clone().search.Preload(column, conditions...).db
 }
 
 // Set set value by name
