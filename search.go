@@ -11,6 +11,7 @@ type search struct {
 	initAttrs       []interface{}
 	assignAttrs     []interface{}
 	selects         map[string]interface{}
+	omits           []string
 	orders          []string
 	joins           string
 	preload         map[string][]interface{}
@@ -18,8 +19,8 @@ type search struct {
 	limit           string
 	group           string
 	tableName       string
-	Unscoped        bool
 	raw             bool
+	Unscoped        bool
 }
 
 func (s *search) clone() *search {
@@ -32,14 +33,15 @@ func (s *search) clone() *search {
 		initAttrs:       s.initAttrs,
 		assignAttrs:     s.assignAttrs,
 		selects:         s.selects,
+		omits:           s.omits,
 		orders:          s.orders,
 		joins:           s.joins,
 		offset:          s.offset,
 		limit:           s.limit,
 		group:           s.group,
 		tableName:       s.tableName,
-		Unscoped:        s.Unscoped,
 		raw:             s.raw,
+		Unscoped:        s.Unscoped,
 	}
 }
 
@@ -77,9 +79,26 @@ func (s *search) Order(value string, reorder ...bool) *search {
 	return s
 }
 
-func (s *search) Selects(query interface{}, args ...interface{}) *search {
+func (s *search) Select(query interface{}, args ...interface{}) *search {
 	s.selects = map[string]interface{}{"query": query, "args": args}
 	return s
+}
+
+func (s *search) Omit(columns ...string) *search {
+	s.omits = columns
+	return s
+}
+
+func (s *search) SelectAttrs() (attrs []string) {
+	for key, value := range s.selects {
+		attrs = append(attrs, key)
+		attrs = append(attrs, value.([]string)...)
+	}
+	return attrs
+}
+
+func (s *search) OmitAttrs() []string {
+	return s.omits
 }
 
 func (s *search) Limit(value interface{}) *search {

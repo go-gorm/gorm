@@ -152,7 +152,7 @@ func (s *DB) Order(value string, reorder ...bool) *DB {
 }
 
 func (s *DB) Select(query interface{}, args ...interface{}) *DB {
-	return s.clone().search.Selects(query, args...).db
+	return s.clone().search.Select(query, args...).db
 }
 
 func (s *DB) Group(query string) *DB {

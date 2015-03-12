@@ -358,7 +358,7 @@ func (scope *Scope) initialize() *Scope {
 
 func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
-	scope.Search.Selects(column)
+	scope.Search.Select(column)
 	if dest.Kind() != reflect.Slice {
 		scope.Err(errors.New("results should be a slice"))
 		return scope
@@ -377,7 +377,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
-	scope.Search.Selects("count(*)")
+	scope.Search.Select("count(*)")
 	scope.Err(scope.row().Scan(value))
 	return scope
 }
