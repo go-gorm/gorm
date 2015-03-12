@@ -367,8 +367,16 @@ func TestCount(t *testing.T) {
 }
 
 func TestNot(t *testing.T) {
+	DB.Create(getPreparedUser("user1", "not"))
+	DB.Create(getPreparedUser("user2", "not"))
+	DB.Create(getPreparedUser("user3", "not"))
+	DB.Create(getPreparedUser("user4", "not"))
+	DB := DB.Where("role = ?", "not")
+
 	var users1, users2, users3, users4, users5, users6, users7, users8 []User
-	DB.Find(&users1)
+	if DB.Find(&users1).RowsAffected != 4 {
+		t.Errorf("should find 4 not users")
+	}
 	DB.Not(users1[0].Id).Find(&users2)
 
 	if len(users1)-len(users2) != 1 {
@@ -381,43 +389,43 @@ func TestNot(t *testing.T) {
 	}
 
 	var name3Count int64
-	DB.Table("users").Where("name = ?", "3").Count(&name3Count)
-	DB.Not("name", "3").Find(&users4)
+	DB.Table("users").Where("name = ?", "user3").Count(&name3Count)
+	DB.Not("name", "user3").Find(&users4)
 	if len(users1)-len(users4) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
 	users4 = []User{}
-	DB.Not("name = ?", "3").Find(&users4)
+	DB.Not("name = ?", "user3").Find(&users4)
 	if len(users1)-len(users4) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
 	users4 = []User{}
-	DB.Not("name <> ?", "3").Find(&users4)
+	DB.Not("name <> ?", "user3").Find(&users4)
 	if len(users4) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	DB.Not(User{Name: "3"}).Find(&users5)
+	DB.Not(User{Name: "user3"}).Find(&users5)
 
 	if len(users1)-len(users5) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	DB.Not(map[string]interface{}{"name": "3"}).Find(&users6)
+	DB.Not(map[string]interface{}{"name": "user3"}).Find(&users6)
 	if len(users1)-len(users6) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	DB.Not("name", []string{"3"}).Find(&users7)
+	DB.Not("name", []string{"user3"}).Find(&users7)
 	if len(users1)-len(users7) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
 	var name2Count int64
-	DB.Table("users").Where("name = ?", "2").Count(&name2Count)
-	DB.Not("name", []string{"3", "2"}).Find(&users8)
+	DB.Table("users").Where("name = ?", "user2").Count(&name2Count)
+	DB.Not("name", []string{"user3", "user2"}).Find(&users8)
 	if len(users1)-len(users8) != (int(name3Count) + int(name2Count)) {
 		t.Errorf("Should find all users's name not equal 3")
 	}

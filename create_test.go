@@ -1,7 +1,6 @@
 package gorm_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -123,21 +122,38 @@ func TestAnonymousField(t *testing.T) {
 	}
 }
 
-func TestSelectCreate(t *testing.T) {
-	user := getPreparedUser("user1", "select_create")
+func TestSelectWithCreate(t *testing.T) {
+	user := getPreparedUser("select_user", "select_with_create")
 	DB.Select("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(&user)
 
-	var user2 User
+	var queryuser User
 	DB.Preload("BillingAddress").Preload("ShippingAddress").
-		Preload("CreditCard").Preload("Emails").Preload("Company").First(&user2, user.Id)
+		Preload("CreditCard").Preload("Emails").Preload("Company").First(&queryuser, user.Id)
 
-	if user2.Name != user.Name || user2.Age == user.Age {
+	if queryuser.Name != user.Name || queryuser.Age == user.Age {
 		t.Errorf("Should only create users with name column")
 	}
 
-	fmt.Println(user2.CreditCard.ID)
-	if user2.BillingAddressID.Int64 == 0 || user2.ShippingAddressId != 0 ||
-		user2.CreditCard.ID == 0 || len(user2.Emails) == 0 {
-		t.Errorf("Should only create users with name column")
+	if queryuser.BillingAddressID.Int64 == 0 || queryuser.ShippingAddressId != 0 ||
+		queryuser.CreditCard.ID == 0 || len(queryuser.Emails) == 0 {
+		t.Errorf("Should only create selected relationships")
+	}
+}
+
+func TestOmitWithCreate(t *testing.T) {
+	user := getPreparedUser("omit_user", "omit_with_create")
+	DB.Omit("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(&user)
+
+	var queryuser User
+	DB.Preload("BillingAddress").Preload("ShippingAddress").
+		Preload("CreditCard").Preload("Emails").Preload("Company").First(&queryuser, user.Id)
+
+	if queryuser.Name == user.Name || queryuser.Age != user.Age {
+		t.Errorf("Should only create users with age column")
+	}
+
+	if queryuser.BillingAddressID.Int64 != 0 || queryuser.ShippingAddressId == 0 ||
+		queryuser.CreditCard.ID != 0 || len(queryuser.Emails) != 0 {
+		t.Errorf("Should not create omited relationships")
 	}
 }

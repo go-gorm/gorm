@@ -155,6 +155,10 @@ func (s *DB) Select(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Select(query, args...).db
 }
 
+func (s *DB) Omit(columns ...string) *DB {
+	return s.clone().search.Omit(columns...).db
+}
+
 func (s *DB) Group(query string) *DB {
 	return s.clone().search.Group(query).db
 }
