@@ -1,29 +1,9 @@
 package gorm_test
 
-import (
-	"fmt"
-	"testing"
-)
+import "testing"
 
-func getPreloadUser(name string) User {
-	var company Company
-	DB.Where(Company{Name: "preload"}).FirstOrCreate(&company)
-
-	return User{
-		Name:            name,
-		Role:            Role{"Preload"},
-		BillingAddress:  Address{Address1: fmt.Sprintf("Billing Address %v", name)},
-		ShippingAddress: Address{Address1: fmt.Sprintf("Shipping Address %v", name)},
-		CreditCard:      CreditCard{Number: fmt.Sprintf("123456%v", name)},
-		Emails: []Email{
-			{Email: fmt.Sprintf("user_%v@example1.com", name)}, {Email: fmt.Sprintf("user_%v@example2.com", name)},
-		},
-		Company: company,
-		Languages: []Language{
-			{Name: fmt.Sprintf("lang_1_%v", name)},
-			{Name: fmt.Sprintf("lang_2_%v", name)},
-		},
-	}
+func getPreloadUser(name string) *User {
+	return getPreparedUser(name, "Preload")
 }
 
 func checkUserHasPreloadData(user User, t *testing.T) {
@@ -64,7 +44,7 @@ func checkUserHasPreloadData(user User, t *testing.T) {
 
 func TestPreload(t *testing.T) {
 	user1 := getPreloadUser("user1")
-	DB.Save(&user1)
+	DB.Save(user1)
 
 	preloadDB := DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
 		Preload("CreditCard").Preload("Emails").Preload("Company")
@@ -73,10 +53,10 @@ func TestPreload(t *testing.T) {
 	checkUserHasPreloadData(user, t)
 
 	user2 := getPreloadUser("user2")
-	DB.Save(&user2)
+	DB.Save(user2)
 
 	user3 := getPreloadUser("user3")
-	DB.Save(&user3)
+	DB.Save(user3)
 
 	var users []User
 	preloadDB.Find(&users)

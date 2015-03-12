@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 
 	"reflect"
 	"time"
@@ -193,4 +194,26 @@ func (nt NullTime) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return nt.Time, nil
+}
+
+func getPreparedUser(name string, role string) *User {
+	var company Company
+	DB.Where(Company{Name: role}).FirstOrCreate(&company)
+
+	return &User{
+		Name:            name,
+		Age:             20,
+		Role:            Role{role},
+		BillingAddress:  Address{Address1: fmt.Sprintf("Billing Address %v", name)},
+		ShippingAddress: Address{Address1: fmt.Sprintf("Shipping Address %v", name)},
+		CreditCard:      CreditCard{Number: fmt.Sprintf("123456%v", name)},
+		Emails: []Email{
+			{Email: fmt.Sprintf("user_%v@example1.com", name)}, {Email: fmt.Sprintf("user_%v@example2.com", name)},
+		},
+		Company: company,
+		Languages: []Language{
+			{Name: fmt.Sprintf("lang_1_%v", name)},
+			{Name: fmt.Sprintf("lang_2_%v", name)},
+		},
+	}
 }

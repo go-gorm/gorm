@@ -89,18 +89,6 @@ func (s *search) Omit(columns ...string) *search {
 	return s
 }
 
-func (s *search) SelectAttrs() (attrs []string) {
-	for key, value := range s.selects {
-		attrs = append(attrs, key)
-		attrs = append(attrs, value.([]string)...)
-	}
-	return attrs
-}
-
-func (s *search) OmitAttrs() []string {
-	return s.omits
-}
-
 func (s *search) Limit(value interface{}) *search {
 	s.limit = s.getInterfaceAsSql(value)
 	return s

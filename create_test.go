@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -119,5 +120,24 @@ func TestAnonymousField(t *testing.T) {
 	DB.Model(&user2).Related(&user2.Company)
 	if user2.Company.Name != "company" {
 		t.Errorf("Should be able to get anonymous field")
+	}
+}
+
+func TestSelectCreate(t *testing.T) {
+	user := getPreparedUser("user1", "select_create")
+	DB.Select("Name", "BillingAddress", "CreditCard", "Company", "Emails").Create(&user)
+
+	var user2 User
+	DB.Preload("BillingAddress").Preload("ShippingAddress").
+		Preload("CreditCard").Preload("Emails").Preload("Company").First(&user2, user.Id)
+
+	if user2.Name != user.Name || user2.Age == user.Age {
+		t.Errorf("Should only create users with name column")
+	}
+
+	fmt.Println(user2.CreditCard.ID)
+	if user2.BillingAddressID.Int64 == 0 || user2.ShippingAddressId != 0 ||
+		user2.CreditCard.ID == 0 || len(user2.Emails) == 0 {
+		t.Errorf("Should only create users with name column")
 	}
 }

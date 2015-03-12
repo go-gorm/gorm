@@ -89,8 +89,12 @@ func TestExceptionsWithInvalidSql(t *testing.T) {
 }
 
 func TestSetTable(t *testing.T) {
-	if DB.Table("users").Pluck("age", &[]int{}).Error != nil {
-		t.Errorf("No errors should happen if set table for pluck")
+	DB.Create(getPreparedUser("pluck_user1", "pluck_user"))
+	DB.Create(getPreparedUser("pluck_user2", "pluck_user"))
+	DB.Create(getPreparedUser("pluck_user3", "pluck_user"))
+
+	if err := DB.Table("users").Where("role = ?", "pluck_user").Pluck("age", &[]int{}).Error; err != nil {
+		t.Errorf("No errors should happen if set table for pluck", err.Error())
 	}
 
 	var users []User
@@ -115,9 +119,11 @@ func TestSetTable(t *testing.T) {
 		t.Errorf("Query from specified table")
 	}
 
+	DB.Save(getPreparedUser("normal_user", "reset_table"))
+	DB.Table("deleted_users").Save(getPreparedUser("deleted_user", "reset_table"))
 	var user1, user2, user3 User
-	DB.First(&user1).Table("deleted_users").First(&user2).Table("").First(&user3)
-	if (user1.Name == user2.Name) || (user1.Name != user3.Name) {
+	DB.Where("role = ?", "reset_table").First(&user1).Table("deleted_users").First(&user2).Table("").First(&user3)
+	if (user1.Name != "normal_user") || (user2.Name != "deleted_user") || (user3.Name != "normal_user") {
 		t.Errorf("unset specified table with blank string")
 	}
 }

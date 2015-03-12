@@ -333,3 +333,42 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	}
 	return scope
 }
+
+func (scope *Scope) SelectAttrs() (attrs []string) {
+	for _, value := range scope.Search.selects {
+		if str, ok := value.(string); ok {
+			attrs = append(attrs, str)
+		} else if strs, ok := value.([]interface{}); ok {
+			for _, str := range strs {
+				attrs = append(attrs, fmt.Sprintf("%v", str))
+			}
+		}
+	}
+	return attrs
+}
+
+func (scope *Scope) OmitAttrs() []string {
+	return scope.Search.omits
+}
+
+func (scope *Scope) ValidField(field *Field) bool {
+	selectAttrs := scope.SelectAttrs()
+	omitAttrs := scope.OmitAttrs()
+
+	if len(selectAttrs) > 0 {
+		for _, attr := range selectAttrs {
+			if field.Name == attr || field.DBName == attr {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, attr := range omitAttrs {
+		if field.Name == attr || field.DBName == attr {
+			return false
+		}
+	}
+
+	return !field.IsIgnored
+}
