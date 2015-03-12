@@ -16,10 +16,10 @@ func TestFirstAndLast(t *testing.T) {
 
 	var user1, user2, user3, user4 User
 	DB.First(&user1)
-	DB.Order("id").Find(&user2)
+	DB.Order("id").Limit(1).Find(&user2)
 
 	DB.Last(&user3)
-	DB.Order("id desc").Find(&user4)
+	DB.Order("id desc").Limit(1).Find(&user4)
 	if user1.Id != user2.Id || user3.Id != user4.Id {
 		t.Errorf("First and Last should by order by primary key")
 	}
@@ -41,10 +41,10 @@ func TestFirstAndLastWithNoStdPrimaryKey(t *testing.T) {
 
 	var animal1, animal2, animal3, animal4 Animal
 	DB.First(&animal1)
-	DB.Order("counter").Find(&animal2)
+	DB.Order("counter").Limit(1).Find(&animal2)
 
 	DB.Last(&animal3)
-	DB.Order("counter desc").Find(&animal4)
+	DB.Order("counter desc").Limit(1).Find(&animal4)
 	if animal1.Counter != animal2.Counter || animal3.Counter != animal4.Counter {
 		t.Errorf("First and Last should work correctly")
 	}

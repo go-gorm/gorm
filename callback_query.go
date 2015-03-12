@@ -33,8 +33,6 @@ func Query(scope *Scope) {
 			isPtr = true
 			destType = destType.Elem()
 		}
-	} else {
-		scope.Search = scope.Search.clone().limit(1)
 	}
 
 	scope.prepareQuerySql()
