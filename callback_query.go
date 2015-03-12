@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 )
@@ -26,13 +27,16 @@ func Query(scope *Scope) {
 		}
 	}
 
-	if dest.Kind() == reflect.Slice {
+	if kind := dest.Kind(); kind == reflect.Slice {
 		isSlice = true
 		destType = dest.Type().Elem()
 		if destType.Kind() == reflect.Ptr {
 			isPtr = true
 			destType = destType.Elem()
 		}
+	} else if kind != reflect.Struct {
+		scope.Err(errors.New("unsupported destination, should be slice or struct"))
+		return
 	}
 
 	scope.prepareQuerySql()
@@ -59,6 +63,7 @@ func Query(scope *Scope) {
 			var values = make([]interface{}, len(columns))
 
 			fields := scope.New(elem.Addr().Interface()).Fields()
+
 			for index, column := range columns {
 				if field, ok := fields[column]; ok {
 					if field.Field.Kind() == reflect.Ptr {
