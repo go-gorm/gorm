@@ -20,6 +20,7 @@ type Scope struct {
 	primaryKeyField *Field
 	skipLeft        bool
 	fields          map[string]*Field
+	selectAttrs     *[]string
 }
 
 func (scope *Scope) IndirectValue() reflect.Value {
@@ -334,21 +335,46 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	return scope
 }
 
-func (scope *Scope) SelectAttrs() (attrs []string) {
-	for _, value := range scope.Search.selects {
-		if str, ok := value.(string); ok {
-			attrs = append(attrs, str)
-		} else if strs, ok := value.([]interface{}); ok {
-			for _, str := range strs {
-				attrs = append(attrs, fmt.Sprintf("%v", str))
+func (scope *Scope) SelectAttrs() []string {
+	if scope.selectAttrs == nil {
+		attrs := []string{}
+		for _, value := range scope.Search.selects {
+			if str, ok := value.(string); ok {
+				attrs = append(attrs, str)
+			} else if strs, ok := value.([]interface{}); ok {
+				for _, str := range strs {
+					attrs = append(attrs, fmt.Sprintf("%v", str))
+				}
 			}
 		}
+		scope.selectAttrs = &attrs
 	}
-	return attrs
+	return *scope.selectAttrs
 }
 
 func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
+}
+
+func (scope *Scope) changeableDBColumn(column string) bool {
+	selectAttrs := scope.SelectAttrs()
+	omitAttrs := scope.OmitAttrs()
+
+	if len(selectAttrs) > 0 {
+		for _, attr := range selectAttrs {
+			if column == ToDBName(attr) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, attr := range omitAttrs {
+		if column == ToDBName(attr) {
+			return false
+		}
+	}
+	return true
 }
 
 func (scope *Scope) changeableField(field *Field) bool {
