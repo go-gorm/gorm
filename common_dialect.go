@@ -9,19 +9,19 @@ import (
 
 type commonDialect struct{}
 
-func (s *commonDialect) BinVar(i int) string {
-	return "?"
+func (commonDialect) BinVar(i int) string {
+	return "$$" // ?
 }
 
-func (s *commonDialect) SupportLastInsertId() bool {
+func (commonDialect) SupportLastInsertId() bool {
 	return true
 }
 
-func (s *commonDialect) HasTop() bool {
+func (commonDialect) HasTop() bool {
 	return false
 }
 
-func (s *commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "BOOLEAN"
@@ -57,19 +57,19 @@ func (s *commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool)
 	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", value.Type().Name(), value.Kind().String()))
 }
 
-func (s *commonDialect) ReturningStr(tableName, key string) string {
+func (commonDialect) ReturningStr(tableName, key string) string {
 	return ""
 }
 
-func (s *commonDialect) SelectFromDummyTable() string {
+func (commonDialect) SelectFromDummyTable() string {
 	return ""
 }
 
-func (s *commonDialect) Quote(key string) string {
-	return fmt.Sprintf("`%s`", key)
+func (commonDialect) Quote(key string) string {
+	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (s *commonDialect) databaseName(scope *Scope) string {
+func (commonDialect) databaseName(scope *Scope) string {
 	from := strings.Index(scope.db.parent.source, "/") + 1
 	to := strings.Index(scope.db.parent.source, "?")
 	if to == -1 {
@@ -78,24 +78,24 @@ func (s *commonDialect) databaseName(scope *Scope) string {
 	return scope.db.parent.source[from:to]
 }
 
-func (s *commonDialect) HasTable(scope *Scope, tableName string) bool {
+func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, s.databaseName(scope)).Row().Scan(&count)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, c.databaseName(scope)).Row().Scan(&count)
 	return count > 0
 }
 
-func (s *commonDialect) HasColumn(scope *Scope, tableName string, columnName string) bool {
+func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", s.databaseName(scope), tableName, columnName).Row().Scan(&count)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", c.databaseName(scope), tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
-func (s *commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
 	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS where table_name = ? AND index_name = ?", tableName, indexName).Row().Scan(&count)
 	return count > 0
 }
 
-func (s *commonDialect) RemoveIndex(scope *Scope, indexName string) {
+func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
 }

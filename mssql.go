@@ -7,21 +7,15 @@ import (
 	"time"
 )
 
-type mssql struct{}
-
-func (s *mssql) BinVar(i int) string {
-	return "$$" // ?
+type mssql struct {
+	commonDialect
 }
 
-func (s *mssql) SupportLastInsertId() bool {
+func (mssql) HasTop() bool {
 	return true
 }
 
-func (s *mssql) HasTop() bool {
-	return true
-}
-
-func (s *mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "bit"
@@ -57,19 +51,7 @@ func (s *mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", value.Type().Name(), value.Kind().String()))
 }
 
-func (s *mssql) ReturningStr(tableName, key string) string {
-	return ""
-}
-
-func (s *mssql) SelectFromDummyTable() string {
-	return ""
-}
-
-func (s *mssql) Quote(key string) string {
-	return fmt.Sprintf(" \"%s\"", key)
-}
-
-func (s *mssql) databaseName(scope *Scope) string {
+func (mssql) databaseName(scope *Scope) string {
 	dbStr := strings.Split(scope.db.parent.source, ";")
 	for _, value := range dbStr {
 		s := strings.Split(value, "=")
@@ -80,24 +62,20 @@ func (s *mssql) databaseName(scope *Scope) string {
 	return ""
 }
 
-func (s *mssql) HasTable(scope *Scope, tableName string) bool {
+func (s mssql) HasTable(scope *Scope, tableName string) bool {
 	var count int
 	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.databaseName(scope)).Row().Scan(&count)
 	return count > 0
 }
 
-func (s *mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
+func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
 	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.databaseName(scope), tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
-func (s *mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
 	scope.NewDB().Raw("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Row().Scan(&count)
 	return count > 0
-}
-
-func (s *mssql) RemoveIndex(scope *Scope, indexName string) {
-	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
 }
