@@ -91,14 +91,15 @@ func (s *postgres) RemoveIndex(scope *Scope, indexName string) {
 }
 
 func (s *postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	// Determine whehter the pg_indexes talbe is
-	detect := []int{} //make([]int, 2) // If detect[0] == 1 then we have postgres, else if detect[1] == 1 then we have detectationDB.
-	scope.NewDB().Raw(`SELECT count(*) "detect" FROM INFORMATION_SCHEMA.tables WHERE table_name = 'pg_indexes' UNION SELECT count(*) "detect" FROM INFORMATION_SCHEMA.tables WHERE table_name = 'indexes'`).Pluck("detect", &detect)
+	// Determine whether we're using a postgres db or foundation.
+	var isPg int
+	var isFdb int
+	scope.NewDB().Raw(`SELECT (SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = 'pg_indexes') "pg", (SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = 'indexes') "fdb"`).Row().Scan(&isPg, &isFdb)
 	var count int
 	var indexQuery string
-	if detect[0] == 1 { // Then we have postgres.
+	if isPg == 1 { // Then we have postgres.
 		indexQuery = "SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?"
-	} else if detect[1] == 1 { // Then we have FoundationDB.
+	} else if isFdb == 1 { // Then we have FoundationDB.
 		indexQuery = "SELECT count(*) FROM INFORMATION_SCHEMA.indexes WHERE table_schema = current_schema AND table_name = ? AND index_name = ?"
 	} else {
 		panic("unable to query for indexes, unrecognized database schema layout")
