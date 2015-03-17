@@ -3,7 +3,6 @@ package gorm
 import (
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -360,7 +359,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
 	scope.Search.Select(column)
 	if dest.Kind() != reflect.Slice {
-		scope.Err(errors.New("results should be a slice"))
+		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
 		return scope
 	}
 
