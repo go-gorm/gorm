@@ -570,7 +570,7 @@ func (scope *Scope) autoIndex() *Scope {
 			if name == "UNIQUE_INDEX" {
 				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
 			}
-			uniqueIndexes[name] = append(indexes[name], field.DBName)
+			uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 		}
 	}
 
