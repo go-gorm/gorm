@@ -15,14 +15,11 @@ type Person struct {
 }
 
 type PersonAddress struct {
+	gorm.JoinTableHandler
 	PersonID  int
 	AddressID int
 	DeletedAt time.Time
 	CreatedAt time.Time
-}
-
-func (*PersonAddress) Table(db *gorm.DB, relationship *gorm.Relationship) string {
-	return relationship.JoinTable
 }
 
 func (*PersonAddress) Add(db *gorm.DB, relationship *gorm.Relationship, foreignValue interface{}, associationValue interface{}) error {
@@ -41,14 +38,14 @@ func (*PersonAddress) Delete(db *gorm.DB, relationship *gorm.Relationship) error
 }
 
 func (pa *PersonAddress) Scope(db *gorm.DB, relationship *gorm.Relationship) *gorm.DB {
-	table := pa.Table(db, relationship)
+	table := pa.Table(db)
 	return db.Table(table).Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
 
 func TestJoinTable(t *testing.T) {
 	DB.Exec("drop table person_addresses;")
 	DB.AutoMigrate(&Person{})
-	DB.SetJoinTableHandler(&PersonAddress{}, "person_addresses")
+	// DB.SetJoinTableHandler(&PersonAddress{}, "person_addresses")
 
 	address1 := &Address{Address1: "address 1"}
 	address2 := &Address{Address1: "address 2"}

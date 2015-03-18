@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -13,70 +14,114 @@ type JoinTableHandlerInterface interface {
 }
 
 type JoinTableSource struct {
-	ForeignKey       string
-	ForeignKeyPrefix string
-	ModelStruct
+	ModelType   reflect.Type
+	ForeignKeys []struct {
+		DBName            string
+		AssociationDBName string
+	}
 }
 
 type JoinTableHandler struct {
-	TableName string
-	Source1   JoinTableSource
-	Source2   JoinTableSource
+	TableName   string          `sql:"-"`
+	Source      JoinTableSource `sql:"-"`
+	Destination JoinTableSource `sql:"-"`
 }
 
-func (jt JoinTableHandler) Table(*DB) string {
-	return jt.TableName
+func (s JoinTableHandler) Table(*DB) string {
+	return s.TableName
 }
 
-func (jt JoinTableHandler) GetValueMap(db *DB, sources ...interface{}) map[string]interface{} {
+func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
 	values := map[string]interface{}{}
+
 	for _, source := range sources {
 		scope := db.NewScope(source)
-		for _, primaryField := range scope.GetModelStruct().PrimaryFields {
-			if field, ok := scope.Fields()[primaryField.DBName]; ok {
-				values[primaryField.DBName] = field.Field.Interface()
+		modelType := scope.GetModelStruct().ModelType
+
+		if s.Source.ModelType == modelType {
+			for _, foreignKey := range s.Source.ForeignKeys {
+				values[foreignKey.DBName] = scope.Fields()[foreignKey.AssociationDBName].Field.Interface()
+			}
+		} else if s.Destination.ModelType == modelType {
+			for _, foreignKey := range s.Destination.ForeignKeys {
+				values[foreignKey.DBName] = scope.Fields()[foreignKey.AssociationDBName].Field.Interface()
 			}
 		}
 	}
 	return values
 }
 
-func (jt JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) error {
+func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) error {
 	scope := db.NewScope("")
-	valueMap := jt.GetValueMap(db, source1, source2)
+	searchMap := s.GetSearchMap(db, source1, source2)
 
-	var setColumns, setBinVars, queryConditions []string
+	var assignColumns, binVars, conditions []string
 	var values []interface{}
-	for key, value := range valueMap {
-		setColumns = append(setColumns, key)
-		setBinVars = append(setBinVars, `?`)
-		queryConditions = append(queryConditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
+	for key, value := range searchMap {
+		assignColumns = append(assignColumns, key)
+		binVars = append(binVars, `?`)
+		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
 		values = append(values, value)
 	}
 
-	for _, value := range valueMap {
+	for _, value := range searchMap {
 		values = append(values, value)
 	}
 
-	quotedTable := jt.Table(db)
+	quotedTable := s.Table(db)
 	sql := fmt.Sprintf(
 		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v);",
 		quotedTable,
-		strings.Join(setColumns, ","),
-		strings.Join(setBinVars, ","),
+		strings.Join(assignColumns, ","),
+		strings.Join(binVars, ","),
 		scope.Dialect().SelectFromDummyTable(),
 		quotedTable,
-		strings.Join(queryConditions, " AND "),
+		strings.Join(conditions, " AND "),
 	)
 
 	return db.Exec(sql, values...).Error
 }
 
-func (jt JoinTableHandler) Delete(db *DB, sources ...interface{}) error {
-	// return db.Table(jt.Table(db)).Delete("").Error
-	return nil
+func (s JoinTableHandler) Delete(db *DB, sources ...interface{}) error {
+	var conditions []string
+	var values []interface{}
+
+	for key, value := range s.GetSearchMap(db, sources...) {
+		conditions = append(conditions, fmt.Sprintf("%v = ?", key))
+		values = append(values, value)
+	}
+
+	return db.Table(s.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
 }
 
-func (jt JoinTableHandler) JoinWith(db *DB, sources interface{}) *DB {
-	return db
+func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
+	quotedTable := s.Table(db)
+
+	scope := db.NewScope(source)
+	modelType := scope.GetModelStruct().ModelType
+	var joinConditions []string
+	var queryConditions []string
+	var values []interface{}
+	if s.Source.ModelType == modelType {
+		for _, foreignKey := range s.Destination.ForeignKeys {
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), scope.QuotedTableName(), scope.Quote(foreignKey.AssociationDBName)))
+		}
+
+		for _, foreignKey := range s.Source.ForeignKeys {
+			queryConditions = append(queryConditions, fmt.Sprintf("%v.%v = ?", quotedTable, scope.Quote(foreignKey.DBName)))
+			values = append(values, scope.Fields()[foreignKey.AssociationDBName].Field.Interface())
+		}
+	} else if s.Destination.ModelType == modelType {
+		for _, foreignKey := range s.Source.ForeignKeys {
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), scope.QuotedTableName(), scope.Quote(foreignKey.AssociationDBName)))
+		}
+
+		for _, foreignKey := range s.Destination.ForeignKeys {
+			queryConditions = append(queryConditions, fmt.Sprintf("%v.%v = ?", quotedTable, scope.Quote(foreignKey.DBName)))
+			values = append(values, scope.Fields()[foreignKey.AssociationDBName].Field.Interface())
+		}
+	}
+
+	return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", strings.Join(joinConditions, " AND "))).
+		Where(strings.Join(queryConditions, " AND "), values...)
 }
