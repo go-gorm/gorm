@@ -5,44 +5,78 @@ import (
 	"strings"
 )
 
-type JoinTableHandler interface {
-	Table(*DB, *Relationship) string
-	Add(*DB, *Relationship, interface{}, interface{}) error
-	Delete(*DB, *Relationship) error
-	Scope(*DB, *Relationship) *DB
+type JoinTableHandlerInterface interface {
+	Table(db *DB) string
+	Add(db *DB, source1 interface{}, source2 interface{}) error
+	Delete(db *DB, sources ...interface{}) error
+	JoinWith(db *DB, source interface{}) *DB
 }
 
-type defaultJoinTableHandler struct{}
-
-func (s *defaultJoinTableHandler) Table(db *DB, relationship *Relationship) string {
-	return relationship.JoinTable
+type JoinTableSource struct {
+	ForeignKey       string
+	ForeignKeyPrefix string
+	ModelStruct
 }
 
-func (s *defaultJoinTableHandler) Add(db *DB, relationship *Relationship, foreignValue interface{}, associationValue interface{}) error {
+type JoinTableHandler struct {
+	TableName string
+	Source1   JoinTableSource
+	Source2   JoinTableSource
+}
+
+func (jt JoinTableHandler) Table(*DB) string {
+	return jt.TableName
+}
+
+func (jt JoinTableHandler) GetValueMap(db *DB, sources ...interface{}) map[string]interface{} {
+	values := map[string]interface{}{}
+	for _, source := range sources {
+		scope := db.NewScope(source)
+		for _, primaryField := range scope.GetModelStruct().PrimaryFields {
+			if field, ok := scope.Fields()[primaryField.DBName]; ok {
+				values[primaryField.DBName] = field.Field.Interface()
+			}
+		}
+	}
+	return values
+}
+
+func (jt JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) error {
 	scope := db.NewScope("")
-	quotedForeignDBName := scope.Quote(relationship.ForeignDBName)
-	quotedAssociationDBName := scope.Quote(relationship.AssociationForeignDBName)
-	table := s.Table(db, relationship)
+	valueMap := jt.GetValueMap(db, source1, source2)
 
+	var setColumns, setBinVars, queryConditions []string
+	var values []interface{}
+	for key, value := range valueMap {
+		setColumns = append(setColumns, key)
+		setBinVars = append(setBinVars, `?`)
+		queryConditions = append(queryConditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
+		values = append(values, value)
+	}
+
+	for _, value := range valueMap {
+		values = append(values, value)
+	}
+
+	quotedTable := jt.Table(db)
 	sql := fmt.Sprintf(
-		"INSERT INTO %v (%v) SELECT ?,? %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v = ? AND %v = ?);",
-		scope.Quote(table),
-		strings.Join([]string{quotedForeignDBName, quotedAssociationDBName}, ","),
+		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v);",
+		quotedTable,
+		strings.Join(setColumns, ","),
+		strings.Join(setBinVars, ","),
 		scope.Dialect().SelectFromDummyTable(),
-		scope.Quote(table),
-		quotedForeignDBName,
-		quotedAssociationDBName,
+		quotedTable,
+		strings.Join(queryConditions, " AND "),
 	)
 
-	return db.Exec(sql, foreignValue, associationValue, foreignValue, associationValue).Error
+	return db.Exec(sql, values...).Error
 }
 
-func (s *defaultJoinTableHandler) Delete(db *DB, relationship *Relationship) error {
-	return db.Table(s.Table(db, relationship)).Delete("").Error
+func (jt JoinTableHandler) Delete(db *DB, sources ...interface{}) error {
+	// return db.Table(jt.Table(db)).Delete("").Error
+	return nil
 }
 
-func (s *defaultJoinTableHandler) Scope(db *DB, relationship *Relationship) *DB {
-	return db.Table(s.Table(db, relationship))
+func (jt JoinTableHandler) JoinWith(db *DB, sources interface{}) *DB {
+	return db
 }
-
-var DefaultJoinTableHandler = &defaultJoinTableHandler{}

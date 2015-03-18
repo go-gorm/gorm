@@ -469,30 +469,3 @@ func (s *DB) Get(name string) (value interface{}, ok bool) {
 	value, ok = s.values[name]
 	return
 }
-
-func (s *DB) GetJoinTableHandler(table string) JoinTableHandler {
-	if s.parent.joinTableHandlers != nil {
-		if joinTableHandler, ok := s.parent.joinTableHandlers[table]; ok {
-			return joinTableHandler
-		}
-		if joinTableHandler, ok := s.parent.joinTableHandlers["*"]; ok {
-			return joinTableHandler
-		}
-	}
-	return DefaultJoinTableHandler
-}
-
-func (s *DB) SetJoinTableHandler(joinTableHandler JoinTableHandler, tables ...string) {
-	if s.parent.joinTableHandlers == nil {
-		s.parent.joinTableHandlers = map[string]JoinTableHandler{}
-	}
-
-	if len(tables) > 0 {
-		for _, table := range tables {
-			s.parent.joinTableHandlers[table] = joinTableHandler
-			s.Table(table).AutoMigrate(joinTableHandler)
-		}
-	} else {
-		s.parent.joinTableHandlers["*"] = joinTableHandler
-	}
-}

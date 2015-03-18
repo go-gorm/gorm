@@ -402,18 +402,11 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
-					joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
-					quotedJoinTable := scope.Quote(joinTableHandler.Table(scope.db, relationship))
-
-					joinSql := fmt.Sprintf(
-						"INNER JOIN %v ON %v.%v = %v.%v",
-						quotedJoinTable,
-						quotedJoinTable,
-						scope.Quote(relationship.AssociationForeignDBName),
-						toScope.QuotedTableName(),
-						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", quotedJoinTable, scope.Quote(relationship.ForeignDBName))
-					scope.Err(toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value).Error)
+					joinTableHandler := relationship.JoinTableHandler
+					quotedJoinTable := scope.Quote(joinTableHandler.Table(scope.db))
+					scope.Err(joinTableHandler.JoinWith(toScope.db, scope.Value).
+						Where(fmt.Sprintf("%v.%v = ?", quotedJoinTable, scope.Quote(relationship.ForeignDBName)), scope.PrimaryKeyValue()).
+						Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
 					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
@@ -443,9 +436,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 func (scope *Scope) createJoinTable(field *StructField) {
-	if relationship := field.Relationship; relationship != nil && relationship.JoinTable != "" {
-		joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
-		joinTable := joinTableHandler.Table(scope.db, relationship)
+	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
+		joinTable := relationship.JoinTableHandler.Table(scope.db)
 		if !scope.Dialect().HasTable(scope, joinTable) {
 			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255, false)
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",

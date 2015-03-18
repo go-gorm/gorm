@@ -60,7 +60,7 @@ type Relationship struct {
 	ForeignDBName               string
 	AssociationForeignFieldName string
 	AssociationForeignDBName    string
-	JoinTable                   string
+	JoinTableHandler            JoinTableHandlerInterface
 }
 
 var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
@@ -205,7 +205,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 						if many2many := gormSettings["MANY2MANY"]; many2many != "" {
 							relationship.Kind = "many_to_many"
-							relationship.JoinTable = many2many
+							relationship.JoinTableHandler = JoinTableHandler{}
 
 							associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 							if associationForeignKey == "" {
