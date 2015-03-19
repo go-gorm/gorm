@@ -143,7 +143,7 @@ func TestManyToMany(t *testing.T) {
 
 	// Query
 	var newLanguages []Language
-	DB.Debug().Model(&user).Related(&newLanguages, "Languages")
+	DB.Model(&user).Related(&newLanguages, "Languages")
 	if len(newLanguages) != len([]string{"ZH", "EN"}) {
 		t.Errorf("Query many to many relations")
 	}

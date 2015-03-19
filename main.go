@@ -469,3 +469,12 @@ func (s *DB) Get(name string) (value interface{}, ok bool) {
 	value, ok = s.values[name]
 	return
 }
+
+func (s *DB) SetJoinTableHandler(source interface{}, column string, handler JoinTableHandlerInterface) {
+	for _, field := range s.NewScope(source).GetModelStruct().StructFields {
+		if field.Name == column || field.DBName == column {
+			field.Relationship.JoinTableHandler = handler
+			s.Table(handler.Table(s)).AutoMigrate(handler)
+		}
+	}
+}

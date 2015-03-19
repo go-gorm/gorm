@@ -18,28 +18,6 @@ type JoinTableForeignKey struct {
 	AssociationDBName string
 }
 
-func updateJoinTableHandler(relationship *Relationship) {
-	handler := relationship.JoinTableHandler.(*JoinTableHandler)
-
-	destinationScope := &Scope{Value: reflect.New(handler.Destination.ModelType).Interface()}
-	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
-		db := relationship.ForeignDBName
-		handler.Destination.ForeignKeys = append(handler.Destination.ForeignKeys, JoinTableForeignKey{
-			DBName:            db,
-			AssociationDBName: primaryField.DBName,
-		})
-	}
-
-	sourceScope := &Scope{Value: reflect.New(handler.Source.ModelType).Interface()}
-	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
-		db := relationship.AssociationForeignDBName
-		handler.Source.ForeignKeys = append(handler.Source.ForeignKeys, JoinTableForeignKey{
-			DBName:            db,
-			AssociationDBName: primaryField.DBName,
-		})
-	}
-}
-
 type JoinTableSource struct {
 	ModelType   reflect.Type
 	ForeignKeys []JoinTableForeignKey
@@ -49,6 +27,28 @@ type JoinTableHandler struct {
 	TableName   string          `sql:"-"`
 	Source      JoinTableSource `sql:"-"`
 	Destination JoinTableSource `sql:"-"`
+}
+
+func updateJoinTableHandler(relationship *Relationship) {
+	handler := relationship.JoinTableHandler.(*JoinTableHandler)
+
+	destinationScope := &Scope{Value: reflect.New(handler.Destination.ModelType).Interface()}
+	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
+		db := relationship.AssociationForeignDBName
+		handler.Destination.ForeignKeys = append(handler.Destination.ForeignKeys, JoinTableForeignKey{
+			DBName:            db,
+			AssociationDBName: primaryField.DBName,
+		})
+	}
+
+	sourceScope := &Scope{Value: reflect.New(handler.Source.ModelType).Interface()}
+	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
+		db := relationship.ForeignDBName
+		handler.Source.ForeignKeys = append(handler.Source.ForeignKeys, JoinTableForeignKey{
+			DBName:            db,
+			AssociationDBName: primaryField.DBName,
+		})
+	}
 }
 
 func (s JoinTableHandler) Table(*DB) string {
@@ -88,7 +88,7 @@ func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) 
 		values = append(values, value)
 	}
 
-	for _, value := range searchMap {
+	for _, value := range values {
 		values = append(values, value)
 	}
 

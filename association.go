@@ -163,9 +163,7 @@ func (association *Association) Count() int {
 	newScope := scope.New(association.Field.Field.Interface())
 
 	if relationship.Kind == "many_to_many" {
-		query := scope.DB().Select("COUNT(DISTINCT ?)", relationship.AssociationForeignDBName).
-			Where(relationship.ForeignDBName+" = ?", association.PrimaryKey)
-		relationship.JoinTableHandler.JoinWith(query, association.Scope.Value).Count(&count)
+		relationship.JoinTableHandler.JoinWith(scope.NewDB(), association.Scope.Value).Table(newScope.TableName()).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.ForeignDBName))
 		countScope := scope.DB().Table(newScope.TableName()).Where(whereSql, association.PrimaryKey)

@@ -403,10 +403,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
 					joinTableHandler := relationship.JoinTableHandler
-					quotedJoinTable := scope.Quote(joinTableHandler.Table(scope.db))
-					scope.Err(joinTableHandler.JoinWith(toScope.db, scope.Value).
-						Where(fmt.Sprintf("%v.%v = ?", quotedJoinTable, scope.Quote(relationship.ForeignDBName)), scope.PrimaryKeyValue()).
-						Find(value).Error)
+					scope.Err(joinTableHandler.JoinWith(toScope.db, scope.Value).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
 					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()

@@ -15,29 +15,32 @@ type Person struct {
 }
 
 type PersonAddress struct {
-	gorm.JoinTableHandler
 	PersonID  int
 	AddressID int
 	DeletedAt time.Time
 	CreatedAt time.Time
 }
 
-func (*PersonAddress) Add(db *gorm.DB, relationship *gorm.Relationship, foreignValue interface{}, associationValue interface{}) error {
+func (*PersonAddress) Table(db *gorm.DB) string {
+	return "person_addresses"
+}
+
+func (*PersonAddress) Add(db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
 	return db.Where(map[string]interface{}{
-		relationship.ForeignDBName:            foreignValue,
-		relationship.AssociationForeignDBName: associationValue,
+		"person_id":  db.NewScope(foreignValue).PrimaryKeyValue(),
+		"address_id": db.NewScope(associationValue).PrimaryKeyValue(),
 	}).Assign(map[string]interface{}{
-		relationship.ForeignFieldName:            foreignValue,
-		relationship.AssociationForeignFieldName: associationValue,
-		"DeletedAt":                              gorm.Expr("NULL"),
+		"person_id":  foreignValue,
+		"address_id": associationValue,
+		"DeletedAt":  gorm.Expr("NULL"),
 	}).FirstOrCreate(&PersonAddress{}).Error
 }
 
-func (*PersonAddress) Delete(db *gorm.DB, relationship *gorm.Relationship) error {
+func (*PersonAddress) Delete(db *gorm.DB, sources ...interface{}) error {
 	return db.Delete(&PersonAddress{}).Error
 }
 
-func (pa *PersonAddress) Scope(db *gorm.DB, relationship *gorm.Relationship) *gorm.DB {
+func (pa *PersonAddress) JoinWith(db *gorm.DB, source interface{}) *gorm.DB {
 	table := pa.Table(db)
 	return db.Table(table).Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
@@ -45,7 +48,7 @@ func (pa *PersonAddress) Scope(db *gorm.DB, relationship *gorm.Relationship) *go
 func TestJoinTable(t *testing.T) {
 	DB.Exec("drop table person_addresses;")
 	DB.AutoMigrate(&Person{})
-	// DB.SetJoinTableHandler(&PersonAddress{}, "person_addresses")
+	DB.SetJoinTableHandler(&Person{}, "Addresses", &PersonAddress{})
 
 	address1 := &Address{Address1: "address 1"}
 	address2 := &Address{Address1: "address 2"}
@@ -58,7 +61,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should found one address")
 	}
 
-	if DB.Model(person).Association("Addresses").Count() != 1 {
+	if DB.Debug().Model(person).Association("Addresses").Count() != 1 {
 		t.Errorf("Should found one address")
 	}
 
