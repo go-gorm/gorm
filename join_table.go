@@ -128,7 +128,8 @@ func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
 	var values []interface{}
 	if s.Source.ModelType == modelType {
 		for _, foreignKey := range s.Destination.ForeignKeys {
-			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), scope.QuotedTableName(), scope.Quote(foreignKey.AssociationDBName)))
+			destinationTableName := scope.New(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
 		for _, foreignKey := range s.Source.ForeignKeys {
@@ -137,7 +138,8 @@ func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
 		}
 	} else if s.Destination.ModelType == modelType {
 		for _, foreignKey := range s.Source.ForeignKeys {
-			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), scope.QuotedTableName(), scope.Quote(foreignKey.AssociationDBName)))
+			sourceTableName := scope.New(reflect.New(s.Source.ModelType).Interface()).QuotedTableName()
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), sourceTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
 		for _, foreignKey := range s.Destination.ForeignKeys {
@@ -146,6 +148,6 @@ func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
 		}
 	}
 
-	return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", strings.Join(joinConditions, " AND "))).
+	return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
 		Where(strings.Join(queryConditions, " AND "), values...)
 }
