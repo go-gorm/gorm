@@ -13,12 +13,36 @@ type JoinTableHandlerInterface interface {
 	JoinWith(db *DB, source interface{}) *DB
 }
 
+type JoinTableForeignKey struct {
+	DBName            string
+	AssociationDBName string
+}
+
+func updateJoinTableHandler(relationship *Relationship) {
+	handler := relationship.JoinTableHandler.(*JoinTableHandler)
+
+	destinationScope := &Scope{Value: reflect.New(handler.Destination.ModelType).Interface()}
+	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
+		db := relationship.ForeignDBName
+		handler.Destination.ForeignKeys = append(handler.Destination.ForeignKeys, JoinTableForeignKey{
+			DBName:            db,
+			AssociationDBName: primaryField.DBName,
+		})
+	}
+
+	sourceScope := &Scope{Value: reflect.New(handler.Source.ModelType).Interface()}
+	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
+		db := relationship.AssociationForeignDBName
+		handler.Source.ForeignKeys = append(handler.Source.ForeignKeys, JoinTableForeignKey{
+			DBName:            db,
+			AssociationDBName: primaryField.DBName,
+		})
+	}
+}
+
 type JoinTableSource struct {
 	ModelType   reflect.Type
-	ForeignKeys []struct {
-		DBName            string
-		AssociationDBName string
-	}
+	ForeignKeys []JoinTableForeignKey
 }
 
 type JoinTableHandler struct {
