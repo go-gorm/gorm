@@ -42,7 +42,7 @@ func (*PersonAddress) Delete(db *gorm.DB, sources ...interface{}) error {
 
 func (pa *PersonAddress) JoinWith(db *gorm.DB, source interface{}) *gorm.DB {
 	table := pa.Table(db)
-	return db.Table(table).Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
+	return db.Table(table).Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
 
 func TestJoinTable(t *testing.T) {
@@ -61,7 +61,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should found one address")
 	}
 
-	if DB.Debug().Model(person).Association("Addresses").Count() != 1 {
+	if DB.Model(person).Association("Addresses").Count() != 1 {
 		t.Errorf("Should found one address")
 	}
 
