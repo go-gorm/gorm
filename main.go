@@ -473,8 +473,13 @@ func (s *DB) Get(name string) (value interface{}, ok bool) {
 func (s *DB) SetJoinTableHandler(source interface{}, column string, handler JoinTableHandlerInterface) {
 	for _, field := range s.NewScope(source).GetModelStruct().StructFields {
 		if field.Name == column || field.DBName == column {
-			field.Relationship.JoinTableHandler = handler
-			s.Table(handler.Table(s)).AutoMigrate(handler)
+			if many2many := parseTagSetting(field.Tag.Get("gorm"))["MANY2MANY"]; many2many != "" {
+				source := (&Scope{Value: source}).GetModelStruct().ModelType
+				destination := (&Scope{Value: reflect.New(field.Struct.Type).Interface()}).GetModelStruct().ModelType
+				handler.Setup(field.Relationship, many2many, source, destination)
+				field.Relationship.JoinTableHandler = handler
+				s.Table(handler.Table(s)).AutoMigrate(handler)
+			}
 		}
 	}
 }

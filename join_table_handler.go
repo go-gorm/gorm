@@ -1,14 +1,16 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 )
 
 type JoinTableHandlerInterface interface {
+	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
 	Table(db *DB) string
-	Add(db *DB, source1 interface{}, source2 interface{}) error
+	Add(db *DB, source interface{}, destination interface{}) error
 	Delete(db *DB, sources ...interface{}) error
 	JoinWith(db *DB, source interface{}) *DB
 }
@@ -29,22 +31,24 @@ type JoinTableHandler struct {
 	Destination JoinTableSource `sql:"-"`
 }
 
-func updateJoinTableHandler(relationship *Relationship) {
-	handler := relationship.JoinTableHandler.(*JoinTableHandler)
+func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type) {
+	s.TableName = tableName
 
-	destinationScope := &Scope{Value: reflect.New(handler.Destination.ModelType).Interface()}
-	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
-		db := relationship.AssociationForeignDBName
-		handler.Destination.ForeignKeys = append(handler.Destination.ForeignKeys, JoinTableForeignKey{
+	s.Source = JoinTableSource{ModelType: source}
+	sourceScope := &Scope{Value: reflect.New(source).Interface()}
+	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
+		db := relationship.ForeignDBName
+		s.Source.ForeignKeys = append(s.Source.ForeignKeys, JoinTableForeignKey{
 			DBName:            db,
 			AssociationDBName: primaryField.DBName,
 		})
 	}
 
-	sourceScope := &Scope{Value: reflect.New(handler.Source.ModelType).Interface()}
-	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
-		db := relationship.ForeignDBName
-		handler.Source.ForeignKeys = append(handler.Source.ForeignKeys, JoinTableForeignKey{
+	s.Destination = JoinTableSource{ModelType: destination}
+	destinationScope := &Scope{Value: reflect.New(destination).Interface()}
+	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
+		db := relationship.AssociationForeignDBName
+		s.Destination.ForeignKeys = append(s.Destination.ForeignKeys, JoinTableForeignKey{
 			DBName:            db,
 			AssociationDBName: primaryField.DBName,
 		})
@@ -136,18 +140,10 @@ func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
 			queryConditions = append(queryConditions, fmt.Sprintf("%v.%v = ?", quotedTable, scope.Quote(foreignKey.DBName)))
 			values = append(values, scope.Fields()[foreignKey.AssociationDBName].Field.Interface())
 		}
-	} else if s.Destination.ModelType == modelType {
-		for _, foreignKey := range s.Source.ForeignKeys {
-			sourceTableName := scope.New(reflect.New(s.Source.ModelType).Interface()).QuotedTableName()
-			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), sourceTableName, scope.Quote(foreignKey.AssociationDBName)))
-		}
-
-		for _, foreignKey := range s.Destination.ForeignKeys {
-			queryConditions = append(queryConditions, fmt.Sprintf("%v.%v = ?", quotedTable, scope.Quote(foreignKey.DBName)))
-			values = append(values, scope.Fields()[foreignKey.AssociationDBName].Field.Interface())
-		}
+		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
+			Where(strings.Join(queryConditions, " AND "), values...)
+	} else {
+		db.Error = errors.New("wrong source type for join table handler")
+		return db
 	}
-
-	return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
-		Where(strings.Join(queryConditions, " AND "), values...)
 }

@@ -215,13 +215,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								relationship.ForeignDBName = ToDBName(foreignKey)
 								relationship.AssociationForeignFieldName = associationForeignKey
 								relationship.AssociationForeignDBName = ToDBName(associationForeignKey)
-								relationship.JoinTableHandler = &JoinTableHandler{
-									TableName:   many2many,
-									Source:      JoinTableSource{ModelType: scopeType},
-									Destination: JoinTableSource{ModelType: elemType},
-								}
-								updateJoinTableHandler(relationship)
 
+								joinTableHandler := JoinTableHandler{}
+								joinTableHandler.Setup(relationship, many2many, scopeType, elemType)
+								relationship.JoinTableHandler = &joinTableHandler
 								field.Relationship = relationship
 							} else {
 								relationship.Kind = "has_many"

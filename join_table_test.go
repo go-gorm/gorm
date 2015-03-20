@@ -15,14 +15,11 @@ type Person struct {
 }
 
 type PersonAddress struct {
+	gorm.JoinTableHandler
 	PersonID  int
 	AddressID int
 	DeletedAt time.Time
 	CreatedAt time.Time
-}
-
-func (*PersonAddress) Table(db *gorm.DB) string {
-	return "person_addresses"
 }
 
 func (*PersonAddress) Add(db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
@@ -32,7 +29,7 @@ func (*PersonAddress) Add(db *gorm.DB, foreignValue interface{}, associationValu
 	}).Assign(map[string]interface{}{
 		"person_id":  foreignValue,
 		"address_id": associationValue,
-		"DeletedAt":  gorm.Expr("NULL"),
+		"deleted_at": gorm.Expr("NULL"),
 	}).FirstOrCreate(&PersonAddress{}).Error
 }
 
