@@ -61,7 +61,7 @@ type Relationship struct {
 	AssociationForeignFieldName string
 	AssociationForeignDBName    string
 	JoinTable                   string
-	AssociationForeignFieldName string
+	AssociationFieldName        string
 	PivotKey                    string
 	PivotType                   string
 }
