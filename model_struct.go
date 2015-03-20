@@ -312,7 +312,7 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 
 	additionalType := sqlSettings["NOT NULL"] + " " + sqlSettings["UNIQUE"]
 	if value, ok := sqlSettings["DEFAULT"]; ok {
-		additionalType = additionalType + "DEFAULT " + value
+		additionalType = additionalType + " DEFAULT " + value
 	}
 
 	if field.IsScanner {
