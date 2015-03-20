@@ -37,9 +37,12 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	s.Source = JoinTableSource{ModelType: source}
 	sourceScope := &Scope{Value: reflect.New(source).Interface()}
 	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
-		db := relationship.ForeignDBName
+		if relationship.ForeignDBName == "" {
+			relationship.ForeignFieldName = source.Name() + primaryField.Name
+			relationship.ForeignDBName = ToDBName(relationship.ForeignFieldName)
+		}
 		s.Source.ForeignKeys = append(s.Source.ForeignKeys, JoinTableForeignKey{
-			DBName:            db,
+			DBName:            relationship.ForeignDBName,
 			AssociationDBName: primaryField.DBName,
 		})
 	}
@@ -47,9 +50,12 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	s.Destination = JoinTableSource{ModelType: destination}
 	destinationScope := &Scope{Value: reflect.New(destination).Interface()}
 	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
-		db := relationship.AssociationForeignDBName
+		if relationship.AssociationForeignDBName == "" {
+			relationship.AssociationForeignFieldName = destination.Name() + primaryField.Name
+			relationship.AssociationForeignDBName = ToDBName(relationship.AssociationForeignFieldName)
+		}
 		s.Destination.ForeignKeys = append(s.Destination.ForeignKeys, JoinTableForeignKey{
-			DBName:            db,
+			DBName:            relationship.AssociationForeignDBName,
 			AssociationDBName: primaryField.DBName,
 		})
 	}
