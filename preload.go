@@ -99,7 +99,55 @@ func Preload(scope *Scope) {
 							}
 						}
 					case "many_to_many":
-						scope.Err(errors.New("not supported relation"))
+						if primaryKeys := scope.getColumnAsArray(primaryName); len(primaryKeys) > 0 {
+							var (
+								key1 int
+								key2 int
+							)
+							condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
+							pResults, _ := scope.NewDB().
+								Table(relation.PivotKey).
+								Select(relation.ForeignDBName+","+relation.AssociationForeignFieldName).
+								Where(condition, primaryKeys).
+								Rows()
+							keyVals := map[int][]int{}
+							foreignKeys := []int{}
+							for pResults.Next() {
+								err := pResults.Scan(&key1, &key2)
+								if err != nil {
+									fmt.Println(err)
+								}
+								keyVals[key1] = append(keyVals[key1], key2)
+								foreignKeys = append(foreignKeys, key2)
+							}
+
+							condition = fmt.Sprintf("%v IN (?)", scope.Quote("id"))
+							scope.NewDB().
+								Where(condition, foreignKeys).Find(results, conditions...)
+							resultValues := reflect.Indirect(reflect.ValueOf(results))
+							if isSlice {
+								objects := scope.IndirectValue()
+								for j := 0; j < objects.Len(); j++ {
+									object := reflect.Indirect(objects.Index(j))
+									objP := object.FieldByName(primaryName)
+
+									objID := int(objP.Int())
+									objFor := keyVals[objID]
+									for _, fK := range objFor {
+										for i := 0; i < resultValues.Len(); i++ {
+											result := resultValues.Index(i)
+											if equalAsString(getRealValue(result, primaryName), fK) {
+												f := object.FieldByName(field.Name)
+												f.Set(reflect.Append(f, result))
+												break
+											}
+										}
+									}
+								}
+							} else {
+								scope.Err(errors.New("not supported relation"))
+							}
+						}
 					default:
 						scope.Err(errors.New("not supported relation"))
 					}

@@ -61,6 +61,9 @@ type Relationship struct {
 	AssociationForeignFieldName string
 	AssociationForeignDBName    string
 	JoinTable                   string
+	AssociationForeignFieldName string
+	PivotKey                    string
+	PivotType                   string
 }
 
 var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompile("ss$"), regexp.MustCompile("sh$"), regexp.MustCompile("day$"), regexp.MustCompile("y$"), regexp.MustCompile("x$"), regexp.MustCompile("([^s])s?$")}
@@ -206,6 +209,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						if many2many := gormSettings["MANY2MANY"]; many2many != "" {
 							relationship.Kind = "many_to_many"
 							relationship.JoinTable = many2many
+							relationship.PivotKey = gormSettings["MANY2MANY"]
+							relationship.PivotType = elemType.Name() + "Id"
+							relationship.AssociationFieldName = elemType.Name()
 
 							associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 							if associationForeignKey == "" {
