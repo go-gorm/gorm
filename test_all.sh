@@ -1,4 +1,4 @@
-dialects=("postgres" "mysql" "sqlite")
+dialects=("postgres" "foundation" "mysql" "sqlite")
 
 for dialect in "${dialects[@]}" ; do
     GORM_DIALECT=${dialect} go test

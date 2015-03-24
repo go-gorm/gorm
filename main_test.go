@@ -36,6 +36,9 @@ func init() {
 	case "postgres":
 		fmt.Println("testing postgres...")
 		DB, err = gorm.Open("postgres", "user=gorm DB.name=gorm sslmode=disable")
+	case "foundation":
+		fmt.Println("testing foundation...")
+		DB, err = gorm.Open("foundation", "dbname=gorm port=15432 sslmode=disable")
 	case "mssql":
 		fmt.Println("testing mssql...")
 		DB, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
@@ -445,6 +448,14 @@ func TestHaving(t *testing.T) {
 	}
 }
 
+func DialectHasTzSupport() bool {
+	// NB: mssql and FoundationDB do not support time zones.
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" || dialect == "foundation" {
+		return false
+	}
+	return true
+}
+
 func TestTimeWithZone(t *testing.T) {
 	var format = "2006-01-02 15:04:05 -0700"
 	var times []time.Time
@@ -456,26 +467,30 @@ func TestTimeWithZone(t *testing.T) {
 		name := "time_with_zone_" + strconv.Itoa(index)
 		user := User{Name: name, Birthday: vtime}
 
-		// TODO mssql does not support time zones
-		if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
+		if !DialectHasTzSupport() {
+			// If our driver dialect doesn't support TZ's, just use UTC for everything here.
 			user.Birthday = vtime.UTC()
 		}
+
 		DB.Save(&user)
-		if user.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
-			t.Errorf("User's birthday should not be changed after save")
+		expectedBirthday := "2013-02-18 17:51:49 +0000"
+		foundBirthday := user.Birthday.UTC().Format(format)
+		if foundBirthday != expectedBirthday {
+			t.Errorf("User's birthday should not be changed after save for name=%s, expected bday=%+v but actual value=%+v", name, expectedBirthday, foundBirthday)
 		}
 
 		var findUser, findUser2, findUser3 User
 		DB.First(&findUser, "name = ?", name)
-		if findUser.Birthday.UTC().Format(format) != "2013-02-18 17:51:49 +0000" {
-			t.Errorf("User's birthday should not be changed after find")
+		foundBirthday = findUser.Birthday.UTC().Format(format)
+		if foundBirthday != expectedBirthday {
+			t.Errorf("User's birthday should not be changed after find for name=%s, expected bday=%+v but actual value=%+v or %+v", name, expectedBirthday, foundBirthday)
 		}
 
-		if DB.Where("id = ? AND birthday >= ?", findUser.Id, vtime.Add(-time.Minute)).First(&findUser2).RecordNotFound() {
+		if DB.Where("id = ? AND birthday >= ?", findUser.Id, user.Birthday.Add(-time.Minute)).First(&findUser2).RecordNotFound() {
 			t.Errorf("User should be found")
 		}
 
-		if !DB.Where("id = ? AND birthday >= ?", findUser.Id, vtime.Add(time.Minute)).First(&findUser3).RecordNotFound() {
+		if !DB.Where("id = ? AND birthday >= ?", findUser.Id, user.Birthday.Add(time.Minute)).First(&findUser3).RecordNotFound() {
 			t.Errorf("User should not be found")
 		}
 	}
