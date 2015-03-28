@@ -266,6 +266,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 func (s *DB) UpdateColumns(values interface{}) *DB {
 	return s.clone().NewScope(s.Value).
 		Set("gorm:update_column", true).
+		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callback.updates).db
 }

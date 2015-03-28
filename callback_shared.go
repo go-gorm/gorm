@@ -11,6 +11,9 @@ func CommitOrRollbackTransaction(scope *Scope) {
 }
 
 func SaveBeforeAssociations(scope *Scope) {
+	if !scope.shouldSaveAssociations() {
+		return
+	}
 	for _, field := range scope.Fields() {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
@@ -25,6 +28,9 @@ func SaveBeforeAssociations(scope *Scope) {
 }
 
 func SaveAfterAssociations(scope *Scope) {
+	if !scope.shouldSaveAssociations() {
+		return
+	}
 	for _, field := range scope.Fields() {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil &&
