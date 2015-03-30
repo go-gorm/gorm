@@ -546,7 +546,7 @@ Supports polymorphic has-many and has-one associations.
     Id        int
     Name      string
     OwnerId   int
-    OwnerType int
+    OwnerType string
   }
 ```
 Note: polymorphic belongs-to and many-to-many are explicitly NOT supported, and will throw errors.
