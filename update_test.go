@@ -382,3 +382,32 @@ func TestOmitWithUpdateColumn(t *testing.T) {
 		t.Errorf("Should omit name column when update user")
 	}
 }
+
+func TestUpdateColumnsSkipsAssociations(t *testing.T) {
+	user := getPreparedUser("update_columns_user", "special_role")
+	user.Age = 99
+	address1 := "first street"
+	user.BillingAddress = Address{Address1: address1}
+	DB.Save(user)
+
+	// Update a single field of the user and verify that the changed address is not stored.
+	newAge := int64(100)
+	user.BillingAddress.Address1 = "second street"
+	db := DB.Model(user).UpdateColumns(User{Age: newAge})
+	if db.RowsAffected != 1 {
+		t.Errorf("Expected RowsAffected=1 but instead RowsAffected=%v", DB.RowsAffected)
+	}
+
+	// Verify that Age now=`newAge`.
+	freshUser := &User{Id: user.Id}
+	DB.First(freshUser)
+	if freshUser.Age != newAge {
+		t.Errorf("Expected freshly queried user to have Age=%v but instead found Age=%v", newAge, freshUser.Age)
+	}
+
+	// Verify that user's BillingAddress.Address1 is not changed and is still "first street".
+	DB.First(&freshUser.BillingAddress, freshUser.BillingAddressID)
+	if freshUser.BillingAddress.Address1 != address1 {
+		t.Errorf("Expected user's BillingAddress.Address1=%s to remain unchanged after UpdateColumns invocation, but BillingAddress.Address1=%s", address1, freshUser.BillingAddress.Address1)
+	}
+}

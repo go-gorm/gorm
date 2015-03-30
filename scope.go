@@ -398,3 +398,11 @@ func (scope *Scope) changeableField(field *Field) bool {
 
 	return !field.IsIgnored
 }
+
+func (scope *Scope) shouldSaveAssociations() bool {
+	saveAssociations, ok := scope.Get("gorm:save_associations")
+	if ok && !saveAssociations.(bool) {
+		return false
+	}
+	return true
+}

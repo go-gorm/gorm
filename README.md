@@ -360,7 +360,7 @@ db.Model(&user).Updates(User{Name: "hello", Age: 18})
 
 ### Update Without Callbacks
 
-By default, update will call BeforeUpdate, AfterUpdate callbacks, if you want to update w/o callbacks:
+By default, update will call BeforeUpdate, AfterUpdate callbacks, if you want to update w/o callbacks and w/o saving associations:
 
 ```go
 db.Model(&user).UpdateColumn("name", "hello")
