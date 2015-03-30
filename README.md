@@ -96,6 +96,7 @@ import (
 )
 
 db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+// db, err := gorm.Open("foundation", "dbname=gorm") // FoundationDB.
 // db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 // db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 

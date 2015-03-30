@@ -55,6 +55,9 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 				driver = value
 				source = args[1].(string)
 			}
+			if driver == "foundation" {
+				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
+			}
 			dbSql, err = sql.Open(driver, source)
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()

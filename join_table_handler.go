@@ -104,7 +104,7 @@ func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) 
 
 	quotedTable := s.Table(db)
 	sql := fmt.Sprintf(
-		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v);",
+		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v)",
 		quotedTable,
 		strings.Join(assignColumns, ","),
 		strings.Join(binVars, ","),
