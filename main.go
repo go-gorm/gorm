@@ -55,6 +55,9 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 				driver = value
 				source = args[1].(string)
 			}
+			if driver == "foundation" {
+				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
+			}
 			dbSql, err = sql.Open(driver, source)
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
@@ -193,14 +196,14 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.InstanceSet("gorm:order_by_primary_key", "ASC").
+	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.InstanceSet("gorm:order_by_primary_key", "DESC").
+	return newScope.Set("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
 }
 
@@ -266,6 +269,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 func (s *DB) UpdateColumns(values interface{}) *DB {
 	return s.clone().NewScope(s.Value).
 		Set("gorm:update_column", true).
+		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callback.updates).db
 }
@@ -470,29 +474,16 @@ func (s *DB) Get(name string) (value interface{}, ok bool) {
 	return
 }
 
-func (s *DB) GetJoinTableHandler(table string) JoinTableHandler {
-	if s.parent.joinTableHandlers != nil {
-		if joinTableHandler, ok := s.parent.joinTableHandlers[table]; ok {
-			return joinTableHandler
+func (s *DB) SetJoinTableHandler(source interface{}, column string, handler JoinTableHandlerInterface) {
+	for _, field := range s.NewScope(source).GetModelStruct().StructFields {
+		if field.Name == column || field.DBName == column {
+			if many2many := parseTagSetting(field.Tag.Get("gorm"))["MANY2MANY"]; many2many != "" {
+				source := (&Scope{Value: source}).GetModelStruct().ModelType
+				destination := (&Scope{Value: reflect.New(field.Struct.Type).Interface()}).GetModelStruct().ModelType
+				handler.Setup(field.Relationship, many2many, source, destination)
+				field.Relationship.JoinTableHandler = handler
+				s.Table(handler.Table(s)).AutoMigrate(handler)
+			}
 		}
-		if joinTableHandler, ok := s.parent.joinTableHandlers["*"]; ok {
-			return joinTableHandler
-		}
-	}
-	return DefaultJoinTableHandler
-}
-
-func (s *DB) SetJoinTableHandler(joinTableHandler JoinTableHandler, tables ...string) {
-	if s.parent.joinTableHandlers == nil {
-		s.parent.joinTableHandlers = map[string]JoinTableHandler{}
-	}
-
-	if len(tables) > 0 {
-		for _, table := range tables {
-			s.parent.joinTableHandlers[table] = joinTableHandler
-			s.Table(table).AutoMigrate(joinTableHandler)
-		}
-	} else {
-		s.parent.joinTableHandlers["*"] = joinTableHandler
 	}
 }

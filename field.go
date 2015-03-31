@@ -27,9 +27,13 @@ func (field *Field) Set(value interface{}) error {
 
 	if scanner, ok := field.Field.Addr().Interface().(sql.Scanner); ok {
 		if v, ok := value.(reflect.Value); ok {
-			scanner.Scan(v.Interface())
+			if err := scanner.Scan(v.Interface()); err != nil {
+				return err
+			}
 		} else {
-			scanner.Scan(value)
+			if err := scanner.Scan(value); err != nil {
+				return err
+			}
 		}
 	} else {
 		reflectValue, ok := value.(reflect.Value)

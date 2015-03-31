@@ -3,7 +3,6 @@ package gorm
 import (
 	"database/sql"
 	"database/sql/driver"
-	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -360,7 +359,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
 	scope.Search.Select(column)
 	if dest.Kind() != reflect.Slice {
-		scope.Err(errors.New("results should be a slice"))
+		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
 		return scope
 	}
 
@@ -402,18 +401,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
-					joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
-					quotedJoinTable := scope.Quote(joinTableHandler.Table(scope.db, relationship))
-
-					joinSql := fmt.Sprintf(
-						"INNER JOIN %v ON %v.%v = %v.%v",
-						quotedJoinTable,
-						quotedJoinTable,
-						scope.Quote(relationship.AssociationForeignDBName),
-						toScope.QuotedTableName(),
-						scope.Quote(toScope.PrimaryKey()))
-					whereSql := fmt.Sprintf("%v.%v = ?", quotedJoinTable, scope.Quote(relationship.ForeignDBName))
-					scope.Err(toScope.db.Joins(joinSql).Where(whereSql, scope.PrimaryKeyValue()).Find(value).Error)
+					joinTableHandler := relationship.JoinTableHandler
+					scope.Err(joinTableHandler.JoinWith(toScope.db, scope.Value).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
 					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
@@ -443,9 +432,9 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 func (scope *Scope) createJoinTable(field *StructField) {
-	if relationship := field.Relationship; relationship != nil && relationship.JoinTable != "" {
-		joinTableHandler := scope.db.GetJoinTableHandler(relationship.JoinTable)
-		joinTable := joinTableHandler.Table(scope.db, relationship)
+	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
+		joinTableHandler := relationship.JoinTableHandler
+		joinTable := joinTableHandler.Table(scope.db)
 		if !scope.Dialect().HasTable(scope, joinTable) {
 			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255, false)
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
@@ -455,7 +444,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					scope.Quote(relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
 			).Error)
 		}
-		scope.NewDB().Table(joinTable).AutoMigrate()
+		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
 }
 
@@ -570,7 +559,7 @@ func (scope *Scope) autoIndex() *Scope {
 			if name == "UNIQUE_INDEX" {
 				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
 			}
-			uniqueIndexes[name] = append(indexes[name], field.DBName)
+			uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 		}
 	}
 

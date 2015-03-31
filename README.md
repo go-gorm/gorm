@@ -96,6 +96,7 @@ import (
 )
 
 db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+// db, err := gorm.Open("foundation", "dbname=gorm") // FoundationDB.
 // db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 // db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 
@@ -360,7 +361,7 @@ db.Model(&user).Updates(User{Name: "hello", Age: 18})
 
 ### Update Without Callbacks
 
-By default, update will call BeforeUpdate, AfterUpdate callbacks, if you want to update w/o callbacks:
+By default, update will call BeforeUpdate, AfterUpdate callbacks, if you want to update w/o callbacks and w/o saving associations:
 
 ```go
 db.Model(&user).UpdateColumn("name", "hello")
@@ -546,7 +547,7 @@ Supports polymorphic has-many and has-one associations.
     Id        int
     Name      string
     OwnerId   int
-    OwnerType int
+    OwnerType string
   }
 ```
 Note: polymorphic belongs-to and many-to-many are explicitly NOT supported, and will throw errors.

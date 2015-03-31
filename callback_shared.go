@@ -11,6 +11,9 @@ func CommitOrRollbackTransaction(scope *Scope) {
 }
 
 func SaveBeforeAssociations(scope *Scope) {
+	if !scope.shouldSaveAssociations() {
+		return
+	}
 	for _, field := range scope.Fields() {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
@@ -25,6 +28,9 @@ func SaveBeforeAssociations(scope *Scope) {
 }
 
 func SaveAfterAssociations(scope *Scope) {
+	if !scope.shouldSaveAssociations() {
+		return
+	}
 	for _, field := range scope.Fields() {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil &&
@@ -38,7 +44,7 @@ func SaveAfterAssociations(scope *Scope) {
 						elem := value.Index(i).Addr().Interface()
 						newScope := newDB.NewScope(elem)
 
-						if relationship.JoinTable == "" && relationship.ForeignFieldName != "" {
+						if relationship.JoinTableHandler == nil && relationship.ForeignFieldName != "" {
 							scope.Err(newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue()))
 						}
 
@@ -48,9 +54,8 @@ func SaveAfterAssociations(scope *Scope) {
 
 						scope.Err(newDB.Save(elem).Error)
 
-						if joinTable := relationship.JoinTable; joinTable != "" {
-							scope.Err(scope.db.GetJoinTableHandler(joinTable).
-								Add(scope.NewDB(), relationship, scope.PrimaryKeyValue(), newScope.PrimaryKeyValue()))
+						if joinTableHandler := relationship.JoinTableHandler; joinTableHandler != nil {
+							scope.Err(joinTableHandler.Add(scope.NewDB(), scope.Value, newScope.Value))
 						}
 					}
 				default:

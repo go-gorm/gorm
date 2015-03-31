@@ -21,7 +21,7 @@ func Query(scope *Scope) {
 		dest = reflect.Indirect(reflect.ValueOf(value))
 	}
 
-	if orderBy, ok := scope.InstanceGet("gorm:order_by_primary_key"); ok {
+	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {
 		if primaryKey := scope.PrimaryKey(); primaryKey != "" {
 			scope.Search.Order(fmt.Sprintf("%v.%v %v", scope.QuotedTableName(), primaryKey, orderBy))
 		}
