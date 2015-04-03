@@ -395,8 +395,17 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	fromFields := scope.Fields()
 	toFields := toScope.Fields()
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		fromField := fromFields[ToDBName(foreignKey)]
-		toField := toFields[ToDBName(foreignKey)]
+		var fromField, toField *Field
+		if field, ok := scope.FieldByName(foreignKey); ok {
+			fromField = field
+		} else {
+			fromField = fromFields[ToDBName(foreignKey)]
+		}
+		if field, ok := toScope.FieldByName(foreignKey); ok {
+			toField = field
+		} else {
+			toField = toFields[ToDBName(foreignKey)]
+		}
 
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
