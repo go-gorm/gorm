@@ -17,7 +17,7 @@ type ModelStruct struct {
 	PrimaryFields []*StructField
 	StructFields  []*StructField
 	ModelType     reflect.Type
-	TableName     string
+	TableName     func(*DB) string
 }
 
 type StructField struct {
@@ -97,17 +97,23 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	if fm := reflect.New(scopeType).MethodByName("TableName"); fm.IsValid() {
 		if results := fm.Call([]reflect.Value{}); len(results) > 0 {
 			if name, ok := results[0].Interface().(string); ok {
-				modelStruct.TableName = name
+				modelStruct.TableName = func(*DB) string {
+					return name
+				}
 			}
 		}
 	} else {
-		modelStruct.TableName = ToDBName(scopeType.Name())
+		name := ToDBName(scopeType.Name())
 		if scope.db == nil || !scope.db.parent.singularTable {
 			for index, reg := range pluralMapKeys {
-				if reg.MatchString(modelStruct.TableName) {
-					modelStruct.TableName = reg.ReplaceAllString(modelStruct.TableName, pluralMapValues[index])
+				if reg.MatchString(name) {
+					name = reg.ReplaceAllString(name, pluralMapValues[index])
 				}
 			}
+		}
+
+		modelStruct.TableName = func(*DB) string {
+			return name
 		}
 	}
 

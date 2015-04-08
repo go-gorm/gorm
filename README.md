@@ -213,6 +213,11 @@ db.Where("name LIKE ?", "%jin%").Find(&users)
 
 // AND
 db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
+
+// Time
+db.Where("updated_at > ?", lastWeek).Find(&users)
+
+db.Where("created_at BETWEEN ? AND ?", lastWeek, today).Find(&users)
 ```
 
 ### Query With Where (Struct & Map)
