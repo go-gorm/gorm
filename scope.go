@@ -224,12 +224,35 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	}
 }
 
+type tabler interface {
+	TableName() string
+}
+
+type dbTabler interface {
+	TableName(*DB) string
+}
+
 // TableName get table name
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		return scope.Search.tableName
 	}
-	return scope.GetModelStruct().TableName
+
+	if tabler, ok := scope.Value.(tabler); ok {
+		return tabler.TableName()
+	}
+
+	if tabler, ok := scope.Value.(dbTabler); ok {
+		return tabler.TableName(scope.db)
+	}
+
+	if scope.GetModelStruct().TableName != nil {
+		scope.Search.tableName = scope.GetModelStruct().TableName(scope.db)
+		return scope.Search.tableName
+	}
+
+	scope.Err(errors.New("wrong table name"))
+	return ""
 }
 
 func (scope *Scope) QuotedTableName() (name string) {
