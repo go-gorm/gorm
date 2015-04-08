@@ -247,8 +247,7 @@ func (scope *Scope) TableName() string {
 	}
 
 	if scope.GetModelStruct().TableName != nil {
-		scope.Search.tableName = scope.GetModelStruct().TableName(scope.db)
-		return scope.Search.tableName
+		return scope.GetModelStruct().TableName(scope.db)
 	}
 
 	scope.Err(errors.New("wrong table name"))

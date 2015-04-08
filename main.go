@@ -487,3 +487,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 		}
 	}
 }
+
+func (s *DB) SetTableNameHandler(source interface{}, handler func(*DB) string) {
+	s.NewScope(source).GetModelStruct().TableName = handler
+}
