@@ -36,26 +36,39 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 
 	s.Source = JoinTableSource{ModelType: source}
 	sourceScope := &Scope{Value: reflect.New(source).Interface()}
-	for _, primaryField := range sourceScope.GetModelStruct().PrimaryFields {
+	sourcePrimaryFields := sourceScope.GetModelStruct().PrimaryFields
+	for _, primaryField := range sourcePrimaryFields {
 		if relationship.ForeignDBName == "" {
 			relationship.ForeignFieldName = source.Name() + primaryField.Name
 			relationship.ForeignDBName = ToDBName(relationship.ForeignFieldName)
 		}
+
+		var dbName string
+		if len(sourcePrimaryFields) == 1 || primaryField.DBName == "id" {
+			dbName = relationship.ForeignDBName
+		} else {
+			dbName = ToDBName(source.Name() + primaryField.Name)
+		}
+
 		s.Source.ForeignKeys = append(s.Source.ForeignKeys, JoinTableForeignKey{
-			DBName:            relationship.ForeignDBName,
+			DBName:            dbName,
 			AssociationDBName: primaryField.DBName,
 		})
 	}
 
 	s.Destination = JoinTableSource{ModelType: destination}
 	destinationScope := &Scope{Value: reflect.New(destination).Interface()}
-	for _, primaryField := range destinationScope.GetModelStruct().PrimaryFields {
-		if relationship.AssociationForeignDBName == "" {
-			relationship.AssociationForeignFieldName = destination.Name() + primaryField.Name
-			relationship.AssociationForeignDBName = ToDBName(relationship.AssociationForeignFieldName)
+	destinationPrimaryFields := destinationScope.GetModelStruct().PrimaryFields
+	for _, primaryField := range destinationPrimaryFields {
+		var dbName string
+		if len(sourcePrimaryFields) == 1 || primaryField.DBName == "id" {
+			dbName = relationship.AssociationForeignDBName
+		} else {
+			dbName = ToDBName(destinationScope.GetModelStruct().ModelType.Name() + primaryField.Name)
 		}
+
 		s.Destination.ForeignKeys = append(s.Destination.ForeignKeys, JoinTableForeignKey{
-			DBName:            relationship.AssociationForeignDBName,
+			DBName:            dbName,
 			AssociationDBName: primaryField.DBName,
 		})
 	}

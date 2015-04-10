@@ -40,6 +40,7 @@ func (association *Association) Append(values ...interface{}) *Association {
 			association.setErr(errors.New("invalid association type"))
 		}
 	}
+	scope.Search.Select(association.Column)
 	scope.callCallbacks(scope.db.parent.callback.updates)
 	return association.setErr(scope.db.Error)
 }
