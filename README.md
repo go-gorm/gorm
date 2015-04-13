@@ -39,7 +39,7 @@ type User struct {
 	Num          int     `sql:"AUTO_INCREMENT"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    time.Time
+	DeletedAt    *time.Time
 
 	Emails            []Email         // One-To-Many relationship (has many)
 	BillingAddress    Address         // One-To-One relationship (has one)
@@ -84,6 +84,21 @@ type User struct{} // struct User's database table name is "users" by default, w
 * Use `CreatedAt` to store record's created time if field exists
 * Use `UpdatedAt` to store record's updated time if field exists
 * Use `DeletedAt` to store record's deleted time if field exists [Soft Delete](#soft-delete)
+* Gorm provide a default model struct, you could embed it in your struct
+
+```go
+type Model struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type User struct {
+	gorm.Model
+	Name string
+}
+```
 
 ## Initialize Database
 
