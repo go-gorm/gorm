@@ -20,10 +20,10 @@ func equalAsString(a interface{}, b interface{}) bool {
 }
 
 func Preload(scope *Scope) {
-	fields := scope.Fields()
-	isSlice := scope.IndirectValue().Kind() == reflect.Slice
-
 	if scope.Search.preload != nil {
+		fields := scope.Fields()
+		isSlice := scope.IndirectValue().Kind() == reflect.Slice
+
 		for key, conditions := range scope.Search.preload {
 			for _, field := range fields {
 				if field.Name == key && field.Relationship != nil {
