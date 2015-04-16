@@ -164,7 +164,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 			return field.Set(value)
 		}
 
-		dbName = ToDBName(name)
+		dbName := ToDBName(name)
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
 		}
