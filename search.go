@@ -24,25 +24,8 @@ type search struct {
 }
 
 func (s *search) clone() *search {
-	return &search{
-		preload:         s.preload,
-		whereConditions: s.whereConditions,
-		orConditions:    s.orConditions,
-		notConditions:   s.notConditions,
-		havingCondition: s.havingCondition,
-		initAttrs:       s.initAttrs,
-		assignAttrs:     s.assignAttrs,
-		selects:         s.selects,
-		omits:           s.omits,
-		orders:          s.orders,
-		joins:           s.joins,
-		offset:          s.offset,
-		limit:           s.limit,
-		group:           s.group,
-		tableName:       s.tableName,
-		raw:             s.raw,
-		Unscoped:        s.Unscoped,
-	}
+	clone := *s
+	return &clone
 }
 
 func (s *search) Where(query interface{}, values ...interface{}) *search {
