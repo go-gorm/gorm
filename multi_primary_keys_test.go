@@ -21,7 +21,7 @@ type Tag struct {
 }
 
 func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
-	if dialect := os.Getenv("GORM_DIALECT"); dialect != "sqlite" {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" {
 		DB.Exec(fmt.Sprintf("drop table blog_tags;"))
 		DB.AutoMigrate(&Blog{}, &Tag{})
 		blog := Blog{
