@@ -158,13 +158,18 @@ func (scope *Scope) HasColumn(column string) bool {
 func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	if field, ok := column.(*Field); ok {
 		return field.Set(value)
-	} else if dbName, ok := column.(string); ok {
+	} else if name, ok := column.(string); ok {
+
+		if field, ok := scope.Fields()[name]; ok {
+			return field.Set(value)
+		}
+
+		dbName = ToDBName(name)
 		if field, ok := scope.Fields()[dbName]; ok {
 			return field.Set(value)
 		}
 
-		dbName = ToDBName(dbName)
-		if field, ok := scope.Fields()[dbName]; ok {
+		if field, ok := scope.FieldByName(name); ok {
 			return field.Set(value)
 		}
 	}
