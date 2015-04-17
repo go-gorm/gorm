@@ -220,9 +220,7 @@ func (s *DB) Rows() (*sql.Rows, error) {
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	scope := s.clone().NewScope(s.Value).InstanceSet("gorm:query_destination", dest)
-	Query(scope)
-	return scope.db
+	return s.clone().NewScope(s.Value).InstanceSet("gorm:query_destination", dest).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
