@@ -16,15 +16,15 @@ func Query(scope *Scope) {
 		destType       reflect.Type
 	)
 
-	var dest = scope.IndirectValue()
-	if value, ok := scope.InstanceGet("gorm:query_destination"); ok {
-		dest = reflect.Indirect(reflect.ValueOf(value))
-	}
-
 	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {
 		if primaryKey := scope.PrimaryKey(); primaryKey != "" {
 			scope.Search.Order(fmt.Sprintf("%v.%v %v", scope.QuotedTableName(), primaryKey, orderBy))
 		}
+	}
+
+	var dest = scope.IndirectValue()
+	if value, ok := scope.InstanceGet("gorm:query_destination"); ok {
+		dest = reflect.Indirect(reflect.ValueOf(value))
 	}
 
 	if kind := dest.Kind(); kind == reflect.Slice {

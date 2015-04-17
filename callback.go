@@ -9,6 +9,7 @@ type callback struct {
 	updates    []*func(scope *Scope)
 	deletes    []*func(scope *Scope)
 	queries    []*func(scope *Scope)
+	rowQueries []*func(scope *Scope)
 	processors []*callbackProcessor
 }
 
@@ -53,6 +54,10 @@ func (c *callback) Delete() *callbackProcessor {
 
 func (c *callback) Query() *callbackProcessor {
 	return c.addProcessor("query")
+}
+
+func (c *callback) RowQuery() *callbackProcessor {
+	return c.addProcessor("row_query")
 }
 
 func (cp *callbackProcessor) Before(name string) *callbackProcessor {
@@ -168,7 +173,7 @@ func sortProcessors(cps []*callbackProcessor) []*func(scope *Scope) {
 }
 
 func (c *callback) sort() {
-	creates, updates, deletes, queries := []*callbackProcessor{}, []*callbackProcessor{}, []*callbackProcessor{}, []*callbackProcessor{}
+	var creates, updates, deletes, queries, rowQueries []*callbackProcessor
 
 	for _, processor := range c.processors {
 		switch processor.typ {
@@ -180,6 +185,8 @@ func (c *callback) sort() {
 			deletes = append(deletes, processor)
 		case "query":
 			queries = append(queries, processor)
+		case "row_query":
+			rowQueries = append(rowQueries, processor)
 		}
 	}
 
@@ -187,6 +194,7 @@ func (c *callback) sort() {
 	c.updates = sortProcessors(updates)
 	c.deletes = sortProcessors(deletes)
 	c.queries = sortProcessors(queries)
+	c.rowQueries = sortProcessors(rowQueries)
 }
 
 var DefaultCallback = &callback{processors: []*callbackProcessor{}}
