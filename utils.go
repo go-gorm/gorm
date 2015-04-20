@@ -3,6 +3,7 @@ package gorm
 import (
 	"bytes"
 	"strings"
+	"sync"
 )
 
 // Copied from golint
