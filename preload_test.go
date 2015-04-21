@@ -1,6 +1,11 @@
 package gorm_test
 
-import "testing"
+import (
+	"encoding/json"
+	"log"
+	"reflect"
+	"testing"
+)
 
 func getPreloadUser(name string) *User {
 	return getPreparedUser(name, "Preload")
@@ -84,4 +89,418 @@ func TestPreload(t *testing.T) {
 			t.Errorf("should not preload any emails for other users when with condition")
 		}
 	}
+}
+
+func TestNestedPreload(t *testing.T) {
+	log.SetFlags(log.Lshortfile)
+	// Struct: Level3
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1   Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID     uint
+				Level2 Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
+		if err := DB.Create(&want).Error; err != nil {
+			panic(err)
+		}
+
+		var got Level3
+		if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1s  []Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID      uint
+				Level2s []Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := Level3{
+			Level2s: []Level2{
+				{
+					Level1s: []Level1{
+						{Value: "value1"},
+						{Value: "value2"},
+					},
+				},
+				{
+					Level1s: []Level1{
+						{Value: "value3"},
+					},
+				},
+			},
+		}
+		if err := DB.Create(&want).Error; err != nil {
+			panic(err)
+		}
+
+		var got Level3
+		if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1   Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID      uint
+				Level2s []Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := Level3{
+			Level2s: []Level2{
+				{Level1: Level1{Value: "value1"}},
+				{Level1: Level1{Value: "value2"}},
+			},
+		}
+		if err := DB.Create(&want).Error; err != nil {
+			panic(err)
+		}
+
+		var got Level3
+		if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1s  []Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID     uint
+				Level2 Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := Level3{
+			Level2: Level2{
+				Level1s: []Level1{
+					Level1{Value: "value1"},
+					Level1{Value: "value2"},
+				},
+			},
+		}
+		if err := DB.Create(&want).Error; err != nil {
+			panic(err)
+		}
+
+		var got Level3
+		if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+
+	// Slice: []Level3
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1   Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID     uint
+				Level2 Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := make([]Level3, 2)
+		want[0] = Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
+		if err := DB.Create(&want[0]).Error; err != nil {
+			panic(err)
+		}
+		want[1] = Level3{Level2: Level2{Level1: Level1{Value: "value2"}}}
+		if err := DB.Create(&want[1]).Error; err != nil {
+			panic(err)
+		}
+
+		var got []Level3
+		if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1s  []Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID      uint
+				Level2s []Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := make([]Level3, 2)
+		want[0] = Level3{
+			Level2s: []Level2{
+				{
+					Level1s: []Level1{
+						{Value: "value1"},
+						{Value: "value2"},
+					},
+				},
+				{
+					Level1s: []Level1{
+						{Value: "value3"},
+					},
+				},
+			},
+		}
+		if err := DB.Create(&want[0]).Error; err != nil {
+			panic(err)
+		}
+		want[1] = Level3{
+			Level2s: []Level2{
+				{
+					Level1s: []Level1{
+						{Value: "value3"},
+						{Value: "value4"},
+					},
+				},
+				{
+					Level1s: []Level1{
+						{Value: "value5"},
+					},
+				},
+			},
+		}
+		if err := DB.Create(&want[1]).Error; err != nil {
+			panic(err)
+		}
+
+		var got []Level3
+		if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1   Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID      uint
+				Level2s []Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := make([]Level3, 2)
+		want[0] = Level3{
+			Level2s: []Level2{
+				{Level1: Level1{Value: "value1"}},
+				{Level1: Level1{Value: "value2"}},
+			},
+		}
+		if err := DB.Create(&want[0]).Error; err != nil {
+			panic(err)
+		}
+		want[1] = Level3{
+			Level2s: []Level2{
+				{Level1: Level1{Value: "value3"}},
+				{Level1: Level1{Value: "value4"}},
+			},
+		}
+		if err := DB.Create(&want[1]).Error; err != nil {
+			panic(err)
+		}
+
+		var got []Level3
+		if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+	{
+		type (
+			Level1 struct {
+				ID       uint
+				Value    string
+				Level2ID uint
+			}
+			Level2 struct {
+				ID       uint
+				Level1s  []Level1
+				Level3ID uint
+			}
+			Level3 struct {
+				ID     uint
+				Level2 Level2
+			}
+		)
+		DB.DropTableIfExists(&Level3{})
+		DB.DropTableIfExists(&Level2{})
+		DB.DropTableIfExists(&Level1{})
+		if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+			panic(err)
+		}
+
+		want := make([]Level3, 2)
+		want[0] = Level3{
+			Level2: Level2{
+				Level1s: []Level1{
+					Level1{Value: "value1"},
+					Level1{Value: "value2"},
+				},
+			},
+		}
+		if err := DB.Create(&want[0]).Error; err != nil {
+			panic(err)
+		}
+		want[1] = Level3{
+			Level2: Level2{
+				Level1s: []Level1{
+					Level1{Value: "value3"},
+					Level1{Value: "value4"},
+				},
+			},
+		}
+		if err := DB.Create(&want[1]).Error; err != nil {
+			panic(err)
+		}
+
+		var got []Level3
+		if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+		}
+	}
+}
+
+func toJSONString(v interface{}) []byte {
+	r, _ := json.MarshalIndent(v, "", "  ")
+	return r
 }

@@ -14,13 +14,18 @@ type search struct {
 	omits           []string
 	orders          []string
 	joins           string
-	preload         map[string][]interface{}
+	preload         []searchPreload
 	offset          string
 	limit           string
 	group           string
 	tableName       string
 	raw             bool
 	Unscoped        bool
+}
+
+type searchPreload struct {
+	schema     string
+	conditions []interface{}
 }
 
 func (s *search) clone() *search {
@@ -97,11 +102,15 @@ func (s *search) Joins(query string) *search {
 	return s
 }
 
-func (s *search) Preload(column string, values ...interface{}) *search {
-	if s.preload == nil {
-		s.preload = map[string][]interface{}{}
+func (s *search) Preload(schema string, values ...interface{}) *search {
+	var preloads []searchPreload
+	for _, preload := range s.preload {
+		if preload.schema != schema {
+			preloads = append(preloads, preload)
+		}
 	}
-	s.preload[column] = values
+	preloads = append(preloads, searchPreload{schema, values})
+	s.preload = preloads
 	return s
 }
 
