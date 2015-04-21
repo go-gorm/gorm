@@ -177,7 +177,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 }
 
 func (scope *Scope) CallMethod(name string, checkError bool) {
-	if scope.Value == nil && (!checkError || !scope.HasError()) {
+	if scope.Value == nil || (checkError && scope.HasError()) {
 		return
 	}
 
