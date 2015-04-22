@@ -347,6 +347,13 @@ db.Preload("Orders").Preload("Profile").Preload("Role").Find(&users)
 //// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to
 ```
 
+#### Nested Preloading
+
+```go
+db.Preload("Orders.OrderItems").Find(&users)
+db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&users)
+```
+
 ## Update
 
 ```go
