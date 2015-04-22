@@ -104,6 +104,7 @@ func TestNestedPreload1(t *testing.T) {
 		}
 		Level3 struct {
 			ID     uint
+			Name   string
 			Level2 Level2
 		}
 	)
@@ -143,6 +144,7 @@ func TestNestedPreload2(t *testing.T) {
 		}
 		Level3 struct {
 			ID      uint
+			Name    string
 			Level2s []Level2
 		}
 	)
@@ -154,6 +156,7 @@ func TestNestedPreload2(t *testing.T) {
 	}
 
 	want := Level3{
+		Name: "name",
 		Level2s: []Level2{
 			{
 				Level1s: []*Level1{
@@ -195,6 +198,7 @@ func TestNestedPreload3(t *testing.T) {
 			Level3ID uint
 		}
 		Level3 struct {
+			Name    string
 			ID      uint
 			Level2s []Level2
 		}
@@ -207,6 +211,7 @@ func TestNestedPreload3(t *testing.T) {
 	}
 
 	want := Level3{
+		Name: "name",
 		Level2s: []Level2{
 			{Level1: Level1{Value: "value1"}},
 			{Level1: Level1{Value: "value2"}},
@@ -240,6 +245,7 @@ func TestNestedPreload4(t *testing.T) {
 		}
 		Level3 struct {
 			ID     uint
+			Name   string
 			Level2 Level2
 		}
 	)
@@ -287,6 +293,7 @@ func TestNestedPreload5(t *testing.T) {
 		}
 		Level3 struct {
 			ID     uint
+			Name   string
 			Level2 Level2
 		}
 	)
@@ -331,6 +338,7 @@ func TestNestedPreload6(t *testing.T) {
 		}
 		Level3 struct {
 			ID      uint
+			Name    string
 			Level2s []Level2
 		}
 	)
@@ -403,6 +411,7 @@ func TestNestedPreload7(t *testing.T) {
 		}
 		Level3 struct {
 			ID      uint
+			Name    string
 			Level2s []Level2
 		}
 	)
@@ -457,6 +466,7 @@ func TestNestedPreload8(t *testing.T) {
 		}
 		Level3 struct {
 			ID     uint
+			Name   string
 			Level2 Level2
 		}
 	)
@@ -527,6 +537,7 @@ func TestNestedPreload9(t *testing.T) {
 		}
 		Level3 struct {
 			ID       uint
+			Name     string
 			Level2   Level2
 			Level2_1 Level2_1
 		}
