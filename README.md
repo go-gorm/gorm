@@ -1091,7 +1091,7 @@ type Product struct {
 // 2nd param : destination table(id)
 // 3rd param : ONDELETE
 // 4th param : ONUPDATE
-db.Model(&User{}).AddForeignKey("user_id", "destination_table(id)", "CASCADE", "RESTRICT")
+db.Model(&User{}).AddForeignKey("role_id", "roles", "CASCADE", "RESTRICT")
 
 // Add index
 db.Model(&User{}).AddIndex("idx_user_name", "name")
