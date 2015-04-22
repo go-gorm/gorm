@@ -106,10 +106,9 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	results := makeSlice(field.Struct.Type)
 	relation := field.Relationship
 	condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
-	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
-	// TODO: handle error?
-	scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...)
+	scope.Err(scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...).Error)
+	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	for i := 0; i < resultValues.Len(); i++ {
 		result := resultValues.Index(i)
@@ -123,8 +122,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 				}
 			}
 		} else {
-			err := scope.SetColumn(field, result)
-			if err != nil {
+			if err := scope.SetColumn(field, result); err != nil {
 				scope.Err(err)
 				return
 			}
@@ -142,9 +140,9 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 	results := makeSlice(field.Struct.Type)
 	relation := field.Relationship
 	condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
-	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
-	scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...)
+	scope.Err(scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...).Error)
+	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	if scope.IndirectValue().Kind() == reflect.Slice {
 		for i := 0; i < resultValues.Len(); i++ {
@@ -173,10 +171,10 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	}
 
 	results := makeSlice(field.Struct.Type)
-	resultValues := reflect.Indirect(reflect.ValueOf(results))
 	associationPrimaryKey := scope.New(results).PrimaryField().Name
 
-	scope.NewDB().Where(primaryKeys).Find(results, conditions...)
+	scope.Err(scope.NewDB().Where(primaryKeys).Find(results, conditions...).Error)
+	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	for i := 0; i < resultValues.Len(); i++ {
 		result := resultValues.Index(i)
@@ -212,16 +210,16 @@ func (scope *Scope) getColumnsAsScope(column string) *Scope {
 	values := scope.IndirectValue()
 	switch values.Kind() {
 	case reflect.Slice:
-		model := values.Type().Elem()
-		if model.Kind() == reflect.Ptr {
-			model = model.Elem()
+		modelType := values.Type().Elem()
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
 		}
-		fieldType, _ := model.FieldByName(column)
+		fieldStruct, _ := modelType.FieldByName(column)
 		var columns reflect.Value
-		if fieldType.Type.Kind() == reflect.Slice {
-			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldType.Type.Elem()))).Elem()
+		if fieldStruct.Type.Kind() == reflect.Slice {
+			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldStruct.Type.Elem()))).Elem()
 		} else {
-			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldType.Type))).Elem()
+			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldStruct.Type))).Elem()
 		}
 		for i := 0; i < values.Len(); i++ {
 			column := reflect.Indirect(values.Index(i)).FieldByName(column)

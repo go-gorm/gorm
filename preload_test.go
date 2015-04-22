@@ -156,7 +156,6 @@ func TestNestedPreload2(t *testing.T) {
 	}
 
 	want := Level3{
-		Name: "name",
 		Level2s: []Level2{
 			{
 				Level1s: []*Level1{
@@ -211,7 +210,6 @@ func TestNestedPreload3(t *testing.T) {
 	}
 
 	want := Level3{
-		Name: "name",
 		Level2s: []Level2{
 			{Level1: Level1{Value: "value1"}},
 			{Level1: Level1{Value: "value2"}},
@@ -368,6 +366,7 @@ func TestNestedPreload6(t *testing.T) {
 	if err := DB.Create(&want[0]).Error; err != nil {
 		panic(err)
 	}
+
 	want[1] = Level3{
 		Level2s: []Level2{
 			{
@@ -432,6 +431,7 @@ func TestNestedPreload7(t *testing.T) {
 	if err := DB.Create(&want[0]).Error; err != nil {
 		panic(err)
 	}
+
 	want[1] = Level3{
 		Level2s: []Level2{
 			{Level1: Level1{Value: "value3"}},
