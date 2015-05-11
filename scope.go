@@ -368,6 +368,8 @@ func (scope *Scope) SelectAttrs() []string {
 		for _, value := range scope.Search.selects {
 			if str, ok := value.(string); ok {
 				attrs = append(attrs, str)
+			} else if strs, ok := value.([]string); ok {
+				attrs = append(attrs, strs...)
 			} else if strs, ok := value.([]interface{}); ok {
 				for _, str := range strs {
 					attrs = append(attrs, fmt.Sprintf("%v", str))
