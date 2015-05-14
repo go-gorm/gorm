@@ -80,8 +80,17 @@ func Create(scope *Scope) {
 				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err != nil {
 					scope.db.RowsAffected, _ = results.RowsAffected()
 				}
-			} else if scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())) == nil {
-				scope.db.RowsAffected = 1
+			} else {
+				//Using the Scan on Crate we get a sql: expected 0 destination arguments in Scan, not 1
+				if _, ok := scope.Dialect().(*crate); ok {
+					if scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan()) == nil {
+						scope.db.RowsAffected = 1
+					}
+				} else {
+					if scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())) == nil {
+						scope.db.RowsAffected = 1
+					}
+				}
 			}
 		}
 	}

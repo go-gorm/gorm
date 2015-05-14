@@ -479,12 +479,16 @@ func (scope *Scope) createTable() *Scope {
 		}
 		scope.createJoinTable(field)
 	}
-
 	var primaryKeyStr string
 	if len(primaryKeys) > 0 {
-		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
+		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", scope.Quote(strings.Join(primaryKeys, "\", \"")))
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr)).Exec()
+	//Workaround for a crate's bug
+	if _, ok := scope.Dialect().(*crate); ok {
+		scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) with (number_of_replicas=0)", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr)).Exec()
+	} else {
+		scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr)).Exec()
+	}
 	return scope
 }
 
@@ -529,7 +533,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
 	var table = scope.TableName()
 	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
-	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
+	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s` + scope.Dialect().QueryTerminator()
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), keyName, field, dest, onDelete, onUpdate)).Exec()
 }
 
@@ -548,7 +552,7 @@ func (scope *Scope) autoMigrate() *Scope {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.generateSqlTag(field)
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, sqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v%v", quotedTableName, field.DBName, sqlTag, scope.Dialect().QueryTerminator())).Exec()
 				}
 			}
 			scope.createJoinTable(field)
