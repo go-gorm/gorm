@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-var modelStructs = map[reflect.Type]*ModelStruct{}
+var modelStructs_byScopeType = map[reflect.Type]*ModelStruct{}
+var modelStructs_byTableName = map[string      ]*ModelStruct{}
 
 type ModelStruct struct {
 	PrimaryFields []*StructField
@@ -33,6 +34,7 @@ type StructField struct {
 	Struct          reflect.StructField
 	IsForeignKey    bool
 	Relationship    *Relationship
+	Value		reflect.Value
 }
 
 func (structField *StructField) clone() *StructField {
@@ -49,6 +51,7 @@ func (structField *StructField) clone() *StructField {
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
 		Relationship:    structField.Relationship,
+		Value:           structField.Value,
 	}
 }
 
@@ -67,6 +70,7 @@ var pluralMapKeys = []*regexp.Regexp{regexp.MustCompile("ch$"), regexp.MustCompi
 var pluralMapValues = []string{"ches", "sses", "shes", "days", "ies", "xes", "${1}s"}
 
 func (scope *Scope) GetModelStruct() *ModelStruct {
+	var tableName string
 	var modelStruct ModelStruct
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(scope.Value))
@@ -84,7 +88,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		scopeType = scopeType.Elem()
 	}
 
-	if value, ok := modelStructs[scopeType]; ok {
+	if value, ok := modelStructs_byScopeType[scopeType]; ok {
 		return value
 	}
 
@@ -94,11 +98,20 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Set tablename
+	for i := 0; i < scopeType.NumField(); i++ {
+		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
+			if (fieldStruct.Type.Kind() == reflect.Interface) {
+				value := reflect.ValueOf(reflect.ValueOf(scope.Value).Elem().Field(i).Interface())
+				tableName = tableName + "__" + value.Elem().Type().Name()
+			}
+		}
+	}
 	if fm := reflect.New(scopeType).MethodByName("TableName"); fm.IsValid() {
 		if results := fm.Call([]reflect.Value{}); len(results) > 0 {
 			if name, ok := results[0].Interface().(string); ok {
+				tableName = name + tableName
 				modelStruct.TableName = func(*DB) string {
-					return name
+					return tableName
 				}
 			}
 		}
@@ -112,23 +125,35 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 		}
 
+		tableName = name + tableName
 		modelStruct.TableName = func(*DB) string {
-			return name
+			return tableName
 		}
 	}
 
+	if value, ok := modelStructs_byTableName[tableName]; ok {
+		return value
+	}
+
 	// Get all fields
+	cachable_byScopeType := true
 	fields := []*StructField{}
 	for i := 0; i < scopeType.NumField(); i++ {
 		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
+			var value reflect.Value
+			if (fieldStruct.Type.Kind() == reflect.Interface) {
+				value = reflect.ValueOf(reflect.ValueOf(scope.Value).Elem().Field(i).Interface())
+				cachable_byScopeType = false
+			}
 			field := &StructField{
 				Struct: fieldStruct,
+				Value:  value,
 				Name:   fieldStruct.Name,
 				Names:  []string{fieldStruct.Name},
 				Tag:    fieldStruct.Tag,
 			}
 
-			if fieldStruct.Tag.Get("sql") == "-" {
+			if (fieldStruct.Tag.Get("sql") == "-") {
 				field.IsIgnored = true
 			} else {
 				sqlSettings := parseTagSetting(field.Tag.Get("sql"))
@@ -170,8 +195,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				if !field.IsNormal {
+					var iface interface{}
 					gormSettings := parseTagSetting(field.Tag.Get("gorm"))
-					toScope := scope.New(reflect.New(fieldStruct.Type).Interface())
+					if (fieldStruct.Type.Kind() == reflect.Interface) {
+						indirectType = (*field).Value.Elem().Type()
+						iface = (*field).Value.Elem().Interface()
+					} else {
+						iface = reflect.New(fieldStruct.Type).Interface()
+					}
+					toScope := scope.New(iface)
 
 					getForeignField := func(column string, fields []*StructField) *StructField {
 						for _, field := range fields {
@@ -244,7 +276,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 							for _, toField := range toScope.GetStructFields() {
 								toField = toField.clone()
-								toField.Names = append([]string{fieldStruct.Name}, toField.Names...)
+								toField.DBName = field.DBName+"__"+toField.DBName
+								toField.Names  = append([]string{fieldStruct.Name}, toField.Names...)
 								modelStruct.StructFields = append(modelStruct.StructFields, toField)
 								if toField.IsPrimaryKey {
 									modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, toField)
@@ -294,8 +327,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}()
 
-	modelStructs[scopeType] = &modelStruct
-
+	if (cachable_byScopeType) {
+		modelStructs_byScopeType[scopeType] = &modelStruct
+	} else {
+		modelStructs_byTableName[tableName] = &modelStruct
+	}
 	return &modelStruct
 }
 
