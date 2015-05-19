@@ -165,6 +165,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			} else {
 				value = reflect.Indirect(reflect.ValueOf(scope.Value))
 			}
+			if (value.Kind() == reflect.Slice) {
+				if (value.Len() == 0) {
+					value = reflect.MakeSlice(value.Type(), 1, 1);
+				}
+				value = value.Index(0);
+			}
 			field := &StructField{
 				Struct: fieldStruct,
 				Value:  value,
