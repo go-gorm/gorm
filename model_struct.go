@@ -156,7 +156,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
 			var value reflect.Value
 			if (fieldStruct.Type.Kind() == reflect.Interface) {
-				value = reflect.ValueOf(reflect.ValueOf(scope.Value).Elem().Field(i).Interface())
+				value = reflect.ValueOf(scope.Value).Elem()
+				if (value.Kind() == reflect.Slice) {
+					value = value.Index(0)
+				}
+				value = reflect.ValueOf(value.Field(i).Interface())
 				cachable_byScopeType = false
 			} else {
 				value = reflect.Indirect(reflect.ValueOf(scope.Value))
