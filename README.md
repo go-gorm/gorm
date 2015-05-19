@@ -1172,7 +1172,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 //// INSERT INTO "users" (email,registered_ip) VALUES ("x@example.org", "111.111.111.111")  // if record not found
 ```
 
-## Tables with embedded iterface fields
+## Embedded interface fields
 
 ```go
 type Delta struct {
@@ -1207,7 +1207,12 @@ found := Delta {
 	Became: &Login{},
 }
 db.Where(&Delta{Was: &Login{Login: "Login1"}, Became: &Login{}}).First(&found);
-//// SELECT  * FROM "delta__Login__Login"  WHERE ("was__login" = 'Login1') ORDER BY "delta__Login__Login"."id" ASC LIMIT 1
+//// SELECT * FROM "delta__Login__Login"  WHERE ("was__login" = 'Login1') ORDER BY "delta__Login__Login"."id" ASC LIMIT 1
+
+deltas := []Delta{{Was: &Login{}, Became: &Login{}}};
+db.Find(&deltas)
+//// SELECT * FROM "deltas__Login__Login"
+deltas = append(deltas[:0], deltas[1:]...)
 ```
 
 ## TODO

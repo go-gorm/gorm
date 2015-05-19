@@ -13,6 +13,7 @@ import (
 
 var modelStructs_byScopeType = map[reflect.Type]*ModelStruct{}
 var modelStructs_byTableName = map[string      ]*ModelStruct{}
+var modelStruct_last *ModelStruct
 
 type ModelStruct struct {
 	PrimaryFields []*StructField
@@ -94,18 +95,30 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 	modelStruct.ModelType = scopeType
 	if scopeType.Kind() != reflect.Struct {
+		modelStruct_last = &modelStruct
 		return &modelStruct
 	}
 
-	// Set tablename
+	// Getting table name appendix
 	for i := 0; i < scopeType.NumField(); i++ {
 		if fieldStruct := scopeType.Field(i); ast.IsExported(fieldStruct.Name) {
 			if (fieldStruct.Type.Kind() == reflect.Interface) {
-				value := reflect.ValueOf(reflect.ValueOf(scope.Value).Elem().Field(i).Interface())
+				// Interface field
+				value := reflect.ValueOf(scope.Value).Elem()
+				if (value.Kind() == reflect.Slice) {
+					// A slice, using the first element
+					value = value.Index(0)
+				}
+				value  = reflect.ValueOf(value.Field(i).Interface())
+				if (! value.IsValid()) {
+					// Invalid interfaces, using Model()'s result
+					return modelStruct_last
+				}
 				tableName = tableName + "__" + value.Elem().Type().Name()
 			}
 		}
 	}
+	// Set tablename
 	if fm := reflect.New(scopeType).MethodByName("TableName"); fm.IsValid() {
 		if results := fm.Call([]reflect.Value{}); len(results) > 0 {
 			if name, ok := results[0].Interface().(string); ok {
@@ -132,6 +145,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	if value, ok := modelStructs_byTableName[tableName]; ok {
+		modelStruct_last = value
 		return value
 	}
 
@@ -144,6 +158,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if (fieldStruct.Type.Kind() == reflect.Interface) {
 				value = reflect.ValueOf(reflect.ValueOf(scope.Value).Elem().Field(i).Interface())
 				cachable_byScopeType = false
+			} else {
+				value = reflect.Indirect(reflect.ValueOf(scope.Value))
 			}
 			field := &StructField{
 				Struct: fieldStruct,
@@ -325,6 +341,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
+		modelStruct_last = &modelStruct
 	}()
 
 	if (cachable_byScopeType) {
