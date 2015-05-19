@@ -212,7 +212,7 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	return s.clone().NewScope(s.Value).InstanceSet("gorm:query_destination", dest).callCallbacks(s.parent.callback.queries).db
+	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callback.queries).db
 }
 
 func (s *DB) Row() *sql.Row {
