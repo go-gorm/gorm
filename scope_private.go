@@ -158,9 +158,14 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 func (scope *Scope) whereSql() (sql string) {
 	var primaryConditions, andConditions, orConditions []string
 
-	if !scope.Search.Unscoped && scope.Fields()["deleted_at"] != nil {
-		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
-		primaryConditions = append(primaryConditions, sql)
+	if !scope.Search.Unscoped {
+		if scope.Fields()["deleted_at"] != nil {
+			sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
+			primaryConditions = append(primaryConditions, sql)
+		} else if scope.Fields()["alive"] != nil {
+			sql := fmt.Sprintf("(%v.alive IS NOT NULL)", scope.QuotedTableName())
+			primaryConditions = append(primaryConditions, sql)
+		}
 	}
 
 	if !scope.PrimaryKeyZero() {
