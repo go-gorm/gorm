@@ -299,10 +299,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							field.IsNormal = true
 						}
 					case reflect.Struct:
-						if _, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
+						if embType, ok := gormSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 							for _, toField := range toScope.GetStructFields() {
 								toField = toField.clone()
-								toField.DBName = field.DBName+"__"+toField.DBName
+								if (embType == "prefixed") {
+									toField.DBName = field.DBName+"__"+toField.DBName
+								}
 								toField.Names  = append([]string{fieldStruct.Name}, toField.Names...)
 								modelStruct.StructFields = append(modelStruct.StructFields, toField)
 								if toField.IsPrimaryKey {

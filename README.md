@@ -1177,8 +1177,8 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```go
 type Delta struct {
 	Id       int;
-	Was      interface{} `gorm:"embedded"`;
-	Became   interface{} `gorm:"embedded"`;
+	Was      interface{} `gorm:"embedded:prefixed"`;
+	Became   interface{} `gorm:"embedded:prefixed"`;
 }
 
 type Login struct {
