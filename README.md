@@ -1172,6 +1172,49 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 //// INSERT INTO "users" (email,registered_ip) VALUES ("x@example.org", "111.111.111.111")  // if record not found
 ```
 
+## Embedded interface fields
+
+```go
+type Delta struct {
+	Id       int;
+	Was      interface{} `gorm:"embedded:prefixed"`;
+	Became   interface{} `gorm:"embedded:prefixed"`;
+}
+
+type Login struct {
+	Login    string;
+	Comment  string;
+}
+
+login_old := Login{Login: "Login1"};
+login_new := Login{Login: "Login2", Comment: "2015-05-18"};
+
+delta := Delta {
+	Was:    &login_old,
+	Became: &login_new,
+}
+
+db.SingularTable(true);
+
+db.CreateTable(&delta);
+//// CREATE TABLE "delta__Login__Login" ("id" integer,"was__login" varchar(255),"was__comment" varchar(255),"became__login" varchar(255),"became__comment" varchar(255) , PRIMARY KEY (id))
+
+db.Save(&delta);
+//// INSERT INTO "delta__Login__Login" ("was__login","was__comment","became__login","became__comment") VALUES ('Login1','','Login2','2015-05-18')
+
+found := Delta {
+	Was:    &Login{},
+	Became: &Login{},
+}
+db.Where(&Delta{Was: &Login{Login: "Login1"}, Became: &Login{}}).First(&found);
+//// SELECT * FROM "delta__Login__Login"  WHERE ("was__login" = 'Login1') ORDER BY "delta__Login__Login"."id" ASC LIMIT 1
+
+deltas := []Delta{{Was: &Login{}, Became: &Login{}}};
+db.Find(&deltas)
+//// SELECT * FROM "deltas__Login__Login"
+deltas = append(deltas[:0], deltas[1:]...)
+```
+
 ## TODO
 * db.Select("Languages", "Name").Update(&user)
   db.Omit("Languages").Update(&user)

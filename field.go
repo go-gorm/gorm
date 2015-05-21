@@ -76,6 +76,13 @@ func (scope *Scope) Fields() map[string]*Field {
 func getField(indirectValue reflect.Value, structField *StructField) *Field {
 	field := &Field{StructField: structField}
 	for _, name := range structField.Names {
+		for ;reflect.Indirect(indirectValue).Kind() == reflect.Interface; {
+			if (indirectValue.Elem().IsValid()) {
+				indirectValue = indirectValue.Elem()
+			} else {
+				indirectValue.Set(reflect.New(structField.Value.Type()))
+			}
+		}
 		indirectValue = reflect.Indirect(indirectValue).FieldByName(name)
 	}
 	field.Field = indirectValue
