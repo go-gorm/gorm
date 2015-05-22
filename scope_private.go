@@ -475,7 +475,7 @@ func (scope *Scope) createTable() *Scope {
 		}
 
 		if field.IsPrimaryKey {
-			primaryKeys = append(primaryKeys, field.DBName)
+			primaryKeys = append(primaryKeys, scope.Quote(field.DBName))
 		}
 		scope.createJoinTable(field)
 	}
