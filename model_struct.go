@@ -34,6 +34,8 @@ type StructField struct {
 	Tag             reflect.StructTag
 	Struct          reflect.StructField
 	IsForeignKey    bool
+	IgnoreUniqueIndex bool
+	IgnorePrimaryKey bool
 	Relationship    *Relationship
 	Value		reflect.Value
 }
@@ -307,7 +309,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								}
 								toField.Names  = append([]string{fieldStruct.Name}, toField.Names...)
 								modelStruct.StructFields = append(modelStruct.StructFields, toField)
-								if toField.IsPrimaryKey {
+								if _, ok := gormSettings["DROP_UNIQUE_INDEX"]; ok {
+									toField.IgnoreUniqueIndex = true
+								}
+								if _, ok := gormSettings["DROP_PRIMARY_KEYS"]; ok {
+									toField.IgnorePrimaryKey  = true
+								}
+
+								if toField.IsPrimaryKey && !toField.IgnorePrimaryKey {
 									modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, toField)
 								}
 							}
@@ -381,7 +390,10 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 		sqlType = value
 	}
 
-	additionalType := sqlSettings["NOT NULL"] + " " + sqlSettings["UNIQUE"]
+	additionalType := sqlSettings["NOT NULL"]
+	if !field.IgnoreUniqueIndex {
+		additionalType = " " + sqlSettings["UNIQUE"]
+	}
 	if value, ok := sqlSettings["DEFAULT"]; ok {
 		additionalType = additionalType + " DEFAULT " + value
 	}

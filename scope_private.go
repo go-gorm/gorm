@@ -474,7 +474,7 @@ func (scope *Scope) createTable() *Scope {
 			tags = append(tags, scope.Quote(field.DBName)+" "+sqlTag)
 		}
 
-		if field.IsPrimaryKey {
+		if field.IsPrimaryKey && !field.IgnorePrimaryKey {
 			primaryKeys = append(primaryKeys, field.DBName)
 		}
 		scope.createJoinTable(field)
@@ -572,11 +572,13 @@ func (scope *Scope) autoIndex() *Scope {
 			indexes[name] = append(indexes[name], field.DBName)
 		}
 
-		if name, ok := sqlSettings["UNIQUE_INDEX"]; ok {
-			if name == "UNIQUE_INDEX" {
-				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+		if field.IgnoreUniqueIndex {
+			if name, ok := sqlSettings["UNIQUE_INDEX"]; ok {
+				if name == "UNIQUE_INDEX" {
+					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+				}
+				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 			}
-			uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 		}
 	}
 
