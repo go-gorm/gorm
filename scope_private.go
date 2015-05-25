@@ -572,7 +572,7 @@ func (scope *Scope) autoIndex() *Scope {
 			indexes[name] = append(indexes[name], field.DBName)
 		}
 
-		if field.IgnoreUniqueIndex {
+		if !field.IgnoreUniqueIndex {
 			if name, ok := sqlSettings["UNIQUE_INDEX"]; ok {
 				if name == "UNIQUE_INDEX" {
 					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
