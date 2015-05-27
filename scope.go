@@ -251,12 +251,7 @@ func (scope *Scope) TableName() string {
 		return tabler.TableName(scope.db)
 	}
 
-	if scope.GetModelStruct().TableName != nil {
-		return scope.GetModelStruct().TableName(scope.db)
-	}
-
-	scope.Err(errors.New("wrong table name"))
-	return ""
+	return scope.GetModelStruct().TableName(scope.db)
 }
 
 func (scope *Scope) QuotedTableName() (name string) {
