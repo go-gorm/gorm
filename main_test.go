@@ -66,6 +66,7 @@ func TestStringPrimaryKey(t *testing.T) {
 		ID   string `gorm:"primary_key"`
 		Name string
 	}
+	DB.AutoMigrate(&UUIDStruct{})
 
 	data := UUIDStruct{ID: "uuid", Name: "hello"}
 	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" {
