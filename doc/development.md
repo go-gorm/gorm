@@ -61,7 +61,7 @@ Gorm is powered by callbacks, so you could refer below links to learn how to wri
 
 [Update callbacks](https://github.com/jinzhu/gorm/blob/master/callback_update.go)
 
-[Query callbacks](https://github.com/jinzhu/gorm/blob/master/callback_create.go)
+[Query callbacks](https://github.com/jinzhu/gorm/blob/master/callback_query.go)
 
 [Delete callbacks](https://github.com/jinzhu/gorm/blob/master/callback_delete.go)
 
