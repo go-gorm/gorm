@@ -273,7 +273,7 @@ func (scope *Scope) CombinedConditionSql() string {
 
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	for _, field := range scope.Fields() {
-		if field.Name == name {
+		if field.Name == name || field.DBName == name {
 			return field, true
 		}
 	}
