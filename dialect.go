@@ -17,6 +17,7 @@ type Dialect interface {
 	HasColumn(scope *Scope, tableName string, columnName string) bool
 	HasIndex(scope *Scope, tableName string, indexName string) bool
 	RemoveIndex(scope *Scope, indexName string)
+	QueryTerminator() string
 }
 
 func NewDialect(driver string) Dialect {
@@ -32,6 +33,8 @@ func NewDialect(driver string) Dialect {
 		d = &sqlite3{}
 	case "mssql":
 		d = &mssql{}
+	case "crate":
+		d = &crate{}
 	default:
 		fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", driver)
 		d = &commonDialect{}

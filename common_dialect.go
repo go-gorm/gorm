@@ -99,3 +99,7 @@ func (commonDialect) HasIndex(scope *Scope, tableName string, indexName string) 
 func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
 }
+
+func (commonDialect) QueryTerminator() string {
+	return ";"
+}
