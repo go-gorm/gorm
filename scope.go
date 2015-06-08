@@ -112,12 +112,11 @@ func (scope *Scope) HasError() bool {
 
 func (scope *Scope) PrimaryField() *Field {
 	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
-		if len(primaryFields) > 1 {
-			if field, ok := scope.Fields()["id"]; ok {
-				return field
+		for i := 0; i < len(primaryFields); i++ {
+			if primaryFields[i].IsAutoIncrement {
+				return scope.Fields()[primaryFields[i].DBName]
 			}
 		}
-		return scope.Fields()[primaryFields[0].DBName]
 	}
 	return nil
 }
