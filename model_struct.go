@@ -13,11 +13,19 @@ import (
 
 var modelStructs = map[reflect.Type]*ModelStruct{}
 
+var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
+	return defaultTableName
+}
+
 type ModelStruct struct {
-	PrimaryFields []*StructField
-	StructFields  []*StructField
-	ModelType     reflect.Type
-	TableName     func(*DB) string
+	PrimaryFields    []*StructField
+	StructFields     []*StructField
+	ModelType        reflect.Type
+	defaultTableName string
+}
+
+func (s ModelStruct) TableName(db *DB) string {
+	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
 type StructField struct {
@@ -94,14 +102,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Set tablename
-	if fm := reflect.New(scopeType).MethodByName("TableName"); fm.IsValid() {
-		if results := fm.Call([]reflect.Value{}); len(results) > 0 {
-			if name, ok := results[0].Interface().(string); ok {
-				modelStruct.TableName = func(*DB) string {
-					return name
-				}
-			}
-		}
+	type tabler interface {
+		TableName() string
+	}
+
+	if tabler, ok := reflect.New(scopeType).Interface().(interface {
+		TableName() string
+	}); ok {
+		modelStruct.defaultTableName = tabler.TableName()
 	} else {
 		name := ToDBName(scopeType.Name())
 		if scope.db == nil || !scope.db.parent.singularTable {
@@ -112,9 +120,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 		}
 
-		modelStruct.TableName = func(*DB) string {
-			return name
-		}
+		modelStruct.defaultTableName = name
 	}
 
 	// Get all fields

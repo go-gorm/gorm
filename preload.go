@@ -216,13 +216,16 @@ func (scope *Scope) getColumnsAsScope(column string) *Scope {
 		}
 		fieldStruct, _ := modelType.FieldByName(column)
 		var columns reflect.Value
-		if fieldStruct.Type.Kind() == reflect.Slice {
+		if fieldStruct.Type.Kind() == reflect.Slice || fieldStruct.Type.Kind() == reflect.Ptr {
 			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldStruct.Type.Elem()))).Elem()
 		} else {
 			columns = reflect.New(reflect.SliceOf(reflect.PtrTo(fieldStruct.Type))).Elem()
 		}
 		for i := 0; i < values.Len(); i++ {
 			column := reflect.Indirect(values.Index(i)).FieldByName(column)
+			if column.Kind() == reflect.Ptr {
+				column = column.Elem()
+			}
 			if column.Kind() == reflect.Slice {
 				for i := 0; i < column.Len(); i++ {
 					columns = reflect.Append(columns, column.Index(i).Addr())
