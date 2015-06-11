@@ -84,6 +84,7 @@ type User struct{} // struct User's database table name is "users" by default, w
 * Use `CreatedAt` to store record's created time if field exists
 * Use `UpdatedAt` to store record's updated time if field exists
 * Use `DeletedAt` to store record's deleted time if field exists [Soft Delete](#soft-delete)
+* Use nullable `Alive` to store record's aliveness if field exists [Soft Delete](#soft-delete)
 * Gorm provide a default model struct, you could embed it in your struct
 
 ```go
@@ -446,10 +447,32 @@ db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
 //// DELETE from emails where email LIKE "%jinhu%";
 ```
 
-### Soft Delete
+### Soft-Delete
 
-If struct has `DeletedAt` field, it will get soft delete ability automatically!
-Then it won't be deleted from database permanently when call `Delete`.
+If a struct has a `DeletedAt` field, it will get soft-delete ability automatically!
+Then it won't be deleted from database permanently when `Delete()` is called.
+
+Or alternatively..
+
+If a struct has an `Alive` field it will get soft-delete ability automatically!
+Then it won't be deleted from the database permanently when `Delete()` is called.
+`Alive` will be set to `null`.  This makes it possible to still enforce unique
+constraints (e.g. "name", "alive"), but not have the unique constraint enforced
+for "deleted" records.
+
+```go
+type Friend struct {
+  ID    int64
+  Name  string `sql:"type:varchar(255)`
+  Alive int    `json:"-" sql:"type:integer;DEFAULT: 1;"`
+}
+
+db.Delete(&friend)
+//// UPDATE friends SET alive=null WHERE id = 42;
+```
+
+Note: Choose only one or the other.  It won't work right if both `DeletedAt` and
+`Alive` columns are defined.
 
 ```go
 db.Delete(&user)

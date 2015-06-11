@@ -8,11 +8,18 @@ func BeforeDelete(scope *Scope) {
 
 func Delete(scope *Scope) {
 	if !scope.HasError() {
-		if !scope.Search.Unscoped && scope.HasColumn("DeletedAt") {
+		unscoped := scope.Search.Unscoped
+		if !unscoped && scope.HasColumn("DeletedAt") {
 			scope.Raw(
 				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
 					scope.QuotedTableName(),
 					scope.AddToVars(NowFunc()),
+					scope.CombinedConditionSql(),
+				))
+		} else if !unscoped && scope.HasColumn("Alive") {
+			scope.Raw(
+				fmt.Sprintf("UPDATE %v SET alive=null %v",
+					scope.QuotedTableName(),
 					scope.CombinedConditionSql(),
 				))
 		} else {
