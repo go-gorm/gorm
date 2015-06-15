@@ -70,7 +70,7 @@ func Preload(scope *Scope) {
 				if value.Kind() == reflect.Slice && value.Type().Elem().Kind() == reflect.Interface {
 					value = value.Index(0).Elem()
 				}
-				scope.Err(fmt.Errorf("can't found field %s in %s", key, value.Type()))
+				scope.Err(fmt.Errorf("can't find field %s in %s", key, value.Type()))
 				return
 			}
 
