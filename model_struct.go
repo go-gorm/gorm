@@ -191,6 +191,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					var relationship = &Relationship{}
 
 					foreignKey := gormSettings["FOREIGNKEY"]
+					associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 					if polymorphic := gormSettings["POLYMORPHIC"]; polymorphic != "" {
 						if polymorphicField := getForeignField(polymorphic+"Id", toScope.GetStructFields()); polymorphicField != nil {
 							if polymorphicType := getForeignField(polymorphic+"Type", toScope.GetStructFields()); polymorphicType != nil {
@@ -218,7 +219,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 							if many2many := gormSettings["MANY2MANY"]; many2many != "" {
 								relationship.Kind = "many_to_many"
-								associationForeignKey := gormSettings["ASSOCIATIONFOREIGNKEY"]
 								if associationForeignKey == "" {
 									associationForeignKey = elemType.Name() + "Id"
 								}
@@ -269,6 +269,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								relationship.ForeignDBName = foreignField.DBName
 								foreignField.IsForeignKey = true
 								field.Relationship = relationship
+								if associationForeignKey != "" {
+									if associatedField := getForeignField(associationForeignKey, toScope.GetStructFields()); associatedField != nil {
+										relationship.AssociationForeignFieldName = associatedField.Name
+										relationship.AssociationForeignDBName = associatedField.DBName
+									}
+								}
 							} else {
 								if foreignKey == "" {
 									foreignKey = modelStruct.ModelType.Name() + "Id"
@@ -277,6 +283,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								if foreignField := getForeignField(foreignKey, toScope.GetStructFields()); foreignField != nil {
 									relationship.ForeignFieldName = foreignField.Name
 									relationship.ForeignDBName = foreignField.DBName
+									if associationForeignKey != "" {
+										if associatedField := getForeignField(associationForeignKey, fields); associatedField != nil {
+											relationship.AssociationForeignFieldName = associatedField.Name
+											relationship.AssociationForeignDBName = associatedField.DBName
+										}
+									}
 									foreignField.IsForeignKey = true
 									field.Relationship = relationship
 								} else if relationship.ForeignFieldName != "" {
