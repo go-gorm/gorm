@@ -868,6 +868,27 @@ tx.Rollback()
 tx.Commit()
 ```
 
+### More Complex Example
+```
+func CreateAnimals(db *gorm.DB) err {
+  tx := db.Begin()
+  // Note the use of tx as the database handle once you are within a transaction
+
+  if err := tx.Create(&Animal{Name: "Giraffe"}).Error; err != nil {
+     tx.Rollback()
+     return err
+  }
+
+  if err := tx.Create(&Animal{Name: "Lion"}).Error; err != nil {
+     tx.Rollback()
+     return err
+  }
+
+  tx.Commit()
+  return nil
+}
+```
+
 ## Scopes
 
 ```go
