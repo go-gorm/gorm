@@ -861,6 +861,9 @@ All individual save and delete operations are run in a transaction by default.
 // begin
 tx := db.Begin()
 
+// do revertable work in a transaction (use 'tx' in place of 'db')
+tx.Exec
+
 // rollback
 tx.Rollback()
 
