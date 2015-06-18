@@ -151,7 +151,7 @@ func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
 	var values []interface{}
 	if s.Source.ModelType == modelType {
 		for _, foreignKey := range s.Destination.ForeignKeys {
-			destinationTableName := scope.New(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
+			destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
