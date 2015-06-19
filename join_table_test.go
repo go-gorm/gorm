@@ -22,7 +22,7 @@ type PersonAddress struct {
 	CreatedAt time.Time
 }
 
-func (*PersonAddress) Add(db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
+func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
 	return db.Where(map[string]interface{}{
 		"person_id":  db.NewScope(foreignValue).PrimaryKeyValue(),
 		"address_id": db.NewScope(associationValue).PrimaryKeyValue(),
@@ -33,11 +33,11 @@ func (*PersonAddress) Add(db *gorm.DB, foreignValue interface{}, associationValu
 	}).FirstOrCreate(&PersonAddress{}).Error
 }
 
-func (*PersonAddress) Delete(db *gorm.DB, sources ...interface{}) error {
+func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB, sources ...interface{}) error {
 	return db.Delete(&PersonAddress{}).Error
 }
 
-func (pa *PersonAddress) JoinWith(db *gorm.DB, source interface{}) *gorm.DB {
+func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db *gorm.DB, source interface{}) *gorm.DB {
 	table := pa.Table(db)
 	return db.Table(table).Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }

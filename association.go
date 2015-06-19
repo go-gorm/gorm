@@ -78,7 +78,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		if relationship.Kind == "many_to_many" {
 			sql := fmt.Sprintf("%v = ? AND %v IN (?)", scope.Quote(relationship.ForeignDBName), scope.Quote(relationship.AssociationForeignDBName))
 			query := scope.NewDB().Where(sql, association.PrimaryKey, primaryKeys)
-			if err := relationship.JoinTableHandler.Delete(query, relationship); err == nil {
+			if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship); err == nil {
 				leftValues := reflect.Zero(association.Field.Field.Type())
 				for i := 0; i < association.Field.Field.Len(); i++ {
 					value := association.Field.Field.Index(i)
@@ -134,7 +134,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 		if len(addedPrimaryKeys) > 0 {
 			sql := fmt.Sprintf("%v = ? AND %v NOT IN (?)", scope.Quote(relationship.ForeignDBName), scope.Quote(relationship.AssociationForeignDBName))
 			query := scope.NewDB().Where(sql, association.PrimaryKey, addedPrimaryKeys)
-			association.setErr(relationship.JoinTableHandler.Delete(query, relationship))
+			association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
 		}
 	} else {
 		association.setErr(errors.New("replace only support many to many"))
@@ -148,7 +148,7 @@ func (association *Association) Clear() *Association {
 	if relationship.Kind == "many_to_many" {
 		sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
 		query := scope.NewDB().Where(sql, association.PrimaryKey)
-		if err := relationship.JoinTableHandler.Delete(query, relationship); err == nil {
+		if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship); err == nil {
 			association.Field.Set(reflect.Zero(association.Field.Field.Type()))
 		} else {
 			association.setErr(err)
@@ -166,7 +166,7 @@ func (association *Association) Count() int {
 	newScope := scope.New(association.Field.Field.Interface())
 
 	if relationship.Kind == "many_to_many" {
-		relationship.JoinTableHandler.JoinWith(scope.NewDB(), association.Scope.Value).Table(newScope.TableName()).Count(&count)
+		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.NewDB(), association.Scope.Value).Table(newScope.TableName()).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		whereSql := fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.ForeignDBName))
 		countScope := scope.DB().Table(newScope.TableName()).Where(whereSql, association.PrimaryKey)

@@ -10,9 +10,9 @@ import (
 type JoinTableHandlerInterface interface {
 	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
 	Table(db *DB) string
-	Add(db *DB, source interface{}, destination interface{}) error
-	Delete(db *DB, sources ...interface{}) error
-	JoinWith(db *DB, source interface{}) *DB
+	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
+	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
+	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
 }
 
 type JoinTableForeignKey struct {
@@ -74,8 +74,12 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	}
 }
 
-func (s JoinTableHandler) Table(*DB) string {
-	return s.TableName
+func (s JoinTableHandler) Table(db *DB) string {
+	if draftMode, ok := db.Get("publish:draft_mode"); ok && draftMode.(bool) {
+		return s.TableName + "_draft"
+	} else {
+		return s.TableName
+	}
 }
 
 func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
@@ -98,7 +102,7 @@ func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[strin
 	return values
 }
 
-func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) error {
+func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1 interface{}, source2 interface{}) error {
 	scope := db.NewScope("")
 	searchMap := s.GetSearchMap(db, source1, source2)
 
@@ -115,7 +119,7 @@ func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) 
 		values = append(values, value)
 	}
 
-	quotedTable := s.Table(db)
+	quotedTable := handler.Table(db)
 	sql := fmt.Sprintf(
 		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v)",
 		quotedTable,
@@ -129,7 +133,7 @@ func (s JoinTableHandler) Add(db *DB, source1 interface{}, source2 interface{}) 
 	return db.Exec(sql, values...).Error
 }
 
-func (s JoinTableHandler) Delete(db *DB, sources ...interface{}) error {
+func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error {
 	var conditions []string
 	var values []interface{}
 
@@ -138,11 +142,11 @@ func (s JoinTableHandler) Delete(db *DB, sources ...interface{}) error {
 		values = append(values, value)
 	}
 
-	return db.Table(s.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
+	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
 }
 
-func (s JoinTableHandler) JoinWith(db *DB, source interface{}) *DB {
-	quotedTable := s.Table(db)
+func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
+	quotedTable := handler.Table(db)
 
 	scope := db.NewScope(source)
 	modelType := scope.GetModelStruct().ModelType

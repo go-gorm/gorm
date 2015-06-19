@@ -55,7 +55,7 @@ func SaveAfterAssociations(scope *Scope) {
 						scope.Err(newDB.Save(elem).Error)
 
 						if joinTableHandler := relationship.JoinTableHandler; joinTableHandler != nil {
-							scope.Err(joinTableHandler.Add(scope.NewDB(), scope.Value, newScope.Value))
+							scope.Err(joinTableHandler.Add(joinTableHandler, scope.NewDB(), scope.Value, newScope.Value))
 						}
 					}
 				default:
