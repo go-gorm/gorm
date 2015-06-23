@@ -75,11 +75,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 }
 
 func (s JoinTableHandler) Table(db *DB) string {
-	if draftMode, ok := db.Get("publish:draft_mode"); ok && draftMode.(bool) {
-		return s.TableName + "_draft"
-	} else {
-		return s.TableName
-	}
+	return s.TableName
 }
 
 func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
