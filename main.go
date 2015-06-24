@@ -396,28 +396,33 @@ func (s *DB) AutoMigrate(values ...interface{}) *DB {
 }
 
 func (s *DB) ModifyColumn(column string, typ string) *DB {
-	s.clone().NewScope(s.Value).modifyColumn(column, typ)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.modifyColumn(column, typ)
+	return scope.db
 }
 
 func (s *DB) DropColumn(column string) *DB {
-	s.clone().NewScope(s.Value).dropColumn(column)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.dropColumn(column)
+	return scope.db
 }
 
 func (s *DB) AddIndex(indexName string, column ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(false, indexName, column...)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.addIndex(false, indexName, column...)
+	return scope.db
 }
 
 func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
-	s.clone().NewScope(s.Value).addIndex(true, indexName, column...)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.addIndex(true, indexName, column...)
+	return scope.db
 }
 
 func (s *DB) RemoveIndex(indexName string) *DB {
-	s.clone().NewScope(s.Value).removeIndex(indexName)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.removeIndex(indexName)
+	return scope.db
 }
 
 /*
@@ -427,8 +432,9 @@ Example:
 	db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 */
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
-	s.clone().NewScope(s.Value).addForeignKey(field, dest, onDelete, onUpdate)
-	return s
+	scope := s.clone().NewScope(s.Value)
+	scope.addForeignKey(field, dest, onDelete, onUpdate)
+	return scope.db
 }
 
 func (s *DB) Association(column string) *Association {
