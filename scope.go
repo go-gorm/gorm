@@ -109,7 +109,6 @@ func (scope *Scope) Log(v ...interface{}) {
 func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
-
 func (scope *Scope) PrimaryField() *Field {
 	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
 		if len(primaryFields) > 1 {
@@ -120,6 +119,17 @@ func (scope *Scope) PrimaryField() *Field {
 		return scope.Fields()[primaryFields[0].DBName]
 	}
 	return nil
+}
+
+func (scope *Scope) AutoIncrementField() *Field {
+	if structFields := scope.GetModelStruct().StructFields; len(structFields) > 0 {
+		for i := 0; i < len(structFields); i++ {
+			if structFields[i].IsAutoIncrement {
+				return scope.Fields()[structFields[i].DBName]
+			}
+		}
+	}
+	return scope.PrimaryField()
 }
 
 // PrimaryKey get the primary key's column name

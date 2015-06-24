@@ -70,8 +70,8 @@ func Create(scope *Scope) {
 				id, err := result.LastInsertId()
 				if scope.Err(err) == nil {
 					scope.db.RowsAffected, _ = result.RowsAffected()
-					if primaryField != nil && primaryField.IsBlank {
-						scope.Err(scope.SetColumn(primaryField, id))
+					if autoIncrementField := scope.AutoIncrementField(); autoIncrementField != nil {
+						scope.Err(scope.SetColumn(autoIncrementField, id))
 					}
 				}
 			}

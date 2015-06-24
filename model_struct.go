@@ -40,6 +40,7 @@ type StructField struct {
 	Tag             reflect.StructTag
 	Struct          reflect.StructField
 	IsForeignKey    bool
+	IsAutoIncrement bool
 	Relationship    *Relationship
 }
 
@@ -146,6 +147,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 				if _, ok := sqlSettings["DEFAULT"]; ok {
 					field.HasDefaultValue = true
+				}
+
+				if _, ok := sqlSettings["AUTO_INCREMENT"]; ok {
+					field.IsAutoIncrement = true
 				}
 
 				if value, ok := gormSettings["COLUMN"]; ok {

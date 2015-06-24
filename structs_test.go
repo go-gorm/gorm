@@ -11,7 +11,7 @@ import (
 )
 
 type User struct {
-	Id                int64
+	Id                int64 `sql:"auto_increment"`
 	Age               int64
 	UserNum           Num
 	Name              string        `sql:"size:255"`
