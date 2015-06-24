@@ -30,6 +30,8 @@ func Query(scope *Scope) {
 	if kind := dest.Kind(); kind == reflect.Slice {
 		isSlice = true
 		destType = dest.Type().Elem()
+		dest.Set(reflect.Indirect(reflect.New(reflect.SliceOf(destType))))
+
 		if destType.Kind() == reflect.Ptr {
 			isPtr = true
 			destType = destType.Elem()
