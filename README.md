@@ -855,20 +855,26 @@ db.Joins("left join users on users.id = emails.user_id").Where("users.name = ?",
 
 ## Transactions
 
-All individual save and delete operations are run in a transaction by default.
+To perform a set of operations within a transaction, the general flow is as below.
+The database handle returned from ``` db.Begin() ``` should be used for all operations within the transaction.
+(Note that all individual save and delete operations are run in a transaction by default.)
 
 ```go
 // begin
 tx := db.Begin()
 
-// rollback
+// do some database operations (use 'tx' from this point, not 'db')
+tx.Create(...)
+...
+
+// rollback in case of error
 tx.Rollback()
 
-// commit
+// Or commit if all is ok
 tx.Commit()
 ```
 
-### More Complex Example
+### A Specific Example
 ```
 func CreateAnimals(db *gorm.DB) err {
   tx := db.Begin()
