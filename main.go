@@ -434,7 +434,7 @@ Example:
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
-	return s
+	return scope.db
 }
 
 func (s *DB) Association(column string) *Association {
