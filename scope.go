@@ -110,6 +110,14 @@ func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
 
+func (scope *Scope) PrimaryFields() []*Field {
+	var fields = []*Field{}
+	for _, field := range scope.GetModelStruct().PrimaryFields {
+		fields = append(fields, scope.Fields()[field.DBName])
+	}
+	return fields
+}
+
 func (scope *Scope) PrimaryField() *Field {
 	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
 		if len(primaryFields) > 1 {

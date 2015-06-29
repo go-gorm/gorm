@@ -13,6 +13,8 @@ type JoinTableHandlerInterface interface {
 	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
 	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	SourceForeignKeys() []JoinTableForeignKey
+	DestinationForeignKeys() []JoinTableForeignKey
 }
 
 type JoinTableForeignKey struct {
@@ -29,6 +31,14 @@ type JoinTableHandler struct {
 	TableName   string          `sql:"-"`
 	Source      JoinTableSource `sql:"-"`
 	Destination JoinTableSource `sql:"-"`
+}
+
+func (s *JoinTableHandler) SourceForeignKeys() []JoinTableForeignKey {
+	return s.Source.ForeignKeys
+}
+
+func (s *JoinTableHandler) DestinationForeignKeys() []JoinTableForeignKey {
+	return s.Destination.ForeignKeys
 }
 
 func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type) {
