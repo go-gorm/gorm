@@ -259,7 +259,7 @@ func (scope *Scope) TableName() string {
 		return tabler.TableName(scope.db)
 	}
 
-	return scope.GetModelStruct().TableName(scope.db)
+	return scope.GetModelStruct().TableName(scope.db.Model(scope.Value))
 }
 
 func (scope *Scope) QuotedTableName() (name string) {
