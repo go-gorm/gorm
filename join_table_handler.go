@@ -8,7 +8,7 @@ import (
 )
 
 type JoinTableHandlerInterface interface {
-	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
+	Setup(db *DB, relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
 	Table(db *DB) string
 	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
@@ -41,7 +41,7 @@ func (s *JoinTableHandler) DestinationForeignKeys() []JoinTableForeignKey {
 	return s.Destination.ForeignKeys
 }
 
-func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type) {
+func (s *JoinTableHandler) Setup(db *DB, relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type) {
 	s.TableName = tableName
 
 	s.Source = JoinTableSource{ModelType: source}
@@ -68,6 +68,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 
 	s.Destination = JoinTableSource{ModelType: destination}
 	destinationScope := &Scope{Value: reflect.New(destination).Interface()}
+	destinationScope.db = db
 	destinationPrimaryFields := destinationScope.GetModelStruct().PrimaryFields
 	for _, primaryField := range destinationPrimaryFields {
 		var dbName string
