@@ -1116,6 +1116,21 @@ type Product struct {
 }
 ```
 
+## Composite Foreign Primary Integer Keys
+
+```go
+type ProductStore struct {
+       ProductID    int64 `gorm:"primary_key;foreignkey"`
+       StoreID 		int64 `gorm:"primary_key;foreignkey"`
+	   Quantity		int
+}
+```
+
+When you declare a gorm primary key as foreign, there is likely no good use case for also auto incrementing the field.
+This disables the auto increment behavior when creating the table from gorm.
+
+
+
 ## Database Indexes & Foreign Key
 
 ```go

@@ -350,6 +350,10 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 			autoIncrease = true
 		}
 
+		if field.IsPrimaryKey && field.IsForeignKey {
+			autoIncrease = false
+		}
+
 		sqlType = scope.Dialect().SqlTag(reflectValue, size, autoIncrease)
 	}
 
