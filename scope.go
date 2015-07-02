@@ -300,7 +300,7 @@ func (scope *Scope) Exec() *Scope {
 
 	if !scope.HasError() {
 		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
-			if count, err := result.RowsAffected(); err == nil {
+			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
 		}
