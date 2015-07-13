@@ -64,13 +64,15 @@ func Update(scope *Scope) {
 			}
 		}
 
-		scope.Raw(fmt.Sprintf(
-			"UPDATE %v SET %v %v",
-			scope.QuotedTableName(),
-			strings.Join(sqls, ", "),
-			scope.CombinedConditionSql(),
-		))
-		scope.Exec()
+		if len(sqls) > 0 {
+			scope.Raw(fmt.Sprintf(
+				"UPDATE %v SET %v %v",
+				scope.QuotedTableName(),
+				strings.Join(sqls, ", "),
+				scope.CombinedConditionSql(),
+			))
+			scope.Exec()
+		}
 	}
 }
 

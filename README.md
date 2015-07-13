@@ -39,7 +39,7 @@ type User struct {
 	Num          int     `sql:"AUTO_INCREMENT"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    time.Time
+	DeletedAt    *time.Time
 
 	Emails            []Email         // One-To-Many relationship (has many)
 	BillingAddress    Address         // One-To-One relationship (has one)
@@ -84,6 +84,21 @@ type User struct{} // struct User's database table name is "users" by default, w
 * Use `CreatedAt` to store record's created time if field exists
 * Use `UpdatedAt` to store record's updated time if field exists
 * Use `DeletedAt` to store record's deleted time if field exists [Soft Delete](#soft-delete)
+* Gorm provide a default model struct, you could embed it in your struct
+
+```go
+type Model struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
+}
+
+type User struct {
+	gorm.Model
+	Name string
+}
+```
 
 ## Initialize Database
 
@@ -102,7 +117,7 @@ db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 
 // You can also use an existing database connection handle
 // dbSql, _ := sql.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-// db := gorm.Open("postgres", dbSql)
+// db, _ := gorm.Open("postgres", dbSql)
 
 // Get database connection handle [*sql.DB](http://golang.org/pkg/database/sql/#DB)
 db.DB()
@@ -330,6 +345,13 @@ db.Preload("Orders").Preload("Profile").Preload("Role").Find(&users)
 //// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many
 //// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one
 //// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to
+```
+
+#### Nested Preloading
+
+```go
+db.Preload("Orders.OrderItems").Find(&users)
+db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&users)
 ```
 
 ## Update
@@ -823,21 +845,54 @@ for rows.Next() {
 }
 
 db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)
+
+// find a user by email address
+db.Joins("inner join emails on emails.user_id = users.id").Where("emails.email = ?", "x@example.org").Find(&user)
+
+// find all email addresses for a user
+db.Joins("left join users on users.id = emails.user_id").Where("users.name = ?", "jinzhu").Find(&emails)
 ```
 
 ## Transactions
 
-All individual save and delete operations are run in a transaction by default.
+To perform a set of operations within a transaction, the general flow is as below.
+The database handle returned from ``` db.Begin() ``` should be used for all operations within the transaction.
+(Note that all individual save and delete operations are run in a transaction by default.)
 
 ```go
 // begin
 tx := db.Begin()
 
-// rollback
+// do some database operations (use 'tx' from this point, not 'db')
+tx.Create(...)
+...
+
+// rollback in case of error
 tx.Rollback()
 
-// commit
+// Or commit if all is ok
 tx.Commit()
+```
+
+### A Specific Example
+```
+func CreateAnimals(db *gorm.DB) err {
+  tx := db.Begin()
+  // Note the use of tx as the database handle once you are within a transaction
+
+  if err := tx.Create(&Animal{Name: "Giraffe"}).Error; err != nil {
+     tx.Rollback()
+     return err
+  }
+
+  if err := tx.Create(&Animal{Name: "Lion"}).Error; err != nil {
+     tx.Rollback()
+     return err
+  }
+
+  tx.Commit()
+  return nil
+}
 ```
 
 ## Scopes
@@ -1069,7 +1124,7 @@ type Product struct {
 // 2nd param : destination table(id)
 // 3rd param : ONDELETE
 // 4th param : ONUPDATE
-db.Model(&User{}).AddForeignKey("user_id", "destination_table(id)", "CASCADE", "RESTRICT")
+db.Model(&User{}).AddForeignKey("role_id", "roles", "CASCADE", "RESTRICT")
 
 // Add index
 db.Model(&User{}).AddIndex("idx_user_name", "name")

@@ -38,7 +38,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	case interface{}:
 		var sqls []string
 		for _, field := range scope.New(value).Fields() {
-			if !field.IsBlank {
+			if !field.IsIgnored && !field.IsBlank {
 				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 			}
 		}
@@ -336,12 +336,14 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 
 func (scope *Scope) row() *sql.Row {
 	defer scope.Trace(NowFunc())
+	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
 	defer scope.Trace(NowFunc())
+	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
 }
@@ -411,7 +413,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
 					joinTableHandler := relationship.JoinTableHandler
-					scope.Err(joinTableHandler.JoinWith(toScope.db, scope.Value).Find(value).Error)
+					scope.Err(joinTableHandler.JoinWith(joinTableHandler, toScope.db, scope.Value).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
 					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
 					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
@@ -445,13 +447,19 @@ func (scope *Scope) createJoinTable(field *StructField) {
 		joinTableHandler := relationship.JoinTableHandler
 		joinTable := joinTableHandler.Table(scope.db)
 		if !scope.Dialect().HasTable(scope, joinTable) {
-			primaryKeySqlType := scope.Dialect().SqlTag(scope.PrimaryField().Field, 255, false)
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)",
-				scope.Quote(joinTable),
-				strings.Join([]string{
-					scope.Quote(relationship.ForeignDBName) + " " + primaryKeySqlType,
-					scope.Quote(relationship.AssociationForeignDBName) + " " + primaryKeySqlType}, ",")),
-			).Error)
+			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
+
+			var sqlTypes []string
+			for _, s := range []*Scope{scope, toScope} {
+				for _, primaryField := range s.GetModelStruct().PrimaryFields {
+					value := reflect.Indirect(reflect.New(primaryField.Struct.Type))
+					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
+					dbName := ToDBName(s.GetModelStruct().ModelType.Name() + primaryField.Name)
+					sqlTypes = append(sqlTypes, scope.Quote(dbName)+" "+primaryKeySqlType)
+				}
+			}
+
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)", scope.Quote(joinTable), strings.Join(sqlTypes, ","))).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
@@ -467,7 +475,7 @@ func (scope *Scope) createTable() *Scope {
 		}
 
 		if field.IsPrimaryKey {
-			primaryKeys = append(primaryKeys, field.DBName)
+			primaryKeys = append(primaryKeys, scope.Quote(field.DBName))
 		}
 		scope.createJoinTable(field)
 	}
@@ -522,7 +530,7 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	var table = scope.TableName()
 	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), keyName, field, dest, onDelete, onUpdate)).Exec()
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.Quote(keyName), scope.Quote(field), scope.Quote(dest), onDelete, onUpdate)).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
@@ -540,7 +548,7 @@ func (scope *Scope) autoMigrate() *Scope {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.generateSqlTag(field)
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, field.DBName, sqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()
 				}
 			}
 			scope.createJoinTable(field)

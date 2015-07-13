@@ -98,49 +98,41 @@ func TestSearchWithPlainSQL(t *testing.T) {
 		t.Errorf("Should found 2 users that age > 1, but got %v", len(users))
 	}
 
-	users = []User{}
 	DB.Where("name LIKE ?", "%PlainSqlUser%").Where("age >= ?", 1).Find(&users)
 	if len(users) != 3 {
 		t.Errorf("Should found 3 users that age >= 1, but got %v", len(users))
 	}
 
-	users = []User{}
 	scopedb.Where("age <> ?", 20).Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should found 2 users age != 20, but got %v", len(users))
 	}
 
-	users = []User{}
 	scopedb.Where("birthday > ?", now.MustParse("2000-1-1")).Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should found 2 users's birthday > 2000-1-1, but got %v", len(users))
 	}
 
-	users = []User{}
 	scopedb.Where("birthday > ?", "2002-10-10").Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should found 2 users's birthday >= 2002-10-10, but got %v", len(users))
 	}
 
-	users = []User{}
 	scopedb.Where("birthday >= ?", "2010-1-1").Where("birthday < ?", "2020-1-1").Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should found 1 users's birthday < 2020-1-1 and >= 2010-1-1, but got %v", len(users))
 	}
 
-	users = []User{}
 	DB.Where("name in (?)", []string{user1.Name, user2.Name}).Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should found 2 users, but got %v", len(users))
 	}
 
-	users = []User{}
 	DB.Where("id in (?)", []int64{user1.Id, user2.Id, user3.Id}).Find(&users)
 	if len(users) != 3 {
 		t.Errorf("Should found 3 users, but got %v", len(users))
 	}
 
-	users = []User{}
 	DB.Where("id in (?)", user1.Id).Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should found 1 users, but got %v", len(users))
@@ -191,7 +183,6 @@ func TestSearchWithStruct(t *testing.T) {
 		t.Errorf("Search first record with where struct")
 	}
 
-	users = []User{}
 	DB.Find(&users, &User{Name: user2.Name})
 	if len(users) != 1 {
 		t.Errorf("Search all records with inline struct")
@@ -222,7 +213,6 @@ func TestSearchWithMap(t *testing.T) {
 		t.Errorf("Search all records with inline map")
 	}
 
-	users = []User{}
 	DB.Find(&users, map[string]interface{}{"name": user3.Name})
 	if len(users) != 1 {
 		t.Errorf("Search all records with inline map")
@@ -395,13 +385,11 @@ func TestNot(t *testing.T) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	users4 = []User{}
 	DB.Not("name = ?", "user3").Find(&users4)
 	if len(users1)-len(users4) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	users4 = []User{}
 	DB.Not("name <> ?", "user3").Find(&users4)
 	if len(users4) != int(name3Count) {
 		t.Errorf("Should find all users's name not equal 3")

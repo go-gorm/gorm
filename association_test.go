@@ -148,7 +148,6 @@ func TestManyToMany(t *testing.T) {
 		t.Errorf("Query many to many relations")
 	}
 
-	newLanguages = []Language{}
 	DB.Model(&user).Association("Languages").Find(&newLanguages)
 	if len(newLanguages) != len([]string{"ZH", "EN"}) {
 		t.Errorf("Should be able to find many to many relations")
@@ -194,7 +193,6 @@ func TestManyToMany(t *testing.T) {
 		t.Errorf("Language EE should not be deleted")
 	}
 
-	languages = []Language{}
 	DB.Where("name IN (?)", []string{"CC", "DD"}).Find(&languages)
 
 	user2 := User{Name: "Many2Many_User2", Languages: languages}

@@ -14,16 +14,26 @@ func (mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "boolean"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 		if autoIncrease {
 			return "int AUTO_INCREMENT"
 		}
 		return "int"
-	case reflect.Int64, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "int unsigned AUTO_INCREMENT"
+		}
+		return "int unsigned"
+	case reflect.Int64:
 		if autoIncrease {
 			return "bigint AUTO_INCREMENT"
 		}
 		return "bigint"
+	case reflect.Uint64:
+		if autoIncrease {
+			return "bigint unsigned AUTO_INCREMENT"
+		}
+		return "bigint unsigned"
 	case reflect.Float32, reflect.Float64:
 		return "double"
 	case reflect.String:

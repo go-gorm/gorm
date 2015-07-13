@@ -61,6 +61,19 @@ func init() {
 	runMigration()
 }
 
+func TestStringPrimaryKey(t *testing.T) {
+	type UUIDStruct struct {
+		ID   string `gorm:"primary_key"`
+		Name string
+	}
+	DB.AutoMigrate(&UUIDStruct{})
+
+	data := UUIDStruct{ID: "uuid", Name: "hello"}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" {
+		t.Errorf("string primary key should not be populated")
+	}
+}
+
 func TestExceptionsWithInvalidSql(t *testing.T) {
 	var columns []string
 	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {

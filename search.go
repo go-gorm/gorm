@@ -14,7 +14,7 @@ type search struct {
 	omits           []string
 	orders          []string
 	joins           string
-	preload         map[string][]interface{}
+	preload         []searchPreload
 	offset          string
 	limit           string
 	group           string
@@ -23,26 +23,14 @@ type search struct {
 	Unscoped        bool
 }
 
+type searchPreload struct {
+	schema     string
+	conditions []interface{}
+}
+
 func (s *search) clone() *search {
-	return &search{
-		preload:         s.preload,
-		whereConditions: s.whereConditions,
-		orConditions:    s.orConditions,
-		notConditions:   s.notConditions,
-		havingCondition: s.havingCondition,
-		initAttrs:       s.initAttrs,
-		assignAttrs:     s.assignAttrs,
-		selects:         s.selects,
-		omits:           s.omits,
-		orders:          s.orders,
-		joins:           s.joins,
-		offset:          s.offset,
-		limit:           s.limit,
-		group:           s.group,
-		tableName:       s.tableName,
-		raw:             s.raw,
-		Unscoped:        s.Unscoped,
-	}
+	clone := *s
+	return &clone
 }
 
 func (s *search) Where(query interface{}, values ...interface{}) *search {
@@ -114,11 +102,15 @@ func (s *search) Joins(query string) *search {
 	return s
 }
 
-func (s *search) Preload(column string, values ...interface{}) *search {
-	if s.preload == nil {
-		s.preload = map[string][]interface{}{}
+func (s *search) Preload(schema string, values ...interface{}) *search {
+	var preloads []searchPreload
+	for _, preload := range s.preload {
+		if preload.schema != schema {
+			preloads = append(preloads, preload)
+		}
 	}
-	s.preload[column] = values
+	preloads = append(preloads, searchPreload{schema, values})
+	s.preload = preloads
 	return s
 }
 
