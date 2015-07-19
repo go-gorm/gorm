@@ -32,11 +32,16 @@ type DB struct {
 	dialect           Dialect
 	singularTable     bool
 	source            string
+    tableSuffix       string
 	values            map[string]interface{}
 	joinTableHandlers map[string]JoinTableHandler
 }
 
 func Open(dialect string, args ...interface{}) (DB, error) {
+    return OpenWithTableSuffix(dialect, "", args)
+}
+
+func OpenWithTableSuffix(dialect, tableSuffix string, args ...interface{}) (DB, error) {
 	var db DB
 	var err error
 
@@ -69,6 +74,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			logger:   defaultLogger,
 			callback: DefaultCallback,
 			source:   source,
+            tableSuffix:tableSuffix,
 			values:   map[string]interface{}{},
 			db:       dbSql,
 		}
@@ -370,7 +376,7 @@ func (s *DB) RecordNotFound() bool {
 
 // Migrations
 func (s *DB) CreateTable(value interface{}) *DB {
-	return s.clone().NewScope(value).createTable().db
+	return s.clone().NewScope(value).Set("gorm:table_suffix", s.tableSuffix).createTable().db
 }
 
 func (s *DB) DropTable(value interface{}) *DB {
@@ -390,7 +396,7 @@ func (s *DB) HasTable(value interface{}) bool {
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
-		db = db.NewScope(value).NeedPtr().autoMigrate().db
+		db = db.NewScope(value).NeedPtr().Set("gorm:table_suffix", s.tableSuffix).autoMigrate().db
 	}
 	return db
 }
