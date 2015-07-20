@@ -38,7 +38,7 @@ type DB struct {
 }
 
 func Open(dialect string, args ...interface{}) (DB, error) {
-    return OpenWithTableSuffix(dialect, "", args)
+    return OpenWithTableSuffix(dialect, "", args...)
 }
 
 func OpenWithTableSuffix(dialect, tableSuffix string, args ...interface{}) (DB, error) {
