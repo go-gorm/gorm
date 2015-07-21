@@ -515,7 +515,11 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 
 	var columns []string
 	for _, name := range column {
-		columns = append(columns, scope.Quote(name))
+		if regexp.MustCompile("^[a-zA-Z]+$").MatchString(name) {
+			columns = append(columns, scope.Quote(name))
+		} else {
+			columns = append(columns, name)
+		}
 	}
 
 	sqlCreate := "CREATE INDEX"
