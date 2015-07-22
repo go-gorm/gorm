@@ -265,10 +265,24 @@ func (scope *Scope) groupSql() string {
 }
 
 func (scope *Scope) havingSql() string {
-	if scope.Search.havingCondition == nil {
+	if scope.Search.havingConditions == nil {
 		return ""
 	}
-	return " HAVING " + scope.buildWhereCondition(scope.Search.havingCondition)
+
+	var andConditions []string
+
+	for _, clause := range scope.Search.havingConditions {
+		if sql := scope.buildWhereCondition(clause); sql != "" {
+			andConditions = append(andConditions, sql)
+		}
+	}
+
+	combinedSql := strings.Join(andConditions, " AND ")
+	if len(combinedSql) == 0 {
+		return ""
+	}
+
+	return " HAVING " + combinedSql
 }
 
 func (scope *Scope) joinsSql() string {
