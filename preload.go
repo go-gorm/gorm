@@ -97,17 +97,22 @@ func makeSlice(typ reflect.Type) interface{} {
 }
 
 func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) {
-	primaryName := scope.PrimaryField().Name
-	primaryKeys := scope.getColumnAsArray(primaryName)
-	if len(primaryKeys) == 0 {
+	var keyName string
+	relation := field.Relationship
+	if relation.AssociationForeignFieldName != "" {
+		keyName = relation.AssociationForeignFieldName
+	} else {
+		keyName = scope.PrimaryField().Name
+	}
+	associatedKeys := scope.getColumnAsArray(keyName)
+	if len(associatedKeys) == 0 {
 		return
 	}
 
 	results := makeSlice(field.Struct.Type)
-	relation := field.Relationship
 	condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
 
-	scope.Err(scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...).Error)
+	scope.Err(scope.NewDB().Where(condition, associatedKeys).Find(results, conditions...).Error)
 	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	for i := 0; i < resultValues.Len(); i++ {
@@ -116,7 +121,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 			value := getRealValue(result, relation.ForeignFieldName)
 			objects := scope.IndirectValue()
 			for j := 0; j < objects.Len(); j++ {
-				if equalAsString(getRealValue(objects.Index(j), primaryName), value) {
+				if equalAsString(getRealValue(objects.Index(j), keyName), value) {
 					reflect.Indirect(objects.Index(j)).FieldByName(field.Name).Set(result)
 					break
 				}
@@ -131,17 +136,22 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 }
 
 func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{}) {
-	primaryName := scope.PrimaryField().Name
-	primaryKeys := scope.getColumnAsArray(primaryName)
-	if len(primaryKeys) == 0 {
+	var keyName string
+	relation := field.Relationship
+	if relation.AssociationForeignFieldName != "" {
+		keyName = relation.AssociationForeignFieldName
+	} else {
+		keyName = scope.PrimaryField().Name
+	}
+	associatedKeys := scope.getColumnAsArray(keyName)
+	if len(associatedKeys) == 0 {
 		return
 	}
 
 	results := makeSlice(field.Struct.Type)
-	relation := field.Relationship
 	condition := fmt.Sprintf("%v IN (?)", scope.Quote(relation.ForeignDBName))
 
-	scope.Err(scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...).Error)
+	scope.Err(scope.NewDB().Where(condition, associatedKeys).Find(results, conditions...).Error)
 	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	if scope.IndirectValue().Kind() == reflect.Slice {
@@ -151,7 +161,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 			objects := scope.IndirectValue()
 			for j := 0; j < objects.Len(); j++ {
 				object := reflect.Indirect(objects.Index(j))
-				if equalAsString(getRealValue(object, primaryName), value) {
+				if equalAsString(getRealValue(object, keyName), value) {
 					f := object.FieldByName(field.Name)
 					f.Set(reflect.Append(f, result))
 					break
@@ -171,15 +181,27 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	}
 
 	results := makeSlice(field.Struct.Type)
-	associationPrimaryKey := scope.New(results).PrimaryField().Name
 
-	scope.Err(scope.NewDB().Where(primaryKeys).Find(results, conditions...).Error)
+	var keyName string
+	if relation.AssociationForeignFieldName != "" {
+		keyName = relation.AssociationForeignFieldName
+	} else {
+		keyName = scope.New(results).PrimaryField().Name
+	}
+
+	foreignKey, ok := scope.New(results).FieldByName(keyName)
+	if !ok {
+		return
+	}
+
+	condition := fmt.Sprintf("%v IN (?)", scope.Quote(foreignKey.DBName))
+	scope.Err(scope.NewDB().Where(condition, primaryKeys).Find(results, conditions...).Error)
 	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	for i := 0; i < resultValues.Len(); i++ {
 		result := resultValues.Index(i)
 		if scope.IndirectValue().Kind() == reflect.Slice {
-			value := getRealValue(result, associationPrimaryKey)
+			value := getRealValue(result, keyName)
 			objects := scope.IndirectValue()
 			for j := 0; j < objects.Len(); j++ {
 				object := reflect.Indirect(objects.Index(j))
