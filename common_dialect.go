@@ -70,8 +70,8 @@ func (commonDialect) Quote(key string) string {
 }
 
 func (commonDialect) databaseName(scope *Scope) string {
-	from := strings.Index(scope.db.parent.source, "/") + 1
-	to := strings.Index(scope.db.parent.source, "?")
+	from := strings.LastIndex(scope.db.parent.source, "/") + 1
+	to := strings.LastIndex(scope.db.parent.source, "?")
 	if to == -1 {
 		to = len(scope.db.parent.source)
 	}
