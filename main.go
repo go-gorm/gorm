@@ -59,6 +59,13 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
 			}
 			dbSql, err = sql.Open(driver, source)
+
+			// For some reason, postgres does not throw an connection error.
+			// Sending a ping request after the connection is made is a quick workaround for this
+			if driver == "postgres" && err != nil {
+				err = db.DB().Ping()
+			}
+
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSql = value
