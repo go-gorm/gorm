@@ -62,7 +62,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 
 			// For some reason, postgres does not throw an connection error.
 			// Sending a ping request after the connection is made is a quick workaround for this
-			if driver == "postgres" && err != nil {
+			if driver == "postgres" && err == nil {
 				err = db.DB().Ping()
 			}
 
