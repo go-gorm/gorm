@@ -415,12 +415,21 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					joinTableHandler := relationship.JoinTableHandler
 					scope.Err(joinTableHandler.JoinWith(joinTableHandler, toScope.db, scope.Value).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
-					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
-					scope.Err(toScope.db.Where(sql, foreignKeyValue).Find(value).Error)
+					query := toScope.db
+					for idx, foreignKey := range relationship.ForeignDBNames {
+						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
+							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+						}
+					}
+					scope.Err(query.Find(value).Error)
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
-					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
-					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
+					query := toScope.db
+					for idx, foreignKey := range relationship.ForeignDBNames {
+						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
+							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+						}
+					}
+
 					if relationship.PolymorphicType != "" {
 						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 					}
