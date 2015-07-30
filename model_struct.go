@@ -205,7 +205,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 					var foreignKeys []string
 					if foreignKey, ok := gormSettings["FOREIGNKEY"]; ok {
-						foreignKeys := append(foreignKeys, gormSettings["FOREIGNKEY"])
+						foreignKeys = append(foreignKeys, foreignKey)
 					}
 					switch indirectType.Kind() {
 					case reflect.Slice:
