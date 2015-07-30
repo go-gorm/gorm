@@ -101,6 +101,7 @@ func makeSlice(typ reflect.Type) interface{} {
 
 func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) {
 	relation := field.Relationship
+
 	primaryKeys := scope.getColumnAsArray(relation.AssociationForeignFieldNames)
 	if len(primaryKeys) == 0 {
 		return
@@ -168,7 +169,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	}
 
 	results := makeSlice(field.Struct.Type)
-	scope.Err(scope.NewDB().Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.ForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(results, conditions...).Error)
+	scope.Err(scope.NewDB().Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(results, conditions...).Error)
 	resultValues := reflect.Indirect(reflect.ValueOf(results))
 
 	for i := 0; i < resultValues.Len(); i++ {

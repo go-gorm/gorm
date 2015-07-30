@@ -326,10 +326,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								field.Relationship = relationship
 							} else {
 								if len(foreignKeys) == 0 {
-									for _, field := range toScope.PrimaryFields() {
-										if foreignField := getForeignField(modelStruct.ModelType.Name()+field.Name, toScope.GetStructFields()); foreignField != nil {
-											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, field.Name)
-											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, field.DBName)
+									for _, f := range scope.PrimaryFields() {
+										if foreignField := getForeignField(modelStruct.ModelType.Name()+f.Name, toScope.GetStructFields()); foreignField != nil {
+											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, f.Name)
+											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, f.DBName)
 											relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, foreignField.Name)
 											relationship.ForeignDBNames = append(relationship.ForeignDBNames, foreignField.DBName)
 											foreignField.IsForeignKey = true
