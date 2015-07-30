@@ -74,7 +74,7 @@ func SaveAfterAssociations(scope *Scope) {
 					if len(relationship.ForeignFieldNames) != 0 {
 						for idx, fieldName := range relationship.ForeignFieldNames {
 							associationForeignName := relationship.AssociationForeignDBNames[idx]
-							if f, ok := scope.New(value.Addr().Interface()).FieldByName(associationForeignName); ok {
+							if f, ok := scope.FieldByName(associationForeignName); ok {
 								scope.Err(newScope.SetColumn(fieldName, f.Field.Interface()))
 							}
 						}

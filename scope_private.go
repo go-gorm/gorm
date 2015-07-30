@@ -417,8 +417,8 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 				} else if relationship.Kind == "belongs_to" {
 					query := toScope.db
 					for idx, foreignKey := range relationship.ForeignDBNames {
-						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
-							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+						if field, ok := scope.FieldByName(foreignKey); ok {
+							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.AssociationForeignDBNames[idx])), field.Field.Interface())
 						}
 					}
 					scope.Err(query.Find(value).Error)

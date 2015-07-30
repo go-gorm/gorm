@@ -325,10 +325,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								relationship.Kind = "belongs_to"
 								field.Relationship = relationship
 							} else {
-								hasOneForeignKeys := foreignKeys
-								if len(hasOneForeignKeys) == 0 {
+								if len(foreignKeys) == 0 {
 									for _, field := range toScope.PrimaryFields() {
-										if foreignField := getForeignField(modelStruct.ModelType.Name()+field.Name, fields); foreignField != nil {
+										if foreignField := getForeignField(modelStruct.ModelType.Name()+field.Name, toScope.GetStructFields()); foreignField != nil {
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, field.Name)
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, field.DBName)
 											relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, foreignField.Name)
@@ -337,7 +336,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										}
 									}
 								} else {
-									for _, foreignKey := range hasOneForeignKeys {
+									for _, foreignKey := range foreignKeys {
 										if foreignField := getForeignField(foreignKey, toScope.GetStructFields()); foreignField != nil {
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, scope.PrimaryField().Name)
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, scope.PrimaryField().DBName)
