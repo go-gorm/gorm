@@ -174,7 +174,7 @@ func (association *Association) Count() int {
 		if relationship.PolymorphicType != "" {
 			query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 		}
-		query.Count(&count)
+		query.Table(newScope.TableName()).Count(&count)
 	} else if relationship.Kind == "belongs_to" {
 		query := scope.DB()
 		for idx, foreignKey := range relationship.ForeignDBNames {
