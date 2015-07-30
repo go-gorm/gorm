@@ -35,9 +35,11 @@ func Create(scope *Scope) {
 						}
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
-					if relationField := fields[relationship.ForeignDBName]; !scope.changeableField(relationField) {
-						columns = append(columns, scope.Quote(relationField.DBName))
-						sqls = append(sqls, scope.AddToVars(relationField.Field.Interface()))
+					for _, dbName := range relationship.ForeignDBNames {
+						if relationField := fields[dbName]; !scope.changeableField(relationField) {
+							columns = append(columns, scope.Quote(relationField.DBName))
+							sqls = append(sqls, scope.AddToVars(relationField.Field.Interface()))
+						}
 					}
 				}
 			}
