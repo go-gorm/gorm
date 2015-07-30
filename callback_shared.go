@@ -52,8 +52,8 @@ func SaveAfterAssociations(scope *Scope) {
 						if relationship.JoinTableHandler == nil && len(relationship.ForeignFieldNames) != 0 {
 							for idx, fieldName := range relationship.ForeignFieldNames {
 								associationForeignName := relationship.AssociationForeignDBNames[idx]
-								if f, ok := scope.New(value.Addr().Interface()).FieldByName(associationForeignName); ok {
-									scope.Err(scope.SetColumn(fieldName, f.Field.Interface()))
+								if f, ok := scope.FieldByName(associationForeignName); ok {
+									scope.Err(newScope.SetColumn(fieldName, f.Field.Interface()))
 								}
 							}
 						}
@@ -75,7 +75,7 @@ func SaveAfterAssociations(scope *Scope) {
 						for idx, fieldName := range relationship.ForeignFieldNames {
 							associationForeignName := relationship.AssociationForeignDBNames[idx]
 							if f, ok := scope.New(value.Addr().Interface()).FieldByName(associationForeignName); ok {
-								scope.Err(scope.SetColumn(fieldName, f.Field.Interface()))
+								scope.Err(newScope.SetColumn(fieldName, f.Field.Interface()))
 							}
 						}
 					}

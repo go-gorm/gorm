@@ -23,11 +23,11 @@ func TestHasOneAndHasManyAssociation(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post")
+		t.Errorf("Got errors when save post", err.Error())
 	}
 
-	if DB.First(&Category{}, "name = ?", "Category 1").Error != nil {
-		t.Errorf("Category should be saved")
+	if err := DB.First(&Category{}, "name = ?", "Category 1").Error; err != nil {
+		t.Errorf("Category should be saved", err.Error())
 	}
 
 	var p Post
