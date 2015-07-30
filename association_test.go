@@ -186,6 +186,7 @@ func TestManyToMany(t *testing.T) {
 	var language Language
 	DB.Where("name = ?", "EE").First(&language)
 	DB.Model(&user).Association("Languages").Delete(language, &language)
+
 	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 || len(user.Languages) != len(totalLanguages)-1 {
 		t.Errorf("Relations should be deleted with Delete")
 	}
