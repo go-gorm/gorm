@@ -459,12 +459,19 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
 			var sqlTypes []string
-			for _, s := range []*Scope{scope, toScope} {
-				for _, primaryField := range s.GetModelStruct().PrimaryFields {
-					value := reflect.Indirect(reflect.New(primaryField.Struct.Type))
+			for idx, fieldName := range relationship.ForeignFieldNames {
+				if field, ok := scope.Fields()[fieldName]; ok {
+					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
-					dbName := ToDBName(s.GetModelStruct().ModelType.Name() + primaryField.Name)
-					sqlTypes = append(sqlTypes, scope.Quote(dbName)+" "+primaryKeySqlType)
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+primaryKeySqlType)
+				}
+			}
+
+			for idx, fieldName := range relationship.AssociationForeignFieldNames {
+				if field, ok := toScope.Fields()[fieldName]; ok {
+					value := reflect.Indirect(reflect.New(field.Struct.Type))
+					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+primaryKeySqlType)
 				}
 			}
 
