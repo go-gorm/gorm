@@ -247,7 +247,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 								for _, name := range associationForeignKeys {
 									if field, ok := toScope.FieldByName(name); ok {
-										relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, name)
+										relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, field.DBName)
 										joinTableDBName := ToDBName(elemType.Name()) + "_" + field.DBName
 										relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, joinTableDBName)
 									}
