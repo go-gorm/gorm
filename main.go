@@ -59,6 +59,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
 			}
 			dbSql, err = sql.Open(driver, source)
+
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSql = value
@@ -77,6 +78,10 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 		if err == nil {
 			err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
 		}
+	}
+
+	if err == nil {
+		err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
 	}
 
 	return db, err
