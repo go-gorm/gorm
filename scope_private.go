@@ -443,14 +443,14 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 /**
-    Return the table suffix string or an empty string if the table suffix does not exist
+    Return the table options string or an empty string if the table options does not exist
 */
-func (scope *Scope) getTableSuffix() string{
-    tableSuffix, ok := scope.Get("gorm:table_suffix")
+func (scope *Scope) getTableOptions() string{
+    tableOptions, ok := scope.Get("gorm:table_options")
     if !ok {
         return ""
     }
-    return tableSuffix.(string)
+    return tableOptions.(string)
 }
 
 func (scope *Scope) createJoinTable(field *StructField) {
@@ -469,7 +469,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					sqlTypes = append(sqlTypes, scope.Quote(dbName)+" "+primaryKeySqlType)
 				}
 			}
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), scope.getTableSuffix())).Error)
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), scope.getTableOptions())).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
@@ -494,7 +494,7 @@ func (scope *Scope) createTable() *Scope {
 	if len(primaryKeys) > 0 {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableSuffix())).Exec()
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
 	return scope
 }
 

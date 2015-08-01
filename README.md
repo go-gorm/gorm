@@ -113,7 +113,6 @@ import (
 db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 // db, err := gorm.Open("foundation", "dbname=gorm") // FoundationDB.
 // db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
-// db, err := gorm.OpenWithTableSuffix("mysql", "ENGINE=InnoDB", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 // db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 
 // You can also use an existing database connection handle
@@ -137,12 +136,14 @@ db.SingularTable(true)
 ```go
 // Create table
 db.CreateTable(&User{})
+db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 
 // Drop table
 db.DropTable(&User{})
 
 // Automating Migration
 db.AutoMigrate(&User{})
+db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
 db.AutoMigrate(&User{}, &Product{}, &Order{})
 // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 // AutoMigrate will ONLY add *new columns* and *new indexes*,
