@@ -60,8 +60,12 @@ func (s *search) Assign(attrs ...interface{}) *search {
 
 func (s *search) Order(value string, reorder ...bool) *search {
 	if len(reorder) > 0 && reorder[0] {
-		s.orders = []string{value}
-	} else {
+		if value != "" {
+			s.orders = []string{value}
+		} else {
+			s.orders = []string{}
+		}
+	} else if value != "" {
 		s.orders = append(s.orders, value)
 	}
 	return s
