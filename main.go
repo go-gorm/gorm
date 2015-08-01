@@ -60,10 +60,6 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			}
 			dbSql, err = sql.Open(driver, source)
 
-			if err == nil {
-				err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
-			}
-
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSql = value
@@ -78,6 +74,10 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			db:       dbSql,
 		}
 		db.parent = &db
+	}
+
+	if err == nil {
+		err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
 	}
 
 	return db, err
