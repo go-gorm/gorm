@@ -19,8 +19,13 @@ func SaveBeforeAssociations(scope *Scope) {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 				value := field.Field
 				scope.Err(scope.NewDB().Save(value.Addr().Interface()).Error)
-				if relationship.ForeignFieldName != "" {
-					scope.Err(scope.SetColumn(relationship.ForeignFieldName, scope.New(value.Addr().Interface()).PrimaryKeyValue()))
+				if len(relationship.ForeignFieldNames) != 0 {
+					for idx, fieldName := range relationship.ForeignFieldNames {
+						associationForeignName := relationship.AssociationForeignDBNames[idx]
+						if f, ok := scope.New(value.Addr().Interface()).FieldByName(associationForeignName); ok {
+							scope.Err(scope.SetColumn(fieldName, f.Field.Interface()))
+						}
+					}
 				}
 			}
 		}
@@ -44,8 +49,13 @@ func SaveAfterAssociations(scope *Scope) {
 						elem := value.Index(i).Addr().Interface()
 						newScope := newDB.NewScope(elem)
 
-						if relationship.JoinTableHandler == nil && relationship.ForeignFieldName != "" {
-							scope.Err(newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue()))
+						if relationship.JoinTableHandler == nil && len(relationship.ForeignFieldNames) != 0 {
+							for idx, fieldName := range relationship.ForeignFieldNames {
+								associationForeignName := relationship.AssociationForeignDBNames[idx]
+								if f, ok := scope.FieldByName(associationForeignName); ok {
+									scope.Err(newScope.SetColumn(fieldName, f.Field.Interface()))
+								}
+							}
 						}
 
 						if relationship.PolymorphicType != "" {
@@ -61,8 +71,13 @@ func SaveAfterAssociations(scope *Scope) {
 				default:
 					elem := value.Addr().Interface()
 					newScope := scope.New(elem)
-					if relationship.ForeignFieldName != "" {
-						scope.Err(newScope.SetColumn(relationship.ForeignFieldName, scope.PrimaryKeyValue()))
+					if len(relationship.ForeignFieldNames) != 0 {
+						for idx, fieldName := range relationship.ForeignFieldNames {
+							associationForeignName := relationship.AssociationForeignDBNames[idx]
+							if f, ok := scope.FieldByName(associationForeignName); ok {
+								scope.Err(newScope.SetColumn(fieldName, f.Field.Interface()))
+							}
+						}
 					}
 
 					if relationship.PolymorphicType != "" {

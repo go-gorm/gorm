@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -85,6 +86,13 @@ func (scope *Scope) Quote(str string) string {
 	} else {
 		return scope.Dialect().Quote(str)
 	}
+}
+
+func (scope *Scope) QuoteIfPossible(str string) string {
+	if regexp.MustCompile("^[a-zA-Z]+(.[a-zA-Z]+)*$").MatchString(str) {
+		return scope.Quote(str)
+	}
+	return str
 }
 
 // Dialect get dialect

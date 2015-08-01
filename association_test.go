@@ -23,11 +23,11 @@ func TestHasOneAndHasManyAssociation(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post")
+		t.Errorf("Got errors when save post", err.Error())
 	}
 
-	if DB.First(&Category{}, "name = ?", "Category 1").Error != nil {
-		t.Errorf("Category should be saved")
+	if err := DB.First(&Category{}, "name = ?", "Category 1").Error; err != nil {
+		t.Errorf("Category should be saved", err.Error())
 	}
 
 	var p Post
@@ -186,6 +186,7 @@ func TestManyToMany(t *testing.T) {
 	var language Language
 	DB.Where("name = ?", "EE").First(&language)
 	DB.Model(&user).Association("Languages").Delete(language, &language)
+
 	if DB.Model(&user).Association("Languages").Count() != len(totalLanguages)-1 || len(user.Languages) != len(totalLanguages)-1 {
 		t.Errorf("Relations should be deleted with Delete")
 	}

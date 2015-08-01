@@ -45,41 +45,18 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	s.TableName = tableName
 
 	s.Source = JoinTableSource{ModelType: source}
-	sourceScope := &Scope{Value: reflect.New(source).Interface()}
-	sourcePrimaryFields := sourceScope.GetModelStruct().PrimaryFields
-	for _, primaryField := range sourcePrimaryFields {
-		if relationship.ForeignDBName == "" {
-			relationship.ForeignFieldName = source.Name() + primaryField.Name
-			relationship.ForeignDBName = ToDBName(relationship.ForeignFieldName)
-		}
-
-		var dbName string
-		if len(sourcePrimaryFields) == 1 || primaryField.DBName == "id" {
-			dbName = relationship.ForeignDBName
-		} else {
-			dbName = ToDBName(source.Name() + primaryField.Name)
-		}
-
+	for idx, dbName := range relationship.ForeignFieldNames {
 		s.Source.ForeignKeys = append(s.Source.ForeignKeys, JoinTableForeignKey{
-			DBName:            dbName,
-			AssociationDBName: primaryField.DBName,
+			DBName:            relationship.ForeignDBNames[idx],
+			AssociationDBName: dbName,
 		})
 	}
 
 	s.Destination = JoinTableSource{ModelType: destination}
-	destinationScope := &Scope{Value: reflect.New(destination).Interface()}
-	destinationPrimaryFields := destinationScope.GetModelStruct().PrimaryFields
-	for _, primaryField := range destinationPrimaryFields {
-		var dbName string
-		if len(sourcePrimaryFields) == 1 || primaryField.DBName == "id" {
-			dbName = relationship.AssociationForeignDBName
-		} else {
-			dbName = ToDBName(destinationScope.GetModelStruct().ModelType.Name() + primaryField.Name)
-		}
-
+	for idx, dbName := range relationship.AssociationForeignFieldNames {
 		s.Destination.ForeignKeys = append(s.Destination.ForeignKeys, JoinTableForeignKey{
-			DBName:            dbName,
-			AssociationDBName: primaryField.DBName,
+			DBName:            relationship.AssociationForeignDBNames[idx],
+			AssociationDBName: dbName,
 		})
 	}
 }

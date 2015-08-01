@@ -149,7 +149,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = valuer.Value()
 			}
-			str = strings.Replace(str, "?", scope.Dialect().Quote(fmt.Sprintf("%v", arg)), 1)
+			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
 		}
 	}
 	return
@@ -265,10 +265,24 @@ func (scope *Scope) groupSql() string {
 }
 
 func (scope *Scope) havingSql() string {
-	if scope.Search.havingCondition == nil {
+	if scope.Search.havingConditions == nil {
 		return ""
 	}
-	return " HAVING " + scope.buildWhereCondition(scope.Search.havingCondition)
+
+	var andConditions []string
+
+	for _, clause := range scope.Search.havingConditions {
+		if sql := scope.buildWhereCondition(clause); sql != "" {
+			andConditions = append(andConditions, sql)
+		}
+	}
+
+	combinedSql := strings.Join(andConditions, " AND ")
+	if len(combinedSql) == 0 {
+		return ""
+	}
+
+	return " HAVING " + combinedSql
 }
 
 func (scope *Scope) joinsSql() string {
@@ -415,12 +429,21 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					joinTableHandler := relationship.JoinTableHandler
 					scope.Err(joinTableHandler.JoinWith(joinTableHandler, toScope.db, scope.Value).Find(value).Error)
 				} else if relationship.Kind == "belongs_to" {
-					sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-					foreignKeyValue := fromFields[relationship.ForeignDBName].Field.Interface()
-					scope.Err(toScope.db.Where(sql, foreignKeyValue).Find(value).Error)
+					query := toScope.db
+					for idx, foreignKey := range relationship.ForeignDBNames {
+						if field, ok := scope.FieldByName(foreignKey); ok {
+							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.AssociationForeignDBNames[idx])), field.Field.Interface())
+						}
+					}
+					scope.Err(query.Find(value).Error)
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
-					sql := fmt.Sprintf("%v = ?", scope.Quote(relationship.ForeignDBName))
-					query := toScope.db.Where(sql, scope.PrimaryKeyValue())
+					query := toScope.db
+					for idx, foreignKey := range relationship.ForeignDBNames {
+						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
+							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+						}
+					}
+
 					if relationship.PolymorphicType != "" {
 						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 					}
@@ -442,6 +465,17 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	return scope
 }
 
+/**
+    Return the table options string or an empty string if the table options does not exist
+*/
+func (scope *Scope) getTableOptions() string{
+    tableOptions, ok := scope.Get("gorm:table_options")
+    if !ok {
+        return ""
+    }
+    return tableOptions.(string)
+}
+
 func (scope *Scope) createJoinTable(field *StructField) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
 		joinTableHandler := relationship.JoinTableHandler
@@ -450,16 +484,22 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
 			var sqlTypes []string
-			for _, s := range []*Scope{scope, toScope} {
-				for _, primaryField := range s.GetModelStruct().PrimaryFields {
-					value := reflect.Indirect(reflect.New(primaryField.Struct.Type))
+			for idx, fieldName := range relationship.ForeignFieldNames {
+				if field, ok := scope.Fields()[fieldName]; ok {
+					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
-					dbName := ToDBName(s.GetModelStruct().ModelType.Name() + primaryField.Name)
-					sqlTypes = append(sqlTypes, scope.Quote(dbName)+" "+primaryKeySqlType)
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+primaryKeySqlType)
 				}
 			}
 
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v)", scope.Quote(joinTable), strings.Join(sqlTypes, ","))).Error)
+			for idx, fieldName := range relationship.AssociationForeignFieldNames {
+				if field, ok := toScope.Fields()[fieldName]; ok {
+					value := reflect.Indirect(reflect.New(field.Struct.Type))
+					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+primaryKeySqlType)
+				}
+			}
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), scope.getTableOptions())).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
@@ -484,7 +524,7 @@ func (scope *Scope) createTable() *Scope {
 	if len(primaryKeys) > 0 {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
 	}
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr)).Exec()
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
 	return scope
 }
 
@@ -515,11 +555,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 
 	var columns []string
 	for _, name := range column {
-		if regexp.MustCompile("^[a-zA-Z]+$").MatchString(name) {
-			columns = append(columns, scope.Quote(name))
-		} else {
-			columns = append(columns, name)
-		}
+		columns = append(columns, scope.QuoteIfPossible(name))
 	}
 
 	sqlCreate := "CREATE INDEX"
@@ -532,9 +568,10 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
 	var table = scope.TableName()
-	var keyName = fmt.Sprintf("%s_%s_foreign", table, field)
+	var keyName = fmt.Sprintf("%s_%s_%s_foreign", table, field, regexp.MustCompile("[^a-zA-Z]").ReplaceAllString(dest, "_"))
+	keyName = regexp.MustCompile("_+").ReplaceAllString(keyName, "_")
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.Quote(keyName), scope.Quote(field), scope.Quote(dest), onDelete, onUpdate)).Exec()
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.QuoteIfPossible(keyName), scope.QuoteIfPossible(field), scope.QuoteIfPossible(dest), onDelete, onUpdate)).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
