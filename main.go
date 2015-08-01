@@ -60,10 +60,8 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			}
 			dbSql, err = sql.Open(driver, source)
 
-			// For some reason, postgres does not throw an connection error.
-			// Sending a ping request after the connection is made is a quick workaround for this
-			if driver == "postgres" && err == nil {
-				err = db.DB().Ping()
+			if err == nil {
+				err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
 			}
 
 		case sqlCommon:
