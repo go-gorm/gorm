@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/now"
 
 	"testing"
@@ -556,7 +557,7 @@ func TestSelectWithEscapedFieldName(t *testing.T) {
 func TestSelectWithVariables(t *testing.T) {
 	DB.Save(&User{Name: "jinzhu"})
 
-	rows, _ := DB.Table("users").Select("? as fake", "name").Rows()
+	rows, _ := DB.Table("users").Select("? as fake", gorm.Expr("name")).Rows()
 
 	if !rows.Next() {
 		t.Errorf("Should have returned at least one row")
