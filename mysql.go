@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -57,6 +58,11 @@ func (mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 }
 
 func (mysql) Quote(key string) string {
+	if strings.Contains(key, "(") {
+		pos1 := strings.Index(key, "(")
+		pos2 := strings.Index(key, ")")
+		return fmt.Sprintf("`%s`(`%s`)", key[0:pos1], key[pos1+1:pos2])
+	}
 	return fmt.Sprintf("`%s`", key)
 }
 
