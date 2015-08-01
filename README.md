@@ -138,12 +138,14 @@ db.SingularTable(true)
 ```go
 // Create table
 db.CreateTable(&User{})
+db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 
 // Drop table
 db.DropTable(&User{})
 
 // Automating Migration
 db.AutoMigrate(&User{})
+db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
 db.AutoMigrate(&User{}, &Product{}, &Order{})
 // Feel free to change your struct, AutoMigrate will keep your database up-to-date.
 // AutoMigrate will ONLY add *new columns* and *new indexes*,
