@@ -73,6 +73,10 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 			db:       dbSql,
 		}
 		db.parent = &db
+
+		if err == nil {
+			err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
+		}
 	}
 
 	return db, err
