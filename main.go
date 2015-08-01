@@ -254,9 +254,9 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates)
+		c.err(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates).db.Error)
 	} else if len(c.search.assignAttrs) > 0 {
-		c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates)
+		c.err(c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates).db.Error)
 	}
 	return c
 }
