@@ -113,7 +113,7 @@ func (s *DB) Callback() *callback {
 }
 
 func (s *DB) SetLogger(l logger) {
-	s.parent.logger = l
+	s.logger = l
 }
 
 func (s *DB) LogMode(enable bool) *DB {
