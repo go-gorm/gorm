@@ -206,15 +206,19 @@ func (scope *Scope) whereSql() (sql string) {
 	return
 }
 
+var hasCountRegexp = regexp.MustCompile(`(?i)count(.+)`)
+
 func (scope *Scope) selectSql() string {
 	if len(scope.Search.selects) == 0 {
 		return "*"
 	}
+	sql := scope.buildSelectQuery(scope.Search.selects)
+	scope.Search.countingQuery = hasCountRegexp.MatchString(sql)
 	return scope.buildSelectQuery(scope.Search.selects)
 }
 
 func (scope *Scope) orderSql() string {
-	if len(scope.Search.orders) == 0 {
+	if len(scope.Search.orders) == 0 || scope.Search.countingQuery {
 		return ""
 	}
 	return " ORDER BY " + strings.Join(scope.Search.orders, ",")
@@ -466,14 +470,14 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 }
 
 /**
-    Return the table options string or an empty string if the table options does not exist
+  Return the table options string or an empty string if the table options does not exist
 */
-func (scope *Scope) getTableOptions() string{
-    tableOptions, ok := scope.Get("gorm:table_options")
-    if !ok {
-        return ""
-    }
-    return tableOptions.(string)
+func (scope *Scope) getTableOptions() string {
+	tableOptions, ok := scope.Get("gorm:table_options")
+	if !ok {
+		return ""
+	}
+	return tableOptions.(string)
 }
 
 func (scope *Scope) createJoinTable(field *StructField) {

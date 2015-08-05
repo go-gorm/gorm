@@ -21,6 +21,7 @@ type search struct {
 	tableName        string
 	raw              bool
 	Unscoped         bool
+	countingQuery    bool
 }
 
 type searchPreload struct {
