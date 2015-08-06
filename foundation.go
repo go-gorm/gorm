@@ -76,3 +76,7 @@ func (foundation) HasIndex(scope *Scope, tableName string, indexName string) boo
 	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.indexes WHERE table_schema = current_schema AND table_name = ? AND index_name = ?", tableName, indexName).Row().Scan(&count)
 	return count > 0
 }
+
+func (foundation) CurrentDatabase(scope *Scope, name *string) {
+	scope.Err(scope.NewDB().Raw("SELECT CURRENT_SCHEMA").Row().Scan(name))
+}

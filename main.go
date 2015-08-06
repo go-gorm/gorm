@@ -429,6 +429,12 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return scope.db
 }
 
+func (s *DB) CurrentDatabase(name *string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	s.dialect.CurrentDatabase(scope, name)
+	return scope.db
+}
+
 /*
 Add foreign key to the given scope
 
