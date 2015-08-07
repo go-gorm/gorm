@@ -130,7 +130,10 @@ func (s *DB) LogMode(enable bool) *DB {
 }
 
 func (s *DB) SingularTable(enable bool) {
-	modelStructs = map[reflect.Type]*ModelStruct{}
+	// Don't clobber/reset modelStructs if it is already initialized.
+	if modelStructs == nil {
+		modelStructs = map[reflect.Type]*ModelStruct{}
+	}
 	s.parent.singularTable = enable
 }
 
