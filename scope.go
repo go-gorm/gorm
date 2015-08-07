@@ -205,7 +205,9 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			case func(s *Scope):
 				f(scope)
 			case func(s *DB):
-				f(scope.NewDB())
+				newDB := scope.NewDB()
+				f(newDB)
+				scope.Err(newDB.Error)
 			case func() error:
 				scope.Err(f())
 			case func(s *Scope) error:
