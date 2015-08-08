@@ -1210,6 +1210,7 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * Github Pages
 * AlertColumn, DropColumn
 * R/W Splitting, Validation
+* AddForeignKey compatibility with all dialects
 
 # Author
 
