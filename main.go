@@ -365,7 +365,10 @@ func (s *DB) Rollback() *DB {
 }
 
 func (s *DB) NewRecord(value interface{}) bool {
-	return s.clone().NewScope(value).PrimaryKeyZero()
+	scope := s.clone().NewScope(value)
+	result := scope.PrimaryKeyZero()
+	s.err(scope.db.Error)
+	return result
 }
 
 func (s *DB) RecordNotFound() bool {
@@ -388,7 +391,9 @@ func (s *DB) DropTableIfExists(value interface{}) *DB {
 func (s *DB) HasTable(value interface{}) bool {
 	scope := s.clone().NewScope(value)
 	tableName := scope.TableName()
-	return scope.Dialect().HasTable(scope, tableName)
+	has := scope.Dialect().HasTable(scope, tableName)
+	s.err(scope.db.Error)
+	return has
 }
 
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
