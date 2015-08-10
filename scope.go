@@ -222,10 +222,18 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 
 	if values := scope.IndirectValue(); values.Kind() == reflect.Slice {
 		for i := 0; i < values.Len(); i++ {
-			call(values.Index(i).Addr().Interface())
+			value := values.Index(i).Addr().Interface()
+			if values.Index(i).Kind() == reflect.Ptr {
+				value = values.Index(i).Interface()
+			}
+			call(value)
 		}
 	} else {
-		call(scope.Value)
+		if scope.IndirectValue().CanAddr() {
+			call(scope.IndirectValue().Addr().Interface())
+		} else {
+			call(scope.IndirectValue().Interface())
+		}
 	}
 }
 
