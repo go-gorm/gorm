@@ -429,10 +429,12 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return scope.db
 }
 
-func (s *DB) CurrentDatabase(name *string) *DB {
-	scope := s.clone().NewScope(s.Value)
-	s.dialect.CurrentDatabase(scope, name)
-	return scope.db
+func (s *DB) CurrentDatabase() string {
+	var (
+		scope = s.clone().NewScope(s.Value)
+		name  = s.dialect.CurrentDatabase(scope)
+	)
+	return name
 }
 
 /*

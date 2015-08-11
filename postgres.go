@@ -85,8 +85,9 @@ func (postgres) HasIndex(scope *Scope, tableName string, indexName string) bool 
 	return count > 0
 }
 
-func (postgres) CurrentDatabase(scope *Scope, name *string) {
-	scope.Err(scope.NewDB().Raw("SELECT CURRENT_DATABASE()").Row().Scan(name))
+func (postgres) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT CURRENT_DATABASE()").Row().Scan(&name))
+	return
 }
 
 var hstoreType = reflect.TypeOf(Hstore{})

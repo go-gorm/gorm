@@ -77,6 +77,7 @@ func (foundation) HasIndex(scope *Scope, tableName string, indexName string) boo
 	return count > 0
 }
 
-func (foundation) CurrentDatabase(scope *Scope, name *string) {
-	scope.Err(scope.NewDB().Raw("SELECT CURRENT_SCHEMA").Row().Scan(name))
+func (foundation) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT CURRENT_SCHEMA").Row().Scan(&name))
+	return
 }

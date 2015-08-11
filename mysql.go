@@ -64,6 +64,7 @@ func (mysql) SelectFromDummyTable() string {
 	return "FROM DUAL"
 }
 
-func (mysql) CurrentDatabase(scope *Scope, name *string) {
-	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(name))
+func (mysql) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
+	return
 }
