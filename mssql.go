@@ -53,9 +53,8 @@ func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 func (s mssql) HasTable(scope *Scope, tableName string) bool {
 	var (
 		count        int
-		databaseName string
+		databaseName = s.CurrentDatabase(scope)
 	)
-	s.CurrentDatabase(scope, &databaseName)
 	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName)
 	return count > 0
 }
@@ -63,9 +62,8 @@ func (s mssql) HasTable(scope *Scope, tableName string) bool {
 func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var (
 		count        int
-		databaseName string
+		databaseName = s.CurrentDatabase(scope)
 	)
-	s.CurrentDatabase(scope, &databaseName)
 	s.RawScanInt(scope, &count, "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
 }
@@ -76,6 +74,7 @@ func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	return count > 0
 }
 
-func (s mssql) CurrentDatabase(scope *Scope, name *string) {
-	s.RawScanString(scope, name, "SELECT DB_NAME() AS [Current Database]")
+func (s mssql) CurrentDatabase(scope *Scope) (name string) {
+	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
+	return
 }

@@ -62,7 +62,7 @@ func (sqlite3) RemoveIndex(scope *Scope, indexName string) {
 	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
 }
 
-func (sqlite3) CurrentDatabase(scope *Scope, name *string) {
+func (sqlite3) CurrentDatabase(scope *Scope) (name string) {
 	var (
 		ifaces   = make([]interface{}, 3)
 		pointers = make([]*string, 3)
@@ -75,6 +75,7 @@ func (sqlite3) CurrentDatabase(scope *Scope, name *string) {
 		return
 	}
 	if pointers[1] != nil {
-		*name = *pointers[1]
+		name = *pointers[1]
 	}
+	return
 }

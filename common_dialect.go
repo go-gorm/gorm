@@ -71,9 +71,8 @@ func (commonDialect) Quote(key string) string {
 func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 	var (
 		count        int
-		databaseName string
+		databaseName = c.CurrentDatabase(scope)
 	)
-	c.CurrentDatabase(scope, &databaseName)
 	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, databaseName)
 	return count > 0
 }
@@ -81,9 +80,8 @@ func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var (
 		count        int
-		databaseName string
+		databaseName = c.CurrentDatabase(scope)
 	)
-	c.CurrentDatabase(scope, &databaseName)
 	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
 }
@@ -110,6 +108,7 @@ func (commonDialect) RawScanString(scope *Scope, scanPtr *string, query string, 
 	scope.Err(scope.NewDB().Raw(query, args...).Row().Scan(scanPtr))
 }
 
-func (commonDialect) CurrentDatabase(scope *Scope, name *string) {
-	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(name))
+func (commonDialect) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
+	return
 }

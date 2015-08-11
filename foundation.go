@@ -77,6 +77,7 @@ func (s foundation) HasIndex(scope *Scope, tableName string, indexName string) b
 	return count > 0
 }
 
-func (s foundation) CurrentDatabase(scope *Scope, name *string) {
-	s.RawScanString(scope, name, "SELECT CURRENT_SCHEMA")
+func (s foundation) CurrentDatabase(scope *Scope) (name string) {
+	s.RawScanString(scope, &name, "SELECT CURRENT_SCHEMA")
+	return
 }
