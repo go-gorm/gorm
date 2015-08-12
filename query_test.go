@@ -579,3 +579,15 @@ func TestSelectWithArrayInput(t *testing.T) {
 		t.Errorf("Should have selected both age and name")
 	}
 }
+
+func TestCurrentDatabase(t *testing.T) {
+	DB.LogMode(true)
+	databaseName := DB.CurrentDatabase()
+	if err := DB.Error; err != nil {
+		t.Errorf("Problem getting current db name: %s", err)
+	}
+	if databaseName == "" {
+		t.Errorf("Current db name returned empty; this should never happen!")
+	}
+	t.Logf("Got current db name: %v", databaseName)
+}

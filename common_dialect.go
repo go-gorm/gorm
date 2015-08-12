@@ -3,7 +3,6 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -69,24 +68,21 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (commonDialect) databaseName(scope *Scope) string {
-	from := strings.LastIndex(scope.db.parent.source, "/") + 1
-	to := strings.LastIndex(scope.db.parent.source, "?")
-	if to == -1 {
-		to = len(scope.db.parent.source)
-	}
-	return scope.db.parent.source[from:to]
-}
-
 func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
-	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, c.databaseName(scope)).Row().Scan(&count)
+	var (
+		count        int
+		databaseName = c.CurrentDatabase(scope)
+	)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, databaseName).Row().Scan(&count)
 	return count > 0
 }
 
 func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName string) bool {
-	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", c.databaseName(scope), tableName, columnName).Row().Scan(&count)
+	var (
+		count        int
+		databaseName = c.CurrentDatabase(scope)
+	)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
@@ -98,4 +94,9 @@ func (commonDialect) HasIndex(scope *Scope, tableName string, indexName string) 
 
 func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
+}
+
+func (commonDialect) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
+	return
 }

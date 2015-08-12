@@ -61,3 +61,21 @@ func (sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool {
 func (sqlite3) RemoveIndex(scope *Scope, indexName string) {
 	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 }
+
+func (sqlite3) CurrentDatabase(scope *Scope) (name string) {
+	var (
+		ifaces   = make([]interface{}, 3)
+		pointers = make([]*string, 3)
+		i        int
+	)
+	for i = 0; i < 3; i++ {
+		ifaces[i] = &pointers[i]
+	}
+	if err := scope.NewDB().Raw("PRAGMA database_list").Row().Scan(ifaces...); scope.Err(err) != nil {
+		return
+	}
+	if pointers[1] != nil {
+		name = *pointers[1]
+	}
+	return
+}

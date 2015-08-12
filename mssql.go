@@ -3,7 +3,6 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -51,26 +50,21 @@ func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", value.Type().Name(), value.Kind().String()))
 }
 
-func (mssql) databaseName(scope *Scope) string {
-	dbStr := strings.Split(scope.db.parent.source, ";")
-	for _, value := range dbStr {
-		s := strings.Split(value, "=")
-		if s[0] == "database" {
-			return s[1]
-		}
-	}
-	return ""
-}
-
 func (s mssql) HasTable(scope *Scope, tableName string) bool {
-	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.databaseName(scope)).Row().Scan(&count)
+	var (
+		count        int
+		databaseName = s.CurrentDatabase(scope)
+	)
+	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName).Row().Scan(&count)
 	return count > 0
 }
 
 func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
-	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.databaseName(scope), tableName, columnName).Row().Scan(&count)
+	var (
+		count        int
+		databaseName = s.CurrentDatabase(scope)
+	)
+	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName).Row().Scan(&count)
 	return count > 0
 }
 
@@ -78,4 +72,9 @@ func (mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
 	scope.NewDB().Raw("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Row().Scan(&count)
 	return count > 0
+}
+
+func (mssql) CurrentDatabase(scope *Scope) (name string) {
+	scope.Err(scope.NewDB().Raw("SELECT DB_NAME() AS [Current Database]").Row().Scan(&name))
+	return
 }
