@@ -156,12 +156,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		for _, field := range fields {
 			if !field.IsIgnored {
 				fieldStruct := field.Struct
-				fieldType, indirectType := fieldStruct.Type, fieldStruct.Type
+				indirectType := fieldStruct.Type
 				if indirectType.Kind() == reflect.Ptr {
 					indirectType = indirectType.Elem()
 				}
 
-				if _, isScanner := reflect.New(fieldType).Interface().(sql.Scanner); isScanner {
+				if _, isScanner := reflect.New(indirectType).Interface().(sql.Scanner); isScanner {
 					field.IsScanner, field.IsNormal = true, true
 				}
 

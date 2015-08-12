@@ -581,7 +581,6 @@ func TestSelectWithArrayInput(t *testing.T) {
 }
 
 func TestCurrentDatabase(t *testing.T) {
-	DB.LogMode(true)
 	databaseName := DB.CurrentDatabase()
 	if err := DB.Error; err != nil {
 		t.Errorf("Problem getting current db name: %s", err)
