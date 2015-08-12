@@ -49,7 +49,7 @@ func init() {
 
 	// DB.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
 	// DB.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	DB.LogMode(true)
+	// DB.LogMode(true)
 	DB.LogMode(false)
 
 	if err != nil {
