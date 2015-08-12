@@ -165,6 +165,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.IsScanner, field.IsNormal = true, true
 				}
 
+				if _, isScanner := reflect.New(indirectType).Interface().(sql.Scanner); isScanner {
+					field.IsScanner, field.IsNormal = true, true
+				}
+
 				if _, isTime := reflect.New(indirectType).Interface().(*time.Time); isTime {
 					field.IsNormal = true
 				}
