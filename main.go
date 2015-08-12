@@ -365,10 +365,7 @@ func (s *DB) Rollback() *DB {
 }
 
 func (s *DB) NewRecord(value interface{}) bool {
-	scope := s.clone().NewScope(value)
-	result := scope.PrimaryKeyZero()
-	s.err(scope.db.Error)
-	return result
+	return s.clone().NewScope(value).PrimaryKeyZero()
 }
 
 func (s *DB) RecordNotFound() bool {
