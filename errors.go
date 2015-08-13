@@ -1,6 +1,9 @@
 package gorm
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 var (
 	RecordNotFound       = errors.New("record not found")
@@ -9,3 +12,23 @@ var (
 	NoValidTransaction   = errors.New("no valid transaction")
 	CantStartTransaction = errors.New("can't start transaction")
 )
+
+type Errors struct {
+	errors []error
+}
+
+func (errs Errors) Errors() []error {
+	return errs.errors
+}
+
+func (errs *Errors) Add(err error) {
+	errs.errors = append(errs.errors, err)
+}
+
+func (errs Errors) Error() string {
+	var errors = []string{}
+	for _, e := range errs.errors {
+		errors = append(errors, e.Error())
+	}
+	return strings.Join(errors, "; ")
+}

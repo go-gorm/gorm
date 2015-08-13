@@ -103,7 +103,7 @@ func (scope *Scope) Dialect() Dialect {
 // Err write error
 func (scope *Scope) Err(err error) error {
 	if err != nil {
-		scope.db.err(err)
+		scope.db.AddError(err)
 	}
 	return err
 }

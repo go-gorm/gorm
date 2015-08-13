@@ -19,20 +19,6 @@ func (s *DB) clone() *DB {
 	return &db
 }
 
-func (s *DB) err(err error) error {
-	if err != nil {
-		if err != RecordNotFound {
-			if s.logMode == 0 {
-				go s.print(fileWithLineNum(), err)
-			} else {
-				s.log(err)
-			}
-		}
-		s.Error = err
-	}
-	return err
-}
-
 func (s *DB) print(v ...interface{}) {
 	s.logger.(logger).Print(v...)
 }

@@ -258,9 +258,9 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.err(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates).db.Error)
+		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates).db.Error)
 	} else if len(c.search.assignAttrs) > 0 {
-		c.err(c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates).db.Error)
+		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates).db.Error)
 	}
 	return c
 }
@@ -339,27 +339,27 @@ func (s *DB) Begin() *DB {
 	if db, ok := c.db.(sqlDb); ok {
 		tx, err := db.Begin()
 		c.db = interface{}(tx).(sqlCommon)
-		c.err(err)
+		c.AddError(err)
 	} else {
-		c.err(CantStartTransaction)
+		c.AddError(CantStartTransaction)
 	}
 	return c
 }
 
 func (s *DB) Commit() *DB {
 	if db, ok := s.db.(sqlTx); ok {
-		s.err(db.Commit())
+		s.AddError(db.Commit())
 	} else {
-		s.err(NoValidTransaction)
+		s.AddError(NoValidTransaction)
 	}
 	return s
 }
 
 func (s *DB) Rollback() *DB {
 	if db, ok := s.db.(sqlTx); ok {
-		s.err(db.Rollback())
+		s.AddError(db.Rollback())
 	} else {
-		s.err(NoValidTransaction)
+		s.AddError(NoValidTransaction)
 	}
 	return s
 }
@@ -389,7 +389,7 @@ func (s *DB) HasTable(value interface{}) bool {
 	scope := s.clone().NewScope(value)
 	tableName := scope.TableName()
 	has := scope.Dialect().HasTable(scope, tableName)
-	s.err(scope.db.Error)
+	s.AddError(scope.db.Error)
 	return has
 }
 
@@ -506,5 +506,30 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 				}
 			}
 		}
+	}
+}
+
+func (s *DB) AddError(err error) error {
+	if err != nil {
+		if err != RecordNotFound {
+			if s.logMode == 0 {
+				go s.print(fileWithLineNum(), err)
+			} else {
+				s.log(err)
+			}
+
+			err = Errors{errors: append(s.Errors(), err)}
+		}
+
+		s.Error = err
+	}
+	return err
+}
+
+func (s *DB) Errors() []error {
+	if errs, ok := s.Error.(Errors); ok {
+		return errs.errors
+	} else {
+		return []error{s.Error}
 	}
 }
