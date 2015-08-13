@@ -63,30 +63,30 @@ func (s postgres) ReturningStr(tableName, key string) string {
 	return fmt.Sprintf("RETURNING %v.%v", s.Quote(tableName), key)
 }
 
-func (postgres) HasTable(scope *Scope, tableName string) bool {
+func (s postgres) HasTable(scope *Scope, tableName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_type = 'BASE TABLE'", tableName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_type = 'BASE TABLE'", tableName)
 	return count > 0
 }
 
-func (postgres) HasColumn(scope *Scope, tableName string, columnName string) bool {
+func (s postgres) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = ? AND column_name = ?", tableName, columnName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = ? AND column_name = ?", tableName, columnName)
 	return count > 0
 }
 
 func (postgres) RemoveIndex(scope *Scope, indexName string) {
-	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName))
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
 }
 
-func (postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName)
 	return count > 0
 }
 
-func (postgres) CurrentDatabase(scope *Scope) (name string) {
-	scope.Err(scope.NewDB().Raw("SELECT CURRENT_DATABASE()").Row().Scan(&name))
+func (s postgres) CurrentDatabase(scope *Scope) (name string) {
+	s.RawScanString(scope, &name, "SELECT CURRENT_DATABASE()")
 	return
 }
 

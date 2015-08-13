@@ -388,7 +388,9 @@ func (s *DB) DropTableIfExists(value interface{}) *DB {
 func (s *DB) HasTable(value interface{}) bool {
 	scope := s.clone().NewScope(value)
 	tableName := scope.TableName()
-	return scope.Dialect().HasTable(scope, tableName)
+	has := scope.Dialect().HasTable(scope, tableName)
+	s.err(scope.db.Error)
+	return has
 }
 
 func (s *DB) AutoMigrate(values ...interface{}) *DB {

@@ -55,7 +55,7 @@ func (s mssql) HasTable(scope *Scope, tableName string) bool {
 		count        int
 		databaseName = s.CurrentDatabase(scope)
 	)
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName)
 	return count > 0
 }
 
@@ -64,17 +64,17 @@ func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool
 		count        int
 		databaseName = s.CurrentDatabase(scope)
 	)
-	scope.NewDB().Raw("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
 }
 
-func (mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Row().Scan(&count)
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName)
 	return count > 0
 }
 
-func (mssql) CurrentDatabase(scope *Scope) (name string) {
-	scope.Err(scope.NewDB().Raw("SELECT DB_NAME() AS [Current Database]").Row().Scan(&name))
+func (s mssql) CurrentDatabase(scope *Scope) (name string) {
+	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
 	return
 }

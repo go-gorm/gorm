@@ -73,7 +73,7 @@ func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 		count        int
 		databaseName = c.CurrentDatabase(scope)
 	)
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, databaseName).Row().Scan(&count)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, databaseName)
 	return count > 0
 }
 
@@ -82,18 +82,30 @@ func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName stri
 		count        int
 		databaseName = c.CurrentDatabase(scope)
 	)
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName).Row().Scan(&count)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
 }
 
-func (commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var count int
-	scope.NewDB().Raw("SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS where table_name = ? AND index_name = ?", tableName, indexName).Row().Scan(&count)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS where table_name = ? AND index_name = ?", tableName, indexName)
 	return count > 0
 }
 
 func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
-	scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName()))
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Error)
+}
+
+// RawScanInt scans the first column of the first row into the `scan' int pointer.
+// This function captures raw query errors and propagates them to the original scope.
+func (commonDialect) RawScanInt(scope *Scope, scanPtr *int, query string, args ...interface{}) {
+	scope.Err(scope.NewDB().Raw(query, args...).Row().Scan(scanPtr))
+}
+
+// RawScanString scans the first column of the first row into the `scan' string pointer.
+// This function captures raw query errors and propagates them to the original scope.
+func (commonDialect) RawScanString(scope *Scope, scanPtr *string, query string, args ...interface{}) {
+	scope.Err(scope.NewDB().Raw(query, args...).Row().Scan(scanPtr))
 }
 
 func (commonDialect) CurrentDatabase(scope *Scope) (name string) {

@@ -10,8 +10,8 @@ func TestDelete(t *testing.T) {
 	DB.Save(&user1)
 	DB.Save(&user2)
 
-	if DB.Delete(&user1).Error != nil {
-		t.Errorf("No error should happen when delete a record")
+	if err := DB.Delete(&user1).Error; err != nil {
+		t.Errorf("No error should happen when delete a record, err=%s", err)
 	}
 
 	if !DB.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
@@ -34,8 +34,8 @@ func TestInlineDelete(t *testing.T) {
 		t.Errorf("User can't be found after delete")
 	}
 
-	if DB.Delete(&User{}, "name = ?", user2.Name).Error != nil {
-		t.Errorf("No error should happen when delete a record")
+	if err := DB.Delete(&User{}, "name = ?", user2.Name).Error; err != nil {
+		t.Errorf("No error should happen when delete a record, err=%s", err)
 	} else if !DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("User can't be found after delete")
 	}
@@ -57,8 +57,8 @@ func TestSoftDelete(t *testing.T) {
 		t.Errorf("Can't find a soft deleted record")
 	}
 
-	if DB.Unscoped().First(&User{}, "name = ?", user.Name).Error != nil {
-		t.Errorf("Should be able to find soft deleted record with Unscoped")
+	if err := DB.Unscoped().First(&User{}, "name = ?", user.Name).Error; err != nil {
+		t.Errorf("Should be able to find soft deleted record with Unscoped, but err=%s", err)
 	}
 
 	DB.Unscoped().Delete(&user)
