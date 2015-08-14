@@ -17,7 +17,7 @@ type Errors struct {
 	errors []error
 }
 
-func (errs Errors) Errors() []error {
+func (errs Errors) GetErrors() []error {
 	return errs.errors
 }
 

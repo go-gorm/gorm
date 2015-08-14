@@ -518,7 +518,7 @@ func (s *DB) AddError(err error) error {
 				s.log(err)
 			}
 
-			err = Errors{errors: append(s.Errors(), err)}
+			err = Errors{errors: append(s.GetErrors(), err)}
 		}
 
 		s.Error = err
@@ -526,7 +526,7 @@ func (s *DB) AddError(err error) error {
 	return err
 }
 
-func (s *DB) Errors() []error {
+func (s *DB) GetErrors() []error {
 	if errs, ok := s.Error.(Errors); ok {
 		return errs.errors
 	} else {
