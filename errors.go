@@ -13,6 +13,10 @@ var (
 	CantStartTransaction = errors.New("can't start transaction")
 )
 
+type errorsInterface interface {
+	GetErrors() []error
+}
+
 type Errors struct {
 	errors []error
 }

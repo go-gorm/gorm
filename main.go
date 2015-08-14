@@ -518,7 +518,11 @@ func (s *DB) AddError(err error) error {
 				s.log(err)
 			}
 
-			err = Errors{errors: append(s.GetErrors(), err)}
+			if e, ok := err.(errorsInterface); ok {
+				err = Errors{errors: append(s.GetErrors(), e.GetErrors()...)}
+			} else {
+				err = Errors{errors: append(s.GetErrors(), err)}
+			}
 		}
 
 		s.Error = err
@@ -526,10 +530,11 @@ func (s *DB) AddError(err error) error {
 	return err
 }
 
-func (s *DB) GetErrors() []error {
-	if errs, ok := s.Error.(Errors); ok {
-		return errs.errors
-	} else {
+func (s *DB) GetErrors() (errors []error) {
+	if errs, ok := s.Error.(errorsInterface); ok {
+		return errs.GetErrors()
+	} else if s.Error != nil {
 		return []error{s.Error}
 	}
+	return
 }
