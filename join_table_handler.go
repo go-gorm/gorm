@@ -13,8 +13,10 @@ type JoinTableHandlerInterface interface {
 	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
 	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	PreloadWithJoin(handler JoinTableHandlerInterface, db *DB, source interface{}, conditions ...interface{}) *DB
 	SourceForeignKeys() []JoinTableForeignKey
 	DestinationForeignKeys() []JoinTableForeignKey
+	DestinationType() reflect.Type
 }
 
 type JoinTableForeignKey struct {
@@ -152,4 +154,44 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 		db.Error = errors.New("wrong source type for join table handler")
 		return db
 	}
+}
+
+func (s JoinTableHandler) PreloadWithJoin(handler JoinTableHandlerInterface, db *DB, source interface{}, conditions ...interface{}) *DB {
+	quotedTable := handler.Table(db)
+
+	scope := db.NewScope(source)
+	modelType := scope.GetModelStruct().ModelType
+	var joinConditions []string
+	var queryConditions []string
+	var values []interface{}
+	if s.Source.ModelType == modelType {
+		for _, foreignKey := range s.Destination.ForeignKeys {
+			destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).inlineCondition(conditions...).QuotedTableName()
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
+		}
+
+		for _, foreignKey := range s.Source.ForeignKeys {
+			condString := fmt.Sprintf("%v.%v in (?)", quotedTable, scope.Quote(foreignKey.DBName))
+
+			keys := scope.getColumnAsArray([]string{scope.Fields()[foreignKey.AssociationDBName].Name})
+			values = append(values, toQueryValues(keys))
+
+			queryConditions = append(queryConditions, condString)
+		}
+
+		if len(conditions) > 0 {
+			queryConditions = append(queryConditions, toString(conditions[0]))
+			values = append(values, conditions[1:]...)
+		}
+
+		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
+			Where(strings.Join(queryConditions, " AND "), values...)
+	} else {
+		db.Error = errors.New("wrong source type for join table handler")
+		return db
+	}
+}
+
+func (s JoinTableHandler) DestinationType() reflect.Type {
+	return s.Destination.ModelType
 }
