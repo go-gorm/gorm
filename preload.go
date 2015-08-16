@@ -297,6 +297,22 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 				}
 			}
 		}
+	} else {
+		object := scope.IndirectValue()
+		var checked []string
+		source := getRealValue(object, relation.AssociationForeignFieldNames)
+
+		for i := 0; i < results.Len(); i++ {
+			result := results.Index(i)
+			value := getRealValue(result, relation.ForeignFieldNames)
+
+			if strInSlice(toString(value), linkHash[toString(source)]) && !strInSlice(toString(value), checked) {
+				f := object.FieldByName(field.Name)
+				f.Set(reflect.Append(f, result))
+				checked = append(checked, toString(value))
+				continue
+			}
+		}
 	}
 }
 

@@ -603,6 +603,44 @@ func TestNestedPreload9(t *testing.T) {
 	}
 }
 
+func TestManyToManyPreload(t *testing.T) {
+	type (
+		Level1 struct {
+			ID    uint `gorm:"primary_key;"`
+			Value string
+		}
+		Level2 struct {
+			ID      uint `gorm:"primary_key;"`
+			Value   string
+			Level1s []Level1 `gorm:"many2many:levels;"`
+		}
+	)
+
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level1{})
+
+	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
+		panic(err)
+	}
+
+	want := Level2{Value: "Bob", Level1s: []Level1{
+		Level1{Value: "ru"},
+		Level1{Value: "en"},
+	}}
+	if err := DB.Save(&want).Error; err != nil {
+		panic(err)
+	}
+
+	var got Level2
+	if err := DB.Preload("Level1s").Find(&got).Error; err != nil {
+		panic(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
 func toJSONString(v interface{}) []byte {
 	r, _ := json.MarshalIndent(v, "", "  ")
 	return r
