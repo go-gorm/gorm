@@ -16,15 +16,6 @@ func getRealValue(value reflect.Value, columns []string) (results []interface{})
 				result, _ = r.Value()
 			}
 			results = append(results, result)
-		} else {
-			column = upFL(column)
-			if reflect.Indirect(value).FieldByName(column).IsValid() {
-				result := reflect.Indirect(value).FieldByName(column).Interface()
-				if r, ok := result.(driver.Valuer); ok {
-					result, _ = r.Value()
-				}
-				results = append(results, result)
-			}
 		}
 	}
 	return
@@ -283,11 +274,11 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 			var checked []string
 
 			object := reflect.Indirect(objects.Index(j))
-			source := getRealValue(object, relation.AssociationForeignFieldNames)
+			source := getRealValue(object, relation.AssociationForeignStructFieldNames)
 
 			for i := 0; i < results.Len(); i++ {
 				result := results.Index(i)
-				value := getRealValue(result, relation.ForeignFieldNames)
+				value := getRealValue(result, relation.ForeignStructFieldNames)
 
 				if strInSlice(toString(value), linkHash[toString(source)]) && !strInSlice(toString(value), checked) {
 					f := object.FieldByName(field.Name)
@@ -300,11 +291,11 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 	} else {
 		object := scope.IndirectValue()
 		var checked []string
-		source := getRealValue(object, relation.AssociationForeignFieldNames)
+		source := getRealValue(object, relation.AssociationForeignStructFieldNames)
 
 		for i := 0; i < results.Len(); i++ {
 			result := results.Index(i)
-			value := getRealValue(result, relation.ForeignFieldNames)
+			value := getRealValue(result, relation.ForeignStructFieldNames)
 
 			if strInSlice(toString(value), linkHash[toString(source)]) && !strInSlice(toString(value), checked) {
 				f := object.FieldByName(field.Name)

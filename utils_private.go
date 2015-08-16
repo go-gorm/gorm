@@ -5,8 +5,6 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
-	"unicode"
-	"unicode/utf8"
 )
 
 func fileWithLineNum() string {
@@ -85,12 +83,4 @@ func strInSlice(a string, list []string) bool {
 		}
 	}
 	return false
-}
-
-func upFL(s string) string {
-	if s == "" {
-		return ""
-	}
-	r, n := utf8.DecodeRuneInString(s)
-	return string(unicode.ToUpper(r)) + s[n:]
 }
