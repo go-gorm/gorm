@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"unicode"
+	"unicode/utf8"
 )
 
 func fileWithLineNum() string {
@@ -70,4 +72,25 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 		}
 	}
 	return attrs
+}
+
+func toString(a interface{}) string {
+	return fmt.Sprintf("%v", a)
+}
+
+func strInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+func upFL(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[n:]
 }
