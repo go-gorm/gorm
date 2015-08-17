@@ -203,7 +203,7 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 	}
 
 	var sourceKeys []string
-	var linkHash = make(map[string][]interface{})
+	var linkHash = make(map[string][]reflect.Value)
 
 	for _, key := range joinTableHandler.SourceForeignKeys() {
 		sourceKeys = append(sourceKeys, key.DBName)
@@ -272,26 +272,17 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 		for j := 0; j < objects.Len(); j++ {
 			object := reflect.Indirect(objects.Index(j))
 			source := getRealValue(object, relation.AssociationForeignStructFieldNames)
-			links := linkHash[toString(source)]
-
-			for i := 0; i < len(links); i++ {
-				f := object.FieldByName(field.Name)
-				a := links[i].(reflect.Value)
-				f.Set(reflect.Append(f, a))
-				continue
+			field := object.FieldByName(field.Name)
+			for _, link := range linkHash[toString(source)] {
+				field.Set(reflect.Append(field, link))
 			}
 		}
 	} else {
 		object := scope.IndirectValue()
 		source := getRealValue(object, relation.AssociationForeignStructFieldNames)
-
-		links := linkHash[toString(source)]
-
-		for i := 0; i < len(links); i++ {
-			f := object.FieldByName(field.Name)
-			a := links[i].(reflect.Value)
-			f.Set(reflect.Append(f, a))
-			continue
+		field := object.FieldByName(field.Name)
+		for _, link := range linkHash[toString(source)] {
+			field.Set(reflect.Append(field, link))
 		}
 	}
 }
