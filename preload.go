@@ -195,14 +195,16 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 	relation := field.Relationship
 
 	joinTableHandler := relation.JoinTableHandler
-	destType := joinTableHandler.DestinationType()
-
-	db := scope.NewDB().Table(scope.db.NewScope(reflect.New(destType).Elem().Interface()).TableName())
+	destType := field.StructField.Struct.Type.Elem()
+	var isPtr bool
+	if destType.Kind() == reflect.Ptr {
+		isPtr = true
+		destType = destType.Elem()
+	}
 
 	var destKeys []string
 	var sourceKeys []string
-
-	linkHash := make(map[string][]string)
+	var linkHash = make(map[string][]string)
 
 	for _, key := range joinTableHandler.DestinationForeignKeys() {
 		destKeys = append(destKeys, key.DBName)
@@ -213,7 +215,13 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 	}
 
 	results := reflect.New(field.Struct.Type).Elem()
-	rows, err := joinTableHandler.PreloadWithJoin(joinTableHandler, db, scope.Value, conditions...).Rows()
+
+	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName())
+	preloadJoinDB := joinTableHandler.PreloadWithJoin(joinTableHandler, db, scope.Value)
+	if len(conditions) > 0 {
+		preloadJoinDB = preloadJoinDB.Where(conditions[0], conditions[1:]...)
+	}
+	rows, err := preloadJoinDB.Rows()
 
 	if scope.Err(err) != nil {
 		return
@@ -264,8 +272,11 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 			linkHash[toString(sourceKey)] = append(linkHash[toString(sourceKey)], toString(destKey))
 		}
 
-		results = reflect.Append(results, elem)
-
+		if isPtr {
+			results = reflect.Append(results, elem.Addr())
+		} else {
+			results = reflect.Append(results, elem)
+		}
 	}
 
 	if scope.IndirectValue().Kind() == reflect.Slice {
