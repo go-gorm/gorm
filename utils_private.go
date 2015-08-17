@@ -71,3 +71,16 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 	}
 	return attrs
 }
+
+func toString(a interface{}) string {
+	return fmt.Sprintf("%v", a)
+}
+
+func strInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}

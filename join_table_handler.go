@@ -13,6 +13,7 @@ type JoinTableHandlerInterface interface {
 	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
 	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	PreloadWithJoin(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
 	SourceForeignKeys() []JoinTableForeignKey
 	DestinationForeignKeys() []JoinTableForeignKey
 }
@@ -137,8 +138,8 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 	var queryConditions []string
 	var values []interface{}
 	if s.Source.ModelType == modelType {
+		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
 		for _, foreignKey := range s.Destination.ForeignKeys {
-			destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
@@ -146,6 +147,37 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 			queryConditions = append(queryConditions, fmt.Sprintf("%v.%v = ?", quotedTable, scope.Quote(foreignKey.DBName)))
 			values = append(values, scope.Fields()[foreignKey.AssociationDBName].Field.Interface())
 		}
+		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
+			Where(strings.Join(queryConditions, " AND "), values...)
+	} else {
+		db.Error = errors.New("wrong source type for join table handler")
+		return db
+	}
+}
+
+func (s JoinTableHandler) PreloadWithJoin(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
+	quotedTable := handler.Table(db)
+
+	scope := db.NewScope(source)
+	modelType := scope.GetModelStruct().ModelType
+	var joinConditions []string
+	var queryConditions []string
+	var values []interface{}
+	if s.Source.ModelType == modelType {
+		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
+		for _, foreignKey := range s.Destination.ForeignKeys {
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
+		}
+
+		for _, foreignKey := range s.Source.ForeignKeys {
+			condString := fmt.Sprintf("%v.%v in (?)", quotedTable, scope.Quote(foreignKey.DBName))
+
+			keys := scope.getColumnAsArray([]string{scope.Fields()[foreignKey.AssociationDBName].Name})
+			values = append(values, toQueryValues(keys))
+
+			queryConditions = append(queryConditions, condString)
+		}
+
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
 			Where(strings.Join(queryConditions, " AND "), values...)
 	} else {

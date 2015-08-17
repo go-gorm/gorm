@@ -10,11 +10,13 @@ import (
 
 func getRealValue(value reflect.Value, columns []string) (results []interface{}) {
 	for _, column := range columns {
-		result := reflect.Indirect(value).FieldByName(column).Interface()
-		if r, ok := result.(driver.Valuer); ok {
-			result, _ = r.Value()
+		if reflect.Indirect(value).FieldByName(column).IsValid() {
+			result := reflect.Indirect(value).FieldByName(column).Interface()
+			if r, ok := result.(driver.Valuer); ok {
+				result, _ = r.Value()
+			}
+			results = append(results, result)
 		}
-		results = append(results, result)
 	}
 	return
 }
@@ -61,7 +63,7 @@ func Preload(scope *Scope) {
 				case "belongs_to":
 					currentScope.handleBelongsToPreload(field, conditions)
 				case "many_to_many":
-					fallthrough
+					currentScope.handleHasManyToManyPreload(field, conditions)
 				default:
 					currentScope.Err(errors.New("not supported relation"))
 				}
@@ -185,6 +187,133 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 			}
 		} else {
 			scope.SetColumn(field, result)
+		}
+	}
+}
+
+func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interface{}) {
+	relation := field.Relationship
+
+	joinTableHandler := relation.JoinTableHandler
+	destType := field.StructField.Struct.Type.Elem()
+	var isPtr bool
+	if destType.Kind() == reflect.Ptr {
+		isPtr = true
+		destType = destType.Elem()
+	}
+
+	var destKeys []string
+	var sourceKeys []string
+	var linkHash = make(map[string][]string)
+
+	for _, key := range joinTableHandler.DestinationForeignKeys() {
+		destKeys = append(destKeys, key.DBName)
+	}
+
+	for _, key := range joinTableHandler.SourceForeignKeys() {
+		sourceKeys = append(sourceKeys, key.DBName)
+	}
+
+	results := reflect.New(field.Struct.Type).Elem()
+
+	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName())
+	preloadJoinDB := joinTableHandler.PreloadWithJoin(joinTableHandler, db, scope.Value)
+	if len(conditions) > 0 {
+		preloadJoinDB = preloadJoinDB.Where(conditions[0], conditions[1:]...)
+	}
+	rows, err := preloadJoinDB.Rows()
+
+	if scope.Err(err) != nil {
+		return
+	}
+	defer rows.Close()
+
+	columns, _ := rows.Columns()
+	for rows.Next() {
+		elem := reflect.New(destType).Elem()
+		var values = make([]interface{}, len(columns))
+
+		fields := scope.New(elem.Addr().Interface()).Fields()
+
+		for index, column := range columns {
+			if field, ok := fields[column]; ok {
+				if field.Field.Kind() == reflect.Ptr {
+					values[index] = field.Field.Addr().Interface()
+				} else {
+					values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
+				}
+			} else {
+				var i interface{}
+				values[index] = &i
+			}
+		}
+
+		scope.Err(rows.Scan(values...))
+
+		var destKey []interface{}
+		var sourceKey []interface{}
+
+		for index, column := range columns {
+			value := values[index]
+			if field, ok := fields[column]; ok {
+				if field.Field.Kind() == reflect.Ptr {
+					field.Field.Set(reflect.ValueOf(value).Elem())
+				} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
+					field.Field.Set(v)
+				}
+			} else if strInSlice(column, destKeys) {
+				destKey = append(destKey, *(value.(*interface{})))
+			} else if strInSlice(column, sourceKeys) {
+				sourceKey = append(sourceKey, *(value.(*interface{})))
+			}
+		}
+
+		if len(destKey) != 0 && len(sourceKey) != 0 {
+			linkHash[toString(sourceKey)] = append(linkHash[toString(sourceKey)], toString(destKey))
+		}
+
+		if isPtr {
+			results = reflect.Append(results, elem.Addr())
+		} else {
+			results = reflect.Append(results, elem)
+		}
+	}
+
+	if scope.IndirectValue().Kind() == reflect.Slice {
+		objects := scope.IndirectValue()
+		for j := 0; j < objects.Len(); j++ {
+			var checked []string
+
+			object := reflect.Indirect(objects.Index(j))
+			source := getRealValue(object, relation.AssociationForeignStructFieldNames)
+
+			for i := 0; i < results.Len(); i++ {
+				result := results.Index(i)
+				value := getRealValue(result, relation.ForeignStructFieldNames)
+
+				if strInSlice(toString(value), linkHash[toString(source)]) && !strInSlice(toString(value), checked) {
+					f := object.FieldByName(field.Name)
+					f.Set(reflect.Append(f, result))
+					checked = append(checked, toString(value))
+					continue
+				}
+			}
+		}
+	} else {
+		object := scope.IndirectValue()
+		var checked []string
+		source := getRealValue(object, relation.AssociationForeignStructFieldNames)
+
+		for i := 0; i < results.Len(); i++ {
+			result := results.Index(i)
+			value := getRealValue(result, relation.ForeignStructFieldNames)
+
+			if strInSlice(toString(value), linkHash[toString(source)]) && !strInSlice(toString(value), checked) {
+				f := object.FieldByName(field.Name)
+				f.Set(reflect.Append(f, result))
+				checked = append(checked, toString(value))
+				continue
+			}
 		}
 	}
 }
