@@ -213,7 +213,9 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			case func(s *Scope) error:
 				scope.Err(f(scope))
 			case func(s *DB) error:
-				scope.Err(f(scope.NewDB()))
+				newDB := scope.NewDB()
+				scope.Err(f(newDB))
+				scope.Err(newDB.Error)
 			default:
 				scope.Err(fmt.Errorf("unsupported function %v", name))
 			}
