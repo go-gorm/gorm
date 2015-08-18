@@ -459,5 +459,5 @@ func (scope *Scope) shouldSaveAssociations() bool {
 	if ok && !saveAssociations.(bool) {
 		return false
 	}
-	return true
+	return true && !scope.HasError()
 }
