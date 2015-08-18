@@ -518,10 +518,10 @@ func (s *DB) AddError(err error) error {
 				s.log(err)
 			}
 
-			if e, ok := err.(errorsInterface); ok {
-				err = Errors{errors: append(s.GetErrors(), e.GetErrors()...)}
-			} else {
-				err = Errors{errors: append(s.GetErrors(), err)}
+			errors := Errors{errors: s.GetErrors()}
+			errors.Add(err)
+			if len(errors.GetErrors()) > 1 {
+				err = errors
 			}
 		}
 

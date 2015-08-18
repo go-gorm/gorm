@@ -26,7 +26,18 @@ func (errs Errors) GetErrors() []error {
 }
 
 func (errs *Errors) Add(err error) {
-	errs.errors = append(errs.errors, err)
+	if errors, ok := err.(errorsInterface); ok {
+		for _, err := range errors.GetErrors() {
+			errs.Add(err)
+		}
+	} else {
+		for _, e := range errs.errors {
+			if err == e {
+				return
+			}
+		}
+		errs.errors = append(errs.errors, err)
+	}
 }
 
 func (errs Errors) Error() string {
