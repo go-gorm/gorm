@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"encoding/json"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -603,37 +604,44 @@ func TestNestedPreload9(t *testing.T) {
 	}
 }
 
-func TestManyToManyPreload(t *testing.T) {
+func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "" || dialect == "sqlite" {
+		return
+	}
+
 	type (
 		Level1 struct {
-			ID    uint `gorm:"primary_key;"`
-			Value string
+			ID           uint   `gorm:"primary_key;"`
+			LanguageCode string `gorm:"primary_key"`
+			Value        string
 		}
 		Level2 struct {
-			ID      uint `gorm:"primary_key;"`
-			Value   string
-			Level1s []Level1 `gorm:"many2many:levels;"`
+			ID           uint   `gorm:"primary_key;"`
+			LanguageCode string `gorm:"primary_key"`
+			Value        string
+			Level1s      []Level1 `gorm:"many2many:levels;"`
 		}
 	)
 
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
+	DB.Table("levels").DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
 		panic(err)
 	}
 
-	want := Level2{Value: "Bob", Level1s: []Level1{
-		{Value: "ru"},
-		{Value: "en"},
+	want := Level2{Value: "Bob", LanguageCode: "ru", Level1s: []Level1{
+		{Value: "ru", LanguageCode: "ru"},
+		{Value: "en", LanguageCode: "en"},
 	}}
 	if err := DB.Save(&want).Error; err != nil {
 		panic(err)
 	}
 
-	want2 := Level2{Value: "Tom", Level1s: []Level1{
-		{Value: "zh"},
-		{Value: "de"},
+	want2 := Level2{Value: "Tom", LanguageCode: "zh", Level1s: []Level1{
+		{Value: "zh", LanguageCode: "zh"},
+		{Value: "de", LanguageCode: "de"},
 	}}
 	if err := DB.Save(&want2).Error; err != nil {
 		panic(err)
@@ -698,6 +706,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
+	DB.Table("levels").DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
 		panic(err)

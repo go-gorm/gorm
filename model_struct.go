@@ -66,7 +66,6 @@ type Relationship struct {
 	PolymorphicType                    string
 	PolymorphicDBName                  string
 	ForeignFieldNames                  []string
-	ForeignStructFieldNames            []string
 	ForeignDBNames                     []string
 	AssociationForeignFieldNames       []string
 	AssociationForeignStructFieldNames []string
@@ -226,7 +225,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								for _, foreignKey := range foreignKeys {
 									if field, ok := scope.FieldByName(foreignKey); ok {
 										relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, field.DBName)
-										relationship.ForeignStructFieldNames = append(relationship.ForeignFieldNames, field.Name)
 										joinTableDBName := ToDBName(scopeType.Name()) + "_" + field.DBName
 										relationship.ForeignDBNames = append(relationship.ForeignDBNames, joinTableDBName)
 									}

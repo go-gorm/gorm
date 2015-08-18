@@ -267,11 +267,18 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 		}
 	}
 
+	var associationForeignStructFieldNames []string
+	for _, dbName := range relation.AssociationForeignFieldNames {
+		if field, ok := scope.FieldByName(dbName); ok {
+			associationForeignStructFieldNames = append(associationForeignStructFieldNames, field.Name)
+		}
+	}
+
 	if scope.IndirectValue().Kind() == reflect.Slice {
 		objects := scope.IndirectValue()
 		for j := 0; j < objects.Len(); j++ {
 			object := reflect.Indirect(objects.Index(j))
-			source := getRealValue(object, relation.AssociationForeignStructFieldNames)
+			source := getRealValue(object, associationForeignStructFieldNames)
 			field := object.FieldByName(field.Name)
 			for _, link := range linkHash[toString(source)] {
 				field.Set(reflect.Append(field, link))
@@ -279,7 +286,7 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 		}
 	} else {
 		object := scope.IndirectValue()
-		source := getRealValue(object, relation.AssociationForeignStructFieldNames)
+		source := getRealValue(object, associationForeignStructFieldNames)
 		field := object.FieldByName(field.Name)
 		for _, link := range linkHash[toString(source)] {
 			field.Set(reflect.Append(field, link))

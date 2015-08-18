@@ -142,17 +142,25 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTable, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
+		var foreignDBNames []string
+		var foreignFieldNames []string
+
 		for _, foreignKey := range s.Source.ForeignKeys {
-			condString := fmt.Sprintf("%v.%v in (?)", quotedTable, scope.Quote(foreignKey.DBName))
-
-			keys := scope.getColumnAsArray([]string{scope.Fields()[foreignKey.AssociationDBName].Name})
-			values = append(values, toQueryValues(keys))
-
-			queryConditions = append(queryConditions, condString)
+			foreignDBNames = append(foreignDBNames, foreignKey.DBName)
+			foreignFieldNames = append(foreignFieldNames, scope.Fields()[foreignKey.AssociationDBName].Name)
 		}
 
+		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames)
+
+		condString := fmt.Sprintf("%v in (%v)", toQueryCondition(scope, foreignDBNames), toQueryMarks(foreignFieldValues))
+
+		keys := scope.getColumnAsArray(foreignFieldNames)
+		values = append(values, toQueryValues(keys))
+
+		queryConditions = append(queryConditions, condString)
+
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
-			Where(strings.Join(queryConditions, " AND "), values...)
+			Where(condString, toQueryValues(foreignFieldValues)...)
 	} else {
 		db.Error = errors.New("wrong source type for join table handler")
 		return db
