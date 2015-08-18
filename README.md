@@ -30,6 +30,14 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 go get -u github.com/jinzhu/gorm
 ```
 
+## Documentation 
+
+[![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.svg)](https://godoc.org/github.com/jinzhu/gorm)
+
+`go doc` format documentation for this project can be viewed online without
+installing the package by using the GoDoc page at:
+http://godoc.org/github.com/jinzhu/gorm
+
 ## Define Models (Structs)
 
 ```go
