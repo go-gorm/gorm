@@ -210,7 +210,7 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 	}
 
 	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName())
-	preloadJoinDB := joinTableHandler.PreloadWithJoin(joinTableHandler, db, scope.Value)
+	preloadJoinDB := joinTableHandler.JoinWith(joinTableHandler, db, scope.Value)
 	if len(conditions) > 0 {
 		preloadJoinDB = preloadJoinDB.Where(conditions[0], conditions[1:]...)
 	}
