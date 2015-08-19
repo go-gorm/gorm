@@ -54,7 +54,25 @@ func (field *Field) Set(value interface{}) error {
 
 // Fields get value's fields
 func (scope *Scope) Fields() map[string]*Field {
-	if scope.fields == nil {
+	// Recalculate if fields is empty (nil) or number of fields is LTE 1.
+	//
+	// Protect the `.fields' variable state from partial-initialization timing
+	// issues.
+	//
+	// As gorm warms state and makes `.GetStructFields' calls, they lead to a long
+	// deferred function in model_struct.go.  Then the deferred function calls
+	// `Scope.Fields', leading to another `.GetStructFields' call.. cyclically.
+	// Once information is cached the cycling ends.
+	//
+	// This extra rule evicts incorrect/suspiciously short fields information.
+	//
+	// Symptom of incorrect internal state ocurring can manifest as invalid
+	// insert SQL statement errors generated during `DB.Save', e.g.:
+	//
+	//     INSERT INTO "your_table" DEFAULT VALUES RETURNING "your_table"."id"
+	//
+	// This is why we refresh if nil or only a single field (usually is the ID field).
+	if scope.fields == nil || len(scope.fields) <= 1 {
 		fields := map[string]*Field{}
 		structFields := scope.GetStructFields()
 
