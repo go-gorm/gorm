@@ -1212,12 +1212,8 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ```
 
 ## TODO
-* db.Select("Languages", "Name").Update(&user)
-  db.Omit("Languages").Update(&user)
-* Auto migrate indexes
 * Github Pages
 * AlertColumn, DropColumn
-* R/W Splitting, Validation
 
 # Author
 
