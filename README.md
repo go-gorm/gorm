@@ -151,6 +151,12 @@ db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 // Drop table
 db.DropTable(&User{})
 
+// ModifyColumn
+db.Model(&User{}).ModifyColumn("description", "text")
+
+// DropColumn
+db.Model(&User{}).DropColumn("description")
+
 // Automating Migration
 db.AutoMigrate(&User{})
 db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
@@ -1213,7 +1219,6 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 
 ## TODO
 * Github Pages
-* AlertColumn, DropColumn
 
 # Author
 
