@@ -373,16 +373,28 @@ func (s *DB) RecordNotFound() bool {
 }
 
 // Migrations
-func (s *DB) CreateTable(value interface{}) *DB {
-	return s.clone().NewScope(value).createTable().db
+func (s *DB) CreateTable(values ...interface{}) *DB {
+	db := s.clone()
+	for _, value := range values {
+		db = db.NewScope(value).createTable().db
+	}
+	return db
 }
 
-func (s *DB) DropTable(value interface{}) *DB {
-	return s.clone().NewScope(value).dropTable().db
+func (s *DB) DropTable(values ...interface{}) *DB {
+	db := s.clone()
+	for _, value := range values {
+		db = db.NewScope(value).dropTable().db
+	}
+	return db
 }
 
-func (s *DB) DropTableIfExists(value interface{}) *DB {
-	return s.clone().NewScope(value).dropTableIfExists().db
+func (s *DB) DropTableIfExists(values ...interface{}) *DB {
+	db := s.clone()
+	for _, value := range values {
+		db = db.NewScope(value).dropTableIfExists().db
+	}
+	return db
 }
 
 func (s *DB) HasTable(value interface{}) bool {

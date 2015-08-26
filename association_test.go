@@ -6,13 +6,8 @@ import (
 )
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
-	DB.DropTable(Category{})
-	DB.DropTable(Post{})
-	DB.DropTable(Comment{})
-
-	DB.CreateTable(Category{})
-	DB.CreateTable(Post{})
-	DB.CreateTable(Comment{})
+	DB.DropTable(Category{}, Post{}, Comment{})
+	DB.CreateTable(Category{}, Post{}, Comment{})
 
 	post := Post{
 		Title:        "post 1",
