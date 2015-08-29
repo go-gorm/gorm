@@ -45,22 +45,22 @@ http://godoc.org/github.com/jinzhu/gorm
 - [Initialize Database](#initialize-database)
 - [Migration](#migration)
 - [Basic CRUD](#basic-crud)
-	- [Create Record](#create-record)
-	- [Query](#query)
-	- [Query With Where (Plain SQL)](#query-with-where-plain-sql)
-	- [Query With Where (Struct & Map)](#query-with-where-struct--map)
-	- [Query With Not](#query-with-not)
-	- [Query With Inline Condition](#query-with-inline-condition)
-	- [Query With Or](#query-with-or)
-	- [Query Chains](#query-chains)
-	- [Preloading (Eager loading)](#preloading-eager-loading)
-- [Update](#update)
-    - [Update Without Callbacks](#update-without-callbacks)
-    - [Batch Updates](#batch-updates)
-    - [Update with SQL Expression](#update-with-sql-expression)
-- [Delete](#delete)
-    - [Batch Delete](#batch-delete)
-    - [Soft Delete](#soft-delete)
+  - [Create](#create-record)
+  - [Query](#query)
+      - [Query With Where (Plain SQL)](#query-with-where-plain-sql)
+      - [Query With Where (Struct & Map)](#query-with-where-struct--map)
+      - [Query With Not](#query-with-not)
+      - [Query With Inline Condition](#query-with-inline-condition)
+      - [Query With Or](#query-with-or)
+      - [Query Chains](#query-chains)
+      - [Preloading (Eager loading)](#preloading-eager-loading)
+  - [Update](#update)
+      - [Update Without Callbacks](#update-without-callbacks)
+      - [Batch Updates](#batch-updates)
+      - [Update with SQL Expression](#update-with-sql-expression)
+  - [Delete](#delete)
+      - [Batch Delete](#batch-delete)
+      - [Soft Delete](#soft-delete)
 - [Associations](#associations)
     - [Has One](#has-one)
     - [Belongs To](#belongs-to)
@@ -1217,7 +1217,15 @@ db.Model(&User{}).RemoveIndex("idx_user_name")
 
 ## Default values
 
-If you have defined a default value in the `sql` tag (see the struct Animal above) the generated create/update SQl will ignore these fields if is set blank data.
+```go
+type Animal struct {
+	ID   int64
+	Name string `sql:"default:'galeone'"`
+	Age  int64
+}
+```
+
+If you have defined a default value in the `sql` tag, the generated create SQl will ignore these fields if it is blank.
 
 Eg.
 
@@ -1225,7 +1233,7 @@ Eg.
 db.Create(&Animal{Age: 99, Name: ""})
 ```
 
-The generated query will be:
+The generated SQL will be:
 
 ```sql
 INSERT INTO animals("age") values('99');
@@ -1286,5 +1294,3 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 ## License
 
 Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License).
-
-[![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.png)](http://godoc.org/github.com/jinzhu/gorm)
