@@ -3,6 +3,7 @@ package gorm
 import (
 	"bytes"
 	"strings"
+	"sync"
 )
 
 // Copied from golint
@@ -17,10 +18,31 @@ func init() {
 	commonInitialismsReplacer = strings.NewReplacer(commonInitialismsForReplacer...)
 }
 
-var smap = map[string]string{}
+type safeMap struct {
+	m map[string]string
+	l *sync.RWMutex
+}
+
+func (s *safeMap) Set(key string, value string) {
+	s.l.Lock()
+	defer s.l.Unlock()
+	s.m[key] = value
+}
+
+func (s *safeMap) Get(key string) string {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.m[key]
+}
+
+func newSafeMap() *safeMap {
+	return &safeMap{l: new(sync.RWMutex), m: make(map[string]string)}
+}
+
+var smap = newSafeMap()
 
 func ToDBName(name string) string {
-	if v, ok := smap[name]; ok {
+	if v := smap.Get(name); v != "" {
 		return v
 	}
 
@@ -34,7 +56,7 @@ func ToDBName(name string) string {
 	}
 
 	s := strings.ToLower(buf.String())
-	smap[name] = s
+	smap.Set(name, s)
 	return s
 }
 
