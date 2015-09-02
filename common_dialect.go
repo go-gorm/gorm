@@ -73,7 +73,7 @@ func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 		count        int
 		databaseName = c.CurrentDatabase(scope)
 	)
-	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_name = ? AND table_schema = ?", tableName, databaseName)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", databaseName, tableName)
 	return count > 0
 }
 
@@ -87,8 +87,11 @@ func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName stri
 }
 
 func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	var count int
-	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS where table_name = ? AND index_name = ?", tableName, indexName)
+	var (
+		count        int
+		databaseName = c.CurrentDatabase(scope)
+	)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", databaseName, tableName, indexName)
 	return count > 0
 }
 
