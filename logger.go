@@ -14,8 +14,12 @@ type logger interface {
 	Print(v ...interface{})
 }
 
+type LogWriter interface {
+	Println(v ...interface{})
+}
+
 type Logger struct {
-	*log.Logger
+	LogWriter
 }
 
 var defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
