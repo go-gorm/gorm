@@ -98,13 +98,15 @@ strong {
 }
 
 ul {
-  list-style: inside;
+  list-style-position: inside;
+  list-style: disc;
   padding-left: 25px;
 }
 
 ol {
-  list-style: decimal inside;
-  padding-left: 20px;
+  list-style-position: inside;
+  list-style: decimal;
+  padding-left: 25px;
 }
 
 blockquote {
