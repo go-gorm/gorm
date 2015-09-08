@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/gorm"
+	"github.com/biju-kalissery/gorm"
 )
 
 type Person struct {
@@ -15,6 +15,7 @@ type Person struct {
 }
 
 type PersonAddress struct {
+	Id        int
 	gorm.JoinTableHandler
 	PersonID  int
 	AddressID int
@@ -50,7 +51,10 @@ func TestJoinTable(t *testing.T) {
 	address1 := &Address{Address1: "address 1"}
 	address2 := &Address{Address1: "address 2"}
 	person := &Person{Name: "person", Addresses: []*Address{address1, address2}}
-	DB.Save(person)
+	res := DB.Save(person)
+	if res.Error != nil {
+		t.Errorf("Error while saving person object:%v", res.Error)
+	}
 
 	DB.Model(person).Association("Addresses").Delete(address1)
 
