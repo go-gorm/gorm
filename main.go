@@ -451,6 +451,7 @@ func (s *DB) CurrentDatabase() string {
 	return name
 }
 
+
 /*
 Add foreign key to the given scope
 
@@ -549,4 +550,8 @@ func (s *DB) GetErrors() (errors []error) {
 		return []error{s.Error}
 	}
 	return
+}
+
+func (s *DB) EnableIdentityInsert(db *DB, tableName  string) *DB {
+	return s.dialect.EnableIdentityInsert(db, tableName)
 }
