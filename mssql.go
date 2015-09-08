@@ -78,3 +78,8 @@ func (s mssql) CurrentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
 	return
 }
+
+func (s mssql) EnableIdentityInsert(db *DB, tableName  string) *DB {
+	idSql := "SET IDENTITY_INSERT " + tableName + " ON"
+	return db.Exec(idSql)
+}
