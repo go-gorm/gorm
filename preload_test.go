@@ -49,12 +49,23 @@ func checkUserHasPreloadData(user User, t *testing.T) {
 
 func TestPreload(t *testing.T) {
 	user1 := getPreloadUser("user1")
-	DB.Save(user1)
+	res1 := DB.Save(user1)
+	if res1.Error != nil {
+		t.Errorf("Error in save : %v", res1.Error)
+	}
 
 	preloadDB := DB.Where("role = ?", "Preload").Preload("BillingAddress").Preload("ShippingAddress").
 		Preload("CreditCard").Preload("Emails").Preload("Company")
+	if preloadDB.Error != nil {
+		t.Errorf("Error in preload : %v", preloadDB.Error)
+	}
+	
 	var user User
-	preloadDB.Find(&user)
+	res := preloadDB.Find(&user)
+	if res.Error != nil {
+		t.Errorf("Error in preload : %v", res.Error)
+	}
+	
 	checkUserHasPreloadData(user, t)
 
 	user2 := getPreloadUser("user2")
@@ -628,7 +639,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	DB.Table("levels").DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in AutoMigrate:%v", err)
 	}
 
 	want := Level2{Value: "Bob", LanguageCode: "ru", Level1s: []Level1{
@@ -636,7 +647,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "en", LanguageCode: "en"},
 	}}
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Save:%v", err)
 	}
 
 	want2 := Level2{Value: "Tom", LanguageCode: "zh", Level1s: []Level1{
@@ -644,12 +655,12 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "de", LanguageCode: "de"},
 	}}
 	if err := DB.Save(&want2).Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Save want2:%v", err)
 	}
 
 	var got Level2
 	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Preload:%v", err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -658,7 +669,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got2 Level2
 	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Preload Level1s:%v", err)
 	}
 
 	if !reflect.DeepEqual(got2, want2) {
@@ -667,7 +678,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got3 []Level2
 	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Preload got3 :%v",err)
 	}
 
 	if !reflect.DeepEqual(got3, []Level2{got, got2}) {
@@ -676,7 +687,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got4 []Level2
 	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Fatalf("Error in Preload got4:%v",err)
 	}
 
 	var ruLevel1 Level1
