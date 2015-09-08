@@ -115,3 +115,8 @@ func (commonDialect) CurrentDatabase(scope *Scope) (name string) {
 	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
 	return
 }
+
+func (commonDialect) EnableIdentityInsert(db *DB, tableName string) *DB {
+	return db
+}
+
