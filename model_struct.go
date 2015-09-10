@@ -153,7 +153,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	defer func() {
+	var finished = make(chan bool)
+	go func(finished chan bool) {
 		for _, field := range fields {
 			if !field.IsIgnored {
 				fieldStruct := field.Struct
@@ -365,9 +366,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
-	}()
+		finished <- true
+	}(finished)
 
 	modelStructs[scopeType] = &modelStruct
+
+	<-finished
 
 	return &modelStruct
 }
