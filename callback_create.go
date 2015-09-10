@@ -54,7 +54,7 @@ func Create(scope *Scope) {
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v",
 				scope.QuotedTableName(),
-				scope.Dialect().ReturningStr(scope.TableName(), returningKey),
+				scope.Dialect().ReturningStr(scope.QuotedTableName(), returningKey),
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
@@ -62,7 +62,7 @@ func Create(scope *Scope) {
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
 				strings.Join(sqls, ","),
-				scope.Dialect().ReturningStr(scope.TableName(), returningKey),
+				scope.Dialect().ReturningStr(scope.QuotedTableName(), returningKey),
 			))
 		}
 

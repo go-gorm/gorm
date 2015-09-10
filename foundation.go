@@ -52,7 +52,7 @@ func (foundation) SqlTag(value reflect.Value, size int, autoIncrease bool) strin
 }
 
 func (s foundation) ReturningStr(tableName, key string) string {
-	return fmt.Sprintf("RETURNING %v.%v", s.Quote(tableName), key)
+	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 
 func (s foundation) HasTable(scope *Scope, tableName string) bool {

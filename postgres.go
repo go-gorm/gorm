@@ -60,7 +60,7 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 }
 
 func (s postgres) ReturningStr(tableName, key string) string {
-	return fmt.Sprintf("RETURNING %v.%v", s.Quote(tableName), key)
+	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 
 func (s postgres) HasTable(scope *Scope, tableName string) bool {
