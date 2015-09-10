@@ -278,6 +278,11 @@ db.Find(&users)
 // Get record with primary key
 db.First(&user, 10)
 //// SELECT * FROM users WHERE id = 10;
+
+// Get record with primary key by struct
+user.Id = 10
+db.First(&user)
+//// SELECT * FROM users WHERE id = 10;
 ```
 
 ### Query With Where (Plain SQL)
