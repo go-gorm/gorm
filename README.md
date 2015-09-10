@@ -1180,6 +1180,16 @@ type Animal struct {
 }
 ```
 
+Associations on non-standard column names must be defined using `foreignkey` on the associated field:
+
+```go
+	AnimalId    int64     `gorm:"column:beast_id;primary_key"`
+	Birthday    time.Time `gorm:"column:day_of_the_beast"`
+	Age         int64     `gorm:"column:age_of_the_beast"`
+	OwnerID     int64     `gorm:"column:owner"`
+	Owner       Owner     `gorm:"foreignkey:OwnerID"`
+```
+
 ## Composite Primary Key
 
 ```go
