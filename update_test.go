@@ -113,6 +113,14 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	if animal.Name != "amazing horse" {
 		t.Errorf("Update a filed with a default value should occur. But got %v\n", animal.Name)
 	}
+
+	// When changing a field with a default value with blank value
+	animal.Name = ""
+	DB.Save(&animal)
+	DB.First(&animal, animal.Counter)
+	if animal.Name != "" {
+		t.Errorf("Update a filed to blank with a default value should occur. But got %v\n", animal.Name)
+	}
 }
 
 func TestUpdates(t *testing.T) {

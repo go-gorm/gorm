@@ -51,9 +51,7 @@ func Update(scope *Scope) {
 			fields := scope.Fields()
 			for _, field := range fields {
 				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
-					if !field.IsBlank || !field.HasDefaultValue {
-						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
-					}
+					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 					for _, dbName := range relationship.ForeignDBNames {
 						if relationField := fields[dbName]; !scope.changeableField(relationField) && !relationField.IsBlank {

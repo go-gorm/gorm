@@ -32,6 +32,8 @@ func Create(scope *Scope) {
 						if !field.IsBlank || !field.HasDefaultValue {
 							columns = append(columns, scope.Quote(field.DBName))
 							sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
+						} else if field.HasDefaultValue {
+							scope.InstanceSet("gorm:force_reload_after_create", true)
 						}
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
@@ -95,6 +97,12 @@ func Create(scope *Scope) {
 	}
 }
 
+func ForceReloadAfterCreate(scope *Scope) {
+	if _, ok := scope.InstanceGet("gorm:force_reload_after_create"); ok {
+		scope.DB().New().First(scope.Value)
+	}
+}
+
 func AfterCreate(scope *Scope) {
 	scope.CallMethodWithErrorCheck("AfterCreate")
 	scope.CallMethodWithErrorCheck("AfterSave")
@@ -106,6 +114,7 @@ func init() {
 	DefaultCallback.Create().Register("gorm:save_before_associations", SaveBeforeAssociations)
 	DefaultCallback.Create().Register("gorm:update_time_stamp_when_create", UpdateTimeStampWhenCreate)
 	DefaultCallback.Create().Register("gorm:create", Create)
+	DefaultCallback.Create().Register("gorm:force_reload_after_create", ForceReloadAfterCreate)
 	DefaultCallback.Create().Register("gorm:save_after_associations", SaveAfterAssociations)
 	DefaultCallback.Create().Register("gorm:after_create", AfterCreate)
 	DefaultCallback.Create().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
