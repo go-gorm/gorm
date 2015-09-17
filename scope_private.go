@@ -213,7 +213,7 @@ func (scope *Scope) selectSql() string {
 		return "*"
 	}
 	sql := scope.buildSelectQuery(scope.Search.selects)
-	scope.Search.countingQuery = hasCountRegexp.MatchString(sql)
+	scope.Search.countingQuery = (len(scope.Search.group) == 0) && hasCountRegexp.MatchString(sql)
 	return scope.buildSelectQuery(scope.Search.selects)
 }
 
