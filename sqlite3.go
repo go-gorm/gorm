@@ -15,10 +15,13 @@ func (sqlite3) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	case reflect.Bool:
 		return "bool"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+		if autoIncrease {
+			return "integer primary key autoincrement"
+		}
 		return "integer"
 	case reflect.Int64, reflect.Uint64:
 		if autoIncrease {
-			return "integer"
+			return "integer primary key autoincrement"
 		}
 		return "bigint"
 	case reflect.Float32, reflect.Float64:

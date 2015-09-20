@@ -512,9 +512,18 @@ func (scope *Scope) createJoinTable(field *StructField) {
 func (scope *Scope) createTable() *Scope {
 	var tags []string
 	var primaryKeys []string
+	var primaryKeyInColumnType bool = false
 	for _, field := range scope.GetStructFields() {
 		if field.IsNormal {
 			sqlTag := scope.generateSqlTag(field)
+
+			// Check if the primary key constraint was specified as
+			// part of the column type. If so, we can only support
+			// one column as the primary key.
+			if strings.Contains(strings.ToLower(sqlTag), "primary key") {
+				primaryKeyInColumnType = true
+			}
+
 			tags = append(tags, scope.Quote(field.DBName)+" "+sqlTag)
 		}
 
@@ -525,7 +534,7 @@ func (scope *Scope) createTable() *Scope {
 	}
 
 	var primaryKeyStr string
-	if len(primaryKeys) > 0 {
+	if len(primaryKeys) > 0 && !primaryKeyInColumnType {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
 	}
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
