@@ -164,7 +164,10 @@ func (scope *Scope) whereSql() (sql string) {
 	}
 
 	if !scope.PrimaryKeyZero() {
-		primaryConditions = append(primaryConditions, scope.primaryCondition(scope.AddToVars(scope.PrimaryKeyValue())))
+		for _, field := range scope.PrimaryFields() {
+			sql := fmt.Sprintf("(%v = %v)", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface()))
+			primaryConditions = append(primaryConditions, sql)
+		}
 	}
 
 	for _, clause := range scope.Search.whereConditions {
