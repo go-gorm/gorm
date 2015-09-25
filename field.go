@@ -56,11 +56,11 @@ func (field *Field) Set(value interface{}) error {
 func (scope *Scope) Fields() map[string]*Field {
 	if scope.fields == nil {
 		fields := map[string]*Field{}
-		structFields := scope.GetStructFields()
+		modelStruct := scope.GetModelStruct()
 
 		indirectValue := scope.IndirectValue()
 		isStruct := indirectValue.Kind() == reflect.Struct
-		for _, structField := range structFields {
+		for _, structField := range modelStruct.StructFields {
 			if isStruct {
 				fields[structField.DBName] = getField(indirectValue, structField)
 			} else {
@@ -68,7 +68,10 @@ func (scope *Scope) Fields() map[string]*Field {
 			}
 		}
 
-		scope.fields = fields
+		if modelStruct.cached {
+			scope.fields = fields
+		}
+		return fields
 	}
 	return scope.fields
 }

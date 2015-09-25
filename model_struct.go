@@ -23,6 +23,7 @@ type ModelStruct struct {
 	StructFields     []*StructField
 	ModelType        reflect.Type
 	defaultTableName string
+	cached           bool
 }
 
 func (s ModelStruct) TableName(db *DB) string {
@@ -372,6 +373,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	modelStructs[scopeType] = &modelStruct
 
 	<-finished
+	modelStruct.cached = true
 
 	return &modelStruct
 }
