@@ -217,7 +217,7 @@ func (scope *Scope) selectSql() string {
 	}
 	sql := scope.buildSelectQuery(scope.Search.selects)
 	scope.Search.countingQuery = (len(scope.Search.group) == 0) && hasCountRegexp.MatchString(sql)
-	return scope.buildSelectQuery(scope.Search.selects)
+	return sql
 }
 
 func (scope *Scope) orderSql() string {
