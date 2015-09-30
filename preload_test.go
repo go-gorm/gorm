@@ -816,7 +816,7 @@ func TestNilPointerSlice(t *testing.T) {
 	}
 
 	var got []Level1
-	if err := DB.Debug().Preload("Level2").Preload("Level2.Level3").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level3").Find(&got).Error; err != nil {
 		panic(err)
 	}
 

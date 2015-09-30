@@ -579,7 +579,9 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 		sqlCreate = "CREATE UNIQUE INDEX"
 	}
 
-	scope.Raw(fmt.Sprintf("%s %v ON %v(%v);", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "))).Exec()
+	scope.Search.Unscoped = true
+	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSql())).Exec()
+	scope.Search.Unscoped = false
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
