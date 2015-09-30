@@ -139,18 +139,18 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			addedPrimaryKeys = append(addedPrimaryKeys, primaryKey)
 		}
 
-		if len(addedPrimaryKeys) > 0 {
-			query := scope.NewDB()
-			for idx, foreignKey := range relationship.ForeignDBNames {
-				if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
-					query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
-				}
+		query := scope.NewDB()
+		for idx, foreignKey := range relationship.ForeignDBNames {
+			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
+				query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 			}
+		}
 
+		if len(addedPrimaryKeys) > 0 {
 			sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(addedPrimaryKeys))
 			query = query.Where(sql, toQueryValues(addedPrimaryKeys)...)
-			association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
 		}
+		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
 	} else {
 		association.setErr(errors.New("replace only support many to many"))
 	}

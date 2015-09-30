@@ -211,6 +211,11 @@ func TestManyToMany(t *testing.T) {
 		t.Errorf("Relations should be replaced")
 	}
 
+	DB.Model(&user).Association("Languages").Replace()
+	if len(user.Languages) != 0 || DB.Model(&user).Association("Languages").Count() != 0 {
+		t.Errorf("Relations should be replaced with empty")
+	}
+
 	DB.Model(&user).Association("Languages").Replace(&[]Language{{Name: "FF"}, {Name: "JJ"}})
 	if len(user.Languages) != 2 || DB.Model(&user).Association("Languages").Count() != len([]string{"FF", "JJ"}) {
 		t.Errorf("Relations should be replaced")
