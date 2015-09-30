@@ -7,16 +7,38 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/qor/inflection"
 )
 
-var modelStructs = map[reflect.Type]*ModelStruct{}
-
 var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
+
+type safeModelStructsMap struct {
+	m map[reflect.Type]*ModelStruct
+	l *sync.RWMutex
+}
+
+func (s *safeModelStructsMap) Set(key reflect.Type, value *ModelStruct) {
+	s.l.Lock()
+	defer s.l.Unlock()
+	s.m[key] = value
+}
+
+func (s *safeModelStructsMap) Get(key reflect.Type) *ModelStruct {
+	s.l.RLock()
+	defer s.l.RUnlock()
+	return s.m[key]
+}
+
+func newModelStructsMap() *safeModelStructsMap {
+	return &safeModelStructsMap{l: new(sync.RWMutex), m: make(map[reflect.Type]*ModelStruct)}
+}
+
+var modelStructsMap = newModelStructsMap()
 
 type ModelStruct struct {
 	PrimaryFields    []*StructField
@@ -92,7 +114,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		scopeType = scopeType.Elem()
 	}
 
-	if value, ok := modelStructs[scopeType]; ok {
+	if value := modelStructsMap.Get(scopeType); value != nil {
 		return value
 	}
 
@@ -370,7 +392,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		finished <- true
 	}(finished)
 
-	modelStructs[scopeType] = &modelStruct
+	modelStructsMap.Set(scopeType, &modelStruct)
 
 	<-finished
 	modelStruct.cached = true

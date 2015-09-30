@@ -130,7 +130,7 @@ func (s *DB) LogMode(enable bool) *DB {
 }
 
 func (s *DB) SingularTable(enable bool) {
-	modelStructs = map[reflect.Type]*ModelStruct{}
+	modelStructsMap = newModelStructsMap()
 	s.parent.singularTable = enable
 }
 
