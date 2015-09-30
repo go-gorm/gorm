@@ -425,21 +425,35 @@ func TestGroup(t *testing.T) {
 }
 
 func TestJoins(t *testing.T) {
+	var user = User{
+		Name:   "joins",
+		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+	}
+	DB.Save(&user)
+
+	var result User
+	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").First(&result)
+	if result.Name != "joins" || result.Id != user.Id {
+		t.Errorf("Should find all two emails with Join")
+	}
+}
+
+func TestJoinsWithSelect(t *testing.T) {
 	type result struct {
 		Name  string
 		Email string
 	}
 
 	user := User{
-		Name:   "joins",
+		Name:   "joins_with_select",
 		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
 	}
 	DB.Save(&user)
 
 	var results []result
-	DB.Table("users").Select("name, email").Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").Scan(&results)
+	DB.Table("users").Select("name, email").Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins_with_select").Scan(&results)
 	if len(results) != 2 || results[0].Email != "join1@example.com" || results[1].Email != "join2@example.com" {
-		t.Errorf("Should find all two emails with Join")
+		t.Errorf("Should find all two emails with Join select")
 	}
 }
 

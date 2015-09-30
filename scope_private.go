@@ -213,6 +213,9 @@ var hasCountRegexp = regexp.MustCompile(`(?i)count(.+)`)
 
 func (scope *Scope) selectSql() string {
 	if len(scope.Search.selects) == 0 {
+		if scope.Search.joins != "" {
+			return fmt.Sprintf("%v.*", scope.QuotedTableName())
+		}
 		return "*"
 	}
 	sql := scope.buildSelectQuery(scope.Search.selects)
