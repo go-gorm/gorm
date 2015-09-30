@@ -160,7 +160,7 @@ func TestManyToMany(t *testing.T) {
 
 	languageA := Language{Name: "AA"}
 	DB.Save(&languageA)
-	DB.Model(&User{Id: user.Id}).Association("Languages").Append(languageA)
+	DB.Model(&User{Id: user.Id}).Association("Languages").Append(&languageA)
 
 	languageC := Language{Name: "CC"}
 	DB.Save(&languageC)
