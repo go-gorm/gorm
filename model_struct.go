@@ -123,11 +123,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		return &modelStruct
 	}
 
-	// Set tablename
-	type tabler interface {
-		TableName() string
-	}
-
 	if tabler, ok := reflect.New(scopeType).Interface().(interface {
 		TableName() string
 	}); ok {
