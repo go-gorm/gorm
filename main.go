@@ -247,7 +247,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(s.search.assignAttrs), false)
+		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(c.search.assignAttrs), false)
 	}
 	return c
 }
@@ -258,9 +258,9 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(s.parent.callback.creates).db.Error)
+		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callback.creates).db.Error)
 	} else if len(c.search.assignAttrs) > 0 {
-		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", s.search.assignAttrs).callCallbacks(s.parent.callback.updates).db.Error)
+		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callback.updates).db.Error)
 	}
 	return c
 }
