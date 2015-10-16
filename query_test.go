@@ -64,6 +64,22 @@ func TestUIntPrimaryKey(t *testing.T) {
 	}
 }
 
+func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
+	type AddressByZipCode struct {
+		ZipCode   string `gorm:"primary_key"`
+		Address   string
+	}
+
+	DB.AutoMigrate(&AddressByZipCode{})
+	DB.Create(&AddressByZipCode{ZipCode: "00501", Address: "Holtsville"})
+
+	var address AddressByZipCode
+	DB.First(&address, "00501")
+	if address.ZipCode != "00501" {
+		t.Errorf("Fetch a record from with a string primary key for a numeric value starting with zero should work, but failed")
+	}
+}
+
 func TestFindAsSliceOfPointers(t *testing.T) {
 	DB.Save(&User{Name: "user"})
 
