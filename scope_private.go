@@ -19,8 +19,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	case string:
 		// if string is number
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
-			id, _ := strconv.Atoi(value)
-			return scope.primaryCondition(scope.AddToVars(id))
+			return scope.primaryCondition(scope.AddToVars(value))
 		} else if value != "" {
 			str = fmt.Sprintf("(%v)", value)
 		}
