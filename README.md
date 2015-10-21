@@ -1225,7 +1225,7 @@ type Animal struct {
 }
 ```
 
-If you have defined a default value in the `sql` tag, the generated create SQl will ignore these fields if it is blank.
+If you have defined a default value in the `sql` tag, the generated create SQL will ignore these fields if it is blank.
 
 Eg.
 
