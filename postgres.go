@@ -53,7 +53,7 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 			return "hstore"
 		}
 	default:
-		if isByteArray(value) {
+		if isByteArrayOrSlice(value) {
 			if isUUID(value) {
 				return "uuid"
 			}
@@ -65,8 +65,8 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 
 var byteType = reflect.TypeOf(uint8(0))
 
-func isByteArray(value reflect.Value) bool {
-	return value.Kind() == reflect.Array && value.Type().Elem() == byteType
+func isByteArrayOrSlice(value reflect.Value) bool {
+	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == byteType
 }
 
 func isUUID(value reflect.Value) bool {
