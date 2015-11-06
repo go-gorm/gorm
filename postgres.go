@@ -54,10 +54,9 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 		}
 	default:
 		if isByteArrayOrSlice(value) {
-			if isUUID(value) {
-				return "uuid"
-			}
 			return "bytea"
+		} else if isUUID(value) {
+			return "uuid"
 		}
 	}
 	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", value.Type().Name(), value.Kind().String()))
