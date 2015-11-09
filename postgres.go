@@ -69,7 +69,7 @@ func isByteArrayOrSlice(value reflect.Value) bool {
 }
 
 func isUUID(value reflect.Value) bool {
-	if value.Type().Len() != 16 {
+	if value.Kind() != reflect.Array || value.Type().Len() != 16 {
 		return false
 	}
 	typename := value.Type().Name()
