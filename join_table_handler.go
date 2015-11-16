@@ -134,7 +134,6 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 	scope := db.NewScope(source)
 	modelType := scope.GetModelStruct().ModelType
 	var joinConditions []string
-	var queryConditions []string
 	var values []interface{}
 	if s.Source.ModelType == modelType {
 		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
@@ -152,12 +151,15 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 
 		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames)
 
-		condString := fmt.Sprintf("%v in (%v)", toQueryCondition(scope, foreignDBNames), toQueryMarks(foreignFieldValues))
+		var condString string
+		if len(foreignFieldValues) > 0 {
+			condString = fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, foreignDBNames), toQueryMarks(foreignFieldValues))
 
-		keys := scope.getColumnAsArray(foreignFieldNames)
-		values = append(values, toQueryValues(keys))
-
-		queryConditions = append(queryConditions, condString)
+			keys := scope.getColumnAsArray(foreignFieldNames)
+			values = append(values, toQueryValues(keys))
+		} else {
+			condString = fmt.Sprintf("1 <> 1")
+		}
 
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTable, strings.Join(joinConditions, " AND "))).
 			Where(condString, toQueryValues(foreignFieldValues)...)

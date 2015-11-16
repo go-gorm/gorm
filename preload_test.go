@@ -689,6 +689,10 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	if !reflect.DeepEqual(got4, []Level2{got, got2}) {
 		t.Errorf("got %s; want %s", toJSONString(got4), toJSONString([]Level2{got, got2}))
 	}
+
+	if err := DB.Preload("Level1s").Find(&got4, "value IN (?)", []string{"non-existing"}).Error; err != nil {
+		panic(err)
+	}
 }
 
 func TestManyToManyPreloadForPointer(t *testing.T) {

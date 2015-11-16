@@ -63,7 +63,7 @@ func Preload(scope *Scope) {
 				case "belongs_to":
 					currentScope.handleBelongsToPreload(field, conditions)
 				case "many_to_many":
-					currentScope.handleHasManyToManyPreload(field, conditions)
+					currentScope.handleManyToManyPreload(field, conditions)
 				default:
 					currentScope.Err(errors.New("not supported relation"))
 				}
@@ -191,9 +191,8 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	}
 }
 
-func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
 	relation := field.Relationship
-
 	joinTableHandler := relation.JoinTableHandler
 	destType := field.StructField.Struct.Type.Elem()
 	var isPtr bool
@@ -211,6 +210,7 @@ func (scope *Scope) handleHasManyToManyPreload(field *Field, conditions []interf
 
 	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName()).Select("*")
 	preloadJoinDB := joinTableHandler.JoinWith(joinTableHandler, db, scope.Value)
+
 	if len(conditions) > 0 {
 		preloadJoinDB = preloadJoinDB.Where(conditions[0], conditions[1:]...)
 	}
