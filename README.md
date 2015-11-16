@@ -1291,6 +1291,10 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 * <wosmvp@gmail.com>
 * <http://twitter.com/zhangjinzhu>
 
+# Contributors
+
+https://github.com/jinzhu/gorm/graphs/contributors
+
 ## License
 
 Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License).
