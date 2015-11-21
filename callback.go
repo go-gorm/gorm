@@ -197,4 +197,10 @@ func (c *callback) sort() {
 	c.rowQueries = sortProcessors(rowQueries)
 }
 
+func ForceReload(scope *Scope) {
+	if _, ok := scope.InstanceGet("gorm:force_reload"); ok {
+		scope.DB().New().First(scope.Value)
+	}
+}
+
 var DefaultCallback = &callback{processors: []*callbackProcessor{}}
