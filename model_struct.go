@@ -435,9 +435,12 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 			size, _ = strconv.Atoi(value)
 		}
 
-		_, autoIncrease := sqlSettings["AUTO_INCREMENT"]
+		v, autoIncrease := sqlSettings["AUTO_INCREMENT"]
 		if field.IsPrimaryKey {
 			autoIncrease = true
+		}
+		if v == "NO" {
+			autoIncrease = false
 		}
 
 		sqlType = scope.Dialect().SqlTag(reflectValue, size, autoIncrease)
