@@ -411,7 +411,7 @@ func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
 }
 
-func (scope *Scope) changeableDBColumn(column string) bool {
+func (scope *Scope) isChangeableDBColumn(column string) bool {
 	selectAttrs := scope.SelectAttrs()
 	omitAttrs := scope.OmitAttrs()
 
