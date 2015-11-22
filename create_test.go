@@ -51,7 +51,7 @@ func TestCreate(t *testing.T) {
 
 	DB.Model(user).Update("name", "create_user_new_name")
 	DB.First(&user, user.Id)
-	if user.CreatedAt != newUser.CreatedAt {
+	if user.CreatedAt.Format(time.RFC3339Nano) != newUser.CreatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("CreatedAt should not be changed after update")
 	}
 }
