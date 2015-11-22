@@ -101,7 +101,6 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 
 	animal = Animal{From: "somewhere"}              // No name fields, should be filled with the default value (galeone)
 	DB.Save(&animal).Update("From", "a nice place") // The name field shoul be untouched
-	DB.First(&animal, animal.Counter)
 	if animal.Name != "galeone" {
 		t.Errorf("Name fiels shouldn't be changed if untouched, but got %v", animal.Name)
 	}
@@ -109,17 +108,15 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	// When changing a field with a default value, the change must occur
 	animal.Name = "amazing horse"
 	DB.Save(&animal)
-	DB.First(&animal, animal.Counter)
 	if animal.Name != "amazing horse" {
 		t.Errorf("Update a filed with a default value should occur. But got %v\n", animal.Name)
 	}
 
-	// When changing a field with a default value with blank value
+	// When changing a field with a default value with blank value, the DBMS should insert the default value. Not the empty one.
 	animal.Name = ""
 	DB.Save(&animal)
-	DB.First(&animal, animal.Counter)
-	if animal.Name != "" {
-		t.Errorf("Update a filed to blank with a default value should occur. But got %v\n", animal.Name)
+	if animal.Name == "" {
+		t.Errorf("Update a filed with an associated default value should not occur when trying to insert an empty field. The default one should be inserted\n")
 	}
 }
 
