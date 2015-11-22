@@ -439,7 +439,7 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 		if field.IsPrimaryKey {
 			autoIncrease = true
 		}
-		if v == "NO" {
+		if v == "FALSE" {
 			autoIncrease = false
 		}
 
