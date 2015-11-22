@@ -51,10 +51,16 @@ func Update(scope *Scope) {
 			fields := scope.Fields()
 			for _, field := range fields {
 				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
-					if !field.HasDefaultValue || !field.IsBlank {
-						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
-					} else if field.HasDefaultValue {
+					if field.HasDefaultValue {
+						if field.IsBlank {
+							defaultValue := strings.Trim(parseTagSetting(field.Tag.Get("sql"))["DEFAULT"], "'")
+							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(defaultValue)))
+						} else {
+							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+						}
 						scope.InstanceSet("gorm:force_reload", true)
+					} else {
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 					for _, dbName := range relationship.ForeignDBNames {

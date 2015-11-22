@@ -87,10 +87,11 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	DB.Save(&animal)
 	updatedAt1 := animal.UpdatedAt
 
+	// Sleep for a second and than update a field
+	time.Sleep(1000 * time.Millisecond)
 	DB.Save(&animal).Update("name", "Francis")
-
 	if updatedAt1.Format(time.RFC3339Nano) == animal.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updatedAt should not be updated if nothing changed")
+		t.Errorf("updatedAt should be updated when changing a field")
 	}
 
 	var animals []Animal
@@ -117,6 +118,19 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	DB.Save(&animal)
 	if animal.Name == "" {
 		t.Errorf("Update a filed with an associated default value should not occur when trying to insert an empty field. The default one should be inserted\n")
+	}
+
+	// Animal.Cool has a default value thats equal to the Zero of its type. (false) I have to update this field to true and false without problems
+	animal.Cool = true
+	DB.Save(&animal)
+	if !animal.Cool {
+		t.Errorf("I should update a field with a default value to someother value")
+	}
+
+	animal.Cool = false
+	DB.Save(&animal)
+	if animal.Cool {
+		t.Errorf("I should update a field with an associated blank value to its blank value")
 	}
 }
 
