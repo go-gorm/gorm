@@ -37,14 +37,6 @@ func UpdateTimeStampWhenUpdate(scope *Scope) {
 	}
 }
 
-func escapeIfNeeded(scope *Scope, value string) string {
-	// default:'string value' OR  sql expression, like: default:"(now() at timezone 'utc')"
-	if (strings.HasPrefix(value, "'") && strings.HasSuffix(value, "'")) || (strings.HasPrefix(value, "(") && strings.HasSuffix(value, ")")) {
-		return value
-	}
-	return scope.AddToVars(value) // default:'something'  like:default:'false' should be between quotes (what AddToVars do)
-}
-
 func Update(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
@@ -60,12 +52,7 @@ func Update(scope *Scope) {
 			for _, field := range fields {
 				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
 					if field.HasDefaultValue {
-						if field.IsBlank {
-							defaultValue := parseTagSetting(field.Tag.Get("sql"))["DEFAULT"]
-							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), escapeIfNeeded(scope, defaultValue)))
-						} else {
-							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
-						}
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), handleDefaultValue(scope, field)))
 						scope.InstanceSet("gorm:force_reload", true)
 					} else {
 						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))

@@ -2,6 +2,9 @@ package gorm
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 type callback struct {
@@ -201,6 +204,56 @@ func ForceReload(scope *Scope) {
 	if _, ok := scope.InstanceGet("gorm:force_reload"); ok {
 		scope.DB().New().First(scope.Value)
 	}
+}
+
+func escapeIfNeeded(scope *Scope, value string) string {
+	trimmed := strings.TrimSpace(value)
+	// default:'string value' OR
+	if (strings.HasPrefix(trimmed, "'") && strings.HasSuffix(trimmed, "'")) ||
+		strings.HasSuffix(trimmed, ")") { //sql expression, like: default:"(now() at timezone 'utc') or now() or user_defined_function(parameters.. )
+		return trimmed
+	}
+
+	lowered := strings.ToLower(trimmed)
+	if lowered == "null" || strings.HasPrefix(lowered, "current_") { // null and other sql reserved keyworks (used a default values) can't be placed between apices
+		return lowered
+	}
+	return scope.AddToVars(trimmed) // default:'something'  like:default:'false' should be between quotes (what AddToVars do)
+}
+
+func handleDefaultValue(scope *Scope, field *Field) string {
+	if field.IsBlank {
+		defaultValue := strings.TrimSpace(parseTagSetting(field.Tag.Get("sql"))["DEFAULT"])
+		switch field.Field.Kind() {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			if numericValue, err := strconv.ParseInt(defaultValue, 10, 64); err == nil {
+				if numericValue != field.Field.Int() {
+					return escapeIfNeeded(scope, fmt.Sprintf("%d", field.Field.Int()))
+				} else {
+					return escapeIfNeeded(scope, defaultValue)
+				}
+			}
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			if numericValue, err := strconv.ParseUint(defaultValue, 10, 64); err == nil {
+				if numericValue != field.Field.Uint() {
+					return escapeIfNeeded(scope, escapeIfNeeded(scope, fmt.Sprintf("%d", field.Field.Int())))
+				} else {
+					return escapeIfNeeded(scope, defaultValue)
+				}
+			}
+		case reflect.Bool:
+			if boolValue, err := strconv.ParseBool(defaultValue); err == nil {
+				if boolValue != field.Field.Bool() {
+					return escapeIfNeeded(scope, fmt.Sprintf("%t", field.Field.Bool()))
+				} else {
+					return escapeIfNeeded(scope, defaultValue)
+				}
+			}
+		default:
+			return escapeIfNeeded(scope, defaultValue)
+		}
+	}
+	return scope.AddToVars(field.Field.Interface())
 }
 
 var DefaultCallback = &callback{processors: []*callbackProcessor{}}

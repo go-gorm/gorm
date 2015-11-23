@@ -29,12 +29,15 @@ func Create(scope *Scope) {
 			if scope.changeableField(field) {
 				if field.IsNormal {
 					if !field.IsPrimaryKey || (field.IsPrimaryKey && !field.IsBlank) {
-						if !field.IsBlank || !field.HasDefaultValue {
+						if !field.HasDefaultValue {
 							columns = append(columns, scope.Quote(field.DBName))
 							sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
-						} else if field.HasDefaultValue {
+						} else {
+							columns = append(columns, scope.Quote(field.DBName))
+							sqls = append(sqls, handleDefaultValue(scope, field))
 							scope.InstanceSet("gorm:force_reload", true)
 						}
+
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 					for _, dbName := range relationship.ForeignDBNames {
