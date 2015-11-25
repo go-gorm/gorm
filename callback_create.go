@@ -114,8 +114,8 @@ func init() {
 	DefaultCallback.Create().Register("gorm:save_before_associations", SaveBeforeAssociations)
 	DefaultCallback.Create().Register("gorm:update_time_stamp_when_create", UpdateTimeStampWhenCreate)
 	DefaultCallback.Create().Register("gorm:create", Create)
-	DefaultCallback.Create().Register("gorm:force_reload_after_create", ForceReloadAfterCreate)
 	DefaultCallback.Create().Register("gorm:save_after_associations", SaveAfterAssociations)
+	DefaultCallback.Create().Register("gorm:force_reload_after_create", ForceReloadAfterCreate)
 	DefaultCallback.Create().Register("gorm:after_create", AfterCreate)
 	DefaultCallback.Create().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }
