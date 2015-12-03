@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qor/inflection"
+	"github.com/jinzhu/inflection"
 )
 
 var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
