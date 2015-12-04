@@ -33,7 +33,12 @@ func Create(scope *Scope) {
 							columns = append(columns, scope.Quote(field.DBName))
 							sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
 						} else if field.HasDefaultValue {
-							scope.InstanceSet("gorm:force_reload_after_create", true)
+							var hasDefaultValueColumns []string
+							if oldHasDefaultValueColumns, ok := scope.InstanceGet("gorm:force_reload_after_create_attrs"); ok {
+								hasDefaultValueColumns = oldHasDefaultValueColumns.([]string)
+							}
+							hasDefaultValueColumns = append(hasDefaultValueColumns, field.DBName)
+							scope.InstanceSet("gorm:force_reload_after_create_attrs", hasDefaultValueColumns)
 						}
 					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
@@ -98,8 +103,8 @@ func Create(scope *Scope) {
 }
 
 func ForceReloadAfterCreate(scope *Scope) {
-	if _, ok := scope.InstanceGet("gorm:force_reload_after_create"); ok {
-		scope.DB().New().First(scope.Value)
+	if columns, ok := scope.InstanceGet("gorm:force_reload_after_create_attrs"); ok {
+		scope.DB().New().Select(columns.([]string)).First(scope.Value)
 	}
 }
 
