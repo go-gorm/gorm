@@ -209,6 +209,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	}
 
 	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName()).Select("*")
+
 	preloadJoinDB := joinTableHandler.JoinWith(joinTableHandler, db, scope.Value)
 
 	if len(conditions) > 0 {
@@ -228,13 +229,15 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 		fields := scope.New(elem.Addr().Interface()).Fields()
 
+		var foundFields = map[string]bool{}
 		for index, column := range columns {
-			if field, ok := fields[column]; ok {
+			if field, ok := fields[column]; ok && !foundFields[column] {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
 					values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
 				}
+				foundFields[column] = true
 			} else {
 				var i interface{}
 				values[index] = &i
@@ -245,14 +248,16 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 		var sourceKey []interface{}
 
+		var scannedFields = map[string]bool{}
 		for index, column := range columns {
 			value := values[index]
-			if field, ok := fields[column]; ok {
+			if field, ok := fields[column]; ok && !scannedFields[column] {
 				if field.Field.Kind() == reflect.Ptr {
 					field.Field.Set(reflect.ValueOf(value).Elem())
 				} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
 					field.Field.Set(v)
 				}
+				scannedFields[column] = true
 			} else if strInSlice(column, sourceKeys) {
 				sourceKey = append(sourceKey, *(value.(*interface{})))
 			}
