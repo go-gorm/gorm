@@ -71,7 +71,9 @@ func Query(scope *Scope) {
 					if field.Field.Kind() == reflect.Ptr {
 						values[index] = field.Field.Addr().Interface()
 					} else {
-						values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
+						reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
+						reflectValue.Elem().Set(field.Field.Addr())
+						values[index] = reflectValue.Interface()
 					}
 				} else {
 					var value interface{}

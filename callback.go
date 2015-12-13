@@ -249,6 +249,14 @@ func handleDefaultValue(scope *Scope, field *Field) string {
 					return escapeIfNeeded(scope, defaultValue)
 				}
 			}
+			/*
+				case reflect.String:
+					if defaultValue != field.Field.String() {
+						return escapeIfNeeded(scope, fmt.Sprintf("%s", field.Field.String()))
+					} else {
+						return escapeIfNeeded(scope, defaultValue)
+					}
+			*/
 		default:
 			return escapeIfNeeded(scope, defaultValue)
 		}

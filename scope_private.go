@@ -492,12 +492,13 @@ func (scope *Scope) createJoinTable(field *StructField) {
 		if !scope.Dialect().HasTable(scope, joinTable) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
-			var sqlTypes []string
+			var sqlTypes, primaryKeys []string
 			for idx, fieldName := range relationship.ForeignFieldNames {
 				if field, ok := scope.Fields()[fieldName]; ok {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+primaryKeySqlType)
+					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
 				}
 			}
 
@@ -506,9 +507,11 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+primaryKeySqlType)
+					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))
 				}
 			}
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), scope.getTableOptions())).Error)
+
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v)) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}

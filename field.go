@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -44,7 +45,7 @@ func (field *Field) Set(value interface{}) error {
 		if reflectValue.Type().ConvertibleTo(field.Field.Type()) {
 			field.Field.Set(reflectValue.Convert(field.Field.Type()))
 		} else {
-			return errors.New("could not convert argument")
+			return fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), field.Field.Type())
 		}
 	}
 
@@ -61,10 +62,12 @@ func (scope *Scope) Fields() map[string]*Field {
 		indirectValue := scope.IndirectValue()
 		isStruct := indirectValue.Kind() == reflect.Struct
 		for _, structField := range modelStruct.StructFields {
-			if isStruct {
-				fields[structField.DBName] = getField(indirectValue, structField)
-			} else {
-				fields[structField.DBName] = &Field{StructField: structField, IsBlank: true}
+			if field, ok := fields[structField.DBName]; !ok || field.IsIgnored {
+				if isStruct {
+					fields[structField.DBName] = getField(indirectValue, structField)
+				} else {
+					fields[structField.DBName] = &Field{StructField: structField, IsBlank: true}
+				}
 			}
 		}
 
