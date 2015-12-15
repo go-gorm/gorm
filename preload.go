@@ -10,8 +10,15 @@ import (
 
 func getRealValue(value reflect.Value, columns []string) (results []interface{}) {
 	for _, column := range columns {
-		if reflect.Indirect(value).FieldByName(column).IsValid() {
-			result := reflect.Indirect(value).FieldByName(column).Interface()
+		pointedValue := reflect.Indirect(value)
+		// If v is a nil pointer, Indirect returns a zero Value!
+		// Therefor we need to check for a zero value,
+		// as FieldByName could panic
+		if !pointedValue.IsValid() {
+			continue
+		}
+		if pointedValue.FieldByName(column).IsValid() {
+			result := pointedValue.FieldByName(column).Interface()
 			if r, ok := result.(driver.Valuer); ok {
 				result, _ = r.Value()
 			}
@@ -290,6 +297,12 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 			}
 		}
 	} else {
+		// If v is a nil pointer, Indirect returns a zero Value!
+		// Therefor we need to check for a zero value,
+		// as FieldByName could panic
+		if !scope.IndirectValue().IsValid() {
+			return
+		}
 		object := scope.IndirectValue()
 		source := getRealValue(object, associationForeignStructFieldNames)
 		field := object.FieldByName(field.Name)
