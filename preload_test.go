@@ -6,6 +6,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/jinzhu/gorm"
 )
 
 func getPreloadUser(name string) *User {
@@ -129,6 +131,10 @@ func TestNestedPreload1(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got, "name = ?", "not_found").Error; err != gorm.RecordNotFound {
+		panic(err)
 	}
 }
 
@@ -836,6 +842,10 @@ func TestNestedManyToManyPreload(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
+
+	if err := DB.Preload("Level2s.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
+		panic(err)
+	}
 }
 
 func TestNestedManyToManyPreload2(t *testing.T) {
@@ -888,6 +898,10 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+
+	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
+		panic(err)
 	}
 }
 
