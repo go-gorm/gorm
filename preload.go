@@ -295,11 +295,12 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 			}
 		}
 	} else {
-		object := scope.IndirectValue()
-		source := getRealValue(object, associationForeignStructFieldNames)
-		field := object.FieldByName(field.Name)
-		for _, link := range linkHash[toString(source)] {
-			field.Set(reflect.Append(field, link))
+		if object := scope.IndirectValue(); object.IsValid() {
+			source := getRealValue(object, associationForeignStructFieldNames)
+			field := object.FieldByName(field.Name)
+			for _, link := range linkHash[toString(source)] {
+				field.Set(reflect.Append(field, link))
+			}
 		}
 	}
 }
