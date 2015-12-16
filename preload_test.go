@@ -632,7 +632,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
-	DB.Table("levels").DropTableIfExists("levels")
+	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
 		panic(err)
@@ -717,7 +717,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
-	DB.Table("levels").DropTableIfExists("levels")
+	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
 		panic(err)
@@ -808,7 +808,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	DB.DropTableIfExists(&Level3{})
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
-	DB.Table("levels").DropTableIfExists("levels")
+	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
 		panic(err)
