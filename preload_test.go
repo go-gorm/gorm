@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -698,11 +699,11 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 func TestManyToManyPreloadForPointer(t *testing.T) {
 	type (
 		Level1 struct {
-			ID    uint `gorm:"primary_key;"`
+			ID    uint
 			Value string
 		}
 		Level2 struct {
-			ID      uint `gorm:"primary_key;"`
+			ID      uint
 			Value   string
 			Level1s []*Level1 `gorm:"many2many:levels;"`
 		}
@@ -776,20 +777,134 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 }
 
-func TestNilPointerSlice(t *testing.T) {
+func TestNestedManyToManyPreload(t *testing.T) {
 	type (
-		Level3 struct {
-			ID    uint `gorm:"primary_key;"`
+		Level1 struct {
+			ID    uint
 			Value string
 		}
 		Level2 struct {
-			ID       uint `gorm:"primary_key;"`
+			ID      uint
+			Value   string
+			Level1s []*Level1 `gorm:"many2many:level1_level2;"`
+		}
+		Level3 struct {
+			ID      uint
+			Value   string
+			Level2s []Level2 `gorm:"many2many:level2_level3;"`
+		}
+	)
+
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists("level1_level2")
+	DB.DropTableIfExists("level2_level3")
+
+	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		panic(err)
+	}
+
+	want := Level3{
+		Value: "Level3",
+		Level2s: []Level2{
+			{
+				Value: "Bob",
+				Level1s: []*Level1{
+					{Value: "ru"},
+					{Value: "en"},
+				},
+			}, {
+				Value: "Tom",
+				Level1s: []*Level1{
+					{Value: "zh"},
+					{Value: "de"},
+				},
+			},
+		},
+	}
+
+	if err := DB.Save(&want).Error; err != nil {
+		panic(err)
+	}
+
+	var got Level3
+	if err := DB.Preload("Level2s").Preload("Level2s.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
+		panic(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
+func TestNestedManyToManyPreload2(t *testing.T) {
+	type (
+		Level1 struct {
+			ID    uint
+			Value string
+		}
+		Level2 struct {
+			ID      uint
+			Value   string
+			Level1s []*Level1 `gorm:"many2many:level1_level2;"`
+		}
+		Level3 struct {
+			ID       uint
+			Value    string
+			Level2ID sql.NullInt64
+			Level2   *Level2
+		}
+	)
+
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists("level1_level2")
+
+	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		panic(err)
+	}
+
+	want := Level3{
+		Value: "Level3",
+		Level2: &Level2{
+			Value: "Bob",
+			Level1s: []*Level1{
+				{Value: "ru"},
+				{Value: "en"},
+			},
+		},
+	}
+
+	if err := DB.Save(&want).Error; err != nil {
+		panic(err)
+	}
+
+	var got Level3
+	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
+		panic(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
+func TestNilPointerSlice(t *testing.T) {
+	type (
+		Level3 struct {
+			ID    uint
+			Value string
+		}
+		Level2 struct {
+			ID       uint
 			Value    string
 			Level3ID uint
 			Level3   *Level3
 		}
 		Level1 struct {
-			ID       uint `gorm:"primary_key;"`
+			ID       uint
 			Value    string
 			Level2ID uint
 			Level2   *Level2
