@@ -1064,10 +1064,10 @@ func (u *User) AfterCreate() (err error) {
 }
 ```
 
-As you know, save/delete operations in gorm are running in a transaction,
-This is means if changes made in the transaction is not visiable unless it is commited,
-So if you want to use those changes in your callbacks, you need to run SQL in same transaction.
-Fortunately, gorm support pass transaction to callbacks as you needed, you could do it like this:
+Save/delete operations in gorm are running in a transaction.  
+Changes made in that transaction are not visible unless it is commited.
+So if you want to use those changes in your callbacks, you need to run your SQL in the same transaction.
+For this Gorm supports passing transactions to callbacks like this:
 
 ```go
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
