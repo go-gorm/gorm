@@ -48,7 +48,7 @@ type ModelStruct struct {
 	cached           bool
 }
 
-func (s ModelStruct) TableName(db *DB) string {
+func (s *ModelStruct) TableName(db *DB) string {
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
