@@ -10,9 +10,10 @@ func TestBelongsTo(t *testing.T) {
 	DB.CreateTable(Category{}, Post{})
 
 	post := Post{
-		Title:    "post 1",
-		Body:     "body 1",
-		Category: Category{Name: "Category 1"},
+		Title:        "post 1",
+		Body:         "body 1",
+		Category:     Category{Name: "Category 1"},
+		MainCategory: Category{Name: "Main Category 1"},
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
@@ -23,6 +24,12 @@ func TestBelongsTo(t *testing.T) {
 	var category Category
 	DB.Model(&post).Association("Category").Find(&category)
 	if category.Name != "Category 1" {
+		t.Errorf("Query has one relations with Association")
+	}
+
+	var mainCategory Category
+	DB.Model(&post).Association("MainCategory").Find(&mainCategory)
+	if mainCategory.Name != "Main Category 1" {
 		t.Errorf("Query has one relations with Association")
 	}
 
