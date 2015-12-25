@@ -20,22 +20,30 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Got errors when save post", err.Error())
 	}
 
+	if post.Category.Id == 0 || post.MainCategory.Id == 0 {
+		t.Errorf("Category's primary key should be updated")
+	}
+
+	if post.CategoryId.Int64 == 0 || post.MainCategoryId == 0 {
+		t.Errorf("post's foreign key should be updated")
+	}
+
 	// Query
-	var category Category
-	DB.Model(&post).Association("Category").Find(&category)
-	if category.Name != "Category 1" {
-		t.Errorf("Query has one relations with Association")
-	}
-
-	var mainCategory Category
-	DB.Model(&post).Association("MainCategory").Find(&mainCategory)
-	if mainCategory.Name != "Main Category 1" {
-		t.Errorf("Query has one relations with Association")
-	}
-
 	var category1 Category
-	DB.Model(&post).Related(&category1)
+	DB.Model(&post).Association("Category").Find(&category1)
 	if category1.Name != "Category 1" {
+		t.Errorf("Query has one relations with Association")
+	}
+
+	var mainCategory1 Category
+	DB.Model(&post).Association("MainCategory").Find(&mainCategory1)
+	if mainCategory1.Name != "Main Category 1" {
+		t.Errorf("Query has one relations with Association")
+	}
+
+	var category11 Category
+	DB.Model(&post).Related(&category11)
+	if category11.Name != "Category 1" {
 		t.Errorf("Query has one relations with Related")
 	}
 
@@ -101,6 +109,27 @@ func TestBelongsTo(t *testing.T) {
 	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not find any category after Clear")
 	}
+}
+
+func TestHasMany(t *testing.T) {
+	DB.DropTable(Post{}, Comment{})
+	DB.CreateTable(Post{}, Comment{})
+
+	post := Post{
+		Title:    "post 1",
+		Body:     "body 1",
+		Comments: []*Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
+	}
+
+	if err := DB.Save(&post).Error; err != nil {
+		t.Errorf("Got errors when save post", err.Error())
+	}
+
+	// Query
+	// Append
+	// Delete
+	// Replace
+	// Clear
 }
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
