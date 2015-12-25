@@ -106,7 +106,7 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Should find category after append")
 	}
 
-	DB.Model(&post).Debug().Association("Category").Clear()
+	DB.Model(&post).Association("Category").Clear()
 
 	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not find any category after Clear")
@@ -179,7 +179,7 @@ func TestHasMany(t *testing.T) {
 	}
 
 	// Replace
-	DB.Model(&Post{Id: 999}).Debug().Association("Comments").Replace()
+	DB.Model(&Post{Id: 999}).Association("Comments").Replace()
 
 	var comments4 []Comment
 	DB.Model(&post).Related(&comments4)
