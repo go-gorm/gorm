@@ -136,6 +136,10 @@ func (association *Association) Delete(values ...interface{}) *Association {
 	query := scope.NewDB()
 	relationship := association.Field.Relationship
 
+	if len(values) == 0 {
+		return association
+	}
+
 	// many to many
 	if relationship.Kind == "many_to_many" {
 		// current value's foreign keys
@@ -178,8 +182,27 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
 			sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys))
 			association.setErr(query.Model(scope.Value).Where(sql, toQueryValues(primaryKeys)...).UpdateColumn(foreignKeyMap).Error)
+
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
-			// query.Model(association.Field).UpdateColumn(foreignKeyMap)
+			var foreignKeyMap = map[string]interface{}{}
+			for _, foreignKey := range relationship.ForeignDBNames {
+				foreignKeyMap[foreignKey] = nil
+			}
+
+			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, scope.Value)
+			sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys))
+
+			var primaryFieldNames, primaryFieldDBNames []string
+			for _, field := range scope.New(values[0]).Fields() {
+				if field.IsPrimaryKey {
+					primaryFieldNames = append(primaryFieldNames, field.Name)
+					primaryFieldDBNames = append(primaryFieldDBNames, field.DBName)
+				}
+			}
+			relationsPrimaryKeys := association.getPrimaryKeys(primaryFieldNames, values...)
+			sql += fmt.Sprintf(" AND %v IN (%v)", toQueryCondition(scope, primaryFieldDBNames), toQueryMarks(relationsPrimaryKeys))
+
+			query.Model(association.Field.Field.Interface()).Where(sql, append(toQueryValues(primaryKeys), toQueryValues(relationsPrimaryKeys)...)...).UpdateColumn(foreignKeyMap)
 		}
 	}
 	return association

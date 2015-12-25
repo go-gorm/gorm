@@ -2,6 +2,8 @@ package gorm_test
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -125,9 +127,58 @@ func TestHasMany(t *testing.T) {
 		t.Errorf("Got errors when save post", err.Error())
 	}
 
+	for _, comment := range post.Comments {
+		if comment.PostId == 0 {
+			t.Errorf("comment's PostID should be updated")
+		}
+	}
+
+	var compareComments = func(comments []Comment, contents []string) bool {
+		var commentContents []string
+		for _, comment := range comments {
+			commentContents = append(commentContents, comment.Content)
+		}
+		sort.Strings(commentContents)
+		sort.Strings(contents)
+		return reflect.DeepEqual(commentContents, contents)
+	}
+
 	// Query
+	if DB.First(&Comment{}, "content = ?", "Comment 1").Error != nil {
+		t.Errorf("Comment 1 should be saved")
+	}
+
+	var comments1 []Comment
+	DB.Model(&post).Association("Comments").Find(&comments1)
+	if !compareComments(comments1, []string{"Comment 1", "Comment 2"}) {
+		t.Errorf("Query has many relations with Association")
+	}
+
+	var comments11 []Comment
+	DB.Model(&post).Related(&comments11)
+	if !compareComments(comments11, []string{"Comment 1", "Comment 2"}) {
+		t.Errorf("Query has many relations with Related")
+	}
+
 	// Append
+	DB.Model(&post).Association("Comments").Append(&Comment{Content: "Comment 3"})
+
+	var comments2 []Comment
+	DB.Model(&post).Related(&comments2)
+	if !compareComments(comments2, []string{"Comment 1", "Comment 2", "Comment 3"}) {
+		t.Errorf("Append new record to has many relations")
+	}
+
 	// Delete
+	DB.Model(&post).Association("Comments").Delete(comments11)
+
+	var comments3 []Comment
+	DB.Model(&post).Related(&comments3)
+	if !compareComments(comments3, []string{"Comment 3"}) {
+		fmt.Println(comments3)
+		t.Errorf("Delete an existing resource for has many relations")
+	}
+
 	// Replace
 	// Clear
 }
