@@ -88,6 +88,12 @@ func TestRelated(t *testing.T) {
 		t.Errorf("Should have two emails")
 	}
 
+	var emails3 []*Email
+	DB.Model(&user).Related(&emails3)
+	if len(emails3) != 2 {
+		t.Errorf("Should have two emails")
+	}
+
 	var user1 User
 	DB.Model(&user).Related(&user1.Emails)
 	if len(user1.Emails) != 2 {

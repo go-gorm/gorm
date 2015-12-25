@@ -407,18 +407,20 @@ func (scope *Scope) count(value interface{}) *Scope {
 }
 
 func (scope *Scope) typeName() string {
-	value := scope.IndirectValue()
-	if value.Kind() == reflect.Slice {
-		return value.Type().Elem().Name()
+	typ := scope.IndirectValue().Type()
+
+	for typ.Kind() == reflect.Slice || typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
 	}
 
-	return value.Type().Name()
+	return typ.Name()
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 	fromFields := scope.Fields()
 	toFields := toScope.Fields()
+
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
 		var fromField, toField *Field
 		if field, ok := scope.FieldByName(foreignKey); ok {
