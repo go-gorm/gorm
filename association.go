@@ -140,36 +140,39 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship))
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
-			association.setErr(newDB.Debug().Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
+			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
 		}
 	}
 	return association
 }
 
 func (association *Association) Delete(values ...interface{}) *Association {
-	scope := association.Scope
-	query := scope.NewDB()
-	relationship := association.Field.Relationship
+	var (
+		relationship = association.Field.Relationship
+		scope        = association.Scope
+		field        = association.Field.Field
+		newDB        = scope.NewDB()
+	)
 
 	if len(values) == 0 {
 		return association
 	}
 
-	// many to many
 	if relationship.Kind == "many_to_many" {
+		// many to many
 		// current value's foreign keys
 		for idx, foreignKey := range relationship.ForeignDBNames {
 			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
-				query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+				newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 			}
 		}
 
 		// deleting value's foreign keys
 		primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
 		sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(primaryKeys))
-		query = query.Where(sql, toQueryValues(primaryKeys)...)
+		newDB = newDB.Where(sql, toQueryValues(primaryKeys)...)
 
-		if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship); err == nil {
+		if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship); err == nil {
 			leftValues := reflect.Zero(association.Field.Field.Type())
 			for i := 0; i < association.Field.Field.Len(); i++ {
 				reflectValue := association.Field.Field.Index(i)
@@ -187,39 +190,49 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			association.Field.Set(leftValues)
 		}
 	} else {
-		association.Field.Set(reflect.Zero(association.Field.Field.Type()))
+		var foreignKeyMap = map[string]interface{}{}
+		for _, foreignKey := range relationship.ForeignDBNames {
+			foreignKeyMap[foreignKey] = nil
+		}
 
 		if relationship.Kind == "belongs_to" {
-			var foreignKeyMap = map[string]interface{}{}
-			for _, foreignKey := range relationship.ForeignDBNames {
-				foreignKeyMap[foreignKey] = nil
-			}
+			// find with deleting relation's foreign keys
 			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
-			sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys))
+			newDB = newDB.Where(
+				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys)),
+				toQueryValues(primaryKeys)...,
+			)
 
-			association.setErr(query.Model(scope.Value).Where(sql, toQueryValues(primaryKeys)...).UpdateColumn(foreignKeyMap).Error)
+			// set foreign key to be null
+			association.setErr(newDB.Model(scope.Value).UpdateColumn(foreignKeyMap).Error)
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
-			var foreignKeyMap = map[string]interface{}{}
-			for _, foreignKey := range relationship.ForeignDBNames {
-				foreignKeyMap[foreignKey] = nil
-			}
-
+			// find all relations
 			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, scope.Value)
-			sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys))
+			newDB = newDB.Where(
+				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys)),
+				toQueryValues(primaryKeys)...,
+			)
 
+			// only include those deleting relations
 			var primaryFieldNames, primaryFieldDBNames []string
-			for _, field := range scope.New(values[0]).Fields() {
+			for _, field := range scope.New(reflect.New(field.Type()).Interface()).Fields() {
 				if field.IsPrimaryKey {
 					primaryFieldNames = append(primaryFieldNames, field.Name)
 					primaryFieldDBNames = append(primaryFieldDBNames, field.DBName)
 				}
 			}
-			relationsPrimaryKeys := association.getPrimaryKeys(primaryFieldNames, values...)
-			sql += fmt.Sprintf(" AND %v IN (%v)", toQueryCondition(scope, primaryFieldDBNames), toQueryMarks(relationsPrimaryKeys))
 
-			query.Model(association.Field.Field.Interface()).Where(sql, append(toQueryValues(primaryKeys), toQueryValues(relationsPrimaryKeys)...)...).UpdateColumn(foreignKeyMap)
+			relationsPrimaryKeys := association.getPrimaryKeys(primaryFieldNames, values...)
+			newDB = newDB.Where(
+				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, primaryFieldDBNames), toQueryMarks(relationsPrimaryKeys)),
+				toQueryValues(relationsPrimaryKeys)...,
+			)
+
+			// set matched relation's foreign key to be null
+			newDB.Model(association.Field.Field.Interface()).UpdateColumn(foreignKeyMap)
 		}
 	}
+
 	return association
 }
 
