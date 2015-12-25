@@ -66,6 +66,12 @@ func TestBelongsTo(t *testing.T) {
 	}
 
 	// Delete
+	DB.Model(&post).Association("Category").Delete(&category2)
+	DB.First(&post, post.Id)
+	if DB.Model(&post).Related(&Category{}).RecordNotFound() {
+		t.Errorf("Should not delete any category when Delete a unrelated Category")
+	}
+
 	DB.Model(&post).Association("Category").Delete(&category3)
 
 	var category41 Category
@@ -75,6 +81,19 @@ func TestBelongsTo(t *testing.T) {
 	}
 
 	// Clear
+	DB.Model(&post).Association("Category").Append(&Category{
+		Name: "Category 2",
+	})
+
+	if DB.Model(&post).Related(&Category{}).RecordNotFound() {
+		t.Errorf("Should find category after append")
+	}
+
+	DB.Model(&post).Association("Category").Clear()
+
+	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
+		t.Errorf("Should not find any category after Clear")
+	}
 }
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
