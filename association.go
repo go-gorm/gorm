@@ -113,7 +113,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	var foreignKeyMap = map[string]interface{}{}
 	for idx, foreignKey := range relationship.ForeignDBNames {
 		foreignKeyMap[foreignKey] = nil
-		if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
+		if field, ok := scope.FieldByName(relationship.AssociationForeignFieldNames[idx]); ok {
 			query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 		}
 	}
@@ -125,6 +125,8 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 	if relationship.Kind == "many_to_many" {
 		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
+	} else if relationship.Kind == "belongs_to" {
+		association.setErr(query.Model(scope.Value).UpdateColumn(foreignKeyMap).Error)
 	} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 		fieldValue := reflect.New(association.Field.Field.Type()).Interface()
 		association.setErr(query.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
@@ -210,35 +212,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 }
 
 func (association *Association) Clear() *Association {
-	relationship := association.Field.Relationship
-	scope := association.Scope
-	query := scope.NewDB()
-
-	if relationship.Kind == "many_to_many" {
-		for idx, foreignKey := range relationship.ForeignDBNames {
-			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
-				query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
-			}
-		}
-
-		if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship); err == nil {
-			association.Field.Set(reflect.Zero(association.Field.Field.Type()))
-		} else {
-			association.setErr(err)
-		}
-	} else {
-		association.Field.Set(reflect.Zero(association.Field.Field.Type()))
-		if relationship.Kind == "belongs_to" {
-			var foreignKeyMap = map[string]interface{}{}
-			for _, foreignKey := range relationship.ForeignDBNames {
-				foreignKeyMap[foreignKey] = nil
-			}
-			query.Model(scope.Value).Update(foreignKeyMap)
-		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
-			// query.Model(association.Field).UpdateColumn(foreignKeyMap)
-		}
-	}
-	return association
+	return association.Replace()
 }
 
 func (association *Association) Count() int {

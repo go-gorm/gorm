@@ -106,7 +106,7 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Should find category after append")
 	}
 
-	DB.Model(&post).Association("Category").Clear()
+	DB.Model(&post).Debug().Association("Category").Clear()
 
 	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not find any category after Clear")
@@ -179,15 +179,38 @@ func TestHasMany(t *testing.T) {
 	}
 
 	// Replace
-	DB.Model(&post).Association("Comments").Replace(&Comment{Content: "Comment 4"}, &Comment{Content: "Comment 5"})
+	DB.Model(&Post{Id: 999}).Debug().Association("Comments").Replace()
 
 	var comments4 []Comment
 	DB.Model(&post).Related(&comments4)
-	if !compareComments(comments4, []string{"Comment 4", "Comment 5"}) {
+	if len(comments4) == 0 {
+		t.Errorf("Replace should not clear all comments")
+	}
+
+	DB.Model(&post).Association("Comments").Replace(&Comment{Content: "Comment 4"}, &Comment{Content: "Comment 5"})
+
+	var comments41 []Comment
+	DB.Model(&post).Related(&comments41)
+	if !compareComments(comments41, []string{"Comment 4", "Comment 5"}) {
 		t.Errorf("Replace has many relations")
 	}
 
 	// Clear
+	DB.Model(&Post{Id: 999}).Association("Comments").Clear()
+
+	var comments5 []Comment
+	DB.Model(&post).Related(&comments5)
+	if len(comments5) == 0 {
+		t.Errorf("Clear should not clear all comments")
+	}
+
+	DB.Model(&post).Association("Comments").Clear()
+
+	var comments51 []Comment
+	DB.Model(&post).Related(&comments51)
+	if len(comments51) != 0 {
+		t.Errorf("Clear has many relations")
+	}
 }
 
 func TestHasOneAndHasManyAssociation(t *testing.T) {
