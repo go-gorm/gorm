@@ -83,17 +83,19 @@ func (association *Association) Append(values ...interface{}) *Association {
 
 func (association *Association) Delete(values ...interface{}) *Association {
 	scope := association.Scope
+	query := scope.NewDB()
 	relationship := association.Field.Relationship
 
 	// many to many
 	if relationship.Kind == "many_to_many" {
-		query := scope.NewDB()
+		// current value's foreign keys
 		for idx, foreignKey := range relationship.ForeignDBNames {
 			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
 				query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 			}
 		}
 
+		// deleting value's foreign keys
 		primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
 		sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(primaryKeys))
 		query = query.Where(sql, toQueryValues(primaryKeys)...)
@@ -116,7 +118,19 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			association.Field.Set(leftValues)
 		}
 	} else {
-		association.setErr(errors.New("delete only support many to many"))
+		association.Field.Set(reflect.Zero(association.Field.Field.Type()))
+
+		if relationship.Kind == "belongs_to" {
+			var foreignKeyMap = map[string]interface{}{}
+			for _, foreignKey := range relationship.ForeignDBNames {
+				foreignKeyMap[foreignKey] = nil
+			}
+			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
+			sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys))
+			query.Model(scope.Value).Where(sql, toQueryValues(primaryKeys)...).Update(foreignKeyMap)
+		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
+			// query.Model(association.Field).UpdateColumn(foreignKeyMap)
+		}
 	}
 	return association
 }
@@ -150,9 +164,9 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	}
 
 	query := scope.NewDB()
-	var foreignKeyMap = map[string]string{}
+	var foreignKeyMap = map[string]interface{}{}
 	for idx, foreignKey := range relationship.ForeignDBNames {
-		foreignKeyMap[foreignKey] = ""
+		foreignKeyMap[foreignKey] = nil
 		if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
 			query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 		}

@@ -5,15 +5,14 @@ import (
 	"testing"
 )
 
-func TestHasOne(t *testing.T) {
+func TestBelongsTo(t *testing.T) {
 	DB.DropTable(Category{}, Post{})
 	DB.CreateTable(Category{}, Post{})
 
 	post := Post{
-		Title:        "post 1",
-		Body:         "body 1",
-		Category:     Category{Name: "Category 1"},
-		MainCategory: Category{Name: "Main Category 1"},
+		Title:    "post 1",
+		Body:     "body 1",
+		Category: Category{Name: "Category 1"},
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
@@ -67,6 +66,14 @@ func TestHasOne(t *testing.T) {
 	}
 
 	// Delete
+	DB.Model(&post).Association("Category").Delete(&category3)
+
+	var category41 Category
+	DB.Model(&post).Related(&category41)
+	if category41.Name != "" {
+		t.Errorf("Category should be deleted with Delete")
+	}
+
 	// Clear
 }
 
