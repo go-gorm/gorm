@@ -29,42 +29,53 @@ func (association *Association) Find(value interface{}) *Association {
 func (association *Association) Append(values ...interface{}) *Association {
 	scope := association.Scope
 	field := association.Field
+	relationship := association.Field.Relationship
 
-	createJoinTable := func(reflectValue reflect.Value) {
-		var value = reflectValue.Interface()
+	saveAssociation := func(reflectValue reflect.Value) {
+		// value has to been pointer
 		if reflectValue.Kind() != reflect.Ptr {
 			reflectPtr := reflect.New(reflectValue.Type())
 			reflectPtr.Elem().Set(reflectValue)
-			value = reflectPtr.Interface()
+			reflectValue = reflectPtr
 		}
 
-		if scope.New(value).PrimaryKeyZero() {
-			scope.NewDB().Save(value)
+		// value has to been saved
+		if scope.New(reflectValue.Interface()).PrimaryKeyZero() {
+			scope.NewDB().Save(reflectValue.Interface())
 		}
 
-		relationship := association.Field.Relationship
-		association.setErr(relationship.JoinTableHandler.Add(relationship.JoinTableHandler, scope.NewDB(), scope.Value, value))
+		// Assign Fields
+		fieldType := field.Field.Type()
+		if reflectValue.Type().AssignableTo(fieldType) {
+			field.Set(reflectValue)
+		} else if reflectValue.Type().Elem().AssignableTo(fieldType) {
+			field.Set(reflectValue.Elem())
+		} else if fieldType.Kind() == reflect.Slice {
+			if reflectValue.Type().AssignableTo(fieldType.Elem()) {
+				field.Set(reflect.Append(field.Field, reflectValue))
+			} else if reflectValue.Type().Elem().AssignableTo(fieldType.Elem()) {
+				field.Set(reflect.Append(field.Field, reflectValue.Elem()))
+			}
+		}
 
-		result := reflect.ValueOf(value)
-		fieldElemType := field.Field.Type().Elem()
-		if result.Type().AssignableTo(fieldElemType) {
-			field.Set(reflect.Append(field.Field, result))
-		} else if result.Type().Elem().AssignableTo(fieldElemType) {
-			field.Set(reflect.Append(field.Field, result.Elem()))
+		if relationship.Kind == "many_to_many" {
+			association.setErr(relationship.JoinTableHandler.Add(relationship.JoinTableHandler, scope.NewDB(), scope.Value, reflectValue.Interface()))
+		} else {
+			association.setErr(scope.NewDB().Select(field.Name).Save(scope.Value).Error)
 		}
 	}
 
 	for _, value := range values {
-		reflectValue := reflect.Indirect(reflect.ValueOf(value))
-
-		if reflectValue.Kind() == reflect.Struct {
-			createJoinTable(reflectValue)
-		} else if reflectValue.Kind() == reflect.Slice {
-			for i := 0; i < reflectValue.Len(); i++ {
-				createJoinTable(reflectValue.Index(i))
+		reflectValue := reflect.ValueOf(value)
+		indirectReflectValue := reflect.Indirect(reflectValue)
+		if indirectReflectValue.Kind() == reflect.Struct {
+			saveAssociation(reflectValue)
+		} else if indirectReflectValue.Kind() == reflect.Slice {
+			for i := 0; i < indirectReflectValue.Len(); i++ {
+				saveAssociation(indirectReflectValue.Index(i))
 			}
 		} else {
-			association.setErr(errors.New("invalid association type"))
+			association.setErr(errors.New("invalid value type"))
 		}
 	}
 	return association

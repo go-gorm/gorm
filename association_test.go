@@ -5,6 +5,66 @@ import (
 	"testing"
 )
 
+func TestHasOne(t *testing.T) {
+	DB.DropTable(Category{}, Post{})
+	DB.CreateTable(Category{}, Post{})
+
+	post := Post{
+		Title:        "post 1",
+		Body:         "body 1",
+		Category:     Category{Name: "Category 1"},
+		MainCategory: Category{Name: "Main Category 1"},
+	}
+
+	if err := DB.Save(&post).Error; err != nil {
+		t.Errorf("Got errors when save post", err.Error())
+	}
+
+	// Query
+	var category Category
+	DB.Model(&post).Association("Category").Find(&category)
+	if category.Name != "Category 1" {
+		t.Errorf("Query has one relations with Association")
+	}
+
+	var category1 Category
+	DB.Model(&post).Related(&category1)
+	if category1.Name != "Category 1" {
+		t.Errorf("Query has one relations with Related")
+	}
+
+	// Append
+	var category2 = Category{
+		Name: "Category 2",
+	}
+	DB.Model(&post).Association("Category").Append(&category2)
+
+	if category2.Id == 0 {
+		t.Errorf("Category should has ID when created with Append")
+	}
+
+	var category21 Category
+	DB.Model(&post).Related(&category21)
+
+	if category21.Name != "Category 2" {
+		t.Errorf("Category should be updated with Append")
+	}
+
+	// Replace
+	// DB.Model(&post).Association("Category").Replace(&Category{
+	// 	Name: "Category 3",
+	// })
+
+	// var category3 Category
+	// DB.Model(&post).Related(&category3)
+	// if category3.Name != "Category 3" {
+	// 	t.Errorf("Category should be updated with Replace")
+	// }
+
+	// Delete
+	// Clear
+}
+
 func TestHasOneAndHasManyAssociation(t *testing.T) {
 	DB.DropTable(Category{}, Post{}, Comment{})
 	DB.CreateTable(Category{}, Post{}, Comment{})
