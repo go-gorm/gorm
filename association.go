@@ -124,46 +124,49 @@ func (association *Association) Delete(values ...interface{}) *Association {
 func (association *Association) Replace(values ...interface{}) *Association {
 	relationship := association.Field.Relationship
 	scope := association.Scope
+	field := association.Field.Field
+
+	oldPrimaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, field.Interface())
+	association.Field.Set(reflect.Zero(association.Field.Field.Type()))
+	association.Append(values...)
+	newPrimaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, field.Interface())
+
+	var addedPrimaryKeys = [][]interface{}{}
+	for _, newKey := range newPrimaryKeys {
+		hasEqual := false
+		for _, oldKey := range oldPrimaryKeys {
+			if equalAsString(newKey, oldKey) {
+				hasEqual = true
+				break
+			}
+		}
+		if !hasEqual {
+			addedPrimaryKeys = append(addedPrimaryKeys, newKey)
+		}
+	}
+
+	for _, primaryKey := range association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...) {
+		addedPrimaryKeys = append(addedPrimaryKeys, primaryKey)
+	}
+
+	query := scope.NewDB()
+	var foreignKeyMap = map[string]string{}
+	for idx, foreignKey := range relationship.ForeignDBNames {
+		foreignKeyMap[foreignKey] = ""
+		if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
+			query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+		}
+	}
+
+	if len(addedPrimaryKeys) > 0 {
+		sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(addedPrimaryKeys))
+		query = query.Where(sql, toQueryValues(addedPrimaryKeys)...)
+	}
+
 	if relationship.Kind == "many_to_many" {
-		field := association.Field.Field
-
-		oldPrimaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, field.Interface())
-		association.Field.Set(reflect.Zero(association.Field.Field.Type()))
-		association.Append(values...)
-		newPrimaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, field.Interface())
-
-		var addedPrimaryKeys = [][]interface{}{}
-		for _, newKey := range newPrimaryKeys {
-			hasEqual := false
-			for _, oldKey := range oldPrimaryKeys {
-				if equalAsString(newKey, oldKey) {
-					hasEqual = true
-					break
-				}
-			}
-			if !hasEqual {
-				addedPrimaryKeys = append(addedPrimaryKeys, newKey)
-			}
-		}
-
-		for _, primaryKey := range association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...) {
-			addedPrimaryKeys = append(addedPrimaryKeys, primaryKey)
-		}
-
-		query := scope.NewDB()
-		for idx, foreignKey := range relationship.ForeignDBNames {
-			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
-				query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
-			}
-		}
-
-		if len(addedPrimaryKeys) > 0 {
-			sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(addedPrimaryKeys))
-			query = query.Where(sql, toQueryValues(addedPrimaryKeys)...)
-		}
 		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
-	} else {
-		association.setErr(errors.New("replace only support many to many"))
+	} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
+		query.Update(foreignKeyMap)
 	}
 	return association
 }

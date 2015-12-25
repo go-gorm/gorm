@@ -51,15 +51,20 @@ func TestHasOne(t *testing.T) {
 	}
 
 	// Replace
-	// DB.Model(&post).Association("Category").Replace(&Category{
-	// 	Name: "Category 3",
-	// })
+	var category3 = Category{
+		Name: "Category 3",
+	}
+	DB.Model(&post).Association("Category").Replace(&category3)
 
-	// var category3 Category
-	// DB.Model(&post).Related(&category3)
-	// if category3.Name != "Category 3" {
-	// 	t.Errorf("Category should be updated with Replace")
-	// }
+	if category3.Id == 0 {
+		t.Errorf("Category should has ID when created with Replace")
+	}
+
+	var category31 Category
+	DB.Model(&post).Related(&category31)
+	if category31.Name != "Category 3" {
+		t.Errorf("Category should be updated with Replace")
+	}
 
 	// Delete
 	// Clear
