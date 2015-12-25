@@ -126,7 +126,8 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	if relationship.Kind == "many_to_many" {
 		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, query, relationship))
 	} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
-		query.Update(foreignKeyMap)
+		fieldValue := reflect.New(association.Field.Field.Type()).Interface()
+		association.setErr(query.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
 	}
 	return association
 }

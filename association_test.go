@@ -175,11 +175,18 @@ func TestHasMany(t *testing.T) {
 	var comments3 []Comment
 	DB.Model(&post).Related(&comments3)
 	if !compareComments(comments3, []string{"Comment 3"}) {
-		fmt.Println(comments3)
 		t.Errorf("Delete an existing resource for has many relations")
 	}
 
 	// Replace
+	DB.Model(&post).Association("Comments").Replace(&Comment{Content: "Comment 4"}, &Comment{Content: "Comment 5"})
+
+	var comments4 []Comment
+	DB.Model(&post).Related(&comments4)
+	if !compareComments(comments4, []string{"Comment 4", "Comment 5"}) {
+		t.Errorf("Replace has many relations")
+	}
+
 	// Clear
 }
 
