@@ -30,14 +30,6 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 go get -u github.com/jinzhu/gorm
 ```
 
-## Documentation 
-
-[![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.svg)](https://godoc.org/github.com/jinzhu/gorm)
-
-`go doc` format documentation for this project can be viewed online without
-installing the package by using the GoDoc page at:
-http://godoc.org/github.com/jinzhu/gorm
-
 ## Table of Contents
 
 - [Define Models (Structs)](#define-models-structs)
@@ -67,6 +59,7 @@ http://godoc.org/github.com/jinzhu/gorm
     - [Has Many](#has-many)
     - [Many To Many](#many-to-many)
     - [Polymorphism](#polymorphism)
+    - [Association Mode](#association-mode)
 - [Advanced Usage](#advanced-usage)
 	- [FirstOrInit](#firstorinit)
 	- [FirstOrCreate](#firstorcreate)
@@ -106,11 +99,15 @@ type User struct {
 	UpdatedAt    time.Time
 	DeletedAt    *time.Time
 
-	Emails            []Email         // One-To-Many relationship (has many)
-	BillingAddress    Address         // One-To-One relationship (has one)
-	BillingAddressID  sql.NullInt64   // Foreign key of BillingAddress
-	ShippingAddress   Address         // One-To-One relationship (has one)
-	ShippingAddressID int             // Foreign key of ShippingAddress
+	CreditCard        CreditCard      // One-To-One relationship (has one - use CreditCard's UserID as foreign key)
+	Emails            []Email         // One-To-Many relationship (has many - use Email's UserID as foreign key)
+
+	BillingAddress    Address         // One-To-One relationship (belongs to - use BillingAddressID as foreign key)
+	BillingAddressID  sql.NullInt64
+
+	ShippingAddress   Address         // One-To-One relationship (belongs to - use ShippingAddressID as foreign key)
+	ShippingAddressID int
+
 	IgnoreMe          int `sql:"-"`   // Ignore this field
 	Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
 }
@@ -133,6 +130,12 @@ type Language struct {
 	ID   int
 	Name string `sql:"index:idx_name_code"` // Create index with name, and will create combined index if find other fields defined same name
 	Code string `sql:"index:idx_name_code"` // `unique_index` also works
+}
+
+type CreditCard struct {
+	gorm.Model
+	UserID  uint
+	Number  string
 }
 ```
 
@@ -550,48 +553,80 @@ db.Unscoped().Delete(&order)
 ### Has One
 
 ```go
-// User has one address
-db.Model(&user).Related(&address)
-//// SELECT * FROM addresses WHERE id = 123; // 123 is user's foreign key AddressId
+// User has one CreditCard, UserID is the foreign key
+type User struct {
+	gorm.Model
+	CreditCard   CreditCard
+}
 
-// Specify the foreign key
-db.Model(&user).Related(&address1, "BillingAddressId")
-//// SELECT * FROM addresses WHERE id = 123; // 123 is user's foreign key BillingAddressId
+type CreditCard struct {
+	gorm.Model
+	UesrID   uint
+	Number   string
+}
+
+var card CreditCard
+db.Model(&user).Related(&card, "CreditCard")
+//// SELECT * FROM credit_cards WHERE user_id = 123; // 123 is user's primary key
+// CreditCard is user's field name, it means get user's CreditCard relations and fill it into variable card
+// If the field name is same as the variable's type name, like above example, it could be omitted, like:
+db.Model(&user).Related(&creditCard, "CreditCard")
 ```
 
 ### Belongs To
 
 ```go
-// Email belongs to user
-db.Model(&email).Related(&user)
-//// SELECT * FROM users WHERE id = 111; // 111 is email's foreign key UserId
+// User belongs to a profile, ProfileID is the foreign key
+type User struct {
+	gorm.Model
+	Profile   Profile
+	ProfileID int
+}
 
-// Specify the foreign key
-db.Model(&email).Related(&user, "ProfileId")
-//// SELECT * FROM users WHERE id = 111; // 111 is email's foreign key ProfileId
+type Profile struct {
+	gorm.Model
+	Name   string
+}
+
+db.Model(&user).Related(&profile)
+//// SELECT * FROM profiles WHERE id = 111; // 111 is user's foreign key ProfileID
 ```
 
 ### Has Many
 
 ```go
-// User has many emails
-db.Model(&user).Related(&emails)
-//// SELECT * FROM emails WHERE user_id = 111;
-// user_id is the foreign key, 111 is user's primary key's value
+// User belongs to a profile, ProfileID is the foreign key
+type User struct {
+	gorm.Model
+	Emails   []Email
+}
 
-// Specify the foreign key
-db.Model(&user).Related(&emails, "ProfileId")
-//// SELECT * FROM emails WHERE profile_id = 111;
-// profile_id is the foreign key, 111 is user's primary key's value
+type Email struct {
+	gorm.Model
+	Email   string
+	UserID  uint
+}
+
+db.Model(&user).Related(&emails)
+//// SELECT * FROM emails WHERE user_id = 111; // 111 is user's primary key
 ```
 
 ### Many To Many
 
 ```go
-// User has many languages and belongs to many languages
-db.Model(&user).Related(&languages, "Languages")
+// User has and belongs to many languages, use `user_languages` as join table
+type User struct {
+	gorm.Model
+	Languages         []Language `gorm:"many2many:user_languages;"`
+}
+
+type Language struct {
+	gorm.Model
+	Name string
+}
+
+db.Model(&user).Related(&languages)
 //// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
-// `Languages` is user's column name, this column's tag defined join table like this `gorm:"many2many:user_languages;"`
 ```
 
 ### Polymorphism
@@ -634,23 +669,29 @@ db.Model(&user).Association("Languages")
 // If not, it will return error, check it with:
 // db.Model(&user).Association("Languages").Error
 
+
 // Query - Find out all related associations
 db.Model(&user).Association("Languages").Find(&languages)
+
 
 // Append - Append new associations for many2many, has_many, will replace current association for has_one, belongs_to
 db.Model(&user).Association("Languages").Append([]Language{languageZH, languageEN})
 db.Model(&user).Association("Languages").Append(Language{Name: "DE"})
 
+
 // Delete - Remove relationship between source & passed arguments, won't delete those arguments
 db.Model(&user).Association("Languages").Delete([]Language{languageZH, languageEN})
 db.Model(&user).Association("Languages").Delete(languageZH, languageEN)
+
 
 // Replace - Replace current associations with new one
 db.Model(&user).Association("Languages").Replace([]Language{languageZH, languageEN})
 db.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, languageEN)
 
+
 // Count - Return the count of current associations
 db.Model(&user).Association("Languages").Count()
+
 
 // Clear - Remove relationship between source & current associations, won't delete those associations
 db.Model(&user).Association("Languages").Clear()
@@ -1283,6 +1324,14 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 //// SELECT * FROM users WHERE email = 'x@example.org';
 //// INSERT INTO "users" (email,registered_ip) VALUES ("x@example.org", "111.111.111.111")  // if record not found
 ```
+
+## Documentation
+
+[![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.svg)](https://godoc.org/github.com/jinzhu/gorm)
+
+`go doc` format documentation for this project can be viewed online without
+installing the package by using the GoDoc page at:
+http://godoc.org/github.com/jinzhu/gorm
 
 ## TODO
 * Github Pages
