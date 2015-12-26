@@ -208,7 +208,14 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			)
 
 			// set foreign key to be null
-			association.setErr(newDB.Model(scope.Value).UpdateColumn(foreignKeyMap).Error)
+			modelValue := reflect.New(scope.GetModelStruct().ModelType).Interface()
+			if results := newDB.Model(modelValue).UpdateColumn(foreignKeyMap); results.Error == nil {
+				if results.RowsAffected > 0 {
+					scope.updatedAttrsWithValues(foreignKeyMap, false)
+				}
+			} else {
+				association.setErr(results.Error)
+			}
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 			// find all relations
 			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, scope.Value)

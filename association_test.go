@@ -46,6 +46,14 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Query belongs to relations with Related")
 	}
 
+	if DB.Model(&post).Association("Category").Count() == 1 {
+		t.Errorf("Post's category count should be 1")
+	}
+
+	if DB.Model(&post).Association("MainCategory").Count() == 1 {
+		t.Errorf("Post's main category count should be 1")
+	}
+
 	// Append
 	var category2 = Category{
 		Name: "Category 2",
@@ -61,6 +69,10 @@ func TestBelongsTo(t *testing.T) {
 
 	if category21.Name != "Category 2" {
 		t.Errorf("Category should be updated with Append")
+	}
+
+	if DB.Model(&post).Association("Category").Count() == 1 {
+		t.Errorf("Post's category count should be 1")
 	}
 
 	// Replace
@@ -79,9 +91,14 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Category should be updated with Replace")
 	}
 
+	if DB.Model(&post).Association("Category").Count() == 1 {
+		t.Errorf("Post's category count should be 1")
+	}
+
 	// Delete
 	DB.Model(&post).Association("Category").Delete(&category2)
-	DB.First(&post, post.Id)
+	fmt.Println(post)
+	fmt.Println(post.Category)
 	if DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not delete any category when Delete a unrelated Category")
 	}
@@ -92,6 +109,10 @@ func TestBelongsTo(t *testing.T) {
 	DB.Model(&post).Related(&category41)
 	if category41.Name != "" {
 		t.Errorf("Category should be deleted with Delete")
+	}
+
+	if DB.Model(&post).Association("Category").Count() == 0 {
+		t.Errorf("Post's category count should be 0 after Delete")
 	}
 
 	// Clear
@@ -107,6 +128,10 @@ func TestBelongsTo(t *testing.T) {
 
 	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not find any category after Clear")
+	}
+
+	if DB.Model(&post).Association("Category").Count() == 0 {
+		t.Errorf("Post's category count should be 0 after Clear")
 	}
 }
 
