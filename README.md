@@ -661,12 +661,11 @@ Association Mode contains some helper methods to handle relationship things easi
 
 ```go
 // Start Association Mode
-db.Model(&source).Association(fieldNameOfRelationship)
-
+var user User
 db.Model(&user).Association("Languages")
-// source (user) need to have a valid primary key
-// fieldNameOfRelationship ("Languages") need to be a valid relationship of source
-// If not, it will return error, check it with:
+// `user` is the source, it need to be a valid record (contains primary key)
+// `Languages` is source's field name for a relationship.
+// If those conditions not matched, will return an error, check it with:
 // db.Model(&user).Association("Languages").Error
 
 
