@@ -257,8 +257,8 @@ func (association *Association) Delete(values ...interface{}) *Association {
 
 			association.Field.Set(leftValues)
 		} else if association.Field.Field.Kind() == reflect.Struct {
+			primaryKey := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, association.Field.Field.Interface())[0]
 			for _, pk := range deletingPrimaryKeys {
-				primaryKey := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, association.Field.Field)[0]
 				if equalAsString(primaryKey, pk) {
 					association.Field.Set(reflect.Zero(association.Field.Field.Type()))
 					break

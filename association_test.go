@@ -97,13 +97,19 @@ func TestBelongsTo(t *testing.T) {
 
 	// Delete
 	DB.Model(&post).Association("Category").Delete(&category2)
-	fmt.Println(post)
-	fmt.Println(post.Category)
 	if DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not delete any category when Delete a unrelated Category")
 	}
 
+	if post.Category.Name == "" {
+		t.Errorf("Post's category should not be reseted when Delete a unrelated Category")
+	}
+
 	DB.Model(&post).Association("Category").Delete(&category3)
+
+	if post.Category.Name != "" {
+		t.Errorf("Post's category should be reseted after Delete")
+	}
 
 	var category41 Category
 	DB.Model(&post).Related(&category41)
@@ -124,7 +130,15 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Should find category after append")
 	}
 
+	if post.Category.Name == "" {
+		t.Errorf("Post's category should has value after Append")
+	}
+
 	DB.Model(&post).Association("Category").Clear()
+
+	if post.Category.Name != "" {
+		t.Errorf("Post's category should be cleared after Clear")
+	}
 
 	if !DB.Model(&post).Related(&Category{}).RecordNotFound() {
 		t.Errorf("Should not find any category after Clear")
@@ -164,6 +178,10 @@ func TestHasOne(t *testing.T) {
 		t.Errorf("Query has one relations with Related")
 	}
 
+	if DB.Model(&user).Association("CreditCard").Count() != 1 {
+		t.Errorf("User's credit card count should be 1")
+	}
+
 	// Append
 	var creditcard2 = CreditCard{
 		Number: "411111111112",
@@ -178,6 +196,10 @@ func TestHasOne(t *testing.T) {
 	DB.Model(&user).Related(&creditcard21)
 	if creditcard21.Number != "411111111112" {
 		t.Errorf("CreditCard should be updated with Append")
+	}
+
+	if DB.Model(&user).Association("CreditCard").Count() != 1 {
+		t.Errorf("User's credit card count should be 1")
 	}
 
 	// Replace
@@ -196,6 +218,10 @@ func TestHasOne(t *testing.T) {
 		t.Errorf("CreditCard should be updated with Replace")
 	}
 
+	if DB.Model(&user).Association("CreditCard").Count() != 1 {
+		t.Errorf("User's credit card count should be 1")
+	}
+
 	// Delete
 	DB.Model(&user).Association("CreditCard").Delete(&creditcard2)
 	var creditcard4 CreditCard
@@ -204,9 +230,17 @@ func TestHasOne(t *testing.T) {
 		t.Errorf("Should not delete credit card when Delete a unrelated CreditCard")
 	}
 
+	if DB.Model(&user).Association("CreditCard").Count() != 1 {
+		t.Errorf("User's credit card count should be 1")
+	}
+
 	DB.Model(&user).Association("CreditCard").Delete(&creditcard3)
 	if !DB.Model(&user).Related(&CreditCard{}).RecordNotFound() {
 		t.Errorf("Should delete credit card with Delete")
+	}
+
+	if DB.Model(&user).Association("CreditCard").Count() != 0 {
+		t.Errorf("User's credit card count should be 0 after Delete")
 	}
 
 	// Clear
@@ -219,9 +253,17 @@ func TestHasOne(t *testing.T) {
 		t.Errorf("Should added credit card with Append")
 	}
 
+	if DB.Model(&user).Association("CreditCard").Count() != 1 {
+		t.Errorf("User's credit card count should be 1")
+	}
+
 	DB.Model(&user).Association("CreditCard").Clear()
 	if !DB.Model(&user).Related(&CreditCard{}).RecordNotFound() {
 		t.Errorf("Credit card should be deleted with Clear")
+	}
+
+	if DB.Model(&user).Association("CreditCard").Count() != 0 {
+		t.Errorf("User's credit card count should be 0 after Clear")
 	}
 }
 
@@ -269,6 +311,10 @@ func TestHasMany(t *testing.T) {
 		t.Errorf("Query has many relations with Related")
 	}
 
+	if DB.Model(&post).Association("Comments").Count() != 2 {
+		t.Errorf("Post's comments count should be 2")
+	}
+
 	// Append
 	DB.Model(&post).Association("Comments").Append(&Comment{Content: "Comment 3"})
 
@@ -276,6 +322,10 @@ func TestHasMany(t *testing.T) {
 	DB.Model(&post).Related(&comments2)
 	if !compareComments(comments2, []string{"Comment 1", "Comment 2", "Comment 3"}) {
 		t.Errorf("Append new record to has many relations")
+	}
+
+	if DB.Model(&post).Association("Comments").Count() != 3 {
+		t.Errorf("Post's comments count should be 3 after Append")
 	}
 
 	// Delete
@@ -287,13 +337,17 @@ func TestHasMany(t *testing.T) {
 		t.Errorf("Delete an existing resource for has many relations")
 	}
 
+	if DB.Model(&post).Association("Comments").Count() != 1 {
+		t.Errorf("Post's comments count should be 1 after Delete 2")
+	}
+
 	// Replace
 	DB.Model(&Post{Id: 999}).Association("Comments").Replace()
 
 	var comments4 []Comment
 	DB.Model(&post).Related(&comments4)
 	if len(comments4) == 0 {
-		t.Errorf("Replace should not clear all comments")
+		t.Errorf("Replace for other resource should not clear all comments")
 	}
 
 	DB.Model(&post).Association("Comments").Replace(&Comment{Content: "Comment 4"}, &Comment{Content: "Comment 5"})
