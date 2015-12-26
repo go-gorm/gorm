@@ -169,37 +169,30 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		return association
 	}
 
+	var deletingResourcePrimaryFieldNames, deletingResourcePrimaryDBNames []string
+	for _, field := range scope.New(reflect.New(field.Type()).Interface()).Fields() {
+		if field.IsPrimaryKey {
+			deletingResourcePrimaryFieldNames = append(deletingResourcePrimaryFieldNames, field.Name)
+			deletingResourcePrimaryDBNames = append(deletingResourcePrimaryDBNames, field.DBName)
+		}
+	}
+
+	deletingPrimaryKeys := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, values...)
+
 	if relationship.Kind == "many_to_many" {
-		// many to many
-		// current value's foreign keys
+		// source value's foreign keys
 		for idx, foreignKey := range relationship.ForeignDBNames {
 			if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
 				newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 			}
 		}
 
-		// deleting value's foreign keys
-		primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
-		sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(primaryKeys))
-		newDB = newDB.Where(sql, toQueryValues(primaryKeys)...)
+		// association value's foreign keys
+		deletingPrimaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
+		sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(deletingPrimaryKeys))
+		newDB = newDB.Where(sql, toQueryValues(deletingPrimaryKeys)...)
 
-		if err := relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship); err == nil {
-			leftValues := reflect.Zero(association.Field.Field.Type())
-			for i := 0; i < association.Field.Field.Len(); i++ {
-				reflectValue := association.Field.Field.Index(i)
-				primaryKey := association.getPrimaryKeys(relationship.ForeignFieldNames, reflectValue.Interface())[0]
-				var included = false
-				for _, pk := range primaryKeys {
-					if equalAsString(primaryKey, pk) {
-						included = true
-					}
-				}
-				if !included {
-					leftValues = reflect.Append(leftValues, reflectValue)
-				}
-			}
-			association.Field.Set(leftValues)
-		}
+		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship))
 	} else {
 		var foreignKeyMap = map[string]interface{}{}
 		for _, foreignKey := range relationship.ForeignDBNames {
@@ -225,23 +218,45 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			)
 
 			// only include those deleting relations
-			var primaryFieldNames, primaryFieldDBNames []string
-			for _, field := range scope.New(reflect.New(field.Type()).Interface()).Fields() {
-				if field.IsPrimaryKey {
-					primaryFieldNames = append(primaryFieldNames, field.Name)
-					primaryFieldDBNames = append(primaryFieldDBNames, field.DBName)
-				}
-			}
-
-			relationsPrimaryKeys := association.getPrimaryKeys(primaryFieldNames, values...)
 			newDB = newDB.Where(
-				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, primaryFieldDBNames), toQueryMarks(relationsPrimaryKeys)),
-				toQueryValues(relationsPrimaryKeys)...,
+				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, deletingResourcePrimaryDBNames), toQueryMarks(deletingPrimaryKeys)),
+				toQueryValues(deletingPrimaryKeys)...,
 			)
 
 			// set matched relation's foreign key to be null
 			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
-			newDB.Model(fieldValue).UpdateColumn(foreignKeyMap)
+			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
+		}
+	}
+
+	// Remove deleted records from field
+	if association.Error == nil {
+		if association.Field.Field.Kind() == reflect.Slice {
+			leftValues := reflect.Zero(association.Field.Field.Type())
+
+			for i := 0; i < association.Field.Field.Len(); i++ {
+				reflectValue := association.Field.Field.Index(i)
+				primaryKey := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, reflectValue.Interface())[0]
+				var included = false
+				for _, pk := range deletingPrimaryKeys {
+					if equalAsString(primaryKey, pk) {
+						included = true
+					}
+				}
+				if !included {
+					leftValues = reflect.Append(leftValues, reflectValue)
+				}
+			}
+
+			association.Field.Set(leftValues)
+		} else if association.Field.Field.Kind() == reflect.Struct {
+			for _, pk := range deletingPrimaryKeys {
+				primaryKey := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, association.Field.Field)[0]
+				if equalAsString(primaryKey, pk) {
+					association.Field.Set(reflect.Zero(association.Field.Field.Type()))
+					break
+				}
+			}
 		}
 	}
 
