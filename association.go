@@ -26,7 +26,7 @@ func (association *Association) Find(value interface{}) *Association {
 	return association.setErr(association.Scope.db.Error)
 }
 
-func (association *Association) Append(values ...interface{}) *Association {
+func (association *Association) saveAssociations(values ...interface{}) *Association {
 	scope := association.Scope
 	field := association.Field
 	relationship := association.Field.Relationship
@@ -81,6 +81,13 @@ func (association *Association) Append(values ...interface{}) *Association {
 	return association
 }
 
+func (association *Association) Append(values ...interface{}) *Association {
+	if relationship := association.Field.Relationship; relationship.Kind == "has_one" {
+		return association.Replace(values...)
+	}
+	return association.saveAssociations(values...)
+}
+
 func (association *Association) Replace(values ...interface{}) *Association {
 	var (
 		relationship = association.Field.Relationship
@@ -91,7 +98,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 	// Append new values
 	association.Field.Set(reflect.Zero(association.Field.Field.Type()))
-	association.Append(values...)
+	association.saveAssociations(values...)
 
 	// Belongs To
 	if relationship.Kind == "belongs_to" {
@@ -112,6 +119,10 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			if field, ok := scope.FieldByName(relationship.AssociationForeignFieldNames[idx]); ok {
 				newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
 			}
+		}
+
+		if relationship.PolymorphicDBName != "" {
+			newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 		}
 
 		// Relations except new created

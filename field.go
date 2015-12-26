@@ -42,6 +42,10 @@ func (field *Field) Set(value interface{}) error {
 			reflectValue = reflect.ValueOf(value)
 		}
 
+		if !reflectValue.IsValid() {
+			return nil
+		}
+
 		if reflectValue.Type().ConvertibleTo(field.Field.Type()) {
 			field.Field.Set(reflectValue.Convert(field.Field.Type()))
 		} else {
