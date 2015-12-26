@@ -594,38 +594,6 @@ db.Model(&user).Related(&languages, "Languages")
 // `Languages` is user's column name, this column's tag defined join table like this `gorm:"many2many:user_languages;"`
 ```
 
-There is also a mode used to handle many to many relations easily
-
-```go
-// Query
-db.Model(&user).Association("Languages").Find(&languages)
-// same as `db.Model(&user).Related(&languages, "Languages")`
-
-db.Where("name = ?", "ZH").First(&languageZH)
-db.Where("name = ?", "EN").First(&languageEN)
-
-// Append
-db.Model(&user).Association("Languages").Append([]Language{languageZH, languageEN})
-db.Model(&user).Association("Languages").Append([]Language{{Name: "DE"}})
-db.Model(&user).Association("Languages").Append(Language{Name: "DE"})
-
-// Delete
-db.Model(&user).Association("Languages").Delete([]Language{languageZH, languageEN})
-db.Model(&user).Association("Languages").Delete(languageZH, languageEN)
-
-// Replace
-db.Model(&user).Association("Languages").Replace([]Language{languageZH, languageEN})
-db.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, languageEN)
-
-// Count
-db.Model(&user).Association("Languages").Count()
-// Return the count of languages the user has
-
-// Clear
-db.Model(&user).Association("Languages").Clear()
-// Remove all relations between the user and languages
-```
-
 ### Polymorphism
 
 Supports polymorphic has-many and has-one associations.
@@ -651,6 +619,42 @@ Supports polymorphic has-many and has-one associations.
   }
 ```
 Note: polymorphic belongs-to and many-to-many are explicitly NOT supported, and will throw errors.
+
+## Association Mode
+
+Association Mode contains some helper methods to handle relationship things easily.
+
+```go
+// Start Association Mode
+db.Model(&source).Association(fieldNameOfRelationship)
+
+db.Model(&user).Association("Languages")
+// source (user) need to have a valid primary key
+// fieldNameOfRelationship ("Languages") need to be a valid relationship of source
+// If not, it will return error, check it with:
+// db.Model(&user).Association("Languages").Error
+
+// Query - Find out all related associations
+db.Model(&user).Association("Languages").Find(&languages)
+
+// Append - Append new associations for many2many, has_many, will replace current association for has_one, belongs_to
+db.Model(&user).Association("Languages").Append([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Append(Language{Name: "DE"})
+
+// Delete - Remove relationship between source & passed arguments, won't delete those arguments
+db.Model(&user).Association("Languages").Delete([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Delete(languageZH, languageEN)
+
+// Replace - Replace current associations with new one
+db.Model(&user).Association("Languages").Replace([]Language{languageZH, languageEN})
+db.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, languageEN)
+
+// Count - Return the count of current associations
+db.Model(&user).Association("Languages").Count()
+
+// Clear - Remove relationship between source & current associations, won't delete those associations
+db.Model(&user).Association("Languages").Clear()
+```
 
 ## Advanced Usage
 
