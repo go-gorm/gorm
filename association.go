@@ -229,7 +229,8 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			)
 
 			// set matched relation's foreign key to be null
-			newDB.Model(association.Field.Field.Interface()).UpdateColumn(foreignKeyMap)
+			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
+			newDB.Model(fieldValue).UpdateColumn(foreignKeyMap)
 		}
 	}
 

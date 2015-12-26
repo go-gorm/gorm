@@ -110,6 +110,96 @@ func TestBelongsTo(t *testing.T) {
 	}
 }
 
+func TestHasOne(t *testing.T) {
+	user := User{
+		Name:       "has one",
+		CreditCard: CreditCard{Number: "411111111111"},
+	}
+
+	if err := DB.Save(&user).Error; err != nil {
+		t.Errorf("Got errors when save user", err.Error())
+	}
+
+	if user.CreditCard.UserId.Int64 == 0 {
+		t.Errorf("CreditCard's foreign key should be updated")
+	}
+
+	// Query
+	var creditCard1 CreditCard
+	DB.Model(&user).Related(&creditCard1)
+
+	if creditCard1.Number != "411111111111" {
+		t.Errorf("Query has one relations with Related")
+	}
+
+	var creditCard11 CreditCard
+	DB.Model(&user).Association("CreditCard").Find(&creditCard11)
+
+	if creditCard11.Number != "411111111111" {
+		t.Errorf("Query has one relations with Related")
+	}
+
+	// Append
+	var creditcard2 = CreditCard{
+		Number: "411111111112",
+	}
+	DB.Model(&user).Association("CreditCard").Append(&creditcard2)
+
+	if creditcard2.ID == 0 {
+		t.Errorf("Creditcard should has ID when created with Append")
+	}
+
+	var creditcard21 CreditCard
+	DB.Model(&user).Related(&creditcard21)
+	if creditcard21.Number != "411111111112" {
+		t.Errorf("CreditCard should be updated with Append")
+	}
+
+	// Replace
+	var creditcard3 = CreditCard{
+		Number: "411111111113",
+	}
+	DB.Model(&user).Association("CreditCard").Replace(&creditcard3)
+
+	if creditcard3.ID == 0 {
+		t.Errorf("Creditcard should has ID when created with Replace")
+	}
+
+	var creditcard31 CreditCard
+	DB.Model(&user).Related(&creditcard31)
+	if creditcard31.Number != "411111111113" {
+		t.Errorf("CreditCard should be updated with Replace")
+	}
+
+	// Delete
+	DB.Model(&user).Association("CreditCard").Delete(&creditcard2)
+	var creditcard4 CreditCard
+	DB.Model(&user).Related(&creditcard4)
+	if creditcard4.Number != "411111111113" {
+		t.Errorf("Should not delete credit card when Delete a unrelated CreditCard")
+	}
+
+	DB.Model(&user).Association("CreditCard").Delete(&creditcard3)
+	if !DB.Model(&user).Related(&CreditCard{}).RecordNotFound() {
+		t.Errorf("Should delete credit card with Delete")
+	}
+
+	// Clear
+	var creditcard5 = CreditCard{
+		Number: "411111111115",
+	}
+	DB.Model(&user).Association("CreditCard").Append(&creditcard5)
+
+	if DB.Model(&user).Related(&CreditCard{}).RecordNotFound() {
+		t.Errorf("Should added credit card with Append")
+	}
+
+	DB.Model(&user).Association("CreditCard").Clear()
+	if !DB.Model(&user).Related(&CreditCard{}).RecordNotFound() {
+		t.Errorf("Credit card should be deleted with Clear")
+	}
+}
+
 func TestHasMany(t *testing.T) {
 	post := Post{
 		Title:    "post has many",
@@ -204,155 +294,6 @@ func TestHasMany(t *testing.T) {
 	DB.Model(&post).Related(&comments51)
 	if len(comments51) != 0 {
 		t.Errorf("Clear has many relations")
-	}
-}
-
-func TestHasOne(t *testing.T) {
-	user := User{
-		Name:       "has one",
-		CreditCard: CreditCard{Number: "411111111111"},
-	}
-
-	if err := DB.Save(&user).Error; err != nil {
-		t.Errorf("Got errors when save user", err.Error())
-	}
-
-	if user.CreditCard.UserId.Int64 == 0 {
-		t.Errorf("CreditCard's foreign key should be updated")
-	}
-
-	// Query
-	var creditCard1 CreditCard
-	DB.Model(&user).Related(&creditCard1)
-
-	if creditCard1.Number != "411111111111" {
-		t.Errorf("Query has one relations with Related")
-	}
-
-	var creditCard11 CreditCard
-	DB.Model(&user).Association("CreditCard").Find(&creditCard11)
-
-	if creditCard11.Number != "411111111111" {
-		t.Errorf("Query has one relations with Related")
-	}
-
-	// Append
-	var creditcard2 = CreditCard{
-		Number: "411111111112",
-	}
-	DB.Model(&user).Association("CreditCard").Append(&creditcard2)
-
-	if creditcard2.ID == 0 {
-		t.Errorf("Creditcard should has ID when created with Append")
-	}
-
-	var creditcard21 CreditCard
-	DB.Model(&user).Related(&creditcard21)
-	if creditcard21.Number != "411111111112" {
-		t.Errorf("CreditCard should be updated with Append")
-	}
-
-	// Replace
-	var creditcard3 = CreditCard{
-		Number: "411111111113",
-	}
-	DB.Model(&user).Association("CreditCard").Replace(&creditcard3)
-
-	if creditcard3.ID == 0 {
-		t.Errorf("Creditcard should has ID when created with Replace")
-	}
-
-	var creditcard31 CreditCard
-	DB.Model(&user).Related(&creditcard31)
-	if creditcard31.Number != "411111111113" {
-		t.Errorf("CreditCard should be updated with Replace")
-	}
-
-	// Delete
-	// Clear
-}
-
-func TestRelated(t *testing.T) {
-	user := User{
-		Name:            "jinzhu",
-		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
-		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
-		CreditCard:      CreditCard{Number: "1234567890"},
-		Company:         Company{Name: "company1"},
-	}
-
-	DB.Save(&user)
-
-	if user.CreditCard.ID == 0 {
-		t.Errorf("After user save, credit card should have id")
-	}
-
-	if user.BillingAddress.ID == 0 {
-		t.Errorf("After user save, billing address should have id")
-	}
-
-	if user.Emails[0].Id == 0 {
-		t.Errorf("After user save, billing address should have id")
-	}
-
-	var emails []Email
-	DB.Model(&user).Related(&emails)
-	if len(emails) != 2 {
-		t.Errorf("Should have two emails")
-	}
-
-	var emails2 []Email
-	DB.Model(&user).Where("email = ?", "jinzhu@example.com").Related(&emails2)
-	if len(emails2) != 1 {
-		t.Errorf("Should have two emails")
-	}
-
-	var emails3 []*Email
-	DB.Model(&user).Related(&emails3)
-	if len(emails3) != 2 {
-		t.Errorf("Should have two emails")
-	}
-
-	var user1 User
-	DB.Model(&user).Related(&user1.Emails)
-	if len(user1.Emails) != 2 {
-		t.Errorf("Should have only one email match related condition")
-	}
-
-	var address1 Address
-	DB.Model(&user).Related(&address1, "BillingAddressId")
-	if address1.Address1 != "Billing Address - Address 1" {
-		t.Errorf("Should get billing address from user correctly")
-	}
-
-	user1 = User{}
-	DB.Model(&address1).Related(&user1, "BillingAddressId")
-	if DB.NewRecord(user1) {
-		t.Errorf("Should get user from address correctly")
-	}
-
-	var user2 User
-	DB.Model(&emails[0]).Related(&user2)
-	if user2.Id != user.Id || user2.Name != user.Name {
-		t.Errorf("Should get user from email correctly")
-	}
-
-	var creditcard CreditCard
-	var user3 User
-	DB.First(&creditcard, "number = ?", "1234567890")
-	DB.Model(&creditcard).Related(&user3)
-	if user3.Id != user.Id || user3.Name != user.Name {
-		t.Errorf("Should get user from credit card correctly")
-	}
-
-	if !DB.Model(&CreditCard{}).Related(&User{}).RecordNotFound() {
-		t.Errorf("RecordNotFound for Related")
-	}
-
-	var company Company
-	if DB.Model(&user).Related(&company, "Company").RecordNotFound() || company.Name != "company1" {
-		t.Errorf("RecordNotFound for Related")
 	}
 }
 
@@ -451,6 +392,90 @@ func TestManyToMany(t *testing.T) {
 	DB.Model(&user).Association("Languages").Clear()
 	if len(user.Languages) != 0 || DB.Model(&user).Association("Languages").Count() != 0 {
 		t.Errorf("Relations should be cleared")
+	}
+}
+
+func TestRelated(t *testing.T) {
+	user := User{
+		Name:            "jinzhu",
+		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+		CreditCard:      CreditCard{Number: "1234567890"},
+		Company:         Company{Name: "company1"},
+	}
+
+	DB.Save(&user)
+
+	if user.CreditCard.ID == 0 {
+		t.Errorf("After user save, credit card should have id")
+	}
+
+	if user.BillingAddress.ID == 0 {
+		t.Errorf("After user save, billing address should have id")
+	}
+
+	if user.Emails[0].Id == 0 {
+		t.Errorf("After user save, billing address should have id")
+	}
+
+	var emails []Email
+	DB.Model(&user).Related(&emails)
+	if len(emails) != 2 {
+		t.Errorf("Should have two emails")
+	}
+
+	var emails2 []Email
+	DB.Model(&user).Where("email = ?", "jinzhu@example.com").Related(&emails2)
+	if len(emails2) != 1 {
+		t.Errorf("Should have two emails")
+	}
+
+	var emails3 []*Email
+	DB.Model(&user).Related(&emails3)
+	if len(emails3) != 2 {
+		t.Errorf("Should have two emails")
+	}
+
+	var user1 User
+	DB.Model(&user).Related(&user1.Emails)
+	if len(user1.Emails) != 2 {
+		t.Errorf("Should have only one email match related condition")
+	}
+
+	var address1 Address
+	DB.Model(&user).Related(&address1, "BillingAddressId")
+	if address1.Address1 != "Billing Address - Address 1" {
+		t.Errorf("Should get billing address from user correctly")
+	}
+
+	user1 = User{}
+	DB.Model(&address1).Related(&user1, "BillingAddressId")
+	if DB.NewRecord(user1) {
+		t.Errorf("Should get user from address correctly")
+	}
+
+	var user2 User
+	DB.Model(&emails[0]).Related(&user2)
+	if user2.Id != user.Id || user2.Name != user.Name {
+		t.Errorf("Should get user from email correctly")
+	}
+
+	var creditcard CreditCard
+	var user3 User
+	DB.First(&creditcard, "number = ?", "1234567890")
+	DB.Model(&creditcard).Related(&user3)
+	if user3.Id != user.Id || user3.Name != user.Name {
+		t.Errorf("Should get user from credit card correctly")
+	}
+
+	if !DB.Model(&CreditCard{}).Related(&User{}).RecordNotFound() {
+		t.Errorf("RecordNotFound for Related")
+	}
+
+	var company Company
+	if DB.Model(&user).Related(&company, "Company").RecordNotFound() || company.Name != "company1" {
+		t.Errorf("RecordNotFound for Related")
 	}
 }
 
