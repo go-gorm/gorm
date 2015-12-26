@@ -39,21 +39,28 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 			reflectValue = reflectPtr
 		}
 
-		// value has to been saved
-		if scope.New(reflectValue.Interface()).PrimaryKeyZero() {
-			scope.NewDB().Save(reflectValue.Interface())
+		// value has to been saved for many2many
+		if relationship.Kind == "many_to_many" {
+			if scope.New(reflectValue.Interface()).PrimaryKeyZero() {
+				scope.NewDB().Save(reflectValue.Interface())
+			}
 		}
 
 		// Assign Fields
-		fieldType := field.Field.Type()
+		var fieldType = field.Field.Type()
+		var setFieldBackToValue, setSliceFieldBackToValue bool
 		if reflectValue.Type().AssignableTo(fieldType) {
 			field.Set(reflectValue)
 		} else if reflectValue.Type().Elem().AssignableTo(fieldType) {
+			// if field's type is struct, then need to set value back to argument after save
+			setFieldBackToValue = true
 			field.Set(reflectValue.Elem())
 		} else if fieldType.Kind() == reflect.Slice {
 			if reflectValue.Type().AssignableTo(fieldType.Elem()) {
 				field.Set(reflect.Append(field.Field, reflectValue))
 			} else if reflectValue.Type().Elem().AssignableTo(fieldType.Elem()) {
+				// if field's type is slice of struct, then need to set value back to argument after save
+				setSliceFieldBackToValue = true
 				field.Set(reflect.Append(field.Field, reflectValue.Elem()))
 			}
 		}
@@ -62,6 +69,12 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 			association.setErr(relationship.JoinTableHandler.Add(relationship.JoinTableHandler, scope.NewDB(), scope.Value, reflectValue.Interface()))
 		} else {
 			association.setErr(scope.NewDB().Select(field.Name).Save(scope.Value).Error)
+
+			if setFieldBackToValue {
+				reflectValue.Elem().Set(field.Field)
+			} else if setSliceFieldBackToValue {
+				reflectValue.Elem().Set(field.Field.Index(field.Field.Len() - 1))
+			}
 		}
 	}
 
