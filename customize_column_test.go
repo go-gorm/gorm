@@ -32,12 +32,23 @@ func TestCustomizeColumn(t *testing.T) {
 	if scope.PrimaryKey() != col {
 		t.Errorf("CustomizeColumn should have primary key %s, but got %q", col, scope.PrimaryKey())
 	}
+	
+	tableName := "customize_columns"
+	idInsRes := DB.EnableIdentityInsert(&DB, tableName)
+	if idInsRes.Error != nil {
+		t.Errorf("Error while setting IDENTITY_INSERT ON for table:%v :%v", tableName, idInsRes.Error)
+	}
 
 	expected := "foo"
 	cc := CustomizeColumn{ID: 666, Name: expected, Date: time.Now()}
 
-	if count := DB.Create(&cc).RowsAffected; count != 1 {
-		t.Error("There should be one record be affected when create record")
+    res := DB.Create(&cc)
+	if res.Error != nil {
+		t.Errorf("Error while creating CustomizeColumn:%v", res.Error)
+	} 
+	
+	if count := res.RowsAffected; count != 1 {
+		t.Errorf("There should be one record be affected when create record. count:%v", count)
 	}
 
 	var cc1 CustomizeColumn

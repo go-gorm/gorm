@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 	"time"
+	"os"
 )
 
 func TestCreate(t *testing.T) {
@@ -57,6 +58,11 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateWithNoGORMPrimayKey(t *testing.T) {
+	
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
+		t.Skip("Skipping this because MSSQL will return identity only if the table has an Id column")
+	}
+	
 	jt := JoinTable{From: 1, To: 2}
 	err := DB.Create(&jt).Error
 	if err != nil {

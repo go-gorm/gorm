@@ -34,13 +34,24 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 			},
 		}
 
-		DB.Save(&blog)
-		DB.Model(&blog).Association("Tags").Append([]Tag{{Locale: "ZH", Value: "tag3"}})
-
+		res := DB.Save(&blog)
+		if nil != res.Error {
+			t.Errorf("Error while saving blog:%v", res.Error)
+		}
+		res2 := DB.Model(&blog).Association("Tags").Append([]Tag{{Locale: "ZH", Value: "tag3"}})
+		if nil != res2.Error {
+			t.Errorf("Error while appending tag to blog:%v", res2.Error)
+		}
+		
 		var tags []Tag
-		DB.Model(&blog).Related(&tags, "Tags")
-		if len(tags) != 3 {
-			t.Errorf("should found 3 tags with blog")
+		res = DB.Model(&blog).Related(&tags, "Tags")
+		if nil != res.Error {
+			t.Errorf("Error while reading tags related to blog:%v", res.Error)
+		}
+		
+		tagsCount := len(tags)
+		if tagsCount != 3 {
+			t.Errorf("should found 3 tags with blog, found:%v", tagsCount)
 		}
 	}
 }

@@ -88,8 +88,8 @@ type BigEmail struct {
 	Id           int64
 	UserId       int64
 	Email        string    `sql:"index:idx_email_agent"`
-	UserAgent    string    `sql:"index:idx_email_agent"`
-	RegisteredAt time.Time `sql:"unique_index"`
+	UserAgent    string    `sql:"index:idx_user_agent"`
+	RegisteredAt time.Time `sql:"index:idx_emails_registered_at"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -100,8 +100,9 @@ func (b BigEmail) TableName() string {
 
 func TestAutoMigration(t *testing.T) {
 	DB.AutoMigrate(&Address{})
+	
 	if err := DB.Table("emails").AutoMigrate(&BigEmail{}).Error; err != nil {
-		t.Errorf("Auto Migrate should not raise any error")
+		t.Errorf("Auto Migrate should not raise any error, but raised: %v", err)
 	}
 
 	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
@@ -111,7 +112,7 @@ func TestAutoMigration(t *testing.T) {
 		t.Errorf("Failed to create index")
 	}
 
-	if !scope.Dialect().HasIndex(scope, scope.TableName(), "uix_emails_registered_at") {
+	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_emails_registered_at") {
 		t.Errorf("Failed to create index")
 	}
 

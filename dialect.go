@@ -18,6 +18,7 @@ type Dialect interface {
 	HasIndex(scope *Scope, tableName string, indexName string) bool
 	RemoveIndex(scope *Scope, indexName string)
 	CurrentDatabase(scope *Scope) string
+	EnableIdentityInsert(db *DB, tableName  string) *DB
 }
 
 func NewDialect(driver string) Dialect {
