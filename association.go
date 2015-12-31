@@ -143,7 +143,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			var newPrimaryKeys [][]interface{}
 			var associationForeignFieldNames []string
 
-			if relationship.Kind == "many2many" {
+			if relationship.Kind == "many_to_many" {
 				// If many to many relations, get it from foreign key
 				associationForeignFieldNames = relationship.AssociationForeignFieldNames
 			} else {
@@ -156,6 +156,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			}
 
 			newPrimaryKeys = association.getPrimaryKeys(associationForeignFieldNames, field.Interface())
+
 			if len(newPrimaryKeys) > 0 {
 				sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(newPrimaryKeys))
 				newDB = newDB.Where(sql, toQueryValues(newPrimaryKeys)...)
