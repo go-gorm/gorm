@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"go/ast"
 	"reflect"
@@ -84,6 +85,7 @@ func (structField *StructField) clone() *StructField {
 	}
 }
 
+// Relationship described the relationship between models
 type Relationship struct {
 	Kind                         string
 	PolymorphicType              string
@@ -104,6 +106,7 @@ func getForeignField(column string, fields []*StructField) *StructField {
 	return nil
 }
 
+// GetModelStruct generate model struct & relationships based on struct and tag definition
 func (scope *Scope) GetModelStruct() *ModelStruct {
 	var modelStruct ModelStruct
 	// Scope value can't be nil
@@ -150,6 +153,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				TagSettings: parseTagSetting(fieldStruct.Tag),
 			}
 
+			// is ignored field
 			if fieldStruct.Tag.Get("sql") == "-" {
 				field.IsIgnored = true
 			} else {
@@ -170,7 +174,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					// is time
 					field.IsNormal = true
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-					// embedded struct
+					// is embedded struct
 					for _, subField := range scope.New(fieldValue).GetStructFields() {
 						subField = subField.clone()
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
@@ -181,6 +185,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					}
 					continue
 				} else {
+					// build relationships
 					indirectType := fieldStruct.Type
 					for indirectType.Kind() == reflect.Ptr {
 						indirectType = indirectType.Elem()
@@ -213,24 +218,24 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
 									relationship.Kind = "many_to_many"
 
-									// if no foreign keys
+									// if no foreign keys defined with tag
 									if len(foreignKeys) == 0 {
-										for _, field := range scope.PrimaryFields() { // FIXME
+										for _, field := range modelStruct.PrimaryFields {
 											foreignKeys = append(foreignKeys, field.DBName)
 										}
 									}
 
 									for _, foreignKey := range foreignKeys {
-										if field, ok := scope.FieldByName(foreignKey); ok { // FIXME
+										if foreignField := getForeignField(foreignKey, modelStruct.StructFields); foreignField != nil {
 											// source foreign keys (db names)
-											relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, field.DBName)
+											relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, foreignField.DBName)
 											// join table foreign keys for source
-											joinTableDBName := ToDBName(reflectType.Name()) + "_" + field.DBName
+											joinTableDBName := ToDBName(reflectType.Name()) + "_" + foreignField.DBName
 											relationship.ForeignDBNames = append(relationship.ForeignDBNames, joinTableDBName)
 										}
 									}
 
-									// if no association foreign keys
+									// if no association foreign keys defined with tag
 									if len(associationForeignKeys) == 0 {
 										for _, field := range toScope.PrimaryFields() {
 											associationForeignKeys = append(associationForeignKeys, field.DBName)
@@ -252,42 +257,57 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									relationship.JoinTableHandler = &joinTableHandler
 									field.Relationship = relationship
 								} else {
+									// User has many comments, associationType is User, comment use UserID as foreign key
+									var associationType = reflectType.Name()
+									var toFields = toScope.GetStructFields()
 									relationship.Kind = "has_many"
 
 									if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
-										if polymorphicField := getForeignField(polymorphic+"ID", toScope.GetStructFields()); polymorphicField != nil {
-											if polymorphicType := getForeignField(polymorphic+"Type", toScope.GetStructFields()); polymorphicType != nil {
-												relationship.ForeignFieldNames = []string{polymorphicField.Name}
-												relationship.ForeignDBNames = []string{polymorphicField.DBName}
-												relationship.AssociationForeignFieldNames = []string{scope.PrimaryField().Name}
-												relationship.AssociationForeignDBNames = []string{scope.PrimaryField().DBName}
-												relationship.PolymorphicType = polymorphicType.Name
-												relationship.PolymorphicDBName = polymorphicType.DBName
-												polymorphicType.IsForeignKey = true
-												polymorphicField.IsForeignKey = true
-											}
+										// Dog has many toys, tag polymorphic is Owner, then associationType is Owner
+										// Toy use OwnerID, OwnerType ('dogs') as foreign key
+										if polymorphicType := getForeignField(polymorphic+"Type", toFields); polymorphicType != nil {
+											associationType = polymorphic
+											relationship.PolymorphicType = polymorphicType.Name
+											relationship.PolymorphicDBName = polymorphicType.DBName
+											polymorphicType.IsForeignKey = true
 										}
 									}
 
-									// if no foreign keys
+									// if no foreign keys defined with tag
 									if len(foreignKeys) == 0 {
+										// if no association foreign keys defined with tag
 										if len(associationForeignKeys) == 0 {
 											for _, field := range modelStruct.PrimaryFields {
-												foreignKeys = append(foreignKeys, reflectType.Name()+field.Name)
+												foreignKeys = append(foreignKeys, associationType+field.Name)
 												associationForeignKeys = append(associationForeignKeys, field.Name)
 											}
 										} else {
-											for _, associationForeignKey := range associationForeignKeys {
-												if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
-													foreignKeys = append(foreignKeys, reflectType.Name()+foreignField.Name)
+											// generate foreign keys from defined association foreign keys
+											for _, scopeFieldName := range associationForeignKeys {
+												if foreignField := getForeignField(scopeFieldName, modelStruct.StructFields); foreignField != nil {
+													foreignKeys = append(foreignKeys, associationType+foreignField.Name)
 													associationForeignKeys = append(associationForeignKeys, foreignField.Name)
 												}
 											}
 										}
+									} else {
+										// generate association foreign keys from foreign keys
+										if len(associationForeignKeys) == 0 {
+											for _, foreignKey := range foreignKeys {
+												if strings.HasPrefix(foreignKey, associationType) {
+													associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
+												} else {
+													scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, associationType))
+												}
+											}
+										} else if len(foreignKeys) != len(associationForeignKeys) {
+											scope.Err(errors.New("invalid foreign keys, should have same length"))
+											return
+										}
 									}
 
 									for idx, foreignKey := range foreignKeys {
-										if foreignField := getForeignField(foreignKey, toScope.GetStructFields()); foreignField != nil {
+										if foreignField := getForeignField(foreignKey, toFields); foreignField != nil {
 											if associationField := getForeignField(associationForeignKeys[idx], modelStruct.StructFields); associationField != nil {
 												// source foreign keys
 												foreignField.IsForeignKey = true
@@ -312,8 +332,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					case reflect.Struct:
 						defer func(field *StructField) {
 							var (
+								// user has one profile, associationType is User, profile use UserID as foreign key
+								// user belongs to profile, associationType is Profile, user use ProfileID as foreign key
+								associationType           = reflectType.Name()
 								relationship              = &Relationship{}
 								toScope                   = scope.New(reflect.New(field.Struct.Type).Interface())
+								toFields                  = toScope.GetStructFields()
 								tagForeignKeys            []string
 								tagAssociationForeignKeys []string
 							)
@@ -327,17 +351,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 
 							if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
-								if polymorphicField := getForeignField(polymorphic+"ID", toScope.GetStructFields()); polymorphicField != nil {
-									if polymorphicType := getForeignField(polymorphic+"Type", toScope.GetStructFields()); polymorphicType != nil {
-										relationship.ForeignFieldNames = []string{polymorphicField.Name}
-										relationship.ForeignDBNames = []string{polymorphicField.DBName}
-										relationship.AssociationForeignFieldNames = []string{scope.PrimaryField().Name}
-										relationship.AssociationForeignDBNames = []string{scope.PrimaryField().DBName}
-										relationship.PolymorphicType = polymorphicType.Name
-										relationship.PolymorphicDBName = polymorphicType.DBName
-										polymorphicType.IsForeignKey = true
-										polymorphicField.IsForeignKey = true
-									}
+								// Cat has one toy, tag polymorphic is Owner, then associationType is Owner
+								// Toy use OwnerID, OwnerType ('cats') as foreign key
+								if polymorphicType := getForeignField(polymorphic+"Type", toFields); polymorphicType != nil {
+									associationType = polymorphic
+									relationship.PolymorphicType = polymorphicType.Name
+									relationship.PolymorphicDBName = polymorphicType.DBName
+									polymorphicType.IsForeignKey = true
 								}
 							}
 
@@ -345,24 +365,41 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							{
 								var foreignKeys = tagForeignKeys
 								var associationForeignKeys = tagAssociationForeignKeys
+								// if no foreign keys defined with tag
 								if len(foreignKeys) == 0 {
+									// if no association foreign keys defined with tag
 									if len(associationForeignKeys) == 0 {
 										for _, primaryField := range modelStruct.PrimaryFields {
-											foreignKeys = append(foreignKeys, modelStruct.ModelType.Name()+primaryField.Name)
+											foreignKeys = append(foreignKeys, associationType+primaryField.Name)
 											associationForeignKeys = append(associationForeignKeys, primaryField.Name)
 										}
 									} else {
+										// generate foreign keys form association foreign keys
 										for _, associationForeignKey := range tagAssociationForeignKeys {
 											if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
-												foreignKeys = append(foreignKeys, modelStruct.ModelType.Name()+foreignField.Name)
+												foreignKeys = append(foreignKeys, associationType+foreignField.Name)
 												associationForeignKeys = append(associationForeignKeys, foreignField.Name)
 											}
 										}
 									}
+								} else {
+									// generate association foreign keys from foreign keys
+									if len(associationForeignKeys) == 0 {
+										for _, foreignKey := range foreignKeys {
+											if strings.HasPrefix(foreignKey, associationType) {
+												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
+											} else {
+												scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, associationType))
+											}
+										}
+									} else if len(foreignKeys) != len(associationForeignKeys) {
+										scope.Err(errors.New("invalid foreign keys, should have same length"))
+										return
+									}
 								}
 
 								for idx, foreignKey := range foreignKeys {
-									if foreignField := getForeignField(foreignKey, toScope.GetStructFields()); foreignField != nil {
+									if foreignField := getForeignField(foreignKey, toFields); foreignField != nil {
 										if scopeField := getForeignField(associationForeignKeys[idx], modelStruct.StructFields); scopeField != nil {
 											foreignField.IsForeignKey = true
 											// source foreign keys
@@ -383,25 +420,44 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							} else {
 								var foreignKeys = tagForeignKeys
 								var associationForeignKeys = tagAssociationForeignKeys
+
 								if len(foreignKeys) == 0 {
+									// generate foreign keys & association foreign keys
 									if len(associationForeignKeys) == 0 {
-										for _, f := range toScope.PrimaryFields() {
-											foreignKeys = append(foreignKeys, field.Name+f.Name)
-											associationForeignKeys = append(associationForeignKeys, f.Name)
+										for _, primaryField := range toScope.PrimaryFields() {
+											foreignKeys = append(foreignKeys, field.Name+primaryField.Name)
+											associationForeignKeys = append(associationForeignKeys, primaryField.Name)
 										}
 									} else {
+										// generate foreign keys with association foreign keys
 										for _, associationForeignKey := range associationForeignKeys {
-											if foreignField := getForeignField(associationForeignKey, toScope.GetStructFields()); foreignField != nil {
+											if foreignField := getForeignField(associationForeignKey, toFields); foreignField != nil {
 												foreignKeys = append(foreignKeys, field.Name+foreignField.Name)
 												associationForeignKeys = append(associationForeignKeys, foreignField.Name)
 											}
 										}
 									}
+								} else {
+									// generate foreign keys & association foreign keys
+									if len(associationForeignKeys) == 0 {
+										for _, foreignKey := range foreignKeys {
+											if strings.HasPrefix(foreignKey, field.Name) {
+												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, field.Name))
+											} else {
+												scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, field.Name))
+											}
+										}
+									} else if len(foreignKeys) != len(associationForeignKeys) {
+										scope.Err(errors.New("invalid foreign keys, should have same length"))
+										return
+									}
 								}
 
 								for idx, foreignKey := range foreignKeys {
 									if foreignField := getForeignField(foreignKey, modelStruct.StructFields); foreignField != nil {
-										if associationField := getForeignField(associationForeignKeys[idx], toScope.GetStructFields()); associationField != nil {
+										if associationField := getForeignField(associationForeignKeys[idx], toFields); associationField != nil {
+											foreignField.IsForeignKey = true
+
 											// association foreign keys
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, associationField.Name)
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, associationField.DBName)
@@ -409,7 +465,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											// source foreign keys
 											relationship.ForeignFieldNames = append(relationship.ForeignFieldNames, foreignField.Name)
 											relationship.ForeignDBNames = append(relationship.ForeignDBNames, foreignField.DBName)
-											foreignField.IsForeignKey = true
 										}
 									}
 								}
