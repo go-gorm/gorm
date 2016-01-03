@@ -49,7 +49,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			if bytes, ok := arg.([]byte); ok {
-				scope.AddToVars(bytes)
+				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
 			} else {
 				values := reflect.ValueOf(arg)
 				var tempMarks []string
