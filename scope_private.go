@@ -630,15 +630,14 @@ func (scope *Scope) autoIndex() *Scope {
 	var uniqueIndexes = map[string][]string{}
 
 	for _, field := range scope.GetStructFields() {
-		sqlSettings := parseTagSetting(field.Tag)
-		if name, ok := sqlSettings["INDEX"]; ok {
+		if name, ok := field.TagSettings["INDEX"]; ok {
 			if name == "INDEX" {
 				name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
 			}
 			indexes[name] = append(indexes[name], field.DBName)
 		}
 
-		if name, ok := sqlSettings["UNIQUE_INDEX"]; ok {
+		if name, ok := field.TagSettings["UNIQUE_INDEX"]; ok {
 			if name == "UNIQUE_INDEX" {
 				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
 			}
