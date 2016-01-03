@@ -75,9 +75,7 @@ func (scope *Scope) Fields() map[string]*Field {
 			}
 		}
 
-		if modelStruct.cached {
-			scope.fields = fields
-		}
+		scope.fields = fields
 		return fields
 	}
 	return scope.fields

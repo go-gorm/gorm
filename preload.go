@@ -31,7 +31,7 @@ func equalAsString(a interface{}, b interface{}) bool {
 }
 
 func Preload(scope *Scope) {
-	if scope.Search.preload == nil {
+	if scope.Search.preload == nil || scope.HasError() {
 		return
 	}
 
@@ -277,10 +277,10 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 	}
 
-	var associationForeignStructFieldNames []string
-	for _, dbName := range relation.AssociationForeignFieldNames {
+	var foreignFieldNames []string
+	for _, dbName := range relation.ForeignFieldNames {
 		if field, ok := scope.FieldByName(dbName); ok {
-			associationForeignStructFieldNames = append(associationForeignStructFieldNames, field.Name)
+			foreignFieldNames = append(foreignFieldNames, field.Name)
 		}
 	}
 
@@ -288,7 +288,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		objects := scope.IndirectValue()
 		for j := 0; j < objects.Len(); j++ {
 			object := reflect.Indirect(objects.Index(j))
-			source := getRealValue(object, associationForeignStructFieldNames)
+			source := getRealValue(object, foreignFieldNames)
 			field := object.FieldByName(field.Name)
 			for _, link := range linkHash[toString(source)] {
 				field.Set(reflect.Append(field, link))
@@ -296,7 +296,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 	} else {
 		if object := scope.IndirectValue(); object.IsValid() {
-			source := getRealValue(object, associationForeignStructFieldNames)
+			source := getRealValue(object, foreignFieldNames)
 			field := object.FieldByName(field.Name)
 			for _, link := range linkHash[toString(source)] {
 				field.Set(reflect.Append(field, link))
