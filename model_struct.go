@@ -173,6 +173,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				} else if _, isTime := fieldValue.(*time.Time); isTime {
 					// is time
 					field.IsNormal = true
+				} else if _, isTime := fieldValue.(**time.Time); isTime {
+					// is time
+					field.IsNormal = true
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 					// is embedded struct
 					for _, subField := range scope.New(fieldValue).GetStructFields() {
