@@ -254,6 +254,21 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								} else {
 									relationship.Kind = "has_many"
 
+									if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
+										if polymorphicField := getForeignField(polymorphic+"ID", toScope.GetStructFields()); polymorphicField != nil {
+											if polymorphicType := getForeignField(polymorphic+"Type", toScope.GetStructFields()); polymorphicType != nil {
+												relationship.ForeignFieldNames = []string{polymorphicField.Name}
+												relationship.ForeignDBNames = []string{polymorphicField.DBName}
+												relationship.AssociationForeignFieldNames = []string{scope.PrimaryField().Name}
+												relationship.AssociationForeignDBNames = []string{scope.PrimaryField().DBName}
+												relationship.PolymorphicType = polymorphicType.Name
+												relationship.PolymorphicDBName = polymorphicType.DBName
+												polymorphicType.IsForeignKey = true
+												polymorphicField.IsForeignKey = true
+											}
+										}
+									}
+
 									// if no foreign keys
 									if len(foreignKeys) == 0 {
 										if len(associationForeignKeys) == 0 {
@@ -309,6 +324,21 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 							if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
 								tagAssociationForeignKeys = strings.Split(field.TagSettings["ASSOCIATIONFOREIGNKEY"], ";")
+							}
+
+							if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
+								if polymorphicField := getForeignField(polymorphic+"ID", toScope.GetStructFields()); polymorphicField != nil {
+									if polymorphicType := getForeignField(polymorphic+"Type", toScope.GetStructFields()); polymorphicType != nil {
+										relationship.ForeignFieldNames = []string{polymorphicField.Name}
+										relationship.ForeignDBNames = []string{polymorphicField.DBName}
+										relationship.AssociationForeignFieldNames = []string{scope.PrimaryField().Name}
+										relationship.AssociationForeignDBNames = []string{scope.PrimaryField().DBName}
+										relationship.PolymorphicType = polymorphicType.Name
+										relationship.PolymorphicDBName = polymorphicType.DBName
+										polymorphicType.IsForeignKey = true
+										polymorphicField.IsForeignKey = true
+									}
+								}
 							}
 
 							// Has One
