@@ -384,6 +384,10 @@ func (s *DB) CreateTable(values ...interface{}) *DB {
 func (s *DB) DropTable(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
+		if tableName, ok := value.(string); ok {
+			db = db.Table(tableName)
+		}
+
 		db = db.NewScope(value).dropTable().db
 	}
 	return db

@@ -126,14 +126,6 @@ func (association *Association) Replace(values ...interface{}) *Association {
 		}
 	} else {
 		// Relations
-		var foreignKeyMap = map[string]interface{}{}
-		for idx, foreignKey := range relationship.ForeignDBNames {
-			foreignKeyMap[foreignKey] = nil
-			if field, ok := scope.FieldByName(relationship.AssociationForeignFieldNames[idx]); ok {
-				newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
-			}
-		}
-
 		if relationship.PolymorphicDBName != "" {
 			newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 		}
@@ -164,8 +156,22 @@ func (association *Association) Replace(values ...interface{}) *Association {
 		}
 
 		if relationship.Kind == "many_to_many" {
+			for idx, foreignKey := range relationship.ForeignDBNames {
+				if field, ok := scope.FieldByName(relationship.ForeignFieldNames[idx]); ok {
+					newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+				}
+			}
+
 			association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship))
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
+			var foreignKeyMap = map[string]interface{}{}
+			for idx, foreignKey := range relationship.ForeignDBNames {
+				foreignKeyMap[foreignKey] = nil
+				if field, ok := scope.FieldByName(relationship.AssociationForeignFieldNames[idx]); ok {
+					newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
+				}
+			}
+
 			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
 			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
 		}

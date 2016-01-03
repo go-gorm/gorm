@@ -203,11 +203,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							)
 
 							if foreignKey := field.TagSettings["FOREIGNKEY"]; foreignKey != "" {
-								foreignKeys = strings.Split(field.TagSettings["FOREIGNKEY"], ";")
+								foreignKeys = strings.Split(field.TagSettings["FOREIGNKEY"], ",")
 							}
 
 							if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
-								associationForeignKeys = strings.Split(field.TagSettings["ASSOCIATIONFOREIGNKEY"], ";")
+								associationForeignKeys = strings.Split(field.TagSettings["ASSOCIATIONFOREIGNKEY"], ",")
 							}
 
 							for elemType.Kind() == reflect.Slice || elemType.Kind() == reflect.Ptr {
@@ -343,11 +343,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							)
 
 							if foreignKey := field.TagSettings["FOREIGNKEY"]; foreignKey != "" {
-								tagForeignKeys = strings.Split(field.TagSettings["FOREIGNKEY"], ";")
+								tagForeignKeys = strings.Split(field.TagSettings["FOREIGNKEY"], ",")
 							}
 
 							if foreignKey := field.TagSettings["ASSOCIATIONFOREIGNKEY"]; foreignKey != "" {
-								tagAssociationForeignKeys = strings.Split(field.TagSettings["ASSOCIATIONFOREIGNKEY"], ";")
+								tagAssociationForeignKeys = strings.Split(field.TagSettings["ASSOCIATIONFOREIGNKEY"], ",")
 							}
 
 							if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
