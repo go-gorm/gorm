@@ -498,7 +498,10 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			for idx, fieldName := range relationship.ForeignFieldNames {
 				if field, ok := scope.Fields()[fieldName]; ok {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
-					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
+					primaryKeySqlType := field.TagSettings["TYPE"]
+					if primaryKeySqlType == "" {
+						primaryKeySqlType = scope.Dialect().SqlTag(value, 255, false)
+					}
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+primaryKeySqlType)
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
 				}
@@ -507,7 +510,10 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			for idx, fieldName := range relationship.AssociationForeignFieldNames {
 				if field, ok := toScope.Fields()[fieldName]; ok {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
-					primaryKeySqlType := scope.Dialect().SqlTag(value, 255, false)
+					primaryKeySqlType := field.TagSettings["TYPE"]
+					if primaryKeySqlType == "" {
+						primaryKeySqlType = scope.Dialect().SqlTag(value, 255, false)
+					}
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+primaryKeySqlType)
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))
 				}
