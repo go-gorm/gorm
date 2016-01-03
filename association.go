@@ -42,7 +42,7 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 		// value has to been saved for many2many
 		if relationship.Kind == "many_to_many" {
 			if scope.New(reflectValue.Interface()).PrimaryKeyZero() {
-				scope.NewDB().Save(reflectValue.Interface())
+				association.setErr(scope.NewDB().Save(reflectValue.Interface()).Error)
 			}
 		}
 

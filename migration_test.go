@@ -71,6 +71,16 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Should get to create duplicate record when having unique index")
 	}
 
+	var user = User{Name: "sample_user"}
+	DB.Save(&user)
+	if DB.Model(&user).Association("Emails").Append(Email{Email: "not-1duplicated@gmail.com"}, Email{Email: "not-duplicated2@gmail.com"}).Error != nil {
+		t.Errorf("Should get no error when append two emails for user")
+	}
+
+	if DB.Model(&user).Association("Emails").Append(Email{Email: "duplicated@gmail.com"}, Email{Email: "duplicated@gmail.com"}).Error == nil {
+		t.Errorf("Should get no duplicated email error when insert duplicated emails for a user")
+	}
+
 	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
