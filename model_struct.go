@@ -145,14 +145,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				field.IsIgnored = true
 			}
 
-			sqlSettings := parseTagSetting(field.Tag.Get("sql"))
-			gormSettings := parseTagSetting(field.Tag.Get("gorm"))
+			gormSettings := parseTagSetting(field.Tag)
 			if _, ok := gormSettings["PRIMARY_KEY"]; ok {
 				field.IsPrimaryKey = true
 				modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 			}
 
-			if _, ok := sqlSettings["DEFAULT"]; ok {
+			if _, ok := gormSettings["DEFAULT"]; ok {
 				field.HasDefaultValue = true
 			}
 
@@ -185,7 +184,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				if !field.IsNormal {
-					gormSettings := parseTagSetting(field.Tag.Get("gorm"))
+					gormSettings := parseTagSetting(field.Tag)
 					toScope := scope.New(reflect.New(fieldStruct.Type).Interface())
 
 					getForeignField := func(column string, fields []*StructField) *StructField {
@@ -400,7 +399,7 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 		structType = structType.Elem()
 	}
 	reflectValue := reflect.Indirect(reflect.New(structType))
-	sqlSettings := parseTagSetting(field.Tag.Get("sql"))
+	sqlSettings := parseTagSetting(field.Tag)
 
 	if value, ok := sqlSettings["TYPE"]; ok {
 		sqlType = value
@@ -447,16 +446,18 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 	}
 }
 
-func parseTagSetting(str string) map[string]string {
-	tags := strings.Split(str, ";")
+func parseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
-	for _, value := range tags {
-		v := strings.Split(value, ":")
-		k := strings.TrimSpace(strings.ToUpper(v[0]))
-		if len(v) >= 2 {
-			setting[k] = strings.Join(v[1:], ":")
-		} else {
-			setting[k] = k
+	for _, str := range []string{tags.Get("sql"), tags.Get("gorm")} {
+		tags := strings.Split(str, ";")
+		for _, value := range tags {
+			v := strings.Split(value, ":")
+			k := strings.TrimSpace(strings.ToUpper(v[0]))
+			if len(v) >= 2 {
+				setting[k] = strings.Join(v[1:], ":")
+			} else {
+				setting[k] = k
+			}
 		}
 	}
 	return setting
