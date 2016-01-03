@@ -48,12 +48,16 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	for _, arg := range args {
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			values := reflect.ValueOf(arg)
-			var tempMarks []string
-			for i := 0; i < values.Len(); i++ {
-				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
+			if bytes, ok := arg.([]byte); ok {
+				scope.AddToVars(bytes)
+			} else {
+				values := reflect.ValueOf(arg)
+				var tempMarks []string
+				for i := 0; i < values.Len(); i++ {
+					tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
+				}
+				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 			}
-			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 		default:
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = valuer.Value()
