@@ -31,7 +31,7 @@ func equalAsString(a interface{}, b interface{}) bool {
 }
 
 func Preload(scope *Scope) {
-	if scope.Search.preload == nil {
+	if scope.Search.preload == nil || scope.HasError() {
 		return
 	}
 
