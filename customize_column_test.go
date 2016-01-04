@@ -3,6 +3,8 @@ package gorm_test
 import (
 	"testing"
 	"time"
+
+	"github.com/jinzhu/gorm"
 )
 
 type CustomizeColumn struct {
@@ -100,5 +102,40 @@ func TestManyToManyWithCustomizedColumn(t *testing.T) {
 
 	if len(person1.Accounts) != 1 || person1.Accounts[0].IdAccount != "account" {
 		t.Errorf("should preload correct accounts")
+	}
+}
+
+type CustomizeUser struct {
+	gorm.Model
+	Email string `sql:"column:email_address"`
+}
+
+type CustomizeInvitation struct {
+	gorm.Model
+	Address string         `sql:"column:invitation"`
+	Person  *CustomizeUser `gorm:"foreignkey:Email;associationforeignkey:invitation"`
+}
+
+func TestOneToOneWithCustomizedColumn(t *testing.T) {
+	DB.DropTable(&CustomizeUser{}, &CustomizeInvitation{})
+	DB.AutoMigrate(&CustomizeUser{}, &CustomizeInvitation{})
+
+	user := CustomizeUser{
+		Email: "hello@example.com",
+	}
+	invitation := CustomizeInvitation{
+		Address: "hello@example.com",
+	}
+
+	DB.Create(&user)
+	DB.Create(&invitation)
+
+	var invitation2 CustomizeInvitation
+	if err := DB.Preload("Person").Find(&invitation2, invitation.ID).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if invitation2.Person.Email != user.Email {
+		t.Errorf("Should preload one to one relation with customize foreign keys")
 	}
 }
