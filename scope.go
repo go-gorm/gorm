@@ -380,7 +380,7 @@ func (scope *Scope) CommitOrRollback() *Scope {
 			if scope.HasError() {
 				db.Rollback()
 			} else {
-				db.Commit()
+				scope.Err(db.Commit())
 			}
 			scope.db.db = scope.db.parent.db
 		}
