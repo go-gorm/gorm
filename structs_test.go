@@ -168,7 +168,8 @@ type Comment struct {
 // Scanner
 type NullValue struct {
 	Id      int64
-	Name    sql.NullString `sql:"not null"`
+	Name    sql.NullString  `sql:"not null"`
+	Gender  *sql.NullString `sql:"not null"`
 	Age     sql.NullInt64
 	Male    sql.NullBool
 	Height  sql.NullFloat64

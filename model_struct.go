@@ -166,14 +166,16 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.HasDefaultValue = true
 				}
 
-				fieldValue := reflect.New(fieldStruct.Type).Interface()
+				indirectType := fieldStruct.Type
+				for indirectType.Kind() == reflect.Ptr {
+					indirectType = indirectType.Elem()
+				}
+
+				fieldValue := reflect.New(indirectType).Interface()
 				if _, isScanner := fieldValue.(sql.Scanner); isScanner {
 					// is scanner
 					field.IsScanner, field.IsNormal = true, true
 				} else if _, isTime := fieldValue.(*time.Time); isTime {
-					// is time
-					field.IsNormal = true
-				} else if _, isTime := fieldValue.(**time.Time); isTime {
 					// is time
 					field.IsNormal = true
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
@@ -189,11 +191,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					continue
 				} else {
 					// build relationships
-					indirectType := fieldStruct.Type
-					for indirectType.Kind() == reflect.Ptr {
-						indirectType = indirectType.Elem()
-					}
-
 					switch indirectType.Kind() {
 					case reflect.Slice:
 						defer func(field *StructField) {
