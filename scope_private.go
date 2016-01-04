@@ -334,9 +334,8 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 	}
 
 	var hasExpr bool
-	fields := scope.Fields()
 	for key, value := range values {
-		if field, ok := fields[ToDBName(key)]; ok && field.Field.IsValid() {
+		if field, ok := scope.FieldByName(key); ok && field.Field.IsValid() {
 			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
 				if _, ok := value.(*expr); ok {
 					hasExpr = true
@@ -347,13 +346,16 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 			}
 		}
 	}
+
 	if hasExpr {
 		var updateMap = map[string]interface{}{}
-		for key, value := range fields {
-			if v, ok := values[key]; ok {
-				updateMap[key] = v
-			} else {
-				updateMap[key] = value.Field.Interface()
+		for key, field := range scope.Fields() {
+			if field.IsNormal {
+				if v, ok := values[key]; ok {
+					updateMap[key] = v
+				} else {
+					updateMap[key] = field.Field.Interface()
+				}
 			}
 		}
 		return updateMap, true

@@ -228,7 +228,7 @@ func TestTableName(t *testing.T) {
 	DB.SingularTable(false)
 }
 
-func TestSqlNullValue(t *testing.T) {
+func TestNullValues(t *testing.T) {
 	DB.DropTable(&NullValue{})
 	DB.AutoMigrate(&NullValue{})
 
@@ -276,6 +276,30 @@ func TestSqlNullValue(t *testing.T) {
 		AddedAt: NullTime{Time: time.Now(), Valid: false},
 	}).Error; err == nil {
 		t.Errorf("Can't save because of name can't be null")
+	}
+}
+
+func TestNullValuesWithFirstOrCreate(t *testing.T) {
+	var nv1 = NullValue{
+		Name:   sql.NullString{String: "first_or_create", Valid: true},
+		Gender: &sql.NullString{String: "M", Valid: true},
+	}
+
+	var nv2 NullValue
+	if err := DB.Where(nv1).FirstOrCreate(&nv2).Error; err != nil {
+		t.Errorf("Should not raise any error, but got %v", err)
+	}
+
+	if nv2.Name.String != "first_or_create" || nv2.Gender.String != "M" {
+		t.Errorf("first or create with nullvalues")
+	}
+
+	if err := DB.Where(nv1).Assign(NullValue{Age: sql.NullInt64{Int64: 18, Valid: true}}).FirstOrCreate(&nv2).Error; err != nil {
+		t.Errorf("Should not raise any error, but got %v", err)
+	}
+
+	if nv2.Age.Int64 != 18 {
+		t.Errorf("should update age to 18")
 	}
 }
 
