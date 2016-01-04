@@ -92,7 +92,7 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1
 	var assignColumns, binVars, conditions []string
 	var values []interface{}
 	for key, value := range searchMap {
-		assignColumns = append(assignColumns, key)
+		assignColumns = append(assignColumns, scope.Quote(key))
 		binVars = append(binVars, `?`)
 		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
 		values = append(values, value)
@@ -102,7 +102,7 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1
 		values = append(values, value)
 	}
 
-	quotedTable := handler.Table(db)
+	quotedTable := scope.Quote(handler.Table(db))
 	sql := fmt.Sprintf(
 		"INSERT INTO %v (%v) SELECT %v %v WHERE NOT EXISTS (SELECT * FROM %v WHERE %v)",
 		quotedTable,
@@ -117,11 +117,14 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1
 }
 
 func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error {
-	var conditions []string
-	var values []interface{}
+	var (
+		scope      = db.NewScope(nil)
+		conditions []string
+		values     []interface{}
+	)
 
 	for key, value := range s.GetSearchMap(db, sources...) {
-		conditions = append(conditions, fmt.Sprintf("%v = ?", key))
+		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
 		values = append(values, value)
 	}
 
@@ -129,12 +132,14 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 }
 
 func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
-	quotedTable := handler.Table(db)
+	var (
+		scope          = db.NewScope(source)
+		modelType      = scope.GetModelStruct().ModelType
+		quotedTable    = scope.Quote(handler.Table(db))
+		joinConditions []string
+		values         []interface{}
+	)
 
-	scope := db.NewScope(source)
-	modelType := scope.GetModelStruct().ModelType
-	var joinConditions []string
-	var values []interface{}
 	if s.Source.ModelType == modelType {
 		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
 		for _, foreignKey := range s.Destination.ForeignKeys {

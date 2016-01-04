@@ -394,7 +394,7 @@ func toQueryCondition(scope *Scope, columns []string) string {
 	if len(columns) > 1 {
 		return fmt.Sprintf("(%v)", strings.Join(newColumns, ","))
 	} else {
-		return strings.Join(columns, ",")
+		return strings.Join(newColumns, ",")
 	}
 }
 

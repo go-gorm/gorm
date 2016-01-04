@@ -63,3 +63,42 @@ func TestCustomColumnAndIgnoredFieldClash(t *testing.T) {
 		t.Errorf("Should not raise error: %s", err)
 	}
 }
+
+type CustomizePerson struct {
+	IdPerson string             `gorm:"column:idPerson;primary_key:true"`
+	Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;associationforeignkey:idAccount;foreignkey:idPerson"`
+}
+
+type CustomizeAccount struct {
+	IdAccount string `gorm:"column:idAccount;primary_key:true"`
+	Name      string
+}
+
+func TestManyToManyWithCustomizedColumn(t *testing.T) {
+	DB.DropTable(&CustomizePerson{}, &CustomizeAccount{}, "PersonAccount")
+	DB.AutoMigrate(&CustomizePerson{}, &CustomizeAccount{})
+
+	account := CustomizeAccount{IdAccount: "account", Name: "id1"}
+	person := CustomizePerson{
+		IdPerson: "person",
+		Accounts: []CustomizeAccount{account},
+	}
+
+	if err := DB.Create(&account).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if err := DB.Create(&person).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	var person1 CustomizePerson
+	scope := DB.NewScope(nil)
+	if err := DB.Preload("Accounts").First(&person1, scope.Quote("idPerson")+" = ?", person.IdPerson).Error; err != nil {
+		t.Errorf("no error should happen when preloading customized column many2many relations, but got %v", err)
+	}
+
+	if len(person1.Accounts) != 1 || person1.Accounts[0].IdAccount != "account" {
+		t.Errorf("should preload correct accounts")
+	}
+}

@@ -99,7 +99,7 @@ type Relationship struct {
 
 func getForeignField(column string, fields []*StructField) *StructField {
 	for _, field := range fields {
-		if field.Name == column || field.DBName == ToDBName(column) {
+		if field.Name == column || field.DBName == column || field.DBName == ToDBName(column) {
 			return field
 		}
 	}
