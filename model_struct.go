@@ -299,9 +299,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											for _, foreignKey := range foreignKeys {
 												if strings.HasPrefix(foreignKey, associationType) {
 													associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
-												} else {
-													scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, associationType))
 												}
+											}
+											if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
+												associationForeignKeys = []string{scope.PrimaryKey()}
 											}
 										} else if len(foreignKeys) != len(associationForeignKeys) {
 											scope.Err(errors.New("invalid foreign keys, should have same length"))
@@ -391,9 +392,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										for _, foreignKey := range foreignKeys {
 											if strings.HasPrefix(foreignKey, associationType) {
 												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
-											} else {
-												scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, associationType))
 											}
+										}
+										if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
+											associationForeignKeys = []string{scope.PrimaryKey()}
 										}
 									} else if len(foreignKeys) != len(associationForeignKeys) {
 										scope.Err(errors.New("invalid foreign keys, should have same length"))
@@ -446,9 +448,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										for _, foreignKey := range foreignKeys {
 											if strings.HasPrefix(foreignKey, field.Name) {
 												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, field.Name))
-											} else {
-												scope.Err(fmt.Errorf("invalid foreign keys, foreign key %v should start with %v", foreignKey, field.Name))
 											}
+										}
+										if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
+											associationForeignKeys = []string{toScope.PrimaryKey()}
 										}
 									} else if len(foreignKeys) != len(associationForeignKeys) {
 										scope.Err(errors.New("invalid foreign keys, should have same length"))

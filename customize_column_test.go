@@ -139,3 +139,99 @@ func TestOneToOneWithCustomizedColumn(t *testing.T) {
 		t.Errorf("Should preload one to one relation with customize foreign keys")
 	}
 }
+
+type PromotionDiscount struct {
+	gorm.Model
+	Name    string
+	Coupons []*PromotionCoupon `gorm:"ForeignKey:discount_id"`
+	Rule    *PromotionRule     `gorm:"ForeignKey:discount_id"`
+}
+
+type PromotionCoupon struct {
+	gorm.Model
+	Code       string
+	DiscountID uint
+	Discount   PromotionDiscount
+}
+
+type PromotionRule struct {
+	gorm.Model
+	Name       string
+	Begin      *time.Time
+	End        *time.Time
+	DiscountID uint
+	Discount   *PromotionDiscount
+}
+
+func TestOneToManyWithCustomizedColumn(t *testing.T) {
+	DB.DropTable(&PromotionDiscount{}, &PromotionCoupon{})
+	DB.AutoMigrate(&PromotionDiscount{}, &PromotionCoupon{})
+
+	discount := PromotionDiscount{
+		Name: "Happy New Year",
+		Coupons: []*PromotionCoupon{
+			{Code: "newyear1"},
+			{Code: "newyear2"},
+		},
+	}
+
+	if err := DB.Create(&discount).Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	var discount1 PromotionDiscount
+	if err := DB.Preload("Coupons").First(&discount1, "id = ?", discount.ID).Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	if len(discount.Coupons) != 2 {
+		t.Errorf("should find two coupons")
+	}
+
+	var coupon PromotionCoupon
+	if err := DB.Preload("Discount").First(&coupon, "code = ?", "newyear1").Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	if coupon.Discount.Name != "Happy New Year" {
+		t.Errorf("should preload discount from coupon")
+	}
+}
+
+func TestOneToOneWithPartialCustomizedColumn(t *testing.T) {
+	DB.DropTable(&PromotionDiscount{}, &PromotionRule{})
+	DB.AutoMigrate(&PromotionDiscount{}, &PromotionRule{})
+
+	var begin = time.Now()
+	var end = time.Now().Add(24 * time.Hour)
+	discount := PromotionDiscount{
+		Name: "Happy New Year 2",
+		Rule: &PromotionRule{
+			Name:  "time_limited",
+			Begin: &begin,
+			End:   &end,
+		},
+	}
+
+	if err := DB.Create(&discount).Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	var discount1 PromotionDiscount
+	if err := DB.Preload("Rule").First(&discount1, "id = ?", discount.ID).Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	if discount.Rule.Begin.Format(time.RFC3339Nano) != begin.Format(time.RFC3339Nano) {
+		t.Errorf("Should be able to preload Rule")
+	}
+
+	var rule PromotionRule
+	if err := DB.Preload("Discount").First(&rule, "name = ?", "time_limited").Error; err != nil {
+		t.Errorf("no error should happen but got %v", err)
+	}
+
+	if rule.Discount.Name != "Happy New Year 2" {
+		t.Errorf("should preload discount from rule")
+	}
+}
