@@ -557,7 +557,10 @@ func (scope *Scope) createTable() *Scope {
 	if len(primaryKeys) > 0 && !primaryKeyInColumnType {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
 	}
+
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
+
+	scope.autoIndex()
 	return scope
 }
 
@@ -629,9 +632,8 @@ func (scope *Scope) autoMigrate() *Scope {
 			}
 			scope.createJoinTable(field)
 		}
+		scope.autoIndex()
 	}
-
-	scope.autoIndex()
 	return scope
 }
 
