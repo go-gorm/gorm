@@ -116,17 +116,17 @@ func TestNestedPreload1(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
 	if err := DB.Create(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -134,7 +134,7 @@ func TestNestedPreload1(t *testing.T) {
 	}
 
 	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got, "name = ?", "not_found").Error; err != gorm.RecordNotFound {
-		panic(err)
+		t.Error(err)
 	}
 }
 
@@ -160,7 +160,7 @@ func TestNestedPreload2(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -179,12 +179,12 @@ func TestNestedPreload2(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -214,7 +214,7 @@ func TestNestedPreload3(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -224,12 +224,12 @@ func TestNestedPreload3(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -259,7 +259,7 @@ func TestNestedPreload4(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -271,12 +271,12 @@ func TestNestedPreload4(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -307,22 +307,22 @@ func TestNestedPreload5(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := make([]Level3, 2)
 	want[0] = Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
 	if err := DB.Create(&want[0]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 	want[1] = Level3{Level2: Level2{Level1: Level1{Value: "value2"}}}
 	if err := DB.Create(&want[1]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level3
 	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -352,7 +352,7 @@ func TestNestedPreload6(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := make([]Level3, 2)
@@ -372,7 +372,7 @@ func TestNestedPreload6(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[0]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want[1] = Level3{
@@ -391,12 +391,12 @@ func TestNestedPreload6(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[1]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level3
 	if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -426,7 +426,7 @@ func TestNestedPreload7(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := make([]Level3, 2)
@@ -437,7 +437,7 @@ func TestNestedPreload7(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[0]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want[1] = Level3{
@@ -447,12 +447,12 @@ func TestNestedPreload7(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[1]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level3
 	if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -482,7 +482,7 @@ func TestNestedPreload8(t *testing.T) {
 	DB.DropTableIfExists(&Level2{})
 	DB.DropTableIfExists(&Level1{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := make([]Level3, 2)
@@ -495,7 +495,7 @@ func TestNestedPreload8(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[0]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 	want[1] = Level3{
 		Level2: Level2{
@@ -506,12 +506,12 @@ func TestNestedPreload8(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[1]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -556,7 +556,7 @@ func TestNestedPreload9(t *testing.T) {
 	DB.DropTableIfExists(&Level1{})
 	DB.DropTableIfExists(&Level0{})
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}, &Level2_1{}, &Level0{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := make([]Level3, 2)
@@ -581,7 +581,7 @@ func TestNestedPreload9(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[0]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 	want[1] = Level3{
 		Level2: Level2{
@@ -598,12 +598,12 @@ func TestNestedPreload9(t *testing.T) {
 		},
 	}
 	if err := DB.Create(&want[1]).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level3
 	if err := DB.Preload("Level2").Preload("Level2.Level1s").Preload("Level2_1").Preload("Level2_1.Level1s").Preload("Level2_1.Level1s.Level0s").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -635,7 +635,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level2{Value: "Bob", LanguageCode: "ru", Level1s: []Level1{
@@ -643,7 +643,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "en", LanguageCode: "en"},
 	}}
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want2 := Level2{Value: "Tom", LanguageCode: "zh", Level1s: []Level1{
@@ -651,12 +651,12 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		{Value: "de", LanguageCode: "de"},
 	}}
 	if err := DB.Save(&want2).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level2
 	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -665,7 +665,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got2 Level2
 	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got2, want2) {
@@ -674,7 +674,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got3 []Level2
 	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got3, []Level2{got, got2}) {
@@ -683,7 +683,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	var got4 []Level2
 	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var ruLevel1 Level1
@@ -698,7 +698,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	if err := DB.Preload("Level1s").Find(&got4, "value IN (?)", []string{"non-existing"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 }
 
@@ -720,7 +720,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level2{Value: "Bob", Level1s: []*Level1{
@@ -728,7 +728,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 		{Value: "en"},
 	}}
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want2 := Level2{Value: "Tom", Level1s: []*Level1{
@@ -736,12 +736,12 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 		{Value: "de"},
 	}}
 	if err := DB.Save(&want2).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level2
 	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -750,7 +750,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 
 	var got2 Level2
 	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got2, want2) {
@@ -759,7 +759,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 
 	var got3 []Level2
 	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got3, []Level2{got, got2}) {
@@ -768,7 +768,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 
 	var got4 []Level2
 	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got5 Level2
@@ -811,7 +811,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	DB.DropTableIfExists("levels")
 
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -825,7 +825,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 		},
 	}
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want2 := Level3{
@@ -839,12 +839,12 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 		},
 	}
 	if err := DB.Save(&want2).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -853,7 +853,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 
 	var got2 Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got2, want2) {
@@ -862,7 +862,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 
 	var got3 []Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got3, []Level3{got, got2}) {
@@ -871,7 +871,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 
 	var got4 []Level3
 	if err := DB.Preload("Level2.Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got5 Level3
@@ -914,7 +914,7 @@ func TestNestedManyToManyPreload(t *testing.T) {
 	DB.DropTableIfExists("level2_level3")
 
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -937,12 +937,12 @@ func TestNestedManyToManyPreload(t *testing.T) {
 	}
 
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2s").Preload("Level2s.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -950,7 +950,7 @@ func TestNestedManyToManyPreload(t *testing.T) {
 	}
 
 	if err := DB.Preload("Level2s.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
-		panic(err)
+		t.Error(err)
 	}
 }
 
@@ -979,7 +979,7 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 	DB.DropTableIfExists("level1_level2")
 
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level3{
@@ -994,12 +994,12 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 	}
 
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got Level3
 	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "Level3").Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -1007,7 +1007,7 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 	}
 
 	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
-		panic(err)
+		t.Error(err)
 	}
 }
 
@@ -1036,7 +1036,7 @@ func TestNilPointerSlice(t *testing.T) {
 	DB.DropTableIfExists(&Level1{})
 
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want := Level1{Value: "Bob", Level2: &Level2{
@@ -1046,21 +1046,21 @@ func TestNilPointerSlice(t *testing.T) {
 		},
 	}}
 	if err := DB.Save(&want).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	want2 := Level1{Value: "Tom", Level2: nil}
 	if err := DB.Save(&want2).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	var got []Level1
 	if err := DB.Preload("Level2").Preload("Level2.Level3").Find(&got).Error; err != nil {
-		panic(err)
+		t.Error(err)
 	}
 
 	if len(got) != 2 {
-		t.Fatalf("got %v items, expected 2", len(got))
+		t.Error("got %v items, expected 2", len(got))
 	}
 
 	if !reflect.DeepEqual(got[0], want) && !reflect.DeepEqual(got[1], want) {
