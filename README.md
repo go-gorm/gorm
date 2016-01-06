@@ -561,7 +561,7 @@ type User struct {
 
 type CreditCard struct {
 	gorm.Model
-	UesrID   uint
+	UserID   uint
 	Number   string
 }
 
