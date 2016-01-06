@@ -44,7 +44,7 @@ func TestPolymorphic(t *testing.T) {
 		t.Errorf("Cat's toys count should be 1")
 	}
 
-	if DB.Model(&cat).Association("Toy").Count() != 1 {
+	if DB.Model(&dog).Association("Toys").Count() != 2 {
 		t.Errorf("Dog's toys count should be 2")
 	}
 
