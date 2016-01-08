@@ -11,6 +11,11 @@ type CalculateField struct {
 	Name     string
 	Children []CalculateFieldChild
 	Category CalculateFieldCategory
+	EmbeddedField
+}
+
+type EmbeddedField struct {
+	EmbeddedName string `sql:"NOT NULL;DEFAULT:'hello'"`
 }
 
 type CalculateFieldChild struct {
@@ -30,5 +35,11 @@ func TestCalculateField(t *testing.T) {
 	fields := DB.NewScope(&field).Fields()
 	if fields["children"].Relationship == nil || fields["category"].Relationship == nil {
 		t.Errorf("Should calculate fields correctly for the first time")
+	}
+
+	if field, ok := fields["embedded_name"]; !ok {
+		t.Errorf("should find embedded field")
+	} else if _, ok := field.TagSettings["NOT NULL"]; !ok {
+		t.Errorf("should find embedded field's tag settings")
 	}
 }

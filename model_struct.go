@@ -79,6 +79,7 @@ func (structField *StructField) clone() *StructField {
 		IsScanner:       structField.IsScanner,
 		HasDefaultValue: structField.HasDefaultValue,
 		Tag:             structField.Tag,
+		TagSettings:     structField.TagSettings,
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
 		Relationship:    structField.Relationship,
