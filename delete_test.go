@@ -45,7 +45,7 @@ func TestSoftDelete(t *testing.T) {
 	type User struct {
 		Id        int64
 		Name      string
-		DeletedAt time.Time
+		DeletedAt *time.Time
 	}
 	DB.AutoMigrate(&User{})
 
