@@ -41,21 +41,49 @@ func newSafeMap() *safeMap {
 
 var smap = newSafeMap()
 
+type Case bool
+
+const (
+	lower Case = false
+	upper Case = true
+)
+
 func ToDBName(name string) string {
 	if v := smap.Get(name); v != "" {
 		return v
 	}
 
-	value := commonInitialismsReplacer.Replace(name)
-	buf := bytes.NewBufferString("")
-	for i, v := range value {
-		if i > 0 && v >= 'A' && v <= 'Z' {
-			buf.WriteRune('_')
+	var (
+		value                        = commonInitialismsReplacer.Replace(name)
+		buf                          = bytes.NewBufferString("")
+		lastCase, currCase, nextCase Case
+	)
+
+	for i, v := range value[:len(value)-1] {
+		nextCase = value[i+1] >= 'A' && value[i+1] <= 'Z'
+		if i > 0 {
+			if currCase == upper {
+				if lastCase == upper && nextCase == upper {
+					buf.WriteRune(v)
+				} else {
+					buf.WriteRune('_')
+					buf.WriteRune(v)
+				}
+			} else {
+				buf.WriteRune(v)
+			}
+		} else {
+			currCase = upper
+			buf.WriteRune(v)
 		}
-		buf.WriteRune(v)
+		lastCase = currCase
+		currCase = nextCase
 	}
 
-	s := strings.ToLower(buf.String())
+	buf.WriteByte(value[len(value)-1])
+
+	s := strings.Replace(strings.ToLower(buf.String()), "__", "_", -1)
+
 	smap.Set(name, s)
 	return s
 }
