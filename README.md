@@ -595,7 +595,7 @@ db.Model(&user).Related(&profile)
 ### Has Many
 
 ```go
-// User belongs to a profile, ProfileID is the foreign key
+// User has many emails, UserID is the foreign key
 type User struct {
 	gorm.Model
 	Emails   []Email
