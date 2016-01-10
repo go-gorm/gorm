@@ -36,7 +36,7 @@ type DB struct {
 	joinTableHandlers map[string]JoinTableHandler
 }
 
-func Open(dialect string, args ...interface{}) (DB, error) {
+func Open(dialect string, args ...interface{}) (*DB, error) {
 	var db DB
 	var err error
 
@@ -79,7 +79,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 		}
 	}
 
-	return db, err
+	return &db, err
 }
 
 func (s *DB) Close() error {

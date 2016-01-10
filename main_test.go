@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	DB                 gorm.DB
+	DB                 *gorm.DB
 	t1, t2, t3, t4, t5 time.Time
 )
 
@@ -41,7 +41,7 @@ func init() {
 	runMigration()
 }
 
-func OpenTestConnection() (db gorm.DB, err error) {
+func OpenTestConnection() (db *gorm.DB, err error) {
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
 		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
