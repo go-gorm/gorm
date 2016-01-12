@@ -434,7 +434,7 @@ func (s *DB) DropColumn(column string) *DB {
 }
 
 func (s *DB) AddIndex(indexName string, column ...string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.Unscoped().NewScope(s.Value)
 	scope.addIndex(false, indexName, column...)
 	return scope.db
 }

@@ -604,9 +604,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 		sqlCreate = "CREATE UNIQUE INDEX"
 	}
 
-	scope.Search.Unscoped = true
 	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSql())).Exec()
-	scope.Search.Unscoped = false
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
@@ -662,11 +660,11 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		scope.addIndex(false, name, columns...)
+		scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
 	}
 
 	for name, columns := range uniqueIndexes {
-		scope.addIndex(true, name, columns...)
+		scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
 	}
 
 	return scope

@@ -297,13 +297,16 @@ func (association *Association) Clear() *Association {
 }
 
 func (association *Association) Count() int {
-	count := -1
-	relationship := association.Field.Relationship
-	scope := association.Scope
-	newScope := scope.New(association.Field.Field.Interface())
+	var (
+		count        = 0
+		relationship = association.Field.Relationship
+		scope        = association.Scope
+		fieldValue   = association.Field.Field.Interface()
+		newScope     = scope.New(fieldValue)
+	)
 
 	if relationship.Kind == "many_to_many" {
-		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.NewDB(), association.Scope.Value).Table(newScope.TableName()).Count(&count)
+		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.DB(), association.Scope.Value).Model(fieldValue).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		query := scope.DB()
 		for idx, foreignKey := range relationship.ForeignDBNames {
@@ -316,16 +319,16 @@ func (association *Association) Count() int {
 		if relationship.PolymorphicType != "" {
 			query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), newScope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 		}
-		query.Table(newScope.TableName()).Count(&count)
+		query.Model(fieldValue).Count(&count)
 	} else if relationship.Kind == "belongs_to" {
 		query := scope.DB()
-		for idx, foreignKey := range relationship.ForeignDBNames {
-			if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
-				query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), scope.Quote(foreignKey)),
+		for idx, primaryKey := range relationship.AssociationForeignDBNames {
+			if field, ok := scope.FieldByName(relationship.ForeignDBNames[idx]); ok {
+				query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), scope.Quote(primaryKey)),
 					field.Field.Interface())
 			}
 		}
-		query.Table(newScope.TableName()).Count(&count)
+		query.Model(fieldValue).Count(&count)
 	}
 
 	return count

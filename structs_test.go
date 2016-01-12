@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/jinzhu/gorm"
+
 	"reflect"
 	"time"
 )
@@ -64,7 +66,7 @@ type Address struct {
 }
 
 type Language struct {
-	Id    int
+	gorm.Model
 	Name  string
 	Users []User `gorm:"many2many:user_languages;"`
 }
@@ -154,12 +156,12 @@ type Post struct {
 }
 
 type Category struct {
-	Id   int64
+	gorm.Model
 	Name string
 }
 
 type Comment struct {
-	Id      int64
+	gorm.Model
 	PostId  int64
 	Content string
 	Post    Post

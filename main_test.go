@@ -33,8 +33,9 @@ func init() {
 
 	// DB.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
 	// DB.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	// DB.LogMode(true)
-	DB.LogMode(false)
+	if os.Getenv("DEBUG") == "true" {
+		DB.LogMode(true)
+	}
 
 	DB.DB().SetMaxIdleConns(10)
 
