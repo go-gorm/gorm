@@ -293,6 +293,34 @@ func TestHasOne(t *testing.T) {
 	if DB.Model(&user).Association("CreditCard").Count() != 0 {
 		t.Errorf("User's credit card count should be 0 after Clear")
 	}
+
+	// Check Association mode with soft delete
+	var creditcard6 = CreditCard{
+		Number: "411111111116",
+	}
+	DB.Model(&user).Association("CreditCard").Append(&creditcard6)
+
+	if count := DB.Model(&user).Association("CreditCard").Count(); count != 1 {
+		t.Errorf("User's credit card count should be 1 after Append, but got %v", count)
+	}
+
+	DB.Delete(&creditcard6)
+
+	if count := DB.Model(&user).Association("CreditCard").Count(); count != 0 {
+		t.Errorf("User's credit card count should be 0 after credit card deleted, but got %v", count)
+	}
+
+	if err := DB.Model(&user).Association("CreditCard").Find(&CreditCard{}).Error; err == nil {
+		t.Errorf("User's creditcard is not findable after Delete")
+	}
+
+	if count := DB.Unscoped().Model(&user).Association("CreditCard").Count(); count != 1 {
+		t.Errorf("User's credit card count should be 1 when query with Unscoped, but got %v", count)
+	}
+
+	if err := DB.Unscoped().Model(&user).Association("CreditCard").Find(&CreditCard{}).Error; err != nil {
+		t.Errorf("User's creditcard should be findable when query with Unscoped, got %v", err)
+	}
 }
 
 func TestHasMany(t *testing.T) {
@@ -402,6 +430,36 @@ func TestHasMany(t *testing.T) {
 	if len(comments51) != 0 {
 		t.Errorf("Clear has many relations")
 	}
+
+	// Check Association mode with soft delete
+	var comment6 = Comment{
+		Content: "comment 6",
+	}
+	DB.Model(&post).Association("Comments").Append(&comment6)
+
+	if count := DB.Model(&post).Association("Comments").Count(); count != 1 {
+		t.Errorf("post's comments count should be 1 after Append, but got %v", count)
+	}
+
+	DB.Delete(&comment6)
+
+	if count := DB.Model(&post).Association("Comments").Count(); count != 0 {
+		t.Errorf("post's comments count should be 0 after comment been deleted, but got %v", count)
+	}
+
+	var comments6 []Comment
+	if DB.Model(&post).Association("Comments").Find(&comments6); len(comments6) != 0 {
+		t.Errorf("post's comments count should be 0 when find with Find, but got %v", len(comments6))
+	}
+
+	if count := DB.Unscoped().Model(&post).Association("Comments").Count(); count != 1 {
+		t.Errorf("post's comments count should be 1 when query with Unscoped, but got %v", count)
+	}
+
+	var comments61 []Comment
+	if DB.Unscoped().Model(&post).Association("Comments").Find(&comments61); len(comments61) != 1 {
+		t.Errorf("post's comments count should be 1 when query with Unscoped, but got %v", len(comments61))
+	}
 }
 
 func TestManyToMany(t *testing.T) {
@@ -499,6 +557,36 @@ func TestManyToMany(t *testing.T) {
 	DB.Model(&user).Association("Languages").Clear()
 	if len(user.Languages) != 0 || DB.Model(&user).Association("Languages").Count() != 0 {
 		t.Errorf("Relations should be cleared")
+	}
+
+	// Check Association mode with soft delete
+	var language6 = Language{
+		Name: "language 6",
+	}
+	DB.Model(&user).Association("Languages").Append(&language6)
+
+	if count := DB.Model(&user).Association("Languages").Count(); count != 1 {
+		t.Errorf("user's languages count should be 1 after Append, but got %v", count)
+	}
+
+	DB.Delete(&language6)
+
+	if count := DB.Model(&user).Association("Languages").Count(); count != 0 {
+		t.Errorf("user's languages count should be 0 after language been deleted, but got %v", count)
+	}
+
+	var languages6 []Language
+	if DB.Model(&user).Association("Languages").Find(&languages6); len(languages6) != 0 {
+		t.Errorf("user's languages count should be 0 when find with Find, but got %v", len(languages6))
+	}
+
+	if count := DB.Unscoped().Model(&user).Association("Languages").Count(); count != 1 {
+		t.Errorf("user's languages count should be 1 when query with Unscoped, but got %v", count)
+	}
+
+	var languages61 []Language
+	if DB.Unscoped().Model(&user).Association("Languages").Find(&languages61); len(languages61) != 1 {
+		t.Errorf("user's languages count should be 1 when query with Unscoped, but got %v", len(languages61))
 	}
 }
 

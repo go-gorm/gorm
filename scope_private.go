@@ -161,7 +161,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 func (scope *Scope) whereSql() (sql string) {
 	var primaryConditions, andConditions, orConditions []string
 
-	if !scope.Search.Unscoped && scope.Fields()["deleted_at"] != nil {
+	if !scope.db.unscoped && scope.Fields()["deleted_at"] != nil {
 		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
 		primaryConditions = append(primaryConditions, sql)
 	}
@@ -601,9 +601,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 		sqlCreate = "CREATE UNIQUE INDEX"
 	}
 
-	scope.Search.Unscoped = true
 	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSql())).Exec()
-	scope.Search.Unscoped = false
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
@@ -659,11 +657,11 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		scope.addIndex(false, name, columns...)
+		scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
 	}
 
 	for name, columns := range uniqueIndexes {
-		scope.addIndex(true, name, columns...)
+		scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
 	}
 
 	return scope

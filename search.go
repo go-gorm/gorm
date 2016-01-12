@@ -20,7 +20,6 @@ type search struct {
 	group            string
 	tableName        string
 	raw              bool
-	Unscoped         bool
 	countingQuery    bool
 }
 
@@ -121,11 +120,6 @@ func (s *search) Preload(schema string, values ...interface{}) *search {
 
 func (s *search) Raw(b bool) *search {
 	s.raw = b
-	return s
-}
-
-func (s *search) unscoped() *search {
-	s.Unscoped = true
 	return s
 }
 

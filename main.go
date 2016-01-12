@@ -28,6 +28,7 @@ type DB struct {
 	parent            *DB
 	search            *search
 	logMode           int
+	unscoped          bool
 	logger            logger
 	dialect           Dialect
 	singularTable     bool
@@ -186,7 +187,9 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 }
 
 func (s *DB) Unscoped() *DB {
-	return s.clone().search.unscoped().db
+	clone := s.clone()
+	clone.unscoped = true
+	return clone
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
@@ -434,7 +437,7 @@ func (s *DB) DropColumn(column string) *DB {
 }
 
 func (s *DB) AddIndex(indexName string, column ...string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.Unscoped().NewScope(s.Value)
 	scope.addIndex(false, indexName, column...)
 	return scope.db
 }

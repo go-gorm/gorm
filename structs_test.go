@@ -66,7 +66,7 @@ type Address struct {
 }
 
 type Language struct {
-	Id    int
+	gorm.Model
 	Name  string
 	Users []User `gorm:"many2many:user_languages;"`
 }
