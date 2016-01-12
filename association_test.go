@@ -19,7 +19,7 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Got errors when save post", err.Error())
 	}
 
-	if post.Category.Id == 0 || post.MainCategory.Id == 0 {
+	if post.Category.ID == 0 || post.MainCategory.ID == 0 {
 		t.Errorf("Category's primary key should be updated")
 	}
 
@@ -46,11 +46,11 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Query belongs to relations with Related")
 	}
 
-	if DB.Model(&post).Association("Category").Count() == 1 {
+	if DB.Model(&post).Association("Category").Count() != 1 {
 		t.Errorf("Post's category count should be 1")
 	}
 
-	if DB.Model(&post).Association("MainCategory").Count() == 1 {
+	if DB.Model(&post).Association("MainCategory").Count() != 1 {
 		t.Errorf("Post's main category count should be 1")
 	}
 
@@ -60,7 +60,7 @@ func TestBelongsTo(t *testing.T) {
 	}
 	DB.Model(&post).Association("Category").Append(&category2)
 
-	if category2.Id == 0 {
+	if category2.ID == 0 {
 		t.Errorf("Category should has ID when created with Append")
 	}
 
@@ -71,7 +71,7 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Category should be updated with Append")
 	}
 
-	if DB.Model(&post).Association("Category").Count() == 1 {
+	if DB.Model(&post).Association("Category").Count() != 1 {
 		t.Errorf("Post's category count should be 1")
 	}
 
@@ -81,7 +81,7 @@ func TestBelongsTo(t *testing.T) {
 	}
 	DB.Model(&post).Association("Category").Replace(&category3)
 
-	if category3.Id == 0 {
+	if category3.ID == 0 {
 		t.Errorf("Category should has ID when created with Replace")
 	}
 
@@ -91,7 +91,7 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Category should be updated with Replace")
 	}
 
-	if DB.Model(&post).Association("Category").Count() == 1 {
+	if DB.Model(&post).Association("Category").Count() != 1 {
 		t.Errorf("Post's category count should be 1")
 	}
 
@@ -117,8 +117,8 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Category should be deleted with Delete")
 	}
 
-	if DB.Model(&post).Association("Category").Count() == 0 {
-		t.Errorf("Post's category count should be 0 after Delete")
+	if count := DB.Model(&post).Association("Category").Count(); count != 0 {
+		t.Errorf("Post's category count should be 0 after Delete, but got %v", count)
 	}
 
 	// Clear
@@ -144,8 +144,36 @@ func TestBelongsTo(t *testing.T) {
 		t.Errorf("Should not find any category after Clear")
 	}
 
-	if DB.Model(&post).Association("Category").Count() == 0 {
-		t.Errorf("Post's category count should be 0 after Clear")
+	if count := DB.Model(&post).Association("Category").Count(); count != 0 {
+		t.Errorf("Post's category count should be 0 after Clear, but got %v", count)
+	}
+
+	// Check Association mode with soft delete
+	category6 := Category{
+		Name: "Category 6",
+	}
+	DB.Model(&post).Association("Category").Append(&category6)
+
+	if count := DB.Model(&post).Association("Category").Count(); count != 1 {
+		t.Errorf("Post's category count should be 1 after Append, but got %v", count)
+	}
+
+	DB.Delete(&category6)
+
+	if count := DB.Model(&post).Association("Category").Count(); count != 0 {
+		t.Errorf("Post's category count should be 0 after the category has been deleted, but got %v", count)
+	}
+
+	if err := DB.Model(&post).Association("Category").Find(&Category{}).Error; err == nil {
+		t.Errorf("Post's category is not findable after Delete")
+	}
+
+	if count := DB.Unscoped().Model(&post).Association("Category").Count(); count != 1 {
+		t.Errorf("Post's category count should be 1 when query with Unscoped, but got %v", count)
+	}
+
+	if err := DB.Unscoped().Model(&post).Association("Category").Find(&Category{}).Error; err != nil {
+		t.Errorf("Post's category should be findable when query with Unscoped, got %v", err)
 	}
 }
 
