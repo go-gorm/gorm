@@ -419,3 +419,18 @@ func TestUpdateColumnsSkipsAssociations(t *testing.T) {
 		t.Errorf("Expected user's BillingAddress.Address1=%s to remain unchanged after UpdateColumns invocation, but BillingAddress.Address1=%s", address1, freshUser.BillingAddress.Address1)
 	}
 }
+
+func TestUpdateDecodeVirtualAttributes(t *testing.T) {
+	var user = User{
+		Name:     "jinzhu",
+		IgnoreMe: 88,
+	}
+
+	DB.Save(&user)
+
+	DB.Model(&user).Updates(User{Name: "jinzhu2", IgnoreMe: 100})
+
+	if user.IgnoreMe != 100 {
+		t.Errorf("should decode virtual attributes to struct, so it could be used in callbacks")
+	}
+}
