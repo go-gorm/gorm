@@ -306,7 +306,7 @@ func (association *Association) Count() int {
 	)
 
 	if relationship.Kind == "many_to_many" {
-		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.NewDB(), association.Scope.Value).Model(fieldValue).Count(&count)
+		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.DB(), association.Scope.Value).Model(fieldValue).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
 		query := scope.DB()
 		for idx, foreignKey := range relationship.ForeignDBNames {

@@ -28,7 +28,6 @@ type DB struct {
 	parent            *DB
 	search            *search
 	logMode           int
-	unscoped          bool
 	logger            logger
 	dialect           Dialect
 	singularTable     bool
@@ -187,9 +186,7 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 }
 
 func (s *DB) Unscoped() *DB {
-	clone := s.clone()
-	clone.unscoped = true
-	return clone
+	return s.clone().search.unscoped().db
 }
 
 func (s *DB) Attrs(attrs ...interface{}) *DB {
