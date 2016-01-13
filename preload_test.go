@@ -1011,6 +1011,79 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 	}
 }
 
+func TestNestedManyToManyPreload3(t *testing.T) {
+	type (
+		Level1 struct {
+			ID    uint
+			Value string
+		}
+		Level2 struct {
+			ID      uint
+			Value   string
+			Level1s []*Level1 `gorm:"many2many:level1_level2;"`
+		}
+		Level3 struct {
+			ID       uint
+			Value    string
+			Level2ID sql.NullInt64
+			Level2   *Level2
+		}
+	)
+
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists("level1_level2")
+
+	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	level1Zh := &Level1{Value: "zh"}
+	level1Ru := &Level1{Value: "ru"}
+	level1En := &Level1{Value: "en"}
+
+	level21 := &Level2{
+		Value:   "Level2-1",
+		Level1s: []*Level1{level1Zh, level1Ru},
+	}
+
+	level22 := &Level2{
+		Value:   "Level2-2",
+		Level1s: []*Level1{level1Zh, level1En},
+	}
+
+	wants := []*Level3{
+		{
+			Value:  "Level3-1",
+			Level2: level21,
+		},
+		{
+			Value:  "Level3-2",
+			Level2: level22,
+		},
+		{
+			Value:  "Level3-3",
+			Level2: level21,
+		},
+	}
+
+	for _, want := range wants {
+		if err := DB.Save(&want).Error; err != nil {
+			t.Error(err)
+		}
+	}
+
+	var gots []*Level3
+	if err := DB.Preload("Level2.Level1s").Find(&gots).Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(gots, wants) {
+		t.Errorf("got %s; want %s", toJSONString(gots), toJSONString(wants))
+	}
+}
+
 func TestNilPointerSlice(t *testing.T) {
 	type (
 		Level3 struct {

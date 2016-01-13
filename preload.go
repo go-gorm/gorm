@@ -197,17 +197,19 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 }
 
 func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
-	relation := field.Relationship
-	joinTableHandler := relation.JoinTableHandler
-	destType := field.StructField.Struct.Type.Elem()
-	var isPtr bool
+	var (
+		relation         = field.Relationship
+		joinTableHandler = relation.JoinTableHandler
+		destType         = field.StructField.Struct.Type.Elem()
+		linkHash         = make(map[string][]reflect.Value)
+		sourceKeys       = []string{}
+		isPtr            bool
+	)
+
 	if destType.Kind() == reflect.Ptr {
 		isPtr = true
 		destType = destType.Elem()
 	}
-
-	var sourceKeys []string
-	var linkHash = make(map[string][]reflect.Value)
 
 	for _, key := range joinTableHandler.SourceForeignKeys() {
 		sourceKeys = append(sourceKeys, key.DBName)
@@ -217,9 +219,11 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	preloadJoinDB := joinTableHandler.JoinWith(joinTableHandler, db, scope.Value)
 
+	// preload inline conditions
 	if len(conditions) > 0 {
 		preloadJoinDB = preloadJoinDB.Where(conditions[0], conditions[1:]...)
 	}
+
 	rows, err := preloadJoinDB.Rows()
 
 	if scope.Err(err) != nil {
