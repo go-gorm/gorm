@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -403,4 +404,35 @@ func (scope *Scope) SelectAttrs() []string {
 
 func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
+}
+
+func (scope *Scope) scan(rows *sql.Rows, columns []string, fields map[string]*Field) {
+	var values = make([]interface{}, len(columns))
+	var ignored interface{}
+
+	for index, column := range columns {
+		if field, ok := fields[column]; ok {
+			if field.Field.Kind() == reflect.Ptr {
+				values[index] = field.Field.Addr().Interface()
+			} else {
+				reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
+				reflectValue.Elem().Set(field.Field.Addr())
+				values[index] = reflectValue.Interface()
+			}
+		} else {
+			values[index] = &ignored
+		}
+	}
+
+	scope.Err(rows.Scan(values...))
+
+	for index, column := range columns {
+		if field, ok := fields[column]; ok {
+			if field.Field.Kind() != reflect.Ptr {
+				if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
+					field.Field.Set(v)
+				}
+			}
+		}
+	}
 }

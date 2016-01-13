@@ -10,10 +10,9 @@ func Query(scope *Scope) {
 	defer scope.trace(NowFunc())
 
 	var (
-		isSlice        bool
-		isPtr          bool
-		anyRecordFound bool
-		destType       reflect.Type
+		isSlice  bool
+		isPtr    bool
+		destType reflect.Type
 	)
 
 	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {
@@ -56,43 +55,13 @@ func Query(scope *Scope) {
 		for rows.Next() {
 			scope.db.RowsAffected++
 
-			anyRecordFound = true
 			elem := dest
 			if isSlice {
 				elem = reflect.New(destType).Elem()
 			}
 
-			var values = make([]interface{}, len(columns))
-
 			fields := scope.New(elem.Addr().Interface()).Fields()
-
-			for index, column := range columns {
-				if field, ok := fields[column]; ok {
-					if field.Field.Kind() == reflect.Ptr {
-						values[index] = field.Field.Addr().Interface()
-					} else {
-						reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
-						reflectValue.Elem().Set(field.Field.Addr())
-						values[index] = reflectValue.Interface()
-					}
-				} else {
-					var value interface{}
-					values[index] = &value
-				}
-			}
-
-			scope.Err(rows.Scan(values...))
-
-			for index, column := range columns {
-				value := values[index]
-				if field, ok := fields[column]; ok {
-					if field.Field.Kind() == reflect.Ptr {
-						field.Field.Set(reflect.ValueOf(value).Elem())
-					} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
-						field.Field.Set(v)
-					}
-				}
-			}
+			scope.scan(rows, columns, fields)
 
 			if isSlice {
 				if isPtr {
@@ -103,7 +72,7 @@ func Query(scope *Scope) {
 			}
 		}
 
-		if !anyRecordFound && !isSlice {
+		if scope.db.RowsAffected == 0 && !isSlice {
 			scope.Err(RecordNotFound)
 		}
 	}

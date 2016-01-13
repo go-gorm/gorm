@@ -421,6 +421,8 @@ func TestUpdateColumnsSkipsAssociations(t *testing.T) {
 }
 
 func TestUpdateDecodeVirtualAttributes(t *testing.T) {
+	t.Skip("not implemented")
+
 	var user = User{
 		Name:     "jinzhu",
 		IgnoreMe: 88,
