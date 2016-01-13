@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"reflect"
 )
@@ -265,7 +264,7 @@ type dbTabler interface {
 	TableName(*DB) string
 }
 
-// TableName get table name
+// TableName return table name
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		return scope.Search.tableName
@@ -282,6 +281,7 @@ func (scope *Scope) TableName() string {
 	return scope.GetModelStruct().TableName(scope.db.Model(scope.Value))
 }
 
+// QuotedTableName return quoted table name
 func (scope *Scope) QuotedTableName() (name string) {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		if strings.Index(scope.Search.tableName, " ") != -1 {
@@ -299,6 +299,7 @@ func (scope *Scope) CombinedConditionSql() string {
 		scope.havingSql() + scope.orderSql() + scope.limitSql() + scope.offsetSql()
 }
 
+// FieldByName find gorm.Field with name and db name
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	for _, field := range scope.Fields() {
 		if field.Name == name || field.DBName == name {
@@ -316,7 +317,7 @@ func (scope *Scope) Raw(sql string) *Scope {
 
 // Exec invoke sql
 func (scope *Scope) Exec() *Scope {
-	defer scope.Trace(NowFunc())
+	defer scope.trace(NowFunc())
 
 	if !scope.HasError() {
 		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
@@ -353,13 +354,6 @@ func (scope *Scope) InstanceSet(name string, value interface{}) *Scope {
 
 func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 	return scope.Get(name + scope.InstanceId())
-}
-
-// Trace print sql log
-func (scope *Scope) Trace(t time.Time) {
-	if len(scope.Sql) > 0 {
-		scope.db.slog(scope.Sql, t, scope.SqlVars...)
-	}
 }
 
 // Begin start a transaction
@@ -409,55 +403,4 @@ func (scope *Scope) SelectAttrs() []string {
 
 func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
-}
-
-func (scope *Scope) changeableDBColumn(column string) bool {
-	selectAttrs := scope.SelectAttrs()
-	omitAttrs := scope.OmitAttrs()
-
-	if len(selectAttrs) > 0 {
-		for _, attr := range selectAttrs {
-			if column == ToDBName(attr) {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, attr := range omitAttrs {
-		if column == ToDBName(attr) {
-			return false
-		}
-	}
-	return true
-}
-
-func (scope *Scope) changeableField(field *Field) bool {
-	selectAttrs := scope.SelectAttrs()
-	omitAttrs := scope.OmitAttrs()
-
-	if len(selectAttrs) > 0 {
-		for _, attr := range selectAttrs {
-			if field.Name == attr || field.DBName == attr {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, attr := range omitAttrs {
-		if field.Name == attr || field.DBName == attr {
-			return false
-		}
-	}
-
-	return !field.IsIgnored
-}
-
-func (scope *Scope) shouldSaveAssociations() bool {
-	saveAssociations, ok := scope.Get("gorm:save_associations")
-	if ok && !saveAssociations.(bool) {
-		return false
-	}
-	return true && !scope.HasError()
 }

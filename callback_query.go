@@ -7,7 +7,7 @@ import (
 )
 
 func Query(scope *Scope) {
-	defer scope.Trace(NowFunc())
+	defer scope.trace(NowFunc())
 
 	var (
 		isSlice        bool

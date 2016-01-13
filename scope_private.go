@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (scope *Scope) primaryCondition(value interface{}) string {
@@ -367,14 +368,14 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 }
 
 func (scope *Scope) row() *sql.Row {
-	defer scope.Trace(NowFunc())
+	defer scope.trace(NowFunc())
 	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
-	defer scope.Trace(NowFunc())
+	defer scope.trace(NowFunc())
 	scope.callCallbacks(scope.db.parent.callback.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
@@ -423,6 +424,64 @@ func (scope *Scope) typeName() string {
 	}
 
 	return typ.Name()
+}
+
+// trace print sql log
+func (scope *Scope) trace(t time.Time) {
+	if len(scope.Sql) > 0 {
+		scope.db.slog(scope.Sql, t, scope.SqlVars...)
+	}
+}
+
+func (scope *Scope) changeableDBColumn(column string) bool {
+	selectAttrs := scope.SelectAttrs()
+	omitAttrs := scope.OmitAttrs()
+
+	if len(selectAttrs) > 0 {
+		for _, attr := range selectAttrs {
+			if column == ToDBName(attr) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, attr := range omitAttrs {
+		if column == ToDBName(attr) {
+			return false
+		}
+	}
+	return true
+}
+
+func (scope *Scope) changeableField(field *Field) bool {
+	selectAttrs := scope.SelectAttrs()
+	omitAttrs := scope.OmitAttrs()
+
+	if len(selectAttrs) > 0 {
+		for _, attr := range selectAttrs {
+			if field.Name == attr || field.DBName == attr {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, attr := range omitAttrs {
+		if field.Name == attr || field.DBName == attr {
+			return false
+		}
+	}
+
+	return !field.IsIgnored
+}
+
+func (scope *Scope) shouldSaveAssociations() bool {
+	saveAssociations, ok := scope.Get("gorm:save_associations")
+	if ok && !saveAssociations.(bool) {
+		return false
+	}
+	return true && !scope.HasError()
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {

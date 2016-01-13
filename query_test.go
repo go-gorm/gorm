@@ -66,8 +66,8 @@ func TestUIntPrimaryKey(t *testing.T) {
 
 func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
 	type AddressByZipCode struct {
-		ZipCode   string `gorm:"primary_key"`
-		Address   string
+		ZipCode string `gorm:"primary_key"`
+		Address string
 	}
 
 	DB.AutoMigrate(&AddressByZipCode{})

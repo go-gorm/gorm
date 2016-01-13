@@ -19,7 +19,7 @@ func UpdateTimeStampWhenCreate(scope *Scope) {
 }
 
 func Create(scope *Scope) {
-	defer scope.Trace(NowFunc())
+	defer scope.trace(NowFunc())
 
 	if !scope.HasError() {
 		// set create sql
