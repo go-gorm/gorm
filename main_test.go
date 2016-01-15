@@ -115,7 +115,7 @@ func TestSetTable(t *testing.T) {
 	DB.Create(getPreparedUser("pluck_user3", "pluck_user"))
 
 	if err := DB.Table("users").Where("role = ?", "pluck_user").Pluck("age", &[]int{}).Error; err != nil {
-		t.Errorf("No errors should happen if set table for pluck", err.Error())
+		t.Error("No errors should happen if set table for pluck", err)
 	}
 
 	var users []User
@@ -545,7 +545,7 @@ func TestTimeWithZone(t *testing.T) {
 		DB.First(&findUser, "name = ?", name)
 		foundBirthday = findUser.Birthday.UTC().Format(format)
 		if foundBirthday != expectedBirthday {
-			t.Errorf("User's birthday should not be changed after find for name=%s, expected bday=%+v but actual value=%+v or %+v", name, expectedBirthday, foundBirthday)
+			t.Errorf("User's birthday should not be changed after find for name=%s, expected bday=%+v but actual value=%+v", name, expectedBirthday, foundBirthday)
 		}
 
 		if DB.Where("id = ? AND birthday >= ?", findUser.Id, user.Birthday.Add(-time.Minute)).First(&findUser2).RecordNotFound() {

@@ -98,8 +98,8 @@ func (s *DB) New() *DB {
 }
 
 // NewScope create scope for callbacks, including DB's search information
-func (db *DB) NewScope(value interface{}) *Scope {
-	dbClone := db.clone()
+func (s *DB) NewScope(value interface{}) *Scope {
+	dbClone := s.clone()
 	dbClone.Value = value
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
@@ -311,9 +311,9 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	scope := s.clone().NewScope(nil)
-	generatedSql := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
-	generatedSql = strings.TrimSuffix(strings.TrimPrefix(generatedSql, "("), ")")
-	scope.Raw(generatedSql)
+	generatedSQL := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
+	generatedSQL = strings.TrimSuffix(strings.TrimPrefix(generatedSQL, "("), ")")
+	scope.Raw(generatedSQL)
 	return scope.Exec().db
 }
 
@@ -372,15 +372,16 @@ func (s *DB) RecordNotFound() bool {
 	return s.Error == RecordNotFound
 }
 
-// Migrations
-func (s *DB) CreateTable(values ...interface{}) *DB {
+// CreateTable create table for models
+func (s *DB) CreateTable(models ...interface{}) *DB {
 	db := s.clone()
-	for _, value := range values {
-		db = db.NewScope(value).createTable().db
+	for _, model := range models {
+		db = db.NewScope(model).createTable().db
 	}
 	return db
 }
 
+// DropTable drop table for models
 func (s *DB) DropTable(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
@@ -393,6 +394,7 @@ func (s *DB) DropTable(values ...interface{}) *DB {
 	return db
 }
 
+// DropTableIfExists drop table for models only when it exists
 func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
@@ -459,12 +461,8 @@ func (s *DB) CurrentDatabase() string {
 	return name
 }
 
-/*
-Add foreign key to the given scope
-
-Example:
-	db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
-*/
+// AddForeignKey Add foreign key to the given scope
+// Example: db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)

@@ -560,9 +560,8 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 
 	if strings.TrimSpace(additionalType) == "" {
 		return sqlType
-	} else {
-		return fmt.Sprintf("%v %v", sqlType, additionalType)
 	}
+	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func parseTagSetting(tags reflect.StructTag) map[string]string {

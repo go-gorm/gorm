@@ -41,11 +41,11 @@ func newSafeMap() *safeMap {
 
 var smap = newSafeMap()
 
-type Case bool
+type strCase bool
 
 const (
-	lower Case = false
-	upper Case = true
+	lower strCase = false
+	upper strCase = true
 )
 
 func ToDBName(name string) string {
@@ -56,7 +56,7 @@ func ToDBName(name string) string {
 	var (
 		value                        = commonInitialismsReplacer.Replace(name)
 		buf                          = bytes.NewBufferString("")
-		lastCase, currCase, nextCase Case
+		lastCase, currCase, nextCase strCase
 	)
 
 	for i, v := range value[:len(value)-1] {

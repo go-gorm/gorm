@@ -173,8 +173,8 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTableName, strings.Join(joinConditions, " AND "))).
 			Where(condString, toQueryValues(foreignFieldValues)...)
-	} else {
-		db.Error = errors.New("wrong source type for join table handler")
-		return db
 	}
+
+	db.Error = errors.New("wrong source type for join table handler")
+	return db
 }

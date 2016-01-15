@@ -17,7 +17,7 @@ type Scope struct {
 	SqlVars         []interface{}
 	db              *DB
 	indirectValue   *reflect.Value
-	instanceId      string
+	instanceID      string
 	primaryKeyField *Field
 	skipLeft        bool
 	fields          map[string]*Field
@@ -83,9 +83,9 @@ func (scope *Scope) Quote(str string) string {
 			newStrs = append(newStrs, scope.Dialect().Quote(str))
 		}
 		return strings.Join(newStrs, ".")
-	} else {
-		return scope.Dialect().Quote(str)
 	}
+
+	return scope.Dialect().Quote(str)
 }
 
 func (scope *Scope) QuoteIfPossible(str string) string {
@@ -251,10 +251,10 @@ func (scope *Scope) AddToVars(value interface{}) string {
 			exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
 		}
 		return exp
-	} else {
-		scope.SqlVars = append(scope.SqlVars, value)
-		return scope.Dialect().BinVar(len(scope.SqlVars))
 	}
+
+	scope.SqlVars = append(scope.SqlVars, value)
+	return scope.Dialect().BinVar(len(scope.SqlVars))
 }
 
 type tabler interface {
@@ -289,9 +289,9 @@ func (scope *Scope) QuotedTableName() (name string) {
 			return scope.Search.tableName
 		}
 		return scope.Quote(scope.Search.tableName)
-	} else {
-		return scope.Quote(scope.TableName())
 	}
+
+	return scope.Quote(scope.TableName())
 }
 
 // CombinedConditionSql get combined condition sql
@@ -341,20 +341,20 @@ func (scope *Scope) Get(name string) (interface{}, bool) {
 	return scope.db.Get(name)
 }
 
-// InstanceId get InstanceId for scope
-func (scope *Scope) InstanceId() string {
-	if scope.instanceId == "" {
-		scope.instanceId = fmt.Sprintf("%v%v", &scope, &scope.db)
+// InstanceID get InstanceID for scope
+func (scope *Scope) InstanceID() string {
+	if scope.instanceID == "" {
+		scope.instanceID = fmt.Sprintf("%v%v", &scope, &scope.db)
 	}
-	return scope.instanceId
+	return scope.instanceID
 }
 
 func (scope *Scope) InstanceSet(name string, value interface{}) *Scope {
-	return scope.Set(name+scope.InstanceId(), value)
+	return scope.Set(name+scope.InstanceID(), value)
 }
 
 func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
-	return scope.Get(name + scope.InstanceId())
+	return scope.Get(name + scope.InstanceID())
 }
 
 // Begin start a transaction

@@ -375,7 +375,7 @@ func toQueryMarks(primaryValues [][]interface{}) string {
 
 	for _, primaryValue := range primaryValues {
 		var marks []string
-		for _, _ = range primaryValue {
+		for _ = range primaryValue {
 			marks = append(marks, "?")
 		}
 
@@ -396,9 +396,8 @@ func toQueryCondition(scope *Scope, columns []string) string {
 
 	if len(columns) > 1 {
 		return fmt.Sprintf("(%v)", strings.Join(newColumns, ","))
-	} else {
-		return strings.Join(newColumns, ",")
 	}
+	return strings.Join(newColumns, ",")
 }
 
 func toQueryValues(primaryValues [][]interface{}) (values []interface{}) {

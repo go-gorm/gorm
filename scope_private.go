@@ -596,7 +596,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 func (scope *Scope) createTable() *Scope {
 	var tags []string
 	var primaryKeys []string
-	var primaryKeyInColumnType bool = false
+	var primaryKeyInColumnType = false
 	for _, field := range scope.GetStructFields() {
 		if field.IsNormal {
 			sqlTag := scope.generateSqlTag(field)

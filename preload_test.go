@@ -1133,7 +1133,7 @@ func TestNilPointerSlice(t *testing.T) {
 	}
 
 	if len(got) != 2 {
-		t.Error("got %v items, expected 2", len(got))
+		t.Errorf("got %v items, expected 2", len(got))
 	}
 
 	if !reflect.DeepEqual(got[0], want) && !reflect.DeepEqual(got[1], want) {
