@@ -217,9 +217,8 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		sourceKeys = append(sourceKeys, key.DBName)
 	}
 
-	db := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName()).Select("*")
-
-	preloadJoinDB := joinTableHandler.JoinWith(joinTableHandler, db, scope.Value)
+	preloadJoinDB := scope.NewDB().Table(scope.New(reflect.New(destType).Interface()).TableName()).Select("*")
+	preloadJoinDB = joinTableHandler.JoinWith(joinTableHandler, preloadJoinDB, scope.Value)
 
 	// preload inline conditions
 	if len(conditions) > 0 {
@@ -261,31 +260,30 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 	}
 
-	var foreignFieldNames []string
+	// assign find results
+	var (
+		indirectScopeValue = scope.IndirectValue()
+		fieldsSourceMap    = map[string]reflect.Value{}
+		foreignFieldNames  = []string{}
+	)
+
 	for _, dbName := range relation.ForeignFieldNames {
 		if field, ok := scope.FieldByName(dbName); ok {
 			foreignFieldNames = append(foreignFieldNames, field.Name)
 		}
 	}
 
-	if scope.IndirectValue().Kind() == reflect.Slice {
-		objects := scope.IndirectValue()
-		for j := 0; j < objects.Len(); j++ {
-			object := reflect.Indirect(objects.Index(j))
-			source := getRealValue(object, foreignFieldNames)
-			field := object.FieldByName(field.Name)
-			for _, link := range linkHash[toString(source)] {
-				field.Set(reflect.Append(field, link))
-			}
+	if indirectScopeValue.Kind() == reflect.Slice {
+		for j := 0; j < indirectScopeValue.Len(); j++ {
+			object := reflect.Indirect(indirectScopeValue.Index(j))
+			fieldsSourceMap[toString(getRealValue(object, foreignFieldNames))] = object.FieldByName(field.Name)
 		}
-	} else {
-		if object := scope.IndirectValue(); object.IsValid() {
-			source := getRealValue(object, foreignFieldNames)
-			field := object.FieldByName(field.Name)
-			for _, link := range linkHash[toString(source)] {
-				field.Set(reflect.Append(field, link))
-			}
-		}
+	} else if indirectScopeValue.IsValid() {
+		fieldsSourceMap[toString(getRealValue(indirectScopeValue, foreignFieldNames))] = indirectScopeValue.FieldByName(field.Name)
+	}
+
+	for source, link := range linkHash {
+		fieldsSourceMap[source].Set(reflect.Append(fieldsSourceMap[source], link...))
 	}
 }
 
