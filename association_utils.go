@@ -82,42 +82,6 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 	return association
 }
 
-func (association *Association) getPrimaryKeys(columns []string, values ...interface{}) (results [][]interface{}) {
-	scope := association.Scope
-
-	for _, value := range values {
-		reflectValue := reflect.Indirect(reflect.ValueOf(value))
-		if reflectValue.Kind() == reflect.Slice {
-			for i := 0; i < reflectValue.Len(); i++ {
-				primaryKeys := []interface{}{}
-				newScope := scope.New(reflectValue.Index(i).Interface())
-				for _, column := range columns {
-					if field, ok := newScope.FieldByName(column); ok {
-						primaryKeys = append(primaryKeys, field.Field.Interface())
-					} else {
-						primaryKeys = append(primaryKeys, "")
-					}
-				}
-				results = append(results, primaryKeys)
-			}
-		} else if reflectValue.Kind() == reflect.Struct {
-			newScope := scope.New(value)
-			var primaryKeys []interface{}
-			for _, column := range columns {
-				if field, ok := newScope.FieldByName(column); ok {
-					primaryKeys = append(primaryKeys, field.Field.Interface())
-				} else {
-					primaryKeys = append(primaryKeys, "")
-				}
-			}
-
-			results = append(results, primaryKeys)
-		}
-	}
-
-	return
-}
-
 func toQueryMarks(primaryValues [][]interface{}) string {
 	var results []string
 
