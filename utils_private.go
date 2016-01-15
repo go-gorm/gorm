@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -73,6 +74,10 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 	return attrs
 }
 
+func equalAsString(a interface{}, b interface{}) bool {
+	return toString(a) == toString(b)
+}
+
 func toString(str interface{}) string {
 	if values, ok := str.([]interface{}); ok {
 		var results []string
@@ -87,6 +92,16 @@ func toString(str interface{}) string {
 	}
 }
 
+func makeSlice(elemType reflect.Type) interface{} {
+	if elemType.Kind() == reflect.Slice {
+		elemType = elemType.Elem()
+	}
+	sliceType := reflect.SliceOf(elemType)
+	slice := reflect.New(sliceType)
+	slice.Elem().Set(reflect.MakeSlice(sliceType, 0, 0))
+	return slice.Interface()
+}
+
 func strInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -94,4 +109,23 @@ func strInSlice(a string, list []string) bool {
 		}
 	}
 	return false
+}
+
+// getValueFromFields return given fields's value
+func getValueFromFields(value reflect.Value, fieldNames []string) (results []interface{}) {
+	// If value is a nil pointer, Indirect returns a zero Value!
+	// Therefor we need to check for a zero value,
+	// as FieldByName could panic
+	if indirectValue := reflect.Indirect(value); indirectValue.IsValid() {
+		for _, fieldName := range fieldNames {
+			if fieldValue := indirectValue.FieldByName(fieldName); fieldValue.IsValid() {
+				result := fieldValue.Interface()
+				if r, ok := result.(driver.Valuer); ok {
+					result, _ = r.Value()
+				}
+				results = append(results, result)
+			}
+		}
+	}
+	return
 }
