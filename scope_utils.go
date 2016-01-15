@@ -2,24 +2,30 @@ package gorm
 
 import "reflect"
 
-func (scope *Scope) getColumnAsArray(columns []string) (results [][]interface{}) {
-	indirectScopeValue := scope.IndirectValue()
-	switch indirectScopeValue.Kind() {
-	case reflect.Slice:
-		for i := 0; i < indirectScopeValue.Len(); i++ {
+func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
+	for _, value := range values {
+		indirectValue := reflect.ValueOf(value)
+		for indirectValue.Kind() == reflect.Ptr {
+			indirectValue = indirectValue.Elem()
+		}
+
+		switch indirectValue.Kind() {
+		case reflect.Slice:
+			for i := 0; i < indirectValue.Len(); i++ {
+				var result []interface{}
+				var object = reflect.Indirect(indirectValue.Index(i))
+				for _, column := range columns {
+					result = append(result, object.FieldByName(column).Interface())
+				}
+				results = append(results, result)
+			}
+		case reflect.Struct:
 			var result []interface{}
-			var object = reflect.Indirect(indirectScopeValue.Index(i))
 			for _, column := range columns {
-				result = append(result, object.FieldByName(column).Interface())
+				result = append(result, indirectValue.FieldByName(column).Interface())
 			}
 			results = append(results, result)
 		}
-	case reflect.Struct:
-		var result []interface{}
-		for _, column := range columns {
-			result = append(result, indirectScopeValue.FieldByName(column).Interface())
-		}
-		return [][]interface{}{result}
 	}
 	return
 }

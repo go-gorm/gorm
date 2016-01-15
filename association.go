@@ -117,7 +117,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		}
 	}
 
-	deletingPrimaryKeys := association.getPrimaryKeys(deletingResourcePrimaryFieldNames, values...)
+	deletingPrimaryKeys := scope.getColumnAsArray(deletingResourcePrimaryFieldNames, values...)
 
 	if relationship.Kind == "many_to_many" {
 		// source value's foreign keys
@@ -141,7 +141,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 
 		if relationship.Kind == "belongs_to" {
 			// find with deleting relation's foreign keys
-			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, values...)
+			primaryKeys := scope.getColumnAsArray(relationship.AssociationForeignFieldNames, values...)
 			newDB = newDB.Where(
 				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys)),
 				toQueryValues(primaryKeys)...,
@@ -158,7 +158,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			}
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 			// find all relations
-			primaryKeys := association.getPrimaryKeys(relationship.AssociationForeignFieldNames, scope.Value)
+			primaryKeys := scope.getColumnAsArray(relationship.AssociationForeignFieldNames, scope.Value)
 			newDB = newDB.Where(
 				fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys)),
 				toQueryValues(primaryKeys)...,

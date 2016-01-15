@@ -77,7 +77,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	relation := field.Relationship
 
 	// get relations's primary keys
-	primaryKeys := scope.getColumnAsArray(relation.AssociationForeignFieldNames)
+	primaryKeys := scope.getColumnAsArray(relation.AssociationForeignFieldNames, scope.Value)
 	if len(primaryKeys) == 0 {
 		return
 	}
@@ -112,7 +112,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 	relation := field.Relationship
 
 	// get relations's primary keys
-	primaryKeys := scope.getColumnAsArray(relation.AssociationForeignFieldNames)
+	primaryKeys := scope.getColumnAsArray(relation.AssociationForeignFieldNames, scope.Value)
 	if len(primaryKeys) == 0 {
 		return
 	}
@@ -149,7 +149,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	relation := field.Relationship
 
 	// get relations's primary keys
-	primaryKeys := scope.getColumnAsArray(relation.ForeignFieldNames)
+	primaryKeys := scope.getColumnAsArray(relation.ForeignFieldNames, scope.Value)
 	if len(primaryKeys) == 0 {
 		return
 	}

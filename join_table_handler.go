@@ -154,7 +154,7 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 			foreignFieldNames = append(foreignFieldNames, scope.Fields()[foreignKey.AssociationDBName].Name)
 		}
 
-		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames)
+		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames, scope.Value)
 
 		var condString string
 		if len(foreignFieldValues) > 0 {
@@ -165,7 +165,7 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 
 			condString = fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, quotedForeignDBNames), toQueryMarks(foreignFieldValues))
 
-			keys := scope.getColumnAsArray(foreignFieldNames)
+			keys := scope.getColumnAsArray(foreignFieldNames, scope.Value)
 			values = append(values, toQueryValues(keys))
 		} else {
 			condString = fmt.Sprintf("1 <> 1")
