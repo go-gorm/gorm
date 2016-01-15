@@ -203,6 +203,8 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		destType         = field.StructField.Struct.Type.Elem()
 		linkHash         = make(map[string][]reflect.Value)
 		sourceKeys       = []string{}
+		foreignKeyValue  interface{}
+		foreignKeyType   = reflect.ValueOf(&foreignKeyValue).Type()
 		isPtr            bool
 	)
 
@@ -233,51 +235,29 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	columns, _ := rows.Columns()
 	for rows.Next() {
-		elem := reflect.New(destType).Elem()
-		var values = make([]interface{}, len(columns))
+		var (
+			elem   = reflect.New(destType).Elem()
+			fields = scope.New(elem.Addr().Interface()).Fields()
+		)
 
-		fields := scope.New(elem.Addr().Interface()).Fields()
-
-		var foundFields = map[string]bool{}
-		for index, column := range columns {
-			if field, ok := fields[column]; ok && !foundFields[column] {
-				if field.Field.Kind() == reflect.Ptr {
-					values[index] = field.Field.Addr().Interface()
-				} else {
-					values[index] = reflect.New(reflect.PtrTo(field.Field.Type())).Interface()
-				}
-				foundFields[column] = true
-			} else {
-				var i interface{}
-				values[index] = &i
-			}
+		// register foreign keys in join tables
+		for _, sourceKey := range sourceKeys {
+			fields[sourceKey] = &Field{Field: reflect.New(foreignKeyType).Elem()}
 		}
 
-		scope.Err(rows.Scan(values...))
+		scope.scan(rows, columns, fields)
 
-		var sourceKey []interface{}
-
-		var scannedFields = map[string]bool{}
-		for index, column := range columns {
-			value := values[index]
-			if field, ok := fields[column]; ok && !scannedFields[column] {
-				if field.Field.Kind() == reflect.Ptr {
-					field.Field.Set(reflect.ValueOf(value).Elem())
-				} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
-					field.Field.Set(v)
-				}
-				scannedFields[column] = true
-			} else if strInSlice(column, sourceKeys) {
-				sourceKey = append(sourceKey, *(value.(*interface{})))
-			}
+		// generate hashed forkey keys in join table
+		var foreignKeys = make([]interface{}, len(sourceKeys))
+		for idx, sourceKey := range sourceKeys {
+			foreignKeys[idx] = fields[sourceKey].Field.Elem().Interface()
 		}
+		hashedSourceKeys := toString(foreignKeys)
 
-		if len(sourceKey) != 0 {
-			if isPtr {
-				linkHash[toString(sourceKey)] = append(linkHash[toString(sourceKey)], elem.Addr())
-			} else {
-				linkHash[toString(sourceKey)] = append(linkHash[toString(sourceKey)], elem)
-			}
+		if isPtr {
+			linkHash[hashedSourceKeys] = append(linkHash[hashedSourceKeys], elem.Addr())
+		} else {
+			linkHash[hashedSourceKeys] = append(linkHash[hashedSourceKeys], elem)
 		}
 	}
 
