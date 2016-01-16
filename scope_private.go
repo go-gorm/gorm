@@ -31,7 +31,11 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
-			sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(key), scope.AddToVars(value)))
+			if value != nil {
+				sqls = append(sqls, fmt.Sprintf("(%v = %v)", scope.Quote(key), scope.AddToVars(value)))
+			} else {
+				sqls = append(sqls, fmt.Sprintf("(%v IS NULL)", scope.Quote(key)))
+			}
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
@@ -97,7 +101,11 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
-			sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(key), scope.AddToVars(value)))
+			if value != nil {
+				sqls = append(sqls, fmt.Sprintf("(%v <> %v)", scope.Quote(key), scope.AddToVars(value)))
+			} else {
+				sqls = append(sqls, fmt.Sprintf("(%v IS NOT NULL)", scope.Quote(key)))
+			}
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
