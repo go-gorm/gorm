@@ -28,9 +28,9 @@ func AfterDelete(scope *Scope) {
 }
 
 func init() {
-	DefaultCallback.Delete().Register("gorm:begin_transaction", BeginTransaction)
-	DefaultCallback.Delete().Register("gorm:before_delete", BeforeDelete)
-	DefaultCallback.Delete().Register("gorm:delete", Delete)
-	DefaultCallback.Delete().Register("gorm:after_delete", AfterDelete)
-	DefaultCallback.Delete().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	defaultCallbacks.Delete().Register("gorm:begin_transaction", BeginTransaction)
+	defaultCallbacks.Delete().Register("gorm:before_delete", BeforeDelete)
+	defaultCallbacks.Delete().Register("gorm:delete", Delete)
+	defaultCallbacks.Delete().Register("gorm:after_delete", AfterDelete)
+	defaultCallbacks.Delete().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }

@@ -4,34 +4,45 @@ import (
 	"fmt"
 )
 
-type callback struct {
+// defaultCallbacks hold default callbacks defined by gorm
+var defaultCallbacks = &Callbacks{}
+
+// Callbacks contains callbacks that used when CURD objects
+//   Field `creates` hold callbacks will be call when creating object
+//   Field `updates` hold callbacks will be call when updating object
+//   Field `deletes` hold callbacks will be call when deleting object
+//   Field `queries` hold callbacks will be call when querying object with query methods like Find, First, Related, Association...
+//   Field `rowQueries` hold callbacks will be call when querying object with Row, Rows...
+//   Field `processors` hold all callback processors, will be used to generate above callbacks in order
+type Callbacks struct {
 	creates    []*func(scope *Scope)
 	updates    []*func(scope *Scope)
 	deletes    []*func(scope *Scope)
 	queries    []*func(scope *Scope)
 	rowQueries []*func(scope *Scope)
-	processors []*callbackProcessor
+	processors []*CallbackProcessor
 }
 
-type callbackProcessor struct {
-	name      string
-	before    string
-	after     string
-	replace   bool
-	remove    bool
-	typ       string
-	processor *func(scope *Scope)
-	callback  *callback
+// callbackProcessor contains all informations for a callback
+type CallbackProcessor struct {
+	name      string              // current callback's name
+	before    string              // register current callback before a callback
+	after     string              // register current callback after a callback
+	replace   bool                // replace callbacks with same name
+	remove    bool                // delete callbacks with same name
+	kind      string              // callback type: create, update, delete, query, row_query
+	processor *func(scope *Scope) // callback handler
+	parent    *Callbacks
 }
 
-func (c *callback) addProcessor(typ string) *callbackProcessor {
-	cp := &callbackProcessor{typ: typ, callback: c}
+func (c *Callbacks) addProcessor(kind string) *CallbackProcessor {
+	cp := &CallbackProcessor{kind: kind, parent: c}
 	c.processors = append(c.processors, cp)
 	return cp
 }
 
-func (c *callback) clone() *callback {
-	return &callback{
+func (c *Callbacks) clone() *Callbacks {
+	return &Callbacks{
 		creates:    c.creates,
 		updates:    c.updates,
 		deletes:    c.deletes,
@@ -40,57 +51,81 @@ func (c *callback) clone() *callback {
 	}
 }
 
-func (c *callback) Create() *callbackProcessor {
+// Create could be used to register callbacks for creating object
+//     db.Callback().Create().After("gorm:create").Register("plugin:run_after_create", func(*Scope) {
+//       // business logic
+//       ...
+//
+//       // set error if some thing wrong happened, will rollback the creating
+//       scope.Err(errors.New("error"))
+//     })
+func (c *Callbacks) Create() *CallbackProcessor {
 	return c.addProcessor("create")
 }
 
-func (c *callback) Update() *callbackProcessor {
+// Update could be used to register callbacks for updating object, refer `Create` for usage
+func (c *Callbacks) Update() *CallbackProcessor {
 	return c.addProcessor("update")
 }
 
-func (c *callback) Delete() *callbackProcessor {
+// Delete could be used to register callbacks for deleting object, refer `Create` for usage
+func (c *Callbacks) Delete() *CallbackProcessor {
 	return c.addProcessor("delete")
 }
 
-func (c *callback) Query() *callbackProcessor {
+// Query could be used to register callbacks for querying objects with query methods like `Find`, `First`, `Related`, `Association`...
+// refer `Create` for usage
+func (c *Callbacks) Query() *CallbackProcessor {
 	return c.addProcessor("query")
 }
 
-func (c *callback) RowQuery() *callbackProcessor {
+// Query could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
+func (c *Callbacks) RowQuery() *CallbackProcessor {
 	return c.addProcessor("row_query")
 }
 
-func (cp *callbackProcessor) Before(name string) *callbackProcessor {
-	cp.before = name
+// After insert a new callback after callback `callbackName`, refer `Callbacks.Create`
+func (cp *CallbackProcessor) After(callbackName string) *CallbackProcessor {
+	cp.after = callbackName
 	return cp
 }
 
-func (cp *callbackProcessor) After(name string) *callbackProcessor {
-	cp.after = name
+// Before insert a new callback before callback `callbackName`, refer `Callbacks.Create`
+func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
+	cp.before = callbackName
 	return cp
 }
 
-func (cp *callbackProcessor) Register(name string, fc func(scope *Scope)) {
-	cp.name = name
-	cp.processor = &fc
-	cp.callback.sort()
+// Register a new callback, refer `Callbacks.Create`
+func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
+	cp.name = callbackName
+	cp.processor = &callback
+	cp.parent.reorder()
 }
 
-func (cp *callbackProcessor) Remove(name string) {
-	fmt.Printf("[info] removing callback `%v` from %v\n", name, fileWithLineNum())
-	cp.name = name
+// Remove a registered callback
+//     db.Callback().Create().Remove("gorm:update_time_stamp_when_create")
+func (cp *CallbackProcessor) Remove(callbackName string) {
+	fmt.Printf("[info] removing callback `%v` from %v\n", callbackName, fileWithLineNum())
+	cp.name = callbackName
 	cp.remove = true
-	cp.callback.sort()
+	cp.parent.reorder()
 }
 
-func (cp *callbackProcessor) Replace(name string, fc func(scope *Scope)) {
-	fmt.Printf("[info] replacing callback `%v` from %v\n", name, fileWithLineNum())
-	cp.name = name
-	cp.processor = &fc
+// Replace a registered callback with new callback
+//     db.Callback().Create().Replace("gorm:update_time_stamp_when_create", func(*Scope) {
+//		   scope.SetColumn("Created", now)
+//		   scope.SetColumn("Updated", now)
+//     })
+func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
+	fmt.Printf("[info] replacing callback `%v` from %v\n", callbackName, fileWithLineNum())
+	cp.name = callbackName
+	cp.processor = &callback
 	cp.replace = true
-	cp.callback.sort()
+	cp.parent.reorder()
 }
 
+// getRIndex get right index from string slice
 func getRIndex(strs []string, str string) int {
 	for i := len(strs) - 1; i >= 0; i-- {
 		if strs[i] == str {
@@ -100,8 +135,9 @@ func getRIndex(strs []string, str string) int {
 	return -1
 }
 
-func sortProcessors(cps []*callbackProcessor) []*func(scope *Scope) {
-	var sortCallbackProcessor func(c *callbackProcessor)
+// sortProcessors sort callback processors based on its before, after, remove, replace
+func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
+	var sortCallbackProcessor func(c *CallbackProcessor)
 	var names, sortedNames = []string{}, []string{}
 
 	for _, cp := range cps {
@@ -113,7 +149,7 @@ func sortProcessors(cps []*callbackProcessor) []*func(scope *Scope) {
 		names = append(names, cp.name)
 	}
 
-	sortCallbackProcessor = func(c *callbackProcessor) {
+	sortCallbackProcessor = func(c *CallbackProcessor) {
 		if getRIndex(sortedNames, c.name) > -1 {
 			return
 		}
@@ -172,11 +208,12 @@ func sortProcessors(cps []*callbackProcessor) []*func(scope *Scope) {
 	return append(sortedFuncs, funcs...)
 }
 
-func (c *callback) sort() {
-	var creates, updates, deletes, queries, rowQueries []*callbackProcessor
+// reorder all registered processors, and reset CURD callbacks
+func (c *Callbacks) reorder() {
+	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
 	for _, processor := range c.processors {
-		switch processor.typ {
+		switch processor.kind {
 		case "create":
 			creates = append(creates, processor)
 		case "update":
@@ -196,5 +233,3 @@ func (c *callback) sort() {
 	c.queries = sortProcessors(queries)
 	c.rowQueries = sortProcessors(rowQueries)
 }
-
-var DefaultCallback = &callback{processors: []*callbackProcessor{}}

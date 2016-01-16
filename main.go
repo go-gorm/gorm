@@ -23,7 +23,7 @@ type DB struct {
 	Value             interface{}
 	Error             error
 	RowsAffected      int64
-	callback          *callback
+	callbacks         *Callbacks
 	db                sqlCommon
 	parent            *DB
 	search            *search
@@ -65,12 +65,12 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		}
 
 		db = DB{
-			dialect:  NewDialect(dialect),
-			logger:   defaultLogger,
-			callback: DefaultCallback,
-			source:   source,
-			values:   map[string]interface{}{},
-			db:       dbSql,
+			dialect:   NewDialect(dialect),
+			logger:    defaultLogger,
+			callbacks: defaultCallbacks,
+			source:    source,
+			values:    map[string]interface{}{},
+			db:        dbSql,
 		}
 		db.parent = &db
 
@@ -111,9 +111,9 @@ func (s *DB) CommonDB() sqlCommon {
 	return s.db
 }
 
-func (s *DB) Callback() *callback {
-	s.parent.callback = s.parent.callback.clone()
-	return s.parent.callback
+func (s *DB) Callback() *Callbacks {
+	s.parent.callbacks = s.parent.callbacks.clone()
+	return s.parent.callbacks
 }
 
 func (s *DB) SetLogger(l logger) {
@@ -201,22 +201,22 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
-		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
+		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "DESC").
-		inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
+		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callback.queries).db
+	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 func (s *DB) Scan(dest interface{}) *DB {
-	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callback.queries).db
+	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
 }
 
 func (s *DB) Row() *sql.Row {
@@ -258,9 +258,9 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callback.creates).db.Error)
+		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db.Error)
 	} else if len(c.search.assignAttrs) > 0 {
-		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callback.updates).db.Error)
+		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db.Error)
 	}
 	return c
 }
@@ -273,7 +273,7 @@ func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
 	return s.clone().NewScope(s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
 		InstanceSet("gorm:update_interface", values).
-		callCallbacks(s.parent.callback.updates).db
+		callCallbacks(s.parent.callbacks.updates).db
 }
 
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
@@ -285,24 +285,24 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 		Set("gorm:update_column", true).
 		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
-		callCallbacks(s.parent.callback.updates).db
+		callCallbacks(s.parent.callbacks.updates).db
 }
 
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
-		return scope.callCallbacks(s.parent.callback.creates).db
+		return scope.callCallbacks(s.parent.callbacks.creates).db
 	}
-	return scope.callCallbacks(s.parent.callback.updates).db
+	return scope.callCallbacks(s.parent.callbacks.updates).db
 }
 
 func (s *DB) Create(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
-	return scope.callCallbacks(s.parent.callback.creates).db
+	return scope.callCallbacks(s.parent.callbacks.creates).db
 }
 
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callback.deletes).db
+	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {

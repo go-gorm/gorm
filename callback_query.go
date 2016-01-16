@@ -83,7 +83,7 @@ func AfterQuery(scope *Scope) {
 }
 
 func init() {
-	DefaultCallback.Query().Register("gorm:query", Query)
-	DefaultCallback.Query().Register("gorm:after_query", AfterQuery)
-	DefaultCallback.Query().Register("gorm:preload", Preload)
+	defaultCallbacks.Query().Register("gorm:query", Query)
+	defaultCallbacks.Query().Register("gorm:after_query", AfterQuery)
+	defaultCallbacks.Query().Register("gorm:preload", Preload)
 }

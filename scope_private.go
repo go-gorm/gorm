@@ -377,14 +377,14 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignore
 
 func (scope *Scope) row() *sql.Row {
 	defer scope.trace(NowFunc())
-	scope.callCallbacks(scope.db.parent.callback.rowQueries)
+	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...)
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
 	defer scope.trace(NowFunc())
-	scope.callCallbacks(scope.db.parent.callback.rowQueries)
+	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
 	scope.prepareQuerySql()
 	return scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
 }
