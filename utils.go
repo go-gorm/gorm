@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -99,4 +100,43 @@ type expr struct {
 
 func Expr(expression string, args ...interface{}) *expr {
 	return &expr{expr: expression, args: args}
+}
+
+func toQueryMarks(primaryValues [][]interface{}) string {
+	var results []string
+
+	for _, primaryValue := range primaryValues {
+		var marks []string
+		for _ = range primaryValue {
+			marks = append(marks, "?")
+		}
+
+		if len(marks) > 1 {
+			results = append(results, fmt.Sprintf("(%v)", strings.Join(marks, ",")))
+		} else {
+			results = append(results, strings.Join(marks, ""))
+		}
+	}
+	return strings.Join(results, ",")
+}
+
+func toQueryCondition(scope *Scope, columns []string) string {
+	var newColumns []string
+	for _, column := range columns {
+		newColumns = append(newColumns, scope.Quote(column))
+	}
+
+	if len(columns) > 1 {
+		return fmt.Sprintf("(%v)", strings.Join(newColumns, ","))
+	}
+	return strings.Join(newColumns, ",")
+}
+
+func toQueryValues(primaryValues [][]interface{}) (values []interface{}) {
+	for _, primaryValue := range primaryValues {
+		for _, value := range primaryValue {
+			values = append(values, value)
+		}
+	}
+	return values
 }

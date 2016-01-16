@@ -480,7 +480,7 @@ func (s *DB) Association(column string) *Association {
 			if field.Relationship == nil || len(field.Relationship.ForeignFieldNames) == 0 {
 				err = fmt.Errorf("invalid association %v for %v", column, scope.IndirectValue().Type())
 			} else {
-				return &Association{Scope: scope, Column: column, Field: field}
+				return &Association{scope: scope, column: column, field: field}
 			}
 		} else {
 			err = fmt.Errorf("%v doesn't have column %v", scope.IndirectValue().Type(), column)
