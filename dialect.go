@@ -25,8 +25,6 @@ func NewDialect(driver string) Dialect {
 	switch driver {
 	case "postgres":
 		d = &postgres{}
-	case "foundation":
-		d = &foundation{}
 	case "mysql":
 		d = &mysql{}
 	case "sqlite3":
