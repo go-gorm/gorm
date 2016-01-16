@@ -27,7 +27,7 @@ func getRealValue(value reflect.Value, columns []string) (results []interface{})
 }
 
 func equalAsString(a interface{}, b interface{}) bool {
-	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
+	return toString(a) == toString(b)
 }
 
 func Preload(scope *Scope) {

@@ -82,9 +82,10 @@ func toString(str interface{}) string {
 		return strings.Join(results, "_")
 	} else if bytes, ok := str.([]byte); ok {
 		return string(bytes)
-	} else {
-		return fmt.Sprintf("%v", str)
+	} else if reflectValue := reflect.Indirect(reflect.ValueOf(str)); reflectValue.IsValid() {
+		return fmt.Sprintf("%v", reflectValue.Interface())
 	}
+	return ""
 }
 
 func strInSlice(a string, list []string) bool {

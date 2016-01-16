@@ -207,11 +207,11 @@ func TestSearchWithStruct(t *testing.T) {
 }
 
 func TestSearchWithMap(t *testing.T) {
-	productID := 1
+	companyID := 1
 	user1 := User{Name: "MapSearchUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
 	user2 := User{Name: "MapSearchUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
 	user3 := User{Name: "MapSearchUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
-	user4 := User{Name: "MapSearchUser4", Age: 30, Birthday: now.MustParse("2020-1-1"), ProductID: &productID}
+	user4 := User{Name: "MapSearchUser4", Age: 30, Birthday: now.MustParse("2020-1-1"), CompanyID: &companyID}
 	DB.Save(&user1).Save(&user2).Save(&user3).Save(&user4)
 
 	var user User
@@ -237,17 +237,17 @@ func TestSearchWithMap(t *testing.T) {
 		t.Errorf("Search all records with inline map")
 	}
 
-	DB.Find(&users, map[string]interface{}{"name": user4.Name, "product_id": nil})
+	DB.Find(&users, map[string]interface{}{"name": user4.Name, "company_id": nil})
 	if len(users) != 0 {
 		t.Errorf("Search all records with inline map containing null value finding 0 records")
 	}
 
-	DB.Find(&users, map[string]interface{}{"name": user1.Name, "product_id": nil})
+	DB.Find(&users, map[string]interface{}{"name": user1.Name, "company_id": nil})
 	if len(users) != 1 {
 		t.Errorf("Search all records with inline map containing null value finding 1 record")
 	}
 
-	DB.Find(&users, map[string]interface{}{"name": user4.Name, "product_id": productID})
+	DB.Find(&users, map[string]interface{}{"name": user4.Name, "company_id": companyID})
 	if len(users) != 1 {
 		t.Errorf("Search all records with inline multiple value map")
 	}
@@ -396,8 +396,7 @@ func TestNot(t *testing.T) {
 	DB.Create(getPreparedUser("user3", "not"))
 
 	user4 := getPreparedUser("user4", "not")
-	productID := 1
-	user4.ProductID = &productID
+	user4.Company = Company{}
 	DB.Create(user4)
 
 	DB := DB.Where("role = ?", "not")
@@ -445,9 +444,9 @@ func TestNot(t *testing.T) {
 		t.Errorf("Should find all users's name not equal 3")
 	}
 
-	DB.Not(map[string]interface{}{"name": "user3", "product_id": nil}).Find(&users7)
-	if len(users7) != 1 {
-		t.Errorf("Should find all user's name not equal to 3 who do not have product ids")
+	DB.Not(map[string]interface{}{"name": "user3", "company_id": nil}).Find(&users7)
+	if len(users1)-len(users7) != 2 { // not user3 or user4
+		t.Errorf("Should find all user's name not equal to 3 who do not have company id")
 	}
 
 	DB.Not("name", []string{"user3"}).Find(&users8)
