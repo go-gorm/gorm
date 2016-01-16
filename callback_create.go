@@ -114,13 +114,13 @@ func AfterCreate(scope *Scope) {
 }
 
 func init() {
-	defaultCallbacks.Create().Register("gorm:begin_transaction", BeginTransaction)
-	defaultCallbacks.Create().Register("gorm:before_create", BeforeCreate)
-	defaultCallbacks.Create().Register("gorm:save_before_associations", SaveBeforeAssociations)
-	defaultCallbacks.Create().Register("gorm:update_time_stamp_when_create", UpdateTimeStampWhenCreate)
-	defaultCallbacks.Create().Register("gorm:create", Create)
-	defaultCallbacks.Create().Register("gorm:force_reload_after_create", ForceReloadAfterCreate)
-	defaultCallbacks.Create().Register("gorm:save_after_associations", SaveAfterAssociations)
-	defaultCallbacks.Create().Register("gorm:after_create", AfterCreate)
-	defaultCallbacks.Create().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	defaultCallback.Create().Register("gorm:begin_transaction", BeginTransaction)
+	defaultCallback.Create().Register("gorm:before_create", BeforeCreate)
+	defaultCallback.Create().Register("gorm:save_before_associations", SaveBeforeAssociations)
+	defaultCallback.Create().Register("gorm:update_time_stamp_when_create", UpdateTimeStampWhenCreate)
+	defaultCallback.Create().Register("gorm:create", Create)
+	defaultCallback.Create().Register("gorm:force_reload_after_create", ForceReloadAfterCreate)
+	defaultCallback.Create().Register("gorm:save_after_associations", SaveAfterAssociations)
+	defaultCallback.Create().Register("gorm:after_create", AfterCreate)
+	defaultCallback.Create().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }

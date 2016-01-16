@@ -83,13 +83,13 @@ func AfterUpdate(scope *Scope) {
 }
 
 func init() {
-	defaultCallbacks.Update().Register("gorm:assign_update_attributes", AssignUpdateAttributes)
-	defaultCallbacks.Update().Register("gorm:begin_transaction", BeginTransaction)
-	defaultCallbacks.Update().Register("gorm:before_update", BeforeUpdate)
-	defaultCallbacks.Update().Register("gorm:save_before_associations", SaveBeforeAssociations)
-	defaultCallbacks.Update().Register("gorm:update_time_stamp_when_update", UpdateTimeStampWhenUpdate)
-	defaultCallbacks.Update().Register("gorm:update", Update)
-	defaultCallbacks.Update().Register("gorm:save_after_associations", SaveAfterAssociations)
-	defaultCallbacks.Update().Register("gorm:after_update", AfterUpdate)
-	defaultCallbacks.Update().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	defaultCallback.Update().Register("gorm:assign_update_attributes", AssignUpdateAttributes)
+	defaultCallback.Update().Register("gorm:begin_transaction", BeginTransaction)
+	defaultCallback.Update().Register("gorm:before_update", BeforeUpdate)
+	defaultCallback.Update().Register("gorm:save_before_associations", SaveBeforeAssociations)
+	defaultCallback.Update().Register("gorm:update_time_stamp_when_update", UpdateTimeStampWhenUpdate)
+	defaultCallback.Update().Register("gorm:update", Update)
+	defaultCallback.Update().Register("gorm:save_after_associations", SaveAfterAssociations)
+	defaultCallback.Update().Register("gorm:after_update", AfterUpdate)
+	defaultCallback.Update().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }

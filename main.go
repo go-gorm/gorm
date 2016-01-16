@@ -23,7 +23,7 @@ type DB struct {
 	Value             interface{}
 	Error             error
 	RowsAffected      int64
-	callbacks         *Callbacks
+	callbacks         *Callback
 	db                sqlCommon
 	parent            *DB
 	search            *search
@@ -67,7 +67,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		db = DB{
 			dialect:   NewDialect(dialect),
 			logger:    defaultLogger,
-			callbacks: defaultCallbacks,
+			callbacks: defaultCallback,
 			source:    source,
 			values:    map[string]interface{}{},
 			db:        dbSql,
@@ -111,7 +111,7 @@ func (s *DB) CommonDB() sqlCommon {
 	return s.db
 }
 
-func (s *DB) Callback() *Callbacks {
+func (s *DB) Callback() *Callback {
 	s.parent.callbacks = s.parent.callbacks.clone()
 	return s.parent.callbacks
 }

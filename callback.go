@@ -4,17 +4,17 @@ import (
 	"fmt"
 )
 
-// defaultCallbacks hold default callbacks defined by gorm
-var defaultCallbacks = &Callbacks{}
+// defaultCallback hold default callbacks defined by gorm
+var defaultCallback = &Callback{}
 
-// Callbacks contains callbacks that used when CURD objects
+// Callback contains callbacks that used when CURD objects
 //   Field `creates` hold callbacks will be call when creating object
 //   Field `updates` hold callbacks will be call when updating object
 //   Field `deletes` hold callbacks will be call when deleting object
 //   Field `queries` hold callbacks will be call when querying object with query methods like Find, First, Related, Association...
 //   Field `rowQueries` hold callbacks will be call when querying object with Row, Rows...
 //   Field `processors` hold all callback processors, will be used to generate above callbacks in order
-type Callbacks struct {
+type Callback struct {
 	creates    []*func(scope *Scope)
 	updates    []*func(scope *Scope)
 	deletes    []*func(scope *Scope)
@@ -32,17 +32,17 @@ type CallbackProcessor struct {
 	remove    bool                // delete callbacks with same name
 	kind      string              // callback type: create, update, delete, query, row_query
 	processor *func(scope *Scope) // callback handler
-	parent    *Callbacks
+	parent    *Callback
 }
 
-func (c *Callbacks) addProcessor(kind string) *CallbackProcessor {
+func (c *Callback) addProcessor(kind string) *CallbackProcessor {
 	cp := &CallbackProcessor{kind: kind, parent: c}
 	c.processors = append(c.processors, cp)
 	return cp
 }
 
-func (c *Callbacks) clone() *Callbacks {
-	return &Callbacks{
+func (c *Callback) clone() *Callback {
+	return &Callback{
 		creates:    c.creates,
 		updates:    c.updates,
 		deletes:    c.deletes,
@@ -59,28 +59,28 @@ func (c *Callbacks) clone() *Callbacks {
 //       // set error if some thing wrong happened, will rollback the creating
 //       scope.Err(errors.New("error"))
 //     })
-func (c *Callbacks) Create() *CallbackProcessor {
+func (c *Callback) Create() *CallbackProcessor {
 	return c.addProcessor("create")
 }
 
 // Update could be used to register callbacks for updating object, refer `Create` for usage
-func (c *Callbacks) Update() *CallbackProcessor {
+func (c *Callback) Update() *CallbackProcessor {
 	return c.addProcessor("update")
 }
 
 // Delete could be used to register callbacks for deleting object, refer `Create` for usage
-func (c *Callbacks) Delete() *CallbackProcessor {
+func (c *Callback) Delete() *CallbackProcessor {
 	return c.addProcessor("delete")
 }
 
 // Query could be used to register callbacks for querying objects with query methods like `Find`, `First`, `Related`, `Association`...
 // refer `Create` for usage
-func (c *Callbacks) Query() *CallbackProcessor {
+func (c *Callback) Query() *CallbackProcessor {
 	return c.addProcessor("query")
 }
 
 // Query could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
-func (c *Callbacks) RowQuery() *CallbackProcessor {
+func (c *Callback) RowQuery() *CallbackProcessor {
 	return c.addProcessor("row_query")
 }
 
@@ -209,7 +209,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 }
 
 // reorder all registered processors, and reset CURD callbacks
-func (c *Callbacks) reorder() {
+func (c *Callback) reorder() {
 	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
 	for _, processor := range c.processors {
