@@ -53,6 +53,10 @@ func ToDBName(name string) string {
 		return v
 	}
 
+	if name == "" {
+		return ""
+	}
+
 	var (
 		value                        = commonInitialismsReplacer.Replace(name)
 		buf                          = bytes.NewBufferString("")

@@ -8,6 +8,7 @@ import (
 
 func TestToDBNameGenerateFriendlyName(t *testing.T) {
 	var maps = map[string]string{
+		"":                          "",
 		"ThisIsATest":               "this_is_a_test",
 		"PFAndESI":                  "pf_and_esi",
 		"AbcAndJkl":                 "abc_and_jkl",
