@@ -28,7 +28,7 @@ type User struct {
 	CreditCard        CreditCard
 	Latitude          float64
 	Languages         []Language `gorm:"many2many:user_languages;"`
-	CompanyID         int64
+	CompanyID         *int
 	Company           Company
 	Role
 	PasswordHash      []byte

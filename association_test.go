@@ -600,7 +600,9 @@ func TestRelated(t *testing.T) {
 		Company:         Company{Name: "company1"},
 	}
 
-	DB.Save(&user)
+	if err := DB.Save(&user).Error; err != nil {
+		t.Errorf("No error should happen when saving user")
+	}
 
 	if user.CreditCard.ID == 0 {
 		t.Errorf("After user save, credit card should have id")

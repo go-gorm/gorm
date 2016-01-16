@@ -13,7 +13,7 @@ type Field struct {
 	Field   reflect.Value
 }
 
-func (field *Field) Set(value interface{}) error {
+func (field *Field) Set(value interface{}) (err error) {
 	if !field.Field.IsValid() {
 		return errors.New("field value not valid")
 	}
@@ -27,15 +27,25 @@ func (field *Field) Set(value interface{}) error {
 		reflectValue = reflect.ValueOf(value)
 	}
 
+	fieldValue := field.Field
 	if reflectValue.IsValid() {
-		if reflectValue.Type().ConvertibleTo(field.Field.Type()) {
-			field.Field.Set(reflectValue.Convert(field.Field.Type()))
-		} else if scanner, ok := field.Field.Addr().Interface().(sql.Scanner); ok {
-			if err := scanner.Scan(reflectValue.Interface()); err != nil {
-				return err
-			}
+		if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+			fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 		} else {
-			return fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), field.Field.Type())
+			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(field.Struct.Type.Elem()))
+				}
+				fieldValue = fieldValue.Elem()
+			}
+
+			if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+				fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
+			} else if scanner, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+				err = scanner.Scan(reflectValue.Interface())
+			} else {
+				err = fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), fieldValue.Type())
+			}
 		}
 	} else {
 		field.Field.Set(reflect.Zero(field.Field.Type()))

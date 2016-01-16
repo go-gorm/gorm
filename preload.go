@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// Preload preload relations callback
 func Preload(scope *Scope) {
 	if scope.Search.preload == nil || scope.HasError() {
 		return
