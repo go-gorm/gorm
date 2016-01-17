@@ -1191,7 +1191,7 @@ db.LogMode(false)
 db.Debug().Where("name = ?", "jinzhu").First(&User{})
 ```
 
-![logger](https://raw.github.com/jinzhu/gorm/master/images/logger.png)
+![logger](https://raw.github.com/jinzhu/gorm/master/doc/logger.png)
 
 ### Customize Logger
 
