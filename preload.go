@@ -186,6 +186,9 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 			objects := scope.IndirectValue()
 			for j := 0; j < objects.Len(); j++ {
 				object := reflect.Indirect(objects.Index(j))
+				if object.Kind() == reflect.Ptr {
+					object = reflect.Indirect(objects.Index(j).Elem())
+				}
 				if equalAsString(getRealValue(object, relation.ForeignFieldNames), value) {
 					object.FieldByName(field.Name).Set(result)
 				}
@@ -312,7 +315,11 @@ func (scope *Scope) getColumnAsArray(columns []string) (results [][]interface{})
 		for i := 0; i < values.Len(); i++ {
 			var result []interface{}
 			for _, column := range columns {
-				result = append(result, reflect.Indirect(values.Index(i)).FieldByName(column).Interface())
+				value := reflect.Indirect(values.Index(i))
+				if value.Kind() == reflect.Ptr {
+					value = reflect.Indirect(values.Index(i).Elem())
+				}
+				result = append(result, value.FieldByName(column).Interface())
 			}
 			results = append(results, result)
 		}
