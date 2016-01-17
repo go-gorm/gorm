@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+func init() {
+	defaultCallback.Update().Register("gorm:assign_update_attributes", assignUpdateAttributesCallback)
+	defaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
+	defaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
+	defaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	defaultCallback.Update().Register("gorm:update_time_stamp_when_update", updateTimeStampForUpdateCallback)
+	defaultCallback.Update().Register("gorm:update", updateCallback)
+	defaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	defaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
+	defaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+
 func assignUpdateAttributesCallback(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
@@ -88,16 +100,4 @@ func afterUpdateCallback(scope *Scope) {
 			scope.CallMethod("AfterSave")
 		}
 	}
-}
-
-func init() {
-	defaultCallback.Update().Register("gorm:assign_update_attributes", assignUpdateAttributesCallback)
-	defaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
-	defaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
-	defaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	defaultCallback.Update().Register("gorm:update_time_stamp_when_update", updateTimeStampForUpdateCallback)
-	defaultCallback.Update().Register("gorm:update", updateCallback)
-	defaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
-	defaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
-	defaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }

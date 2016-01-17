@@ -2,6 +2,14 @@ package gorm
 
 import "fmt"
 
+func init() {
+	defaultCallback.Delete().Register("gorm:begin_transaction", beginTransactionCallback)
+	defaultCallback.Delete().Register("gorm:before_delete", beforeDeleteCallback)
+	defaultCallback.Delete().Register("gorm:delete", deleteCallback)
+	defaultCallback.Delete().Register("gorm:after_delete", afterDeleteCallback)
+	defaultCallback.Delete().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+
 func beforeDeleteCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("BeforeDelete")
@@ -29,12 +37,4 @@ func afterDeleteCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterDelete")
 	}
-}
-
-func init() {
-	defaultCallback.Delete().Register("gorm:begin_transaction", beginTransactionCallback)
-	defaultCallback.Delete().Register("gorm:before_delete", beforeDeleteCallback)
-	defaultCallback.Delete().Register("gorm:delete", deleteCallback)
-	defaultCallback.Delete().Register("gorm:after_delete", afterDeleteCallback)
-	defaultCallback.Delete().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }

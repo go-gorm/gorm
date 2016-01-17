@@ -5,6 +5,20 @@ import (
 	"strings"
 )
 
+// Define callbacks for creating
+func init() {
+	defaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
+	defaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
+	defaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	defaultCallback.Create().Register("gorm:update_time_stamp_when_create", updateTimeStampForCreateCallback)
+	defaultCallback.Create().Register("gorm:create", createCallback)
+	defaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
+	defaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	defaultCallback.Create().Register("gorm:after_create", afterCreateCallback)
+	defaultCallback.Create().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+
+// beforeCreateCallback will invoke `BeforeSave`, `BeforeCreate` method before creating
 func beforeCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("BeforeSave")
@@ -14,6 +28,7 @@ func beforeCreateCallback(scope *Scope) {
 	}
 }
 
+// updateTimeStampForCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
 func updateTimeStampForCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		now := NowFunc()
@@ -22,6 +37,7 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 	}
 }
 
+// createCallback the callback used to insert data into database
 func createCallback(scope *Scope) {
 	defer scope.trace(NowFunc())
 
@@ -106,12 +122,14 @@ func createCallback(scope *Scope) {
 	}
 }
 
+// forceReloadAfterCreateCallback will reload columns that having default value, and set it back to current object
 func forceReloadAfterCreateCallback(scope *Scope) {
 	if columns, ok := scope.InstanceGet("gorm:force_reload_after_create_attrs"); ok {
 		scope.DB().New().Select(columns.([]string)).First(scope.Value)
 	}
 }
 
+// beforeCreateCallback will invoke `AfterCreate`, `AfterSave` method after creating
 func afterCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterCreate")
@@ -119,16 +137,4 @@ func afterCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterSave")
 	}
-}
-
-func init() {
-	defaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
-	defaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
-	defaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	defaultCallback.Create().Register("gorm:update_time_stamp_when_create", updateTimeStampForCreateCallback)
-	defaultCallback.Create().Register("gorm:create", createCallback)
-	defaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
-	defaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
-	defaultCallback.Create().Register("gorm:after_create", afterCreateCallback)
-	defaultCallback.Create().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }
