@@ -66,7 +66,7 @@ func (scope *Scope) DB() *DB {
 }
 
 // SqlDB return *sql.DB
-func (scope *Scope) SqlDB() sqlCommon {
+func (scope *Scope) SqlDB() SqlCommon {
 	return scope.db.db
 }
 
@@ -366,7 +366,7 @@ func (scope *Scope) Trace(t time.Time) {
 func (scope *Scope) Begin() *Scope {
 	if db, ok := scope.SqlDB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
-			scope.db.db = interface{}(tx).(sqlCommon)
+			scope.db.db = interface{}(tx).(SqlCommon)
 			scope.InstanceSet("gorm:started_transaction", true)
 		}
 	}

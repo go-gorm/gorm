@@ -4,7 +4,7 @@ import (
 	"database/sql"
 )
 
-type sqlCommon interface {
+type SqlCommon interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	Prepare(query string) (*sql.Stmt, error)
 	Query(query string, args ...interface{}) (*sql.Rows, error)
@@ -25,9 +25,11 @@ type Database interface {
 	DB() *sql.DB
 	New() Database
 	NewScope(value interface{}) *Scope
-	CommonDB() sqlCommon
-	Callback() *callback
-	SetLogger(l logger)
+
+	CommonDB() SqlCommon
+	//Callback() *callback
+	//SetLogger(l logger)
+
 	LogMode(enable bool) Database
 	SingularTable(enable bool)
 

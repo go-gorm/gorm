@@ -24,7 +24,7 @@ type DB struct {
 	Error             error
 	RowsAffected      int64
 	callback          *callback
-	db                sqlCommon
+	db                SqlCommon
 	parent            *DB
 	search            *search
 	logMode           int
@@ -44,7 +44,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 		err = errors.New("invalid database source")
 	} else {
 		var source string
-		var dbSql sqlCommon
+		var dbSql SqlCommon
 
 		switch value := args[0].(type) {
 		case string:
@@ -59,7 +59,7 @@ func Open(dialect string, args ...interface{}) (DB, error) {
 				driver = "postgres" // FoundationDB speaks a postgres-compatible protocol.
 			}
 			dbSql, err = sql.Open(driver, source)
-		case sqlCommon:
+		case SqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSql = value
 		}
@@ -107,7 +107,7 @@ func (db *DB) NewScope(value interface{}) *Scope {
 // CommonDB Return the underlying sql.DB or sql.Tx instance.
 // Use of this method is discouraged. It's mainly intended to allow
 // coexistence with legacy non-GORM code.
-func (s *DB) CommonDB() sqlCommon {
+func (s *DB) CommonDB() SqlCommon {
 	return s.db
 }
 
@@ -338,7 +338,7 @@ func (s *DB) Begin() Database {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok {
 		tx, err := db.Begin()
-		c.db = interface{}(tx).(sqlCommon)
+		c.db = interface{}(tx).(SqlCommon)
 		c.AddError(err)
 	} else {
 		c.AddError(CantStartTransaction)
