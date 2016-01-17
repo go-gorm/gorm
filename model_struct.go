@@ -14,7 +14,7 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
-var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
+var DefaultTableNameHandler = func(db Database, defaultTableName string) string {
 	return defaultTableName
 }
 
@@ -48,7 +48,7 @@ type ModelStruct struct {
 	defaultTableName string
 }
 
-func (s *ModelStruct) TableName(db *DB) string {
+func (s *ModelStruct) TableName(db Database) string {
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 

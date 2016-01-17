@@ -96,7 +96,7 @@ func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string
 }
 
 func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Error)
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).GetError())
 }
 
 // RawScanInt scans the first column of the first row into the `scan' int pointer.

@@ -15,7 +15,7 @@ func TestBelongsTo(t *testing.T) {
 		MainCategory: Category{Name: "Main Category 1"},
 	}
 
-	if err := DB.Save(&post).Error; err != nil {
+	if err := DB.Save(&post).GetError(); err != nil {
 		t.Errorf("Got errors when save post", err.Error())
 	}
 
@@ -183,7 +183,7 @@ func TestHasOne(t *testing.T) {
 		CreditCard: CreditCard{Number: "411111111111"},
 	}
 
-	if err := DB.Save(&user).Error; err != nil {
+	if err := DB.Save(&user).GetError(); err != nil {
 		t.Errorf("Got errors when save user", err.Error())
 	}
 
@@ -330,7 +330,7 @@ func TestHasMany(t *testing.T) {
 		Comments: []*Comment{{Content: "Comment 1"}, {Content: "Comment 2"}},
 	}
 
-	if err := DB.Save(&post).Error; err != nil {
+	if err := DB.Save(&post).GetError(); err != nil {
 		t.Errorf("Got errors when save post", err.Error())
 	}
 
@@ -351,7 +351,7 @@ func TestHasMany(t *testing.T) {
 	}
 
 	// Query
-	if DB.First(&Comment{}, "content = ?", "Comment 1").Error != nil {
+	if DB.First(&Comment{}, "content = ?", "Comment 1").GetError() != nil {
 		t.Errorf("Comment 1 should be saved")
 	}
 

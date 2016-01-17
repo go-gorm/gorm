@@ -45,7 +45,7 @@ func Query(scope *Scope) {
 
 	if !scope.HasError() {
 		rows, err := scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
-		scope.db.RowsAffected = 0
+		scope.db.SetRowsAffected(0)
 
 		if scope.Err(err) != nil {
 			return
@@ -54,7 +54,8 @@ func Query(scope *Scope) {
 
 		columns, _ := rows.Columns()
 		for rows.Next() {
-			scope.db.RowsAffected++
+			rowsAffected := scope.db.GetRowsAffected()+1
+			scope.db.SetRowsAffected(rowsAffected)
 
 			anyRecordFound = true
 			elem := dest

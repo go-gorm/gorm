@@ -22,7 +22,7 @@ type PersonAddress struct {
 	CreatedAt time.Time
 }
 
-func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
+func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db gorm.Database, foreignValue interface{}, associationValue interface{}) error {
 	return db.Where(map[string]interface{}{
 		"person_id":  db.NewScope(foreignValue).PrimaryKeyValue(),
 		"address_id": db.NewScope(associationValue).PrimaryKeyValue(),
@@ -30,14 +30,14 @@ func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, f
 		"person_id":  foreignValue,
 		"address_id": associationValue,
 		"deleted_at": gorm.Expr("NULL"),
-	}).FirstOrCreate(&PersonAddress{}).Error
+	}).FirstOrCreate(&PersonAddress{}).GetError()
 }
 
-func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB, sources ...interface{}) error {
-	return db.Delete(&PersonAddress{}).Error
+func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db gorm.Database, sources ...interface{}) error {
+	return db.Delete(&PersonAddress{}).GetError()
 }
 
-func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db *gorm.DB, source interface{}) *gorm.DB {
+func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db gorm.Database, source interface{}) gorm.Database {
 	table := pa.Table(db)
 	return db.Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
 }
@@ -54,7 +54,7 @@ func TestJoinTable(t *testing.T) {
 
 	DB.Model(person).Association("Addresses").Delete(address1)
 
-	if DB.Find(&[]PersonAddress{}, "person_id = ?", person.Id).RowsAffected != 1 {
+	if DB.Find(&[]PersonAddress{}, "person_id = ?", person.Id).GetRowsAffected() != 1 {
 		t.Errorf("Should found one address")
 	}
 
@@ -62,7 +62,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should found one address")
 	}
 
-	if DB.Unscoped().Find(&[]PersonAddress{}, "person_id = ?", person.Id).RowsAffected != 2 {
+	if DB.Unscoped().Find(&[]PersonAddress{}, "person_id = ?", person.Id).GetRowsAffected() != 2 {
 		t.Errorf("Found two addresses with Unscoped")
 	}
 

@@ -9,10 +9,10 @@ import (
 
 type JoinTableHandlerInterface interface {
 	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
-	Table(db *DB) string
-	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
-	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
-	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	Table(db Database) string
+	Add(handler JoinTableHandlerInterface, db Database, source interface{}, destination interface{}) error
+	Delete(handler JoinTableHandlerInterface, db Database, sources ...interface{}) error
+	JoinWith(handler JoinTableHandlerInterface, db Database, source interface{}) Database
 	SourceForeignKeys() []JoinTableForeignKey
 	DestinationForeignKeys() []JoinTableForeignKey
 }
@@ -61,11 +61,11 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	}
 }
 
-func (s JoinTableHandler) Table(db *DB) string {
+func (s JoinTableHandler) Table(db Database) string {
 	return s.TableName
 }
 
-func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
+func (s JoinTableHandler) GetSearchMap(db Database, sources ...interface{}) map[string]interface{} {
 	values := map[string]interface{}{}
 
 	for _, source := range sources {
@@ -85,7 +85,7 @@ func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[strin
 	return values
 }
 
-func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1 interface{}, source2 interface{}) error {
+func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db Database, source1 interface{}, source2 interface{}) error {
 	scope := db.NewScope("")
 	searchMap := s.GetSearchMap(db, source1, source2)
 
@@ -113,10 +113,10 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1
 		strings.Join(conditions, " AND "),
 	)
 
-	return db.Exec(sql, values...).Error
+	return db.Exec(sql, values...).GetError()
 }
 
-func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error {
+func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db Database, sources ...interface{}) error {
 	var (
 		scope      = db.NewScope(nil)
 		conditions []string
@@ -128,10 +128,10 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 		values = append(values, value)
 	}
 
-	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
+	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").GetError()
 }
 
-func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
+func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db Database, source interface{}) Database {
 	var (
 		scope           = db.NewScope(source)
 		tableName       = handler.Table(db)
@@ -174,7 +174,7 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTableName, strings.Join(joinConditions, " AND "))).
 			Where(condString, toQueryValues(foreignFieldValues)...)
 	} else {
-		db.Error = errors.New("wrong source type for join table handler")
+		db.AddError(errors.New("wrong source type for join table handler"))
 		return db
 	}
 }

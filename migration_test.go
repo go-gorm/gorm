@@ -7,7 +7,7 @@ import (
 )
 
 func runMigration() {
-	if err := DB.DropTableIfExists(&User{}).Error; err != nil {
+	if err := DB.DropTableIfExists(&User{}).GetError(); err != nil {
 		fmt.Printf("Got error when try to delete table users, %+v\n", err)
 	}
 
@@ -20,13 +20,13 @@ func runMigration() {
 		DB.DropTable(value)
 	}
 
-	if err := DB.AutoMigrate(values...).Error; err != nil {
+	if err := DB.AutoMigrate(values...).GetError(); err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 }
 
 func TestIndexes(t *testing.T) {
-	if err := DB.Model(&Email{}).AddIndex("idx_email_email", "email").Error; err != nil {
+	if err := DB.Model(&Email{}).AddIndex("idx_email_email", "email").GetError(); err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
@@ -35,7 +35,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email should have index idx_email_email")
 	}
 
-	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email").Error; err != nil {
+	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email").GetError(); err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
 
@@ -43,7 +43,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email's index idx_email_email should be deleted")
 	}
 
-	if err := DB.Model(&Email{}).AddIndex("idx_email_email_and_user_id", "user_id", "email").Error; err != nil {
+	if err := DB.Model(&Email{}).AddIndex("idx_email_email_and_user_id", "user_id", "email").GetError(); err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
@@ -51,7 +51,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email should have index idx_email_email_and_user_id")
 	}
 
-	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
+	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").GetError(); err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
 
@@ -59,7 +59,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email's index idx_email_email_and_user_id should be deleted")
 	}
 
-	if err := DB.Model(&Email{}).AddUniqueIndex("idx_email_email_and_user_id", "user_id", "email").Error; err != nil {
+	if err := DB.Model(&Email{}).AddUniqueIndex("idx_email_email_and_user_id", "user_id", "email").GetError(); err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
@@ -67,7 +67,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email should have index idx_email_email_and_user_id")
 	}
 
-	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error == nil {
+	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.comiii"}, {Email: "user1@example.com"}, {Email: "user1@example.com"}}}).GetError() == nil {
 		t.Errorf("Should get to create duplicate record when having unique index")
 	}
 
@@ -81,7 +81,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Should get no duplicated email error when insert duplicated emails for a user")
 	}
 
-	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").Error; err != nil {
+	if err := DB.Model(&Email{}).RemoveIndex("idx_email_email_and_user_id").GetError(); err != nil {
 		t.Errorf("Got error when tried to remove index: %+v", err)
 	}
 
@@ -89,7 +89,7 @@ func TestIndexes(t *testing.T) {
 		t.Errorf("Email's index idx_email_email_and_user_id should be deleted")
 	}
 
-	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error != nil {
+	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).GetError() != nil {
 		t.Errorf("Should be able to create duplicated emails after remove unique index")
 	}
 }
@@ -110,7 +110,7 @@ func (b BigEmail) TableName() string {
 
 func TestAutoMigration(t *testing.T) {
 	DB.AutoMigrate(&Address{})
-	if err := DB.Table("emails").AutoMigrate(&BigEmail{}).Error; err != nil {
+	if err := DB.Table("emails").AutoMigrate(&BigEmail{}).GetError(); err != nil {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 

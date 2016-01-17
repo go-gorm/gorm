@@ -23,7 +23,7 @@ func (association *Association) setErr(err error) *Association {
 
 func (association *Association) Find(value interface{}) *Association {
 	association.Scope.related(value, association.Column)
-	return association.setErr(association.Scope.db.Error)
+	return association.setErr(association.Scope.db.GetError())
 }
 
 func (association *Association) saveAssociations(values ...interface{}) *Association {
@@ -42,7 +42,7 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 		// value has to been saved for many2many
 		if relationship.Kind == "many_to_many" {
 			if scope.New(reflectValue.Interface()).PrimaryKeyZero() {
-				association.setErr(scope.NewDB().Save(reflectValue.Interface()).Error)
+				association.setErr(scope.NewDB().Save(reflectValue.Interface()).GetError())
 			}
 		}
 
@@ -68,7 +68,7 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 		if relationship.Kind == "many_to_many" {
 			association.setErr(relationship.JoinTableHandler.Add(relationship.JoinTableHandler, scope.NewDB(), scope.Value, reflectValue.Interface()))
 		} else {
-			association.setErr(scope.NewDB().Select(field.Name).Save(scope.Value).Error)
+			association.setErr(scope.NewDB().Select(field.Name).Save(scope.Value).GetError())
 
 			if setFieldBackToValue {
 				reflectValue.Elem().Set(field.Field)
@@ -104,9 +104,9 @@ func (association *Association) Append(values ...interface{}) *Association {
 func (association *Association) Replace(values ...interface{}) *Association {
 	var (
 		relationship = association.Field.Relationship
-		scope        = association.Scope
-		field        = association.Field.Field
-		newDB        = scope.NewDB()
+		scope = association.Scope
+		field = association.Field.Field
+		newDB Database = scope.NewDB()
 	)
 
 	// Append new values
@@ -122,7 +122,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			for _, foreignKey := range relationship.ForeignDBNames {
 				foreignKeyMap[foreignKey] = nil
 			}
-			association.setErr(newDB.Model(scope.Value).UpdateColumn(foreignKeyMap).Error)
+			association.setErr(newDB.Model(scope.Value).UpdateColumn(foreignKeyMap).GetError())
 		}
 	} else {
 		// Relations
@@ -173,7 +173,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			}
 
 			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
-			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
+			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).GetError())
 		}
 	}
 	return association
@@ -182,9 +182,9 @@ func (association *Association) Replace(values ...interface{}) *Association {
 func (association *Association) Delete(values ...interface{}) *Association {
 	var (
 		relationship = association.Field.Relationship
-		scope        = association.Scope
-		field        = association.Field.Field
-		newDB        = scope.NewDB()
+		scope = association.Scope
+		field = association.Field.Field
+		newDB Database = scope.NewDB()
 	)
 
 	if len(values) == 0 {
@@ -231,12 +231,12 @@ func (association *Association) Delete(values ...interface{}) *Association {
 
 			// set foreign key to be null
 			modelValue := reflect.New(scope.GetModelStruct().ModelType).Interface()
-			if results := newDB.Model(modelValue).UpdateColumn(foreignKeyMap); results.Error == nil {
-				if results.RowsAffected > 0 {
+			if results := newDB.Model(modelValue).UpdateColumn(foreignKeyMap); results.GetError() == nil {
+				if results.GetRowsAffected() > 0 {
 					scope.updatedAttrsWithValues(foreignKeyMap, false)
 				}
 			} else {
-				association.setErr(results.Error)
+				association.setErr(results.GetError())
 			}
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 			// find all relations
@@ -254,7 +254,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 
 			// set matched relation's foreign key to be null
 			fieldValue := reflect.New(association.Field.Field.Type()).Interface()
-			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).Error)
+			association.setErr(newDB.Model(fieldValue).UpdateColumn(foreignKeyMap).GetError())
 		}
 	}
 
@@ -298,17 +298,17 @@ func (association *Association) Clear() *Association {
 
 func (association *Association) Count() int {
 	var (
-		count        = 0
+		count = 0
 		relationship = association.Field.Relationship
-		scope        = association.Scope
-		fieldValue   = association.Field.Field.Interface()
-		newScope     = scope.New(fieldValue)
+		scope = association.Scope
+		fieldValue = association.Field.Field.Interface()
+		newScope = scope.New(fieldValue)
 	)
 
 	if relationship.Kind == "many_to_many" {
 		relationship.JoinTableHandler.JoinWith(relationship.JoinTableHandler, scope.DB(), association.Scope.Value).Model(fieldValue).Count(&count)
 	} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
-		query := scope.DB()
+		var query Database = scope.DB()
 		for idx, foreignKey := range relationship.ForeignDBNames {
 			if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
 				query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), scope.Quote(foreignKey)),
@@ -321,7 +321,7 @@ func (association *Association) Count() int {
 		}
 		query.Model(fieldValue).Count(&count)
 	} else if relationship.Kind == "belongs_to" {
-		query := scope.DB()
+		var query Database = scope.DB()
 		for idx, primaryKey := range relationship.AssociationForeignDBNames {
 			if field, ok := scope.FieldByName(relationship.ForeignDBNames[idx]); ok {
 				query = query.Where(fmt.Sprintf("%v.%v = ?", newScope.QuotedTableName(), scope.Quote(primaryKey)),

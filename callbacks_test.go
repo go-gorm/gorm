@@ -108,22 +108,22 @@ func TestRunCallbacks(t *testing.T) {
 		t.Errorf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
-	if DB.Where("Code = ?", "unique_code").First(&p).Error == nil {
+	if DB.Where("Code = ?", "unique_code").First(&p).GetError() == nil {
 		t.Errorf("Can't find a deleted record")
 	}
 }
 
 func TestCallbacksWithErrors(t *testing.T) {
 	p := Product{Code: "Invalid", Price: 100}
-	if DB.Save(&p).Error == nil {
+	if DB.Save(&p).GetError() == nil {
 		t.Errorf("An error from before create callbacks happened when create with invalid value")
 	}
 
-	if DB.Where("code = ?", "Invalid").First(&Product{}).Error == nil {
+	if DB.Where("code = ?", "Invalid").First(&Product{}).GetError() == nil {
 		t.Errorf("Should not save record that have errors")
 	}
 
-	if DB.Save(&Product{Code: "dont_save", Price: 100}).Error == nil {
+	if DB.Save(&Product{Code: "dont_save", Price: 100}).GetError() == nil {
 		t.Errorf("An error from after create callbacks happened when create with invalid value")
 	}
 
@@ -131,47 +131,47 @@ func TestCallbacksWithErrors(t *testing.T) {
 	DB.Save(&p2)
 
 	p2.Code = "dont_update"
-	if DB.Save(&p2).Error == nil {
+	if DB.Save(&p2).GetError() == nil {
 		t.Errorf("An error from before update callbacks happened when update with invalid value")
 	}
 
-	if DB.Where("code = ?", "update_callback").First(&Product{}).Error != nil {
+	if DB.Where("code = ?", "update_callback").First(&Product{}).GetError() != nil {
 		t.Errorf("Record Should not be updated due to errors happened in before update callback")
 	}
 
-	if DB.Where("code = ?", "dont_update").First(&Product{}).Error == nil {
+	if DB.Where("code = ?", "dont_update").First(&Product{}).GetError() == nil {
 		t.Errorf("Record Should not be updated due to errors happened in before update callback")
 	}
 
 	p2.Code = "dont_save"
-	if DB.Save(&p2).Error == nil {
+	if DB.Save(&p2).GetError() == nil {
 		t.Errorf("An error from before save callbacks happened when update with invalid value")
 	}
 
 	p3 := Product{Code: "dont_delete", Price: 100}
 	DB.Save(&p3)
-	if DB.Delete(&p3).Error == nil {
+	if DB.Delete(&p3).GetError() == nil {
 		t.Errorf("An error from before delete callbacks happened when delete")
 	}
 
-	if DB.Where("Code = ?", "dont_delete").First(&p3).Error != nil {
+	if DB.Where("Code = ?", "dont_delete").First(&p3).GetError() != nil {
 		t.Errorf("An error from before delete callbacks happened")
 	}
 
 	p4 := Product{Code: "after_save_error", Price: 100}
 	DB.Save(&p4)
-	if err := DB.First(&Product{}, "code = ?", "after_save_error").Error; err == nil {
+	if err := DB.First(&Product{}, "code = ?", "after_save_error").GetError(); err == nil {
 		t.Errorf("Record should be reverted if get an error in after save callback")
 	}
 
 	p5 := Product{Code: "after_delete_error", Price: 100}
 	DB.Save(&p5)
-	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
+	if err := DB.First(&Product{}, "code = ?", "after_delete_error").GetError(); err != nil {
 		t.Errorf("Record should be found")
 	}
 
 	DB.Delete(&p5)
-	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
+	if err := DB.First(&Product{}, "code = ?", "after_delete_error").GetError(); err != nil {
 		t.Errorf("Record shouldn't be deleted because of an error happened in after delete callback")
 	}
 }

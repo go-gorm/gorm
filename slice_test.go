@@ -7,7 +7,7 @@ import (
 )
 
 func TestScannableSlices(t *testing.T) {
-	if err := DB.AutoMigrate(&RecordWithSlice{}).Error; err != nil {
+	if err := DB.AutoMigrate(&RecordWithSlice{}).GetError(); err != nil {
 		t.Errorf("Should create table with slice values correctly: %s", err)
 	}
 
@@ -19,13 +19,13 @@ func TestScannableSlices(t *testing.T) {
 		},
 	}
 
-	if err := DB.Save(&r1).Error; err != nil {
+	if err := DB.Save(&r1).GetError(); err != nil {
 		t.Errorf("Should save record with slice values")
 	}
 
 	var r2 RecordWithSlice
 
-	if err := DB.Find(&r2).Error; err != nil {
+	if err := DB.Find(&r2).GetError(); err != nil {
 		t.Errorf("Should fetch record with slice values")
 	}
 

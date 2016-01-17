@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	DB                 gorm.DB
+	DB                 gorm.Database
 	t1, t2, t3, t4, t5 time.Time
 )
 
@@ -42,7 +42,11 @@ func init() {
 	runMigration()
 }
 
-func OpenTestConnection() (db gorm.DB, err error) {
+func OpenTestConnection() (*gorm.DB, error) {
+	var (
+		db gorm.DB
+		err error
+	)
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
 		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
@@ -63,7 +67,8 @@ func OpenTestConnection() (db gorm.DB, err error) {
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
 	}
-	return
+
+	return &db, err
 }
 
 func TestStringPrimaryKey(t *testing.T) {
@@ -74,22 +79,22 @@ func TestStringPrimaryKey(t *testing.T) {
 	DB.AutoMigrate(&UUIDStruct{})
 
 	data := UUIDStruct{ID: "uuid", Name: "hello"}
-	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" {
+	if err := DB.Save(&data).GetError(); err != nil || data.ID != "uuid" {
 		t.Errorf("string primary key should not be populated")
 	}
 }
 
 func TestExceptionsWithInvalidSql(t *testing.T) {
 	var columns []string
-	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
+	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).GetError() == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
 
-	if DB.Model(&User{}).Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
+	if DB.Model(&User{}).Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).GetError() == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
 
-	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Find(&User{}).Error == nil {
+	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Find(&User{}).GetError() == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
 
@@ -99,7 +104,7 @@ func TestExceptionsWithInvalidSql(t *testing.T) {
 		t.Errorf("Should find some users")
 	}
 
-	if DB.Where("name = ?", "jinzhu; delete * from users").First(&User{}).Error == nil {
+	if DB.Where("name = ?", "jinzhu; delete * from users").First(&User{}).GetError() == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
 
@@ -114,21 +119,21 @@ func TestSetTable(t *testing.T) {
 	DB.Create(getPreparedUser("pluck_user2", "pluck_user"))
 	DB.Create(getPreparedUser("pluck_user3", "pluck_user"))
 
-	if err := DB.Table("users").Where("role = ?", "pluck_user").Pluck("age", &[]int{}).Error; err != nil {
+	if err := DB.Table("users").Where("role = ?", "pluck_user").Pluck("age", &[]int{}).GetError(); err != nil {
 		t.Errorf("No errors should happen if set table for pluck", err.Error())
 	}
 
 	var users []User
-	if DB.Table("users").Find(&[]User{}).Error != nil {
+	if DB.Table("users").Find(&[]User{}).GetError() != nil {
 		t.Errorf("No errors should happen if set table for find")
 	}
 
-	if DB.Table("invalid_table").Find(&users).Error == nil {
+	if DB.Table("invalid_table").Find(&users).GetError() == nil {
 		t.Errorf("Should got error when table is set to an invalid table")
 	}
 
 	DB.Exec("drop table deleted_users;")
-	if DB.Table("deleted_users").CreateTable(&User{}).Error != nil {
+	if DB.Table("deleted_users").CreateTable(&User{}).GetError() != nil {
 		t.Errorf("Create table with specified table")
 	}
 
@@ -168,7 +173,7 @@ func TestHasTable(t *testing.T) {
 	if ok := DB.HasTable(&Foo{}); ok {
 		t.Errorf("Table should not exist, but does")
 	}
-	if err := DB.CreateTable(&Foo{}).Error; err != nil {
+	if err := DB.CreateTable(&Foo{}).GetError(); err != nil {
 		t.Errorf("Table should be created")
 	}
 	if ok := DB.HasTable(&Foo{}); !ok {
@@ -240,7 +245,7 @@ func TestNullValues(t *testing.T) {
 		Male:    sql.NullBool{Bool: true, Valid: true},
 		Height:  sql.NullFloat64{Float64: 100.11, Valid: true},
 		AddedAt: NullTime{Time: time.Now(), Valid: true},
-	}).Error; err != nil {
+	}).GetError(); err != nil {
 		t.Errorf("Not error should raise when test null value")
 	}
 
@@ -258,7 +263,7 @@ func TestNullValues(t *testing.T) {
 		Male:    sql.NullBool{Bool: true, Valid: true},
 		Height:  sql.NullFloat64{Float64: 100.11, Valid: true},
 		AddedAt: NullTime{Time: time.Now(), Valid: false},
-	}).Error; err != nil {
+	}).GetError(); err != nil {
 		t.Errorf("Not error should raise when test null value")
 	}
 
@@ -275,7 +280,7 @@ func TestNullValues(t *testing.T) {
 		Male:    sql.NullBool{Bool: true, Valid: true},
 		Height:  sql.NullFloat64{Float64: 100.11, Valid: true},
 		AddedAt: NullTime{Time: time.Now(), Valid: false},
-	}).Error; err == nil {
+	}).GetError(); err == nil {
 		t.Errorf("Can't save because of name can't be null")
 	}
 }
@@ -287,7 +292,7 @@ func TestNullValuesWithFirstOrCreate(t *testing.T) {
 	}
 
 	var nv2 NullValue
-	if err := DB.Where(nv1).FirstOrCreate(&nv2).Error; err != nil {
+	if err := DB.Where(nv1).FirstOrCreate(&nv2).GetError(); err != nil {
 		t.Errorf("Should not raise any error, but got %v", err)
 	}
 
@@ -295,7 +300,7 @@ func TestNullValuesWithFirstOrCreate(t *testing.T) {
 		t.Errorf("first or create with nullvalues")
 	}
 
-	if err := DB.Where(nv1).Assign(NullValue{Age: sql.NullInt64{Int64: 18, Valid: true}}).FirstOrCreate(&nv2).Error; err != nil {
+	if err := DB.Where(nv1).Assign(NullValue{Age: sql.NullInt64{Int64: 18, Valid: true}}).FirstOrCreate(&nv2).GetError(); err != nil {
 		t.Errorf("Should not raise any error, but got %v", err)
 	}
 
@@ -307,11 +312,11 @@ func TestNullValuesWithFirstOrCreate(t *testing.T) {
 func TestTransaction(t *testing.T) {
 	tx := DB.Begin()
 	u := User{Name: "transcation"}
-	if err := tx.Save(&u).Error; err != nil {
+	if err := tx.Save(&u).GetError(); err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+	if err := tx.First(&User{}, "name = ?", "transcation").GetError(); err != nil {
 		t.Errorf("Should find saved record")
 	}
 
@@ -321,23 +326,23 @@ func TestTransaction(t *testing.T) {
 
 	tx.Rollback()
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := tx.First(&User{}, "name = ?", "transcation").GetError(); err == nil {
 		t.Errorf("Should not find record after rollback")
 	}
 
 	tx2 := DB.Begin()
 	u2 := User{Name: "transcation-2"}
-	if err := tx2.Save(&u2).Error; err != nil {
+	if err := tx2.Save(&u2).GetError(); err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := tx2.First(&User{}, "name = ?", "transcation-2").GetError(); err != nil {
 		t.Errorf("Should find saved record")
 	}
 
 	tx2.Commit()
 
-	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transcation-2").GetError(); err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
 }
@@ -436,7 +441,7 @@ func TestRaw(t *testing.T) {
 	}
 
 	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
-	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.RecordNotFound {
+	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).GetError() != gorm.RecordNotFound {
 		t.Error("Raw sql to update records")
 	}
 }
@@ -568,14 +573,14 @@ func TestHstore(t *testing.T) {
 		t.Skip()
 	}
 
-	if err := DB.Exec("CREATE EXTENSION IF NOT EXISTS hstore").Error; err != nil {
+	if err := DB.Exec("CREATE EXTENSION IF NOT EXISTS hstore").GetError(); err != nil {
 		fmt.Println("\033[31mHINT: Must be superuser to create hstore extension (ALTER USER gorm WITH SUPERUSER;)\033[0m")
 		panic(fmt.Sprintf("No error should happen when create hstore extension, but got %+v", err))
 	}
 
 	DB.Exec("drop table details")
 
-	if err := DB.CreateTable(&Details{}).Error; err != nil {
+	if err := DB.CreateTable(&Details{}).GetError(); err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}
 
@@ -589,7 +594,7 @@ func TestHstore(t *testing.T) {
 	DB.Save(&d)
 
 	var d2 Details
-	if err := DB.First(&d2).Error; err != nil {
+	if err := DB.First(&d2).GetError(); err != nil {
 		t.Errorf("Got error when tried to fetch details: %+v", err)
 	}
 
@@ -647,7 +652,7 @@ func TestOpenExistingDB(t *testing.T) {
 	}
 
 	var user User
-	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.RecordNotFound {
+	if db.Where("name = ?", "jnfeinstein").First(&user).GetError() == gorm.RecordNotFound {
 		t.Errorf("Should have found existing record")
 	}
 }

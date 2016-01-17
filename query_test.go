@@ -31,7 +31,7 @@ func TestFirstAndLast(t *testing.T) {
 		t.Errorf("Find first record as slice")
 	}
 
-	if DB.Joins("left join emails on emails.user_id = users.id").First(&User{}).Error != nil {
+	if DB.Joins("left join emails on emails.user_id = users.id").First(&User{}).GetError() != nil {
 		t.Errorf("Should not raise any error when order with Join table")
 	}
 }
@@ -242,15 +242,15 @@ func TestSearchWithEmptyChain(t *testing.T) {
 	user3 := User{Name: "ChainearchUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
-	if DB.Where("").Where("").First(&User{}).Error != nil {
+	if DB.Where("").Where("").First(&User{}).GetError() != nil {
 		t.Errorf("Should not raise any error if searching with empty strings")
 	}
 
-	if DB.Where(&User{}).Where("name = ?", user1.Name).First(&User{}).Error != nil {
+	if DB.Where(&User{}).Where("name = ?", user1.Name).First(&User{}).GetError() != nil {
 		t.Errorf("Should not raise any error if searching with empty struct")
 	}
 
-	if DB.Where(map[string]interface{}{}).Where("name = ?", user1.Name).First(&User{}).Error != nil {
+	if DB.Where(map[string]interface{}{}).Where("name = ?", user1.Name).First(&User{}).GetError() != nil {
 		t.Errorf("Should not raise any error if searching with empty map")
 	}
 }
@@ -359,7 +359,7 @@ func TestCount(t *testing.T) {
 	var count, count1, count2 int64
 	var users []User
 
-	if err := DB.Where("name = ?", user1.Name).Or("name = ?", user3.Name).Find(&users).Count(&count).Error; err != nil {
+	if err := DB.Where("name = ?", user1.Name).Or("name = ?", user3.Name).Find(&users).Count(&count).GetError(); err != nil {
 		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
 	}
 
@@ -381,7 +381,7 @@ func TestNot(t *testing.T) {
 	DB := DB.Where("role = ?", "not")
 
 	var users1, users2, users3, users4, users5, users6, users7, users8 []User
-	if DB.Find(&users1).RowsAffected != 4 {
+	if DB.Find(&users1).GetRowsAffected() != 4 {
 		t.Errorf("should find 4 not users")
 	}
 	DB.Not(users1[0].Id).Find(&users2)
@@ -598,7 +598,7 @@ func TestSelectWithArrayInput(t *testing.T) {
 
 func TestCurrentDatabase(t *testing.T) {
 	databaseName := DB.CurrentDatabase()
-	if err := DB.Error; err != nil {
+	if err := DB.GetError(); err != nil {
 		t.Errorf("Problem getting current db name: %s", err)
 	}
 	if databaseName == "" {

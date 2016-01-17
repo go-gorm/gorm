@@ -444,17 +444,17 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 			if relationship := fromField.Relationship; relationship != nil {
 				if relationship.Kind == "many_to_many" {
 					joinTableHandler := relationship.JoinTableHandler
-					scope.Err(joinTableHandler.JoinWith(joinTableHandler, toScope.db, scope.Value).Find(value).Error)
+					scope.Err(joinTableHandler.JoinWith(joinTableHandler, toScope.db, scope.Value).Find(value).GetError())
 				} else if relationship.Kind == "belongs_to" {
-					query := toScope.db
+					var query Database = toScope.db
 					for idx, foreignKey := range relationship.ForeignDBNames {
 						if field, ok := scope.FieldByName(foreignKey); ok {
 							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.AssociationForeignDBNames[idx])), field.Field.Interface())
 						}
 					}
-					scope.Err(query.Find(value).Error)
+					scope.Err(query.Find(value).GetError())
 				} else if relationship.Kind == "has_many" || relationship.Kind == "has_one" {
-					query := toScope.db
+					var query Database = toScope.db
 					for idx, foreignKey := range relationship.ForeignDBNames {
 						if field, ok := scope.FieldByName(relationship.AssociationForeignDBNames[idx]); ok {
 							query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(foreignKey)), field.Field.Interface())
@@ -464,16 +464,16 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					if relationship.PolymorphicType != "" {
 						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
 					}
-					scope.Err(query.Find(value).Error)
+					scope.Err(query.Find(value).GetError())
 				}
 			} else {
 				sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-				scope.Err(toScope.db.Where(sql, fromField.Field.Interface()).Find(value).Error)
+				scope.Err(toScope.db.Where(sql, fromField.Field.Interface()).Find(value).GetError())
 			}
 			return scope
 		} else if toField != nil {
 			sql := fmt.Sprintf("%v = ?", scope.Quote(toField.DBName))
-			scope.Err(toScope.db.Where(sql, scope.PrimaryKeyValue()).Find(value).Error)
+			scope.Err(toScope.db.Where(sql, scope.PrimaryKeyValue()).Find(value).GetError())
 			return scope
 		}
 	}
@@ -525,7 +525,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 				}
 			}
 
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v)) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v)) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).GetError())
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}

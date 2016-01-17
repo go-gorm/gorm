@@ -62,7 +62,7 @@ func (s sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool
 }
 
 func (sqlite3) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).GetError())
 }
 
 func (sqlite3) CurrentDatabase(scope *Scope) (name string) {

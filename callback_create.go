@@ -78,7 +78,8 @@ func Create(scope *Scope) {
 			if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 				id, err := result.LastInsertId()
 				if scope.Err(err) == nil {
-					scope.db.RowsAffected, _ = result.RowsAffected()
+					rowsAffected, _ := result.RowsAffected()
+					scope.db.SetRowsAffected(rowsAffected)
 					if primaryField != nil && primaryField.IsBlank {
 						scope.Err(scope.SetColumn(primaryField, id))
 					}
@@ -87,13 +88,14 @@ func Create(scope *Scope) {
 		} else {
 			if primaryField == nil {
 				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err == nil {
-					scope.db.RowsAffected, _ = results.RowsAffected()
+					rowsAffected, _ := results.RowsAffected()
+					scope.db.SetRowsAffected(rowsAffected)
 				} else {
 					scope.Err(err)
 				}
 			} else {
 				if err := scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())); err == nil {
-					scope.db.RowsAffected = 1
+					scope.db.SetRowsAffected(1)
 				} else {
 					scope.Err(err)
 				}

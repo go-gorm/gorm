@@ -18,7 +18,7 @@ func TestDdlErrors(t *testing.T) {
 	}()
 
 	DB.HasTable("foobarbaz")
-	if DB.Error == nil {
+	if DB.GetError() == nil {
 		t.Errorf("Expected operation on closed db to produce an error, but err was nil")
 	}
 }

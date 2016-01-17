@@ -18,7 +18,7 @@ func SaveBeforeAssociations(scope *Scope) {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 				value := field.Field
-				scope.Err(scope.NewDB().Save(value.Addr().Interface()).Error)
+				scope.Err(scope.NewDB().Save(value.Addr().Interface()).GetError())
 				if len(relationship.ForeignFieldNames) != 0 {
 					for idx, fieldName := range relationship.ForeignFieldNames {
 						associationForeignName := relationship.AssociationForeignDBNames[idx]
@@ -62,7 +62,7 @@ func SaveAfterAssociations(scope *Scope) {
 							scope.Err(newScope.SetColumn(relationship.PolymorphicType, scope.TableName()))
 						}
 
-						scope.Err(newDB.Save(elem).Error)
+						scope.Err(newDB.Save(elem).GetError())
 
 						if joinTableHandler := relationship.JoinTableHandler; joinTableHandler != nil {
 							scope.Err(joinTableHandler.Add(joinTableHandler, scope.NewDB(), scope.Value, newScope.Value))
@@ -83,7 +83,7 @@ func SaveAfterAssociations(scope *Scope) {
 					if relationship.PolymorphicType != "" {
 						scope.Err(newScope.SetColumn(relationship.PolymorphicType, scope.TableName()))
 					}
-					scope.Err(scope.NewDB().Save(elem).Error)
+					scope.Err(scope.NewDB().Save(elem).GetError())
 				}
 			}
 		}

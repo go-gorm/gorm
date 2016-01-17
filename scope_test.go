@@ -6,16 +6,16 @@ import (
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
-	return d.Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"})
+	return d.Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"}).(*gorm.DB)
 }
 
 func NameIn2And3(d *gorm.DB) *gorm.DB {
-	return d.Where("name in (?)", []string{"ScopeUser2", "ScopeUser3"})
+	return d.Where("name in (?)", []string{"ScopeUser2", "ScopeUser3"}).(*gorm.DB)
 }
 
-func NameIn(names []string) func(d *gorm.DB) *gorm.DB {
+func NameIn(names []string) func(d *gorm.DB) *gorm.DB{
 	return func(d *gorm.DB) *gorm.DB {
-		return d.Where("name in (?)", names)
+		return d.Where("name in (?)", names).(*gorm.DB)
 	}
 }
 

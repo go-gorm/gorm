@@ -207,7 +207,7 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			case func(s *DB):
 				newDB := scope.NewDB()
 				f(newDB)
-				scope.Err(newDB.Error)
+				scope.Err(newDB.GetError())
 			case func() error:
 				scope.Err(f())
 			case func(s *Scope) error:
@@ -215,7 +215,7 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			case func(s *DB) error:
 				newDB := scope.NewDB()
 				scope.Err(f(newDB))
-				scope.Err(newDB.Error)
+				scope.Err(newDB.GetError())
 			default:
 				scope.Err(fmt.Errorf("unsupported function %v", name))
 			}
@@ -262,7 +262,7 @@ type tabler interface {
 }
 
 type dbTabler interface {
-	TableName(*DB) string
+	TableName(Database) string
 }
 
 // TableName get table name
