@@ -63,8 +63,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 				attrs[ToDBName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
 			}
 		default:
-			scope := Scope{Value: values}
-			for _, field := range scope.Fields() {
+			for _, field := range (&Scope{Value: values}).Fields() {
 				if !field.IsBlank && !field.IsIgnored {
 					attrs[field.DBName] = field.Field.Interface()
 				}

@@ -35,16 +35,6 @@ func (scope *Scope) IndirectValue() reflect.Value {
 	return *scope.indirectValue
 }
 
-func (scope *Scope) NeedPtr() *Scope {
-	reflectKind := reflect.ValueOf(scope.Value).Kind()
-	if !((reflectKind == reflect.Invalid) || (reflectKind == reflect.Ptr)) {
-		err := fmt.Errorf("%v %v\n", fileWithLineNum(), "using unaddressable value")
-		scope.Err(err)
-		fmt.Printf(err.Error())
-	}
-	return scope
-}
-
 // New create a new Scope without search information
 func (scope *Scope) New(value interface{}) *Scope {
 	return &Scope{db: scope.NewDB(), Search: &search{}, Value: value}
