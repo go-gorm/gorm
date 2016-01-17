@@ -26,8 +26,12 @@ func assignUpdateAttributesCallback(scope *Scope) {
 
 func beforeUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.CallMethodWithErrorCheck("BeforeSave")
-		scope.CallMethodWithErrorCheck("BeforeUpdate")
+		if !scope.HasError() {
+			scope.CallMethod("BeforeSave")
+		}
+		if !scope.HasError() {
+			scope.CallMethod("BeforeUpdate")
+		}
 	}
 }
 
@@ -77,8 +81,12 @@ func updateCallback(scope *Scope) {
 
 func afterUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.CallMethodWithErrorCheck("AfterUpdate")
-		scope.CallMethodWithErrorCheck("AfterSave")
+		if !scope.HasError() {
+			scope.CallMethod("AfterUpdate")
+		}
+		if !scope.HasError() {
+			scope.CallMethod("AfterSave")
+		}
 	}
 }
 

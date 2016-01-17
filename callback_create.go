@@ -6,8 +6,12 @@ import (
 )
 
 func beforeCreateCallback(scope *Scope) {
-	scope.CallMethodWithErrorCheck("BeforeSave")
-	scope.CallMethodWithErrorCheck("BeforeCreate")
+	if !scope.HasError() {
+		scope.CallMethod("BeforeSave")
+	}
+	if !scope.HasError() {
+		scope.CallMethod("BeforeCreate")
+	}
 }
 
 func updateTimeStampForCreateCallback(scope *Scope) {
@@ -109,8 +113,12 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 }
 
 func afterCreateCallback(scope *Scope) {
-	scope.CallMethodWithErrorCheck("AfterCreate")
-	scope.CallMethodWithErrorCheck("AfterSave")
+	if !scope.HasError() {
+		scope.CallMethod("AfterCreate")
+	}
+	if !scope.HasError() {
+		scope.CallMethod("AfterSave")
+	}
 }
 
 func init() {

@@ -192,8 +192,8 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	return errors.New("could not convert column to field")
 }
 
-func (scope *Scope) CallMethod(name string, checkError bool) {
-	if scope.Value == nil || (checkError && scope.HasError()) {
+func (scope *Scope) CallMethod(name string) {
+	if scope.Value == nil {
 		return
 	}
 
@@ -237,10 +237,6 @@ func (scope *Scope) CallMethod(name string, checkError bool) {
 			call(scope.IndirectValue().Interface())
 		}
 	}
-}
-
-func (scope *Scope) CallMethodWithErrorCheck(name string) {
-	scope.CallMethod(name, true)
 }
 
 // AddToVars add value as sql's vars, gorm will escape them

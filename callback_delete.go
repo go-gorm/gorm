@@ -3,7 +3,9 @@ package gorm
 import "fmt"
 
 func beforeDeleteCallback(scope *Scope) {
-	scope.CallMethodWithErrorCheck("BeforeDelete")
+	if !scope.HasError() {
+		scope.CallMethod("BeforeDelete")
+	}
 }
 
 func deleteCallback(scope *Scope) {
@@ -24,7 +26,9 @@ func deleteCallback(scope *Scope) {
 }
 
 func afterDeleteCallback(scope *Scope) {
-	scope.CallMethodWithErrorCheck("AfterDelete")
+	if !scope.HasError() {
+		scope.CallMethod("AfterDelete")
+	}
 }
 
 func init() {

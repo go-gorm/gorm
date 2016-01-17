@@ -79,7 +79,9 @@ func queryCallback(scope *Scope) {
 }
 
 func afterQueryCallback(scope *Scope) {
-	scope.CallMethodWithErrorCheck("AfterFind")
+	if !scope.HasError() {
+		scope.CallMethod("AfterFind")
+	}
 }
 
 func init() {
