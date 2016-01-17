@@ -58,15 +58,20 @@ func (field *Field) Set(value interface{}) (err error) {
 // Fields get value's fields
 func (scope *Scope) Fields() map[string]*Field {
 	if scope.fields == nil {
-		fields := map[string]*Field{}
-		modelStruct := scope.GetModelStruct()
+		var (
+			fields             = map[string]*Field{}
+			indirectScopeValue = scope.IndirectValue()
+			isStruct           = indirectScopeValue.Kind() == reflect.Struct
+		)
 
-		indirectValue := scope.IndirectValue()
-		isStruct := indirectValue.Kind() == reflect.Struct
-		for _, structField := range modelStruct.StructFields {
+		for _, structField := range scope.GetModelStruct().StructFields {
 			if field, ok := fields[structField.DBName]; !ok || field.IsIgnored {
 				if isStruct {
-					fields[structField.DBName] = getField(indirectValue, structField)
+					fieldValue := indirectScopeValue
+					for _, name := range structField.Names {
+						fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
+					}
+					fields[structField.DBName] = &Field{StructField: structField, Field: fieldValue, IsBlank: isBlank(fieldValue)}
 				} else {
 					fields[structField.DBName] = &Field{StructField: structField, IsBlank: true}
 				}
@@ -74,17 +79,6 @@ func (scope *Scope) Fields() map[string]*Field {
 		}
 
 		scope.fields = fields
-		return fields
 	}
 	return scope.fields
-}
-
-func getField(indirectValue reflect.Value, structField *StructField) *Field {
-	field := &Field{StructField: structField}
-	for _, name := range structField.Names {
-		indirectValue = reflect.Indirect(indirectValue).FieldByName(name)
-	}
-	field.Field = indirectValue
-	field.IsBlank = isBlank(indirectValue)
-	return field
 }

@@ -42,30 +42,29 @@ func createCallback(scope *Scope) {
 	if !scope.HasError() {
 		defer scope.trace(NowFunc())
 
-		// set create sql
-		var sqls, columns []string
-		fields := scope.Fields()
+		var (
+			columns, placeholders        []string
+			blankColumnsWithDefaultValue []string
+			fields                       = scope.Fields()
+		)
+
 		for _, field := range fields {
 			if scope.changeableField(field) {
 				if field.IsNormal {
-					if !field.IsPrimaryKey || (field.IsPrimaryKey && !field.IsBlank) {
-						if !field.IsBlank || !field.HasDefaultValue {
+					if !field.IsPrimaryKey || !field.IsBlank {
+						if field.IsBlank && field.HasDefaultValue {
+							blankColumnsWithDefaultValue = append(blankColumnsWithDefaultValue, field.DBName)
+							scope.InstanceSet("gorm:blank_columns_with_default_value", blankColumnsWithDefaultValue)
+						} else {
 							columns = append(columns, scope.Quote(field.DBName))
-							sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
-						} else if field.HasDefaultValue {
-							var hasDefaultValueColumns []string
-							if oldHasDefaultValueColumns, ok := scope.InstanceGet("gorm:force_reload_after_create_attrs"); ok {
-								hasDefaultValueColumns = oldHasDefaultValueColumns.([]string)
-							}
-							hasDefaultValueColumns = append(hasDefaultValueColumns, field.DBName)
-							scope.InstanceSet("gorm:force_reload_after_create_attrs", hasDefaultValueColumns)
+							placeholders = append(placeholders, scope.AddToVars(field.Field.Interface()))
 						}
 					}
-				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
-					for _, dbName := range relationship.ForeignDBNames {
-						if relationField := fields[dbName]; !scope.changeableField(relationField) {
-							columns = append(columns, scope.Quote(relationField.DBName))
-							sqls = append(sqls, scope.AddToVars(relationField.Field.Interface()))
+				} else if field.Relationship != nil && field.Relationship.Kind == "belongs_to" {
+					for _, foreignKey := range field.Relationship.ForeignDBNames {
+						if foreignField := fields[foreignKey]; !scope.changeableField(foreignField) {
+							columns = append(columns, scope.Quote(foreignField.DBName))
+							placeholders = append(placeholders, scope.AddToVars(foreignField.Field.Interface()))
 						}
 					}
 				}
@@ -88,35 +87,27 @@ func createCallback(scope *Scope) {
 				"INSERT INTO %v (%v) VALUES (%v) %v",
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
-				strings.Join(sqls, ","),
+				strings.Join(placeholders, ","),
 				scope.Dialect().ReturningStr(scope.QuotedTableName(), returningKey),
 			))
 		}
 
 		// execute create sql
-		if scope.Dialect().SupportLastInsertId() {
+		if scope.Dialect().SupportLastInsertId() || primaryField == nil {
 			if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
-				id, err := result.LastInsertId()
-				if scope.Err(err) == nil {
-					scope.db.RowsAffected, _ = result.RowsAffected()
-					if primaryField != nil && primaryField.IsBlank {
-						scope.Err(scope.SetColumn(primaryField, id))
+				// set rows affected count
+				scope.db.RowsAffected, _ = result.RowsAffected()
+
+				// set primary value to primary field
+				if primaryField != nil && primaryField.IsBlank {
+					if primaryValue, err := result.LastInsertId(); scope.Err(err) == nil {
+						scope.Err(primaryField.Set(primaryValue))
 					}
 				}
 			}
 		} else {
-			if primaryField == nil {
-				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err == nil {
-					scope.db.RowsAffected, _ = results.RowsAffected()
-				} else {
-					scope.Err(err)
-				}
-			} else {
-				if err := scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())); err == nil {
-					scope.db.RowsAffected = 1
-				} else {
-					scope.Err(err)
-				}
+			if err := scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+				scope.db.RowsAffected = 1
 			}
 		}
 	}
@@ -124,8 +115,8 @@ func createCallback(scope *Scope) {
 
 // forceReloadAfterCreateCallback will reload columns that having default value, and set it back to current object
 func forceReloadAfterCreateCallback(scope *Scope) {
-	if columns, ok := scope.InstanceGet("gorm:force_reload_after_create_attrs"); ok {
-		scope.DB().New().Select(columns.([]string)).First(scope.Value)
+	if blankColumnsWithDefaultValue, ok := scope.InstanceGet("gorm:blank_columns_with_default_value"); ok {
+		scope.DB().New().Select(blankColumnsWithDefaultValue.([]string)).First(scope.Value)
 	}
 }
 

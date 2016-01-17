@@ -132,11 +132,11 @@ func toQueryCondition(scope *Scope, columns []string) string {
 	return strings.Join(newColumns, ",")
 }
 
-func toQueryValues(primaryValues [][]interface{}) (values []interface{}) {
-	for _, primaryValue := range primaryValues {
-		for _, value := range primaryValue {
-			values = append(values, value)
+func toQueryValues(values [][]interface{}) (results []interface{}) {
+	for _, value := range values {
+		for _, v := range value {
+			results = append(results, v)
 		}
 	}
-	return values
+	return
 }
