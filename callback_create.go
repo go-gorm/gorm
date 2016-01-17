@@ -10,7 +10,7 @@ func init() {
 	defaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
 	defaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
 	defaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	defaultCallback.Create().Register("gorm:update_time_stamp_when_create", updateTimeStampForCreateCallback)
+	defaultCallback.Create().Register("gorm:update_time_stamp", updateTimeStampForCreateCallback)
 	defaultCallback.Create().Register("gorm:create", createCallback)
 	defaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
 	defaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
@@ -120,7 +120,7 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 	}
 }
 
-// beforeCreateCallback will invoke `AfterCreate`, `AfterSave` method after creating
+// afterCreateCallback will invoke `AfterCreate`, `AfterSave` method after creating
 func afterCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterCreate")

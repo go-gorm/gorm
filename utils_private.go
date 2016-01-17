@@ -46,7 +46,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 	switch value := values.(type) {
 	case map[string]interface{}:
 		for k, v := range value {
-			attrs[ToDBName(k)] = v
+			attrs[k] = v
 		}
 	case []interface{}:
 		for _, v := range value {

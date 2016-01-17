@@ -441,32 +441,8 @@ func (scope *Scope) trace(t time.Time) {
 	}
 }
 
-func (scope *Scope) changeableDBColumn(column string) bool {
-	selectAttrs := scope.SelectAttrs()
-	omitAttrs := scope.OmitAttrs()
-
-	if len(selectAttrs) > 0 {
-		for _, attr := range selectAttrs {
-			if column == ToDBName(attr) {
-				return true
-			}
-		}
-		return false
-	}
-
-	for _, attr := range omitAttrs {
-		if column == ToDBName(attr) {
-			return false
-		}
-	}
-	return true
-}
-
 func (scope *Scope) changeableField(field *Field) bool {
-	selectAttrs := scope.SelectAttrs()
-	omitAttrs := scope.OmitAttrs()
-
-	if len(selectAttrs) > 0 {
+	if selectAttrs := scope.SelectAttrs(); len(selectAttrs) > 0 {
 		for _, attr := range selectAttrs {
 			if field.Name == attr || field.DBName == attr {
 				return true
@@ -475,7 +451,7 @@ func (scope *Scope) changeableField(field *Field) bool {
 		return false
 	}
 
-	for _, attr := range omitAttrs {
+	for _, attr := range scope.OmitAttrs() {
 		if field.Name == attr || field.DBName == attr {
 			return false
 		}
@@ -485,8 +461,7 @@ func (scope *Scope) changeableField(field *Field) bool {
 }
 
 func (scope *Scope) shouldSaveAssociations() bool {
-	saveAssociations, ok := scope.Get("gorm:save_associations")
-	if ok && !saveAssociations.(bool) {
+	if saveAssociations, ok := scope.Get("gorm:save_associations"); ok && !saveAssociations.(bool) {
 		return false
 	}
 	return true && !scope.HasError()
