@@ -39,9 +39,9 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 
 // createCallback the callback used to insert data into database
 func createCallback(scope *Scope) {
-	defer scope.trace(NowFunc())
-
 	if !scope.HasError() {
+		defer scope.trace(NowFunc())
+
 		// set create sql
 		var sqls, columns []string
 		fields := scope.Fields()

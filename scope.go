@@ -88,7 +88,7 @@ func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
-func (scope *Scope) QuoteIfPossible(str string) string {
+func (scope *Scope) quoteIfPossible(str string) string {
 	if regexp.MustCompile("^[a-zA-Z]+(.[a-zA-Z]+)*$").MatchString(str) {
 		return scope.Quote(str)
 	}
