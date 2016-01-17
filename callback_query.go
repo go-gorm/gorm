@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-func Query(scope *Scope) {
+func queryCallback(scope *Scope) {
 	defer scope.trace(NowFunc())
 
 	var (
@@ -78,12 +78,12 @@ func Query(scope *Scope) {
 	}
 }
 
-func AfterQuery(scope *Scope) {
+func afterQueryCallback(scope *Scope) {
 	scope.CallMethodWithErrorCheck("AfterFind")
 }
 
 func init() {
-	defaultCallback.Query().Register("gorm:query", Query)
-	defaultCallback.Query().Register("gorm:after_query", AfterQuery)
-	defaultCallback.Query().Register("gorm:preload", Preload)
+	defaultCallback.Query().Register("gorm:query", queryCallback)
+	defaultCallback.Query().Register("gorm:after_query", afterQueryCallback)
+	defaultCallback.Query().Register("gorm:preload", preloadCallback)
 }

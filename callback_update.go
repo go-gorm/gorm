@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func AssignUpdateAttributes(scope *Scope) {
+func assignUpdateAttributesCallback(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
 			protected, ok := scope.Get("gorm:ignore_protected_attrs")
@@ -24,20 +24,20 @@ func AssignUpdateAttributes(scope *Scope) {
 	}
 }
 
-func BeforeUpdate(scope *Scope) {
+func beforeUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.CallMethodWithErrorCheck("BeforeSave")
 		scope.CallMethodWithErrorCheck("BeforeUpdate")
 	}
 }
 
-func UpdateTimeStampWhenUpdate(scope *Scope) {
+func updateTimeStampForUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.SetColumn("UpdatedAt", NowFunc())
 	}
 }
 
-func Update(scope *Scope) {
+func updateCallback(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
 
@@ -75,7 +75,7 @@ func Update(scope *Scope) {
 	}
 }
 
-func AfterUpdate(scope *Scope) {
+func afterUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.CallMethodWithErrorCheck("AfterUpdate")
 		scope.CallMethodWithErrorCheck("AfterSave")
@@ -83,13 +83,13 @@ func AfterUpdate(scope *Scope) {
 }
 
 func init() {
-	defaultCallback.Update().Register("gorm:assign_update_attributes", AssignUpdateAttributes)
-	defaultCallback.Update().Register("gorm:begin_transaction", BeginTransaction)
-	defaultCallback.Update().Register("gorm:before_update", BeforeUpdate)
-	defaultCallback.Update().Register("gorm:save_before_associations", SaveBeforeAssociations)
-	defaultCallback.Update().Register("gorm:update_time_stamp_when_update", UpdateTimeStampWhenUpdate)
-	defaultCallback.Update().Register("gorm:update", Update)
-	defaultCallback.Update().Register("gorm:save_after_associations", SaveAfterAssociations)
-	defaultCallback.Update().Register("gorm:after_update", AfterUpdate)
-	defaultCallback.Update().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	defaultCallback.Update().Register("gorm:assign_update_attributes", assignUpdateAttributesCallback)
+	defaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
+	defaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
+	defaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	defaultCallback.Update().Register("gorm:update_time_stamp_when_update", updateTimeStampForUpdateCallback)
+	defaultCallback.Update().Register("gorm:update", updateCallback)
+	defaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	defaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
+	defaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }

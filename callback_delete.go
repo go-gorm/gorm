@@ -2,11 +2,11 @@ package gorm
 
 import "fmt"
 
-func BeforeDelete(scope *Scope) {
+func beforeDeleteCallback(scope *Scope) {
 	scope.CallMethodWithErrorCheck("BeforeDelete")
 }
 
-func Delete(scope *Scope) {
+func deleteCallback(scope *Scope) {
 	if !scope.HasError() {
 		if !scope.Search.Unscoped && scope.HasColumn("DeletedAt") {
 			scope.Raw(
@@ -23,14 +23,14 @@ func Delete(scope *Scope) {
 	}
 }
 
-func AfterDelete(scope *Scope) {
+func afterDeleteCallback(scope *Scope) {
 	scope.CallMethodWithErrorCheck("AfterDelete")
 }
 
 func init() {
-	defaultCallback.Delete().Register("gorm:begin_transaction", BeginTransaction)
-	defaultCallback.Delete().Register("gorm:before_delete", BeforeDelete)
-	defaultCallback.Delete().Register("gorm:delete", Delete)
-	defaultCallback.Delete().Register("gorm:after_delete", AfterDelete)
-	defaultCallback.Delete().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	defaultCallback.Delete().Register("gorm:begin_transaction", beginTransactionCallback)
+	defaultCallback.Delete().Register("gorm:before_delete", beforeDeleteCallback)
+	defaultCallback.Delete().Register("gorm:delete", deleteCallback)
+	defaultCallback.Delete().Register("gorm:after_delete", afterDeleteCallback)
+	defaultCallback.Delete().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }

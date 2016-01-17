@@ -2,15 +2,15 @@ package gorm
 
 import "reflect"
 
-func BeginTransaction(scope *Scope) {
+func beginTransactionCallback(scope *Scope) {
 	scope.Begin()
 }
 
-func CommitOrRollbackTransaction(scope *Scope) {
+func commitOrRollbackTransactionCallback(scope *Scope) {
 	scope.CommitOrRollback()
 }
 
-func SaveBeforeAssociations(scope *Scope) {
+func saveBeforeAssociationsCallback(scope *Scope) {
 	if !scope.shouldSaveAssociations() {
 		return
 	}
@@ -32,7 +32,7 @@ func SaveBeforeAssociations(scope *Scope) {
 	}
 }
 
-func SaveAfterAssociations(scope *Scope) {
+func saveAfterAssociationsCallback(scope *Scope) {
 	if !scope.shouldSaveAssociations() {
 		return
 	}

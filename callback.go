@@ -23,7 +23,7 @@ type Callback struct {
 	processors []*CallbackProcessor
 }
 
-// callbackProcessor contains all informations for a callback
+// CallbackProcessor contains all informations for a callback
 type CallbackProcessor struct {
 	name      string              // current callback's name
 	before    string              // register current callback before a callback
@@ -79,7 +79,7 @@ func (c *Callback) Query() *CallbackProcessor {
 	return c.addProcessor("query")
 }
 
-// Query could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
+// RowQuery could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
 func (c *Callback) RowQuery() *CallbackProcessor {
 	return c.addProcessor("row_query")
 }
@@ -123,6 +123,17 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 	cp.processor = &callback
 	cp.replace = true
 	cp.parent.reorder()
+}
+
+// Get registered callback
+//    db.Callback().Create().Get("gorm:create")
+func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
+	for _, processor := range cp.parent.processors {
+		if processor.name == callbackName && processor.kind == cp.kind && !cp.remove {
+			return *cp.processor
+		}
+	}
+	return nil
 }
 
 // getRIndex get right index from string slice

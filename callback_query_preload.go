@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func Preload(scope *Scope) {
+func preloadCallback(scope *Scope) {
 	if scope.Search.preload == nil || scope.HasError() {
 		return
 	}
