@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// preloadCallback used to preload associations
 func preloadCallback(scope *Scope) {
 	if scope.Search.preload == nil || scope.HasError() {
 		return
@@ -72,6 +73,7 @@ func preloadCallback(scope *Scope) {
 	}
 }
 
+// handleHasOnePreload used to preload has one associations
 func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
@@ -107,6 +109,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	}
 }
 
+// handleHasManyPreload used to preload has many associations
 func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
@@ -144,6 +147,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 	}
 }
 
+// handleBelongsToPreload used to preload belongs to associations
 func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
@@ -179,6 +183,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 	}
 }
 
+// handleManyToManyPreload used to preload many to many associations
 func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
 	var (
 		relation         = field.Relationship

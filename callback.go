@@ -148,50 +148,51 @@ func getRIndex(strs []string, str string) int {
 
 // sortProcessors sort callback processors based on its before, after, remove, replace
 func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
-	var sortCallbackProcessor func(c *CallbackProcessor)
-	var names, sortedNames = []string{}, []string{}
+	var (
+		allNames, sortedNames []string
+		sortCallbackProcessor func(c *CallbackProcessor)
+	)
 
 	for _, cp := range cps {
-		if index := getRIndex(names, cp.name); index > -1 {
-			if !cp.replace && !cp.remove {
-				fmt.Printf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
-			}
+		// show warning message the callback name already exists
+		if index := getRIndex(allNames, cp.name); index > -1 && !cp.replace && !cp.remove {
+			fmt.Printf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
 		}
-		names = append(names, cp.name)
+		allNames = append(allNames, cp.name)
 	}
 
 	sortCallbackProcessor = func(c *CallbackProcessor) {
-		if getRIndex(sortedNames, c.name) > -1 {
-			return
-		}
-
-		if len(c.before) > 0 {
-			if index := getRIndex(sortedNames, c.before); index > -1 {
-				sortedNames = append(sortedNames[:index], append([]string{c.name}, sortedNames[index:]...)...)
-			} else if index := getRIndex(names, c.before); index > -1 {
-				sortedNames = append(sortedNames, c.name)
-				sortCallbackProcessor(cps[index])
-			} else {
-				sortedNames = append(sortedNames, c.name)
-			}
-		}
-
-		if len(c.after) > 0 {
-			if index := getRIndex(sortedNames, c.after); index > -1 {
-				sortedNames = append(sortedNames[:index+1], append([]string{c.name}, sortedNames[index+1:]...)...)
-			} else if index := getRIndex(names, c.after); index > -1 {
-				cp := cps[index]
-				if len(cp.before) == 0 {
-					cp.before = c.name
+		if getRIndex(sortedNames, c.name) == -1 { // if not sorted
+			if c.before != "" { // if defined before callback
+				if index := getRIndex(sortedNames, c.before); index != -1 {
+					// if before callback already sorted, append current callback just after it
+					sortedNames = append(sortedNames[:index], append([]string{c.name}, sortedNames[index:]...)...)
+				} else if index := getRIndex(allNames, c.before); index != -1 {
+					// if before callback exists but haven't sorted, append current callback to last
+					sortedNames = append(sortedNames, c.name)
+					sortCallbackProcessor(cps[index])
 				}
-				sortCallbackProcessor(cp)
-			} else {
+			}
+
+			if c.after != "" { // if defined after callback
+				if index := getRIndex(sortedNames, c.after); index != -1 {
+					// if after callback already sorted, append current callback just before it
+					sortedNames = append(sortedNames[:index+1], append([]string{c.name}, sortedNames[index+1:]...)...)
+				} else if index := getRIndex(allNames, c.after); index != -1 {
+					// if after callback exists but haven't sorted
+					cp := cps[index]
+					// set after callback's before callback to current callback
+					if cp.before == "" {
+						cp.before = c.name
+					}
+					sortCallbackProcessor(cp)
+				}
+			}
+
+			// if current callback haven't been sorted, append it to last
+			if getRIndex(sortedNames, c.name) == -1 {
 				sortedNames = append(sortedNames, c.name)
 			}
-		}
-
-		if getRIndex(sortedNames, c.name) == -1 {
-			sortedNames = append(sortedNames, c.name)
 		}
 	}
 
@@ -199,24 +200,14 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 		sortCallbackProcessor(cp)
 	}
 
-	var funcs = []*func(scope *Scope){}
-	var sortedFuncs = []*func(scope *Scope){}
+	var sortedFuncs []*func(scope *Scope)
 	for _, name := range sortedNames {
-		index := getRIndex(names, name)
-		if !cps[index].remove {
+		if index := getRIndex(allNames, name); !cps[index].remove {
 			sortedFuncs = append(sortedFuncs, cps[index].processor)
 		}
 	}
 
-	for _, cp := range cps {
-		if sindex := getRIndex(sortedNames, cp.name); sindex == -1 {
-			if !cp.remove {
-				funcs = append(funcs, cp.processor)
-			}
-		}
-	}
-
-	return append(sortedFuncs, funcs...)
+	return sortedFuncs
 }
 
 // reorder all registered processors, and reset CURD callbacks
