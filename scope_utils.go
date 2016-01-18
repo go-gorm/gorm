@@ -13,7 +13,7 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 		case reflect.Slice:
 			for i := 0; i < indirectValue.Len(); i++ {
 				var result []interface{}
-				var object = reflect.Indirect(indirectValue.Index(i))
+				var object = indirect(indirectValue.Index(i))
 				for _, column := range columns {
 					result = append(result, object.FieldByName(column).Interface())
 				}
@@ -44,7 +44,7 @@ func (scope *Scope) getColumnAsScope(column string) *Scope {
 			results := reflect.New(reflect.SliceOf(reflect.PtrTo(fieldType))).Elem()
 
 			for i := 0; i < indirectScopeValue.Len(); i++ {
-				result := reflect.Indirect(reflect.Indirect(indirectScopeValue.Index(i)).FieldByName(column))
+				result := indirect(indirect(indirectScopeValue.Index(i)).FieldByName(column))
 
 				if result.Kind() == reflect.Slice {
 					for j := 0; j < result.Len(); j++ {

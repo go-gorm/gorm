@@ -16,7 +16,6 @@ type Scope struct {
 	Sql             string
 	SqlVars         []interface{}
 	db              *DB
-	indirectValue   *reflect.Value
 	instanceID      string
 	primaryKeyField *Field
 	skipLeft        bool
@@ -25,14 +24,7 @@ type Scope struct {
 }
 
 func (scope *Scope) IndirectValue() reflect.Value {
-	if scope.indirectValue == nil {
-		value := reflect.Indirect(reflect.ValueOf(scope.Value))
-		if value.Kind() == reflect.Ptr {
-			value = value.Elem()
-		}
-		scope.indirectValue = &value
-	}
-	return *scope.indirectValue
+	return indirect(reflect.ValueOf(scope.Value))
 }
 
 // New create a new Scope without search information

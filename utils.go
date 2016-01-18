@@ -3,6 +3,7 @@ package gorm
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -100,6 +101,13 @@ type expr struct {
 
 func Expr(expression string, args ...interface{}) *expr {
 	return &expr{expr: expression, args: args}
+}
+
+func indirect(reflectValue reflect.Value) reflect.Value {
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
+	}
+	return reflectValue
 }
 
 func toQueryMarks(primaryValues [][]interface{}) string {
