@@ -15,8 +15,8 @@ type search struct {
 	orders           []string
 	joins            string
 	preload          []searchPreload
-	offset           string
-	limit            string
+	offset           int
+	limit            int
 	group            string
 	tableName        string
 	raw              bool
@@ -82,13 +82,13 @@ func (s *search) Omit(columns ...string) *search {
 	return s
 }
 
-func (s *search) Limit(value interface{}) *search {
-	s.limit = s.getInterfaceAsSql(value)
+func (s *search) Limit(limit int) *search {
+	s.limit = limit
 	return s
 }
 
-func (s *search) Offset(value interface{}) *search {
-	s.offset = s.getInterfaceAsSql(value)
+func (s *search) Offset(offset int) *search {
+	s.offset = offset
 	return s
 }
 

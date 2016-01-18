@@ -19,10 +19,6 @@ func (postgres) BinVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }
 
-func (postgres) SupportLastInsertId() bool {
-	return false
-}
-
 func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
@@ -62,23 +58,14 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", value.Type().Name(), value.Kind().String()))
 }
 
-var byteType = reflect.TypeOf(uint8(0))
-
-func isByteArrayOrSlice(value reflect.Value) bool {
-	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == byteType
+func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName)
+	return count > 0
 }
 
-func isUUID(value reflect.Value) bool {
-	if value.Kind() != reflect.Array || value.Type().Len() != 16 {
-		return false
-	}
-	typename := value.Type().Name()
-	lower := strings.ToLower(typename)
-	return "uuid" == lower || "guid" == lower
-}
-
-func (s postgres) ReturningStr(tableName, key string) string {
-	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
+func (postgres) RemoveIndex(scope *Scope, indexName string) {
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
 }
 
 func (s postgres) HasTable(scope *Scope, tableName string) bool {
@@ -93,19 +80,17 @@ func (s postgres) HasColumn(scope *Scope, tableName string, columnName string) b
 	return count > 0
 }
 
-func (postgres) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
-}
-
-func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName)
-	return count > 0
-}
-
 func (s postgres) CurrentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT CURRENT_DATABASE()")
 	return
+}
+
+func (s postgres) ReturningStr(tableName, key string) string {
+	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
+}
+
+func (postgres) SupportLastInsertId() bool {
+	return false
 }
 
 var hstoreType = reflect.TypeOf(Hstore{})
@@ -151,4 +136,17 @@ func (h *Hstore) Scan(value interface{}) error {
 	}
 
 	return nil
+}
+
+func isByteArrayOrSlice(value reflect.Value) bool {
+	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == reflect.TypeOf(uint8(0))
+}
+
+func isUUID(value reflect.Value) bool {
+	if value.Kind() != reflect.Array || value.Type().Len() != 16 {
+		return false
+	}
+	typename := value.Type().Name()
+	lower := strings.ToLower(typename)
+	return "uuid" == lower || "guid" == lower
 }

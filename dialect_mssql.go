@@ -10,10 +10,6 @@ type mssql struct {
 	commonDialect
 }
 
-func (mssql) HasTop() bool {
-	return true
-}
-
 func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
@@ -50,6 +46,12 @@ func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", value.Type().Name(), value.Kind().String()))
 }
 
+func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var count int
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName)
+	return count > 0
+}
+
 func (s mssql) HasTable(scope *Scope, tableName string) bool {
 	var (
 		count        int
@@ -68,13 +70,24 @@ func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool
 	return count > 0
 }
 
-func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName)
-	return count > 0
-}
-
 func (s mssql) CurrentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
+	return
+}
+
+func (mssql) LimitAndOffsetSQL(limit, offset int) (sql string) {
+	if limit < 0 && offset < 0 {
+		return
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	sql += fmt.Sprintf(" OFFSET %d ROWS", offset)
+
+	if limit >= 0 {
+		sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", limit)
+	}
 	return
 }

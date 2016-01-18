@@ -7,17 +7,19 @@ import (
 
 type Dialect interface {
 	BinVar(i int) string
-	SupportLastInsertId() bool
-	HasTop() bool
-	SqlTag(value reflect.Value, size int, autoIncrease bool) string
-	ReturningStr(tableName, key string) string
-	SelectFromDummyTable() string
 	Quote(key string) string
-	HasTable(scope *Scope, tableName string) bool
-	HasColumn(scope *Scope, tableName string, columnName string) bool
+	SqlTag(value reflect.Value, size int, autoIncrease bool) string
+
 	HasIndex(scope *Scope, tableName string, indexName string) bool
 	RemoveIndex(scope *Scope, indexName string)
+	HasTable(scope *Scope, tableName string) bool
+	HasColumn(scope *Scope, tableName string, columnName string) bool
 	CurrentDatabase(scope *Scope) string
+
+	ReturningStr(tableName, key string) string
+	LimitAndOffsetSQL(limit, offset int) string
+	SelectFromDummyTable() string
+	SupportLastInsertId() bool
 }
 
 func NewDialect(driver string) Dialect {

@@ -10,6 +10,10 @@ type mysql struct {
 	commonDialect
 }
 
+func (mysql) Quote(key string) string {
+	return fmt.Sprintf("`%s`", key)
+}
+
 func (mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
@@ -56,15 +60,11 @@ func (mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mysql", value.Type().Name(), value.Kind().String()))
 }
 
-func (mysql) Quote(key string) string {
-	return fmt.Sprintf("`%s`", key)
+func (s mysql) CurrentDatabase(scope *Scope) (name string) {
+	s.RawScanString(scope, &name, "SELECT DATABASE()")
+	return
 }
 
 func (mysql) SelectFromDummyTable() string {
 	return "FROM DUAL"
-}
-
-func (s mysql) CurrentDatabase(scope *Scope) (name string) {
-	s.RawScanString(scope, &name, "SELECT DATABASE()")
-	return
 }

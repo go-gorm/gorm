@@ -12,12 +12,8 @@ func (commonDialect) BinVar(i int) string {
 	return "$$" // ?
 }
 
-func (commonDialect) SupportLastInsertId() bool {
-	return true
-}
-
-func (commonDialect) HasTop() bool {
-	return false
+func (commonDialect) Quote(key string) string {
+	return fmt.Sprintf(`"%s"`, key)
 }
 
 func (commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
@@ -56,16 +52,17 @@ func (commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) st
 	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", value.Type().Name(), value.Kind().String()))
 }
 
-func (commonDialect) ReturningStr(tableName, key string) string {
-	return ""
+func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
+	var (
+		count        int
+		databaseName = c.CurrentDatabase(scope)
+	)
+	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", databaseName, tableName, indexName)
+	return count > 0
 }
 
-func (commonDialect) SelectFromDummyTable() string {
-	return ""
-}
-
-func (commonDialect) Quote(key string) string {
-	return fmt.Sprintf(`"%s"`, key)
+func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Error)
 }
 
 func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
@@ -86,19 +83,6 @@ func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName stri
 	return count > 0
 }
 
-func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	var (
-		count        int
-		databaseName = c.CurrentDatabase(scope)
-	)
-	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", databaseName, tableName, indexName)
-	return count > 0
-}
-
-func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Error)
-}
-
 // RawScanInt scans the first column of the first row into the `scan' int pointer.
 // This function captures raw query errors and propagates them to the original scope.
 func (commonDialect) RawScanInt(scope *Scope, scanPtr *int, query string, args ...interface{}) {
@@ -114,4 +98,26 @@ func (commonDialect) RawScanString(scope *Scope, scanPtr *string, query string, 
 func (commonDialect) CurrentDatabase(scope *Scope) (name string) {
 	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
 	return
+}
+
+func (commonDialect) ReturningStr(tableName, key string) string {
+	return ""
+}
+
+func (commonDialect) LimitAndOffsetSQL(limit, offset int) (sql string) {
+	if limit >= 0 {
+		sql += fmt.Sprintf(" LIMIT %d", limit)
+	}
+	if offset >= 0 {
+		sql += fmt.Sprintf(" OFFSET %d", offset)
+	}
+	return
+}
+
+func (commonDialect) SelectFromDummyTable() string {
+	return ""
+}
+
+func (commonDialect) SupportLastInsertId() bool {
+	return true
 }

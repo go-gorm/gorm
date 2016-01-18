@@ -272,7 +272,7 @@ func (scope *Scope) QuotedTableName() (name string) {
 // CombinedConditionSql get combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
 	return scope.joinsSql() + scope.whereSql() + scope.groupSql() +
-		scope.havingSql() + scope.orderSql() + scope.limitSql() + scope.offsetSql()
+		scope.havingSql() + scope.orderSql() + scope.limitAndOffsetSql()
 }
 
 // FieldByName find gorm.Field with name and db name

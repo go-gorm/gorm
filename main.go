@@ -146,12 +146,12 @@ func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Not(query, args...).db
 }
 
-func (s *DB) Limit(value interface{}) *DB {
-	return s.clone().search.Limit(value).db
+func (s *DB) Limit(limit int) *DB {
+	return s.clone().search.Limit(limit).db
 }
 
-func (s *DB) Offset(value interface{}) *DB {
-	return s.clone().search.Offset(value).db
+func (s *DB) Offset(offset int) *DB {
+	return s.clone().search.Offset(offset).db
 }
 
 func (s *DB) Order(value string, reorder ...bool) *DB {

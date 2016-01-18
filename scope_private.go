@@ -245,41 +245,8 @@ func (scope *Scope) orderSql() string {
 	return " ORDER BY " + strings.Join(scope.Search.orders, ",")
 }
 
-func (scope *Scope) limitSql() string {
-	if !scope.Dialect().HasTop() {
-		if len(scope.Search.limit) == 0 {
-			return ""
-		}
-		return " LIMIT " + scope.Search.limit
-	}
-
-	return ""
-}
-
-func (scope *Scope) topSql() string {
-	if scope.Dialect().HasTop() && len(scope.Search.offset) == 0 {
-		if len(scope.Search.limit) == 0 {
-			return ""
-		}
-		return " TOP(" + scope.Search.limit + ")"
-	}
-
-	return ""
-}
-
-func (scope *Scope) offsetSql() string {
-	if len(scope.Search.offset) == 0 {
-		return ""
-	}
-
-	if scope.Dialect().HasTop() {
-		sql := " OFFSET " + scope.Search.offset + " ROW "
-		if len(scope.Search.limit) > 0 {
-			sql += "FETCH NEXT " + scope.Search.limit + " ROWS ONLY"
-		}
-		return sql
-	}
-	return " OFFSET " + scope.Search.offset
+func (scope *Scope) limitAndOffsetSql() string {
+	return scope.Dialect().LimitAndOffsetSQL(scope.Search.limit, scope.Search.offset)
 }
 
 func (scope *Scope) groupSql() string {
@@ -318,7 +285,7 @@ func (scope *Scope) prepareQuerySql() {
 	if scope.Search.raw {
 		scope.Raw(strings.TrimSuffix(strings.TrimPrefix(scope.CombinedConditionSql(), " WHERE ("), ")"))
 	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.topSql(), scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSql(), scope.QuotedTableName(), scope.CombinedConditionSql()))
 	}
 	return
 }
