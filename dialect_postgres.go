@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,17 +20,22 @@ func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }
 
-func (postgres) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
-	switch value.Kind() {
+func (postgres) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
+	var size int
+	if num, ok := tagSettings["SIZE"]; ok {
+		size, _ = strconv.Atoi(num)
+	}
+
+	switch dataValue.Kind() {
 	case reflect.Bool:
 		return "boolean"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "serial"
 		}
 		return "integer"
 	case reflect.Int64, reflect.Uint64:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "bigserial"
 		}
 		return "bigint"
@@ -41,21 +47,21 @@ func (postgres) DataTypeOf(value reflect.Value, size int, autoIncrease bool) str
 		}
 		return "text"
 	case reflect.Struct:
-		if _, ok := value.Interface().(time.Time); ok {
+		if _, ok := dataValue.Interface().(time.Time); ok {
 			return "timestamp with time zone"
 		}
 	case reflect.Map:
-		if value.Type() == hstoreType {
+		if dataValue.Type() == hstoreType {
 			return "hstore"
 		}
 	default:
-		if isByteArrayOrSlice(value) {
+		if isByteArrayOrSlice(dataValue) {
 			return "bytea"
-		} else if isUUID(value) {
+		} else if isUUID(dataValue) {
 			return "uuid"
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", value.Type().Name(), value.Kind().String()))
+	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", dataValue.Type().Name(), dataValue.Kind().String()))
 }
 
 func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {

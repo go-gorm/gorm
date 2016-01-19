@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -541,21 +540,7 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 	}
 
 	if sqlType == "" {
-		var size = 255
-
-		if value, ok := field.TagSettings["SIZE"]; ok {
-			size, _ = strconv.Atoi(value)
-		}
-
-		v, autoIncrease := field.TagSettings["AUTO_INCREMENT"]
-		if field.IsPrimaryKey {
-			autoIncrease = true
-		}
-		if v == "FALSE" {
-			autoIncrease = false
-		}
-
-		sqlType = scope.Dialect().DataTypeOf(reflectValue, size, autoIncrease)
+		sqlType = scope.Dialect().DataTypeOf(reflectValue, field.TagSettings)
 	}
 
 	if strings.TrimSpace(additionalType) == "" {

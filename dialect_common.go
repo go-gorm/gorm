@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -16,17 +17,22 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (commonDialect) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
-	switch value.Kind() {
+func (commonDialect) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
+	var size int
+	if num, ok := tagSettings["SIZE"]; ok {
+		size, _ = strconv.Atoi(num)
+	}
+
+	switch dataValue.Kind() {
 	case reflect.Bool:
 		return "BOOLEAN"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "INTEGER AUTO_INCREMENT"
 		}
 		return "INTEGER"
 	case reflect.Int64, reflect.Uint64:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "BIGINT AUTO_INCREMENT"
 		}
 		return "BIGINT"
@@ -38,18 +44,18 @@ func (commonDialect) DataTypeOf(value reflect.Value, size int, autoIncrease bool
 		}
 		return "VARCHAR(65532)"
 	case reflect.Struct:
-		if _, ok := value.Interface().(time.Time); ok {
+		if _, ok := dataValue.Interface().(time.Time); ok {
 			return "TIMESTAMP"
 		}
 	default:
-		if _, ok := value.Interface().([]byte); ok {
+		if _, ok := dataValue.Interface().([]byte); ok {
 			if size > 0 && size < 65532 {
 				return fmt.Sprintf("BINARY(%d)", size)
 			}
 			return "BINARY(65532)"
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", value.Type().Name(), value.Kind().String()))
+	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", dataValue.Type().Name(), dataValue.Kind().String()))
 }
 
 func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {

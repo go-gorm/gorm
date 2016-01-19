@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -10,17 +11,22 @@ type sqlite3 struct {
 	commonDialect
 }
 
-func (sqlite3) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
-	switch value.Kind() {
+func (sqlite3) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
+	var size int
+	if num, ok := tagSettings["SIZE"]; ok {
+		size, _ = strconv.Atoi(num)
+	}
+
+	switch dataValue.Kind() {
 	case reflect.Bool:
 		return "bool"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "integer primary key autoincrement"
 		}
 		return "integer"
 	case reflect.Int64, reflect.Uint64:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "integer primary key autoincrement"
 		}
 		return "bigint"
@@ -32,15 +38,15 @@ func (sqlite3) DataTypeOf(value reflect.Value, size int, autoIncrease bool) stri
 		}
 		return "text"
 	case reflect.Struct:
-		if _, ok := value.Interface().(time.Time); ok {
+		if _, ok := dataValue.Interface().(time.Time); ok {
 			return "datetime"
 		}
 	default:
-		if _, ok := value.Interface().([]byte); ok {
+		if _, ok := dataValue.Interface().([]byte); ok {
 			return "blob"
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", value.Type().Name(), value.Kind().String()))
+	panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", dataValue.Type().Name(), dataValue.Kind().String()))
 }
 
 func (s sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool {

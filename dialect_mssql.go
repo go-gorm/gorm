@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -10,17 +11,22 @@ type mssql struct {
 	commonDialect
 }
 
-func (mssql) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
-	switch value.Kind() {
+func (mssql) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
+	var size int
+	if num, ok := tagSettings["SIZE"]; ok {
+		size, _ = strconv.Atoi(num)
+	}
+
+	switch dataValue.Kind() {
 	case reflect.Bool:
 		return "bit"
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "int IDENTITY(1,1)"
 		}
 		return "int"
 	case reflect.Int64, reflect.Uint64:
-		if autoIncrease {
+		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
 			return "bigint IDENTITY(1,1)"
 		}
 		return "bigint"
@@ -32,18 +38,18 @@ func (mssql) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string
 		}
 		return "text"
 	case reflect.Struct:
-		if _, ok := value.Interface().(time.Time); ok {
+		if _, ok := dataValue.Interface().(time.Time); ok {
 			return "datetime2"
 		}
 	default:
-		if _, ok := value.Interface().([]byte); ok {
+		if _, ok := dataValue.Interface().([]byte); ok {
 			if size > 0 && size < 65532 {
 				return fmt.Sprintf("varchar(%d)", size)
 			}
 			return "text"
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", value.Type().Name(), value.Kind().String()))
+	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", dataValue.Type().Name(), dataValue.Kind().String()))
 }
 
 func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {

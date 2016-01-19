@@ -12,7 +12,7 @@ type Dialect interface {
 	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name
 	Quote(key string) string
 	// DataTypeOf return data's sql type
-	DataTypeOf(value reflect.Value, size int, autoIncrease bool) string
+	DataTypeOf(value reflect.Value, tagSettings map[string]string) string
 
 	// HasIndex check has index or not
 	HasIndex(scope *Scope, tableName string, indexName string) bool
