@@ -518,7 +518,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := field.TagSettings["TYPE"]
 					if primaryKeySqlType == "" {
-						primaryKeySqlType = scope.Dialect().SqlTag(value, 255, false)
+						primaryKeySqlType = scope.Dialect().DataTypeOf(value, 255, false)
 					}
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+primaryKeySqlType)
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
@@ -530,7 +530,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					value := reflect.Indirect(reflect.New(field.Struct.Type))
 					primaryKeySqlType := field.TagSettings["TYPE"]
 					if primaryKeySqlType == "" {
-						primaryKeySqlType = scope.Dialect().SqlTag(value, 255, false)
+						primaryKeySqlType = scope.Dialect().DataTypeOf(value, 255, false)
 					}
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+primaryKeySqlType)
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))

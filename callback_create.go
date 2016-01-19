@@ -71,29 +71,32 @@ func createCallback(scope *Scope) {
 			}
 		}
 
-		returningKey := "*"
-		primaryField := scope.PrimaryField()
+		var (
+			returningColumn = "*"
+			quotedTableName = scope.QuotedTableName()
+			primaryField    = scope.PrimaryField()
+		)
+
 		if primaryField != nil {
-			returningKey = scope.Quote(primaryField.DBName)
+			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
+		lastInsertIdReturningSuffix := scope.Dialect().LastInsertIdReturningSuffix(quotedTableName, returningColumn)
+
 		if len(columns) == 0 {
-			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v",
-				scope.QuotedTableName(),
-				scope.Dialect().ReturningStr(scope.QuotedTableName(), returningKey),
-			))
+			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v", quotedTableName, lastInsertIdReturningSuffix))
 		} else {
 			scope.Raw(fmt.Sprintf(
 				"INSERT INTO %v (%v) VALUES (%v) %v",
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
 				strings.Join(placeholders, ","),
-				scope.Dialect().ReturningStr(scope.QuotedTableName(), returningKey),
+				lastInsertIdReturningSuffix,
 			))
 		}
 
 		// execute create sql
-		if scope.Dialect().SupportLastInsertId() || primaryField == nil {
+		if lastInsertIdReturningSuffix == "" || primaryField == nil {
 			if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()

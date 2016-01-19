@@ -229,7 +229,7 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	}
 
 	scope.SqlVars = append(scope.SqlVars, value)
-	return scope.Dialect().BinVar(len(scope.SqlVars))
+	return scope.Dialect().BindVar(len(scope.SqlVars))
 }
 
 type tabler interface {

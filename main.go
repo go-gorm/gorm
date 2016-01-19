@@ -453,14 +453,6 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return scope.db
 }
 
-func (s *DB) CurrentDatabase() string {
-	var (
-		scope = s.clone().NewScope(s.Value)
-		name  = s.dialect.CurrentDatabase(scope)
-	)
-	return name
-}
-
 // AddForeignKey Add foreign key to the given scope
 // Example: db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {

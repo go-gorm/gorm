@@ -8,7 +8,7 @@ import (
 
 type commonDialect struct{}
 
-func (commonDialect) BinVar(i int) string {
+func (commonDialect) BindVar(i int) string {
 	return "$$" // ?
 }
 
@@ -16,7 +16,7 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (commonDialect) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "BOOLEAN"
@@ -55,7 +55,7 @@ func (commonDialect) SqlTag(value reflect.Value, size int, autoIncrease bool) st
 func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
 	var (
 		count        int
-		databaseName = c.CurrentDatabase(scope)
+		databaseName = c.currentDatabase(scope)
 	)
 	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", databaseName, tableName, indexName)
 	return count > 0
@@ -68,7 +68,7 @@ func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
 func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 	var (
 		count        int
-		databaseName = c.CurrentDatabase(scope)
+		databaseName = c.currentDatabase(scope)
 	)
 	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", databaseName, tableName)
 	return count > 0
@@ -77,7 +77,7 @@ func (c commonDialect) HasTable(scope *Scope, tableName string) bool {
 func (c commonDialect) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var (
 		count        int
-		databaseName = c.CurrentDatabase(scope)
+		databaseName = c.currentDatabase(scope)
 	)
 	c.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
@@ -95,13 +95,9 @@ func (commonDialect) RawScanString(scope *Scope, scanPtr *string, query string, 
 	scope.Err(scope.NewDB().Raw(query, args...).Row().Scan(scanPtr))
 }
 
-func (commonDialect) CurrentDatabase(scope *Scope) (name string) {
+func (commonDialect) currentDatabase(scope *Scope) (name string) {
 	scope.Err(scope.NewDB().Raw("SELECT DATABASE()").Row().Scan(&name))
 	return
-}
-
-func (commonDialect) ReturningStr(tableName, key string) string {
-	return ""
 }
 
 func (commonDialect) LimitAndOffsetSQL(limit, offset int) (sql string) {
@@ -118,6 +114,6 @@ func (commonDialect) SelectFromDummyTable() string {
 	return ""
 }
 
-func (commonDialect) SupportLastInsertId() bool {
-	return true
+func (commonDialect) LastInsertIdReturningSuffix(tableName, columnName string) string {
+	return ""
 }

@@ -10,7 +10,7 @@ type sqlite3 struct {
 	commonDialect
 }
 
-func (sqlite3) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (sqlite3) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "bool"
@@ -65,7 +65,7 @@ func (s sqlite3) HasColumn(scope *Scope, tableName string, columnName string) bo
 	return count > 0
 }
 
-func (sqlite3) CurrentDatabase(scope *Scope) (name string) {
+func (sqlite3) currentDatabase(scope *Scope) (name string) {
 	var (
 		ifaces   = make([]interface{}, 3)
 		pointers = make([]*string, 3)

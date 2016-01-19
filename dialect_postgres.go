@@ -15,11 +15,11 @@ type postgres struct {
 	commonDialect
 }
 
-func (postgres) BinVar(i int) string {
+func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }
 
-func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (postgres) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "boolean"
@@ -80,12 +80,12 @@ func (s postgres) HasColumn(scope *Scope, tableName string, columnName string) b
 	return count > 0
 }
 
-func (s postgres) CurrentDatabase(scope *Scope) (name string) {
+func (s postgres) currentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT CURRENT_DATABASE()")
 	return
 }
 
-func (s postgres) ReturningStr(tableName, key string) string {
+func (s postgres) LastInsertIdReturningSuffix(tableName, key string) string {
 	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 

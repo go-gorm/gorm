@@ -10,7 +10,7 @@ type mssql struct {
 	commonDialect
 }
 
-func (mssql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
+func (mssql) DataTypeOf(value reflect.Value, size int, autoIncrease bool) string {
 	switch value.Kind() {
 	case reflect.Bool:
 		return "bit"
@@ -55,7 +55,7 @@ func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
 func (s mssql) HasTable(scope *Scope, tableName string) bool {
 	var (
 		count        int
-		databaseName = s.CurrentDatabase(scope)
+		databaseName = s.currentDatabase(scope)
 	)
 	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName)
 	return count > 0
@@ -64,13 +64,13 @@ func (s mssql) HasTable(scope *Scope, tableName string) bool {
 func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
 	var (
 		count        int
-		databaseName = s.CurrentDatabase(scope)
+		databaseName = s.currentDatabase(scope)
 	)
 	s.RawScanInt(scope, &count, "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
 	return count > 0
 }
 
-func (s mssql) CurrentDatabase(scope *Scope) (name string) {
+func (s mssql) currentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
 	return
 }

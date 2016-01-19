@@ -555,7 +555,7 @@ func (scope *Scope) generateSqlTag(field *StructField) string {
 			autoIncrease = false
 		}
 
-		sqlType = scope.Dialect().SqlTag(reflectValue, size, autoIncrease)
+		sqlType = scope.Dialect().DataTypeOf(reflectValue, size, autoIncrease)
 	}
 
 	if strings.TrimSpace(additionalType) == "" {
