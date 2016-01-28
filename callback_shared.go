@@ -1,6 +1,9 @@
 package gorm
 
-import "reflect"
+import (
+	"database/sql"
+	"reflect"
+)
 
 func BeginTransaction(scope *Scope) {
 	scope.Begin()
@@ -18,7 +21,9 @@ func SaveBeforeAssociations(scope *Scope) {
 		if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
 			if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 				value := field.Field
-				scope.Err(scope.NewDB().Save(value.Addr().Interface()).Error)
+				if err := scope.NewDB().Save(value.Addr().Interface()).Error; err != nil && err != sql.ErrNoRows {
+					scope.Err(err)
+				}
 				if len(relationship.ForeignFieldNames) != 0 {
 					for idx, fieldName := range relationship.ForeignFieldNames {
 						associationForeignName := relationship.AssociationForeignDBNames[idx]

@@ -16,6 +16,14 @@ func (commonDialect) SupportLastInsertId() bool {
 	return true
 }
 
+func (commonDialect) SupportUniquePrimaryKey() bool {
+	return true
+}
+
+func (commonDialect) NewUniqueKey(scope *Scope) uint64 {
+	panic("NewUniqueKey not supported by commonDialect")
+}
+
 func (commonDialect) HasTop() bool {
 	return false
 }

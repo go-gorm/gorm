@@ -8,6 +8,8 @@ import (
 type Dialect interface {
 	BinVar(i int) string
 	SupportLastInsertId() bool
+	SupportUniquePrimaryKey() bool
+	NewUniqueKey(scope *Scope) uint64
 	HasTop() bool
 	SqlTag(value reflect.Value, size int, autoIncrease bool) string
 	ReturningStr(tableName, key string) string
@@ -23,6 +25,8 @@ type Dialect interface {
 func NewDialect(driver string) Dialect {
 	var d Dialect
 	switch driver {
+	case "cockroach":
+		d = &cockroach{}
 	case "postgres":
 		d = &postgres{}
 	case "foundation":

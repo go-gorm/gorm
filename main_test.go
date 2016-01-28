@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	_ "github.com/cockroachdb/cockroach/sql/driver"
 	_ "github.com/denisenkom/go-mssqldb"
 	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
@@ -53,6 +54,9 @@ func OpenTestConnection() (db gorm.DB, err error) {
 	case "postgres":
 		fmt.Println("testing postgres...")
 		db, err = gorm.Open("postgres", "user=gorm DB.name=gorm sslmode=disable")
+	case "cockroach":
+		fmt.Println("testing cockroach...")
+		db, err = gorm.Open("cockroach", "http://localhost:26257?database=gorm&user=root")
 	case "foundation":
 		fmt.Println("testing foundation...")
 		db, err = gorm.Open("foundation", "dbname=gorm port=15432 sslmode=disable")

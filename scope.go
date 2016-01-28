@@ -1,9 +1,12 @@
 package gorm
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
+	"log"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -103,6 +106,8 @@ func (scope *Scope) Dialect() Dialect {
 // Err write error
 func (scope *Scope) Err(err error) error {
 	if err != nil {
+		log.Println("ERR", err)
+		debug.PrintStack()
 		scope.db.AddError(err)
 	}
 	return err
@@ -314,13 +319,15 @@ func (scope *Scope) Raw(sql string) *Scope {
 	return scope
 }
 
+var _, driverResultNoRows = driver.ResultNoRows.RowsAffected()
+
 // Exec invoke sql
 func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
 		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
-			if count, err := result.RowsAffected(); scope.Err(err) == nil {
+			if count, err := result.RowsAffected(); err != nil && err.Error() == driverResultNoRows.Error() || scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
 		}
@@ -358,6 +365,8 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 // Trace print sql log
 func (scope *Scope) Trace(t time.Time) {
 	if len(scope.Sql) > 0 {
+		// TODO(d4l3k): Remove this line
+		log.Println("sql", scope.Sql, scope.SqlVars)
 		scope.db.slog(scope.Sql, t, scope.SqlVars...)
 	}
 }

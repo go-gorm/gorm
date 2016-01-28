@@ -1,7 +1,10 @@
 package gorm
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
+	"reflect"
 	"strings"
 )
 
@@ -28,7 +31,16 @@ func Create(scope *Scope) {
 		for _, field := range fields {
 			if scope.changeableField(field) {
 				if field.IsNormal {
-					if !field.IsPrimaryKey || (field.IsPrimaryKey && !field.IsBlank) {
+					supportPrimary := scope.Dialect().SupportUniquePrimaryKey()
+					if !field.IsPrimaryKey || (field.IsPrimaryKey && (!field.IsBlank || !supportPrimary)) {
+						if field.IsPrimaryKey && !supportPrimary && field.IsBlank {
+							id := scope.Dialect().NewUniqueKey(scope)
+							if scope.HasError() {
+								return
+							}
+							log.Printf("ID %+v %+v", id, field.Field.Type().String())
+							field.Field.Set(reflect.ValueOf(id).Convert(field.Field.Type()))
+						}
 						if !field.IsBlank || !field.HasDefaultValue {
 							columns = append(columns, scope.Quote(field.DBName))
 							sqls = append(sqls, scope.AddToVars(field.Field.Interface()))
@@ -86,18 +98,37 @@ func Create(scope *Scope) {
 			}
 		} else {
 			if primaryField == nil {
-				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err == nil {
+				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err == sql.ErrNoRows {
+				} else if err == nil {
 					scope.db.RowsAffected, _ = results.RowsAffected()
 				} else {
+					log.Printf("create err no primary %#v eql %#v", err, err == sql.ErrNoRows)
 					scope.Err(err)
 				}
-			} else {
-				if err := scope.Err(scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface())); err == nil {
+			} else { // if scope.Dialect().SupportUniquePrimaryKey() {
+				if err := scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface()); err == nil || err == sql.ErrNoRows {
 					scope.db.RowsAffected = 1
 				} else {
+					log.Printf("create err %#v eql %#v", err, err == sql.ErrNoRows)
 					scope.Err(err)
 				}
-			}
+			} /* else {
+				// Create a new primary key if one is required, not set, and the server doesn't support unique primary keys.
+				log.Printf("key type %T %#v", val.Interface(), val.Interface())
+				if key, ok := val.Interface().(*uint); ok && (key == nil || *key == 0) {
+				val := primaryField.Field.Addr()
+					id := scope.Dialect().NewUniqueKey(scope)
+					v := reflect.Indirect(val)
+					v.SetUint(id)
+				}
+				if results, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); err == sql.ErrNoRows {
+				} else if err == nil {
+					scope.db.RowsAffected, _ = results.RowsAffected()
+				} else {
+					log.Printf("create err no primary %#v eql %#v", err, err == sql.ErrNoRows)
+					scope.Err(err)
+				}
+			}*/
 		}
 	}
 }

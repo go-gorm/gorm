@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 )
 
@@ -82,6 +83,8 @@ func Query(scope *Scope) {
 			}
 
 			scope.Err(rows.Scan(values...))
+
+			log.Println("result values", values)
 
 			for index, column := range columns {
 				value := values[index]

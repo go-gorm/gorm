@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (scope *Scope) primaryCondition(value interface{}) string {
@@ -170,7 +171,12 @@ func (scope *Scope) whereSql() (sql string) {
 	var primaryConditions, andConditions, orConditions []string
 
 	if !scope.Search.Unscoped && scope.Fields()["deleted_at"] != nil {
-		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02')", scope.QuotedTableName(), scope.QuotedTableName())
+		time, err := time.Parse("2006-01-02", "0001-01-02")
+		if err != nil {
+			scope.Err(err)
+			return
+		}
+		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at <= %v)", scope.QuotedTableName(), scope.QuotedTableName(), scope.AddToVars(time))
 		primaryConditions = append(primaryConditions, sql)
 	}
 
