@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"time"
 )
@@ -32,12 +31,10 @@ func (cockroach) NewUniqueKey(scope *Scope) uint64 {
 	var id int64
 	for rows.Next() {
 		if err := rows.Scan(&id); err != nil {
-			log.Fatal("ERR UNIQUE ID", id, err)
 			scope.Err(err)
 			return 0
 		}
 	}
-	log.Printf("UNIQUE ID %#v", id)
 	return uint64(id)
 }
 
