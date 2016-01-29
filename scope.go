@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -362,8 +361,6 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 // Trace print sql log
 func (scope *Scope) Trace(t time.Time) {
 	if len(scope.Sql) > 0 {
-		// TODO(d4l3k): Remove this line
-		log.Println("sql", scope.Sql, scope.SqlVars)
 		scope.db.slog(scope.Sql, t, scope.SqlVars...)
 	}
 }

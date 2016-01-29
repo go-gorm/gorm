@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"time"
 )
@@ -105,8 +104,9 @@ func (s cockroach) HasColumn(scope *Scope, tableName string, columnName string) 
 	}
 	defer rows.Close()
 	var column string
+	var typ, null, defaultVal interface{}
 	for rows.Next() {
-		if err := rows.Scan(&column); err != nil {
+		if err := rows.Scan(&column, &typ, &null, &defaultVal); err != nil {
 			scope.Err(err)
 			return false
 		}
@@ -133,7 +133,6 @@ func (s cockroach) HasIndex(scope *Scope, tableName string, indexName string) bo
 			scope.Err(err)
 			return false
 		}
-		log.Printf("HasIndex %#v %#v %#v ", table, name, indexName)
 		if name == indexName {
 			return true
 		}
