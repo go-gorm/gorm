@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"time"
 )
@@ -32,6 +33,7 @@ func (cockroach) NewUniqueKey(scope *Scope) uint64 {
 		scope.Err(err)
 		return 0
 	}
+	defer rows.Close()
 	var id int64
 	for rows.Next() {
 		if err := rows.Scan(&id); err != nil {
@@ -84,7 +86,10 @@ func (s cockroach) HasTable(scope *Scope, tableName string) bool {
 	defer rows.Close()
 	var name string
 	for rows.Next() {
-		rows.Scan(&name)
+		if err := rows.Scan(&name); err != nil {
+			scope.Err(err)
+			return false
+		}
 		if name == tableName {
 			return true
 		}
@@ -101,7 +106,10 @@ func (s cockroach) HasColumn(scope *Scope, tableName string, columnName string) 
 	defer rows.Close()
 	var column string
 	for rows.Next() {
-		rows.Scan(&column)
+		if err := rows.Scan(&column); err != nil {
+			scope.Err(err)
+			return false
+		}
 		if column == columnName {
 			return true
 		}
@@ -110,20 +118,22 @@ func (s cockroach) HasColumn(scope *Scope, tableName string, columnName string) 
 }
 
 func (s cockroach) HasIndex(scope *Scope, tableName string, indexName string) bool {
-	/*
-		var count int
-		s.RawScanInt(scope, &count, fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND sql LIKE '%%INDEX %v ON%%'", indexName), tableName)
-		return count > 0
-	*/
 	rows, err := scope.NewDB().Raw(fmt.Sprintf("show index from %s", tableName)).Rows()
 	if err != nil {
 		scope.Err(err)
 		return false
 	}
 	defer rows.Close()
-	var name string
+
+	var table, name, column, direction string
+	var unique, storing bool
+	var seq int
 	for rows.Next() {
-		rows.Scan(nil, &name)
+		if err := rows.Scan(&table, &name, &unique, &seq, &column, &direction, &storing); err != nil {
+			scope.Err(err)
+			return false
+		}
+		log.Printf("HasIndex %#v %#v %#v ", table, name, indexName)
 		if name == indexName {
 			return true
 		}
@@ -132,7 +142,7 @@ func (s cockroach) HasIndex(scope *Scope, tableName string, indexName string) bo
 }
 
 func (cockroach) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Raw(fmt.Sprintf("DROP INDEX %v@%v", scope.QuotedTableName(), indexName)).Error)
+	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v@%v", scope.TableName(), indexName)).Error)
 }
 
 func (s cockroach) CurrentDatabase(scope *Scope) string {
