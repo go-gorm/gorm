@@ -43,6 +43,11 @@ func Update(scope *Scope) {
 
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 			for key, value := range updateAttrs.(map[string]interface{}) {
+				if !scope.Dialect().SupportUpdatePrimaryKey() {
+					if field, ok := scope.Fields()[key]; ok && field.IsPrimaryKey {
+						continue
+					}
+				}
 				if scope.changeableDBColumn(key) {
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
 				}
@@ -50,6 +55,9 @@ func Update(scope *Scope) {
 		} else {
 			fields := scope.Fields()
 			for _, field := range fields {
+				if field.IsPrimaryKey && !scope.Dialect().SupportUpdatePrimaryKey() {
+					continue
+				}
 				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {

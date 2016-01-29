@@ -22,6 +22,10 @@ func (cockroach) SupportUniquePrimaryKey() bool {
 	return false
 }
 
+func (cockroach) SupportUpdatePrimaryKey() bool {
+	return false
+}
+
 func (cockroach) NewUniqueKey(scope *Scope) uint64 {
 	rows, err := scope.NewDB().Raw(`SELECT experimental_unique_int()`).Rows()
 	if err != nil {

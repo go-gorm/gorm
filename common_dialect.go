@@ -20,6 +20,10 @@ func (commonDialect) SupportUniquePrimaryKey() bool {
 	return true
 }
 
+func (commonDialect) SupportUpdatePrimaryKey() bool {
+	return true
+}
+
 func (commonDialect) NewUniqueKey(scope *Scope) uint64 {
 	panic("NewUniqueKey not supported by commonDialect")
 }

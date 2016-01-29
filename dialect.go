@@ -9,6 +9,7 @@ type Dialect interface {
 	BinVar(i int) string
 	SupportLastInsertId() bool
 	SupportUniquePrimaryKey() bool
+	SupportUpdatePrimaryKey() bool
 	NewUniqueKey(scope *Scope) uint64
 	HasTop() bool
 	SqlTag(value reflect.Value, size int, autoIncrease bool) string
