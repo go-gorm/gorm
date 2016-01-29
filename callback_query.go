@@ -83,8 +83,6 @@ func Query(scope *Scope) {
 
 			scope.Err(rows.Scan(values...))
 
-			//log.Println("result values", values)
-
 			for index, column := range columns {
 				value := values[index]
 				if field, ok := fields[column]; ok {

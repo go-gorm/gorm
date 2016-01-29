@@ -4,9 +4,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -106,8 +104,6 @@ func (scope *Scope) Dialect() Dialect {
 // Err write error
 func (scope *Scope) Err(err error) error {
 	if err != nil {
-		log.Println("ERR", err)
-		debug.PrintStack()
 		scope.db.AddError(err)
 	}
 	return err
@@ -365,8 +361,6 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 // Trace print sql log
 func (scope *Scope) Trace(t time.Time) {
 	if len(scope.Sql) > 0 {
-		// TODO(d4l3k): Remove this line
-		log.Println("sql", scope.Sql, scope.SqlVars)
 		scope.db.slog(scope.Sql, t, scope.SqlVars...)
 	}
 }

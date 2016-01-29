@@ -31,8 +31,8 @@ func TestFirstAndLast(t *testing.T) {
 		t.Errorf("Find first record as slice")
 	}
 
-	if DB.Joins("left join emails on emails.user_id = users.id").First(&User{}).Error != nil {
-		t.Errorf("Should not raise any error when order with Join table")
+	if err := DB.Joins("left join emails on emails.user_id = users.id").First(&User{}).Error; err != nil {
+		t.Errorf("Should not raise any error when order with Join table: %s", err)
 	}
 }
 
