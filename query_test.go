@@ -52,15 +52,19 @@ func TestFirstAndLastWithNoStdPrimaryKey(t *testing.T) {
 }
 
 func TestUIntPrimaryKey(t *testing.T) {
+	insertedAnimal := &Animal{Name: "animalUint1"}
+	insertedAnimal2 := &Animal{Name: "animalUint2"}
+	DB.Save(insertedAnimal)
+	DB.Save(insertedAnimal2)
 	var animal Animal
-	DB.First(&animal, uint64(1))
-	if animal.Counter != 1 {
-		t.Errorf("Fetch a record from with a non-int primary key should work, but failed")
+	DB.First(&animal, insertedAnimal.Counter)
+	if animal.Counter != insertedAnimal.Counter || animal.Counter <= 0 {
+		t.Errorf("Fetch a record from with a non-int primary key should work, but failed; got %d", animal.Counter)
 	}
 
-	DB.Model(Animal{}).Where(Animal{Counter: uint64(2)}).Scan(&animal)
-	if animal.Counter != 2 {
-		t.Errorf("Fetch a record from with a non-int primary key should work, but failed")
+	DB.Model(Animal{}).Where(Animal{Counter: insertedAnimal2.Counter}).Scan(&animal)
+	if animal.Counter != insertedAnimal2.Counter || animal.Counter <= 0 {
+		t.Errorf("Fetch a record from with a non-int primary key should work, but failed; got %d", animal.Counter)
 	}
 }
 
