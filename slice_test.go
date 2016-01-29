@@ -20,13 +20,13 @@ func TestScannableSlices(t *testing.T) {
 	}
 
 	if err := DB.Save(&r1).Error; err != nil {
-		t.Errorf("Should save record with slice values")
+		t.Errorf("Should save record with slice values; err %s", err)
 	}
 
 	var r2 RecordWithSlice
 
 	if err := DB.Find(&r2).Error; err != nil {
-		t.Errorf("Should fetch record with slice values")
+		t.Errorf("Should fetch record with slice values; err %s", err)
 	}
 
 	if len(r2.Strings) != 3 || r2.Strings[0] != "a" || r2.Strings[1] != "b" || r2.Strings[2] != "c" {

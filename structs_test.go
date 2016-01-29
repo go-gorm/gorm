@@ -39,7 +39,7 @@ type User struct {
 }
 
 type CreditCard struct {
-	ID        int8
+	ID        uint64
 	Number    string
 	UserId    sql.NullInt64
 	CreatedAt time.Time
@@ -48,7 +48,7 @@ type CreditCard struct {
 }
 
 type Email struct {
-	Id        int16
+	Id        int64
 	UserId    int
 	Email     string `sql:"type:varchar(100);"`
 	CreatedAt time.Time

@@ -16,7 +16,7 @@ func TestBelongsTo(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post", err.Error())
+		t.Errorf("Got errors when save post %s", err)
 	}
 
 	if post.Category.ID == 0 || post.MainCategory.ID == 0 {
@@ -184,7 +184,7 @@ func TestHasOne(t *testing.T) {
 	}
 
 	if err := DB.Save(&user).Error; err != nil {
-		t.Errorf("Got errors when save user", err.Error())
+		t.Errorf("Got errors when save user %s", err.Error())
 	}
 
 	if user.CreditCard.UserId.Int64 == 0 {
@@ -331,7 +331,7 @@ func TestHasMany(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post", err.Error())
+		t.Errorf("Got errors when save post %s", err.Error())
 	}
 
 	for _, comment := range post.Comments {

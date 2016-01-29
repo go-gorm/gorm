@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"regexp"
@@ -314,13 +315,15 @@ func (scope *Scope) Raw(sql string) *Scope {
 	return scope
 }
 
+var _, driverResultNoRows = driver.ResultNoRows.RowsAffected()
+
 // Exec invoke sql
 func (scope *Scope) Exec() *Scope {
 	defer scope.Trace(NowFunc())
 
 	if !scope.HasError() {
 		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
-			if count, err := result.RowsAffected(); scope.Err(err) == nil {
+			if count, err := result.RowsAffected(); err != nil && err.Error() == driverResultNoRows.Error() || scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
 		}
