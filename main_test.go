@@ -467,7 +467,9 @@ func TestJoins(t *testing.T) {
 	DB.Save(&user)
 
 	var result User
-	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").First(&result)
+	if err := DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").First(&result).Error; err != nil {
+		t.Errorf("Error while joining: %s", err)
+	}
 	if result.Name != "joins" || result.Id != user.Id {
 		t.Errorf("Should find all two emails with Join")
 	}
