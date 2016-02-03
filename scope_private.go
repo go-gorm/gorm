@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"crypto/md5"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -613,8 +614,11 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	var keyName = fmt.Sprintf("%s_%s_%s_foreign", scope.TableName(), field, dest)
-	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
+	// Generate a FK key suffix. This is done by using the hex-encoded MD5 sum of field_dest.
+	// MD5 should be sufficient here, as this is not security relevant and allows avoiding constraint names
+	// which are too long for some DBMS to handle or contain invalid characters.
+	var keySuffix = strings.ToLower(fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%s", field, dest)))))
+	var keyName = fmt.Sprintf("%s_%s_foreign", scope.TableName(), keySuffix)
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.QuoteIfPossible(keyName), scope.QuoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
 }
