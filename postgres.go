@@ -103,6 +103,13 @@ func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) boo
 	return count > 0
 }
 
+func (s postgres) HasForeignKey(scope *Scope, tableName string, fkName string) bool {
+	var count int
+	s.RawScanInt(scope, &count, "SELECT count(con.conname) FROM pg_constraint con WHERE con.conname = ? AND con.contype='f' AND ?::regclass::oid = con.conrelid",
+		fkName, tableName)
+	return count > 0
+}
+
 func (s postgres) CurrentDatabase(scope *Scope) (name string) {
 	s.RawScanString(scope, &name, "SELECT CURRENT_DATABASE()")
 	return

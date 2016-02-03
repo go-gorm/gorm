@@ -16,6 +16,7 @@ type Dialect interface {
 	HasTable(scope *Scope, tableName string) bool
 	HasColumn(scope *Scope, tableName string, columnName string) bool
 	HasIndex(scope *Scope, tableName string, indexName string) bool
+	HasForeignKey(scope *Scope, tableName string, fkName string) bool
 	RemoveIndex(scope *Scope, indexName string)
 	CurrentDatabase(scope *Scope) string
 }
