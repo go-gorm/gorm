@@ -17,10 +17,7 @@ func (scope *Scope) primaryCondition(value interface{}) string {
 func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str string) {
 	switch value := clause["query"].(type) {
 	case string:
-		// if string is number
-		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
-			return scope.primaryCondition(scope.AddToVars(value))
-		} else if value != "" {
+		if value != "" {
 			str = fmt.Sprintf("(%v)", value)
 		}
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, sql.NullInt64:
