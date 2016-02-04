@@ -859,7 +859,7 @@ db.Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Find(&users).Count(&co
 //// SELECT * from USERS WHERE name = 'jinzhu' OR name = 'jinzhu 2'; (users)
 //// SELECT count(*) FROM users WHERE name = 'jinzhu' OR name = 'jinzhu 2'; (count)
 
-db.Model(User{}).Where("name = ?", "jinzhu").Count(&count)
+db.Model(&User{}).Where("name = ?", "jinzhu").Count(&count)
 //// SELECT count(*) FROM users WHERE name = 'jinzhu'; (count)
 
 db.Table("deleted_users").Count(&count)
