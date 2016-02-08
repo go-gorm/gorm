@@ -157,6 +157,9 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 			for j := 0; j < objects.Len(); j++ {
 				object := reflect.Indirect(objects.Index(j))
 				if equalAsString(getRealValue(object, relation.AssociationForeignFieldNames), value) {
+					if object.Kind() == reflect.Ptr {
+						object = object.Elem()
+					}
 					f := object.FieldByName(field.Name)
 					f.Set(reflect.Append(f, result))
 					break

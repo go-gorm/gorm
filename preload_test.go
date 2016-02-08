@@ -1075,6 +1075,64 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 	}
 }
 
+func TestNestedManyToManyPreload3(t *testing.T) {
+	type (
+		Level4 struct {
+			ID       uint
+			Value    string
+			Level3ID uint
+		}
+		Level3 struct {
+			ID      uint
+			Value   string
+			Level4s []*Level4
+		}
+		Level2 struct {
+			ID      uint
+			Value   string
+			Level3s []*Level3 `gorm:"many2many:level2_level3;"`
+		}
+		Level1 struct {
+			ID      uint
+			Value   string
+			Level2s []*Level2 `gorm:"many2many:level1_level2;"`
+		}
+	)
+
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists(&Level4{})
+	DB.DropTableIfExists("level1_level2")
+	DB.DropTableIfExists("level2_level3")
+
+	dummy := Level1{
+		Value: "Level1",
+		Level2s: []*Level2{&Level2{
+			Value: "Level2",
+			Level3s: []*Level3{&Level3{
+				Value: "Level3",
+				Level4s: []*Level4{&Level4{
+					Value: "Level4",
+				}},
+			}},
+		}},
+	}
+
+	if err := DB.AutoMigrate(&Level4{}, &Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	if err := DB.Save(&dummy).Error; err != nil {
+		t.Error(err)
+	}
+
+	var level1 Level1
+	if err := DB.Preload("Level2s").Preload("Level2s.Level3s").Preload("Level2s.Level3s.Level4s").First(&level1).Error; err != nil {
+		t.Error(err)
+	}
+}
+
 func TestNilPointerSlice(t *testing.T) {
 	type (
 		Level3 struct {
