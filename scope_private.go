@@ -26,7 +26,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, sql.NullInt64:
 		return scope.primaryCondition(scope.AddToVars(value))
 	case []int, []int8, []int16, []int32, []int64, []uint, []uint8, []uint16, []uint32, []uint64, []string, []interface{}:
-		str = fmt.Sprintf("(%v in (?))", scope.Quote(scope.PrimaryKey()))
+		str = fmt.Sprintf("(%v IN (?))", scope.Quote(scope.PrimaryKey()))
 		clause["args"] = []interface{}{value}
 	case map[string]interface{}:
 		var sqls []string
@@ -54,13 +54,14 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
 			if bytes, ok := arg.([]byte); ok {
 				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
-			} else {
-				values := reflect.ValueOf(arg)
+			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
 				for i := 0; i < values.Len(); i++ {
 					tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 				}
 				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
+			} else {
+				str = strings.Replace(str, "?", scope.AddToVars(Expr("NULL")), 1)
 			}
 		default:
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
@@ -83,7 +84,7 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
 			id, _ := strconv.Atoi(value)
 			return fmt.Sprintf("(%v <> %v)", scope.Quote(primaryKey), id)
-		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS) ").MatchString(value) {
+		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS|IN) ").MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
 			notEqualSql = fmt.Sprintf("NOT (%v)", value)
 		} else {
@@ -122,12 +123,17 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 	for _, arg := range args {
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			values := reflect.ValueOf(arg)
-			var tempMarks []string
-			for i := 0; i < values.Len(); i++ {
-				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
+			if bytes, ok := arg.([]byte); ok {
+				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
+			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
+				var tempMarks []string
+				for i := 0; i < values.Len(); i++ {
+					tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
+				}
+				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
+			} else {
+				str = strings.Replace(str, "?", scope.AddToVars(Expr("NULL")), 1)
 			}
-			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 		default:
 			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, _ = scanner.Value()

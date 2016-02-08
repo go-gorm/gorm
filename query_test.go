@@ -155,6 +155,14 @@ func TestSearchWithPlainSQL(t *testing.T) {
 		t.Errorf("Should found 1 users, but got %v", len(users))
 	}
 
+	if err := DB.Where("id IN (?)", []string{}).Find(&users).Error; err != nil {
+		t.Error("no error should happen when query with empty slice, but got: ", err)
+	}
+
+	if err := DB.Not("id IN (?)", []string{}).Find(&users).Error; err != nil {
+		t.Error("no error should happen when query with empty slice, but got: ", err)
+	}
+
 	if DB.Where("name = ?", "none existing").Find(&[]User{}).RecordNotFound() {
 		t.Errorf("Should not get RecordNotFound error when looking for none existing records")
 	}
