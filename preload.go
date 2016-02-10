@@ -294,6 +294,9 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		objects := scope.IndirectValue()
 		for j := 0; j < objects.Len(); j++ {
 			object := reflect.Indirect(objects.Index(j))
+			if object.Kind() == reflect.Ptr {
+				object = object.Elem()
+			}
 			source := getRealValue(object, foreignFieldNames)
 			field := object.FieldByName(field.Name)
 			for _, link := range linkHash[toString(source)] {
