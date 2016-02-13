@@ -3,7 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -11,42 +11,55 @@ type sqlite3 struct {
 	commonDialect
 }
 
-func (sqlite3) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
-	var size int
-	if num, ok := tagSettings["SIZE"]; ok {
-		size, _ = strconv.Atoi(num)
+// Get Data Type for Sqlite Dialect
+func (sqlite3) DataTypeOf(field *StructField) string {
+	var (
+		dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
+	)
+
+	if sqlType == "" {
+		switch dataValue.Kind() {
+		case reflect.Bool:
+			sqlType = "bool"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+			if field.IsPrimaryKey {
+				sqlType = "integer primary key autoincrement"
+			} else {
+				sqlType = "integer"
+			}
+		case reflect.Int64, reflect.Uint64:
+			if field.IsPrimaryKey {
+				sqlType = "integer primary key autoincrement"
+			} else {
+				sqlType = "bigint"
+			}
+		case reflect.Float32, reflect.Float64:
+			sqlType = "real"
+		case reflect.String:
+			if size > 0 && size < 65532 {
+				sqlType = fmt.Sprintf("varchar(%d)", size)
+			} else {
+				sqlType = "text"
+			}
+		case reflect.Struct:
+			if _, ok := dataValue.Interface().(time.Time); ok {
+				sqlType = "datetime"
+			}
+		default:
+			if _, ok := dataValue.Interface().([]byte); ok {
+				sqlType = "blob"
+			}
+		}
 	}
 
-	switch dataValue.Kind() {
-	case reflect.Bool:
-		return "bool"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "integer primary key autoincrement"
-		}
-		return "integer"
-	case reflect.Int64, reflect.Uint64:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "integer primary key autoincrement"
-		}
-		return "bigint"
-	case reflect.Float32, reflect.Float64:
-		return "real"
-	case reflect.String:
-		if size > 0 && size < 65532 {
-			return fmt.Sprintf("varchar(%d)", size)
-		}
-		return "text"
-	case reflect.Struct:
-		if _, ok := dataValue.Interface().(time.Time); ok {
-			return "datetime"
-		}
-	default:
-		if _, ok := dataValue.Interface().([]byte); ok {
-			return "blob"
-		}
+	if sqlType == "" {
+		panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", dataValue.Type().Name(), dataValue.Kind().String()))
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for sqlite3", dataValue.Type().Name(), dataValue.Kind().String()))
+
+	if strings.TrimSpace(additionalType) == "" {
+		return sqlType
+	}
+	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func (s sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool {

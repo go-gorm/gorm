@@ -11,8 +11,13 @@ type mssql struct {
 	commonDialect
 }
 
-func (mssql) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
-	var size int
+func (mssql) DataTypeOf(field *StructField) string {
+	var (
+		size        int
+		dataValue   = reflect.Indirect(reflect.New(field.Struct.Type))
+		tagSettings = field.TagSettings
+	)
+
 	if num, ok := tagSettings["SIZE"]; ok {
 		size, _ = strconv.Atoi(num)
 	}

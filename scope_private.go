@@ -511,7 +511,7 @@ func (scope *Scope) getTableOptions() string {
 	return tableOptions.(string)
 }
 
-func (scope *Scope) createJoinTable(field *StructField) {
+func (scope *Scope) createJoinTable(field *Field) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
 		joinTableHandler := relationship.JoinTableHandler
 		joinTable := joinTableHandler.Table(scope.db)
@@ -521,16 +521,20 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			var sqlTypes, primaryKeys []string
 			for idx, fieldName := range relationship.ForeignFieldNames {
 				if field, ok := scope.Fields()[fieldName]; ok {
-					value := reflect.Indirect(reflect.New(field.Struct.Type))
-					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(value, field.TagSettings))
+					foreignKeyStruct := field.StructField.clone()
+					foreignKeyStruct.IsPrimaryKey = false
+					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
 				}
 			}
 
 			for idx, fieldName := range relationship.AssociationForeignFieldNames {
 				if field, ok := toScope.Fields()[fieldName]; ok {
-					value := reflect.Indirect(reflect.New(field.Struct.Type))
-					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(value, field.TagSettings))
+					foreignKeyStruct := field.StructField.clone()
+					foreignKeyStruct.IsPrimaryKey = false
+					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
+					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))
 				}
 			}
@@ -545,9 +549,9 @@ func (scope *Scope) createTable() *Scope {
 	var tags []string
 	var primaryKeys []string
 	var primaryKeyInColumnType = false
-	for _, field := range scope.GetStructFields() {
+	for _, field := range scope.Fields() {
 		if field.IsNormal {
-			sqlTag := scope.generateSqlTag(field)
+			sqlTag := scope.Dialect().DataTypeOf(field.StructField)
 
 			// Check if the primary key constraint was specified as
 			// part of the column type. If so, we can only support
@@ -632,10 +636,10 @@ func (scope *Scope) autoMigrate() *Scope {
 	if !scope.Dialect().HasTable(scope, tableName) {
 		scope.createTable()
 	} else {
-		for _, field := range scope.GetStructFields() {
+		for _, field := range scope.Fields() {
 			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
 				if field.IsNormal {
-					sqlTag := scope.generateSqlTag(field)
+					sqlTag := scope.Dialect().DataTypeOf(field.StructField)
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()
 				}
 			}

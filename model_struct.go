@@ -3,7 +3,6 @@ package gorm
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"go/ast"
 	"reflect"
 	"strings"
@@ -509,44 +508,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
-}
-
-func (scope *Scope) generateSqlTag(field *StructField) string {
-	var sqlType string
-	structType := field.Struct.Type
-	if structType.Kind() == reflect.Ptr {
-		structType = structType.Elem()
-	}
-	reflectValue := reflect.Indirect(reflect.New(structType))
-
-	if value, ok := field.TagSettings["TYPE"]; ok {
-		sqlType = value
-	}
-
-	additionalType := field.TagSettings["NOT NULL"] + " " + field.TagSettings["UNIQUE"]
-	if value, ok := field.TagSettings["DEFAULT"]; ok {
-		additionalType = additionalType + " DEFAULT " + value
-	}
-
-	if field.IsScanner {
-		var getScannerValue func(reflect.Value)
-		getScannerValue = func(value reflect.Value) {
-			reflectValue = value
-			if _, isScanner := reflect.New(reflectValue.Type()).Interface().(sql.Scanner); isScanner && reflectValue.Kind() == reflect.Struct {
-				getScannerValue(reflectValue.Field(0))
-			}
-		}
-		getScannerValue(reflectValue)
-	}
-
-	if sqlType == "" {
-		sqlType = scope.Dialect().DataTypeOf(reflectValue, field.TagSettings)
-	}
-
-	if strings.TrimSpace(additionalType) == "" {
-		return sqlType
-	}
-	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func parseTagSetting(tags reflect.StructTag) map[string]string {

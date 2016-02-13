@@ -20,8 +20,13 @@ func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }
 
-func (postgres) DataTypeOf(dataValue reflect.Value, tagSettings map[string]string) string {
-	var size int
+func (postgres) DataTypeOf(field *StructField) string {
+	var (
+		size        int
+		dataValue   = reflect.Indirect(reflect.New(field.Struct.Type))
+		tagSettings = field.TagSettings
+	)
+
 	if num, ok := tagSettings["SIZE"]; ok {
 		size, _ = strconv.Atoi(num)
 	}
