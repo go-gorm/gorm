@@ -406,8 +406,17 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 }
 
 func (s *DB) HasTable(value interface{}) bool {
-	scope := s.clone().NewScope(value)
-	tableName := scope.TableName()
+	var (
+		scope     = s.clone().NewScope(value)
+		tableName string
+	)
+
+	if name, ok := value.(string); ok {
+		tableName = name
+	} else {
+		tableName = scope.TableName()
+	}
+
 	has := scope.Dialect().HasTable(scope, tableName)
 	s.AddError(scope.db.Error)
 	return has

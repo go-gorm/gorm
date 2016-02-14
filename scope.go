@@ -267,10 +267,6 @@ type dbTabler interface {
 
 // TableName get table name
 func (scope *Scope) TableName() string {
-	if strTableName, ok := scope.Value.(string); ok {
-		return strTableName
-	}
-
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		return scope.Search.tableName
 	}
