@@ -61,7 +61,11 @@ func (mysql) DataTypeOf(field *StructField) string {
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
-				sqlType = "timestamp NULL"
+				if _, ok := field.TagSettings["NOT NULL"]; ok {
+					sqlType = "timestamp"
+				} else {
+					sqlType = "timestamp NULL"
+				}
 			}
 		default:
 			if _, ok := dataValue.Interface().([]byte); ok {

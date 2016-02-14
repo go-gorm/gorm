@@ -42,7 +42,7 @@ type CreditCard struct {
 	ID        int8
 	Number    string
 	UserId    sql.NullInt64
-	CreatedAt time.Time
+	CreatedAt time.Time `sql:"not null"`
 	UpdatedAt time.Time
 	DeletedAt *time.Time
 }
