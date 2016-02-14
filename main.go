@@ -224,6 +224,20 @@ func (s *DB) Rows() (*sql.Rows, error) {
 	return s.NewScope(s.Value).rows()
 }
 
+func (s *DB) ScanRows(rows *sql.Rows, value interface{}) error {
+	var (
+		clone        = s.clone()
+		scope        = clone.NewScope(value)
+		columns, err = rows.Columns()
+	)
+
+	if clone.AddError(err) == nil {
+		scope.scan(rows, columns, scope.Fields())
+	}
+
+	return clone.Error
+}
+
 func (s *DB) Pluck(column string, value interface{}) *DB {
 	return s.NewScope(s.Value).pluck(column, value).db
 }

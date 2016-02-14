@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -376,7 +377,7 @@ func TestRows(t *testing.T) {
 
 	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
 	if err != nil {
-		t.Errorf("Not error should happen, but got")
+		t.Errorf("Not error should happen, got %v", err)
 	}
 
 	count := 0
@@ -386,8 +387,39 @@ func TestRows(t *testing.T) {
 		rows.Scan(&name, &age)
 		count++
 	}
+
 	if count != 2 {
-		t.Errorf("Should found two records with name 3")
+		t.Errorf("Should found two records")
+	}
+}
+
+func TestScanRows(t *testing.T) {
+	user1 := User{Name: "ScanRowsUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
+	user2 := User{Name: "ScanRowsUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
+	user3 := User{Name: "ScanRowsUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	DB.Save(&user1).Save(&user2).Save(&user3)
+
+	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
+	if err != nil {
+		t.Errorf("Not error should happen, got %v", err)
+	}
+
+	type Result struct {
+		Name string
+		Age  int
+	}
+
+	var results []Result
+	for rows.Next() {
+		var result Result
+		if err := DB.ScanRows(rows, &result); err != nil {
+			t.Errorf("should get no error, but got %v", err)
+		}
+		results = append(results, result)
+	}
+
+	if !reflect.DeepEqual(results, []Result{{Name: "ScanRowsUser2", Age: 10}, {Name: "ScanRowsUser3", Age: 20}}) {
+		t.Errorf("Should find expected results")
 	}
 }
 

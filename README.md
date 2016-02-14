@@ -68,15 +68,15 @@ go get -u github.com/jinzhu/gorm
 	- [Limit](#limit)
 	- [Offset](#offset)
 	- [Count](#count)
-	- [Pluck](#pluck)
-	- [Raw SQL](#raw-sql)
-	- [Row & Rows](#row--rows)
-	- [Scan](#scan)
 	- [Group & Having](#group--having)
 	- [Joins](#joins)
 	- [Transactions](#transactions)
 	- [Scopes](#scopes)
 	- [Callbacks](#callbacks)
+	- [Pluck](#pluck)
+	- [Scan](#scan)
+	- [Raw SQL](#raw-sql)
+	- [Row & Rows](#row--rows)
 	- [Specifying The Table Name](#specifying-the-table-name)
 	- [Error Handling](#error-handling)
 	- [Logger](#logger)
@@ -866,73 +866,6 @@ db.Table("deleted_users").Count(&count)
 //// SELECT count(*) FROM deleted_users;
 ```
 
-## Pluck
-
-Get selected attributes as map
-
-```go
-var ages []int64
-db.Find(&users).Pluck("age", &ages)
-
-var names []string
-db.Model(&User{}).Pluck("name", &names)
-
-db.Table("deleted_users").Pluck("name", &names)
-
-// Requesting more than one column? Do it like this:
-db.Select("name, age").Find(&users)
-```
-
-## Raw SQL
-
-```go
-db.Exec("DROP TABLE users;")
-db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,22,33})
-```
-
-## Row & Rows
-
-It is even possible to get query result as `*sql.Row` or `*sql.Rows`
-
-```go
-row := db.Table("users").Where("name = ?", "jinzhu").Select("name, age").Row() // (*sql.Row)
-row.Scan(&name, &age)
-
-rows, err := db.Model(User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
-defer rows.Close()
-for rows.Next() {
-	...
-	rows.Scan(&name, &age, &email)
-	...
-}
-
-// Raw SQL
-rows, err := db.Raw("select name, age, email from users where name = ?", "jinzhu").Rows() // (*sql.Rows, error)
-defer rows.Close()
-for rows.Next() {
-	...
-	rows.Scan(&name, &age, &email)
-	...
-}
-```
-
-## Scan
-
-Scan results into another struct.
-
-```go
-type Result struct {
-	Name string
-	Age  int
-}
-
-var result Result
-db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&result)
-
-// Raw SQL
-db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
-```
-
 ## Group & Having
 
 ```go
@@ -1108,7 +1041,7 @@ func (u *User) AfterCreate() (err error) {
 }
 ```
 
-Save/delete operations in gorm are running in a transaction.  
+Save/delete operations in gorm are running in a transaction.
 Changes made in that transaction are not visible unless it is commited.
 So if you want to use those changes in your callbacks, you need to run your SQL in the same transaction.
 For this Gorm supports passing transactions to callbacks like this:
@@ -1117,6 +1050,86 @@ For this Gorm supports passing transactions to callbacks like this:
 func (u *User) AfterCreate(tx *gorm.DB) (err error) {
 	tx.Model(u).Update("role", "admin")
 	return
+}
+```
+
+## Pluck
+
+Get selected attributes as map
+
+```go
+var ages []int64
+db.Find(&users).Pluck("age", &ages)
+
+var names []string
+db.Model(&User{}).Pluck("name", &names)
+
+db.Table("deleted_users").Pluck("name", &names)
+
+// Requesting more than one column? Do it like this:
+db.Select("name, age").Find(&users)
+```
+
+## Scan
+
+Scan results into another struct.
+
+```go
+type Result struct {
+	Name string
+	Age  int
+}
+
+var result Result
+db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&result)
+
+// Raw SQL
+db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
+```
+
+## Raw SQL
+
+```go
+db.Exec("DROP TABLE users;")
+db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,22,33})
+```
+
+## Row & Rows
+
+It is even possible to get query result as `*sql.Row` or `*sql.Rows`
+
+```go
+row := db.Table("users").Where("name = ?", "jinzhu").Select("name, age").Row() // (*sql.Row)
+row.Scan(&name, &age)
+
+rows, err := db.Model(&User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
+defer rows.Close()
+for rows.Next() {
+	...
+	rows.Scan(&name, &age, &email)
+	...
+}
+
+// Raw SQL
+rows, err := db.Raw("select name, age, email from users where name = ?", "jinzhu").Rows() // (*sql.Rows, error)
+defer rows.Close()
+for rows.Next() {
+	...
+	rows.Scan(&name, &age, &email)
+	...
+}
+```
+
+### Scan Rows
+
+```go
+rows, err := db.Model(&User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
+defer rows.Close()
+
+for rows.Next() {
+  var user User
+  db.ScanRows(rows, &user)
+  // do something
 }
 ```
 
