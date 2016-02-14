@@ -611,62 +611,114 @@ func TestNestedPreload9(t *testing.T) {
 	}
 }
 
-type Level1A struct {
+type LevelA1 struct {
 	ID    uint
 	Value string
 }
 
-type Level1B struct {
-	ID      uint
-	Value   string
-	Level2s []*Level2
+type LevelA2 struct {
+	ID       uint
+	Value    string
+	LevelA3s []*LevelA3
 }
 
-type Level2 struct {
+type LevelA3 struct {
 	ID        uint
 	Value     string
-	Level1AID sql.NullInt64
-	Level1A   *Level1A
-	Level1BID sql.NullInt64
-	Level1B   *Level1B
+	LevelA1ID sql.NullInt64
+	LevelA1   *LevelA1
+	LevelA2ID sql.NullInt64
+	LevelA2   *LevelA2
 }
 
 func TestNestedPreload10(t *testing.T) {
-	DB.DropTableIfExists(&Level2{})
-	DB.DropTableIfExists(&Level1B{})
-	DB.DropTableIfExists(&Level1A{})
+	DB.DropTableIfExists(&LevelA3{})
+	DB.DropTableIfExists(&LevelA2{})
+	DB.DropTableIfExists(&LevelA1{})
 
-	if err := DB.AutoMigrate(&Level1A{}, &Level1B{}, &Level2{}).Error; err != nil {
+	if err := DB.AutoMigrate(&LevelA1{}, &LevelA2{}, &LevelA3{}).Error; err != nil {
 		t.Error(err)
 	}
 
-	level1A := &Level1A{Value: "foo"}
-	if err := DB.Save(&level1A).Error; err != nil {
+	levelA1 := &LevelA1{Value: "foo"}
+	if err := DB.Save(levelA1).Error; err != nil {
 		t.Error(err)
 	}
 
-	want := []*Level1B{
-		&Level1B{
+	want := []*LevelA2{
+		&LevelA2{
 			Value: "bar",
-			Level2s: []*Level2{
-				&Level2{
+			LevelA3s: []*LevelA3{
+				&LevelA3{
 					Value:   "qux",
-					Level1A: level1A,
+					LevelA1: levelA1,
 				},
 			},
 		},
-		&Level1B{
+		&LevelA2{
 			Value: "bar 2",
 		},
 	}
-	for _, level1B := range want {
-		if err := DB.Save(level1B).Error; err != nil {
+	for _, levelA2 := range want {
+		if err := DB.Save(levelA2).Error; err != nil {
 			t.Error(err)
 		}
 	}
 
-	var got []*Level1B
-	if err := DB.Preload("Level2s.Level1A").Find(&got).Error; err != nil {
+	var got []*LevelA2
+	if err := DB.Preload("LevelA3s.LevelA1").Find(&got).Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
+type LevelB1 struct {
+	ID       uint
+	Value    string
+	LevelB3s []*LevelB3
+}
+
+type LevelB2 struct {
+	ID    uint
+	Value string
+}
+
+type LevelB3 struct {
+	ID        uint
+	Value     string
+	LevelB1ID sql.NullInt64
+	LevelB1   *LevelB1
+	LevelB2s  []*LevelB2 `gorm:"many2many:levelb1_levelb3_levelb2s"`
+}
+
+func TestNestedPreload11(t *testing.T) {
+	DB.DropTableIfExists(&LevelB2{})
+	DB.DropTableIfExists(&LevelB3{})
+	DB.DropTableIfExists(&LevelB1{})
+	if err := DB.AutoMigrate(&LevelB1{}, &LevelB2{}, &LevelB3{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	levelB1 := &LevelB1{Value: "foo"}
+	if err := DB.Create(levelB1).Error; err != nil {
+		t.Error(err)
+	}
+
+	levelB3 := &LevelB3{
+		Value:     "bar",
+		LevelB1ID: sql.NullInt64{Valid: true, Int64: int64(levelB1.ID)},
+	}
+	if err := DB.Create(levelB3).Error; err != nil {
+		t.Error(err)
+	}
+	levelB1.LevelB3s = []*LevelB3{levelB3}
+
+	want := []*LevelB1{levelB1}
+	var got []*LevelB1
+	if err := DB.Preload("LevelB3s.LevelB2s").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
