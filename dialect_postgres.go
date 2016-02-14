@@ -5,7 +5,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,52 +20,57 @@ func (postgres) BindVar(i int) string {
 }
 
 func (postgres) DataTypeOf(field *StructField) string {
-	var (
-		size        int
-		dataValue   = reflect.Indirect(reflect.New(field.Struct.Type))
-		tagSettings = field.TagSettings
-	)
+	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 
-	if num, ok := tagSettings["SIZE"]; ok {
-		size, _ = strconv.Atoi(num)
+	if sqlType == "" {
+		switch dataValue.Kind() {
+		case reflect.Bool:
+			sqlType = "boolean"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+				sqlType = "serial"
+			} else {
+				sqlType = "integer"
+			}
+		case reflect.Int64, reflect.Uint64:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+				sqlType = "bigserial"
+			} else {
+				sqlType = "bigint"
+			}
+		case reflect.Float32, reflect.Float64:
+			sqlType = "numeric"
+		case reflect.String:
+			if size > 0 && size < 65532 {
+				sqlType = fmt.Sprintf("varchar(%d)", size)
+			} else {
+				sqlType = "text"
+			}
+		case reflect.Struct:
+			if _, ok := dataValue.Interface().(time.Time); ok {
+				sqlType = "timestamp with time zone"
+			}
+		case reflect.Map:
+			if dataValue.Type() == hstoreType {
+				sqlType = "hstore"
+			}
+		default:
+			if isByteArrayOrSlice(dataValue) {
+				sqlType = "bytea"
+			} else if isUUID(dataValue) {
+				sqlType = "uuid"
+			}
+		}
 	}
 
-	switch dataValue.Kind() {
-	case reflect.Bool:
-		return "boolean"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "serial"
-		}
-		return "integer"
-	case reflect.Int64, reflect.Uint64:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "bigserial"
-		}
-		return "bigint"
-	case reflect.Float32, reflect.Float64:
-		return "numeric"
-	case reflect.String:
-		if size > 0 && size < 65532 {
-			return fmt.Sprintf("varchar(%d)", size)
-		}
-		return "text"
-	case reflect.Struct:
-		if _, ok := dataValue.Interface().(time.Time); ok {
-			return "timestamp with time zone"
-		}
-	case reflect.Map:
-		if dataValue.Type() == hstoreType {
-			return "hstore"
-		}
-	default:
-		if isByteArrayOrSlice(dataValue) {
-			return "bytea"
-		} else if isUUID(dataValue) {
-			return "uuid"
-		}
+	if sqlType == "" {
+		panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", dataValue.Type().Name(), dataValue.Kind().String()))
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for postgres", dataValue.Type().Name(), dataValue.Kind().String()))
+
+	if strings.TrimSpace(additionalType) == "" {
+		return sqlType
+	}
+	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {

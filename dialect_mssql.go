@@ -3,7 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -12,49 +12,55 @@ type mssql struct {
 }
 
 func (mssql) DataTypeOf(field *StructField) string {
-	var (
-		size        int
-		dataValue   = reflect.Indirect(reflect.New(field.Struct.Type))
-		tagSettings = field.TagSettings
-	)
+	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 
-	if num, ok := tagSettings["SIZE"]; ok {
-		size, _ = strconv.Atoi(num)
-	}
-
-	switch dataValue.Kind() {
-	case reflect.Bool:
-		return "bit"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "int IDENTITY(1,1)"
-		}
-		return "int"
-	case reflect.Int64, reflect.Uint64:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "bigint IDENTITY(1,1)"
-		}
-		return "bigint"
-	case reflect.Float32, reflect.Float64:
-		return "float"
-	case reflect.String:
-		if size > 0 && size < 65532 {
-			return fmt.Sprintf("nvarchar(%d)", size)
-		}
-		return "text"
-	case reflect.Struct:
-		if _, ok := dataValue.Interface().(time.Time); ok {
-			return "datetime2"
-		}
-	default:
-		if _, ok := dataValue.Interface().([]byte); ok {
-			if size > 0 && size < 65532 {
-				return fmt.Sprintf("varchar(%d)", size)
+	if sqlType == "" {
+		switch dataValue.Kind() {
+		case reflect.Bool:
+			sqlType = "bit"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+				sqlType = "int IDENTITY(1,1)"
+			} else {
+				sqlType = "int"
 			}
-			return "text"
+		case reflect.Int64, reflect.Uint64:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+				sqlType = "bigint IDENTITY(1,1)"
+			} else {
+				sqlType = "bigint"
+			}
+		case reflect.Float32, reflect.Float64:
+			sqlType = "float"
+		case reflect.String:
+			if size > 0 && size < 65532 {
+				sqlType = fmt.Sprintf("nvarchar(%d)", size)
+			} else {
+				sqlType = "text"
+			}
+		case reflect.Struct:
+			if _, ok := dataValue.Interface().(time.Time); ok {
+				sqlType = "datetime2"
+			}
+		default:
+			if _, ok := dataValue.Interface().([]byte); ok {
+				if size > 0 && size < 65532 {
+					sqlType = fmt.Sprintf("varchar(%d)", size)
+				} else {
+					sqlType = "text"
+				}
+			}
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", dataValue.Type().Name(), dataValue.Kind().String()))
+
+	if sqlType == "" {
+		panic(fmt.Sprintf("invalid sql type %s (%s) for mssql", dataValue.Type().Name(), dataValue.Kind().String()))
+	}
+
+	if strings.TrimSpace(additionalType) == "" {
+		return sqlType
+	}
+	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {

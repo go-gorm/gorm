@@ -3,7 +3,7 @@ package gorm
 import (
 	"fmt"
 	"reflect"
-	"strconv"
+	"strings"
 	"time"
 )
 
@@ -18,49 +18,55 @@ func (commonDialect) Quote(key string) string {
 }
 
 func (commonDialect) DataTypeOf(field *StructField) string {
-	var (
-		size        int
-		dataValue   = reflect.Indirect(reflect.New(field.Struct.Type))
-		tagSettings = field.TagSettings
-	)
+	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 
-	if num, ok := tagSettings["SIZE"]; ok {
-		size, _ = strconv.Atoi(num)
-	}
-
-	switch dataValue.Kind() {
-	case reflect.Bool:
-		return "BOOLEAN"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "INTEGER AUTO_INCREMENT"
-		}
-		return "INTEGER"
-	case reflect.Int64, reflect.Uint64:
-		if _, ok := tagSettings["AUTO_INCREMENT"]; ok {
-			return "BIGINT AUTO_INCREMENT"
-		}
-		return "BIGINT"
-	case reflect.Float32, reflect.Float64:
-		return "FLOAT"
-	case reflect.String:
-		if size > 0 && size < 65532 {
-			return fmt.Sprintf("VARCHAR(%d)", size)
-		}
-		return "VARCHAR(65532)"
-	case reflect.Struct:
-		if _, ok := dataValue.Interface().(time.Time); ok {
-			return "TIMESTAMP"
-		}
-	default:
-		if _, ok := dataValue.Interface().([]byte); ok {
-			if size > 0 && size < 65532 {
-				return fmt.Sprintf("BINARY(%d)", size)
+	if sqlType == "" {
+		switch dataValue.Kind() {
+		case reflect.Bool:
+			sqlType = "BOOLEAN"
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+				sqlType = "INTEGER AUTO_INCREMENT"
+			} else {
+				sqlType = "INTEGER"
 			}
-			return "BINARY(65532)"
+		case reflect.Int64, reflect.Uint64:
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+				sqlType = "BIGINT AUTO_INCREMENT"
+			} else {
+				sqlType = "BIGINT"
+			}
+		case reflect.Float32, reflect.Float64:
+			sqlType = "FLOAT"
+		case reflect.String:
+			if size > 0 && size < 65532 {
+				sqlType = fmt.Sprintf("VARCHAR(%d)", size)
+			} else {
+				sqlType = "VARCHAR(65532)"
+			}
+		case reflect.Struct:
+			if _, ok := dataValue.Interface().(time.Time); ok {
+				sqlType = "TIMESTAMP"
+			}
+		default:
+			if _, ok := dataValue.Interface().([]byte); ok {
+				if size > 0 && size < 65532 {
+					sqlType = fmt.Sprintf("BINARY(%d)", size)
+				} else {
+					sqlType = "BINARY(65532)"
+				}
+			}
 		}
 	}
-	panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", dataValue.Type().Name(), dataValue.Kind().String()))
+
+	if sqlType == "" {
+		panic(fmt.Sprintf("invalid sql type %s (%s) for commonDialect", dataValue.Type().Name(), dataValue.Kind().String()))
+	}
+
+	if strings.TrimSpace(additionalType) == "" {
+		return sqlType
+	}
+	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
 func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string) bool {
