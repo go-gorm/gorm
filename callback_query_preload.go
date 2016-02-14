@@ -188,7 +188,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	var (
 		relation         = field.Relationship
 		joinTableHandler = relation.JoinTableHandler
-		fieldType        = field.StructField.Struct.Type.Elem()
+		fieldType        = field.Struct.Type.Elem()
 		foreignKeyValue  interface{}
 		foreignKeyType   = reflect.ValueOf(&foreignKeyValue).Type()
 		linkHash         = map[string][]reflect.Value{}
@@ -206,8 +206,13 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	}
 
 	// generate query with join table
-	preloadJoinDB := scope.NewDB().Table(scope.New(reflect.New(fieldType).Interface()).TableName()).Select("*")
+	newScope := scope.New(reflect.New(fieldType).Interface())
+	preloadJoinDB := scope.NewDB().Table(newScope.TableName()).Select("*")
 	preloadJoinDB = joinTableHandler.JoinWith(joinTableHandler, preloadJoinDB, scope.Value)
+
+	if primaryField := newScope.PrimaryField(); primaryField != nil {
+		preloadJoinDB = preloadJoinDB.Order(fmt.Sprintf("%v.%v %v", newScope.QuotedTableName(), newScope.Quote(primaryField.DBName), "ASC"))
+	}
 
 	// preload inline conditions
 	if len(conditions) > 0 {
