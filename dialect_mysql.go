@@ -11,6 +11,10 @@ type mysql struct {
 	commonDialect
 }
 
+func init() {
+	RegisterDialect("mysql", &mysql{})
+}
+
 func (mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

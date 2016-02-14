@@ -15,6 +15,10 @@ type postgres struct {
 	commonDialect
 }
 
+func init() {
+	RegisterDialect("postgres", &postgres{})
+}
+
 func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }

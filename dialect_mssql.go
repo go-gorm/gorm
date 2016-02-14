@@ -11,6 +11,10 @@ type mssql struct {
 	commonDialect
 }
 
+func init() {
+	RegisterDialect("mssql", &mssql{})
+}
+
 func (mssql) DataTypeOf(field *StructField) string {
 	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 

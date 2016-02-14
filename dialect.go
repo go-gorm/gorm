@@ -34,22 +34,19 @@ type Dialect interface {
 	LastInsertIdReturningSuffix(tableName, columnName string) string
 }
 
-func NewDialect(driver string) Dialect {
-	var d Dialect
-	switch driver {
-	case "postgres":
-		d = &postgres{}
-	case "mysql":
-		d = &mysql{}
-	case "sqlite3":
-		d = &sqlite3{}
-	case "mssql":
-		d = &mssql{}
-	default:
-		fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", driver)
-		d = &commonDialect{}
+var dialectsMap = map[string]Dialect{}
+
+func newDialect(name string) Dialect {
+	if dialect, ok := dialectsMap[name]; ok {
+		return dialect
 	}
-	return d
+	fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", name)
+	return &commonDialect{}
+}
+
+// RegisterDialect register new dialect
+func RegisterDialect(name string, dialect Dialect) {
+	dialectsMap[name] = dialect
 }
 
 // ParseFieldStructForDialect parse field struct for dialect

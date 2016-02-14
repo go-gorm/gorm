@@ -9,6 +9,10 @@ import (
 
 type commonDialect struct{}
 
+func init() {
+	RegisterDialect("common", &commonDialect{})
+}
+
 func (commonDialect) BindVar(i int) string {
 	return "$$" // ?
 }
