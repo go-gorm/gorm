@@ -136,6 +136,7 @@ type Animal struct {
 	unexported string    // unexported value
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+	Cool       bool `sql:"default:false"`
 }
 
 type JoinTable struct {

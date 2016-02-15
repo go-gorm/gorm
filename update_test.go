@@ -87,10 +87,11 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	DB.Save(&animal)
 	updatedAt1 := animal.UpdatedAt
 
+	// Sleep for a second and than update a field
+	time.Sleep(1000 * time.Millisecond)
 	DB.Save(&animal).Update("name", "Francis")
-
 	if updatedAt1.Format(time.RFC3339Nano) == animal.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updatedAt should not be updated if nothing changed")
+		t.Errorf("updatedAt should be updated when changing a field")
 	}
 
 	var animals []Animal
@@ -101,7 +102,6 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 
 	animal = Animal{From: "somewhere"}              // No name fields, should be filled with the default value (galeone)
 	DB.Save(&animal).Update("From", "a nice place") // The name field shoul be untouched
-	DB.First(&animal, animal.Counter)
 	if animal.Name != "galeone" {
 		t.Errorf("Name fiels shouldn't be changed if untouched, but got %v", animal.Name)
 	}
@@ -109,17 +109,28 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	// When changing a field with a default value, the change must occur
 	animal.Name = "amazing horse"
 	DB.Save(&animal)
-	DB.First(&animal, animal.Counter)
 	if animal.Name != "amazing horse" {
 		t.Errorf("Update a filed with a default value should occur. But got %v\n", animal.Name)
 	}
 
-	// When changing a field with a default value with blank value
+	// When changing a field with a default value with blank value, the DBMS should insert the default value. Not the empty one.
 	animal.Name = ""
 	DB.Save(&animal)
-	DB.First(&animal, animal.Counter)
-	if animal.Name != "" {
-		t.Errorf("Update a filed to blank with a default value should occur. But got %v\n", animal.Name)
+	if animal.Name == "" {
+		t.Errorf("Update a filed with an associated default value should not occur when trying to insert an empty field. The default one should be inserted\n")
+	}
+
+	// Animal.Cool has a default value thats equal to the Zero of its type. (false) I have to update this field to true and false without problems
+	animal.Cool = true
+	DB.Save(&animal)
+	if !animal.Cool {
+		t.Errorf("I should update a field with a default value to someother value")
+	}
+
+	animal.Cool = false
+	DB.Save(&animal)
+	if animal.Cool {
+		t.Errorf("I should update a field with an associated blank value to its blank value")
 	}
 }
 

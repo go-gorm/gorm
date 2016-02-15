@@ -43,7 +43,7 @@ func Update(scope *Scope) {
 
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 			for key, value := range updateAttrs.(map[string]interface{}) {
-				if scope.changeableDBColumn(key) {
+				if scope.isChangeableDBColumn(key) {
 					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
 				}
 			}
@@ -51,7 +51,12 @@ func Update(scope *Scope) {
 			fields := scope.Fields()
 			for _, field := range fields {
 				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+					if field.HasDefaultValue {
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), handleDefaultValue(scope, field)))
+						scope.InstanceSet("gorm:force_reload", true)
+					} else {
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+					}
 				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 					for _, dbName := range relationship.ForeignDBNames {
 						if relationField := fields[dbName]; !scope.changeableField(relationField) && !relationField.IsBlank {
@@ -92,4 +97,5 @@ func init() {
 	DefaultCallback.Update().Register("gorm:save_after_associations", SaveAfterAssociations)
 	DefaultCallback.Update().Register("gorm:after_update", AfterUpdate)
 	DefaultCallback.Update().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
+	DefaultCallback.Update().Register("gorm:force_reload", ForceReload)
 }

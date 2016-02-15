@@ -162,3 +162,25 @@ func TestOmitWithCreate(t *testing.T) {
 		t.Errorf("Should not create omited relationships")
 	}
 }
+
+// Test from: https://github.com/jinzhu/gorm/issues/689
+func TestCreateWithBoolDefaultValue(t *testing.T) {
+	type Data struct {
+		ID            int    `gorm:"column:id;primary_key" json:"id"`
+		Name          string `sql:"type:varchar(100);not null;unique" json:"name"`
+		DeleteAllowed bool   `sql:"not null;DEFAULT:true" json:"delete_allowed"`
+	}
+
+	DB.AutoMigrate(&Data{})
+
+	data := Data{
+		Name:          "test",
+		DeleteAllowed: false,
+	}
+
+	DB.Create(&data)
+
+	if data.DeleteAllowed {
+		t.Error("Test failed")
+	}
+}
