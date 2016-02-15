@@ -21,15 +21,26 @@ func beforeDeleteCallback(scope *Scope) {
 // deleteCallback used to delete data from database or set deleted_at to current time (when using with soft delete)
 func deleteCallback(scope *Scope) {
 	if !scope.HasError() {
+		var extraOption string
+		if str, ok := scope.Get("gorm:delete_option"); ok {
+			extraOption = fmt.Sprint(str)
+		}
+
 		if !scope.Search.Unscoped && scope.HasColumn("DeletedAt") {
-			scope.Raw(
-				fmt.Sprintf("UPDATE %v SET deleted_at=%v %v",
-					scope.QuotedTableName(),
-					scope.AddToVars(NowFunc()),
-					scope.CombinedConditionSql(),
-				)).Exec()
+			scope.Raw(fmt.Sprintf(
+				"UPDATE %v SET deleted_at=%v%v%v",
+				scope.QuotedTableName(),
+				scope.AddToVars(NowFunc()),
+				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(extraOption),
+			)).Exec()
 		} else {
-			scope.Raw(fmt.Sprintf("DELETE FROM %v %v", scope.QuotedTableName(), scope.CombinedConditionSql())).Exec()
+			scope.Raw(fmt.Sprintf(
+				"DELETE FROM %v%v%v",
+				scope.QuotedTableName(),
+				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(extraOption),
+			)).Exec()
 		}
 	}
 }

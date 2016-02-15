@@ -259,6 +259,11 @@ db.Create(&user)
 //// INSERT INTO "languages" ("name") VALUES ('EN');
 //// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
 //// COMMIT;
+
+
+// Add extra SQL option for inserting SQL
+db.Set("gorm:insert_option", "ON CONFLICT").Create(&product)
+// INSERT INTO products (name, code) VALUES ("name", "code") ON CONFLICT;
 ```
 
 Refer [Associations](#associations) for more details
@@ -281,6 +286,10 @@ db.Find(&users)
 // Get record with primary key
 db.First(&user, 10)
 //// SELECT * FROM users WHERE id = 10;
+
+// Add extra SQL option for selecting SQL
+db.Set("gorm:query_option", "FOR UPDATE").First(&user, 10)
+//// SELECT * FROM users WHERE id = 10 FOR UPDATE;
 ```
 
 ### Query With Where (Plain SQL)
@@ -460,6 +469,10 @@ db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "acti
 // Update multiple attributes if they are changed (update with struct only works with none zero values)
 db.Model(&user).Updates(User{Name: "hello", Age: 18})
 //// UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;
+
+// Add extra SQL option for updating SQL
+db.Model(&user).Set("gorm:update_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Update("name, "hello")
+//// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111 OPTION (OPTIMIZE FOR UNKNOWN);
 ```
 
 ### Update Without Callbacks
@@ -513,6 +526,10 @@ DB.Model(&product).Where("quantity > 1").UpdateColumn("quantity", gorm.Expr("qua
 // Delete an existing record
 db.Delete(&email)
 //// DELETE from emails where id=10;
+
+// Add extra SQL option for deleting SQL
+db.Set("gorm:delete_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Delete(&email)
+//// DELETE from emails where id=10 OPTION (OPTIMIZE FOR UNKNOWN);
 ```
 
 ### Batch Delete

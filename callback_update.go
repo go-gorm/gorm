@@ -90,9 +90,18 @@ func updateCallback(scope *Scope) {
 			}
 		}
 
+		var extraOption string
+		if str, ok := scope.Get("gorm:update_option"); ok {
+			extraOption = fmt.Sprint(str)
+		}
+
 		if len(sqls) > 0 {
 			scope.Raw(fmt.Sprintf(
-				"UPDATE %v SET %v %v", scope.QuotedTableName(), strings.Join(sqls, ", "), scope.CombinedConditionSql(),
+				"UPDATE %v SET %v%v%v",
+				scope.QuotedTableName(),
+				strings.Join(sqls, ", "),
+				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(extraOption),
 			)).Exec()
 		}
 	}

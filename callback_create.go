@@ -75,7 +75,12 @@ func createCallback(scope *Scope) {
 			returningColumn = "*"
 			quotedTableName = scope.QuotedTableName()
 			primaryField    = scope.PrimaryField()
+			extraOption     string
 		)
+
+		if str, ok := scope.Get("gorm:insert_option"); ok {
+			extraOption = fmt.Sprint(str)
+		}
 
 		if primaryField != nil {
 			returningColumn = scope.Quote(primaryField.DBName)
@@ -84,14 +89,20 @@ func createCallback(scope *Scope) {
 		lastInsertIdReturningSuffix := scope.Dialect().LastInsertIdReturningSuffix(quotedTableName, returningColumn)
 
 		if len(columns) == 0 {
-			scope.Raw(fmt.Sprintf("INSERT INTO %v DEFAULT VALUES %v", quotedTableName, lastInsertIdReturningSuffix))
+			scope.Raw(fmt.Sprintf(
+				"INSERT INTO %v DEFAULT VALUES%v%v",
+				quotedTableName,
+				addExtraSpaceIfExist(extraOption),
+				addExtraSpaceIfExist(lastInsertIdReturningSuffix),
+			))
 		} else {
 			scope.Raw(fmt.Sprintf(
-				"INSERT INTO %v (%v) VALUES (%v) %v",
+				"INSERT INTO %v (%v) VALUES (%v)%v%v",
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
 				strings.Join(placeholders, ","),
-				lastInsertIdReturningSuffix,
+				addExtraSpaceIfExist(extraOption),
+				addExtraSpaceIfExist(lastInsertIdReturningSuffix),
 			))
 		}
 
