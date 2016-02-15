@@ -65,29 +65,25 @@ func (sqlite3) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s sqlite3) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (s sqlite3) HasIndex(tableName string, indexName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND sql LIKE '%%INDEX %v ON%%'", indexName), tableName)
+	s.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND sql LIKE '%%INDEX %v ON%%'", indexName), tableName).Scan(&count)
 	return count > 0
 }
 
-func (sqlite3) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
-}
-
-func (s sqlite3) HasTable(scope *Scope, tableName string) bool {
+func (s sqlite3) HasTable(tableName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName)
+	s.db.QueryRow("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", tableName).Scan(&count)
 	return count > 0
 }
 
-func (s sqlite3) HasColumn(scope *Scope, tableName string, columnName string) bool {
+func (s sqlite3) HasColumn(tableName string, columnName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND (sql LIKE '%%(\"%v\" %%' OR sql LIKE '%%,\"%v\" %%' OR sql LIKE '%%, \"%v\" %%' OR sql LIKE '%%( %v %%' OR sql LIKE '%%, %v %%' OR sql LIKE '%%,%v %%');\n", columnName, columnName, columnName, columnName, columnName, columnName), tableName)
+	s.db.QueryRow(fmt.Sprintf("SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND (sql LIKE '%%(\"%v\" %%' OR sql LIKE '%%,\"%v\" %%' OR sql LIKE '%%, \"%v\" %%' OR sql LIKE '%%( %v %%' OR sql LIKE '%%, %v %%' OR sql LIKE '%%,%v %%');\n", columnName, columnName, columnName, columnName, columnName, columnName), tableName).Scan(&count)
 	return count > 0
 }
 
-func (sqlite3) currentDatabase(scope *Scope) (name string) {
+func (s sqlite3) currentDatabase() (name string) {
 	var (
 		ifaces   = make([]interface{}, 3)
 		pointers = make([]*string, 3)
@@ -96,7 +92,7 @@ func (sqlite3) currentDatabase(scope *Scope) (name string) {
 	for i = 0; i < 3; i++ {
 		ifaces[i] = &pointers[i]
 	}
-	if err := scope.NewDB().Raw("PRAGMA database_list").Row().Scan(ifaces...); scope.Err(err) != nil {
+	if err := s.db.QueryRow("PRAGMA database_list").Scan(ifaces...); err != nil {
 		return
 	}
 	if pointers[1] != nil {

@@ -88,8 +88,13 @@ func (mysql) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s mysql) currentDatabase(scope *Scope) (name string) {
-	s.RawScanString(scope, &name, "SELECT DATABASE()")
+func (s mysql) RemoveIndex(tableName string, indexName string) error {
+	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
+	return err
+}
+
+func (s mysql) currentDatabase() (name string) {
+	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
 	return
 }
 

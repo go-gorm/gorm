@@ -77,30 +77,26 @@ func (postgres) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s postgres) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (s postgres) HasIndex(tableName string, indexName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ?", tableName, indexName)
+	s.db.QueryRow("SELECT count(*) FROM pg_indexes WHERE tablename = $1 AND indexname = $2", tableName, indexName).Scan(&count)
 	return count > 0
 }
 
-func (postgres) RemoveIndex(scope *Scope, indexName string) {
-	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v", indexName)).Error)
-}
-
-func (s postgres) HasTable(scope *Scope, tableName string) bool {
+func (s postgres) HasTable(tableName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_type = 'BASE TABLE'", tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = $1 AND table_type = 'BASE TABLE'", tableName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) HasColumn(scope *Scope, tableName string, columnName string) bool {
+func (s postgres) HasColumn(tableName string, columnName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = ? AND column_name = ?", tableName, columnName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = $1 AND column_name = $2", tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) currentDatabase(scope *Scope) (name string) {
-	s.RawScanString(scope, &name, "SELECT CURRENT_DATABASE()")
+func (s postgres) currentDatabase() (name string) {
+	s.db.QueryRow("SELECT CURRENT_DATABASE()").Scan(&name)
 	return
 }
 

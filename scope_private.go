@@ -515,7 +515,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
 		joinTableHandler := relationship.JoinTableHandler
 		joinTable := joinTableHandler.Table(scope.db)
-		if !scope.Dialect().HasTable(scope, joinTable) {
+		if !scope.Dialect().HasTable(joinTable) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
 			var sqlTypes, primaryKeys []string
@@ -586,7 +586,7 @@ func (scope *Scope) dropTable() *Scope {
 }
 
 func (scope *Scope) dropTableIfExists() *Scope {
-	if scope.Dialect().HasTable(scope, scope.TableName()) {
+	if scope.Dialect().HasTable(scope.TableName()) {
 		scope.dropTable()
 	}
 	return scope
@@ -601,7 +601,7 @@ func (scope *Scope) dropColumn(column string) {
 }
 
 func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
-	if scope.Dialect().HasIndex(scope, scope.TableName(), indexName) {
+	if scope.Dialect().HasIndex(scope.TableName(), indexName) {
 		return
 	}
 
@@ -626,18 +626,18 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 }
 
 func (scope *Scope) removeIndex(indexName string) {
-	scope.Dialect().RemoveIndex(scope, indexName)
+	scope.Dialect().RemoveIndex(scope.TableName(), indexName)
 }
 
 func (scope *Scope) autoMigrate() *Scope {
 	tableName := scope.TableName()
 	quotedTableName := scope.QuotedTableName()
 
-	if !scope.Dialect().HasTable(scope, tableName) {
+	if !scope.Dialect().HasTable(tableName) {
 		scope.createTable()
 	} else {
 		for _, field := range scope.GetModelStruct().StructFields {
-			if !scope.Dialect().HasColumn(scope, tableName, field.DBName) {
+			if !scope.Dialect().HasColumn(tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.Dialect().DataTypeOf(field)
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()

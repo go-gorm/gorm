@@ -62,7 +62,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		}
 
 		db = DB{
-			dialect:   newDialect(dialect),
+			dialect:   newDialect(dialect, dbSql.(*sql.DB)),
 			logger:    defaultLogger,
 			callbacks: defaultCallback,
 			source:    source,
@@ -430,7 +430,7 @@ func (s *DB) HasTable(value interface{}) bool {
 		tableName = scope.TableName()
 	}
 
-	has := scope.Dialect().HasTable(scope, tableName)
+	has := scope.Dialect().HasTable(tableName)
 	s.AddError(scope.db.Error)
 	return has
 }
@@ -531,7 +531,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 				destination := (&Scope{Value: reflect.New(field.Struct.Type).Interface()}).GetModelStruct().ModelType
 				handler.Setup(field.Relationship, many2many, source, destination)
 				field.Relationship.JoinTableHandler = handler
-				if table := handler.Table(s); scope.Dialect().HasTable(scope, table) {
+				if table := handler.Table(s); scope.Dialect().HasTable(table) {
 					s.Table(table).AutoMigrate(handler)
 				}
 			}

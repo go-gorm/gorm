@@ -10,6 +10,9 @@ import (
 
 // Dialect interface contains behaviors that differ across SQL database
 type Dialect interface {
+	// SetDB set db for dialect
+	SetDB(db *sql.DB)
+
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
 	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name
@@ -18,13 +21,13 @@ type Dialect interface {
 	DataTypeOf(field *StructField) string
 
 	// HasIndex check has index or not
-	HasIndex(scope *Scope, tableName string, indexName string) bool
+	HasIndex(tableName string, indexName string) bool
 	// RemoveIndex remove index
-	RemoveIndex(scope *Scope, indexName string)
+	RemoveIndex(tableName string, indexName string) error
 	// HasTable check has table or not
-	HasTable(scope *Scope, tableName string) bool
+	HasTable(tableName string) bool
 	// HasColumn check has column or not
-	HasColumn(scope *Scope, tableName string, columnName string) bool
+	HasColumn(tableName string, columnName string) bool
 
 	// LimitAndOffsetSQL return generate SQL with limit and offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset int) string
@@ -36,12 +39,17 @@ type Dialect interface {
 
 var dialectsMap = map[string]Dialect{}
 
-func newDialect(name string) Dialect {
-	if dialect, ok := dialectsMap[name]; ok {
+func newDialect(name string, db *sql.DB) Dialect {
+	if value, ok := dialectsMap[name]; ok {
+		dialect := reflect.New(reflect.TypeOf(value).Elem()).Interface().(Dialect)
+		dialect.SetDB(db)
 		return dialect
 	}
+
 	fmt.Printf("`%v` is not officially supported, running under compatibility mode.\n", name)
-	return &commonDialect{}
+	commontDialect := &commonDialect{}
+	commontDialect.SetDB(db)
+	return commontDialect
 }
 
 // RegisterDialect register new dialect

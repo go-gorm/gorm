@@ -67,32 +67,31 @@ func (mssql) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s mssql) HasIndex(scope *Scope, tableName string, indexName string) bool {
+func (s mssql) HasIndex(tableName string, indexName string) bool {
 	var count int
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName)
+	s.db.QueryRow("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) HasTable(scope *Scope, tableName string) bool {
-	var (
-		count        int
-		databaseName = s.currentDatabase(scope)
-	)
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, databaseName)
+func (s mssql) RemoveIndex(tableName string, indexName string) error {
+	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
+	return err
+}
+
+func (s mssql) HasTable(tableName string) bool {
+	var count int
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.currentDatabase()).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) HasColumn(scope *Scope, tableName string, columnName string) bool {
-	var (
-		count        int
-		databaseName = s.currentDatabase(scope)
-	)
-	s.RawScanInt(scope, &count, "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", databaseName, tableName, columnName)
+func (s mssql) HasColumn(tableName string, columnName string) bool {
+	var count int
+	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.currentDatabase(), tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) currentDatabase(scope *Scope) (name string) {
-	s.RawScanString(scope, &name, "SELECT DB_NAME() AS [Current Database]")
+func (s mssql) currentDatabase() (name string) {
+	s.db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
 	return
 }
 
