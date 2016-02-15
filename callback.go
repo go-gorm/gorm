@@ -128,9 +128,9 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 // Get registered callback
 //    db.Callback().Create().Get("gorm:create")
 func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
-	for _, processor := range cp.parent.processors {
-		if processor.name == callbackName && processor.kind == cp.kind && !cp.remove {
-			return *cp.processor
+	for _, p := range cp.parent.processors {
+		if p.name == callbackName && p.kind == cp.kind && !cp.remove {
+			return *p.processor
 		}
 	}
 	return nil
@@ -215,17 +215,19 @@ func (c *Callback) reorder() {
 	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
 	for _, processor := range c.processors {
-		switch processor.kind {
-		case "create":
-			creates = append(creates, processor)
-		case "update":
-			updates = append(updates, processor)
-		case "delete":
-			deletes = append(deletes, processor)
-		case "query":
-			queries = append(queries, processor)
-		case "row_query":
-			rowQueries = append(rowQueries, processor)
+		if processor.name != "" {
+			switch processor.kind {
+			case "create":
+				creates = append(creates, processor)
+			case "update":
+				updates = append(updates, processor)
+			case "delete":
+				deletes = append(deletes, processor)
+			case "query":
+				queries = append(queries, processor)
+			case "row_query":
+				rowQueries = append(rowQueries, processor)
+			}
 		}
 	}
 
