@@ -94,8 +94,8 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
 	cp.name = callbackName
 	cp.processor = &callback
-	cp.parent.reorder()
 	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.reorder()
 }
 
 // Remove a registered callback
@@ -104,8 +104,8 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 	fmt.Printf("[info] removing callback `%v` from %v\n", callbackName, fileWithLineNum())
 	cp.name = callbackName
 	cp.remove = true
-	cp.parent.reorder()
 	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.reorder()
 }
 
 // Replace a registered callback with new callback
@@ -118,8 +118,8 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.replace = true
-	cp.parent.reorder()
 	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.reorder()
 }
 
 // Get registered callback
