@@ -1107,7 +1107,9 @@ func TestNestedManyToManyPreload3(t *testing.T) {
 	}
 
 	var gots []*Level3
-	if err := DB.Preload("Level2.Level1s").Find(&gots).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
+		return db.Order("level1.id ASC")
+	}).Find(&gots).Error; err != nil {
 		t.Error(err)
 	}
 
