@@ -35,12 +35,6 @@ type CallbackProcessor struct {
 	parent    *Callback
 }
 
-func (c *Callback) addProcessor(kind string) *CallbackProcessor {
-	cp := &CallbackProcessor{kind: kind, parent: c}
-	c.processors = append(c.processors, cp)
-	return cp
-}
-
 func (c *Callback) clone() *Callback {
 	return &Callback{
 		creates:    c.creates,
@@ -60,28 +54,28 @@ func (c *Callback) clone() *Callback {
 //       scope.Err(errors.New("error"))
 //     })
 func (c *Callback) Create() *CallbackProcessor {
-	return c.addProcessor("create")
+	return &CallbackProcessor{kind: "create", parent: c}
 }
 
 // Update could be used to register callbacks for updating object, refer `Create` for usage
 func (c *Callback) Update() *CallbackProcessor {
-	return c.addProcessor("update")
+	return &CallbackProcessor{kind: "update", parent: c}
 }
 
 // Delete could be used to register callbacks for deleting object, refer `Create` for usage
 func (c *Callback) Delete() *CallbackProcessor {
-	return c.addProcessor("delete")
+	return &CallbackProcessor{kind: "delete", parent: c}
 }
 
 // Query could be used to register callbacks for querying objects with query methods like `Find`, `First`, `Related`, `Association`...
 // refer `Create` for usage
 func (c *Callback) Query() *CallbackProcessor {
-	return c.addProcessor("query")
+	return &CallbackProcessor{kind: "query", parent: c}
 }
 
 // RowQuery could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
 func (c *Callback) RowQuery() *CallbackProcessor {
-	return c.addProcessor("row_query")
+	return &CallbackProcessor{kind: "row_query", parent: c}
 }
 
 // After insert a new callback after callback `callbackName`, refer `Callbacks.Create`
@@ -101,6 +95,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.parent.reorder()
+	cp.parent.processors = append(cp.parent.processors, cp)
 }
 
 // Remove a registered callback
@@ -110,6 +105,7 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 	cp.name = callbackName
 	cp.remove = true
 	cp.parent.reorder()
+	cp.parent.processors = append(cp.parent.processors, cp)
 }
 
 // Replace a registered callback with new callback
@@ -123,6 +119,7 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 	cp.processor = &callback
 	cp.replace = true
 	cp.parent.reorder()
+	cp.parent.processors = append(cp.parent.processors, cp)
 }
 
 // Get registered callback
