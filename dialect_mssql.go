@@ -96,18 +96,16 @@ func (s mssql) currentDatabase() (name string) {
 }
 
 func (mssql) LimitAndOffsetSQL(limit, offset int) (sql string) {
-	if limit < 0 && offset < 0 {
-		return
-	}
+	if limit > 0 || offset > 0 {
+		if offset < 0 {
+			offset = 0
+		}
 
-	if offset < 0 {
-		offset = 0
-	}
+		sql += fmt.Sprintf(" OFFSET %d ROWS", offset)
 
-	sql += fmt.Sprintf(" OFFSET %d ROWS", offset)
-
-	if limit >= 0 {
-		sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", limit)
+		if limit >= 0 {
+			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", limit)
+		}
 	}
 	return
 }

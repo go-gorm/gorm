@@ -109,11 +109,13 @@ func (s commonDialect) currentDatabase() (name string) {
 }
 
 func (commonDialect) LimitAndOffsetSQL(limit, offset int) (sql string) {
-	if limit >= 0 {
-		sql += fmt.Sprintf(" LIMIT %d", limit)
-	}
-	if offset >= 0 {
-		sql += fmt.Sprintf(" OFFSET %d", offset)
+	if limit > 0 || offset > 0 {
+		if limit >= 0 {
+			sql += fmt.Sprintf(" LIMIT %d", limit)
+		}
+		if offset >= 0 {
+			sql += fmt.Sprintf(" OFFSET %d", offset)
+		}
 	}
 	return
 }
