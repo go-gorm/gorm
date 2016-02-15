@@ -64,7 +64,7 @@ func (scope *Scope) Fields() map[string]*Field {
 		indirectValue := scope.IndirectValue()
 		isStruct := indirectValue.Kind() == reflect.Struct
 		for _, structField := range modelStruct.StructFields {
-			if field, ok := fields[structField.DBName]; !ok || field.IsIgnored {
+			if field, ok := fields[structField.DBName]; !ok || !field.IsIgnored {
 				if isStruct {
 					fields[structField.DBName] = getField(indirectValue, structField)
 				} else {
