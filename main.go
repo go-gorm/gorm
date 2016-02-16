@@ -369,7 +369,7 @@ func (s *DB) NewRecord(value interface{}) bool {
 }
 
 func (s *DB) RecordNotFound() bool {
-	return s.Error == RecordNotFound
+	return s.Error == RecordNotFound || s.Error != nil
 }
 
 // Migrations
