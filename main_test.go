@@ -506,10 +506,16 @@ func TestJoins(t *testing.T) {
 	}
 	DB.Save(&user)
 
-	var result User
-	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").First(&result)
-	if result.Name != "joins" || result.Id != user.Id {
-		t.Errorf("Should find all two emails with Join")
+	var users1 []User
+	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").Find(&users1)
+	if len(users1) != 2 {
+		t.Errorf("should find two users using left join")
+	}
+
+	var users2 []User
+	DB.Joins("left join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Where("name = ?", "joins").First(&users2)
+	if len(users2) != 1 {
+		t.Errorf("should find one users using left join with conditions")
 	}
 }
 

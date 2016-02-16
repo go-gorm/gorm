@@ -929,7 +929,7 @@ db.Table("users").Select("users.name, emails.email").Joins("left join emails on 
 db.Joins("inner join emails on emails.user_id = users.id").Where("emails.email = ?", "x@example.org").Find(&user)
 
 // find all email addresses for a user
-db.Joins("left join users on users.id = emails.user_id").Where("users.name = ?", "jinzhu").Find(&emails)
+db.Joins("LEFT JOIN users ON users.id = emails.user_id AND users.name = ?", "jinzhu").Find(&emails)
 ```
 
 ## Transactions

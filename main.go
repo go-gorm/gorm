@@ -171,8 +171,8 @@ func (s *DB) Having(query string, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
-func (s *DB) Joins(query string) *DB {
-	return s.clone().search.Joins(query).db
+func (s *DB) Joins(query string, args ...interface{}) *DB {
+	return s.clone().search.Joins(query, args...).db
 }
 
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {

@@ -8,12 +8,12 @@ type search struct {
 	orConditions     []map[string]interface{}
 	notConditions    []map[string]interface{}
 	havingConditions []map[string]interface{}
+	joinConditions   []map[string]interface{}
 	initAttrs        []interface{}
 	assignAttrs      []interface{}
 	selects          map[string]interface{}
 	omits            []string
 	orders           []string
-	joins            string
 	preload          []searchPreload
 	offset           int
 	limit            int
@@ -102,8 +102,8 @@ func (s *search) Having(query string, values ...interface{}) *search {
 	return s
 }
 
-func (s *search) Joins(query string) *search {
-	s.joins = query
+func (s *search) Joins(query string, values ...interface{}) *search {
+	s.joinConditions = append(s.joinConditions, map[string]interface{}{"query": query, "args": values})
 	return s
 }
 
