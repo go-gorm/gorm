@@ -154,20 +154,29 @@ func (scope *Scope) HasColumn(column string) bool {
 
 // SetColumn to set the column's value
 func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
+	var updateAttrs = map[string]interface{}{}
+	if attrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
+		updateAttrs = attrs.(map[string]interface{})
+		defer scope.InstanceSet("gorm:update_attrs", updateAttrs)
+	}
+
 	if field, ok := column.(*Field); ok {
+		updateAttrs[field.DBName] = value
 		return field.Set(value)
 	} else if name, ok := column.(string); ok {
-
 		if field, ok := scope.Fields()[name]; ok {
+			updateAttrs[field.DBName] = value
 			return field.Set(value)
 		}
 
 		dbName := ToDBName(name)
 		if field, ok := scope.Fields()[dbName]; ok {
+			updateAttrs[field.DBName] = value
 			return field.Set(value)
 		}
 
 		if field, ok := scope.FieldByName(name); ok {
+			updateAttrs[field.DBName] = value
 			return field.Set(value)
 		}
 	}

@@ -319,37 +319,29 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 	return scope
 }
 
-func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}, ignoreProtectedAttrs bool) (results map[string]interface{}, hasUpdate bool) {
-	if !scope.IndirectValue().CanAddr() {
+func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}) (results map[string]interface{}, hasUpdate bool) {
+	if scope.IndirectValue().Kind() != reflect.Struct {
 		return values, true
 	}
 
-	var hasExpr bool
+	results = map[string]interface{}{}
 	for key, value := range values {
-		if field, ok := scope.FieldByName(key); ok && field.Field.IsValid() {
+		if field, ok := scope.FieldByName(key); ok && scope.changeableField(field) {
 			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
-				if _, ok := value.(*expr); ok {
-					hasExpr = true
-				} else if !equalAsString(field.Field.Interface(), value) {
-					hasUpdate = true
+				if field.IsNormal {
+					if _, ok := value.(*expr); ok {
+						hasUpdate = true
+						results[field.DBName] = value
+					} else if !equalAsString(field.Field.Interface(), value) {
+						hasUpdate = true
+						field.Set(value)
+						results[field.DBName] = field.Field.Interface()
+					}
+				} else {
 					field.Set(value)
 				}
 			}
 		}
-	}
-
-	if hasExpr {
-		var updateMap = map[string]interface{}{}
-		for key, field := range scope.Fields() {
-			if field.IsNormal {
-				if v, ok := values[key]; ok {
-					updateMap[key] = v
-				} else {
-					updateMap[key] = field.Field.Interface()
-				}
-			}
-		}
-		return updateMap, true
 	}
 	return
 }
@@ -370,10 +362,10 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 
 func (scope *Scope) initialize() *Scope {
 	for _, clause := range scope.Search.whereConditions {
-		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]), false)
+		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]))
 	}
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs), false)
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs), false)
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs))
+	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs))
 	return scope
 }
 

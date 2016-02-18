@@ -192,9 +192,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 
 	switch value := values.(type) {
 	case map[string]interface{}:
-		for k, v := range value {
-			attrs[k] = v
-		}
+		return value
 	case []interface{}:
 		for _, v := range value {
 			for key, value := range convertInterfaceToMap(v) {

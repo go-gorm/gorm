@@ -177,7 +177,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 			modelValue := reflect.New(scope.GetModelStruct().ModelType).Interface()
 			if results := newDB.Model(modelValue).UpdateColumn(foreignKeyMap); results.Error == nil {
 				if results.RowsAffected > 0 {
-					scope.updatedAttrsWithValues(foreignKeyMap, false)
+					scope.updatedAttrsWithValues(foreignKeyMap)
 				}
 			} else {
 				association.setErr(results.Error)

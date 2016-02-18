@@ -22,17 +22,10 @@ func init() {
 func assignUpdatingAttributesCallback(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
-			protected, ok := scope.Get("gorm:ignore_protected_attrs")
-			_, updateColumn := scope.Get("gorm:update_column")
-			updateAttrs, hasUpdate := scope.updatedAttrsWithValues(maps, ok && protected.(bool))
-
-			if updateColumn {
-				scope.InstanceSet("gorm:update_attrs", maps)
-			} else if len(updateAttrs) > 0 {
-				scope.InstanceSet("gorm:update_attrs", updateAttrs)
-			} else if !hasUpdate {
+			if updateMaps, hasUpdate := scope.updatedAttrsWithValues(maps); hasUpdate {
+				scope.InstanceSet("gorm:update_attrs", updateMaps)
+			} else {
 				scope.SkipLeft()
-				return
 			}
 		}
 	}
@@ -64,13 +57,7 @@ func updateCallback(scope *Scope) {
 
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
 			for column, value := range updateAttrs.(map[string]interface{}) {
-				if field, ok := scope.FieldByName(column); ok {
-					if scope.changeableField(field) {
-						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(value)))
-					}
-				} else {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(column), scope.AddToVars(value)))
-				}
+				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(column), scope.AddToVars(value)))
 			}
 		} else {
 			fields := scope.Fields()
