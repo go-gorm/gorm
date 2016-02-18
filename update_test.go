@@ -420,6 +420,22 @@ func TestUpdateColumnsSkipsAssociations(t *testing.T) {
 	}
 }
 
+func TestUpdatesWithBlankValues(t *testing.T) {
+	t.Skip("not implemented")
+
+	product := Product{Code: "product1", Price: 10}
+	DB.Save(&product)
+
+	DB.Model(&Product{Id: product.Id}).Updates(&Product{Price: 100})
+
+	var product1 Product
+	DB.First(&product1, product.Id)
+
+	if product1.Code != "product1" || product1.Price != 100 {
+		t.Errorf("product's code should not be updated")
+	}
+}
+
 func TestUpdateDecodeVirtualAttributes(t *testing.T) {
 	t.Skip("not implemented")
 
