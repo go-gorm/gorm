@@ -209,7 +209,7 @@ func convertInterfaceToMap(values interface{}) map[string]interface{} {
 			}
 		default:
 			for _, field := range (&Scope{Value: values}).Fields() {
-				if !field.IsBlank && !field.IsIgnored {
+				if !field.IsBlank {
 					attrs[field.DBName] = field.Field.Interface()
 				}
 			}

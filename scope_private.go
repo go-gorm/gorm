@@ -328,18 +328,18 @@ func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}) (resul
 	for key, value := range values {
 		if field, ok := scope.FieldByName(key); ok && scope.changeableField(field) {
 			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
-				if field.IsNormal {
-					if _, ok := value.(*expr); ok {
+				if _, ok := value.(*expr); ok {
+					hasUpdate = true
+					results[field.DBName] = value
+				} else if !equalAsString(field.Field.Interface(), value) {
+					field.Set(value)
+					if field.IsNormal {
 						hasUpdate = true
-						results[field.DBName] = value
-					} else if !equalAsString(field.Field.Interface(), value) {
-						hasUpdate = true
-						field.Set(value)
 						results[field.DBName] = field.Field.Interface()
 					}
-				} else {
-					field.Set(value)
 				}
+			} else {
+				field.Set(value)
 			}
 		}
 	}
@@ -428,7 +428,7 @@ func (scope *Scope) changeableField(field *Field) bool {
 		}
 	}
 
-	return !field.IsIgnored
+	return true
 }
 
 func (scope *Scope) shouldSaveAssociations() bool {
