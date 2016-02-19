@@ -38,6 +38,10 @@ go get -u github.com/jinzhu/gorm
 - [Migration](#migration)
 - [Basic CRUD](#basic-crud)
   - [Create](#create-record)
+      - [Create With Associations](#create-with-associations)
+      - [Default Values](#default-values)
+      - [Setting Primary Key In Callbacks](#setting-primary-key-in-callbacks)
+      - [Extra Creating option](#extra-creating-option)
   - [Query](#query)
       - [Query With Where (Plain SQL)](#query-with-where-plain-sql)
       - [Query With Where (Struct & Map)](#query-with-where-struct--map)
@@ -46,6 +50,7 @@ go get -u github.com/jinzhu/gorm
       - [Query With Or](#query-with-or)
       - [Query Chains](#query-chains)
       - [Preloading (Eager loading)](#preloading-eager-loading)
+      - [Extra Querying option](#extra-querying-option)
   - [Update](#update)
       - [Update All Fields](#update-all-fields)
       - [Update Changed Fields](#update-changed-fields)
@@ -54,7 +59,7 @@ go get -u github.com/jinzhu/gorm
       - [Batch Updates](#batch-updates)
       - [Update with SQL Expression](#update-with-sql-expression)
       - [Change Updating Values In Callbacks](#change-updating-values-in-callbacks)
-      - [Extra Update option](#extra-update-option)
+      - [Extra Updating option](#extra-updating-option)
   - [Delete](#delete)
       - [Batch Delete](#batch-delete)
       - [Soft Delete](#soft-delete)
@@ -88,7 +93,6 @@ go get -u github.com/jinzhu/gorm
 	- [Existing Schema](#existing-schema)
 	- [Composite Primary Key](#composite-primary-key)
 	- [Database Indexes & Foreign Key](#database-indexes--foreign-key)
-	- [Default values](#default-values)
 	- [More examples with query chain](#more-examples-with-query-chain)
 
 ## Define Models (Structs)
@@ -237,7 +241,7 @@ db.AutoMigrate(&User{}, &Product{}, &Order{})
 ```go
 user := User{Name: "Jinzhu", Age: 18, Birthday: time.Now()}
 
-db.NewRecord(user) // => returns `true` if primary key is blank
+db.NewRecord(user) // => returns `true` as primary key is blank
 
 db.Create(&user)
 
@@ -264,14 +268,48 @@ db.Create(&user)
 //// INSERT INTO "languages" ("name") VALUES ('EN');
 //// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
 //// COMMIT;
+```
 
+### Create With Associations
 
+Refer [Associations](#associations) for more details
+
+### Default Values
+
+You could defined default value in the `sql` tag, then the generated creating SQL will ignore these fields that including default value and its value is blank, and after inserted the record into databae, gorm will load those fields's value from database.
+
+```go
+type Animal struct {
+	ID   int64
+	Name string `sql:"default:'galeone'"`
+	Age  int64
+}
+
+var animal = Animal{Age: 99, Name: ""}
+db.Create(&animal)
+// INSERT INTO animals("age") values('99');
+// SELECT name from animals WHERE ID=111; // the returning primary key is 111
+// animal.Name => 'galeone'
+```
+
+### Setting Primary Key In Callbacks
+
+If you want to set primary key in `BeforeCreate` callback, you could use `scope.SetColumn`, for example:
+
+```go
+func (user *User) BeforeCreate(scope *gorm.Scope) error {
+  scope.SetColumn("ID", uuid.New())
+  return nil
+}
+```
+
+### Extra Creating option
+
+```go
 // Add extra SQL option for inserting SQL
 db.Set("gorm:insert_option", "ON CONFLICT").Create(&product)
 // INSERT INTO products (name, code) VALUES ("name", "code") ON CONFLICT;
 ```
-
-Refer [Associations](#associations) for more details
 
 ## Query
 
@@ -291,10 +329,6 @@ db.Find(&users)
 // Get record with primary key
 db.First(&user, 10)
 //// SELECT * FROM users WHERE id = 10;
-
-// Add extra SQL option for selecting SQL
-db.Set("gorm:query_option", "FOR UPDATE").First(&user, 10)
-//// SELECT * FROM users WHERE id = 10 FOR UPDATE;
 ```
 
 ### Query With Where (Plain SQL)
@@ -456,6 +490,14 @@ db.Preload("Orders.OrderItems").Find(&users)
 db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&users)
 ```
 
+### Extra Querying option
+
+```go
+// Add extra SQL option for selecting SQL
+db.Set("gorm:query_option", "FOR UPDATE").First(&user, 10)
+//// SELECT * FROM users WHERE id = 10 FOR UPDATE;
+```
+
 ## Update
 
 ### Update All Fields
@@ -569,7 +611,7 @@ func (user *User) BeforeSave(scope *gorm.Scope) (err error) {
 }
 ```
 
-### Extra Update option
+### Extra Updating option
 
 ```go
 // Add extra SQL option for updating SQL
@@ -1345,32 +1387,6 @@ db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
 // Remove index
 db.Model(&User{}).RemoveIndex("idx_user_name")
 ```
-
-## Default values
-
-```go
-type Animal struct {
-	ID   int64
-	Name string `sql:"default:'galeone'"`
-	Age  int64
-}
-```
-
-If you have defined a default value in the `sql` tag, the generated create SQL will ignore these fields if it is blank.
-
-Eg.
-
-```go
-db.Create(&Animal{Age: 99, Name: ""})
-```
-
-The generated SQL will be:
-
-```sql
-INSERT INTO animals("age") values('99');
-```
-
-The same thing occurs in update statements.
 
 ## More examples with query chain
 
