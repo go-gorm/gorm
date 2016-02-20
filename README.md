@@ -653,7 +653,7 @@ db.Where("age = ?", 20).Delete(&User{})
 
 // Soft deleted records will be ignored when query them
 db.Where("age = 20").Find(&user)
-//// SELECT * FROM users WHERE age = 20 AND (deleted_at IS NULL OR deleted_at <= '0001-01-02');
+//// SELECT * FROM users WHERE age = 20 AND deleted_at IS NULL;
 
 // Find soft deleted records with Unscoped
 db.Unscoped().Where("age = 20").Find(&users)

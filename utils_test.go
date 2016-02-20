@@ -13,6 +13,7 @@ func TestToDBNameGenerateFriendlyName(t *testing.T) {
 		"PFAndESI":                  "pf_and_esi",
 		"AbcAndJkl":                 "abc_and_jkl",
 		"EmployeeID":                "employee_id",
+		"SKU_ID":                    "sku_id",
 		"HTTPAndSMTP":               "http_and_smtp",
 		"HTTPServerHandlerForURLID": "http_server_handler_for_url_id",
 		"UUID":     "uuid",

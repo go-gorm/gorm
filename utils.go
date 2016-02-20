@@ -76,7 +76,9 @@ func ToDBName(name string) string {
 				if lastCase == upper && nextCase == upper {
 					buf.WriteRune(v)
 				} else {
-					buf.WriteRune('_')
+					if value[i-1] != '_' && value[i+1] != '_' {
+						buf.WriteRune('_')
+					}
 					buf.WriteRune(v)
 				}
 			} else {
@@ -92,8 +94,7 @@ func ToDBName(name string) string {
 
 	buf.WriteByte(value[len(value)-1])
 
-	s := strings.Replace(strings.ToLower(buf.String()), "__", "_", -1)
-
+	s := strings.ToLower(buf.String())
 	smap.Set(name, s)
 	return s
 }
