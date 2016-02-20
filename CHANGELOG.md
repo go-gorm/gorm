@@ -47,8 +47,8 @@
 
 * **New ToDBName logic**
 
-  Before when GORM convert Struct, Field's name to db name, only some common initialisms from [golint](https://github.com/golang/lint/blob/master/lint.go#L702) like `HTTP`, `URI` are special handled.
+  Before when GORM convert Struct, Field's name to db name, only those common initialisms from [golint](https://github.com/golang/lint/blob/master/lint.go#L702) like `HTTP`, `URI` are special handled.
 
-  So field `HTTP`'s db name will be `http` not `h_t_t_p`, but other initialisms like `SKU` not in golint, it's db name will be `s_k_u`, this release fixed this, any upper case initialisms should be converted correctly.
+  So field `HTTP`'s db name will be `http` not `h_t_t_p`, but some other initialisms like `SKU` that not in golint, it's db name will be `s_k_u`, this release fixed this, any upper case initialisms should be converted correctly.
 
-  If you applications using some upper case initialisms which doesn't exist in [golint](https://github.com/golang/lint/blob/master/lint.go#L702), you could set the column name with tag, like `sql:"column:s_k_u"`, or alert your database's column name in your database
+  If your applications using some upper case initialisms which doesn't exist in [golint](https://github.com/golang/lint/blob/master/lint.go#L702), you need to overwrite generated column name with tag, like `sql:"column:s_k_u"`, or alert your database's column name according to new logic
