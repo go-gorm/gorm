@@ -1,0 +1,20 @@
+{
+  "title": "GORM Guide",
+  "plugins": [
+    "prism", "-highlight", "collapsible-menu", "toc",
+    "github", "anchors", "edit-link"
+  ],
+  "pluginsConfig": {
+    "toc": {
+      "addClass": true,
+      "className": "toc"
+    },
+    "github": {
+      "url": "https://github.com/jinzhu/gorm"
+    },
+    "edit-link": {
+      "base": "https://github.com/jinzhu/gorm/edit/gh-pages",
+      "label": "Edit This Page"
+    }
+  }
+}
