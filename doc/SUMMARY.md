@@ -1,40 +1,12 @@
 # Summary
 
 * [GORM GITHUB](http://github.com/jinzhu/gorm)
-* [Getting Start](README.md)
+* [Getting Started with GORM](README.md)
 {% for path, chapter in book.chapters %}
 * [{{ chapter.name }}]({{ path }})
   {% for section in chapter.sections %}
   * [{{ section.name }}]({{ section.path }})
-  {% endfor %}
+  {% if section["sections"] %}{% for subsection in section.sections %}
+    * [{{ subsection.name }}]({{ subsection.path }})
+  {% endfor %}{% endif %}{% endfor %}
 {% endfor %}
-
-* [Database](database/database.md)
-  * [Connecting to a Database](database/connect-database.md)
-  * [Migration](database/migration.md)
-  * [Schema]()
-* [Models]()
-  * [Model Defination]()
-  * [Naming Conventions & Overriding]()
-  * [Associations]()
-    * [Belongs To]()
-    * [Has One]()
-    * [Has Many]()
-    * [Many To Many]()
-    * [Polymorphism]()
-    * [Association Mode]()
-* [CRUD: Reading and Writing Data]()
-  * [Create]()
-  * [Query]()
-    * [Preloading (Eager Loading)]()
-  * [Update]()
-  * [Delete / Soft Delete]()
-  * [Callbacks]()
-* [Advanced Usage]()
-  * [Error Handling]()
-  * [Transactions]()
-  * [Raw SQL & SQL Builder]()
-  * [Composite Primary Key]()
-  * [Overriding Logger]()
-* [Development]()
-  * [Write Plugins]()

@@ -57,3 +57,33 @@ db.Model(&User{}).ModifyColumn("description", "text")
 ```go
 db.Model(&User{}).DropColumn("description")
 ```
+
+### Add Foreign Key
+
+```go
+// Add foreign key
+// 1st param : foreignkey field
+// 2nd param : destination table(id)
+// 3rd param : ONDELETE
+// 4th param : ONUPDATE
+db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
+```
+
+### Indexes
+
+```go
+// Add index
+db.Model(&User{}).AddIndex("idx_user_name", "name")
+
+// Multiple column index
+db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
+
+// Add unique index
+db.Model(&User{}).AddUniqueIndex("idx_user_name", "name")
+
+// Multiple column unique index
+db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
+
+// Remove index
+db.Model(&User{}).RemoveIndex("idx_user_name")
+```
