@@ -501,8 +501,9 @@ func TestGroup(t *testing.T) {
 
 func TestJoins(t *testing.T) {
 	var user = User{
-		Name:   "joins",
-		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+		Name:       "joins",
+		CreditCard: CreditCard{Number: "411111111111"},
+		Emails:     []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
 	}
 	DB.Save(&user)
 
@@ -516,6 +517,18 @@ func TestJoins(t *testing.T) {
 	DB.Joins("left join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Where("name = ?", "joins").First(&users2)
 	if len(users2) != 1 {
 		t.Errorf("should find one users using left join with conditions")
+	}
+
+	var users3 []User
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where("name = ?", "joins").First(&users3)
+	if len(users3) != 1 {
+		t.Errorf("should find one users using multiple left join conditions")
+	}
+
+	var users4 []User
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "422222222222").Where("name = ?", "joins").First(&users4)
+	if len(users4) != 0 {
+		t.Errorf("should find no user when searching with unexisting credit card")
 	}
 }
 

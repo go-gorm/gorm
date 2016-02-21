@@ -1012,11 +1012,8 @@ for rows.Next() {
 
 db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Scan(&results)
 
-// find a user by email address
-db.Joins("inner join emails on emails.user_id = users.id").Where("emails.email = ?", "x@example.org").Find(&user)
-
-// find all email addresses for a user
-db.Joins("LEFT JOIN users ON users.id = emails.user_id AND users.name = ?", "jinzhu").Find(&emails)
+// multiple joins with parameter
+db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Joins("JOIN credit_cards ON credit_cards.user_id = users.id").Where("credit_cards.number = ?", "411111111111").Find(&user)
 ```
 
 ## Transactions
