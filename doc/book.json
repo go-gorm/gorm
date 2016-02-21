@@ -16,5 +16,22 @@
       "base": "https://github.com/jinzhu/gorm/edit/gh-pages",
       "label": "Edit This Page"
     }
+  },
+  "sections": [
+    {
+      "content": "<h1>Hello</h1>",
+      "type": "normal"
+    }
+  ],
+  "variables": {
+    "chapters": {
+      "database/database.md": {
+        "name": "Databae",
+        "sections": [
+          {"name": "Connection to a Database", "path": "database/connect-database.md"},
+          {"name": "Migration", "path": "database/migration.md"}
+        ]
+      }
+    }
   }
 }

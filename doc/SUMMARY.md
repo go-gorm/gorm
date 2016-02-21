@@ -1,6 +1,14 @@
 # Summary
 
-* [GORM](README.md)
+* [GORM GITHUB](http://github.com/jinzhu/gorm)
+* [Getting Start](README.md)
+{% for path, chapter in book.chapters %}
+* [{{ chapter.name }}]({{ path }})
+  {% for section in chapter.sections %}
+  * [{{ section.name }}]({{ section.path }})
+  {% endfor %}
+{% endfor %}
+
 * [Database](database/database.md)
   * [Connecting to a Database](database/connect-database.md)
   * [Migration](database/migration.md)
