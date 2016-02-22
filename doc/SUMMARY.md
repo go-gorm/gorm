@@ -1,6 +1,7 @@
 # Summary
 
-* [GORM GITHUB](http://github.com/jinzhu/gorm)
+* [GORM Guides](http://github.com/jinzhu/gorm)
+
 * [Getting Started with GORM](README.md)
 {% for path, chapter in book.chapters %}
 * [{{ chapter.name }}]({{ path }})
