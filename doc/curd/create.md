@@ -73,3 +73,4 @@ func (user *User) BeforeCreate(scope *gorm.Scope) error {
 // Add extra SQL option for inserting SQL
 db.Set("gorm:insert_option", "ON CONFLICT").Create(&product)
 // INSERT INTO products (name, code) VALUES ("name", "code") ON CONFLICT;
+```

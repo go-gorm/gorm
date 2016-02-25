@@ -2,7 +2,7 @@
   "title": "GORM Guide",
   "plugins": [
     "prism", "-highlight", "collapsible-menu", "toc",
-    "github", "anchors", "edit-link"
+    "github", "edit-link"
   ],
   "pluginsConfig": {
     "toc": {

@@ -1,4 +1,4 @@
-# GORM Guides
+# GORM
 
 The fantastic ORM library for Golang, aims to be developer friendly.
 
@@ -26,6 +26,35 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ```
 go get -u github.com/jinzhu/gorm
+```
+
+## Basic Usage
+
+```go
+type Product struct {
+  gorm.Model
+  Code string
+  Price uint
+}
+
+var db *gorm.DB
+
+func init() {
+  var err error
+  db, err = gorm.Open("sqlite", "test.db")
+}
+
+func main() {
+  db.Create(&Product{Code: "L1212", Price: 1000})
+
+  var product Product
+  db.First(&product, 1) // find product with id 1
+  db.First(&product, "code = ?", "L1212") // find product with code l1212
+
+  db.Model(&product).Update("Price", 2000) // update product's price to 2000
+
+  db.Delete(&product) // delete product
+}
 ```
 
 # Author
