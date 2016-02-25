@@ -28,7 +28,11 @@ func (scope *Scope) IndirectValue() reflect.Value {
 	if scope.indirectValue == nil {
 		value := reflect.Indirect(reflect.ValueOf(scope.Value))
 		if value.Kind() == reflect.Ptr {
-			value = value.Elem()
+			if !value.IsNil() {
+				value = reflect.Indirect(value)
+			} else {
+				value.Set(reflect.New(value.Type().Elem()))
+			}
 		}
 		scope.indirectValue = &value
 	}
