@@ -1,0 +1,23 @@
+{% extends template.theme %}
+
+{% block header_nav %}
+<a href="https://github.com/GitbookIO/gitbook/blob/master/docs/{{ file.path }}" target="_blank" class="btn btn-link pull-right hidden-xs">
+    <i class="octicon octicon-mark-github"></i> Edit on GitHub
+</a>
+<a href="https://github.com/GitbookIO/gitbook/blob/master/CHANGES.md" target="_blank" class="btn btn-link pull-right hidden-xs">
+    {{ book.version }}
+</a>
+{% endblock %}
+
+{% block page %}
+{{ super() }}
+<hr>
+<div class="btn-group btn-group-justified">
+    {% if page.previous and page.previous.path %}
+    <a class="btn" href="{{ page.previous.path|resolveFile }}"><b>Previous:</b> {{ page.previous.title }}</a>
+    {% endif %}
+    {% if page.next and page.next.path %}
+    <a class="btn" href="{{ page.next.path|resolveFile }}"><b>Next:</b> {{ page.next.title }}</a>
+    {% endif %}
+</div>
+{% endblock %}
