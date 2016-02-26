@@ -1,4 +1,86 @@
-# Query
+# CRUD: Reading and Writing Data
+
+<!-- toc -->
+
+## Create
+
+### Create Record
+
+```go
+user := User{Name: "Jinzhu", Age: 18, Birthday: time.Now()}
+
+db.NewRecord(user) // => returns `true` as primary key is blank
+
+db.Create(&user)
+
+db.NewRecord(user) // => return `false` after `user` created
+
+// Associations will be inserted automatically when save the record
+user := User{
+	Name:            "jinzhu",
+	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
+}
+
+db.Create(&user)
+//// BEGIN TRANSACTION;
+//// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
+//// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
+//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+//// INSERT INTO "languages" ("name") VALUES ('ZH');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 1);
+//// INSERT INTO "languages" ("name") VALUES ('EN');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
+//// COMMIT;
+```
+
+### Create With Associations
+
+Refer Associations for more details
+
+### Default Values
+
+You could defined default value in the `sql` tag, then the generated creating SQL will ignore these fields that including default value and its value is blank, and after inserted the record into databae, gorm will load those fields's value from database.
+
+```go
+type Animal struct {
+	ID   int64
+	Name string `sql:"default:'galeone'"`
+	Age  int64
+}
+
+var animal = Animal{Age: 99, Name: ""}
+db.Create(&animal)
+// INSERT INTO animals("age") values('99');
+// SELECT name from animals WHERE ID=111; // the returning primary key is 111
+// animal.Name => 'galeone'
+```
+
+### Setting Primary Key In Callbacks
+
+If you want to set primary key in `BeforeCreate` callback, you could use `scope.SetColumn`, for example:
+
+```go
+func (user *User) BeforeCreate(scope *gorm.Scope) error {
+  scope.SetColumn("ID", uuid.New())
+  return nil
+}
+```
+
+### Extra Creating option
+
+```go
+// Add extra SQL option for inserting SQL
+db.Set("gorm:insert_option", "ON CONFLICT").Create(&product)
+// INSERT INTO products (name, code) VALUES ("name", "code") ON CONFLICT;
+```
+
+
+## Query
 
 ```go
 // Get the first record
@@ -18,7 +100,7 @@ db.First(&user, 10)
 //// SELECT * FROM users WHERE id = 10;
 ```
 
-## Query With Where (Plain SQL)
+### Query With Where (Plain SQL)
 
 ```go
 // Get the first matched record
@@ -46,7 +128,7 @@ db.Where("updated_at > ?", lastWeek).Find(&users)
 db.Where("created_at BETWEEN ? AND ?", lastWeek, today).Find(&users)
 ```
 
-## Query With Where (Struct & Map)
+### Query With Where (Struct & Map)
 
 ```go
 // Struct
@@ -62,7 +144,7 @@ db.Where([]int64{20, 21, 22}).Find(&users)
 //// SELECT * FROM users WHERE id IN (20, 21, 22);
 ```
 
-## Query With Not
+### Query With Not
 
 ```go
 db.Not("name", "jinzhu").First(&user)
@@ -88,7 +170,7 @@ db.Not(User{Name: "jinzhu"}).First(&user)
 //// SELECT * FROM users WHERE name <> "jinzhu";
 ```
 
-## Query With Inline Condition
+### Query With Inline Condition
 
 ```go
 // Get by primary key
@@ -111,7 +193,7 @@ db.Find(&users, map[string]interface{}{"age": 20})
 //// SELECT * FROM users WHERE age = 20;
 ```
 
-## Query With Or
+### Query With Or
 
 ```go
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)
@@ -125,7 +207,7 @@ db.Where("name = 'jinzhu'").Or(User{Name: "jinzhu 2"}).Find(&users)
 db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(&users)
 ```
 
-## Query Chains
+### Query Chains
 
 Gorm has a chainable API, you could use it like this
 
@@ -136,7 +218,7 @@ db.Where("name <> ?","jinzhu").Where("age >= ? and role <> ?",20,"admin").Find(&
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jinzhu").Find(&users)
 ```
 
-## Extra Querying option
+### Extra Querying option
 
 ```go
 // Add extra SQL option for selecting SQL
@@ -144,7 +226,7 @@ db.Set("gorm:query_option", "FOR UPDATE").First(&user, 10)
 //// SELECT * FROM users WHERE id = 10 FOR UPDATE;
 ```
 
-## FirstOrInit
+### FirstOrInit
 
 Get the first matched record, or initialize a record with search conditions.
 
@@ -160,7 +242,7 @@ db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu"})
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 ```
 
-### Attrs
+#### Attrs
 
 Ignore some values when searching, but use them to initialize the struct if record is not found.
 
@@ -180,7 +262,7 @@ db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 30}).FirstOrInit(&user)
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 ```
 
-### Assign
+#### Assign
 
 Ignore some values when searching, but assign it to the result regardless it is found or not.
 
@@ -195,7 +277,7 @@ db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 30}).FirstOrInit(&user)
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 30}
 ```
 
-## FirstOrCreate
+### FirstOrCreate
 
 Get the first matched record, or create with search conditions.
 
@@ -210,7 +292,7 @@ db.Where(User{Name: "Jinzhu"}).FirstOrCreate(&user)
 //// user -> User{Id: 111, Name: "Jinzhu"}
 ```
 
-### Attrs
+#### Attrs
 
 Ignore some values when searching, but use them to create the struct if record is not found. like `FirstOrInit`
 
@@ -227,7 +309,7 @@ db.Where(User{Name: "jinzhu"}).Attrs(User{Age: 30}).FirstOrCreate(&user)
 //// user -> User{Id: 111, Name: "jinzhu", Age: 20}
 ```
 
-### Assign
+#### Assign
 
 Ignore some values when searching, but assign it to the record regardless it is found or not, then save back to database. like `FirstOrInit`
 
@@ -245,7 +327,7 @@ db.Where(User{Name: "jinzhu"}).Assign(User{Age: 30}).FirstOrCreate(&user)
 //// user -> User{Id: 111, Name: "jinzhu", Age: 30}
 ```
 
-## Select
+### Select
 
 ```go
 db.Select("name, age").Find(&users)
@@ -258,7 +340,7 @@ db.Table("users").Select("COALESCE(age,?)", 42).Rows()
 //// SELECT COALESCE(age,'42') FROM users;
 ```
 
-## Order
+### Order
 
 ```go
 db.Order("age desc, name").Find(&users)
@@ -274,7 +356,7 @@ db.Order("age desc").Find(&users1).Order("age", true).Find(&users2)
 //// SELECT * FROM users ORDER BY age; (users2)
 ```
 
-## Limit
+### Limit
 
 ```go
 db.Limit(3).Find(&users)
@@ -286,7 +368,7 @@ db.Limit(10).Find(&users1).Limit(-1).Find(&users2)
 //// SELECT * FROM users; (users2)
 ```
 
-## Offset
+### Offset
 
 ```go
 db.Offset(3).Find(&users)
@@ -298,7 +380,7 @@ db.Offset(10).Find(&users1).Offset(-1).Find(&users2)
 //// SELECT * FROM users; (users2)
 ```
 
-## Count
+### Count
 
 ```go
 db.Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Find(&users).Count(&count)
@@ -312,7 +394,7 @@ db.Table("deleted_users").Count(&count)
 //// SELECT count(*) FROM deleted_users;
 ```
 
-## Group & Having
+### Group & Having
 
 ```go
 rows, err := db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Rows()
@@ -332,7 +414,7 @@ type Result struct {
 db.Table("orders").Select("date(created_at) as date, sum(amount) as total").Group("date(created_at)").Having("sum(amount) > ?", 100).Scan(&results)
 ```
 
-## Joins
+### Joins
 
 ```go
 rows, err := db.Table("users").Select("users.name, emails.email").Joins("left join emails on emails.user_id = users.id").Rows()
@@ -346,7 +428,7 @@ db.Table("users").Select("users.name, emails.email").Joins("left join emails on 
 db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Joins("JOIN credit_cards ON credit_cards.user_id = users.id").Where("credit_cards.number = ?", "411111111111").Find(&user)
 ```
 
-## Pluck
+### Pluck
 
 Get selected attributes as map
 
@@ -363,7 +445,7 @@ db.Table("deleted_users").Pluck("name", &names)
 db.Select("name, age").Find(&users)
 ```
 
-## Scan
+### Scan
 
 Scan results into another struct.
 
@@ -380,7 +462,7 @@ db.Table("users").Select("name, age").Where("name = ?", 3).Scan(&result)
 db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
 ```
 
-## Scopes
+### Scopes
 
 ```go
 func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
@@ -411,7 +493,7 @@ db.Scopes(OrderStatus([]string{"paid", "shipped"})).Find(&orders)
 // Find all paid, shipped orders
 ```
 
-## Specifying The Table Name
+### Specifying The Table Name
 
 ```go
 // Create `deleted_users` table with struct User's definition
@@ -423,4 +505,170 @@ db.Table("deleted_users").Find(&deleted_users)
 
 db.Table("deleted_users").Where("name = ?", "jinzhu").Delete()
 //// DELETE FROM deleted_users WHERE name = 'jinzhu';
+```
+
+## Update
+
+### Update All Fields
+
+`Save` will include all fields when perform the Updating SQL, even it is not changed
+
+```go
+db.First(&user)
+
+user.Name = "jinzhu 2"
+user.Age = 100
+db.Save(&user)
+
+//// UPDATE users SET name='jinzhu 2', age=100, birthday='2016-01-01', updated_at = '2013-11-17 21:34:10' WHERE id=111;
+```
+
+### Update Changed Fields
+
+If you only want to update changed Fields, you could use `Update`, `Updates`
+
+```go
+// Update single attribute if it is changed
+db.Model(&user).Update("name", "hello")
+//// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111;
+
+// Update single attribute with combined conditions
+db.Model(&user).Where("active = ?", true).Update("name", "hello")
+//// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111 AND active=true;
+
+
+// Update multiple attributes with `map`, will only update those changed fields
+db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
+//// UPDATE users SET name='hello', age=18, actived=false, updated_at='2013-11-17 21:34:10' WHERE id=111;
+
+// Update multiple attributes with `struct`, will only update those changed & non blank fields
+db.Model(&user).Updates(User{Name: "hello", Age: 18})
+//// UPDATE users SET name='hello', age=18, updated_at = '2013-11-17 21:34:10' WHERE id = 111;
+
+// WARNING when update with struct, GORM will only update those fields that with non blank value
+// For below Update, nothing will be updated as "", 0, false are blank values of their types
+db.Model(&user).Updates(User{Name: "", Age: 0, Actived: false})
+```
+
+### Update Selected Fields
+
+If you only want to update or ignore some fields when updating, you could use `Select`, `Omit`
+
+```go
+db.Model(&user).Select("name").Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
+//// UPDATE users SET name='hello', updated_at='2013-11-17 21:34:10' WHERE id=111;
+
+db.Model(&user).Omit("name").Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
+//// UPDATE users SET age=18, actived=false, updated_at='2013-11-17 21:34:10' WHERE id=111;
+```
+
+### Update Changed Fields Without Callbacks
+
+Updating operations above will invoke `BeforeUpdate`, `AfterUpdate`, Update UpdatedAt timestamp, Save Associations callbacks, if you don't call them, you could use `UpdateColumn`, `UpdateColumns`
+
+```go
+// Update single attribute, similar with `Update`
+db.Model(&user).UpdateColumn("name", "hello")
+//// UPDATE users SET name='hello' WHERE id = 111;
+
+// Update multiple attributes, similar with `Updates`
+db.Model(&user).UpdateColumns(User{Name: "hello", Age: 18})
+//// UPDATE users SET name='hello', age=18 WHERE id = 111;
+```
+
+### Batch Updates
+
+Callbacks won't run when do batch updates
+
+```go
+db.Table("users").Where("id IN (?)", []int{10, 11}).Updates(map[string]interface{}{"name": "hello", "age": 18})
+//// UPDATE users SET name='hello', age=18 WHERE id IN (10, 11);
+
+// Update with struct only works with none zero values, or use map[string]interface{}
+db.Model(User{}).Updates(User{Name: "hello", Age: 18})
+//// UPDATE users SET name='hello', age=18;
+
+// Get updated records count with `RowsAffected`
+db.Model(User{}).Updates(User{Name: "hello", Age: 18}).RowsAffected
+```
+
+### Update with SQL Expression
+
+```go
+DB.Model(&product).Update("price", gorm.Expr("price * ? + ?", 2, 100))
+//// UPDATE "products" SET "price" = price * '2' + '100', "updated_at" = '2013-11-17 21:34:10' WHERE "id" = '2';
+
+DB.Model(&product).Updates(map[string]interface{}{"price": gorm.Expr("price * ? + ?", 2, 100)})
+//// UPDATE "products" SET "price" = price * '2' + '100', "updated_at" = '2013-11-17 21:34:10' WHERE "id" = '2';
+
+DB.Model(&product).UpdateColumn("quantity", gorm.Expr("quantity - ?", 1))
+//// UPDATE "products" SET "quantity" = quantity - 1 WHERE "id" = '2';
+
+DB.Model(&product).Where("quantity > 1").UpdateColumn("quantity", gorm.Expr("quantity - ?", 1))
+//// UPDATE "products" SET "quantity" = quantity - 1 WHERE "id" = '2' AND quantity > 1;
+```
+
+### Change Updating Values In Callbacks
+
+If you want to change updating values in callbacks using `BeforeUpdate`, `BeforeSave`, you could use `scope.SetColumn`, for example:
+
+```go
+func (user *User) BeforeSave(scope *gorm.Scope) (err error) {
+  if pw, err := bcrypt.GenerateFromPassword(user.Password, 0); err == nil {
+    scope.SetColumn("EncryptedPassword", pw)
+  }
+}
+```
+
+### Extra Updating option
+
+```go
+// Add extra SQL option for updating SQL
+db.Model(&user).Set("gorm:update_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Update("name, "hello")
+//// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111 OPTION (OPTIMIZE FOR UNKNOWN);
+```
+
+## Delete
+
+```go
+// Delete an existing record
+db.Delete(&email)
+//// DELETE from emails where id=10;
+
+// Add extra SQL option for deleting SQL
+db.Set("gorm:delete_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Delete(&email)
+//// DELETE from emails where id=10 OPTION (OPTIMIZE FOR UNKNOWN);
+```
+
+### Batch Delete
+
+```go
+db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
+//// DELETE from emails where email LIKE "%jinhu%";
+```
+
+### Soft Delete
+
+If struct has `DeletedAt` field, it will get soft delete ability automatically!
+Then it won't be deleted from database permanently when call `Delete`.
+
+```go
+db.Delete(&user)
+//// UPDATE users SET deleted_at="2013-10-29 10:23" WHERE id = 111;
+
+// Batch Delete
+db.Where("age = ?", 20).Delete(&User{})
+//// UPDATE users SET deleted_at="2013-10-29 10:23" WHERE age = 20;
+
+// Soft deleted records will be ignored when query them
+db.Where("age = 20").Find(&user)
+//// SELECT * FROM users WHERE age = 20 AND deleted_at IS NULL;
+
+// Find soft deleted records with Unscoped
+db.Unscoped().Where("age = 20").Find(&users)
+//// SELECT * FROM users WHERE age = 20;
+
+// Delete record permanently with Unscoped
+db.Unscoped().Delete(&order)
+//// DELETE FROM orders WHERE id=10;
 ```

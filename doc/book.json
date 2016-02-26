@@ -1,7 +1,7 @@
 {
   "title": "GORM Guide",
   "plugins": [
-    "prism", "-highlight", "collapsible-menu", "toc",
+    "prism", "-highlight", "toc",
     "github", "edit-link"
   ],
   "pluginsConfig": {
@@ -22,62 +22,5 @@
       "content": "<h1>Hello</h1>",
       "type": "normal"
     }
-  ],
-  "variables": {
-    "chapters": {
-      "database/database.md": {
-        "name": "Databae",
-        "sections": [
-          {"name": "Database Connection", "path": "database/connect-database.md"},
-          {"name": "Migration", "path": "database/migration.md"}
-        ]
-      },
-      "models/models.md": {
-        "name": "Models",
-        "sections": [
-          {"name": "Model Defination", "path": "models/defination.md"},
-          {"name": "Naming Conventions & Overriding", "path": "models/naming-conventions.md"},
-          {"name": "Associations", "path": "associations/associations.md", "sections":
-            [
-              {"name": "Belongs To", "path": "associations/belongs-to.md"},
-              {"name": "Has One", "path": "associations/has-one.md"},
-              {"name": "Has Many", "path": "associations/has-many.md"},
-              {"name": "Many To Many", "path": "associations/many-to-many.md"},
-              {"name": "Polymorphism", "path": "associations/polymorphism.md"},
-              {"name": "Association Mode", "path": "associations/association-mode.md"}
-            ]
-          }
-        ]
-      },
-      "curd/curd.md": {
-        "name": "CRUD: Reading and Writing Data",
-        "sections": [
-          {"name": "Create", "path": "curd/create.md"},
-          {"name": "Query", "path": "curd/query.md"},
-          {"name": "Preloading (Eager Loading)", "path": "curd/preloading.md"},
-          {"name": "Update", "path": "curd/update.md"},
-          {"name": "Delete / Soft Delete", "path": "curd/delete.md"}
-        ]
-      },
-      "callbacks/callbacks.md": {
-        "name": "Callbacks"
-      },
-      "advanced/advanced.md": {
-        "name": "Advanced Usage",
-        "sections": [
-          {"name": "Error Handling", "path": "advanced/error-handling.md"},
-          {"name": "Transactions", "path": "advanced/transactions.md"},
-          {"name": "Raw SQL & SQL Builder", "path": "advanced/sql-builder.md"},
-          {"name": "Composite Primary Key", "path": "advanced/compose-primary-key.md"},
-          {"name": "Overriding Logger", "path": "advanced/logger.md"}
-        ]
-      },
-      "development/development.md": {
-        "name": "Development",
-        "sections": [
-          {"name": "Write Plugins", "path": "development/plugins.md"}
-        ]
-      }
-    }
-  }
+  ]
 }

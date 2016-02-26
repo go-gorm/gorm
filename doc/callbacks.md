@@ -1,5 +1,7 @@
 # Callbacks
 
+<!-- toc -->
+
 Callbacks are methods defined on the pointer of struct.
 If any callback returns an error, gorm will stop future operations and rollback all changes.
 

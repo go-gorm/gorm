@@ -1,5 +1,7 @@
 # Gorm Development
 
+<!-- toc -->
+
 ## Architecture
 
 The most notable component of Gorm is`gorm.DB`, which hold database connection. It could be initialized like this:
