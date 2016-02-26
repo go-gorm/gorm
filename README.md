@@ -1,3 +1,0 @@
-# GORM
-
-This is GORM
