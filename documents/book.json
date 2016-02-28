@@ -1,0 +1,24 @@
+{
+  "title": "GORM Guide",
+  "plugins": [
+    "-highlight", "prism", "toc", "github", "edit-link", "anker-enable"
+  ],
+  "pluginsConfig": {
+    "fontsettings": {
+      "theme": "night",
+      "family": "sans",
+      "size": 4
+    },
+    "toc": {
+      "addClass": true,
+      "className": "toc"
+    },
+    "github": {
+      "url": "https://github.com/jinzhu/gorm"
+    },
+    "edit-link": {
+      "base": "https://github.com/jinzhu/gorm/edit/master",
+      "label": "Edit This Page"
+    }
+  }
+}

@@ -27,13 +27,37 @@ $ npm install gitbook-cli -g
 
 `gitbook-cli` is an utility to install and use multiple versions of GitBook on the same system. It will automatically install the required version to build a book.
 
-##### Using pre-releases
+##### Create a book
+
+GitBook can setup a boilerplate book:
+
+```
+$ gitbook init
+```
+
+If you wish to create the book into a new directory, you can do so by running `gitbook init ./directory`
+
+Preview and serve your book using:
+
+```
+$ gitbook serve
+```
+
+or build the static website using:
+
+```
+$ gitbook build
+```
+
+##### Install pre-releases
 
 `gitbook-cli` makes it easy to install and test other versions of GitBook with your book:
 
 ```
-$ gitbook install beta
+$ gitbook fetch beta
 ```
+
+Use `gitbook ls-remote` to list remote versions available for install.
 
 ##### Debugging
 
