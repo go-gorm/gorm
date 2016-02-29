@@ -68,7 +68,7 @@
     data-chapter-title="Getting Started with GORM"
     data-filepath="README.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 22:57:46 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -548,6 +548,21 @@
             
         </li>
     
+        <li class="chapter " data-level="7" data-path="changelog.html">
+            
+                <a href="changelog.html">
+            
+                    
+                        <b>7.</b>
+                    
+                    Change Log
+            
+                </a>
+            
+
+            
+        </li>
+    
 
             <li class="divider"></li>
             
@@ -588,20 +603,22 @@
 <li>Full-Featured ORM (almost)</li>
 <li>Chainable API</li>
 <li>Auto Migrations</li>
-<li>Relations (Has One, Has Many, Belongs To, Many To Many, <a href="#polymorphism">Polymorphism</a>)</li>
+<li>Relations (Has One, Has Many, Belongs To, Many To Many, Polymorphism)</li>
 <li>Callbacks (Before/After Create/Save/Update/Delete/Find)</li>
 <li>Preloading (eager loading)</li>
 <li>Transactions</li>
 <li>Embed Anonymous Struct</li>
 <li>Soft Deletes</li>
 <li>Customizable Logger</li>
-<li>Iteration Support via <a href="#row--rows">Rows</a></li>
+<li>Iteration Support via Rows</li>
 <li>Every feature comes with tests</li>
 <li>Developer Friendly</li>
 </ul>
 <h2 id="install">Install</h2>
 <pre><code>go get -u github.com/jinzhu/gorm
-</code></pre><h2 id="basic-usage">Basic Usage</h2>
+</code></pre><h2 id="upgrading">Upgrading</h2>
+<p><a href="http://jinzhu.github.io/gorm/changelog.html" target="_blank">Change Log</a></p>
+<h2 id="basic-usage">Basic Usage</h2>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
   gorm.Model
   Code <span class="hljs-typename">string</span>

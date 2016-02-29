@@ -1,12 +1,11 @@
 <!DOCTYPE HTML>
 <html lang="" >
     <head>
-        <title>Advanced Usage · GORM Guide</title>
+        <title>Change Log · GORM Guide</title>
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="To perform a set of operations within a transaction, the general flow is as below.
-The database handle returned from db.Begin() should be used for all oper">
+        <meta name="description" content="gorm.Open return type *gorm.DB instead of gorm.DB">
         <meta name="generator" content="GitBook 3.0.0-pre.1">
         
         
@@ -57,19 +56,17 @@ The database handle returned from db.Begin() should be used for all oper">
     <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="advanced.html" />
     
-    
-    <link rel="prev" href="callbacks.html" />
+    <link rel="prev" href="development.html" />
     
 
     </head>
     <body>
         
 <div class="book"
-    data-level="5"
-    data-chapter-title="Advanced Usage"
-    data-filepath="advanced.md"
+    data-level="7"
+    data-chapter-title="Change Log"
+    data-filepath="changelog.md"
     data-basepath=""
     data-revision="Mon Feb 29 2016 22:57:46 GMT+0800 (CST)"
     data-innerlanguage="">
@@ -419,7 +416,7 @@ The database handle returned from db.Begin() should be used for all oper">
             
         </li>
     
-        <li class="chapter active" data-level="5" data-path="advanced.html">
+        <li class="chapter " data-level="5" data-path="advanced.html">
             
                 <a href="advanced.html">
             
@@ -551,7 +548,7 @@ The database handle returned from db.Begin() should be used for all oper">
             
         </li>
     
-        <li class="chapter " data-level="7" data-path="changelog.html">
+        <li class="chapter active" data-level="7" data-path="changelog.html">
             
                 <a href="changelog.html">
             
@@ -586,7 +583,7 @@ The database handle returned from db.Begin() should be used for all oper">
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Advanced Usage</a>
+        <a href="" >Change Log</a>
     </h1>
 </div>
 
@@ -596,141 +593,47 @@ The database handle returned from db.Begin() should be used for all oper">
                         <div class="page-inner">
                             <section class="normal markdown-section">
                             
-                            <h1 id="advanced-usage">Advanced Usage</h1>
-<!-- toc -->
+                            <h1 id="change-log">Change Log</h1>
+<h2 id="v10">v1.0</h2>
+<h4 id="breaking-changes">Breaking Changes</h4>
 <ul>
-<li><a href="#error-handling">Error Handling</a></li>
-<li><a href="#transactions">Transactions</a><ul>
-<li><a href="#a-specific-example">A Specific Example</a></li>
-</ul>
+<li><p><strong><code>gorm.Open</code> return type <code>*gorm.DB</code> instead of <code>gorm.DB</code></strong></p>
 </li>
-<li><a href="#raw-sql">Raw SQL</a></li>
-<li><a href="#row-rows">Row &amp; Rows</a><ul>
-<li><a href="#scan-rows">Scan Rows</a></li>
-</ul>
-</li>
-<li><a href="#composite-primary-key">Composite Primary Key</a></li>
-<li><a href="#logger">Logger</a><ul>
-<li><a href="#customize-logger">Customize Logger</a></li>
-</ul>
-</li>
-</ul>
-<!-- toc stop -->
-<h2 id="error-handling">Error Handling</h2>
-<pre><code class="lang-go">query := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
-query := db.First(&amp;user).Limit(<span class="hljs-number">10</span>).Find(&amp;users)
-<span class="hljs-comment">// query.Error will return the last happened error</span>
-
-<span class="hljs-comment">// So you could do error handing in your application like this:</span>
-<span class="hljs-keyword">if</span> err := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user).Error; err != <span class="hljs-constant">nil</span> {
-    <span class="hljs-comment">// error handling...</span>
-}
-
-<span class="hljs-comment">// RecordNotFound</span>
-<span class="hljs-comment">// If no record found when you query data, gorm will return RecordNotFound error, you could check it like this:</span>
-db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;User{}).Error == gorm.RecordNotFound
-<span class="hljs-comment">// Or use the shortcut method</span>
-db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;user).RecordNotFound()
-
-<span class="hljs-keyword">if</span> db.Model(&amp;user).Related(&amp;credit_card).RecordNotFound() {
-    <span class="hljs-comment">// no credit card found error handling</span>
-}
-</code></pre>
-<h2 id="transactions">Transactions</h2>
-<p>To perform a set of operations within a transaction, the general flow is as below.
-The database handle returned from <code>db.Begin()</code> should be used for all operations within the transaction.
-(Note that all individual save and delete operations are run in a transaction by default.)</p>
-<pre><code class="lang-go"><span class="hljs-comment">// begin</span>
-tx := db.Begin()
-
-<span class="hljs-comment">// do some database operations (use &apos;tx&apos; from this point, not &apos;db&apos;)</span>
-tx.Create(...)
-...
-
-<span class="hljs-comment">// rollback in case of error</span>
-tx.Rollback()
-
-<span class="hljs-comment">// Or commit if all is ok</span>
-tx.Commit()
-</code></pre>
-<h3 id="a-specific-example">A Specific Example</h3>
-<pre><code class="lang-go"><span class="hljs-keyword">func</span> CreateAnimals(db *gorm.DB) err {
-  tx := db.Begin()
-  <span class="hljs-comment">// Note the use of tx as the database handle once you are within a transaction</span>
-
-  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Giraffe&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
-     tx.Rollback()
-     <span class="hljs-keyword">return</span> err
+<li><p><strong>Updating will only update changed fields</strong></p>
+<p>Most applications won&apos;t be affected, only when you are changing updating values in callbacks like <code>BeforeSave</code>, <code>BeforeUpdate</code>, you should use <code>scope.SetColumn</code> then, for example:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> (user *User) BeforeUpdate(scope *gorm.Scope) {
+  <span class="hljs-keyword">if</span> pw, err := bcrypt.GenerateFromPassword(user.Password, <span class="hljs-number">0</span>); err == <span class="hljs-constant">nil</span> {
+    scope.SetColumn(<span class="hljs-string">&quot;EncryptedPassword&quot;</span>, pw)
+    <span class="hljs-comment">// user.EncryptedPassword = pw  // doesn&apos;t work, won&apos;t including EncryptedPassword field when updating</span>
   }
+}
+</code></pre>
+</li>
+<li><p><strong>Soft delete&apos;s default querying scope will only check <code>deleted_at IS NULL</code></strong></p>
+<p>Before <code>db.Find(&amp;user)</code> will generate querying SQL if user has <code>DeletedAt</code> field</p>
+<p><code>SELECT * FROM users WHERE deleted_at IS NULL OR deleted_at &lt;= &apos;0001-01-02&apos;</code></p>
+<p>Now won&apos;t include blank time check <code>&lt;= &apos;0001-01-02</code> anymore, will generat SQL like:</p>
+<p><code>SELECT * FROM users WHERE deleted_at IS NULL</code></p>
+<p>So your application&apos;s <code>DeletedAt</code> field should not use <code>time.Time</code> as data type, need to use pointer <code>*time.Time</code> or something like <code>NullTime</code>.
+If you are using <code>gorm.Model</code>, then you are good, nothing need to be change, just make sure all records using blank time for <code>deleted_at</code> has been set to NULL, sample migration script:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/now&quot;</span>
+)
 
-  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Lion&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
-     tx.Rollback()
-     <span class="hljs-keyword">return</span> err
+<span class="hljs-keyword">func</span> main() {
+  <span class="hljs-keyword">var</span> models = []<span class="hljs-keyword">interface</span>{}{&amp;User{}, &amp;Image{}}
+  <span class="hljs-keyword">for</span> _, model := <span class="hljs-keyword">range</span> models {
+    db.Unscoped().Model(model).Where(<span class="hljs-string">&quot;deleted_at &lt; ?&quot;</span>, now.MustParse(<span class="hljs-string">&quot;0001-01-02&quot;</span>)).Update(<span class="hljs-string">&quot;deleted_at&quot;</span>, gorm.Expr(<span class="hljs-string">&quot;NULL&quot;</span>))
   }
-
-  tx.Commit()
-  <span class="hljs-keyword">return</span> <span class="hljs-constant">nil</span>
 }
 </code></pre>
-<h2 id="raw-sql">Raw SQL</h2>
-<pre><code class="lang-go">db.Exec(<span class="hljs-string">&quot;DROP TABLE users;&quot;</span>)
-db.Exec(<span class="hljs-string">&quot;UPDATE orders SET shipped_at=? WHERE id IN (?)&quot;</span>, time.Now, []<span class="hljs-typename">int64</span>{<span class="hljs-number">11</span>,<span class="hljs-number">22</span>,<span class="hljs-number">33</span>})
-</code></pre>
-<h2 id="row--rows">Row &amp; Rows</h2>
-<p>It is even possible to get query result as <code>*sql.Row</code> or <code>*sql.Rows</code></p>
-<pre><code class="lang-go">row := db.Table(<span class="hljs-string">&quot;users&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age&quot;</span>).Row() <span class="hljs-comment">// (*sql.Row)</span>
-row.Scan(&amp;name, &amp;age)
-
-rows, err := db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age, email&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
-<span class="hljs-keyword">defer</span> rows.Close()
-<span class="hljs-keyword">for</span> rows.Next() {
-    ...
-    rows.Scan(&amp;name, &amp;age, &amp;email)
-    ...
-}
-
-<span class="hljs-comment">// Raw SQL</span>
-rows, err := db.Raw(<span class="hljs-string">&quot;select name, age, email from users where name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
-<span class="hljs-keyword">defer</span> rows.Close()
-<span class="hljs-keyword">for</span> rows.Next() {
-    ...
-    rows.Scan(&amp;name, &amp;age, &amp;email)
-    ...
-}
-</code></pre>
-<h3 id="scan-rows">Scan Rows</h3>
-<pre><code class="lang-go">rows, err := db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age, email&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
-<span class="hljs-keyword">defer</span> rows.Close()
-
-<span class="hljs-keyword">for</span> rows.Next() {
-  <span class="hljs-keyword">var</span> user User
-  db.ScanRows(rows, &amp;user)
-  <span class="hljs-comment">// do something</span>
-}
-</code></pre>
-<h2 id="composite-primary-key">Composite Primary Key</h2>
-<pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
-    ID           <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
-    LanguageCode <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
-}
-</code></pre>
-<h2 id="logger">Logger</h2>
-<p>Gorm has built-in logger support</p>
-<pre><code class="lang-go"><span class="hljs-comment">// Enable Logger</span>
-db.LogMode(<span class="hljs-constant">true</span>)
-
-<span class="hljs-comment">// Diable Logger</span>
-db.LogMode(<span class="hljs-constant">false</span>)
-
-<span class="hljs-comment">// Debug a single operation</span>
-db.Debug().Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;User{})
-</code></pre>
-<p><img src="https:/raw.github.com/jinzhu/gorm/master/doc/logger.png" alt="logger"></p>
-<h3 id="customize-logger">Customize Logger</h3>
-<pre><code class="lang-go"><span class="hljs-comment">// Refer gorm&apos;s default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files</span>
-db.SetLogger(gorm.Logger{revel.TRACE})
-db.SetLogger(log.New(os.Stdout, <span class="hljs-string">&quot;\r\n&quot;</span>, <span class="hljs-number">0</span>))
-</code></pre>
+</li>
+<li><p><strong>New ToDBName logic</strong></p>
+<p>Before when GORM convert Struct, Field&apos;s name to db name, only those common initialisms from <a href="https://github.com/golang/lint/blob/master/lint.go#L702" target="_blank">golint</a> like <code>HTTP</code>, <code>URI</code> are special handled.</p>
+<p>So field <code>HTTP</code>&apos;s db name will be <code>http</code> not <code>h_t_t_p</code>, but some other initialisms like <code>SKU</code> that not in golint, it&apos;s db name will be <code>s_k_u</code>, this release fixed this, any upper case initialisms should be converted correctly.</p>
+<p>If your applications using some upper case initialisms which doesn&apos;t exist in <a href="https://github.com/golang/lint/blob/master/lint.go#L702" target="_blank">golint</a>, you need to overwrite generated column name with tag, like <code>sql:&quot;column:s_k_u&quot;</code>, or alert your database&apos;s column name according to new logic</p>
+</li>
+</ul>
 
                             
                             </section>
@@ -741,14 +644,10 @@ db.SetLogger(log.New(os.Stdout, <span class="hljs-string">&quot;\r\n&quot;</span
 
             
                 
-                <a href="callbacks.html" class="navigation navigation-prev " aria-label="Previous page: Callbacks">
+                <a href="development.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page: Write Plugins">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
-                
-                <a href="advanced.html" class="navigation navigation-next " aria-label="Next page: Error Handling">
-                    <i class="fa fa-angle-right"></i>
-                </a>
                 
             
         
