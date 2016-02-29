@@ -1,1 +1,4 @@
-cd documents; gitbook build; pwd
+cd documents
+gitbook build
+pwd
+cp -r _book/ ..

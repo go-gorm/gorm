@@ -17,7 +17,7 @@
       "url": "https://github.com/jinzhu/gorm"
     },
     "edit-link": {
-      "base": "https://github.com/jinzhu/gorm/edit/master",
+      "base": "https://github.com/jinzhu/gorm/edit/gh-pages",
       "label": "Edit This Page"
     }
   }
