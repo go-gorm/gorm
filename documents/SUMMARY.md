@@ -29,3 +29,4 @@
   * [Overriding Logger](advanced.md#logger)
 * [Development](development.md)
   * [Write Plugins](development.md#callbacks)
+* [Change Log](changelog.md)

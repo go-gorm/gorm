@@ -11,14 +11,14 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * Full-Featured ORM (almost)
 * Chainable API
 * Auto Migrations
-* Relations (Has One, Has Many, Belongs To, Many To Many, [Polymorphism](#polymorphism))
+* Relations (Has One, Has Many, Belongs To, Many To Many, Polymorphism)
 * Callbacks (Before/After Create/Save/Update/Delete/Find)
 * Preloading (eager loading)
 * Transactions
 * Embed Anonymous Struct
 * Soft Deletes
 * Customizable Logger
-* Iteration Support via [Rows](#row--rows)
+* Iteration Support via Rows
 * Every feature comes with tests
 * Developer Friendly
 
@@ -27,6 +27,10 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 ```
 go get -u github.com/jinzhu/gorm
 ```
+
+## Upgrading
+
+[Change Log](http://jinzhu.github.io/gorm/changelog.html)
 
 ## Basic Usage
 
