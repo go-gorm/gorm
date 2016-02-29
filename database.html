@@ -16,7 +16,7 @@
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-prism/prism.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
                 
@@ -70,7 +70,7 @@
     data-chapter-title="Database"
     data-filepath="database.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:35:06 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -607,46 +607,46 @@
 <h2 id="connecting-to-a-database">Connecting to a database</h2>
 <h4 id="mysql">MySQL</h4>
 <p><strong>NOTE</strong> don&apos;t forgot params <code>parseTime</code> to handle data type <code>time.Time</code>, <a href="https://github.com/go-sql-driver/mysql#parameters" target="_blank">more support parameters</a></p>
-<pre><code class="lang-go"><span class="token keyword">import</span> <span class="token operator">(</span>
-    <span class="token string">&quot;github.com/jinzhu/gorm&quot;</span>
-    <span class="token boolean">_</span> <span class="token string">&quot;github.com/go-sql-driver/mysql&quot;</span>
-<span class="token operator">)</span>
-<span class="token keyword">func</span> <span class="token function">main<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  db<span class="token operator">,</span> err <span class="token operator">:=</span> gorm<span class="token operator">.</span><span class="token function">Open<span class="token punctuation">(</span></span><span class="token string">&quot;mysql&quot;</span><span class="token operator">,</span> <span class="token string">&quot;user:password@/dbname?charset=utf8&amp;parseTime=True&amp;loc=Local&quot;</span><span class="token operator">)</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/go-sql-driver/mysql&quot;</span>
+)
+<span class="hljs-keyword">func</span> main() {
+  db, err := gorm.Open(<span class="hljs-string">&quot;mysql&quot;</span>, <span class="hljs-string">&quot;user:password@/dbname?charset=utf8&amp;parseTime=True&amp;loc=Local&quot;</span>)
+}
 </code></pre>
 <h4 id="postgresql">PostgreSQL</h4>
-<pre><code class="lang-go"><span class="token keyword">import</span> <span class="token operator">(</span>
-    <span class="token string">&quot;github.com/jinzhu/gorm&quot;</span>
-    <span class="token boolean">_</span> <span class="token string">&quot;github.com/lib/pq&quot;</span>
-<span class="token operator">)</span>
-<span class="token keyword">func</span> <span class="token function">main<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  db<span class="token operator">,</span> err <span class="token operator">:=</span> gorm<span class="token operator">.</span><span class="token function">Open<span class="token punctuation">(</span></span><span class="token string">&quot;postgres&quot;</span><span class="token operator">,</span> <span class="token string">&quot;user=gorm dbname=gorm sslmode=disable&quot;</span><span class="token operator">)</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/lib/pq&quot;</span>
+)
+<span class="hljs-keyword">func</span> main() {
+  db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;user=gorm dbname=gorm sslmode=disable&quot;</span>)
+}
 </code></pre>
 <h4 id="sqlite3">Sqlite3</h4>
-<pre><code class="lang-go"><span class="token keyword">import</span> <span class="token operator">(</span>
-    <span class="token string">&quot;github.com/jinzhu/gorm&quot;</span>
-    <span class="token boolean">_</span> <span class="token string">&quot;github.com/mattn/go-sqlite3&quot;</span>
-<span class="token operator">)</span>
-<span class="token keyword">func</span> <span class="token function">main<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  db<span class="token operator">,</span> err <span class="token operator">:=</span> gorm<span class="token operator">.</span><span class="token function">Open<span class="token punctuation">(</span></span><span class="token string">&quot;sqlite3&quot;</span><span class="token operator">,</span> <span class="token string">&quot;/tmp/gorm.db&quot;</span><span class="token operator">)</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/mattn/go-sqlite3&quot;</span>
+)
+<span class="hljs-keyword">func</span> main() {
+  db, err := gorm.Open(<span class="hljs-string">&quot;sqlite3&quot;</span>, <span class="hljs-string">&quot;/tmp/gorm.db&quot;</span>)
+}
 </code></pre>
 <h4 id="write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</h4>
 <p>GORM officially support above databases, for unsupported databaes, you could write a dialect for that.</p>
 <p>Refer: <a href="https://github.com/jinzhu/gorm/blob/master/dialect.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/dialect.go</a></p>
 <h2 id="generic-database-object-sqldb">Generic database object *sql.DB</h2>
 <p><a href="http://golang.org/pkg/database/sql/#DB" target="_blank">*sql.DB</a></p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Get generic database object *sql.DB to use its functions</span>
-db<span class="token operator">.</span><span class="token function">DB<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Get generic database object *sql.DB to use its functions</span>
+db.DB()
 
-<span class="token comment" spellcheck="true">// Connection Pool</span>
-db<span class="token operator">.</span><span class="token function">DB<span class="token punctuation">(</span></span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">SetMaxIdleConns<span class="token punctuation">(</span></span><span class="token number">10</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">DB<span class="token punctuation">(</span></span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">SetMaxOpenConns<span class="token punctuation">(</span></span><span class="token number">100</span><span class="token operator">)</span>
+<span class="hljs-comment">// Connection Pool</span>
+db.DB().SetMaxIdleConns(<span class="hljs-number">10</span>)
+db.DB().SetMaxOpenConns(<span class="hljs-number">100</span>)
 
-  <span class="token comment" spellcheck="true">// Ping</span>
-db<span class="token operator">.</span><span class="token function">DB<span class="token punctuation">(</span></span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Ping<span class="token punctuation">(</span></span><span class="token operator">)</span>
+  <span class="hljs-comment">// Ping</span>
+db.DB().Ping()
 </code></pre>
 <h2 id="migration">Migration</h2>
 <!-- toc -->
@@ -654,60 +654,60 @@ db<span class="token operator">.</span><span class="token function">DB<span clas
 <p>Automatically migrate your schema, to keep your schema update to date</p>
 <p><strong>WARNING</strong> AutoMigrate will ONLY create tables, columns and indexes if doesn&apos;t exist,
 WON&apos;T change existing column&apos;s type or delete unused columns to protect your data</p>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">AutoMigrate<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<pre><code class="lang-go">db.AutoMigrate(&amp;User{})
 
-db<span class="token operator">.</span><span class="token function">AutoMigrate<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">,</span> <span class="token operator">&amp;</span>Product<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">,</span> <span class="token operator">&amp;</span>Order<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+db.AutoMigrate(&amp;User{}, &amp;Product{}, &amp;Order{})
 
-<span class="token comment" spellcheck="true">// Add table suffix when create tables</span>
-db<span class="token operator">.</span><span class="token function">Set<span class="token punctuation">(</span></span><span class="token string">&quot;gorm:table_options&quot;</span><span class="token operator">,</span> <span class="token string">&quot;ENGINE=InnoDB&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AutoMigrate<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<span class="hljs-comment">// Add table suffix when create tables</span>
+db.Set(<span class="hljs-string">&quot;gorm:table_options&quot;</span>, <span class="hljs-string">&quot;ENGINE=InnoDB&quot;</span>).AutoMigrate(&amp;User{})
 </code></pre>
 <h3 id="has-table">Has Table</h3>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Check if model `User`&apos;s table has been created or not</span>
-db<span class="token operator">.</span><span class="token function">HasTable<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Check if model `User`&apos;s table has been created or not</span>
+db.HasTable(&amp;User{})
 
-<span class="token comment" spellcheck="true">// Check table `users` exists or not</span>
-db<span class="token operator">.</span><span class="token function">HasTable<span class="token punctuation">(</span></span><span class="token string">&quot;users&quot;</span><span class="token operator">)</span>
+<span class="hljs-comment">// Check table `users` exists or not</span>
+db.HasTable(<span class="hljs-string">&quot;users&quot;</span>)
 </code></pre>
 <h3 id="create-table">Create Table</h3>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">CreateTable<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<pre><code class="lang-go">db.CreateTable(&amp;User{})
 
-db<span class="token operator">.</span><span class="token function">Set<span class="token punctuation">(</span></span><span class="token string">&quot;gorm:table_options&quot;</span><span class="token operator">,</span> <span class="token string">&quot;ENGINE=InnoDB&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">CreateTable<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
-<span class="token comment" spellcheck="true">// will append &quot;ENGINE=InnoDB&quot; to the SQL statement when creating table `users`</span>
+db.Set(<span class="hljs-string">&quot;gorm:table_options&quot;</span>, <span class="hljs-string">&quot;ENGINE=InnoDB&quot;</span>).CreateTable(&amp;User{})
+<span class="hljs-comment">// will append &quot;ENGINE=InnoDB&quot; to the SQL statement when creating table `users`</span>
 </code></pre>
 <h3 id="drop-table">Drop table</h3>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">DropTable<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<pre><code class="lang-go">db.DropTable(&amp;User{})
 </code></pre>
 <h3 id="modifycolumn">ModifyColumn</h3>
 <p>Change column&apos;s type</p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// change column description&apos;s data type to `text` for model `User`&apos;s table</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">ModifyColumn<span class="token punctuation">(</span></span><span class="token string">&quot;description&quot;</span><span class="token operator">,</span> <span class="token string">&quot;text&quot;</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// change column description&apos;s data type to `text` for model `User`&apos;s table</span>
+db.Model(&amp;User{}).ModifyColumn(<span class="hljs-string">&quot;description&quot;</span>, <span class="hljs-string">&quot;text&quot;</span>)
 </code></pre>
 <h3 id="dropcolumn">DropColumn</h3>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">DropColumn<span class="token punctuation">(</span></span><span class="token string">&quot;description&quot;</span><span class="token operator">)</span>
+<pre><code class="lang-go">db.Model(&amp;User{}).DropColumn(<span class="hljs-string">&quot;description&quot;</span>)
 </code></pre>
 <h3 id="add-foreign-key">Add Foreign Key</h3>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Add foreign key</span>
-<span class="token comment" spellcheck="true">// 1st param : foreignkey field</span>
-<span class="token comment" spellcheck="true">// 2nd param : destination table(id)</span>
-<span class="token comment" spellcheck="true">// 3rd param : ONDELETE</span>
-<span class="token comment" spellcheck="true">// 4th param : ONUPDATE</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AddForeignKey<span class="token punctuation">(</span></span><span class="token string">&quot;city_id&quot;</span><span class="token operator">,</span> <span class="token string">&quot;cities(id)&quot;</span><span class="token operator">,</span> <span class="token string">&quot;RESTRICT&quot;</span><span class="token operator">,</span> <span class="token string">&quot;RESTRICT&quot;</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Add foreign key</span>
+<span class="hljs-comment">// 1st param : foreignkey field</span>
+<span class="hljs-comment">// 2nd param : destination table(id)</span>
+<span class="hljs-comment">// 3rd param : ONDELETE</span>
+<span class="hljs-comment">// 4th param : ONUPDATE</span>
+db.Model(&amp;User{}).AddForeignKey(<span class="hljs-string">&quot;city_id&quot;</span>, <span class="hljs-string">&quot;cities(id)&quot;</span>, <span class="hljs-string">&quot;RESTRICT&quot;</span>, <span class="hljs-string">&quot;RESTRICT&quot;</span>)
 </code></pre>
 <h3 id="indexes">Indexes</h3>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Add index</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AddIndex<span class="token punctuation">(</span></span><span class="token string">&quot;idx_user_name&quot;</span><span class="token operator">,</span> <span class="token string">&quot;name&quot;</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Add index</span>
+db.Model(&amp;User{}).AddIndex(<span class="hljs-string">&quot;idx_user_name&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>)
 
-<span class="token comment" spellcheck="true">// Multiple column index</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AddIndex<span class="token punctuation">(</span></span><span class="token string">&quot;idx_user_name_age&quot;</span><span class="token operator">,</span> <span class="token string">&quot;name&quot;</span><span class="token operator">,</span> <span class="token string">&quot;age&quot;</span><span class="token operator">)</span>
+<span class="hljs-comment">// Multiple column index</span>
+db.Model(&amp;User{}).AddIndex(<span class="hljs-string">&quot;idx_user_name_age&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>)
 
-<span class="token comment" spellcheck="true">// Add unique index</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AddUniqueIndex<span class="token punctuation">(</span></span><span class="token string">&quot;idx_user_name&quot;</span><span class="token operator">,</span> <span class="token string">&quot;name&quot;</span><span class="token operator">)</span>
+<span class="hljs-comment">// Add unique index</span>
+db.Model(&amp;User{}).AddUniqueIndex(<span class="hljs-string">&quot;idx_user_name&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>)
 
-<span class="token comment" spellcheck="true">// Multiple column unique index</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">AddUniqueIndex<span class="token punctuation">(</span></span><span class="token string">&quot;idx_user_name_age&quot;</span><span class="token operator">,</span> <span class="token string">&quot;name&quot;</span><span class="token operator">,</span> <span class="token string">&quot;age&quot;</span><span class="token operator">)</span>
+<span class="hljs-comment">// Multiple column unique index</span>
+db.Model(&amp;User{}).AddUniqueIndex(<span class="hljs-string">&quot;idx_user_name_age&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>)
 
-<span class="token comment" spellcheck="true">// Remove index</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">RemoveIndex<span class="token punctuation">(</span></span><span class="token string">&quot;idx_user_name&quot;</span><span class="token operator">)</span>
+<span class="hljs-comment">// Remove index</span>
+db.Model(&amp;User{}).RemoveIndex(<span class="hljs-string">&quot;idx_user_name&quot;</span>)
 </code></pre>
 
                             
@@ -766,7 +766,7 @@ db<span class="token operator">.</span><span class="token function">Model<span c
     
     <script>
     require(["gitbook"], function(gitbook) {
-        gitbook.start({"fontsettings":{"theme":"night","family":"sans","size":4},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"prism":{},"anker-enable":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
+        gitbook.start({"fontsettings":{"theme":"night","size":2,"family":"sans"},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"anker-enable":{},"highlight":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
     });
     </script>
 

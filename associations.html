@@ -16,7 +16,7 @@
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-prism/prism.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
                 
@@ -70,7 +70,7 @@
     data-chapter-title="Associations"
     data-filepath="associations.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:35:06 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -592,130 +592,130 @@
 </ul>
 <!-- toc stop -->
 <h2 id="belongs-to">Belongs To</h2>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// User belongs to a profile, ProfileID is the foreign key</span>
-<span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-  gorm<span class="token operator">.</span>Model
+<pre><code class="lang-go"><span class="hljs-comment">// User belongs to a profile, ProfileID is the foreign key</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
   Profile   Profile
-  ProfileID <span class="token builtin">int</span>
-<span class="token operator">}</span>
+  ProfileID <span class="hljs-typename">int</span>
+}
 
-<span class="token keyword">type</span> Profile <span class="token keyword">struct</span> <span class="token operator">{</span>
-  gorm<span class="token operator">.</span>Model
-  Name   <span class="token builtin">string</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name   <span class="hljs-typename">string</span>
+}
 
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>profile<span class="token operator">)</span>
-<span class="token comment" spellcheck="true">//// SELECT * FROM profiles WHERE id = 111; // 111 is user&apos;s foreign key ProfileID</span>
+db.Model(&amp;user).Related(&amp;profile)
+<span class="hljs-comment">//// SELECT * FROM profiles WHERE id = 111; // 111 is user&apos;s foreign key ProfileID</span>
 </code></pre>
 <h2 id="has-one">Has One</h2>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// User has one CreditCard, UserID is the foreign key</span>
-<span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
+<pre><code class="lang-go"><span class="hljs-comment">// User has one CreditCard, UserID is the foreign key</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+    gorm.Model
     CreditCard   CreditCard
-<span class="token operator">}</span>
+}
 
-<span class="token keyword">type</span> CreditCard <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
-    UserID   <span class="token builtin">uint</span>
-    Number   <span class="token builtin">string</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">type</span> CreditCard <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    UserID   <span class="hljs-typename">uint</span>
+    Number   <span class="hljs-typename">string</span>
+}
 
-<span class="token keyword">var</span> card CreditCard
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>card<span class="token operator">,</span> <span class="token string">&quot;CreditCard&quot;</span><span class="token operator">)</span>
-<span class="token comment" spellcheck="true">//// SELECT * FROM credit_cards WHERE user_id = 123; // 123 is user&apos;s primary key</span>
-<span class="token comment" spellcheck="true">// CreditCard is user&apos;s field name, it means get user&apos;s CreditCard relations and fill it into variable card</span>
-<span class="token comment" spellcheck="true">// If the field name is same as the variable&apos;s type name, like above example, it could be omitted, like:</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>card<span class="token operator">)</span>
+<span class="hljs-keyword">var</span> card CreditCard
+db.Model(&amp;user).Related(&amp;card, <span class="hljs-string">&quot;CreditCard&quot;</span>)
+<span class="hljs-comment">//// SELECT * FROM credit_cards WHERE user_id = 123; // 123 is user&apos;s primary key</span>
+<span class="hljs-comment">// CreditCard is user&apos;s field name, it means get user&apos;s CreditCard relations and fill it into variable card</span>
+<span class="hljs-comment">// If the field name is same as the variable&apos;s type name, like above example, it could be omitted, like:</span>
+db.Model(&amp;user).Related(&amp;card)
 </code></pre>
 <h2 id="has-many">Has Many</h2>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// User has many emails, UserID is the foreign key</span>
-<span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
-    Emails   <span class="token operator">[</span><span class="token operator">]</span>Email
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-comment">// User has many emails, UserID is the foreign key</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Emails   []Email
+}
 
-<span class="token keyword">type</span> Email <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
-    Email   <span class="token builtin">string</span>
-    UserID  <span class="token builtin">uint</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">type</span> Email <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Email   <span class="hljs-typename">string</span>
+    UserID  <span class="hljs-typename">uint</span>
+}
 
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>emails<span class="token operator">)</span>
-<span class="token comment" spellcheck="true">//// SELECT * FROM emails WHERE user_id = 111; // 111 is user&apos;s primary key</span>
+db.Model(&amp;user).Related(&amp;emails)
+<span class="hljs-comment">//// SELECT * FROM emails WHERE user_id = 111; // 111 is user&apos;s primary key</span>
 </code></pre>
 <h2 id="many-to-many">Many To Many</h2>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// User has and belongs to many languages, use `user_languages` as join table</span>
-<span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
-    Languages         <span class="token operator">[</span><span class="token operator">]</span>Language <span class="token string">`gorm:&quot;many2many:user_languages;&quot;`</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-comment">// User has and belongs to many languages, use `user_languages` as join table</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Languages         []Language <span class="hljs-string">`gorm:&quot;many2many:user_languages;&quot;`</span>
+}
 
-<span class="token keyword">type</span> Language <span class="token keyword">struct</span> <span class="token operator">{</span>
-    gorm<span class="token operator">.</span>Model
-    Name <span class="token builtin">string</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">type</span> Language <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Name <span class="hljs-typename">string</span>
+}
 
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>languages<span class="token operator">)</span>
-<span class="token comment" spellcheck="true">//// SELECT * FROM &quot;languages&quot; INNER JOIN &quot;user_languages&quot; ON &quot;user_languages&quot;.&quot;language_id&quot; = &quot;languages&quot;.&quot;id&quot; WHERE &quot;user_languages&quot;.&quot;user_id&quot; = 111</span>
+db.Model(&amp;user).Related(&amp;languages)
+<span class="hljs-comment">//// SELECT * FROM &quot;languages&quot; INNER JOIN &quot;user_languages&quot; ON &quot;user_languages&quot;.&quot;language_id&quot; = &quot;languages&quot;.&quot;id&quot; WHERE &quot;user_languages&quot;.&quot;user_id&quot; = 111</span>
 </code></pre>
 <h2 id="polymorphism">Polymorphism</h2>
 <p>Supports polymorphic has-many and has-one associations.</p>
-<pre><code class="lang-go">  <span class="token keyword">type</span> Cat <span class="token keyword">struct</span> <span class="token operator">{</span>
-    Id    <span class="token builtin">int</span>
-    Name  <span class="token builtin">string</span>
-    Toy   Toy <span class="token string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
-  <span class="token operator">}</span>
+<pre><code class="lang-go">  <span class="hljs-keyword">type</span> Cat <span class="hljs-keyword">struct</span> {
+    Id    <span class="hljs-typename">int</span>
+    Name  <span class="hljs-typename">string</span>
+    Toy   Toy <span class="hljs-string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
+  }
 
-  <span class="token keyword">type</span> Dog <span class="token keyword">struct</span> <span class="token operator">{</span>
-    Id   <span class="token builtin">int</span>
-    Name <span class="token builtin">string</span>
-    Toy  Toy <span class="token string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
-  <span class="token operator">}</span>
+  <span class="hljs-keyword">type</span> Dog <span class="hljs-keyword">struct</span> {
+    Id   <span class="hljs-typename">int</span>
+    Name <span class="hljs-typename">string</span>
+    Toy  Toy <span class="hljs-string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
+  }
 
-  <span class="token keyword">type</span> Toy <span class="token keyword">struct</span> <span class="token operator">{</span>
-    Id        <span class="token builtin">int</span>
-    Name      <span class="token builtin">string</span>
-    OwnerId   <span class="token builtin">int</span>
-    OwnerType <span class="token builtin">string</span>
-  <span class="token operator">}</span>
+  <span class="hljs-keyword">type</span> Toy <span class="hljs-keyword">struct</span> {
+    Id        <span class="hljs-typename">int</span>
+    Name      <span class="hljs-typename">string</span>
+    OwnerId   <span class="hljs-typename">int</span>
+    OwnerType <span class="hljs-typename">string</span>
+  }
 </code></pre>
 <p>Note: polymorphic belongs-to and many-to-many are explicitly NOT supported, and will throw errors.</p>
 <h2 id="association-mode">Association Mode</h2>
 <p>Association Mode contains some helper methods to handle relationship things easily.</p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Start Association Mode</span>
-<span class="token keyword">var</span> user User
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span>
-<span class="token comment" spellcheck="true">// `user` is the source, it need to be a valid record (contains primary key)</span>
-<span class="token comment" spellcheck="true">// `Languages` is source&apos;s field name for a relationship.</span>
-<span class="token comment" spellcheck="true">// If those conditions not matched, will return an error, check it with:</span>
-<span class="token comment" spellcheck="true">// db.Model(&amp;user).Association(&quot;Languages&quot;).Error</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Start Association Mode</span>
+<span class="hljs-keyword">var</span> user User
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>)
+<span class="hljs-comment">// `user` is the source, it need to be a valid record (contains primary key)</span>
+<span class="hljs-comment">// `Languages` is source&apos;s field name for a relationship.</span>
+<span class="hljs-comment">// If those conditions not matched, will return an error, check it with:</span>
+<span class="hljs-comment">// db.Model(&amp;user).Association(&quot;Languages&quot;).Error</span>
 
 
-<span class="token comment" spellcheck="true">// Query - Find out all related associations</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Find<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>languages<span class="token operator">)</span>
+<span class="hljs-comment">// Query - Find out all related associations</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Find(&amp;languages)
 
 
-<span class="token comment" spellcheck="true">// Append - Append new associations for many2many, has_many, will replace current association for has_one, belongs_to</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Append<span class="token punctuation">(</span></span><span class="token operator">[</span><span class="token operator">]</span>Language<span class="token operator">{</span>languageZH<span class="token operator">,</span> languageEN<span class="token operator">}</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Append<span class="token punctuation">(</span></span>Language<span class="token operator">{</span>Name<span class="token operator">:</span> <span class="token string">&quot;DE&quot;</span><span class="token operator">}</span><span class="token operator">)</span>
+<span class="hljs-comment">// Append - Append new associations for many2many, has_many, will replace current association for has_one, belongs_to</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Append([]Language{languageZH, languageEN})
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Append(Language{Name: <span class="hljs-string">&quot;DE&quot;</span>})
 
 
-<span class="token comment" spellcheck="true">// Delete - Remove relationship between source &amp; passed arguments, won&apos;t delete those arguments</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Delete<span class="token punctuation">(</span></span><span class="token operator">[</span><span class="token operator">]</span>Language<span class="token operator">{</span>languageZH<span class="token operator">,</span> languageEN<span class="token operator">}</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Delete<span class="token punctuation">(</span></span>languageZH<span class="token operator">,</span> languageEN<span class="token operator">)</span>
+<span class="hljs-comment">// Delete - Remove relationship between source &amp; passed arguments, won&apos;t delete those arguments</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Delete([]Language{languageZH, languageEN})
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Delete(languageZH, languageEN)
 
 
-<span class="token comment" spellcheck="true">// Replace - Replace current associations with new one</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Replace<span class="token punctuation">(</span></span><span class="token operator">[</span><span class="token operator">]</span>Language<span class="token operator">{</span>languageZH<span class="token operator">,</span> languageEN<span class="token operator">}</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Replace<span class="token punctuation">(</span></span>Language<span class="token operator">{</span>Name<span class="token operator">:</span> <span class="token string">&quot;DE&quot;</span><span class="token operator">}</span><span class="token operator">,</span> languageEN<span class="token operator">)</span>
+<span class="hljs-comment">// Replace - Replace current associations with new one</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Replace([]Language{languageZH, languageEN})
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Replace(Language{Name: <span class="hljs-string">&quot;DE&quot;</span>}, languageEN)
 
 
-<span class="token comment" spellcheck="true">// Count - Return the count of current associations</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Count<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<span class="hljs-comment">// Count - Return the count of current associations</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Count()
 
 
-<span class="token comment" spellcheck="true">// Clear - Remove relationship between source &amp; current associations, won&apos;t delete those associations</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Association<span class="token punctuation">(</span></span><span class="token string">&quot;Languages&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Clear<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<span class="hljs-comment">// Clear - Remove relationship between source &amp; current associations, won&apos;t delete those associations</span>
+db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;</span>).Clear()
 </code></pre>
 
                             
@@ -774,7 +774,7 @@ db<span class="token operator">.</span><span class="token function">Model<span c
     
     <script>
     require(["gitbook"], function(gitbook) {
-        gitbook.start({"fontsettings":{"theme":"night","family":"sans","size":4},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"prism":{},"anker-enable":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
+        gitbook.start({"fontsettings":{"theme":"night","size":2,"family":"sans"},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"anker-enable":{},"highlight":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
     });
     </script>
 

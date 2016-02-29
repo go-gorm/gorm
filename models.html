@@ -16,7 +16,7 @@
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-prism/prism.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
                 
@@ -70,7 +70,7 @@
     data-chapter-title="Models"
     data-filepath="models.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:35:06 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -597,83 +597,83 @@
 </ul>
 <!-- toc stop -->
 <h2 id="model-defination">Model Defination</h2>
-<pre><code class="lang-go"><span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-  gorm<span class="token operator">.</span>Model
-    Birthday     time<span class="token operator">.</span>Time
-    Age          <span class="token builtin">int</span>
-    Name         <span class="token builtin">string</span>  <span class="token string">`sql:&quot;size:255&quot;`</span> <span class="token comment" spellcheck="true">// Default size for string is 255, you could reset it with this tag</span>
-    Num          <span class="token builtin">int</span>     <span class="token string">`sql:&quot;AUTO_INCREMENT&quot;`</span>
-    IgnoreMe     <span class="token builtin">int</span> <span class="token string">`sql:&quot;-&quot;`</span>   <span class="token comment" spellcheck="true">// Ignore this field</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+    Birthday     time.Time
+    Age          <span class="hljs-typename">int</span>
+    Name         <span class="hljs-typename">string</span>  <span class="hljs-string">`sql:&quot;size:255&quot;`</span> <span class="hljs-comment">// Default size for string is 255, you could reset it with this tag</span>
+    Num          <span class="hljs-typename">int</span>     <span class="hljs-string">`sql:&quot;AUTO_INCREMENT&quot;`</span>
+    IgnoreMe     <span class="hljs-typename">int</span> <span class="hljs-string">`sql:&quot;-&quot;`</span>   <span class="hljs-comment">// Ignore this field</span>
+}
 </code></pre>
 <h2 id="conventions--overriding-conventions">Conventions &amp; Overriding Conventions</h2>
 <h3 id="gormmodel-struct"><code>gorm.Model</code> struct</h3>
 <p>Gorm has defined struct <code>gorm.Model</code>, which could be embeded in your models, it will add fields <code>ID</code>, <code>CreatedAt</code>, <code>UpdatedAt</code>, <code>DeletedAt</code> to your model</p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Model&apos;s definition</span>
-<span class="token keyword">type</span> Model <span class="token keyword">struct</span> <span class="token operator">{</span>
-  ID        <span class="token builtin">uint</span> <span class="token string">`gorm:&quot;primary_key&quot;`</span>
-  CreatedAt time<span class="token operator">.</span>Time
-  UpdatedAt time<span class="token operator">.</span>Time
-  DeletedAt <span class="token operator">*</span>time<span class="token operator">.</span>Time
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Model&apos;s definition</span>
+<span class="hljs-keyword">type</span> Model <span class="hljs-keyword">struct</span> {
+  ID        <span class="hljs-typename">uint</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+  CreatedAt time.Time
+  UpdatedAt time.Time
+  DeletedAt *time.Time
+}
 </code></pre>
 <h3 id="table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</h3>
-<pre><code class="lang-go"><span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span><span class="token operator">}</span> <span class="token comment" spellcheck="true">// default table name is `users`</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {} <span class="hljs-comment">// default table name is `users`</span>
 
-<span class="token comment" spellcheck="true">// set User&apos;s table name to be `profiles</span>
-<span class="token keyword">type</span> <span class="token operator">(</span>User<span class="token operator">)</span> <span class="token function">TableName<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token builtin">string</span> <span class="token operator">{</span>
-  <span class="token keyword">return</span> <span class="token string">&quot;profiles&quot;</span>
-<span class="token operator">}</span>
+<span class="hljs-comment">// set User&apos;s table name to be `profiles</span>
+<span class="hljs-keyword">type</span> (User) TableName() <span class="hljs-typename">string</span> {
+  <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;profiles&quot;</span>
+}
 
-<span class="token keyword">func</span> <span class="token operator">(</span>u User<span class="token operator">)</span> <span class="token function">TableName<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token builtin">string</span> <span class="token operator">{</span>
-    <span class="token keyword">if</span> u<span class="token operator">.</span>Role <span class="token operator">==</span> <span class="token string">&quot;admin&quot;</span> <span class="token operator">{</span>
-        <span class="token keyword">return</span> <span class="token string">&quot;admin_users&quot;</span>
-    <span class="token operator">}</span> <span class="token keyword">else</span> <span class="token operator">{</span>
-        <span class="token keyword">return</span> <span class="token string">&quot;users&quot;</span>
-    <span class="token operator">}</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">func</span> (u User) TableName() <span class="hljs-typename">string</span> {
+    <span class="hljs-keyword">if</span> u.Role == <span class="hljs-string">&quot;admin&quot;</span> {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;admin_users&quot;</span>
+    } <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;users&quot;</span>
+    }
+}
 
-<span class="token comment" spellcheck="true">// Disable table name&apos;s pluralization globally</span>
-db<span class="token operator">.</span><span class="token function">SingularTable<span class="token punctuation">(</span></span><span class="token boolean">true</span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// if set this to true, `User`&apos;s default table name will be `user`, table name setted with `TableName` won&apos;t be affected</span>
+<span class="hljs-comment">// Disable table name&apos;s pluralization globally</span>
+db.SingularTable(<span class="hljs-constant">true</span>) <span class="hljs-comment">// if set this to true, `User`&apos;s default table name will be `user`, table name setted with `TableName` won&apos;t be affected</span>
 </code></pre>
 <h3 id="column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</h3>
-<pre><code class="lang-go"><span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-  ID <span class="token builtin">uint</span>             <span class="token comment" spellcheck="true">// column name will be `id`</span>
-  Name <span class="token builtin">string</span>         <span class="token comment" spellcheck="true">// column name will be `name`</span>
-  Birthday time<span class="token operator">.</span>Time  <span class="token comment" spellcheck="true">// column name will be `birthday`</span>
-  CreatedAt time<span class="token operator">.</span>Time <span class="token comment" spellcheck="true">// column name will be `created_at`</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  ID <span class="hljs-typename">uint</span>             <span class="hljs-comment">// column name will be `id`</span>
+  Name <span class="hljs-typename">string</span>         <span class="hljs-comment">// column name will be `name`</span>
+  Birthday time.Time  <span class="hljs-comment">// column name will be `birthday`</span>
+  CreatedAt time.Time <span class="hljs-comment">// column name will be `created_at`</span>
+}
 
-<span class="token keyword">type</span> Animal <span class="token keyword">struct</span> <span class="token operator">{</span>
-    AnimalId    <span class="token builtin">int64</span>     <span class="token string">`gorm:&quot;column:beast_id&quot;`</span>         <span class="token comment" spellcheck="true">// set column name to `beast_id`</span>
-    Birthday    time<span class="token operator">.</span>Time <span class="token string">`gorm:&quot;column:day_of_the_beast&quot;`</span> <span class="token comment" spellcheck="true">// set column name to `day_of_the_beast`</span>
-    Age         <span class="token builtin">int64</span>     <span class="token string">`gorm:&quot;column:age_of_the_beast&quot;`</span> <span class="token comment" spellcheck="true">// set column name to `age_of_the_beast`</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
+    AnimalId    <span class="hljs-typename">int64</span>     <span class="hljs-string">`gorm:&quot;column:beast_id&quot;`</span>         <span class="hljs-comment">// set column name to `beast_id`</span>
+    Birthday    time.Time <span class="hljs-string">`gorm:&quot;column:day_of_the_beast&quot;`</span> <span class="hljs-comment">// set column name to `day_of_the_beast`</span>
+    Age         <span class="hljs-typename">int64</span>     <span class="hljs-string">`gorm:&quot;column:age_of_the_beast&quot;`</span> <span class="hljs-comment">// set column name to `age_of_the_beast`</span>
+}
 </code></pre>
 <h3 id="field-id-as-primary-key">Field <code>ID</code> as primary key</h3>
-<pre><code class="lang-go"><span class="token keyword">type</span> User <span class="token keyword">struct</span> <span class="token operator">{</span>
-  ID <span class="token builtin">uint</span>  <span class="token comment" spellcheck="true">// field named `ID` is the default primary key for `User`</span>
-  Name <span class="token builtin">string</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  ID <span class="hljs-typename">uint</span>  <span class="hljs-comment">// field named `ID` is the default primary key for `User`</span>
+  Name <span class="hljs-typename">string</span>
+}
 
-<span class="token comment" spellcheck="true">// your could also use tag `primary_key` to set other field as primary key</span>
-<span class="token keyword">type</span> Animal <span class="token keyword">struct</span> <span class="token operator">{</span>
-  AnimalId <span class="token builtin">int64</span> <span class="token string">`gorm:&quot;primary_key&quot;`</span> <span class="token comment" spellcheck="true">// set AnimalId to be primary key</span>
-  Name     <span class="token builtin">string</span>
-  Age      <span class="token builtin">int64</span>
-<span class="token operator">}</span>
+<span class="hljs-comment">// your could also use tag `primary_key` to set other field as primary key</span>
+<span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
+  AnimalId <span class="hljs-typename">int64</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span> <span class="hljs-comment">// set AnimalId to be primary key</span>
+  Name     <span class="hljs-typename">string</span>
+  Age      <span class="hljs-typename">int64</span>
+}
 </code></pre>
 <h3 id="field-createdat-used-to-store-records-created-time">Field <code>CreatedAt</code> used to store record&apos;s created time</h3>
 <p>Create records having <code>CreatedAt</code> field will set it to current time.</p>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">Create<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span> <span class="token comment" spellcheck="true">// will set `CreatedAt` to current time</span>
+<pre><code class="lang-go">db.Create(&amp;user) <span class="hljs-comment">// will set `CreatedAt` to current time</span>
 
-<span class="token comment" spellcheck="true">// To change its value, you could use `Update`</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Update<span class="token punctuation">(</span></span><span class="token string">&quot;CreatedAt&quot;</span><span class="token operator">,</span> time<span class="token operator">.</span><span class="token function">Now<span class="token punctuation">(</span></span><span class="token operator">)</span><span class="token operator">)</span>
+<span class="hljs-comment">// To change its value, you could use `Update`</span>
+db.Model(&amp;user).Update(<span class="hljs-string">&quot;CreatedAt&quot;</span>, time.Now())
 </code></pre>
 <h3 id="use-updatedat-used-to-store-records-updated-time">Use <code>UpdatedAt</code> used to store record&apos;s updated time</h3>
 <p>Save records having <code>UpdatedAt</code> field will set it to current time.</p>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">Save<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span> <span class="token comment" spellcheck="true">// will set `UpdatedAt` to current time</span>
-db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Update<span class="token punctuation">(</span></span><span class="token string">&quot;name&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// will set `UpdatedAt` to current time</span>
+<pre><code class="lang-go">db.Save(&amp;user) <span class="hljs-comment">// will set `UpdatedAt` to current time</span>
+db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>) <span class="hljs-comment">// will set `UpdatedAt` to current time</span>
 </code></pre>
 <h3 id="use-deletedat-to-store-records-deleted-time-if-field-exists">Use <code>DeletedAt</code> to store record&apos;s deleted time if field exists</h3>
 <p>Delete records having <code>DeletedAt</code> field, it won&apos;t delete the record from database, but will set field <code>DeletedAt</code>&apos;s value to current time.</p>
@@ -734,7 +734,7 @@ db<span class="token operator">.</span><span class="token function">Model<span c
     
     <script>
     require(["gitbook"], function(gitbook) {
-        gitbook.start({"fontsettings":{"theme":"night","family":"sans","size":4},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"prism":{},"anker-enable":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
+        gitbook.start({"fontsettings":{"theme":"night","size":2,"family":"sans"},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"anker-enable":{},"highlight":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
     });
     </script>
 

@@ -16,7 +16,7 @@
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-prism/prism.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
                 
@@ -68,7 +68,7 @@
     data-chapter-title="Getting Started with GORM"
     data-filepath="README.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:35:06 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -602,30 +602,30 @@
 <h2 id="install">Install</h2>
 <pre><code>go get -u github.com/jinzhu/gorm
 </code></pre><h2 id="basic-usage">Basic Usage</h2>
-<pre><code class="lang-go"><span class="token keyword">type</span> Product <span class="token keyword">struct</span> <span class="token operator">{</span>
-  gorm<span class="token operator">.</span>Model
-  Code <span class="token builtin">string</span>
-  Price <span class="token builtin">uint</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Code <span class="hljs-typename">string</span>
+  Price <span class="hljs-typename">uint</span>
+}
 
-<span class="token keyword">var</span> db <span class="token operator">*</span>gorm<span class="token operator">.</span>DB
+<span class="hljs-keyword">var</span> db *gorm.DB
 
-<span class="token keyword">func</span> <span class="token function">init<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  <span class="token keyword">var</span> err <span class="token builtin">error</span>
-  db<span class="token operator">,</span> err <span class="token operator">=</span> gorm<span class="token operator">.</span><span class="token function">Open<span class="token punctuation">(</span></span><span class="token string">&quot;sqlite&quot;</span><span class="token operator">,</span> <span class="token string">&quot;test.db&quot;</span><span class="token operator">)</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">func</span> init() {
+  <span class="hljs-keyword">var</span> err error
+  db, err = gorm.Open(<span class="hljs-string">&quot;sqlite&quot;</span>, <span class="hljs-string">&quot;test.db&quot;</span>)
+}
 
-<span class="token keyword">func</span> <span class="token function">main<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  db<span class="token operator">.</span><span class="token function">Create<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>Product<span class="token operator">{</span>Code<span class="token operator">:</span> <span class="token string">&quot;L1212&quot;</span><span class="token operator">,</span> Price<span class="token operator">:</span> <span class="token number">1000</span><span class="token operator">}</span><span class="token operator">)</span>
+<span class="hljs-keyword">func</span> main() {
+  db.Create(&amp;Product{Code: <span class="hljs-string">&quot;L1212&quot;</span>, Price: <span class="hljs-number">1000</span>})
 
-  <span class="token keyword">var</span> product Product
-  db<span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>product<span class="token operator">,</span> <span class="token number">1</span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// find product with id 1</span>
-  db<span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>product<span class="token operator">,</span> <span class="token string">&quot;code = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;L1212&quot;</span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// find product with code l1212</span>
+  <span class="hljs-keyword">var</span> product Product
+  db.First(&amp;product, <span class="hljs-number">1</span>) <span class="hljs-comment">// find product with id 1</span>
+  db.First(&amp;product, <span class="hljs-string">&quot;code = ?&quot;</span>, <span class="hljs-string">&quot;L1212&quot;</span>) <span class="hljs-comment">// find product with code l1212</span>
 
-  db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>product<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Update<span class="token punctuation">(</span></span><span class="token string">&quot;Price&quot;</span><span class="token operator">,</span> <span class="token number">2000</span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// update product&apos;s price to 2000</span>
+  db.Model(&amp;product).Update(<span class="hljs-string">&quot;Price&quot;</span>, <span class="hljs-number">2000</span>) <span class="hljs-comment">// update product&apos;s price to 2000</span>
 
-  db<span class="token operator">.</span><span class="token function">Delete<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>product<span class="token operator">)</span> <span class="token comment" spellcheck="true">// delete product</span>
-<span class="token operator">}</span>
+  db.Delete(&amp;product) <span class="hljs-comment">// delete product</span>
+}
 </code></pre>
 <h1 id="author">Author</h1>
 <p><strong>jinzhu</strong></p>
@@ -691,7 +691,7 @@
     
     <script>
     require(["gitbook"], function(gitbook) {
-        gitbook.start({"fontsettings":{"theme":"night","family":"sans","size":4},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"prism":{},"anker-enable":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
+        gitbook.start({"fontsettings":{"theme":"night","size":2,"family":"sans"},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"anker-enable":{},"highlight":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
     });
     </script>
 

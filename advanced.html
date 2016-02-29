@@ -17,7 +17,7 @@ The database handle returned from db.Begin() should be used for all oper">
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-prism/prism.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
                 
@@ -71,7 +71,7 @@ The database handle returned from db.Begin() should be used for all oper">
     data-chapter-title="Advanced Usage"
     data-filepath="advanced.md"
     data-basepath=""
-    data-revision="Mon Feb 29 2016 21:35:06 GMT+0800 (CST)"
+    data-revision="Mon Feb 29 2016 21:51:55 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -602,119 +602,119 @@ The database handle returned from db.Begin() should be used for all oper">
 </ul>
 <!-- toc stop -->
 <h2 id="error-handling">Error Handling</h2>
-<pre><code class="lang-go">query <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span>
-query <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Limit<span class="token punctuation">(</span></span><span class="token number">10</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Find<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>users<span class="token operator">)</span>
-<span class="token comment" spellcheck="true">// query.Error will return the last happened error</span>
+<pre><code class="lang-go">query := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
+query := db.First(&amp;user).Limit(<span class="hljs-number">10</span>).Find(&amp;users)
+<span class="hljs-comment">// query.Error will return the last happened error</span>
 
-<span class="token comment" spellcheck="true">// So you could do error handing in your application like this:</span>
-<span class="token keyword">if</span> err <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span>Error<span class="token operator">;</span> err <span class="token operator">!=</span> <span class="token boolean">nil</span> <span class="token operator">{</span>
-    <span class="token comment" spellcheck="true">// error handling...</span>
-<span class="token operator">}</span>
+<span class="hljs-comment">// So you could do error handing in your application like this:</span>
+<span class="hljs-keyword">if</span> err := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user).Error; err != <span class="hljs-constant">nil</span> {
+    <span class="hljs-comment">// error handling...</span>
+}
 
-<span class="token comment" spellcheck="true">// RecordNotFound</span>
-<span class="token comment" spellcheck="true">// If no record found when you query data, gorm will return RecordNotFound error, you could check it like this:</span>
-db<span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;hello world&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span>Error <span class="token operator">==</span> gorm<span class="token operator">.</span>RecordNotFound
-<span class="token comment" spellcheck="true">// Or use the shortcut method</span>
-db<span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;hello world&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">RecordNotFound<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<span class="hljs-comment">// RecordNotFound</span>
+<span class="hljs-comment">// If no record found when you query data, gorm will return RecordNotFound error, you could check it like this:</span>
+db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;User{}).Error == gorm.RecordNotFound
+<span class="hljs-comment">// Or use the shortcut method</span>
+db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;user).RecordNotFound()
 
-<span class="token keyword">if</span> db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>user<span class="token operator">)</span><span class="token operator">.</span><span class="token function">Related<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>credit_card<span class="token operator">)</span><span class="token operator">.</span><span class="token function">RecordNotFound<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-    <span class="token comment" spellcheck="true">// no credit card found error handling</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">if</span> db.Model(&amp;user).Related(&amp;credit_card).RecordNotFound() {
+    <span class="hljs-comment">// no credit card found error handling</span>
+}
 </code></pre>
 <h2 id="transactions">Transactions</h2>
 <p>To perform a set of operations within a transaction, the general flow is as below.
 The database handle returned from <code>db.Begin()</code> should be used for all operations within the transaction.
 (Note that all individual save and delete operations are run in a transaction by default.)</p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// begin</span>
-tx <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Begin<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// begin</span>
+tx := db.Begin()
 
-<span class="token comment" spellcheck="true">// do some database operations (use &apos;tx&apos; from this point, not &apos;db&apos;)</span>
-tx<span class="token operator">.</span><span class="token function">Create<span class="token punctuation">(</span></span><span class="token operator">...</span><span class="token operator">)</span>
-<span class="token operator">...</span>
+<span class="hljs-comment">// do some database operations (use &apos;tx&apos; from this point, not &apos;db&apos;)</span>
+tx.Create(...)
+...
 
-<span class="token comment" spellcheck="true">// rollback in case of error</span>
-tx<span class="token operator">.</span><span class="token function">Rollback<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<span class="hljs-comment">// rollback in case of error</span>
+tx.Rollback()
 
-<span class="token comment" spellcheck="true">// Or commit if all is ok</span>
-tx<span class="token operator">.</span><span class="token function">Commit<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<span class="hljs-comment">// Or commit if all is ok</span>
+tx.Commit()
 </code></pre>
 <h3 id="a-specific-example">A Specific Example</h3>
-<pre><code class="lang-go"><span class="token keyword">func</span> <span class="token function">CreateAnimals<span class="token punctuation">(</span></span>db <span class="token operator">*</span>gorm<span class="token operator">.</span>DB<span class="token operator">)</span> err <span class="token operator">{</span>
-  tx <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Begin<span class="token punctuation">(</span></span><span class="token operator">)</span>
-  <span class="token comment" spellcheck="true">// Note the use of tx as the database handle once you are within a transaction</span>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> CreateAnimals(db *gorm.DB) err {
+  tx := db.Begin()
+  <span class="hljs-comment">// Note the use of tx as the database handle once you are within a transaction</span>
 
-  <span class="token keyword">if</span> err <span class="token operator">:=</span> tx<span class="token operator">.</span><span class="token function">Create<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>Animal<span class="token operator">{</span>Name<span class="token operator">:</span> <span class="token string">&quot;Giraffe&quot;</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span>Error<span class="token operator">;</span> err <span class="token operator">!=</span> <span class="token boolean">nil</span> <span class="token operator">{</span>
-     tx<span class="token operator">.</span><span class="token function">Rollback<span class="token punctuation">(</span></span><span class="token operator">)</span>
-     <span class="token keyword">return</span> err
-  <span class="token operator">}</span>
+  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Giraffe&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
+     tx.Rollback()
+     <span class="hljs-keyword">return</span> err
+  }
 
-  <span class="token keyword">if</span> err <span class="token operator">:=</span> tx<span class="token operator">.</span><span class="token function">Create<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>Animal<span class="token operator">{</span>Name<span class="token operator">:</span> <span class="token string">&quot;Lion&quot;</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span>Error<span class="token operator">;</span> err <span class="token operator">!=</span> <span class="token boolean">nil</span> <span class="token operator">{</span>
-     tx<span class="token operator">.</span><span class="token function">Rollback<span class="token punctuation">(</span></span><span class="token operator">)</span>
-     <span class="token keyword">return</span> err
-  <span class="token operator">}</span>
+  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Lion&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
+     tx.Rollback()
+     <span class="hljs-keyword">return</span> err
+  }
 
-  tx<span class="token operator">.</span><span class="token function">Commit<span class="token punctuation">(</span></span><span class="token operator">)</span>
-  <span class="token keyword">return</span> <span class="token boolean">nil</span>
-<span class="token operator">}</span>
+  tx.Commit()
+  <span class="hljs-keyword">return</span> <span class="hljs-constant">nil</span>
+}
 </code></pre>
 <h2 id="raw-sql">Raw SQL</h2>
-<pre><code class="lang-go">db<span class="token operator">.</span><span class="token function">Exec<span class="token punctuation">(</span></span><span class="token string">&quot;DROP TABLE users;&quot;</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">Exec<span class="token punctuation">(</span></span><span class="token string">&quot;UPDATE orders SET shipped_at=? WHERE id IN (?)&quot;</span><span class="token operator">,</span> time<span class="token operator">.</span>Now<span class="token operator">,</span> <span class="token operator">[</span><span class="token operator">]</span><span class="token builtin">int64</span><span class="token operator">{</span><span class="token number">11</span><span class="token operator">,</span><span class="token number">22</span><span class="token operator">,</span><span class="token number">33</span><span class="token operator">}</span><span class="token operator">)</span>
+<pre><code class="lang-go">db.Exec(<span class="hljs-string">&quot;DROP TABLE users;&quot;</span>)
+db.Exec(<span class="hljs-string">&quot;UPDATE orders SET shipped_at=? WHERE id IN (?)&quot;</span>, time.Now, []<span class="hljs-typename">int64</span>{<span class="hljs-number">11</span>,<span class="hljs-number">22</span>,<span class="hljs-number">33</span>})
 </code></pre>
 <h2 id="row--rows">Row &amp; Rows</h2>
 <p>It is even possible to get query result as <code>*sql.Row</code> or <code>*sql.Rows</code></p>
-<pre><code class="lang-go">row <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Table<span class="token punctuation">(</span></span><span class="token string">&quot;users&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Select<span class="token punctuation">(</span></span><span class="token string">&quot;name, age&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Row<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// (*sql.Row)</span>
-row<span class="token operator">.</span><span class="token function">Scan<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>name<span class="token operator">,</span> <span class="token operator">&amp;</span>age<span class="token operator">)</span>
+<pre><code class="lang-go">row := db.Table(<span class="hljs-string">&quot;users&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age&quot;</span>).Row() <span class="hljs-comment">// (*sql.Row)</span>
+row.Scan(&amp;name, &amp;age)
 
-rows<span class="token operator">,</span> err <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Select<span class="token punctuation">(</span></span><span class="token string">&quot;name, age, email&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Rows<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// (*sql.Rows, error)</span>
-<span class="token keyword">defer</span> rows<span class="token operator">.</span><span class="token function">Close<span class="token punctuation">(</span></span><span class="token operator">)</span>
-<span class="token keyword">for</span> rows<span class="token operator">.</span><span class="token function">Next<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-    <span class="token operator">...</span>
-    rows<span class="token operator">.</span><span class="token function">Scan<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>name<span class="token operator">,</span> <span class="token operator">&amp;</span>age<span class="token operator">,</span> <span class="token operator">&amp;</span>email<span class="token operator">)</span>
-    <span class="token operator">...</span>
-<span class="token operator">}</span>
+rows, err := db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age, email&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
+<span class="hljs-keyword">defer</span> rows.Close()
+<span class="hljs-keyword">for</span> rows.Next() {
+    ...
+    rows.Scan(&amp;name, &amp;age, &amp;email)
+    ...
+}
 
-<span class="token comment" spellcheck="true">// Raw SQL</span>
-rows<span class="token operator">,</span> err <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Raw<span class="token punctuation">(</span></span><span class="token string">&quot;select name, age, email from users where name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Rows<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// (*sql.Rows, error)</span>
-<span class="token keyword">defer</span> rows<span class="token operator">.</span><span class="token function">Close<span class="token punctuation">(</span></span><span class="token operator">)</span>
-<span class="token keyword">for</span> rows<span class="token operator">.</span><span class="token function">Next<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-    <span class="token operator">...</span>
-    rows<span class="token operator">.</span><span class="token function">Scan<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>name<span class="token operator">,</span> <span class="token operator">&amp;</span>age<span class="token operator">,</span> <span class="token operator">&amp;</span>email<span class="token operator">)</span>
-    <span class="token operator">...</span>
-<span class="token operator">}</span>
+<span class="hljs-comment">// Raw SQL</span>
+rows, err := db.Raw(<span class="hljs-string">&quot;select name, age, email from users where name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
+<span class="hljs-keyword">defer</span> rows.Close()
+<span class="hljs-keyword">for</span> rows.Next() {
+    ...
+    rows.Scan(&amp;name, &amp;age, &amp;email)
+    ...
+}
 </code></pre>
 <h3 id="scan-rows">Scan Rows</h3>
-<pre><code class="lang-go">rows<span class="token operator">,</span> err <span class="token operator">:=</span> db<span class="token operator">.</span><span class="token function">Model<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Select<span class="token punctuation">(</span></span><span class="token string">&quot;name, age, email&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Rows<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token comment" spellcheck="true">// (*sql.Rows, error)</span>
-<span class="token keyword">defer</span> rows<span class="token operator">.</span><span class="token function">Close<span class="token punctuation">(</span></span><span class="token operator">)</span>
+<pre><code class="lang-go">rows, err := db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age, email&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
+<span class="hljs-keyword">defer</span> rows.Close()
 
-<span class="token keyword">for</span> rows<span class="token operator">.</span><span class="token function">Next<span class="token punctuation">(</span></span><span class="token operator">)</span> <span class="token operator">{</span>
-  <span class="token keyword">var</span> user User
-  db<span class="token operator">.</span><span class="token function">ScanRows<span class="token punctuation">(</span></span>rows<span class="token operator">,</span> <span class="token operator">&amp;</span>user<span class="token operator">)</span>
-  <span class="token comment" spellcheck="true">// do something</span>
-<span class="token operator">}</span>
+<span class="hljs-keyword">for</span> rows.Next() {
+  <span class="hljs-keyword">var</span> user User
+  db.ScanRows(rows, &amp;user)
+  <span class="hljs-comment">// do something</span>
+}
 </code></pre>
 <h2 id="composite-primary-key">Composite Primary Key</h2>
-<pre><code class="lang-go"><span class="token keyword">type</span> Product <span class="token keyword">struct</span> <span class="token operator">{</span>
-    ID           <span class="token builtin">string</span> <span class="token string">`gorm:&quot;primary_key&quot;`</span>
-    LanguageCode <span class="token builtin">string</span> <span class="token string">`gorm:&quot;primary_key&quot;`</span>
-<span class="token operator">}</span>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
+    ID           <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+    LanguageCode <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+}
 </code></pre>
 <h2 id="logger">Logger</h2>
 <p>Gorm has built-in logger support</p>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Enable Logger</span>
-db<span class="token operator">.</span><span class="token function">LogMode<span class="token punctuation">(</span></span><span class="token boolean">true</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Enable Logger</span>
+db.LogMode(<span class="hljs-constant">true</span>)
 
-<span class="token comment" spellcheck="true">// Diable Logger</span>
-db<span class="token operator">.</span><span class="token function">LogMode<span class="token punctuation">(</span></span><span class="token boolean">false</span><span class="token operator">)</span>
+<span class="hljs-comment">// Diable Logger</span>
+db.LogMode(<span class="hljs-constant">false</span>)
 
-<span class="token comment" spellcheck="true">// Debug a single operation</span>
-db<span class="token operator">.</span><span class="token function">Debug<span class="token punctuation">(</span></span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">Where<span class="token punctuation">(</span></span><span class="token string">&quot;name = ?&quot;</span><span class="token operator">,</span> <span class="token string">&quot;jinzhu&quot;</span><span class="token operator">)</span><span class="token operator">.</span><span class="token function">First<span class="token punctuation">(</span></span><span class="token operator">&amp;</span>User<span class="token operator">{</span><span class="token operator">}</span><span class="token operator">)</span>
+<span class="hljs-comment">// Debug a single operation</span>
+db.Debug().Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;User{})
 </code></pre>
 <p><img src="https:/raw.github.com/jinzhu/gorm/master/doc/logger.png" alt="logger"></p>
 <h3 id="customize-logger">Customize Logger</h3>
-<pre><code class="lang-go"><span class="token comment" spellcheck="true">// Refer gorm&apos;s default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files</span>
-db<span class="token operator">.</span><span class="token function">SetLogger<span class="token punctuation">(</span></span>gorm<span class="token operator">.</span>Logger<span class="token operator">{</span>revel<span class="token operator">.</span>TRACE<span class="token operator">}</span><span class="token operator">)</span>
-db<span class="token operator">.</span><span class="token function">SetLogger<span class="token punctuation">(</span></span>log<span class="token operator">.</span><span class="token function">New<span class="token punctuation">(</span></span>os<span class="token operator">.</span>Stdout<span class="token operator">,</span> <span class="token string">&quot;\r\n&quot;</span><span class="token operator">,</span> <span class="token number">0</span><span class="token operator">)</span><span class="token operator">)</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Refer gorm&apos;s default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files</span>
+db.SetLogger(gorm.Logger{revel.TRACE})
+db.SetLogger(log.New(os.Stdout, <span class="hljs-string">&quot;\r\n&quot;</span>, <span class="hljs-number">0</span>))
 </code></pre>
 
                             
@@ -773,7 +773,7 @@ db<span class="token operator">.</span><span class="token function">SetLogger<sp
     
     <script>
     require(["gitbook"], function(gitbook) {
-        gitbook.start({"fontsettings":{"theme":"night","family":"sans","size":4},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"prism":{},"anker-enable":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
+        gitbook.start({"fontsettings":{"theme":"night","size":2,"family":"sans"},"toc":{"addClass":true,"className":"toc"},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"base":"https://github.com/jinzhu/gorm/edit/gh-pages","label":"Edit This Page"},"anker-enable":{},"highlight":{},"search":{"maxIndexSize":1000000},"sharing":{"all":["facebook","google","instapaper","twitter","weibo"],"facebook":true,"google":false,"instapaper":false,"twitter":true,"vk":false,"weibo":false},"theme-default":{"styles":{"ebook":"styles/ebook.css","epub":"styles/epub.css","mobi":"styles/mobi.css","pdf":"styles/pdf.css","print":"styles/print.css","website":"styles/website.css"}}});
     });
     </script>
 

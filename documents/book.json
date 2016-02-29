@@ -1,13 +1,12 @@
 {
   "title": "GORM Guide",
   "plugins": [
-    "-highlight", "prism", "toc", "github", "edit-link", "anker-enable"
+    "toc", "github", "edit-link", "anker-enable"
   ],
   "pluginsConfig": {
     "fontsettings": {
       "theme": "night",
-      "family": "sans",
-      "size": 4
+      "size": 2
     },
     "toc": {
       "addClass": true,
