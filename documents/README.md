@@ -30,7 +30,7 @@ go get -u github.com/jinzhu/gorm
 
 ## Upgrading
 
-[Change Log](http://jinzhu.github.io/gorm/changelog.html)
+[Change Log](changelog.html)
 
 ## Basic Usage
 
