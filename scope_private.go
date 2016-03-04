@@ -618,6 +618,11 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
 	var keyName = fmt.Sprintf("%s_%s_%s_foreign", scope.TableName(), field, dest)
 	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
+
+	if scope.Dialect().HasForeignKey(scope, scope.TableName(), keyName) {
+		return
+	}
+
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.QuoteIfPossible(keyName), scope.QuoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
 }

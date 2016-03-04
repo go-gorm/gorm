@@ -56,6 +56,13 @@ func (mysql) SqlTag(value reflect.Value, size int, autoIncrease bool) string {
 	panic(fmt.Sprintf("invalid sql type %s (%s) for mysql", value.Type().Name(), value.Kind().String()))
 }
 
+func (s mysql) HasForeignKey(scope *Scope, tableName string, fkName string) bool {
+	var count int
+	s.RawScanInt(scope, &count, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=? AND TABLE_NAME=? AND CONSTRAINT_NAME=? AND CONSTRAINT_TYPE='FOREIGN KEY'",
+		s.CurrentDatabase(scope), tableName, fkName)
+	return count > 0
+}
+
 func (mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

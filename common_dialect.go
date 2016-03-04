@@ -95,6 +95,13 @@ func (c commonDialect) HasIndex(scope *Scope, tableName string, indexName string
 	return count > 0
 }
 
+func (c commonDialect) HasForeignKey(scope *Scope, tableName string, fkName string) bool {
+	// Checking if a foreign key constraint exists is DBMS specific. In order to preserve
+	// the previous logic of AddForeignKey, we are always returning false for dialects which do
+	// not implement this check.
+	return false
+}
+
 func (commonDialect) RemoveIndex(scope *Scope, indexName string) {
 	scope.Err(scope.NewDB().Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, scope.QuotedTableName())).Error)
 }
