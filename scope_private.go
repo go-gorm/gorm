@@ -230,8 +230,6 @@ func (scope *Scope) whereSql() (sql string) {
 	return
 }
 
-var hasCountRegexp = regexp.MustCompile(`(?i)count\(.+\)`)
-
 func (scope *Scope) selectSql() string {
 	if len(scope.Search.selects) == 0 {
 		if len(scope.Search.joinConditions) > 0 {
@@ -239,9 +237,7 @@ func (scope *Scope) selectSql() string {
 		}
 		return "*"
 	}
-	sql := scope.buildSelectQuery(scope.Search.selects)
-	scope.Search.countingQuery = (len(scope.Search.group) == 0) && hasCountRegexp.MatchString(sql)
-	return sql
+	return scope.buildSelectQuery(scope.Search.selects)
 }
 
 func (scope *Scope) orderSql() string {
@@ -391,6 +387,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 
 func (scope *Scope) count(value interface{}) *Scope {
 	scope.Search.Select("count(*)")
+	scope.Search.countingQuery = true
 	scope.Err(scope.row().Scan(value))
 	return scope
 }
