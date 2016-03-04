@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"regexp"
 	"time"
+	"unicode"
 )
 
 type logger interface {
@@ -48,7 +49,11 @@ func (logger Logger) Print(values ...interface{}) {
 					if t, ok := value.(time.Time); ok {
 						formattedValues = append(formattedValues, fmt.Sprintf("'%v'", t.Format(time.RFC3339)))
 					} else if b, ok := value.([]byte); ok {
-						formattedValues = append(formattedValues, fmt.Sprintf("'%v'", string(b)))
+						if str := string(b); isPrintable(str) {
+							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", str))
+						} else {
+							formattedValues = append(formattedValues, "'<binary>'")
+						}
 					} else if r, ok := value.(driver.Valuer); ok {
 						if value, err := r.Value(); err == nil && value != nil {
 							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", value))
@@ -79,4 +84,13 @@ func (logger Logger) Print(values ...interface{}) {
 		}
 		logger.Println(messages...)
 	}
+}
+
+func isPrintable(s string) bool {
+	for _, r := range s {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
 }
