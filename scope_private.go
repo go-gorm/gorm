@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"crypto/sha1"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -616,10 +617,21 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	var keyName = fmt.Sprintf("%s_%s_%s_foreign", scope.TableName(), field, dest)
-	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
-	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.QuoteIfPossible(keyName), scope.QuoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
+	getHash := func(rawKey string) string {
+		h := sha1.New()
+		h.Write([]byte(rawKey))
+		bs := h.Sum(nil)
+		return fmt.Sprintf("%x", bs)
+	}
+	keyName := scope.TableName() + field + dest
+	hash := getHash(keyName)
+	query := `ALTER TABLE ` + scope.QuotedTableName() +
+		` ADD CONSTRAINT ` + "`" + hash + "`" +
+		` FOREIGN KEY (` + scope.QuoteIfPossible(field) + `)` +
+		` REFERENCES ` + dest +
+		` ON DELETE ` + onDelete +
+		` ON UPDATE ` + onUpdate + `;`
+	scope.Raw(query).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
