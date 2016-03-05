@@ -25,6 +25,8 @@ type Dialect interface {
 
 	// HasIndex check has index or not
 	HasIndex(tableName string, indexName string) bool
+	// HasForeignKey check has foreign key or not
+	HasForeignKey(tableName string, foreignKeyName string) bool
 	// RemoveIndex remove index
 	RemoveIndex(tableName string, indexName string) error
 	// HasTable check has table or not

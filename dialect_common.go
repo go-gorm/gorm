@@ -95,6 +95,10 @@ func (s commonDialect) RemoveIndex(tableName string, indexName string) error {
 	return err
 }
 
+func (s commonDialect) HasForeignKey(tableName string, foreignKeyName string) bool {
+	return false
+}
+
 func (s commonDialect) HasTable(tableName string) bool {
 	var count int
 	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", s.currentDatabase(), tableName).Scan(&count)
