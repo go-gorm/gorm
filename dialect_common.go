@@ -16,6 +16,10 @@ func init() {
 	RegisterDialect("common", &commonDialect{})
 }
 
+func (commonDialect) GetName() string {
+	return "common"
+}
+
 func (s *commonDialect) SetDB(db *sql.DB) {
 	s.db = db
 }

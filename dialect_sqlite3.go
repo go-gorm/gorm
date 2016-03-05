@@ -16,6 +16,10 @@ func init() {
 	RegisterDialect("sqlite3", &sqlite3{})
 }
 
+func (sqlite3) GetName() string {
+	return "sqlite3"
+}
+
 // Get Data Type for Sqlite Dialect
 func (sqlite3) DataTypeOf(field *StructField) string {
 	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)

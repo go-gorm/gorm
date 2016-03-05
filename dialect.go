@@ -10,6 +10,9 @@ import (
 
 // Dialect interface contains behaviors that differ across SQL database
 type Dialect interface {
+	// GetName get dialect's name
+	GetName() string
+
 	// SetDB set db for dialect
 	SetDB(db *sql.DB)
 

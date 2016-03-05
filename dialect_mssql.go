@@ -15,6 +15,10 @@ func init() {
 	RegisterDialect("mssql", &mssql{})
 }
 
+func (mssql) GetName() string {
+	return "mssql"
+}
+
 func (mssql) DataTypeOf(field *StructField) string {
 	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 

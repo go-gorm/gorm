@@ -15,6 +15,10 @@ func init() {
 	RegisterDialect("mysql", &mysql{})
 }
 
+func (mysql) GetName() string {
+	return "mysql"
+}
+
 func (mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

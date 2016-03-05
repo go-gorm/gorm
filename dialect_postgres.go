@@ -15,6 +15,10 @@ func init() {
 	RegisterDialect("postgres", &postgres{})
 }
 
+func (postgres) GetName() string {
+	return "postgres"
+}
+
 func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }
