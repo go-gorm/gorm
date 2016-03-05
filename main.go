@@ -64,7 +64,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		db = DB{
 			dialect:   newDialect(dialect, dbSql.(*sql.DB)),
 			logger:    defaultLogger,
-			callbacks: defaultCallback,
+			callbacks: DefaultCallback,
 			source:    source,
 			values:    map[string]interface{}{},
 			db:        dbSql,

@@ -7,15 +7,15 @@ import (
 
 // Define callbacks for creating
 func init() {
-	defaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
-	defaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
-	defaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	defaultCallback.Create().Register("gorm:update_time_stamp", updateTimeStampForCreateCallback)
-	defaultCallback.Create().Register("gorm:create", createCallback)
-	defaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
-	defaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
-	defaultCallback.Create().Register("gorm:after_create", afterCreateCallback)
-	defaultCallback.Create().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+	DefaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
+	DefaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	DefaultCallback.Create().Register("gorm:update_time_stamp", updateTimeStampForCreateCallback)
+	DefaultCallback.Create().Register("gorm:create", createCallback)
+	DefaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
+	DefaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	DefaultCallback.Create().Register("gorm:after_create", afterCreateCallback)
+	DefaultCallback.Create().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }
 
 // beforeCreateCallback will invoke `BeforeSave`, `BeforeCreate` method before creating
