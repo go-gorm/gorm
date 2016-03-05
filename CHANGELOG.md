@@ -4,7 +4,7 @@
 
 #### Breaking Changes
 
-* **`gorm.Open` return type `*gorm.DB` instead of `gorm.DB`**
+* **`gorm.Open` return `*gorm.DB` instead of `gorm.DB`**
 
 * **Updating will only update changed fields**
 
@@ -52,3 +52,5 @@
   So field `HTTP`'s db name will be `http` not `h_t_t_p`, but some other initialisms like `SKU` that not in golint, it's db name will be `s_k_u`, this release fixed this, any upper case initialisms should be converted correctly.
 
   If your applications using some upper case initialisms which doesn't exist in [golint](https://github.com/golang/lint/blob/master/lint.go#L702), you need to overwrite generated column name with tag, like `sql:"column:s_k_u"`, or alert your database's column name according to new logic
+
+* **Builtin `Hstore` struct for postgres has been moved to `github.com/jinzhu/gorm/dialects/postgres`**

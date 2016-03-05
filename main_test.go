@@ -4,20 +4,19 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
-
-	_ "github.com/denisenkom/go-mssqldb"
-	testdb "github.com/erikstmartin/go-testdb"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/now"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-
-	"os"
 	"testing"
 	"time"
+
+	"github.com/erikstmartin/go-testdb"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mssql"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/jinzhu/now"
 )
 
 var (
@@ -624,7 +623,7 @@ func TestTimeWithZone(t *testing.T) {
 func TestHstore(t *testing.T) {
 	type Details struct {
 		Id   int64
-		Bulk gorm.Hstore
+		Bulk postgres.Hstore
 	}
 
 	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
