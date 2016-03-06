@@ -724,7 +724,7 @@ db.Where(User{Name: "non_existing"}).Attrs(User{Age: 20}).FirstOrInit(&user)
 //// SELECT * FROM USERS WHERE name = 'non_existing';
 //// user -> User{Name: "non_existing", Age: 20}
 
-db.Where(User{Name: "noexisting_user"}).Attrs("age", 20).FirstOrInit(&user)
+db.Where(User{Name: "non_existing"}).Attrs("age", 20).FirstOrInit(&user)
 //// SELECT * FROM USERS WHERE name = 'non_existing';
 //// user -> User{Name: "non_existing", Age: 20}
 
