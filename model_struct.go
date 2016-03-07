@@ -109,7 +109,7 @@ func getForeignField(column string, fields []*StructField) *StructField {
 	return nil
 }
 
-// GetModelStruct generate model struct & relationships based on struct and tag definition
+// GetModelStruct get value's model struct, relationships based on struct and tag definition
 func (scope *Scope) GetModelStruct() *ModelStruct {
 	var modelStruct ModelStruct
 	// Scope value can't be nil

@@ -26,14 +26,17 @@ type DB struct {
 	joinTableHandlers map[string]JoinTableHandler
 }
 
-// Open open a new db connection, need to import driver first, for example:
+// Open initialize a new db connection, need to import driver first, e.g:
 //
 //     import _ "github.com/go-sql-driver/mysql"
 //     func main() {
 //       db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 //     }
-// GORM has wrapped some drivers, for easier to remember its name, so you could import the mysql driver with
+// GORM has wrapped some drivers, for easier to remember driver's import path, so you could import the mysql driver with
 //    import _ "github.com/jinzhu/gorm/dialects/mysql"
+//    // import _ "github.com/jinzhu/gorm/dialects/postgres"
+//    // import _ "github.com/jinzhu/gorm/dialects/sqlite"
+//    // import _ "github.com/jinzhu/gorm/dialects/mssql"
 func Open(dialect string, args ...interface{}) (*DB, error) {
 	var db DB
 	var err error
@@ -87,7 +90,7 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
-// New initialize a new db connection without any search conditions
+// New clone a new db connection without search conditions
 func (s *DB) New() *DB {
 	clone := s.clone()
 	clone.search = nil
@@ -102,16 +105,14 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
-// CommonDB return the underlying sql.DB or sql.Tx instance.
-// Use of this method is discouraged. It's mainly intended to allow
-// coexistence with legacy non-GORM code.
+// CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() sqlCommon {
 	return s.db
 }
 
-// Callback return Callbacks container, you could add/remove/change callbacks with it
+// Callback return `Callbacks` container, you could add/change/delete callbacks with it
 //     db.Callback().Create().Register("update_created_at", updateCreated)
-// Refer: https://jinzhu.github.io/gorm/development.html#callbacks for more
+// Refer https://jinzhu.github.io/gorm/development.html#callbacks
 func (s *DB) Callback() *Callback {
 	s.parent.callbacks = s.parent.callbacks.clone()
 	return s.parent.callbacks
@@ -138,17 +139,17 @@ func (s *DB) SingularTable(enable bool) {
 	s.parent.singularTable = enable
 }
 
-// Where return a new relation, accepts use `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/curd.html#query
+// Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/curd.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
 }
 
-// Or match before conditions or this one, similar to `Where`
+// Or filter records that match before conditions or this one, similar to `Where`
 func (s *DB) Or(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Or(query, args...).db
 }
 
-// Not don't match current conditions, similar to `Where`
+// Not filter records that don't match current conditions, similar to `Where`
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Not(query, args...).db
 }
@@ -163,18 +164,18 @@ func (s *DB) Offset(offset int) *DB {
 	return s.clone().search.Offset(offset).db
 }
 
-// Order specify order when retrieve records from database, pass `true` as the second argument to overwrite `Order` conditions
+// Order specify order when retrieve records from database, set reorder to `true` to overwrite defined conditions
 func (s *DB) Order(value string, reorder ...bool) *DB {
 	return s.clone().search.Order(value, reorder...).db
 }
 
-// Select When querying, specify fields that you want to retrieve from database, by default, will select all fields;
+// Select specify fields that you want to retrieve from database when querying, by default, will select all fields;
 // When creating/updating, specify fields that you want to save to database
 func (s *DB) Select(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Select(query, args...).db
 }
 
-// Omit specify fields that you want to ignore when save to database when creating/updating
+// Omit specify fields that you want to ignore when saving to database for creating, updating
 func (s *DB) Omit(columns ...string) *DB {
 	return s.clone().search.Omit(columns...).db
 }
@@ -196,7 +197,18 @@ func (s *DB) Joins(query string, args ...interface{}) *DB {
 }
 
 // Scopes pass current database connection to arguments `func(*DB) *DB`, which could be used to add conditions dynamically
-// Refer https://jinzhu.github.io/gorm/curd.html#scopes for more
+//     func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
+//         return db.Where("amount > ?", 1000)
+//     }
+//
+//     func OrderStatus(status []string) func (db *gorm.DB) *gorm.DB {
+//         return func (db *gorm.DB) *gorm.DB {
+//             return db.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
+//         }
+//     }
+//
+//     db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
+// Refer https://jinzhu.github.io/gorm/curd.html#scopes
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	for _, f := range funcs {
 		s = f(s)
@@ -204,7 +216,7 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	return s
 }
 
-// Unscoped return all record including deleted record, refer Soft Delete https://jinzhu.github.io/gorm/curd.html#scopes
+// Unscoped return all record including deleted record, refer Soft Delete https://jinzhu.github.io/gorm/curd.html#soft-delete
 func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }
@@ -245,12 +257,12 @@ func (s *DB) Scan(dest interface{}) *DB {
 	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
 }
 
-// Row return `*sql.Row` with given condtions
+// Row return `*sql.Row` with given conditions
 func (s *DB) Row() *sql.Row {
 	return s.NewScope(s.Value).row()
 }
 
-// Rows return `*sql.Rows` with given condtions
+// Rows return `*sql.Rows` with given conditions
 func (s *DB) Rows() (*sql.Rows, error) {
 	return s.NewScope(s.Value).rows()
 }
@@ -271,6 +283,8 @@ func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 }
 
 // Pluck used to query single column from a model as a map
+//     var ages []int64
+//     db.Find(&users).Pluck("age", &ages)
 func (s *DB) Pluck(column string, value interface{}) *DB {
 	return s.NewScope(s.Value).pluck(column, value).db
 }
@@ -286,6 +300,7 @@ func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
 }
 
 // FirstOrInit find first matched record or initalize a new one with given conditions (only works with struct, map conditions)
+// https://jinzhu.github.io/gorm/curd.html#firstorinit
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := c.First(out, where...); result.Error != nil {
@@ -300,6 +315,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 }
 
 // FirstOrCreate find first matched record or create a new one with given conditions (only works with struct, map conditions)
+// https://jinzhu.github.io/gorm/curd.html#firstorcreate
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := c.First(out, where...); result.Error != nil {
@@ -340,7 +356,7 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 		callCallbacks(s.parent.callbacks.updates).db
 }
 
-// Save update the value in database, if the value doesn't have primary key, will insert it
+// Save update value in database, if the value doesn't have primary key, will insert it
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
@@ -355,7 +371,7 @@ func (s *DB) Create(value interface{}) *DB {
 	return scope.callCallbacks(s.parent.callbacks.creates).db
 }
 
-// Delete delete value that match given conditions, if the value has primary key, then will including the primary key as condition
+// Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
@@ -432,14 +448,19 @@ func (s *DB) Rollback() *DB {
 	return s
 }
 
-// NewRecord check if value's primary key is blank or not
+// NewRecord check if value's primary key is blank
 func (s *DB) NewRecord(value interface{}) bool {
 	return s.clone().NewScope(value).PrimaryKeyZero()
 }
 
-// RecordNotFound check if returning record not found error
+// RecordNotFound check if returning ErrRecordNotFound error
 func (s *DB) RecordNotFound() bool {
-	return s.Error == ErrRecordNotFound
+	for _, err := range s.GetErrors() {
+		if err == ErrRecordNotFound {
+			return true
+		}
+	}
+	return false
 }
 
 // CreateTable create table for models
@@ -460,19 +481,6 @@ func (s *DB) DropTable(values ...interface{}) *DB {
 		}
 
 		db = db.NewScope(value).dropTable().db
-	}
-	return db
-}
-
-// DropTableIfExists drop table for models only when it exists
-func (s *DB) DropTableIfExists(values ...interface{}) *DB {
-	db := s.clone()
-	for _, value := range values {
-		if tableName, ok := value.(string); ok {
-			db = db.Table(tableName)
-		}
-
-		db = db.NewScope(value).dropTableIfExists().db
 	}
 	return db
 }
@@ -539,8 +547,8 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return scope.db
 }
 
-// AddForeignKey Add foreign key to the given scope
-// Example: db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
+// AddForeignKey Add foreign key to the given scope, e.g:
+//     db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
@@ -569,7 +577,8 @@ func (s *DB) Association(column string) *Association {
 	return &Association{Error: err}
 }
 
-// Preload preload column with given conditions
+// Preload preload associations with given conditions
+//    db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
 func (s *DB) Preload(column string, conditions ...interface{}) *DB {
 	return s.clone().search.Preload(column, conditions...).db
 }
@@ -631,7 +640,7 @@ func (s *DB) AddError(err error) error {
 	return err
 }
 
-// GetErrors get happened errors for the db
+// GetErrors get happened errors from the db
 func (s *DB) GetErrors() (errors []error) {
 	if errs, ok := s.Error.(errorsInterface); ok {
 		return errs.GetErrors()

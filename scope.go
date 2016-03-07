@@ -10,7 +10,7 @@ import (
 	"reflect"
 )
 
-// Scope contain any information of current operation when you perform any operation on the database
+// Scope contain current operation's information when you perform any operation on the database
 type Scope struct {
 	Search          *search
 	Value           interface{}
@@ -60,7 +60,7 @@ func (scope *Scope) SkipLeft() {
 	scope.skipLeft = true
 }
 
-// Quote used to quote database column name according to database dialect
+// Quote used to quote string to escape them for database
 func (scope *Scope) Quote(str string) string {
 	if strings.Index(str, ".") != -1 {
 		newStrs := []string{}
@@ -85,7 +85,7 @@ func (scope *Scope) Dialect() Dialect {
 	return scope.db.parent.dialect
 }
 
-// Err write error
+// Err add error to Scope
 func (scope *Scope) Err(err error) error {
 	if err != nil {
 		scope.db.AddError(err)
@@ -126,7 +126,7 @@ func (scope *Scope) PrimaryField() *Field {
 	return nil
 }
 
-// PrimaryKey get the primary key's column name
+// PrimaryKey get main primary field's db name
 func (scope *Scope) PrimaryKey() string {
 	if field := scope.PrimaryField(); field != nil {
 		return field.DBName
@@ -134,7 +134,7 @@ func (scope *Scope) PrimaryKey() string {
 	return ""
 }
 
-// PrimaryKeyZero check the primary key is blank or not
+// PrimaryKeyZero check main primary field's value is blank or not
 func (scope *Scope) PrimaryKeyZero() bool {
 	field := scope.PrimaryField()
 	return field == nil || field.IsBlank
@@ -158,7 +158,7 @@ func (scope *Scope) HasColumn(column string) bool {
 	return false
 }
 
-// SetColumn to set the column's value
+// SetColumn to set the column's value, column could be field or field's name/dbname
 func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	var updateAttrs = map[string]interface{}{}
 	if attrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
@@ -221,7 +221,7 @@ func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 	}
 }
 
-// CallMethod call scope value's method, if it is a slice, will call value's method one by one
+// CallMethod call scope value's method, if it is a slice, will call its element's method one by one
 func (scope *Scope) CallMethod(methodName string) {
 	if scope.Value == nil {
 		return
@@ -236,7 +236,7 @@ func (scope *Scope) CallMethod(methodName string) {
 	}
 }
 
-// AddToVars add value as sql's vars, gorm will escape them
+// AddToVars add value as sql's vars, used to prevent SQL injection
 func (scope *Scope) AddToVars(value interface{}) string {
 	if expr, ok := value.(*expr); ok {
 		exp := expr.expr
@@ -293,7 +293,7 @@ func (scope *Scope) CombinedConditionSql() string {
 		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
 }
 
-// FieldByName find gorm.Field with name and db name
+// FieldByName find `gorm.Field` with field name or db name
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	var (
 		dbName           = ToDBName(name)
@@ -311,13 +311,13 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	return mostMatchedField, mostMatchedField != nil
 }
 
-// Raw set sql
+// Raw set raw sql
 func (scope *Scope) Raw(sql string) *Scope {
 	scope.SQL = strings.Replace(sql, "$$", "?", -1)
 	return scope
 }
 
-// Exec invoke sql
+// Exec perform generated SQL
 func (scope *Scope) Exec() *Scope {
 	defer scope.trace(NowFunc())
 
@@ -337,7 +337,7 @@ func (scope *Scope) Set(name string, value interface{}) *Scope {
 	return scope
 }
 
-// Get get value by name
+// Get get setting by name
 func (scope *Scope) Get(name string) (interface{}, bool) {
 	return scope.db.Get(name)
 }
@@ -350,12 +350,12 @@ func (scope *Scope) InstanceID() string {
 	return scope.instanceID
 }
 
-// InstanceSet set value for current instance, but not for associations
+// InstanceSet set instance setting for current operation, but not for operations in callbacks, like saving associations callback
 func (scope *Scope) InstanceSet(name string, value interface{}) *Scope {
 	return scope.Set(name+scope.InstanceID(), value)
 }
 
-// InstanceGet get setting from current instance
+// InstanceGet get instance setting from current operation
 func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 	return scope.Get(name + scope.InstanceID())
 }
@@ -371,7 +371,7 @@ func (scope *Scope) Begin() *Scope {
 	return scope
 }
 
-// CommitOrRollback commit current transaction if there is no error, otherwise rollback it
+// CommitOrRollback commit current transaction if no error happened, otherwise will rollback it
 func (scope *Scope) CommitOrRollback() *Scope {
 	if _, ok := scope.InstanceGet("gorm:started_transaction"); ok {
 		if db, ok := scope.db.db.(sqlTx); ok {
@@ -386,7 +386,7 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	return scope
 }
 
-// SelectAttrs retur nselected attributes
+// SelectAttrs return selected attributes
 func (scope *Scope) SelectAttrs() []string {
 	if scope.selectAttrs == nil {
 		attrs := []string{}

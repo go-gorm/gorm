@@ -7,13 +7,13 @@ import (
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
 
-// Callback contains callbacks that used when CURD objects
-//   Field `creates` hold callbacks will be call when creating object
-//   Field `updates` hold callbacks will be call when updating object
-//   Field `deletes` hold callbacks will be call when deleting object
-//   Field `queries` hold callbacks will be call when querying object with query methods like Find, First, Related, Association...
-//   Field `rowQueries` hold callbacks will be call when querying object with Row, Rows...
-//   Field `processors` hold all callback processors, will be used to generate above callbacks in order
+// Callback is a struct that contains all CURD callbacks
+//   Field `creates` contains callbacks will be call when creating object
+//   Field `updates` contains callbacks will be call when updating object
+//   Field `deletes` contains callbacks will be call when deleting object
+//   Field `queries` contains callbacks will be call when querying object with query methods like Find, First, Related, Association...
+//   Field `rowQueries` contains callbacks will be call when querying object with Row, Rows...
+//   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
 	creates    []*func(scope *Scope)
 	updates    []*func(scope *Scope)
@@ -23,7 +23,7 @@ type Callback struct {
 	processors []*CallbackProcessor
 }
 
-// CallbackProcessor contains all informations for a callback
+// CallbackProcessor contains callback informations
 type CallbackProcessor struct {
 	name      string              // current callback's name
 	before    string              // register current callback before a callback
@@ -68,7 +68,7 @@ func (c *Callback) Delete() *CallbackProcessor {
 }
 
 // Query could be used to register callbacks for querying objects with query methods like `Find`, `First`, `Related`, `Association`...
-// refer `Create` for usage
+// Refer `Create` for usage
 func (c *Callback) Query() *CallbackProcessor {
 	return &CallbackProcessor{kind: "query", parent: c}
 }

@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	// ErrRecordNotFound record not found, happens when you are looking up with a struct, and haven't find any matched data
+	// ErrRecordNotFound record not found error, happens when haven't find any matched data when looking up with a struct
 	ErrRecordNotFound = errors.New("record not found")
-	// ErrInvalidSQL invalid SQL, happens when you passed invalid SQL
+	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
 	ErrInvalidSQL = errors.New("invalid SQL")
 	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
 	ErrInvalidTransaction = errors.New("no valid transaction")

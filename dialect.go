@@ -34,7 +34,7 @@ type Dialect interface {
 	// HasColumn check has column or not
 	HasColumn(tableName string, columnName string) bool
 
-	// LimitAndOffsetSQL return generate SQL with limit and offset, as mssql has special case
+	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset int) string
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
