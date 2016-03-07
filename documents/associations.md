@@ -5,7 +5,7 @@
 ## Belongs To
 
 ```go
-// User belongs to a profile, ProfileID is the foreign key
+// `User` belongs to `Profile`, `ProfileID` is the foreign key
 type User struct {
   gorm.Model
   Profile   Profile
@@ -14,11 +14,42 @@ type User struct {
 
 type Profile struct {
   gorm.Model
-  Name   string
+  Name string
 }
 
 db.Model(&user).Related(&profile)
 //// SELECT * FROM profiles WHERE id = 111; // 111 is user's foreign key ProfileID
+```
+
+*Specify Foreign Key*
+
+```go
+type Profile struct {
+	gorm.Model
+	Name string
+}
+
+type User struct {
+	gorm.Model
+	Profile      Profile `gorm:"ForeignKey:ProfileRefer"` // use ProfileRefer as foreign key
+	ProfileRefer int
+}
+```
+
+*Specify Foreign Key & Association Key*
+
+```go
+type Profile struct {
+	gorm.Model
+	Refer string
+	Name  string
+}
+
+type User struct {
+	gorm.Model
+	Profile   Profile `gorm:"ForeignKey:ProfileID;AssociationForeignKey:Refer"`
+	ProfileID int
+}
 ```
 
 ## Has One
@@ -44,6 +75,37 @@ db.Model(&user).Related(&card, "CreditCard")
 db.Model(&user).Related(&card)
 ```
 
+*Specify Foreign Key*
+
+```go
+type Profile struct {
+  gorm.Model
+  Name      string
+  UserRefer uint
+}
+
+type User struct {
+  gorm.Model
+  Profile Profile `gorm:"ForeignKey:UserRefer"`
+}
+```
+
+*Specify Foreign Key & Association Key*
+
+```go
+type Profile struct {
+  gorm.Model
+  Name   string
+  UserID uint
+}
+
+type User struct {
+  gorm.Model
+  Refer   string
+  Profile Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+}
+```
+
 ## Has Many
 
 ```go
@@ -61,6 +123,37 @@ type Email struct {
 
 db.Model(&user).Related(&emails)
 //// SELECT * FROM emails WHERE user_id = 111; // 111 is user's primary key
+```
+
+*Specify Foreign Key*
+
+```go
+type Profile struct {
+  gorm.Model
+  Name      string
+  UserRefer uint
+}
+
+type User struct {
+  gorm.Model
+  Profile []Profiles `gorm:"ForeignKey:UserRefer"`
+}
+```
+
+*Specify Foreign Key & Association Key*
+
+```go
+type Profile struct {
+  gorm.Model
+  Name   string
+  UserID uint
+}
+
+type User struct {
+  gorm.Model
+  Refer   string
+  Profile []Profiles `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+}
 ```
 
 ## Many To Many
