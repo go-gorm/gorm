@@ -485,6 +485,17 @@ func (s *DB) DropTable(values ...interface{}) *DB {
 	return db
 }
 
+// DropTableIfExists drop table if it is exist
+func (s *DB) DropTableIfExists(values ...interface{}) *DB {
+	db := s.clone()
+	for _, value := range values {
+		if s.HasTable(value) {
+			db.AddError(s.DropTable(value).Error)
+		}
+	}
+	return db
+}
+
 // HasTable check has table or not
 func (s *DB) HasTable(value interface{}) bool {
 	var (
