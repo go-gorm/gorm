@@ -298,7 +298,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										if len(associationForeignKeys) == 0 {
 											for _, foreignKey := range foreignKeys {
 												if strings.HasPrefix(foreignKey, associationType) {
-													associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
+													associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
+													if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
+														associationForeignKeys = append(associationForeignKeys, associationForeignKey)
+													}
 												}
 											}
 											if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
@@ -391,7 +394,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
 											if strings.HasPrefix(foreignKey, associationType) {
-												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, associationType))
+												associationForeignKey := strings.TrimPrefix(foreignKey, associationType)
+												if foreignField := getForeignField(associationForeignKey, modelStruct.StructFields); foreignField != nil {
+													associationForeignKeys = append(associationForeignKeys, associationForeignKey)
+												}
 											}
 										}
 										if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
