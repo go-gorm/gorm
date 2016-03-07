@@ -6,7 +6,7 @@
   * [Migration](database.md#migration)
 * [Models](models.md)
   * [Model Defination](models.md#model-defination),
-  * [Naming Conventions & Overriding](models.md#conventions-overriding-conventions),
+  * [Conventions & Overriding](models.md#conventions),
   * [Associations](associations.md)
     * [Belongs To](associations.md#belongs-to)
     * [Has One](associations.md#has-one)
@@ -25,6 +25,7 @@
   * [Error Handling](advanced.md#error-handling)
   * [Transactions](advanced.md#transactions)
   * [Raw SQL & SQL Builder](advanced.md#sql-builder)
+  * [Generic database interface sql.DB](advanced.md#generic-database-interface-sqldb)
   * [Composite Primary Key](advanced.md#compose-primary-key)
   * [Overriding Logger](advanced.md#logger)
 * [Development](development.md)

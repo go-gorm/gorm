@@ -4,15 +4,31 @@
 
 ## Connecting to a database
 
+When connect to a database, you need to import the database's driver first, for example:
+
+```go
+import _ "github.com/go-sql-driver/mysql"
+```
+
+GORM has wrapped some drivers, for easier to remember the import path, so you could import the mysql driver with
+
+```go
+import _ "github.com/jinzhu/gorm/dialects/mysql"
+// import _ "github.com/jinzhu/gorm/dialects/postgres"
+// import _ "github.com/jinzhu/gorm/dialects/sqlite"
+// import _ "github.com/jinzhu/gorm/dialects/mssql"
+```
+
 #### MySQL
 
-**NOTE** don't forgot params `parseTime` to handle data type `time.Time`, [more support parameters](https://github.com/go-sql-driver/mysql#parameters)
+**NOTE** in order to handle `time.Time` you need to include `parseTime` as param [more supported parameters](https://github.com/go-sql-driver/mysql#parameters)
 
 ```go
 import (
     "github.com/jinzhu/gorm"
-    _ "github.com/go-sql-driver/mysql"
+    _ "github.com/jinzhu/gorm/dialects/mysql"
 )
+
 func main() {
   db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
 }
@@ -23,8 +39,9 @@ func main() {
 ```go
 import (
     "github.com/jinzhu/gorm"
-    _ "github.com/lib/pq"
+    _ "github.com/jinzhu/gorm/dialects/postgres"
 )
+
 func main() {
   db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 }
@@ -35,8 +52,9 @@ func main() {
 ```go
 import (
     "github.com/jinzhu/gorm"
-    _ "github.com/mattn/go-sqlite3"
+    _ "github.com/jinzhu/gorm/dialects/sqlite"
 )
+
 func main() {
   db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
 }
@@ -44,37 +62,17 @@ func main() {
 
 #### Write Dialect for unsupported databases
 
-GORM officially support above databases, for unsupported databaes, you could write a dialect for that.
+GORM officially support above databases, but you could write a dialect for those unsupported databaes,
 
-Refer: https://github.com/jinzhu/gorm/blob/master/dialect.go
-
-
-## Generic database object *sql.DB
-
-[*sql.DB](http://golang.org/pkg/database/sql/#DB)
-
-```go
-// Get generic database object *sql.DB to use its functions
-db.DB()
-
-// Connection Pool
-db.DB().SetMaxIdleConns(10)
-db.DB().SetMaxOpenConns(100)
-
-  // Ping
-db.DB().Ping()
-```
+Refer: [https://github.com/jinzhu/gorm/blob/master/dialect.go](https://github.com/jinzhu/gorm/blob/master/dialect.go)
 
 ## Migration
-
-<!-- toc -->
 
 ### Auto Migration
 
 Automatically migrate your schema, to keep your schema update to date
 
-**WARNING** AutoMigrate will ONLY create tables, columns and indexes if doesn't exist,
-WON'T change existing column's type or delete unused columns to protect your data
+**WARNING** AutoMigrate will ONLY create tables, missing columns and missing indexes, **WON'T** change existing column's type or delete unused columns to protect your data
 
 ```go
 db.AutoMigrate(&User{})
@@ -88,7 +86,7 @@ db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&User{})
 ### Has Table
 
 ```go
-// Check if model `User`'s table has been created or not
+// Check model `User`'s table exists or not
 db.HasTable(&User{})
 
 // Check table `users` exists or not
@@ -98,30 +96,39 @@ db.HasTable("users")
 ### Create Table
 
 ```go
+// Create table for model `User`
 db.CreateTable(&User{})
 
-db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 // will append "ENGINE=InnoDB" to the SQL statement when creating table `users`
+db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 ```
 
 ### Drop table
 
 ```go
+// Drop model `User`'s table
 db.DropTable(&User{})
+
+// Drop table `users
+db.DropTable("users")
+
+// Drop model's `User`'s table and table `products`
+db.DropTableIfExists(&User{}, "products")
 ```
 
 ### ModifyColumn
 
-Change column's type
+Modify column's type to given value
 
 ```go
-// change column description's data type to `text` for model `User`'s table
+// change column description's data type to `text` for model `User`
 db.Model(&User{}).ModifyColumn("description", "text")
 ```
 
 ### DropColumn
 
 ```go
+// Drop column description from model `User`
 db.Model(&User{}).DropColumn("description")
 ```
 
@@ -139,16 +146,16 @@ db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 ### Indexes
 
 ```go
-// Add index
+// Add index for columns `name` with given name `idx_user_name`
 db.Model(&User{}).AddIndex("idx_user_name", "name")
 
-// Multiple column index
+// Add index for columns `name`, `age` with given name `idx_user_name_age`
 db.Model(&User{}).AddIndex("idx_user_name_age", "name", "age")
 
 // Add unique index
 db.Model(&User{}).AddUniqueIndex("idx_user_name", "name")
 
-// Multiple column unique index
+// Add unique index for multiple columns
 db.Model(&User{}).AddUniqueIndex("idx_user_name_age", "name", "age")
 
 // Remove index

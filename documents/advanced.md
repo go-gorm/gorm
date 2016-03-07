@@ -114,6 +114,22 @@ for rows.Next() {
 }
 ```
 
+## Generic database interface sql.DB
+
+Get generic database interface from `*gorm.DB` connection [*sql.DB](http://golang.org/pkg/database/sql/#DB)
+
+```go
+// Get generic database object *sql.DB to use its functions
+db.DB()
+
+// Connection Pool
+db.DB().SetMaxIdleConns(10)
+db.DB().SetMaxOpenConns(100)
+
+  // Ping
+db.DB().Ping()
+```
+
 ## Composite Primary Key
 
 ```go
