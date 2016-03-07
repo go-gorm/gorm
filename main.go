@@ -195,6 +195,8 @@ func (s *DB) Joins(query string, args ...interface{}) *DB {
 	return s.clone().search.Joins(query, args...).db
 }
 
+// Scopes pass current database connection to arguments `func(*DB) *DB`, which could be used to add conditions dynamically
+// Refer https://jinzhu.github.io/gorm/curd.html#scopes for more
 func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	for _, f := range funcs {
 		s = f(s)
@@ -202,18 +204,22 @@ func (s *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	return s
 }
 
+// Unscoped return all record including deleted record, refer Soft Delete https://jinzhu.github.io/gorm/curd.html#scopes
 func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }
 
+// Attrs initalize struct with argument if record not found with `FirstOrInit` https://jinzhu.github.io/gorm/curd.html#firstorinit or `FirstOrCreate` https://jinzhu.github.io/gorm/curd.html#firstorcreate
 func (s *DB) Attrs(attrs ...interface{}) *DB {
 	return s.clone().search.Attrs(attrs...).db
 }
 
+// Assign assign result with argument regardless it is found or not with `FirstOrInit` https://jinzhu.github.io/gorm/curd.html#firstorinit or `FirstOrCreate` https://jinzhu.github.io/gorm/curd.html#firstorcreate
 func (s *DB) Assign(attrs ...interface{}) *DB {
 	return s.clone().search.Assign(attrs...).db
 }
 
+// First find first record that match given conditions, order by primary key
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
@@ -221,6 +227,7 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// Last find last record that match given conditions, order by primary key
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.clone().NewScope(out)
 	newScope.Search.Limit(1)
@@ -228,26 +235,31 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// Find find records that match given conditions
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// Scan scan value to a struct
 func (s *DB) Scan(dest interface{}) *DB {
 	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// Row return `*sql.Row` with given condtions
 func (s *DB) Row() *sql.Row {
 	return s.NewScope(s.Value).row()
 }
 
+// Rows return `*sql.Rows` with given condtions
 func (s *DB) Rows() (*sql.Rows, error) {
 	return s.NewScope(s.Value).rows()
 }
 
-func (s *DB) ScanRows(rows *sql.Rows, value interface{}) error {
+// ScanRows scan `*sql.Rows` to give struct
+func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 	var (
 		clone        = s.clone()
-		scope        = clone.NewScope(value)
+		scope        = clone.NewScope(result)
 		columns, err = rows.Columns()
 	)
 
@@ -258,18 +270,22 @@ func (s *DB) ScanRows(rows *sql.Rows, value interface{}) error {
 	return clone.Error
 }
 
+// Pluck used to query single column from a model as a map
 func (s *DB) Pluck(column string, value interface{}) *DB {
 	return s.NewScope(s.Value).pluck(column, value).db
 }
 
+// Count get how many records for a model
 func (s *DB) Count(value interface{}) *DB {
 	return s.NewScope(s.Value).count(value).db
 }
 
+// Related get related associations
 func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
 	return s.clone().NewScope(s.Value).related(value, foreignKeys...).db
 }
 
+// FirstOrInit find first matched record or initalize a new one with given conditions (only works with struct, map conditions)
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := c.First(out, where...); result.Error != nil {
@@ -283,6 +299,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	return c
 }
 
+// FirstOrCreate find first matched record or create a new one with given conditions (only works with struct, map conditions)
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := c.First(out, where...); result.Error != nil {
@@ -296,10 +313,12 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	return c
 }
 
+// Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/curd.html#update
 func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.Updates(toSearchableMap(attrs...), true)
 }
 
+// Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/curd.html#update
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
 	return s.clone().NewScope(s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
@@ -307,10 +326,12 @@ func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
 		callCallbacks(s.parent.callbacks.updates).db
 }
 
+// UpdateColumn update attributes without callbacks, refer: https://jinzhu.github.io/gorm/curd.html#update
 func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 	return s.UpdateColumns(toSearchableMap(attrs...))
 }
 
+// UpdateColumns update attributes without callbacks, refer: https://jinzhu.github.io/gorm/curd.html#update
 func (s *DB) UpdateColumns(values interface{}) *DB {
 	return s.clone().NewScope(s.Value).
 		Set("gorm:update_column", true).
@@ -319,6 +340,7 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 		callCallbacks(s.parent.callbacks.updates).db
 }
 
+// Save update the value in database, if the value doesn't have primary key, will insert it
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	if scope.PrimaryKeyZero() {
@@ -327,19 +349,24 @@ func (s *DB) Save(value interface{}) *DB {
 	return scope.callCallbacks(s.parent.callbacks.updates).db
 }
 
+// Create insert the value into database
 func (s *DB) Create(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
 	return scope.callCallbacks(s.parent.callbacks.creates).db
 }
 
+// Delete delete value that match given conditions, if the value has primary key, then will including the primary key as condition
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
 
+// Raw use raw sql as conditions, won't run it unless invoked by other methods
+//    db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
 	return s.clone().search.Raw(true).Where(sql, values...).db
 }
 
+// Exec execute raw sql
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	scope := s.clone().NewScope(nil)
 	generatedSQL := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
@@ -348,12 +375,18 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	return scope.Exec().db
 }
 
+// Model specify the model you would like to run db operations
+//    // update all users's name to `hello`
+//    db.Model(&User{}).Update("name", "hello")
+//    // if user's primary key is non-blank, will use it as condition, then will only update the user's name to `hello`
+//    db.Model(&user).Update("name", "hello")
 func (s *DB) Model(value interface{}) *DB {
 	c := s.clone()
 	c.Value = value
 	return c
 }
 
+// Table specify the table you would like to run db operations
 func (s *DB) Table(name string) *DB {
 	clone := s.clone()
 	clone.search.Table(name)
@@ -361,10 +394,12 @@ func (s *DB) Table(name string) *DB {
 	return clone
 }
 
+// Debug start debug mode
 func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
 }
 
+// Begin begin a transaction
 func (s *DB) Begin() *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok {
@@ -377,6 +412,7 @@ func (s *DB) Begin() *DB {
 	return c
 }
 
+// Commit commit a transaction
 func (s *DB) Commit() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Commit())
@@ -386,6 +422,7 @@ func (s *DB) Commit() *DB {
 	return s
 }
 
+// Rollback rollback a transaction
 func (s *DB) Rollback() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Rollback())
@@ -395,10 +432,12 @@ func (s *DB) Rollback() *DB {
 	return s
 }
 
+// NewRecord check if value's primary key is blank or not
 func (s *DB) NewRecord(value interface{}) bool {
 	return s.clone().NewScope(value).PrimaryKeyZero()
 }
 
+// RecordNotFound check if returning record not found error
 func (s *DB) RecordNotFound() bool {
 	return s.Error == ErrRecordNotFound
 }
@@ -438,6 +477,7 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 	return db
 }
 
+// HasTable check has table or not
 func (s *DB) HasTable(value interface{}) bool {
 	var (
 		scope     = s.clone().NewScope(value)
@@ -455,6 +495,7 @@ func (s *DB) HasTable(value interface{}) bool {
 	return has
 }
 
+// AutoMigrate run auto migration for given models, will only add missing fields, won't delete/change current data
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
@@ -463,30 +504,35 @@ func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	return db
 }
 
+// ModifyColumn modify column to type
 func (s *DB) ModifyColumn(column string, typ string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.modifyColumn(column, typ)
 	return scope.db
 }
 
+// DropColumn drop a column
 func (s *DB) DropColumn(column string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.dropColumn(column)
 	return scope.db
 }
 
-func (s *DB) AddIndex(indexName string, column ...string) *DB {
+// AddIndex add index for columns with given name
+func (s *DB) AddIndex(indexName string, columns ...string) *DB {
 	scope := s.Unscoped().NewScope(s.Value)
-	scope.addIndex(false, indexName, column...)
+	scope.addIndex(false, indexName, columns...)
 	return scope.db
 }
 
-func (s *DB) AddUniqueIndex(indexName string, column ...string) *DB {
+// AddUniqueIndex add unique index for columns with given name
+func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
 	scope := s.clone().NewScope(s.Value)
-	scope.addIndex(true, indexName, column...)
+	scope.addIndex(true, indexName, columns...)
 	return scope.db
 }
 
+// RemoveIndex remove index with name
 func (s *DB) RemoveIndex(indexName string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.removeIndex(indexName)
@@ -501,6 +547,7 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return scope.db
 }
 
+// Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
 	scope := s.clone().NewScope(s.Value)
@@ -522,26 +569,29 @@ func (s *DB) Association(column string) *Association {
 	return &Association{Error: err}
 }
 
+// Preload preload column with given conditions
 func (s *DB) Preload(column string, conditions ...interface{}) *DB {
 	return s.clone().search.Preload(column, conditions...).db
 }
 
-// Set set value by name
+// Set set setting by name, which could be used in callbacks, will clone a new db, and update its setting
 func (s *DB) Set(name string, value interface{}) *DB {
 	return s.clone().InstantSet(name, value)
 }
 
+// InstantSet instant set setting, will affect current db
 func (s *DB) InstantSet(name string, value interface{}) *DB {
 	s.values[name] = value
 	return s
 }
 
-// Get get value by name
+// Get get setting by name
 func (s *DB) Get(name string) (value interface{}, ok bool) {
 	value, ok = s.values[name]
 	return
 }
 
+// SetJoinTableHandler set a model's join table handler for a relation
 func (s *DB) SetJoinTableHandler(source interface{}, column string, handler JoinTableHandlerInterface) {
 	scope := s.NewScope(source)
 	for _, field := range scope.GetModelStruct().StructFields {
@@ -559,6 +609,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 	}
 }
 
+// AddError add error to the db
 func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {
@@ -580,6 +631,7 @@ func (s *DB) AddError(err error) error {
 	return err
 }
 
+// GetErrors get happened errors for the db
 func (s *DB) GetErrors() (errors []error) {
 	if errs, ok := s.Error.(errorsInterface); ok {
 		return errs.GetErrors()
