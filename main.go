@@ -232,7 +232,7 @@ func (s *DB) ScanRows(rows *sql.Rows, value interface{}) error {
 	)
 
 	if clone.AddError(err) == nil {
-		scope.scan(rows, columns, scope.Fields())
+		scope.scan(rows, columns, scope.fieldsMap())
 	}
 
 	return clone.Error

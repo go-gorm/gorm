@@ -45,10 +45,9 @@ func createCallback(scope *Scope) {
 		var (
 			columns, placeholders        []string
 			blankColumnsWithDefaultValue []string
-			fields                       = scope.Fields()
 		)
 
-		for _, field := range fields {
+		for _, field := range scope.Fields() {
 			if scope.changeableField(field) {
 				if field.IsNormal {
 					if !field.IsPrimaryKey || !field.IsBlank {
@@ -62,7 +61,7 @@ func createCallback(scope *Scope) {
 					}
 				} else if field.Relationship != nil && field.Relationship.Kind == "belongs_to" {
 					for _, foreignKey := range field.Relationship.ForeignDBNames {
-						if foreignField := fields[foreignKey]; !scope.changeableField(foreignField) {
+						if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
 							columns = append(columns, scope.Quote(foreignField.DBName))
 							placeholders = append(placeholders, scope.AddToVars(foreignField.Field.Interface()))
 						}

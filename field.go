@@ -56,29 +56,34 @@ func (field *Field) Set(value interface{}) (err error) {
 }
 
 // Fields get value's fields
-func (scope *Scope) Fields() map[string]*Field {
-	if scope.fields == nil {
-		var (
-			fields             = map[string]*Field{}
-			indirectScopeValue = scope.IndirectValue()
-			isStruct           = indirectScopeValue.Kind() == reflect.Struct
-		)
+func (scope *Scope) Fields() []*Field {
+	var (
+		fields             []*Field
+		indirectScopeValue = scope.IndirectValue()
+		isStruct           = indirectScopeValue.Kind() == reflect.Struct
+	)
 
-		for _, structField := range scope.GetModelStruct().StructFields {
-			if field, ok := fields[structField.DBName]; !ok || field.IsIgnored {
-				if isStruct {
-					fieldValue := indirectScopeValue
-					for _, name := range structField.Names {
-						fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
-					}
-					fields[structField.DBName] = &Field{StructField: structField, Field: fieldValue, IsBlank: isBlank(fieldValue)}
-				} else {
-					fields[structField.DBName] = &Field{StructField: structField, IsBlank: true}
-				}
+	for _, structField := range scope.GetModelStruct().StructFields {
+		if isStruct {
+			fieldValue := indirectScopeValue
+			for _, name := range structField.Names {
+				fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
 			}
+			fields = append(fields, &Field{StructField: structField, Field: fieldValue, IsBlank: isBlank(fieldValue)})
+		} else {
+			fields = append(fields, &Field{StructField: structField, IsBlank: true})
 		}
-
-		scope.fields = fields
 	}
-	return scope.fields
+
+	return fields
+}
+
+func (scope *Scope) fieldsMap() map[string]*Field {
+	var results = map[string]*Field{}
+	for _, field := range scope.Fields() {
+		if field.IsNormal {
+			results[field.DBName] = field
+		}
+	}
+	return results
 }

@@ -63,9 +63,11 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			var associationForeignFieldNames []string
 			if relationship.Kind == "many_to_many" {
 				// if many to many relations, get association fields name from association foreign keys
-				associationFields := scope.New(reflect.New(field.Type()).Interface()).Fields()
+				associationScope := scope.New(reflect.New(field.Type()).Interface())
 				for _, dbName := range relationship.AssociationForeignFieldNames {
-					associationForeignFieldNames = append(associationForeignFieldNames, associationFields[dbName].Name)
+					if field, ok := associationScope.FieldByName(dbName); ok {
+						associationForeignFieldNames = append(associationForeignFieldNames, field.Name)
+					}
 				}
 			} else {
 				// If other relations, use primary keys
@@ -84,15 +86,12 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 		if relationship.Kind == "many_to_many" {
 			// if many to many relations, delete related relations from join table
-
-			// get source fields name from source foreign keys
-			var (
-				sourceFields            = scope.Fields()
-				sourceForeignFieldNames []string
-			)
+			var sourceForeignFieldNames []string
 
 			for _, dbName := range relationship.ForeignFieldNames {
-				sourceForeignFieldNames = append(sourceForeignFieldNames, sourceFields[dbName].Name)
+				if field, ok := scope.FieldByName(dbName); ok {
+					sourceForeignFieldNames = append(sourceForeignFieldNames, field.Name)
+				}
 			}
 
 			if sourcePrimaryKeys := scope.getColumnAsArray(sourceForeignFieldNames, scope.Value); len(sourcePrimaryKeys) > 0 {
@@ -147,10 +146,12 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		}
 
 		// get association's foreign fields name
-		var associationFields = scope.New(reflect.New(field.Type()).Interface()).Fields()
+		var associationScope = scope.New(reflect.New(field.Type()).Interface())
 		var associationForeignFieldNames []string
 		for _, associationDBName := range relationship.AssociationForeignFieldNames {
-			associationForeignFieldNames = append(associationForeignFieldNames, associationFields[associationDBName].Name)
+			if field, ok := associationScope.FieldByName(associationDBName); ok {
+				associationForeignFieldNames = append(associationForeignFieldNames, field.Name)
+			}
 		}
 
 		// association value's foreign keys

@@ -74,11 +74,15 @@ func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[strin
 
 		if s.Source.ModelType == modelType {
 			for _, foreignKey := range s.Source.ForeignKeys {
-				values[foreignKey.DBName] = scope.Fields()[foreignKey.AssociationDBName].Field.Interface()
+				if field, ok := scope.FieldByName(foreignKey.AssociationDBName); ok {
+					values[foreignKey.DBName] = field.Field.Interface()
+				}
 			}
 		} else if s.Destination.ModelType == modelType {
 			for _, foreignKey := range s.Destination.ForeignKeys {
-				values[foreignKey.DBName] = scope.Fields()[foreignKey.AssociationDBName].Field.Interface()
+				if field, ok := scope.FieldByName(foreignKey.AssociationDBName); ok {
+					values[foreignKey.DBName] = field.Field.Interface()
+				}
 			}
 		}
 	}
@@ -151,7 +155,9 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 
 		for _, foreignKey := range s.Source.ForeignKeys {
 			foreignDBNames = append(foreignDBNames, foreignKey.DBName)
-			foreignFieldNames = append(foreignFieldNames, scope.Fields()[foreignKey.AssociationDBName].Name)
+			if field, ok := scope.FieldByName(foreignKey.AssociationDBName); ok {
+				foreignFieldNames = append(foreignFieldNames, field.Name)
+			}
 		}
 
 		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames, scope.Value)

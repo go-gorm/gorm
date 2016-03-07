@@ -68,7 +68,7 @@ func queryCallback(scope *Scope) {
 					elem = reflect.New(resultType).Elem()
 				}
 
-				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).Fields())
+				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).fieldsMap())
 
 				if isSlice {
 					if isPtr {

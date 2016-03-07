@@ -255,7 +255,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	for rows.Next() {
 		var (
 			elem   = reflect.New(fieldType).Elem()
-			fields = scope.New(elem.Addr().Interface()).Fields()
+			fields = scope.New(elem.Addr().Interface()).fieldsMap()
 		)
 
 		// register foreign keys in join tables
@@ -284,7 +284,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		indirectScopeValue = scope.IndirectValue()
 		fieldsSourceMap    = map[string]reflect.Value{}
 		foreignFieldNames  = []string{}
-		fields             = scope.Fields()
+		fields             = scope.fieldsMap()
 	)
 
 	for _, dbName := range relation.ForeignFieldNames {

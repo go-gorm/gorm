@@ -437,21 +437,10 @@ func (scope *Scope) shouldSaveAssociations() bool {
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
-	fromFields := scope.Fields()
-	toFields := toScope.Fields()
 
 	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
-		var fromField, toField *Field
-		if field, ok := scope.FieldByName(foreignKey); ok {
-			fromField = field
-		} else {
-			fromField = fromFields[ToDBName(foreignKey)]
-		}
-		if field, ok := toScope.FieldByName(foreignKey); ok {
-			toField = field
-		} else {
-			toField = toFields[ToDBName(foreignKey)]
-		}
+		fromField, _ := scope.FieldByName(foreignKey)
+		toField, _ := toScope.FieldByName(foreignKey)
 
 		if fromField != nil {
 			if relationship := fromField.Relationship; relationship != nil {
@@ -515,7 +504,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 
 			var sqlTypes, primaryKeys []string
 			for idx, fieldName := range relationship.ForeignFieldNames {
-				if field, ok := scope.Fields()[fieldName]; ok {
+				if field, ok := scope.FieldByName(fieldName); ok {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
 					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
@@ -525,7 +514,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 			}
 
 			for idx, fieldName := range relationship.AssociationForeignFieldNames {
-				if field, ok := toScope.Fields()[fieldName]; ok {
+				if field, ok := toScope.FieldByName(fieldName); ok {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
 					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
