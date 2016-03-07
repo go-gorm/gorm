@@ -145,6 +145,6 @@ func (mssql) SelectFromDummyTable() string {
 	return ""
 }
 
-func (mssql) LastInsertIdReturningSuffix(tableName, columnName string) string {
+func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }

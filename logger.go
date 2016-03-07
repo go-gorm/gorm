@@ -11,23 +11,25 @@ import (
 	"unicode"
 )
 
+var (
+	defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
+	sqlRegexp     = regexp.MustCompile(`(\$\d+)|\?`)
+)
+
 type logger interface {
 	Print(v ...interface{})
 }
 
-type LogWriter interface {
+type logWriter interface {
 	Println(v ...interface{})
 }
 
+// Logger default logger
 type Logger struct {
-	LogWriter
+	logWriter
 }
 
-var defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
-
-// Format log
-var sqlRegexp = regexp.MustCompile(`(\$\d+)|\?`)
-
+// Print format & print log
 func (logger Logger) Print(values ...interface{}) {
 	if len(values) > 1 {
 		level := values[0]

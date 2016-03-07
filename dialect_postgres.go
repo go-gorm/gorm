@@ -106,11 +106,11 @@ func (s postgres) currentDatabase() (name string) {
 	return
 }
 
-func (s postgres) LastInsertIdReturningSuffix(tableName, key string) string {
+func (s postgres) LastInsertIDReturningSuffix(tableName, key string) string {
 	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 
-func (postgres) SupportLastInsertId() bool {
+func (postgres) SupportLastInsertID() bool {
 	return false
 }
 

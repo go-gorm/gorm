@@ -9,7 +9,18 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
+
+// NowFunc returns current time, this function is exported in order to be able
+// to give the flexibility to the developer to customize it according to their
+// needs
+//
+//   e.g: return time.Now().UTC()
+//
+var NowFunc = func() time.Time {
+	return time.Now()
+}
 
 // Copied from golint
 var commonInitialisms = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}

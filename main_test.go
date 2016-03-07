@@ -479,7 +479,7 @@ func TestRaw(t *testing.T) {
 	}
 
 	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
-	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.RecordNotFound {
+	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.ErrRecordNotFound {
 		t.Error("Raw sql to update records")
 	}
 }
@@ -709,7 +709,7 @@ func TestOpenExistingDB(t *testing.T) {
 	}
 
 	var user User
-	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.RecordNotFound {
+	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.ErrRecordNotFound {
 		t.Errorf("Should have found existing record")
 	}
 }

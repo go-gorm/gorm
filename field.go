@@ -7,12 +7,14 @@ import (
 	"reflect"
 )
 
+// Field model field definition
 type Field struct {
 	*StructField
 	IsBlank bool
 	Field   reflect.Value
 }
 
+// Set set a value to the field
 func (field *Field) Set(value interface{}) (err error) {
 	if !field.Field.IsValid() {
 		return errors.New("field value not valid")

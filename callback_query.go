@@ -48,15 +48,15 @@ func queryCallback(scope *Scope) {
 		return
 	}
 
-	scope.prepareQuerySql()
+	scope.prepareQuerySQL()
 
 	if !scope.HasError() {
 		scope.db.RowsAffected = 0
 		if str, ok := scope.Get("gorm:query_option"); ok {
-			scope.Sql += addExtraSpaceIfExist(fmt.Sprint(str))
+			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
 
-		if rows, err := scope.SqlDB().Query(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 			defer rows.Close()
 
 			columns, _ := rows.Columns()
@@ -80,7 +80,7 @@ func queryCallback(scope *Scope) {
 			}
 
 			if scope.db.RowsAffected == 0 && !isSlice {
-				scope.Err(RecordNotFound)
+				scope.Err(ErrRecordNotFound)
 			}
 		}
 	}

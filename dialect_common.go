@@ -132,6 +132,6 @@ func (commonDialect) SelectFromDummyTable() string {
 	return ""
 }
 
-func (commonDialect) LastInsertIdReturningSuffix(tableName, columnName string) string {
+func (commonDialect) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }

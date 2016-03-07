@@ -10,11 +10,12 @@ import (
 	"reflect"
 )
 
+// Scope contain any information of current operation when you perform any operation on the database
 type Scope struct {
 	Search          *search
 	Value           interface{}
-	Sql             string
-	SqlVars         []interface{}
+	SQL             string
+	SQLVars         []interface{}
 	db              *DB
 	instanceID      string
 	primaryKeyField *Field
@@ -23,6 +24,7 @@ type Scope struct {
 	selectAttrs     *[]string
 }
 
+// IndirectValue return scope's reflect value's indirect value
 func (scope *Scope) IndirectValue() reflect.Value {
 	return indirect(reflect.ValueOf(scope.Value))
 }
@@ -43,12 +45,13 @@ func (scope *Scope) NewDB() *DB {
 	return nil
 }
 
+// DB return scope's DB connection
 func (scope *Scope) DB() *DB {
 	return scope.db
 }
 
-// SqlDB return *sql.DB
-func (scope *Scope) SqlDB() sqlCommon {
+// SQLDB return *sql.DB
+func (scope *Scope) SQLDB() sqlCommon {
 	return scope.db.db
 }
 
@@ -100,6 +103,7 @@ func (scope *Scope) HasError() bool {
 	return scope.db.Error != nil
 }
 
+// PrimaryFields return scope's primary fields
 func (scope *Scope) PrimaryFields() (fields []*Field) {
 	for _, field := range scope.Fields() {
 		if field.IsPrimaryKey {
@@ -109,6 +113,7 @@ func (scope *Scope) PrimaryFields() (fields []*Field) {
 	return fields
 }
 
+// PrimaryField return scope's main primary field, if defined more that one primary fields, will return the one having column name `id` or the first one
 func (scope *Scope) PrimaryField() *Field {
 	if primaryFields := scope.GetModelStruct().PrimaryFields; len(primaryFields) > 0 {
 		if len(primaryFields) > 1 {
@@ -241,8 +246,8 @@ func (scope *Scope) AddToVars(value interface{}) string {
 		return exp
 	}
 
-	scope.SqlVars = append(scope.SqlVars, value)
-	return scope.Dialect().BindVar(len(scope.SqlVars))
+	scope.SQLVars = append(scope.SQLVars, value)
+	return scope.Dialect().BindVar(len(scope.SQLVars))
 }
 
 type tabler interface {
@@ -282,10 +287,10 @@ func (scope *Scope) QuotedTableName() (name string) {
 	return scope.Quote(scope.TableName())
 }
 
-// CombinedConditionSql get combined condition sql
+// CombinedConditionSql return combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
-	return scope.joinsSql() + scope.whereSql() + scope.groupSql() +
-		scope.havingSql() + scope.orderSql() + scope.limitAndOffsetSql()
+	return scope.joinsSQL() + scope.whereSQL() + scope.groupSQL() +
+		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
 }
 
 // FieldByName find gorm.Field with name and db name
@@ -308,7 +313,7 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 
 // Raw set sql
 func (scope *Scope) Raw(sql string) *Scope {
-	scope.Sql = strings.Replace(sql, "$$", "?", -1)
+	scope.SQL = strings.Replace(sql, "$$", "?", -1)
 	return scope
 }
 
@@ -317,7 +322,7 @@ func (scope *Scope) Exec() *Scope {
 	defer scope.trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
@@ -345,17 +350,19 @@ func (scope *Scope) InstanceID() string {
 	return scope.instanceID
 }
 
+// InstanceSet set value for current instance, but not for associations
 func (scope *Scope) InstanceSet(name string, value interface{}) *Scope {
 	return scope.Set(name+scope.InstanceID(), value)
 }
 
+// InstanceGet get setting from current instance
 func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 	return scope.Get(name + scope.InstanceID())
 }
 
 // Begin start a transaction
 func (scope *Scope) Begin() *Scope {
-	if db, ok := scope.SqlDB().(sqlDb); ok {
+	if db, ok := scope.SQLDB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
 			scope.db.db = interface{}(tx).(sqlCommon)
 			scope.InstanceSet("gorm:started_transaction", true)
@@ -379,6 +386,7 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	return scope
 }
 
+// SelectAttrs retur nselected attributes
 func (scope *Scope) SelectAttrs() []string {
 	if scope.selectAttrs == nil {
 		attrs := []string{}
@@ -398,6 +406,7 @@ func (scope *Scope) SelectAttrs() []string {
 	return *scope.selectAttrs
 }
 
+// OmitAttrs return omited attributes
 func (scope *Scope) OmitAttrs() []string {
 	return scope.Search.omits
 }

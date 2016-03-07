@@ -6,19 +6,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 )
 
-// NowFunc returns current time, this function is exported in order to be able
-// to give the flexibility to the developer to customize it according to their
-// needs
-//
-//   e.g: return time.Now().UTC()
-//
-var NowFunc = func() time.Time {
-	return time.Now()
-}
-
+// DB contains information for current db connection
 type DB struct {
 	Value             interface{}
 	Error             error
@@ -36,6 +26,14 @@ type DB struct {
 	joinTableHandlers map[string]JoinTableHandler
 }
 
+// Open open a new db connection, need to import driver first, for example:
+//
+//     import _ "github.com/go-sql-driver/mysql"
+//     func main() {
+//       db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
+//     }
+// GORM has wrapped some drivers, for easier to remember its name, so you could import the mysql driver with
+//    import _ "github.com/jinzhu/gorm/dialects/mysql"
 func Open(dialect string, args ...interface{}) (*DB, error) {
 	var db DB
 	var err error
@@ -44,7 +42,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		err = errors.New("invalid database source")
 	} else {
 		var source string
-		var dbSql sqlCommon
+		var dbSQL sqlCommon
 
 		switch value := args[0].(type) {
 		case string:
@@ -55,19 +53,19 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 				driver = value
 				source = args[1].(string)
 			}
-			dbSql, err = sql.Open(driver, source)
+			dbSQL, err = sql.Open(driver, source)
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
-			dbSql = value
+			dbSQL = value
 		}
 
 		db = DB{
-			dialect:   newDialect(dialect, dbSql.(*sql.DB)),
+			dialect:   newDialect(dialect, dbSQL.(*sql.DB)),
 			logger:    defaultLogger,
 			callbacks: DefaultCallback,
 			source:    source,
 			values:    map[string]interface{}{},
-			db:        dbSql,
+			db:        dbSQL,
 		}
 		db.parent = &db
 
@@ -79,14 +77,17 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 	return &db, err
 }
 
+// Close close current db connection
 func (s *DB) Close() error {
 	return s.parent.db.(*sql.DB).Close()
 }
 
+// DB get `*sql.DB` from current connection
 func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
+// New initialize a new db connection without any search conditions
 func (s *DB) New() *DB {
 	clone := s.clone()
 	clone.search = nil
@@ -94,29 +95,34 @@ func (s *DB) New() *DB {
 	return clone
 }
 
-// NewScope create scope for callbacks, including DB's search information
+// NewScope create a scope for current operation
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
-// CommonDB Return the underlying sql.DB or sql.Tx instance.
+// CommonDB return the underlying sql.DB or sql.Tx instance.
 // Use of this method is discouraged. It's mainly intended to allow
 // coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() sqlCommon {
 	return s.db
 }
 
+// Callback return Callbacks container, you could add/remove/change callbacks with it
+//     db.Callback().Create().Register("update_created_at", updateCreated)
+// Refer: https://jinzhu.github.io/gorm/development.html#callbacks for more
 func (s *DB) Callback() *Callback {
 	s.parent.callbacks = s.parent.callbacks.clone()
 	return s.parent.callbacks
 }
 
-func (s *DB) SetLogger(l logger) {
-	s.logger = l
+// SetLogger replace default logger
+func (s *DB) SetLogger(log logger) {
+	s.logger = log
 }
 
+// LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
 func (s *DB) LogMode(enable bool) *DB {
 	if enable {
 		s.logMode = 2
@@ -126,51 +132,65 @@ func (s *DB) LogMode(enable bool) *DB {
 	return s
 }
 
+// SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
 	modelStructsMap = newModelStructsMap()
 	s.parent.singularTable = enable
 }
 
+// Where return a new relation, accepts use `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/curd.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
 }
 
+// Or match before conditions or this one, similar to `Where`
 func (s *DB) Or(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Or(query, args...).db
 }
 
+// Not don't match current conditions, similar to `Where`
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Not(query, args...).db
 }
 
+// Limit specify the number of records to be retrieved
 func (s *DB) Limit(limit int) *DB {
 	return s.clone().search.Limit(limit).db
 }
 
+// Offset specify the number of records to skip before starting to return the records
 func (s *DB) Offset(offset int) *DB {
 	return s.clone().search.Offset(offset).db
 }
 
+// Order specify order when retrieve records from database, pass `true` as the second argument to overwrite `Order` conditions
 func (s *DB) Order(value string, reorder ...bool) *DB {
 	return s.clone().search.Order(value, reorder...).db
 }
 
+// Select When querying, specify fields that you want to retrieve from database, by default, will select all fields;
+// When creating/updating, specify fields that you want to save to database
 func (s *DB) Select(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Select(query, args...).db
 }
 
+// Omit specify fields that you want to ignore when save to database when creating/updating
 func (s *DB) Omit(columns ...string) *DB {
 	return s.clone().search.Omit(columns...).db
 }
 
+// Group specify the group method on the find
 func (s *DB) Group(query string) *DB {
 	return s.clone().search.Group(query).db
 }
 
+// Having specify HAVING conditions for GROUP BY
 func (s *DB) Having(query string, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
+// Joins specify Joins conditions
+//     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
 func (s *DB) Joins(query string, args ...interface{}) *DB {
 	return s.clone().search.Joins(query, args...).db
 }
@@ -352,7 +372,7 @@ func (s *DB) Begin() *DB {
 		c.db = interface{}(tx).(sqlCommon)
 		c.AddError(err)
 	} else {
-		c.AddError(CantStartTransaction)
+		c.AddError(ErrCantStartTransaction)
 	}
 	return c
 }
@@ -361,7 +381,7 @@ func (s *DB) Commit() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Commit())
 	} else {
-		s.AddError(NoValidTransaction)
+		s.AddError(ErrInvalidTransaction)
 	}
 	return s
 }
@@ -370,7 +390,7 @@ func (s *DB) Rollback() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Rollback())
 	} else {
-		s.AddError(NoValidTransaction)
+		s.AddError(ErrInvalidTransaction)
 	}
 	return s
 }
@@ -380,7 +400,7 @@ func (s *DB) NewRecord(value interface{}) bool {
 }
 
 func (s *DB) RecordNotFound() bool {
-	return s.Error == RecordNotFound
+	return s.Error == ErrRecordNotFound
 }
 
 // CreateTable create table for models
@@ -541,7 +561,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 
 func (s *DB) AddError(err error) error {
 	if err != nil {
-		if err != RecordNotFound {
+		if err != ErrRecordNotFound {
 			if s.logMode == 0 {
 				go s.print(fileWithLineNum(), err)
 			} else {

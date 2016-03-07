@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
+// DefaultTableNameHandler default table name handler
 var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
@@ -39,6 +40,7 @@ func newModelStructsMap() *safeModelStructsMap {
 
 var modelStructsMap = newModelStructsMap()
 
+// ModelStruct model definition
 type ModelStruct struct {
 	PrimaryFields    []*StructField
 	StructFields     []*StructField
@@ -46,10 +48,12 @@ type ModelStruct struct {
 	defaultTableName string
 }
 
+// TableName get model's table name
 func (s *ModelStruct) TableName(db *DB) string {
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
+// StructField model field's struct definition
 type StructField struct {
 	DBName          string
 	Name            string
@@ -506,6 +510,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	return &modelStruct
 }
 
+// GetStructFields get model's field structs
 func (scope *Scope) GetStructFields() (fields []*StructField) {
 	return scope.GetModelStruct().StructFields
 }

@@ -93,7 +93,7 @@ func (s *search) Offset(offset int) *search {
 }
 
 func (s *search) Group(query string) *search {
-	s.group = s.getInterfaceAsSql(query)
+	s.group = s.getInterfaceAsSQL(query)
 	return s
 }
 
@@ -134,12 +134,12 @@ func (s *search) Table(name string) *search {
 	return s
 }
 
-func (s *search) getInterfaceAsSql(value interface{}) (str string) {
+func (s *search) getInterfaceAsSQL(value interface{}) (str string) {
 	switch value.(type) {
 	case string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		str = fmt.Sprintf("%v", value)
 	default:
-		s.db.AddError(InvalidSql)
+		s.db.AddError(ErrInvalidSQL)
 	}
 
 	if str == "-1" {

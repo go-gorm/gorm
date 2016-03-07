@@ -7,40 +7,54 @@ import (
 	"strings"
 )
 
+// JoinTableHandlerInterface is an interface for how to handle many2many relations
 type JoinTableHandlerInterface interface {
+	// initialize join table handler
 	Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type)
+	// Table return join table's table name
 	Table(db *DB) string
+	// Add create relationship in join table for source and destination
 	Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error
+	// Delete delete relationship in join table for sources
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
+	// JoinWith query with `Join` conditions
 	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	// SourceForeignKeys return source foreign keys
 	SourceForeignKeys() []JoinTableForeignKey
+	// DestinationForeignKeys return destination foreign keys
 	DestinationForeignKeys() []JoinTableForeignKey
 }
 
+// JoinTableForeignKey join table foreign key struct
 type JoinTableForeignKey struct {
 	DBName            string
 	AssociationDBName string
 }
 
+// JoinTableSource is a struct that contains model type and foreign keys
 type JoinTableSource struct {
 	ModelType   reflect.Type
 	ForeignKeys []JoinTableForeignKey
 }
 
+// JoinTableHandler default join table handler
 type JoinTableHandler struct {
 	TableName   string          `sql:"-"`
 	Source      JoinTableSource `sql:"-"`
 	Destination JoinTableSource `sql:"-"`
 }
 
+// SourceForeignKeys return source foreign keys
 func (s *JoinTableHandler) SourceForeignKeys() []JoinTableForeignKey {
 	return s.Source.ForeignKeys
 }
 
+// DestinationForeignKeys return destination foreign keys
 func (s *JoinTableHandler) DestinationForeignKeys() []JoinTableForeignKey {
 	return s.Destination.ForeignKeys
 }
 
+// Setup initialize a default join table handler
 func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, source reflect.Type, destination reflect.Type) {
 	s.TableName = tableName
 
@@ -61,11 +75,12 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	}
 }
 
+// Table return join table's table name
 func (s JoinTableHandler) Table(db *DB) string {
 	return s.TableName
 }
 
-func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
+func (s JoinTableHandler) getSearchMap(db *DB, sources ...interface{}) map[string]interface{} {
 	values := map[string]interface{}{}
 
 	for _, source := range sources {
@@ -89,9 +104,10 @@ func (s JoinTableHandler) GetSearchMap(db *DB, sources ...interface{}) map[strin
 	return values
 }
 
-func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1 interface{}, source2 interface{}) error {
+// Add create relationship in join table for source and destination
+func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error {
 	scope := db.NewScope("")
-	searchMap := s.GetSearchMap(db, source1, source2)
+	searchMap := s.getSearchMap(db, source, destination)
 
 	var assignColumns, binVars, conditions []string
 	var values []interface{}
@@ -120,6 +136,7 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source1
 	return db.Exec(sql, values...).Error
 }
 
+// Delete delete relationship in join table for sources
 func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error {
 	var (
 		scope      = db.NewScope(nil)
@@ -127,7 +144,7 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 		values     []interface{}
 	)
 
-	for key, value := range s.GetSearchMap(db, sources...) {
+	for key, value := range s.getSearchMap(db, sources...) {
 		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
 		values = append(values, value)
 	}
@@ -135,6 +152,7 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
 }
 
+// JoinWith query with `Join` conditions
 func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB {
 	var (
 		scope           = db.NewScope(source)

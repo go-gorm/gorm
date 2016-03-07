@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// defaultCallback hold default callbacks defined by gorm
+// DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
 
 // Callback contains callbacks that used when CURD objects

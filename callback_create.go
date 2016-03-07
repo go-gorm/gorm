@@ -85,14 +85,14 @@ func createCallback(scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIdReturningSuffix := scope.Dialect().LastInsertIdReturningSuffix(quotedTableName, returningColumn)
+		lastInsertIDReturningSuffix := scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
 				"INSERT INTO %v DEFAULT VALUES%v%v",
 				quotedTableName,
 				addExtraSpaceIfExist(extraOption),
-				addExtraSpaceIfExist(lastInsertIdReturningSuffix),
+				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
@@ -101,13 +101,13 @@ func createCallback(scope *Scope) {
 				strings.Join(columns, ","),
 				strings.Join(placeholders, ","),
 				addExtraSpaceIfExist(extraOption),
-				addExtraSpaceIfExist(lastInsertIdReturningSuffix),
+				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
 			))
 		}
 
 		// execute create sql
-		if lastInsertIdReturningSuffix == "" || primaryField == nil {
-			if result, err := scope.SqlDB().Exec(scope.Sql, scope.SqlVars...); scope.Err(err) == nil {
+		if lastInsertIDReturningSuffix == "" || primaryField == nil {
+			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
 
@@ -119,7 +119,7 @@ func createCallback(scope *Scope) {
 				}
 			}
 		} else {
-			if err := scope.SqlDB().QueryRow(scope.Sql, scope.SqlVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
 				scope.db.RowsAffected = 1
 			}
 		}

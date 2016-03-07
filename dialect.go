@@ -39,7 +39,7 @@ type Dialect interface {
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
 	// LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
-	LastInsertIdReturningSuffix(tableName, columnName string) string
+	LastInsertIDReturningSuffix(tableName, columnName string) string
 }
 
 var dialectsMap = map[string]Dialect{}
