@@ -447,7 +447,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									if len(associationForeignKeys) == 0 {
 										for _, foreignKey := range foreignKeys {
 											if strings.HasPrefix(foreignKey, field.Name) {
-												associationForeignKeys = append(associationForeignKeys, strings.TrimPrefix(foreignKey, field.Name))
+												associationForeignKey := strings.TrimPrefix(foreignKey, field.Name)
+												if foreignField := getForeignField(associationForeignKey, toFields); foreignField != nil {
+													associationForeignKeys = append(associationForeignKeys, associationForeignKey)
+												}
 											}
 										}
 										if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {

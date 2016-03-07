@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/jinzhu/gorm"
 )
 
 func TestBelongsTo(t *testing.T) {
@@ -174,6 +176,49 @@ func TestBelongsTo(t *testing.T) {
 
 	if err := DB.Unscoped().Model(&post).Association("Category").Find(&Category{}).Error; err != nil {
 		t.Errorf("Post's category should be findable when query with Unscoped, got %v", err)
+	}
+}
+
+func TestBelongsToOverrideForeignKey1(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name string
+	}
+
+	type User struct {
+		gorm.Model
+		Profile      Profile `gorm:"ForeignKey:ProfileRefer"`
+		ProfileRefer int
+	}
+
+	DB.AutoMigrate(&User{})
+	DB.AutoMigrate(&Profile{})
+
+	var user = User{Model: gorm.Model{ID: 1}, ProfileRefer: 10}
+	if err := DB.Model(&user).Association("Profile").Find(&[]Profile{}).Error; err != nil {
+		t.Errorf("Override belongs to foreign key with tag")
+	}
+}
+
+func TestBelongsToOverrideForeignKey2(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Refer string
+		Name  string
+	}
+
+	type User struct {
+		gorm.Model
+		Profile   Profile `gorm:"ForeignKey:ProfileID;AssociationForeignKey:Refer"`
+		ProfileID int
+	}
+
+	DB.AutoMigrate(&User{})
+	DB.AutoMigrate(&Profile{})
+
+	var user = User{Model: gorm.Model{ID: 1}, ProfileID: 10}
+	if err := DB.Model(&user).Association("Profile").Find(&[]Profile{}).Error; err != nil {
+		t.Errorf("Override belongs to foreign key with tag")
 	}
 }
 
