@@ -17,7 +17,7 @@
 * [CRUD: Reading and Writing Data](curd.md)
   * [Create](curd.md#create),
   * [Query](curd.md#query),
-  * [Preloading (Eager Loading)](curd.md#preloading),
+  * [Preloading (Eager Loading)](curd.md#preloading-eager-loading),
   * [Update](curd.md#update),
   * [Delete / Soft Delete](curd.md#delete)
 * [Callbacks](callbacks.md)

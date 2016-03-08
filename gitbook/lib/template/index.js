@@ -70,9 +70,10 @@ function TemplateEngine(output) {
 TemplateEngine.prototype.bindContext = function(func) {
     var ctx = {
         ctx: this.ctx,
-        output: this.output,
-        generator: this.output.name
+        book: this.book,
+        output: this.output
     };
+    error.deprecateField(ctx, 'generator', this.output.name, '"generator" property is deprecated, use "output.generator" instead');
 
     return _.bind(func, ctx);
 };

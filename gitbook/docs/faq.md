@@ -18,6 +18,10 @@ You should always use paths and the `.md` extensions when linking to your files,
 
 Yes, GitBooks can be created in [sub-directories](structure.md#subdirectory). GitBook.com and the CLI also looks by default in a serie of [folders](structure.md).
 
+#### Does GitBook supports RTL languages?
+
+Yes, GitBook automatically detect the direction in your pages (`rtl` or `ltr`) and adjust the layout accordingly. The direction can also be specified globally in the [book.json](config.md).
+
 ---
 
 #### Does GitBook support Math equations?

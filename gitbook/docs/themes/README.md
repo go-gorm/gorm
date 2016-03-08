@@ -2,7 +2,7 @@
 
 Since version 3.0.0, GitBook can be easily themed. Books are using by default the [theme-default](https://github.com/GitbookIO/theme-default).
 
-The theme to use is specified in the [book's configuration](config.md) using key `theme`.
+The theme to use is specified in the [book's configuration](../config.md) using key `theme`.
 
 > **Caution**: Custom theming can block some plugins from working correctly.
 

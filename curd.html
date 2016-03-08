@@ -70,7 +70,7 @@
     data-chapter-title="CRUD: Reading and Writing Data"
     data-filepath="curd.md"
     data-basepath="."
-    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
+    data-revision="Tue Mar 08 2016 23:14:38 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -355,7 +355,7 @@
     
         <li class="chapter " data-level="3.3" data-path="curd.html">
             
-                <a href="curd.html#preloading">
+                <a href="curd.html#preloading-eager-loading">
             
                     
                         <b>3.3.</b>
@@ -630,7 +630,10 @@
 <ul>
 <li><a href="#create">Create</a><ul>
 <li><a href="#create-record">Create Record</a></li>
-<li><a href="#create-with-associations">Create With Associations</a></li>
+<li><a href="#create-with-associations">Create With Associations</a><ul>
+<li><a href="#skip-save-associations-when-creating">Skip Save Associations when creating</a></li>
+</ul>
+</li>
 <li><a href="#default-values">Default Values</a></li>
 <li><a href="#setting-primary-key-in-callbacks">Setting Primary Key In Callbacks</a></li>
 <li><a href="#extra-creating-option">Extra Creating option</a></li>
@@ -667,6 +670,10 @@
 <li><a href="#specifying-the-table-name">Specifying The Table Name</a></li>
 </ul>
 </li>
+<li><a href="#preloading-eager-loading">Preloading (Eager loading)</a><ul>
+<li><a href="#nested-preloading">Nested Preloading</a></li>
+</ul>
+</li>
 <li><a href="#update">Update</a><ul>
 <li><a href="#update-all-fields">Update All Fields</a></li>
 <li><a href="#update-changed-fields">Update Changed Fields</a></li>
@@ -675,6 +682,7 @@
 <li><a href="#batch-updates">Batch Updates</a></li>
 <li><a href="#update-with-sql-expression">Update with SQL Expression</a></li>
 <li><a href="#change-updating-values-in-callbacks">Change Updating Values In Callbacks</a></li>
+<li><a href="#skip-save-associations-when-updating">Skip Save Associations when updating</a></li>
 <li><a href="#extra-updating-option">Extra Updating option</a></li>
 </ul>
 </li>
@@ -719,6 +727,10 @@ db.Create(&amp;user)
 </code></pre>
 <h3 id="create-with-associations">Create With Associations</h3>
 <p>Refer <a href="associations.html">Associations</a> for more details</p>
+<h4 id="skip-save-associations-when-creating">Skip Save Associations when creating</h4>
+<p>By default, GORM will save associations also when creating, you could skip it by set <code>gorm:save_associations</code> to <code>false</code></p>
+<pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+</code></pre>
 <h3 id="default-values">Default Values</h3>
 <p>You could define default value in the <code>gorm</code> tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into databae, gorm will load those fields&apos;s value from database.</p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
@@ -1097,6 +1109,29 @@ db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Find(&amp;d
 db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Delete()
 <span class="hljs-comment">//// DELETE FROM deleted_users WHERE name = &apos;jinzhu&apos;;</span>
 </code></pre>
+<h2 id="preloading-eager-loading">Preloading (Eager loading)</h2>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4);</span>
+
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state NOT IN (?)&quot;</span>, <span class="hljs-string">&quot;cancelled&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) AND state NOT IN (&apos;cancelled&apos;);</span>
+
+db.Where(<span class="hljs-string">&quot;state = ?&quot;</span>, <span class="hljs-string">&quot;active&quot;</span>).Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state NOT IN (?)&quot;</span>, <span class="hljs-string">&quot;cancelled&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE state = &apos;active&apos;;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2) AND state NOT IN (&apos;cancelled&apos;);</span>
+
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>).Preload(<span class="hljs-string">&quot;Profile&quot;</span>).Preload(<span class="hljs-string">&quot;Role&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many</span>
+<span class="hljs-comment">//// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one</span>
+<span class="hljs-comment">//// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to</span>
+</code></pre>
+<h3 id="nested-preloading">Nested Preloading</h3>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders.OrderItems&quot;</span>).Find(&amp;users)
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state = ?&quot;</span>, <span class="hljs-string">&quot;paid&quot;</span>).Preload(<span class="hljs-string">&quot;Orders.OrderItems&quot;</span>).Find(&amp;users)
+</code></pre>
 <h2 id="update">Update</h2>
 <h3 id="update-all-fields">Update All Fields</h3>
 <p><code>Save</code> will include all fields when perform the Updating SQL, even it is not changed</p>
@@ -1180,6 +1215,10 @@ DB.Model(&amp;product).Where(<span class="hljs-string">&quot;quantity &gt; 1&quo
     scope.SetColumn(<span class="hljs-string">&quot;EncryptedPassword&quot;</span>, pw)
   }
 }
+</code></pre>
+<h3 id="skip-save-associations-when-updating">Skip Save Associations when updating</h3>
+<p>By default, GORM will save associations also when updating, you could skip it by set <code>gorm:save_associations</code> to <code>false</code></p>
+<pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
 </code></pre>
 <h3 id="extra-updating-option">Extra Updating option</h3>
 <pre><code class="lang-go">// Add extra SQL option for updating SQL

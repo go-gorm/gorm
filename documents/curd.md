@@ -42,6 +42,14 @@ db.Create(&user)
 
 Refer [Associations](associations.html) for more details
 
+#### Skip Save Associations when creating
+
+By default, GORM will save associations also when creating, you could skip it by set `gorm:save_associations` to `false`
+
+```go
+db.Set("gorm:save_associations", false).Create(&user)
+```
+
 ### Default Values
 
 You could define default value in the `gorm` tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into databae, gorm will load those fields's value from database.
@@ -524,6 +532,35 @@ db.Table("deleted_users").Where("name = ?", "jinzhu").Delete()
 //// DELETE FROM deleted_users WHERE name = 'jinzhu';
 ```
 
+## Preloading (Eager loading)
+
+```go
+db.Preload("Orders").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4);
+
+db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) AND state NOT IN ('cancelled');
+
+db.Where("state = ?", "active").Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
+//// SELECT * FROM users WHERE state = 'active';
+//// SELECT * FROM orders WHERE user_id IN (1,2) AND state NOT IN ('cancelled');
+
+db.Preload("Orders").Preload("Profile").Preload("Role").Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many
+//// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one
+//// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to
+```
+
+### Nested Preloading
+
+```go
+db.Preload("Orders.OrderItems").Find(&users)
+db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&users)
+```
+
 ## Update
 
 ### Update All Fields
@@ -634,6 +671,14 @@ func (user *User) BeforeSave(scope *gorm.Scope) (err error) {
     scope.SetColumn("EncryptedPassword", pw)
   }
 }
+```
+
+### Skip Save Associations when updating
+
+By default, GORM will save associations also when updating, you could skip it by set `gorm:save_associations` to `false`
+
+```go
+db.Set("gorm:save_associations", false).Save(&user)
 ```
 
 ### Extra Updating option
