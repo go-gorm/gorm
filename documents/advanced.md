@@ -4,45 +4,41 @@
 
 ## Error Handling
 
-```go
-query := db.Where("name = ?", "jinzhu").First(&user)
-query := db.First(&user).Limit(10).Find(&users)
-// query.Error will return the last happened error
+After perform any operations, if there are any error happened, GORM will set it to `*DB`'s `Error` field
 
-// So you could do error handing in your application like this:
+```go
 if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
 	// error handling...
 }
 
-// RecordNotFound
-// If no record found when you query data, gorm will return RecordNotFound error, you could check it like this:
-db.Where("name = ?", "hello world").First(&User{}).Error == gorm.RecordNotFound
-// Or use the shortcut method
+// If there are more than one error happened, get all of them with `GetErrors`, it returns `[]error`
+db.First(&user).Limit(10).Find(&users).GetErrors()
+
+// Check if returns RecordNotFound error
 db.Where("name = ?", "hello world").First(&user).RecordNotFound()
 
 if db.Model(&user).Related(&credit_card).RecordNotFound() {
-	// no credit card found error handling
+	// no credit card found handling
 }
 ```
 
 ## Transactions
 
 To perform a set of operations within a transaction, the general flow is as below.
-The database handle returned from ``` db.Begin() ``` should be used for all operations within the transaction.
-(Note that all individual save and delete operations are run in a transaction by default.)
 
 ```go
-// begin
+// begin a transaction
 tx := db.Begin()
 
-// do some database operations (use 'tx' from this point, not 'db')
+// do some database operations in the transaction (use 'tx' from this point, not 'db')
 tx.Create(...)
-...
 
-// rollback in case of error
+// ...
+
+// rollback the transaction in case of error
 tx.Rollback()
 
-// Or commit if all is ok
+// Or commit the transaction
 tx.Commit()
 ```
 
