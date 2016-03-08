@@ -1,29 +1,35 @@
-# Gorm Development
+# Development
 
 <!-- toc -->
 
 ## Architecture
 
-The most notable component of Gorm is`gorm.DB`, which hold database connection. It could be initialized like this:
+Gorm use chainable API, `*gorm.DB` is the bridge of chains, for each chain API, it will create a new relation.
 
-    db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+```go
+db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 
-Gorm has chainable API, `gorm.DB` is the bridge of chains, it save related information and pass it to the next chain.
+// create a new relation
+db = db.Where("name = ?", "jinzhu")
 
-Lets use below code to explain how it works:
+// create another new relation
+db = db.Where("age = ?", 20)
+```
 
-    db.Where("name = ?", "jinzhu").Find(&users)
+When we start to perform any operations, GROM will create a new `*gorm.Scope` instance based on current `*gorm.DB`
 
-    // equivalent code
-    newdb := db.Where("name =?", "jinzhu")
-    newdb.Find(&user)
+```go
+// perform a querying operation
+db.First(&user)
+```
 
-`newdb` is `db`'s clone, in addition, it contains search conditions from the `Where` method.
-`Find` is a query method, it creates a `Scope` instance, and pass it as argument to query callbacks.
+And based on current operation's type, it will call registered `creating`, `updating`, `querying`, `deleting` or `row_querying` callbacks to run the operation.
 
-There are four kinds of callbacks corresponds to sql's CURD: create callbacks, update callbacks, query callbacks, delete callbacks.
+For above example, will call `querying` callbacks, refer [Querying Callbacks](callbacks.html#querying-an-object)
 
-## Callbacks
+## Write Plugins
+
+GORM itself is powered by `Callbacks`, so you could fully customize GORM as you want
 
 ### Register a new callback
 
@@ -55,16 +61,28 @@ There are four kinds of callbacks corresponds to sql's CURD: create callbacks, u
     db.Callback().Update().Before("gorm:update").Register("my_plugin:before_update", beforeUpdate)
     db.Callback().Create().Before("gorm:create").After("gorm:before_create").Register("my_plugin:before_create", beforeCreate)
 
-### Callback API
+### Pre-Defined Callbacks
 
-Gorm is powered by callbacks, so you could refer below links to learn how to write callbacks
+GORM has defiend callbacks to perform its CRUD operations, check them out before start write your plugins
 
-[Create callbacks](https://github.com/jinzhu/gorm/blob/master/callback_create.go)
+- [Create callbacks](https://github.com/jinzhu/gorm/blob/master/callback_create.go)
 
-[Update callbacks](https://github.com/jinzhu/gorm/blob/master/callback_update.go)
+- [Update callbacks](https://github.com/jinzhu/gorm/blob/master/callback_update.go)
 
-[Query callbacks](https://github.com/jinzhu/gorm/blob/master/callback_query.go)
+- [Query callbacks](https://github.com/jinzhu/gorm/blob/master/callback_query.go)
 
-[Delete callbacks](https://github.com/jinzhu/gorm/blob/master/callback_delete.go)
+- [Delete callbacks](https://github.com/jinzhu/gorm/blob/master/callback_delete.go)
 
-View [https://github.com/jinzhu/gorm/blob/master/scope.go](https://github.com/jinzhu/gorm/blob/master/scope.go) for all available API
+- Row Query callbacks
+
+Row Query callbacks will be called when run `Row` or `Rows`, by default there is no registered callbacks for it, you could register a new one like:
+
+```go
+func updateTableName(scope *gorm.Scope) {
+  scope.Search.Table(scope.TableName() + "_draft") // append `_draft` to table name
+}
+
+db.Callback().RowQuery().Register("publish:update_table_name", updateTableName)
+```
+
+View [https://godoc.org/github.com/jinzhu/gorm](https://godoc.org/github.com/jinzhu/gorm) to view all available API

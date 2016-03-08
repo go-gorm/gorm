@@ -64,16 +64,29 @@ func CreateAnimals(db *gorm.DB) err {
 }
 ```
 
-## Raw SQL
+## SQL Builder
+
+#### Run Raw SQL
+
+Run Raw SQL
 
 ```go
 db.Exec("DROP TABLE users;")
 db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,22,33})
+
+// Scan
+type Result struct {
+	Name string
+	Age  int
+}
+
+var result Result
+db.Raw("SELECT name, age FROM users WHERE name = ?", 3).Scan(&result)
 ```
 
-## Row & Rows
+#### sql.Row & sql.Rows
 
-It is even possible to get query result as `*sql.Row` or `*sql.Rows`
+Get query result as `*sql.Row` or `*sql.Rows`
 
 ```go
 row := db.Table("users").Where("name = ?", "jinzhu").Select("name, age").Row() // (*sql.Row)
@@ -97,7 +110,7 @@ for rows.Next() {
 }
 ```
 
-### Scan Rows
+#### Scan sql.Rows In Iteration
 
 ```go
 rows, err := db.Model(&User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
@@ -112,21 +125,26 @@ for rows.Next() {
 
 ## Generic database interface sql.DB
 
-Get generic database interface from `*gorm.DB` connection [*sql.DB](http://golang.org/pkg/database/sql/#DB)
+Get generic database interface [*sql.DB](http://golang.org/pkg/database/sql/#DB) from `*gorm.DB` connection
 
 ```go
-// Get generic database object *sql.DB to use its functions
+// Get generic database object `*sql.DB` to use its functions
 db.DB()
 
-// Connection Pool
-db.DB().SetMaxIdleConns(10)
-db.DB().SetMaxOpenConns(100)
-
-  // Ping
+// Ping
 db.DB().Ping()
 ```
 
+#### Connection Pool
+
+```go
+db.DB().SetMaxIdleConns(10)
+db.DB().SetMaxOpenConns(100)
+```
+
 ## Composite Primary Key
+
+Set multiple fields as priamry key to enable composite primary key
 
 ```go
 type Product struct {
@@ -137,25 +155,24 @@ type Product struct {
 
 ## Logger
 
-Gorm has built-in logger support
+Gorm has built-in logger support, by default, it will print happened errors
 
 ```go
-// Enable Logger
+// Enable Logger, show detailed log
 db.LogMode(true)
 
-// Diable Logger
+// Diable Logger, don't show any log
 db.LogMode(false)
 
-// Debug a single operation
+// Debug a single operation, show detailed log for this operation
 db.Debug().Where("name = ?", "jinzhu").First(&User{})
 ```
 
-![logger](https://raw.github.com/jinzhu/gorm/master/doc/logger.png)
+#### Customize Logger
 
-### Customize Logger
+Refer GORM's default logger for how to customize it [https://github.com/jinzhu/gorm/blob/master/logger.go](https://github.com/jinzhu/gorm/blob/master/logger.go)
 
 ```go
-// Refer gorm's default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files
 db.SetLogger(gorm.Logger{revel.TRACE})
 db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 ```

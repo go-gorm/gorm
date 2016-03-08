@@ -29,5 +29,6 @@
   * [Composite Primary Key](advanced.md#compose-primary-key)
   * [Overriding Logger](advanced.md#logger)
 * [Development](development.md)
-  * [Write Plugins](development.md#callbacks)
+  * [Architecture](development.md#architecture)
+  * [Write Plugins](development.md#write-plugins)
 * [Change Log](changelog.md)
