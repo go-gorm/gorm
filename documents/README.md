@@ -50,7 +50,7 @@ type Product struct {
 func main() {
   db, err := gorm.Open("sqlite", "test.db")
   if err != nil {
-    panic("faield to connect database")
+    panic("failed to connect database")
   }
 
   // Create
