@@ -5,91 +5,102 @@ import (
 	"strings"
 )
 
-func AssignUpdateAttributes(scope *Scope) {
+// Define callbacks for updating
+func init() {
+	DefaultCallback.Update().Register("gorm:assign_updating_attributes", assignUpdatingAttributesCallback)
+	DefaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
+	DefaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	DefaultCallback.Update().Register("gorm:update_time_stamp", updateTimeStampForUpdateCallback)
+	DefaultCallback.Update().Register("gorm:update", updateCallback)
+	DefaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
+	DefaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
+	DefaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+
+// assignUpdatingAttributesCallback assign updating attributes to model
+func assignUpdatingAttributesCallback(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
-			protected, ok := scope.Get("gorm:ignore_protected_attrs")
-			_, updateColumn := scope.Get("gorm:update_column")
-			updateAttrs, hasUpdate := scope.updatedAttrsWithValues(maps, ok && protected.(bool))
-
-			if updateColumn {
-				scope.InstanceSet("gorm:update_attrs", maps)
-			} else if len(updateAttrs) > 0 {
-				scope.InstanceSet("gorm:update_attrs", updateAttrs)
-			} else if !hasUpdate {
+			if updateMaps, hasUpdate := scope.updatedAttrsWithValues(maps); hasUpdate {
+				scope.InstanceSet("gorm:update_attrs", updateMaps)
+			} else {
 				scope.SkipLeft()
-				return
 			}
 		}
 	}
 }
 
-func BeforeUpdate(scope *Scope) {
+// beforeUpdateCallback will invoke `BeforeSave`, `BeforeUpdate` method before updating
+func beforeUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.CallMethodWithErrorCheck("BeforeSave")
-		scope.CallMethodWithErrorCheck("BeforeUpdate")
+		if !scope.HasError() {
+			scope.CallMethod("BeforeSave")
+		}
+		if !scope.HasError() {
+			scope.CallMethod("BeforeUpdate")
+		}
 	}
 }
 
-func UpdateTimeStampWhenUpdate(scope *Scope) {
+// updateTimeStampForUpdateCallback will set `UpdatedAt` when updating
+func updateTimeStampForUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.SetColumn("UpdatedAt", NowFunc())
 	}
 }
 
-func Update(scope *Scope) {
+// updateCallback the callback used to update data to database
+func updateCallback(scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
 
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {
-			for key, value := range updateAttrs.(map[string]interface{}) {
-				if scope.changeableDBColumn(key) {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(key), scope.AddToVars(value)))
-				}
+			for column, value := range updateAttrs.(map[string]interface{}) {
+				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(column), scope.AddToVars(value)))
 			}
 		} else {
-			fields := scope.Fields()
-			for _, field := range fields {
-				if scope.changeableField(field) && !field.IsPrimaryKey && field.IsNormal {
-					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
-				} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
-					for _, dbName := range relationship.ForeignDBNames {
-						if relationField := fields[dbName]; !scope.changeableField(relationField) && !relationField.IsBlank {
-							sql := fmt.Sprintf("%v = %v", scope.Quote(relationField.DBName), scope.AddToVars(relationField.Field.Interface()))
-							sqls = append(sqls, sql)
+			for _, field := range scope.Fields() {
+				if scope.changeableField(field) {
+					if !field.IsPrimaryKey && field.IsNormal {
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+					} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
+						for _, foreignKey := range relationship.ForeignDBNames {
+							if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
+								sqls = append(sqls,
+									fmt.Sprintf("%v = %v", scope.Quote(foreignField.DBName), scope.AddToVars(foreignField.Field.Interface())))
+							}
 						}
 					}
 				}
 			}
 		}
 
+		var extraOption string
+		if str, ok := scope.Get("gorm:update_option"); ok {
+			extraOption = fmt.Sprint(str)
+		}
+
 		if len(sqls) > 0 {
 			scope.Raw(fmt.Sprintf(
-				"UPDATE %v SET %v %v",
+				"UPDATE %v SET %v%v%v",
 				scope.QuotedTableName(),
 				strings.Join(sqls, ", "),
-				scope.CombinedConditionSql(),
-			))
-			scope.Exec()
+				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(extraOption),
+			)).Exec()
 		}
 	}
 }
 
-func AfterUpdate(scope *Scope) {
+// afterUpdateCallback will invoke `AfterUpdate`, `AfterSave` method after updating
+func afterUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.CallMethodWithErrorCheck("AfterUpdate")
-		scope.CallMethodWithErrorCheck("AfterSave")
+		if !scope.HasError() {
+			scope.CallMethod("AfterUpdate")
+		}
+		if !scope.HasError() {
+			scope.CallMethod("AfterSave")
+		}
 	}
-}
-
-func init() {
-	DefaultCallback.Update().Register("gorm:assign_update_attributes", AssignUpdateAttributes)
-	DefaultCallback.Update().Register("gorm:begin_transaction", BeginTransaction)
-	DefaultCallback.Update().Register("gorm:before_update", BeforeUpdate)
-	DefaultCallback.Update().Register("gorm:save_before_associations", SaveBeforeAssociations)
-	DefaultCallback.Update().Register("gorm:update_time_stamp_when_update", UpdateTimeStampWhenUpdate)
-	DefaultCallback.Update().Register("gorm:update", Update)
-	DefaultCallback.Update().Register("gorm:save_after_associations", SaveAfterAssociations)
-	DefaultCallback.Update().Register("gorm:after_update", AfterUpdate)
-	DefaultCallback.Update().Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 }

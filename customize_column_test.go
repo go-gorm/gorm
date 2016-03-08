@@ -26,7 +26,7 @@ func TestCustomizeColumn(t *testing.T) {
 	DB.AutoMigrate(&CustomizeColumn{})
 
 	scope := DB.NewScope(&CustomizeColumn{})
-	if !scope.Dialect().HasColumn(scope, scope.TableName(), col) {
+	if !scope.Dialect().HasColumn(scope.TableName(), col) {
 		t.Errorf("CustomizeColumn should have column %s", col)
 	}
 

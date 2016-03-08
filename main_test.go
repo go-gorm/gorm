@@ -4,23 +4,23 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"strconv"
-
-	_ "github.com/denisenkom/go-mssqldb"
-	testdb "github.com/erikstmartin/go-testdb"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/now"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
-
 	"os"
+	"reflect"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/erikstmartin/go-testdb"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mssql"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/jinzhu/now"
 )
 
 var (
-	DB                 gorm.DB
+	DB                 *gorm.DB
 	t1, t2, t3, t4, t5 time.Time
 )
 
@@ -42,7 +42,7 @@ func init() {
 	runMigration()
 }
 
-func OpenTestConnection() (db gorm.DB, err error) {
+func OpenTestConnection() (db *gorm.DB, err error) {
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
 		// CREATE USER 'gorm'@'localhost' IDENTIFIED BY 'gorm';
@@ -115,7 +115,7 @@ func TestSetTable(t *testing.T) {
 	DB.Create(getPreparedUser("pluck_user3", "pluck_user"))
 
 	if err := DB.Table("users").Where("role = ?", "pluck_user").Pluck("age", &[]int{}).Error; err != nil {
-		t.Errorf("No errors should happen if set table for pluck", err.Error())
+		t.Error("No errors should happen if set table for pluck", err)
 	}
 
 	var users []User
@@ -376,7 +376,7 @@ func TestRows(t *testing.T) {
 
 	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
 	if err != nil {
-		t.Errorf("Not error should happen, but got")
+		t.Errorf("Not error should happen, got %v", err)
 	}
 
 	count := 0
@@ -386,8 +386,39 @@ func TestRows(t *testing.T) {
 		rows.Scan(&name, &age)
 		count++
 	}
+
 	if count != 2 {
-		t.Errorf("Should found two records with name 3")
+		t.Errorf("Should found two records")
+	}
+}
+
+func TestScanRows(t *testing.T) {
+	user1 := User{Name: "ScanRowsUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
+	user2 := User{Name: "ScanRowsUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
+	user3 := User{Name: "ScanRowsUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	DB.Save(&user1).Save(&user2).Save(&user3)
+
+	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
+	if err != nil {
+		t.Errorf("Not error should happen, got %v", err)
+	}
+
+	type Result struct {
+		Name string
+		Age  int
+	}
+
+	var results []Result
+	for rows.Next() {
+		var result Result
+		if err := DB.ScanRows(rows, &result); err != nil {
+			t.Errorf("should get no error, but got %v", err)
+		}
+		results = append(results, result)
+	}
+
+	if !reflect.DeepEqual(results, []Result{{Name: "ScanRowsUser2", Age: 10}, {Name: "ScanRowsUser3", Age: 20}}) {
+		t.Errorf("Should find expected results")
 	}
 }
 
@@ -448,7 +479,7 @@ func TestRaw(t *testing.T) {
 	}
 
 	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
-	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.RecordNotFound {
+	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.ErrRecordNotFound {
 		t.Error("Raw sql to update records")
 	}
 }
@@ -469,15 +500,34 @@ func TestGroup(t *testing.T) {
 
 func TestJoins(t *testing.T) {
 	var user = User{
-		Name:   "joins",
-		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+		Name:       "joins",
+		CreditCard: CreditCard{Number: "411111111111"},
+		Emails:     []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
 	}
 	DB.Save(&user)
 
-	var result User
-	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").First(&result)
-	if result.Name != "joins" || result.Id != user.Id {
-		t.Errorf("Should find all two emails with Join")
+	var users1 []User
+	DB.Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins").Find(&users1)
+	if len(users1) != 2 {
+		t.Errorf("should find two users using left join")
+	}
+
+	var users2 []User
+	DB.Joins("left join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Where("name = ?", "joins").First(&users2)
+	if len(users2) != 1 {
+		t.Errorf("should find one users using left join with conditions")
+	}
+
+	var users3 []User
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where("name = ?", "joins").First(&users3)
+	if len(users3) != 1 {
+		t.Errorf("should find one users using multiple left join conditions")
+	}
+
+	var users4 []User
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "422222222222").Where("name = ?", "joins").First(&users4)
+	if len(users4) != 0 {
+		t.Errorf("should find no user when searching with unexisting credit card")
 	}
 }
 
@@ -557,7 +607,7 @@ func TestTimeWithZone(t *testing.T) {
 		DB.First(&findUser, "name = ?", name)
 		foundBirthday = findUser.Birthday.UTC().Format(format)
 		if foundBirthday != expectedBirthday {
-			t.Errorf("User's birthday should not be changed after find for name=%s, expected bday=%+v but actual value=%+v or %+v", name, expectedBirthday, foundBirthday)
+			t.Errorf("User's birthday should not be changed after find for name=%s, expected bday=%+v but actual value=%+v", name, expectedBirthday, foundBirthday)
 		}
 
 		if DB.Where("id = ? AND birthday >= ?", findUser.Id, user.Birthday.Add(-time.Minute)).First(&findUser2).RecordNotFound() {
@@ -573,7 +623,7 @@ func TestTimeWithZone(t *testing.T) {
 func TestHstore(t *testing.T) {
 	type Details struct {
 		Id   int64
-		Bulk gorm.Hstore
+		Bulk postgres.Hstore
 	}
 
 	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
@@ -659,7 +709,7 @@ func TestOpenExistingDB(t *testing.T) {
 	}
 
 	var user User
-	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.RecordNotFound {
+	if db.Where("name = ?", "jnfeinstein").First(&user).Error == gorm.ErrRecordNotFound {
 		t.Errorf("Should have found existing record")
 	}
 }

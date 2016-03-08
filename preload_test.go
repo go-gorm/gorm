@@ -133,7 +133,7 @@ func TestNestedPreload1(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got, "name = ?", "not_found").Error; err != gorm.RecordNotFound {
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got, "name = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
@@ -818,90 +818,6 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 }
 
-func TestManyToManyPreloadForPointer(t *testing.T) {
-	type (
-		Level1 struct {
-			ID    uint
-			Value string
-		}
-		Level2 struct {
-			ID      uint
-			Value   string
-			Level1s []*Level1 `gorm:"many2many:levels;"`
-		}
-	)
-
-	DB.DropTableIfExists(&Level2{})
-	DB.DropTableIfExists(&Level1{})
-	DB.DropTableIfExists("levels")
-
-	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
-		t.Error(err)
-	}
-
-	want := Level2{Value: "Bob", Level1s: []*Level1{
-		{Value: "ru"},
-		{Value: "en"},
-	}}
-	if err := DB.Save(&want).Error; err != nil {
-		t.Error(err)
-	}
-
-	want2 := Level2{Value: "Tom", Level1s: []*Level1{
-		{Value: "zh"},
-		{Value: "de"},
-	}}
-	if err := DB.Save(&want2).Error; err != nil {
-		t.Error(err)
-	}
-
-	var got Level2
-	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
-		t.Error(err)
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
-	}
-
-	var got2 Level2
-	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
-		t.Error(err)
-	}
-
-	if !reflect.DeepEqual(got2, want2) {
-		t.Errorf("got %s; want %s", toJSONString(got2), toJSONString(want2))
-	}
-
-	var got3 []Level2
-	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		t.Error(err)
-	}
-
-	if !reflect.DeepEqual(got3, []Level2{got, got2}) {
-		t.Errorf("got %s; want %s", toJSONString(got3), toJSONString([]Level2{got, got2}))
-	}
-
-	var got4 []Level2
-	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
-		t.Error(err)
-	}
-
-	var got5 Level2
-	DB.Preload("Level1s").First(&got5, "value = ?", "bogus")
-
-	var ruLevel1 Level1
-	var zhLevel1 Level1
-	DB.First(&ruLevel1, "value = ?", "ru")
-	DB.First(&zhLevel1, "value = ?", "zh")
-
-	got.Level1s = []*Level1{&ruLevel1}
-	got2.Level1s = []*Level1{&zhLevel1}
-	if !reflect.DeepEqual(got4, []Level2{got, got2}) {
-		t.Errorf("got %s; want %s", toJSONString(got4), toJSONString([]Level2{got, got2}))
-	}
-}
-
 func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	type (
 		Level1 struct {
@@ -1065,7 +981,7 @@ func TestNestedManyToManyPreload(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2s.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
+	if err := DB.Preload("Level2s.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
@@ -1122,12 +1038,87 @@ func TestNestedManyToManyPreload2(t *testing.T) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 
-	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.RecordNotFound {
+	if err := DB.Preload("Level2.Level1s").Find(&got, "value = ?", "not_found").Error; err != gorm.ErrRecordNotFound {
 		t.Error(err)
 	}
 }
 
 func TestNestedManyToManyPreload3(t *testing.T) {
+	type (
+		Level1 struct {
+			ID    uint
+			Value string
+		}
+		Level2 struct {
+			ID      uint
+			Value   string
+			Level1s []*Level1 `gorm:"many2many:level1_level2;"`
+		}
+		Level3 struct {
+			ID       uint
+			Value    string
+			Level2ID sql.NullInt64
+			Level2   *Level2
+		}
+	)
+
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists("level1_level2")
+
+	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	level1Zh := &Level1{Value: "zh"}
+	level1Ru := &Level1{Value: "ru"}
+	level1En := &Level1{Value: "en"}
+
+	level21 := &Level2{
+		Value:   "Level2-1",
+		Level1s: []*Level1{level1Zh, level1Ru},
+	}
+
+	level22 := &Level2{
+		Value:   "Level2-2",
+		Level1s: []*Level1{level1Zh, level1En},
+	}
+
+	wants := []*Level3{
+		{
+			Value:  "Level3-1",
+			Level2: level21,
+		},
+		{
+			Value:  "Level3-2",
+			Level2: level22,
+		},
+		{
+			Value:  "Level3-3",
+			Level2: level21,
+		},
+	}
+
+	for _, want := range wants {
+		if err := DB.Save(&want).Error; err != nil {
+			t.Error(err)
+		}
+	}
+
+	var gots []*Level3
+	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
+		return db.Order("level1.id ASC")
+	}).Find(&gots).Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(gots, wants) {
+		t.Errorf("got %s; want %s", toJSONString(gots), toJSONString(wants))
+	}
+}
+
+func TestNestedManyToManyPreload4(t *testing.T) {
 	type (
 		Level4 struct {
 			ID       uint
@@ -1185,6 +1176,90 @@ func TestNestedManyToManyPreload3(t *testing.T) {
 	}
 }
 
+func TestManyToManyPreloadForPointer(t *testing.T) {
+	type (
+		Level1 struct {
+			ID    uint
+			Value string
+		}
+		Level2 struct {
+			ID      uint
+			Value   string
+			Level1s []*Level1 `gorm:"many2many:levels;"`
+		}
+	)
+
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level1{})
+	DB.DropTableIfExists("levels")
+
+	if err := DB.AutoMigrate(&Level2{}, &Level1{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	want := Level2{Value: "Bob", Level1s: []*Level1{
+		{Value: "ru"},
+		{Value: "en"},
+	}}
+	if err := DB.Save(&want).Error; err != nil {
+		t.Error(err)
+	}
+
+	want2 := Level2{Value: "Tom", Level1s: []*Level1{
+		{Value: "zh"},
+		{Value: "de"},
+	}}
+	if err := DB.Save(&want2).Error; err != nil {
+		t.Error(err)
+	}
+
+	var got Level2
+	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+
+	var got2 Level2
+	if err := DB.Preload("Level1s").Find(&got2, "value = ?", "Tom").Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got2, want2) {
+		t.Errorf("got %s; want %s", toJSONString(got2), toJSONString(want2))
+	}
+
+	var got3 []Level2
+	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got3, []Level2{got, got2}) {
+		t.Errorf("got %s; want %s", toJSONString(got3), toJSONString([]Level2{got, got2}))
+	}
+
+	var got4 []Level2
+	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+		t.Error(err)
+	}
+
+	var got5 Level2
+	DB.Preload("Level1s").First(&got5, "value = ?", "bogus")
+
+	var ruLevel1 Level1
+	var zhLevel1 Level1
+	DB.First(&ruLevel1, "value = ?", "ru")
+	DB.First(&zhLevel1, "value = ?", "zh")
+
+	got.Level1s = []*Level1{&ruLevel1}
+	got2.Level1s = []*Level1{&zhLevel1}
+	if !reflect.DeepEqual(got4, []Level2{got, got2}) {
+		t.Errorf("got %s; want %s", toJSONString(got4), toJSONString([]Level2{got, got2}))
+	}
+}
+
 func TestNilPointerSlice(t *testing.T) {
 	type (
 		Level3 struct {
@@ -1234,7 +1309,7 @@ func TestNilPointerSlice(t *testing.T) {
 	}
 
 	if len(got) != 2 {
-		t.Error("got %v items, expected 2", len(got))
+		t.Errorf("got %v items, expected 2", len(got))
 	}
 
 	if !reflect.DeepEqual(got[0], want) && !reflect.DeepEqual(got[1], want) {

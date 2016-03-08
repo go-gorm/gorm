@@ -10,7 +10,7 @@ func (s *DB) clone() *DB {
 	}
 
 	if s.search == nil {
-		db.search = &search{}
+		db.search = &search{limit: -1, offset: -1}
 	} else {
 		db.search = s.search.clone()
 	}

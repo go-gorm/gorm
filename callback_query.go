@@ -6,115 +6,89 @@ import (
 	"reflect"
 )
 
-func Query(scope *Scope) {
-	defer scope.Trace(NowFunc())
+// Define callbacks for querying
+func init() {
+	DefaultCallback.Query().Register("gorm:query", queryCallback)
+	DefaultCallback.Query().Register("gorm:preload", preloadCallback)
+	DefaultCallback.Query().Register("gorm:after_query", afterQueryCallback)
+}
+
+// queryCallback used to query data from database
+func queryCallback(scope *Scope) {
+	defer scope.trace(NowFunc())
 
 	var (
-		isSlice        bool
-		isPtr          bool
-		anyRecordFound bool
-		destType       reflect.Type
+		isSlice    bool
+		isPtr      bool
+		results    = scope.IndirectValue()
+		resultType reflect.Type
 	)
 
 	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {
-		if primaryKey := scope.PrimaryKey(); primaryKey != "" {
-			scope.Search.Order(fmt.Sprintf("%v.%v %v", scope.QuotedTableName(), scope.Quote(primaryKey), orderBy))
+		if primaryField := scope.PrimaryField(); primaryField != nil {
+			scope.Search.Order(fmt.Sprintf("%v.%v %v", scope.QuotedTableName(), scope.Quote(primaryField.DBName), orderBy))
 		}
 	}
 
-	var dest = scope.IndirectValue()
 	if value, ok := scope.Get("gorm:query_destination"); ok {
-		dest = reflect.Indirect(reflect.ValueOf(value))
+		results = reflect.Indirect(reflect.ValueOf(value))
 	}
 
-	if kind := dest.Kind(); kind == reflect.Slice {
+	if kind := results.Kind(); kind == reflect.Slice {
 		isSlice = true
-		destType = dest.Type().Elem()
-		dest.Set(reflect.MakeSlice(dest.Type(), 0, 0))
+		resultType = results.Type().Elem()
+		results.Set(reflect.MakeSlice(results.Type(), 0, 0))
 
-		if destType.Kind() == reflect.Ptr {
+		if resultType.Kind() == reflect.Ptr {
 			isPtr = true
-			destType = destType.Elem()
+			resultType = resultType.Elem()
 		}
 	} else if kind != reflect.Struct {
 		scope.Err(errors.New("unsupported destination, should be slice or struct"))
 		return
 	}
 
-	scope.prepareQuerySql()
+	scope.prepareQuerySQL()
 
 	if !scope.HasError() {
-		rows, err := scope.SqlDB().Query(scope.Sql, scope.SqlVars...)
 		scope.db.RowsAffected = 0
-
-		if scope.Err(err) != nil {
-			return
+		if str, ok := scope.Get("gorm:query_option"); ok {
+			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
-		defer rows.Close()
 
-		columns, _ := rows.Columns()
-		for rows.Next() {
-			scope.db.RowsAffected++
+		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			defer rows.Close()
 
-			anyRecordFound = true
-			elem := dest
-			if isSlice {
-				elem = reflect.New(destType).Elem()
-			}
+			columns, _ := rows.Columns()
+			for rows.Next() {
+				scope.db.RowsAffected++
 
-			var values = make([]interface{}, len(columns))
+				elem := results
+				if isSlice {
+					elem = reflect.New(resultType).Elem()
+				}
 
-			fields := scope.New(elem.Addr().Interface()).Fields()
+				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).fieldsMap())
 
-			for index, column := range columns {
-				if field, ok := fields[column]; ok {
-					if field.Field.Kind() == reflect.Ptr {
-						values[index] = field.Field.Addr().Interface()
+				if isSlice {
+					if isPtr {
+						results.Set(reflect.Append(results, elem.Addr()))
 					} else {
-						reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
-						reflectValue.Elem().Set(field.Field.Addr())
-						values[index] = reflectValue.Interface()
-					}
-				} else {
-					var value interface{}
-					values[index] = &value
-				}
-			}
-
-			scope.Err(rows.Scan(values...))
-
-			for index, column := range columns {
-				value := values[index]
-				if field, ok := fields[column]; ok {
-					if field.Field.Kind() == reflect.Ptr {
-						field.Field.Set(reflect.ValueOf(value).Elem())
-					} else if v := reflect.ValueOf(value).Elem().Elem(); v.IsValid() {
-						field.Field.Set(v)
+						results.Set(reflect.Append(results, elem))
 					}
 				}
 			}
 
-			if isSlice {
-				if isPtr {
-					dest.Set(reflect.Append(dest, elem.Addr()))
-				} else {
-					dest.Set(reflect.Append(dest, elem))
-				}
+			if scope.db.RowsAffected == 0 && !isSlice {
+				scope.Err(ErrRecordNotFound)
 			}
-		}
-
-		if !anyRecordFound && !isSlice {
-			scope.Err(RecordNotFound)
 		}
 	}
 }
 
-func AfterQuery(scope *Scope) {
-	scope.CallMethodWithErrorCheck("AfterFind")
-}
-
-func init() {
-	DefaultCallback.Query().Register("gorm:query", Query)
-	DefaultCallback.Query().Register("gorm:preload", Preload)
-	DefaultCallback.Query().Register("gorm:after_query", AfterQuery)
+// afterQueryCallback will invoke `AfterFind` method after querying
+func afterQueryCallback(scope *Scope) {
+	if !scope.HasError() {
+		scope.CallMethod("AfterFind")
+	}
 }

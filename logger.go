@@ -8,25 +8,28 @@ import (
 	"reflect"
 	"regexp"
 	"time"
+	"unicode"
+)
+
+var (
+	defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
+	sqlRegexp     = regexp.MustCompile(`(\$\d+)|\?`)
 )
 
 type logger interface {
 	Print(v ...interface{})
 }
 
-type LogWriter interface {
+type logWriter interface {
 	Println(v ...interface{})
 }
 
+// Logger default logger
 type Logger struct {
-	LogWriter
+	logWriter
 }
 
-var defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
-
-// Format log
-var sqlRegexp = regexp.MustCompile(`(\$\d+)|\?`)
-
+// Print format & print log
 func (logger Logger) Print(values ...interface{}) {
 	if len(values) > 1 {
 		level := values[0]
@@ -38,29 +41,44 @@ func (logger Logger) Print(values ...interface{}) {
 			// duration
 			messages = append(messages, fmt.Sprintf(" \033[36;1m[%.2fms]\033[0m ", float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0))
 			// sql
-			var formatedValues []interface{}
+			var sql string
+			var formattedValues []string
+
 			for _, value := range values[4].([]interface{}) {
 				indirectValue := reflect.Indirect(reflect.ValueOf(value))
 				if indirectValue.IsValid() {
 					value = indirectValue.Interface()
 					if t, ok := value.(time.Time); ok {
-						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", t.Format(time.RFC3339)))
+						formattedValues = append(formattedValues, fmt.Sprintf("'%v'", t.Format(time.RFC3339)))
 					} else if b, ok := value.([]byte); ok {
-						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", string(b)))
+						if str := string(b); isPrintable(str) {
+							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", str))
+						} else {
+							formattedValues = append(formattedValues, "'<binary>'")
+						}
 					} else if r, ok := value.(driver.Valuer); ok {
 						if value, err := r.Value(); err == nil && value != nil {
-							formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
+							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", value))
 						} else {
-							formatedValues = append(formatedValues, "NULL")
+							formattedValues = append(formattedValues, "NULL")
 						}
 					} else {
-						formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
+						formattedValues = append(formattedValues, fmt.Sprintf("'%v'", value))
 					}
 				} else {
-					formatedValues = append(formatedValues, fmt.Sprintf("'%v'", value))
+					formattedValues = append(formattedValues, fmt.Sprintf("'%v'", value))
 				}
 			}
-			messages = append(messages, fmt.Sprintf(sqlRegexp.ReplaceAllString(values[3].(string), "%v"), formatedValues...))
+
+			var formattedValuesLength = len(formattedValues)
+			for index, value := range sqlRegexp.Split(values[3].(string), -1) {
+				sql += value
+				if index < formattedValuesLength {
+					sql += formattedValues[index]
+				}
+			}
+
+			messages = append(messages, sql)
 		} else {
 			messages = append(messages, "\033[31;1m")
 			messages = append(messages, values[2:]...)
@@ -68,4 +86,13 @@ func (logger Logger) Print(values ...interface{}) {
 		}
 		logger.Println(messages...)
 	}
+}
+
+func isPrintable(s string) bool {
+	for _, r := range s {
+		if !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
 }

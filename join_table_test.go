@@ -18,7 +18,7 @@ type PersonAddress struct {
 	gorm.JoinTableHandler
 	PersonID  int
 	AddressID int
-	DeletedAt time.Time
+	DeletedAt *time.Time
 	CreatedAt time.Time
 }
 

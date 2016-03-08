@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/jinzhu/gorm"
 )
 
 func TestBelongsTo(t *testing.T) {
@@ -16,7 +18,7 @@ func TestBelongsTo(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post", err.Error())
+		t.Error("Got errors when save post", err)
 	}
 
 	if post.Category.ID == 0 || post.MainCategory.ID == 0 {
@@ -177,6 +179,49 @@ func TestBelongsTo(t *testing.T) {
 	}
 }
 
+func TestBelongsToOverrideForeignKey1(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name string
+	}
+
+	type User struct {
+		gorm.Model
+		Profile      Profile `gorm:"ForeignKey:ProfileRefer"`
+		ProfileRefer int
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "belongs_to" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"ProfileRefer"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"ID"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
+	}
+}
+
+func TestBelongsToOverrideForeignKey2(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Refer string
+		Name  string
+	}
+
+	type User struct {
+		gorm.Model
+		Profile   Profile `gorm:"ForeignKey:ProfileID;AssociationForeignKey:Refer"`
+		ProfileID int
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "belongs_to" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"ProfileID"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"Refer"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
+	}
+}
+
 func TestHasOne(t *testing.T) {
 	user := User{
 		Name:       "has one",
@@ -184,7 +229,7 @@ func TestHasOne(t *testing.T) {
 	}
 
 	if err := DB.Save(&user).Error; err != nil {
-		t.Errorf("Got errors when save user", err.Error())
+		t.Error("Got errors when save user", err.Error())
 	}
 
 	if user.CreditCard.UserId.Int64 == 0 {
@@ -323,6 +368,49 @@ func TestHasOne(t *testing.T) {
 	}
 }
 
+func TestHasOneOverrideForeignKey1(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profile Profile `gorm:"ForeignKey:UserRefer"`
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "has_one" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"UserRefer"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"ID"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
+	}
+}
+
+func TestHasOneOverrideForeignKey2(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name   string
+		UserID uint
+	}
+
+	type User struct {
+		gorm.Model
+		Refer   string
+		Profile Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "has_one" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"UserID"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"Refer"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
+	}
+}
+
 func TestHasMany(t *testing.T) {
 	post := Post{
 		Title:    "post has many",
@@ -331,7 +419,7 @@ func TestHasMany(t *testing.T) {
 	}
 
 	if err := DB.Save(&post).Error; err != nil {
-		t.Errorf("Got errors when save post", err.Error())
+		t.Error("Got errors when save post", err)
 	}
 
 	for _, comment := range post.Comments {
@@ -459,6 +547,49 @@ func TestHasMany(t *testing.T) {
 	var comments61 []Comment
 	if DB.Unscoped().Model(&post).Association("Comments").Find(&comments61); len(comments61) != 1 {
 		t.Errorf("post's comments count should be 1 when query with Unscoped, but got %v", len(comments61))
+	}
+}
+
+func TestHasManyOverrideForeignKey1(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profile []Profile `gorm:"ForeignKey:UserRefer"`
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "has_many" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"UserRefer"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"ID"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
+	}
+}
+
+func TestHasManyOverrideForeignKey2(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name   string
+		UserID uint
+	}
+
+	type User struct {
+		gorm.Model
+		Refer   string
+		Profile []Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+	}
+
+	if relation, ok := DB.NewScope(&User{}).FieldByName("Profile"); ok {
+		if relation.Relationship.Kind != "has_many" ||
+			!reflect.DeepEqual(relation.Relationship.ForeignFieldNames, []string{"UserID"}) ||
+			!reflect.DeepEqual(relation.Relationship.AssociationForeignFieldNames, []string{"Refer"}) {
+			t.Errorf("Override belongs to foreign key with tag")
+		}
 	}
 }
 

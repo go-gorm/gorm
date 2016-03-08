@@ -42,9 +42,9 @@ type CreditCard struct {
 	ID        int8
 	Number    string
 	UserId    sql.NullInt64
-	CreatedAt time.Time
+	CreatedAt time.Time `sql:"not null"`
 	UpdatedAt time.Time
-	DeletedAt time.Time
+	DeletedAt *time.Time
 }
 
 type Email struct {
@@ -62,7 +62,7 @@ type Address struct {
 	Post      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt time.Time
+	DeletedAt *time.Time
 }
 
 type Language struct {

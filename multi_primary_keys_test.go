@@ -21,7 +21,7 @@ type Tag struct {
 	ID     uint   `gorm:"primary_key"`
 	Locale string `gorm:"primary_key"`
 	Value  string
-	Blogs  []*Blog `gorm:"many2many:"blogs_tags`
+	Blogs  []*Blog `gorm:"many2many:blogs_tags"`
 }
 
 func compareTags(tags []Tag, contents []string) bool {

@@ -8,15 +8,15 @@ type search struct {
 	orConditions     []map[string]interface{}
 	notConditions    []map[string]interface{}
 	havingConditions []map[string]interface{}
+	joinConditions   []map[string]interface{}
 	initAttrs        []interface{}
 	assignAttrs      []interface{}
 	selects          map[string]interface{}
 	omits            []string
 	orders           []string
-	joins            string
 	preload          []searchPreload
-	offset           string
-	limit            string
+	offset           int
+	limit            int
 	group            string
 	tableName        string
 	raw              bool
@@ -82,18 +82,18 @@ func (s *search) Omit(columns ...string) *search {
 	return s
 }
 
-func (s *search) Limit(value interface{}) *search {
-	s.limit = s.getInterfaceAsSql(value)
+func (s *search) Limit(limit int) *search {
+	s.limit = limit
 	return s
 }
 
-func (s *search) Offset(value interface{}) *search {
-	s.offset = s.getInterfaceAsSql(value)
+func (s *search) Offset(offset int) *search {
+	s.offset = offset
 	return s
 }
 
 func (s *search) Group(query string) *search {
-	s.group = s.getInterfaceAsSql(query)
+	s.group = s.getInterfaceAsSQL(query)
 	return s
 }
 
@@ -102,8 +102,8 @@ func (s *search) Having(query string, values ...interface{}) *search {
 	return s
 }
 
-func (s *search) Joins(query string) *search {
-	s.joins = query
+func (s *search) Joins(query string, values ...interface{}) *search {
+	s.joinConditions = append(s.joinConditions, map[string]interface{}{"query": query, "args": values})
 	return s
 }
 
@@ -134,12 +134,12 @@ func (s *search) Table(name string) *search {
 	return s
 }
 
-func (s *search) getInterfaceAsSql(value interface{}) (str string) {
+func (s *search) getInterfaceAsSQL(value interface{}) (str string) {
 	switch value.(type) {
 	case string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		str = fmt.Sprintf("%v", value)
 	default:
-		s.db.AddError(InvalidSql)
+		s.db.AddError(ErrInvalidSQL)
 	}
 
 	if str == "-1" {
