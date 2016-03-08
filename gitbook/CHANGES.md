@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Markdown parser is now using CommonMark
 - Root folder for the book can be specified in a `.gitbook` file
 - Multi-lingual books share assets folder
-- YAML front matter is parsed and page's description can be specified in it
+- YAML front matter is parsed and can extend page's properties
 - Fix `uk` translation
 
 ## 2.6.7

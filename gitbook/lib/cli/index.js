@@ -14,6 +14,17 @@ var watch = require('./watch');
 
 module.exports = {
     commands: [
+        {
+            name: 'init [book]',
+            description: 'setup and create files for chapters',
+            options: [
+                helper.options.log
+            ],
+            exec: function(args) {
+                var input = path.resolve(args[0] || process.cwd());
+                return Book.init(helper.nodeFS, input);
+            }
+        },
 
         {
             name: 'parse [book]',
@@ -119,26 +130,27 @@ module.exports = {
 
                     // Generate the book
                     .then(function() {
-                        return Book.setup(helper.nodeFS, input, {
-                            'logLevel': kwargs.log
-                        })
-                        .then(function(book) {
-                            return book.parse()
-                            .then(function() {
-                                // Add livereload plugin
-                                book.config.set('plugins',
-                                    book.config.get('plugins')
-                                    .concat([
-                                        { name: 'livereload' }
-                                    ])
-                                );
+                        var book = new Book({
+                            fs: helper.nodeFS,
+                            root: input,
+                            logLevel: kwargs.log
+                        });
 
-                                var Out = helper.FORMATS[kwargs.format];
-                                var output = new Out(book);
+                        return book.parse()
+                        .then(function() {
+                            // Add livereload plugin
+                            book.config.set('plugins',
+                                book.config.get('plugins')
+                                .concat([
+                                    { name: 'livereload' }
+                                ])
+                            );
 
-                                return output.generate()
-                                .thenResolve(output);
-                            });
+                            var Out = helper.FORMATS[kwargs.format];
+                            var output = new Out(book);
+
+                            return output.generate()
+                            .thenResolve(output);
                         });
                     })
 

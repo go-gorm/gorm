@@ -27,7 +27,7 @@ function isAnchor(href) {
 
 // Normalize a path to be a link
 function normalize(s) {
-    return s.replace(/\\/g, '/');
+    return path.normalize(s).replace(/\\/g, '/');
 }
 
 // Convert relative to absolute path
@@ -36,7 +36,7 @@ function normalize(s) {
 function toAbsolute(_href, dir, outdir) {
     if (isExternal(_href)) return _href;
     outdir = outdir == undefined? dir : outdir;
-    
+
     _href = normalize(_href);
     dir = normalize(dir);
     outdir = normalize(outdir);

@@ -42,12 +42,13 @@ var FORMATS = {
 function bookCmd(fn) {
     return function(args, kwargs) {
         var input = path.resolve(args[0] || process.cwd());
-        return Book.setup(nodeFS, input, {
+        var book = new Book({
+            fs: nodeFS,
+            root: input,
             logLevel: kwargs.log
-        })
-        .then(function(book) {
-            return fn(book, args.slice(1), kwargs);
         });
+
+        return fn(book, args.slice(1), kwargs);
     };
 }
 
@@ -80,7 +81,7 @@ function ebookCmd(format) {
             return fs.tmpDir()
             .then(function(dir) {
                 var ext = '.'+format;
-                var outputFile = path.resolve(process.cwd(), args[1] || ('book' + ext));
+                var outputFile = path.resolve(process.cwd(), args[0] || ('book' + ext));
                 var output = new EBookOutput(book, {
                     root: dir,
                     format: format

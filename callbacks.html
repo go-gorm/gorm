@@ -5,9 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="Callbacks are methods defined on the pointer of struct.
-If any callback returns an error, gorm will stop future operations and rollback all changes.">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="You could define callback methods to pointer of model struct, it will be called when creating, updating, querying, deleting, if any callback returns an err">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -70,8 +69,8 @@ If any callback returns an error, gorm will stop future operations and rollback 
     data-level="4"
     data-chapter-title="Callbacks"
     data-filepath="callbacks.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -179,12 +178,12 @@ If any callback returns an error, gorm will stop future operations and rollback 
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -482,12 +481,12 @@ If any callback returns an error, gorm will stop future operations and rollback 
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -497,10 +496,25 @@ If any callback returns an error, gorm will stop future operations and rollback 
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -533,10 +547,25 @@ If any callback returns an error, gorm will stop future operations and rollback 
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -586,7 +615,7 @@ If any callback returns an error, gorm will stop future operations and rollback 
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Callbacks</a>
+        <a href="." >Callbacks</a>
     </h1>
 </div>
 
@@ -601,43 +630,54 @@ If any callback returns an error, gorm will stop future operations and rollback 
 <ul>
 <li><a href="#creating-an-object">Creating An Object</a></li>
 <li><a href="#updating-an-object">Updating An Object</a></li>
-<li><a href="#destroying-an-object">Destroying An Object</a></li>
-<li><a href="#after-find">After Find</a></li>
-<li><a href="#example">Example</a></li>
+<li><a href="#deleting-an-object">Deleting An Object</a></li>
+<li><a href="#querying-an-object">Querying An Object</a></li>
+<li><a href="#callback-examples">Callback Examples</a></li>
 </ul>
 <!-- toc stop -->
-<p>Callbacks are methods defined on the pointer of struct.
-If any callback returns an error, gorm will stop future operations and rollback all changes.</p>
-<p>Here is the list of all available callbacks:
-(listed in the same order in which they will get called during the respective operations)</p>
+<p>You could define callback methods to pointer of model struct, it will be called when creating, updating, querying, deleting, if any callback returns an error, gorm will stop future operations and rollback all changes.</p>
 <h3 id="creating-an-object">Creating An Object</h3>
-<pre><code class="lang-go">BeforeSave
+<p>Available Callbacks for creating</p>
+<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
+BeforeSave
 BeforeCreate
 <span class="hljs-comment">// save before associations</span>
+<span class="hljs-comment">// update timestamp `CreatedAt`, `UpdatedAt`</span>
 <span class="hljs-comment">// save self</span>
+<span class="hljs-comment">// reload fields that have default value and its value is blank</span>
 <span class="hljs-comment">// save after associations</span>
 AfterCreate
 AfterSave
+<span class="hljs-comment">// commit or rollback transaction</span>
 </code></pre>
 <h3 id="updating-an-object">Updating An Object</h3>
-<pre><code class="lang-go">BeforeSave
+<p>Available Callbacks for updating</p>
+<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
+BeforeSave
 BeforeUpdate
 <span class="hljs-comment">// save before associations</span>
+<span class="hljs-comment">// update timestamp `UpdatedAt`</span>
 <span class="hljs-comment">// save self</span>
 <span class="hljs-comment">// save after associations</span>
 AfterUpdate
 AfterSave
+<span class="hljs-comment">// commit or rollback transaction</span>
 </code></pre>
-<h3 id="destroying-an-object">Destroying An Object</h3>
-<pre><code class="lang-go">BeforeDelete
+<h3 id="deleting-an-object">Deleting An Object</h3>
+<p>Available Callbacks for deleting</p>
+<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
+BeforeDelete
 <span class="hljs-comment">// delete self</span>
 AfterDelete
+<span class="hljs-comment">// commit or rollback transaction</span>
 </code></pre>
-<h3 id="after-find">After Find</h3>
+<h3 id="querying-an-object">Querying An Object</h3>
+<p>Available Callbacks for querying</p>
 <pre><code class="lang-go"><span class="hljs-comment">// load data from database</span>
+<span class="hljs-comment">// Preloading (edger loading)</span>
 AfterFind
 </code></pre>
-<h3 id="example">Example</h3>
+<h3 id="callback-examples">Callback Examples</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) BeforeUpdate() (err error) {
     <span class="hljs-keyword">if</span> u.readonly() {
         err = errors.New(<span class="hljs-string">&quot;read only user&quot;</span>)
@@ -653,12 +693,15 @@ AfterFind
     <span class="hljs-keyword">return</span>
 }
 </code></pre>
-<p>Save/delete operations in gorm are running in a transaction.
-Changes made in that transaction are not visible unless it is commited.
-So if you want to use those changes in your callbacks, you need to run your SQL in the same transaction.
-For this Gorm supports passing transactions to callbacks like this:</p>
+<p>Save/Delete operations in gorm are running in transactions, so changes made in that transaction are not visible unless it is commited.
+If you want to use those changes in your callbacks, you need to run your SQL in the same transaction. So you need to pass current transaction to callbacks like this:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) AfterCreate(tx *gorm.DB) (err error) {
     tx.Model(u).Update(<span class="hljs-string">&quot;role&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>)
+    <span class="hljs-keyword">return</span>
+}
+</code></pre>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) AfterCreate(scope *gorm.Scope) (err error) {
+  scope.DB().Model(u).Update(<span class="hljs-string">&quot;role&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>)
     <span class="hljs-keyword">return</span>
 }
 </code></pre>

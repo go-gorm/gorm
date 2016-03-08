@@ -1,93 +1,92 @@
 {
-    "name": "gitbook",
-    "version": "3.0.0-pre.1",
-    "homepage": "https://www.gitbook.com",
-    "description": "Library and cmd utility to generate GitBooks",
-    "main": "lib/index.js",
-    "dependencies": {
-        "q": "1.0.1",
-        "lodash": "3.10.1",
-        "graceful-fs": "4.1.3",
-        "resolve": "0.6.3",
-        "mkdirp": "0.5.1",
-        "error": "7.0.2",
-        "gitbook-markdown": "1.0.3",
-        "gitbook-asciidoc": "1.0.2",
-        "gitbook-plugin-highlight": "1.0.3",
-        "gitbook-plugin-sharing": "1.0.1",
-        "gitbook-plugin-search": "1.1.0",
-        "gitbook-plugin-fontsettings": "1.0.2",
-        "gitbook-plugin-theme-default": "1.0.0-pre.4",
-        "nunjucks": "2.3.0",
-        "nunjucks-autoescape": "1.0.0",
-        "nunjucks-filter": "1.0.0",
-        "semver": "5.0.1",
-        "npmi": "0.1.1",
-        "cheerio": "0.19.0",
-        "gitbook-plugin-livereload": "0.0.1",
-        "chokidar": "~1.0.5",
-        "send": "0.2.0",
-        "tiny-lr": "0.2.1",
-        "tmp": "0.0.28",
-        "crc": "3.2.1",
-        "bash-color": "0.0.3",
-        "urijs": "1.17.0",
-        "request": "2.69.0",
-        "npm": "2.4.1",
-        "dom-serializer": "0.1.0",
-        "spawn-cmd": "0.0.2",
-        "escape-string-regexp": "1.0.3",
-        "juice": "1.9.0",
-        "jsonschema": "1.1.0",
-        "json-schema-defaults": "0.1.1",
-        "merge-defaults": "0.2.1",
-        "github-slugid": "1.0.0",
-        "destroy": "1.0.4",
-        "ignore": "2.2.19",
-        "deprecated": "0.0.1",
-        "rmdir": "1.2.0",
-        "cp": "0.2.0",
-        "cpr": "1.0.0",
-        "direction": "0.1.5",
-        "moment": "2.11.2",
-        "i18n-t": "1.0.0",
-        "front-matter": "2.0.6",
-        "spawn-cmd": "0.0.2"
+  "name": "gitbook",
+  "version": "3.0.0-pre.5",
+  "homepage": "https://www.gitbook.com",
+  "description": "Library and cmd utility to generate GitBooks",
+  "main": "lib/index.js",
+  "dependencies": {
+    "bash-color": "0.0.3",
+    "cheerio": "0.20.0",
+    "chokidar": "1.4.3",
+    "cp": "0.2.0",
+    "cpr": "1.0.0",
+    "crc": "3.4.0",
+    "deprecated": "0.0.1",
+    "destroy": "1.0.4",
+    "direction": "0.1.5",
+    "dom-serializer": "0.1.0",
+    "error": "7.0.2",
+    "escape-string-regexp": "1.0.5",
+    "eslint": "^2.2.0",
+    "front-matter": "2.0.6",
+    "gitbook-asciidoc": "1.0.2",
+    "gitbook-markdown": "1.0.3",
+    "gitbook-plugin-fontsettings": "1.0.2",
+    "gitbook-plugin-highlight": "2.0.0",
+    "gitbook-plugin-livereload": "0.0.1",
+    "gitbook-plugin-search": "1.2.0",
+    "gitbook-plugin-sharing": "1.0.1",
+    "gitbook-plugin-theme-default": "1.0.0-pre.5",
+    "github-slugid": "1.0.0",
+    "graceful-fs": "4.1.3",
+    "i18n-t": "1.0.0",
+    "ignore": "3.0.3",
+    "json-schema-defaults": "0.1.1",
+    "jsonschema": "1.1.0",
+    "juice": "1.10.0",
+    "lodash": "3.10.1",
+    "merge-defaults": "0.2.1",
+    "mkdirp": "0.5.1",
+    "moment": "2.11.2",
+    "npm": "3.7.5",
+    "npmi": "1.0.1",
+    "nunjucks": "2.3.0",
+    "nunjucks-autoescape": "1.0.1",
+    "q": "1.4.1",
+    "request": "2.69.0",
+    "resolve": "0.6.3",
+    "rmdir": "1.2.0",
+    "semver": "5.1.0",
+    "send": "0.13.1",
+    "spawn-cmd": "0.0.2",
+    "tiny-lr": "0.2.1",
+    "tmp": "0.0.28",
+    "urijs": "1.17.1"
+  },
+  "devDependencies": {
+    "eslint": "2.2.0",
+    "mocha": "2.4.5",
+    "should": "8.2.2"
+  },
+  "scripts": {
+    "test": "node_modules/.bin/mocha --reporter spec --bail --timeout 15000 ./test/all.js",
+    "lint": "eslint ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GitbookIO/gitbook.git"
+  },
+  "bin": {
+    "gitbook": "./bin/gitbook.js"
+  },
+  "keywords": [
+    "git",
+    "book",
+    "gitbook"
+  ],
+  "author": "FriendCode Inc. <contact@gitbook.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/GitbookIO/gitbook/issues"
+  },
+  "contributors": [
+    {
+      "name": "Aaron O'Mullan",
+      "email": "aaron@gitbook.com"
     },
-    "devDependencies": {
-        "eslint": "1.5.0",
-        "mocha": "2.4.5",
-        "should": "8.2.2"
-    },
-    "scripts": {
-        "test": "node_modules/.bin/mocha --reporter spec --bail --timeout 15000 ./test/all.js",
-        "lint": "eslint ."
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/GitbookIO/gitbook.git"
-    },
-    "bin": {
-        "gitbook": "./bin/gitbook.js"
-    },
-    "keywords": [
-        "git",
-        "book",
-        "gitbook"
-    ],
-    "author": "FriendCode Inc. <contact@gitbook.com>",
-    "license": "Apache-2.0",
-    "bugs": {
-        "url": "https://github.com/GitbookIO/gitbook/issues"
-    },
-    "contributors": [
-        {
-            "name": "Aaron O'Mullan",
-            "email": "aaron@gitbook.com"
-        },
-        {
-            "name": "Samy Pessé",
-            "email": "samy@gitbook.com"
-        }
-    ]
+    {
+      "name": "Samy Pessé",
+      "email": "samy@gitbook.com"
+    }
+  ]
 }

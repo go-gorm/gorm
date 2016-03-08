@@ -114,7 +114,7 @@ EbookOutput.prototype.locateCover = function() {
 
     // Cover doesn't exist and multilingual?
     if (!fs.existsSync(cover)) {
-        if (this.parent) return this.parent.locateCover()
+        if (this.parent) return this.parent.locateCover();
         else return undefined;
     }
 

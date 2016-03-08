@@ -5,8 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="Supports polymorphic has-many and has-one associations.">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="Specify Foreign Key">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -69,8 +69,8 @@
     data-level="2.3"
     data-chapter-title="Associations"
     data-filepath="associations.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -178,12 +178,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -481,12 +481,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -496,10 +496,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -532,10 +547,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -585,7 +615,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Associations</a>
+        <a href="." >Associations</a>
     </h1>
 </div>
 
@@ -607,20 +637,45 @@
 </ul>
 <!-- toc stop -->
 <h2 id="belongs-to">Belongs To</h2>
-<pre><code class="lang-go"><span class="hljs-comment">// User belongs to a profile, ProfileID is the foreign key</span>
+<pre><code class="lang-go"><span class="hljs-comment">// `User` belongs to `Profile`, `ProfileID` is the foreign key</span>
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
   Profile   Profile
-  ProfileID <span class="hljs-typename">int</span>
+  ProfileID <span class="hljs-keyword">int</span>
 }
 
 <span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Name   <span class="hljs-typename">string</span>
+  Name <span class="hljs-keyword">string</span>
 }
 
 db.Model(&amp;user).Related(&amp;profile)
 <span class="hljs-comment">//// SELECT * FROM profiles WHERE id = 111; // 111 is user&apos;s foreign key ProfileID</span>
+</code></pre>
+<p><em>Specify Foreign Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Name <span class="hljs-keyword">string</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Profile      Profile <span class="hljs-string">`gorm:&quot;ForeignKey:ProfileRefer&quot;`</span> <span class="hljs-comment">// use ProfileRefer as foreign key</span>
+    ProfileRefer <span class="hljs-keyword">int</span>
+}
+</code></pre>
+<p><em>Specify Foreign Key &amp; Association Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Refer <span class="hljs-keyword">string</span>
+    Name  <span class="hljs-keyword">string</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    Profile   Profile <span class="hljs-string">`gorm:&quot;ForeignKey:ProfileID;AssociationForeignKey:Refer&quot;`</span>
+    ProfileID <span class="hljs-keyword">int</span>
+}
 </code></pre>
 <h2 id="has-one">Has One</h2>
 <pre><code class="lang-go"><span class="hljs-comment">// User has one CreditCard, UserID is the foreign key</span>
@@ -631,8 +686,8 @@ db.Model(&amp;user).Related(&amp;profile)
 
 <span class="hljs-keyword">type</span> CreditCard <span class="hljs-keyword">struct</span> {
     gorm.Model
-    UserID   <span class="hljs-typename">uint</span>
-    Number   <span class="hljs-typename">string</span>
+    UserID   <span class="hljs-keyword">uint</span>
+    Number   <span class="hljs-keyword">string</span>
 }
 
 <span class="hljs-keyword">var</span> card CreditCard
@@ -641,6 +696,31 @@ db.Model(&amp;user).Related(&amp;card, <span class="hljs-string">&quot;CreditCar
 <span class="hljs-comment">// CreditCard is user&apos;s field name, it means get user&apos;s CreditCard relations and fill it into variable card</span>
 <span class="hljs-comment">// If the field name is same as the variable&apos;s type name, like above example, it could be omitted, like:</span>
 db.Model(&amp;user).Related(&amp;card)
+</code></pre>
+<p><em>Specify Foreign Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name      <span class="hljs-keyword">string</span>
+  UserRefer <span class="hljs-keyword">uint</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Profile Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
+}
+</code></pre>
+<p><em>Specify Foreign Key &amp; Association Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name   <span class="hljs-keyword">string</span>
+  UserID <span class="hljs-keyword">uint</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Refer   <span class="hljs-keyword">string</span>
+  Profile Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
+}
 </code></pre>
 <h2 id="has-many">Has Many</h2>
 <pre><code class="lang-go"><span class="hljs-comment">// User has many emails, UserID is the foreign key</span>
@@ -651,12 +731,37 @@ db.Model(&amp;user).Related(&amp;card)
 
 <span class="hljs-keyword">type</span> Email <span class="hljs-keyword">struct</span> {
     gorm.Model
-    Email   <span class="hljs-typename">string</span>
-    UserID  <span class="hljs-typename">uint</span>
+    Email   <span class="hljs-keyword">string</span>
+    UserID  <span class="hljs-keyword">uint</span>
 }
 
 db.Model(&amp;user).Related(&amp;emails)
 <span class="hljs-comment">//// SELECT * FROM emails WHERE user_id = 111; // 111 is user&apos;s primary key</span>
+</code></pre>
+<p><em>Specify Foreign Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name      <span class="hljs-keyword">string</span>
+  UserRefer <span class="hljs-keyword">uint</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Profile []Profiles <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
+}
+</code></pre>
+<p><em>Specify Foreign Key &amp; Association Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Profile <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name   <span class="hljs-keyword">string</span>
+  UserID <span class="hljs-keyword">uint</span>
+}
+
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Refer   <span class="hljs-keyword">string</span>
+  Profile []Profiles <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
+}
 </code></pre>
 <h2 id="many-to-many">Many To Many</h2>
 <pre><code class="lang-go"><span class="hljs-comment">// User has and belongs to many languages, use `user_languages` as join table</span>
@@ -667,31 +772,42 @@ db.Model(&amp;user).Related(&amp;emails)
 
 <span class="hljs-keyword">type</span> Language <span class="hljs-keyword">struct</span> {
     gorm.Model
-    Name <span class="hljs-typename">string</span>
+    Name <span class="hljs-keyword">string</span>
 }
 
 db.Model(&amp;user).Related(&amp;languages)
 <span class="hljs-comment">//// SELECT * FROM &quot;languages&quot; INNER JOIN &quot;user_languages&quot; ON &quot;user_languages&quot;.&quot;language_id&quot; = &quot;languages&quot;.&quot;id&quot; WHERE &quot;user_languages&quot;.&quot;user_id&quot; = 111</span>
 </code></pre>
+<p><em>Specify Foreign Key &amp; Association Key</em></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> CustomizePerson <span class="hljs-keyword">struct</span> {
+  IdPerson <span class="hljs-keyword">string</span>             <span class="hljs-string">`gorm:&quot;primary_key:true&quot;`</span>
+  Accounts []CustomizeAccount <span class="hljs-string">`gorm:&quot;many2many:PersonAccount;AssociationForeignKey:idAccount;ForeignKey:idPerson&quot;`</span>
+}
+
+<span class="hljs-keyword">type</span> CustomizeAccount <span class="hljs-keyword">struct</span> {
+  IdAccount <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;primary_key:true&quot;`</span>
+  Name      <span class="hljs-keyword">string</span>
+}
+</code></pre>
 <h2 id="polymorphism">Polymorphism</h2>
 <p>Supports polymorphic has-many and has-one associations.</p>
 <pre><code class="lang-go">  <span class="hljs-keyword">type</span> Cat <span class="hljs-keyword">struct</span> {
-    Id    <span class="hljs-typename">int</span>
-    Name  <span class="hljs-typename">string</span>
+    Id    <span class="hljs-keyword">int</span>
+    Name  <span class="hljs-keyword">string</span>
     Toy   Toy <span class="hljs-string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
   }
 
   <span class="hljs-keyword">type</span> Dog <span class="hljs-keyword">struct</span> {
-    Id   <span class="hljs-typename">int</span>
-    Name <span class="hljs-typename">string</span>
+    Id   <span class="hljs-keyword">int</span>
+    Name <span class="hljs-keyword">string</span>
     Toy  Toy <span class="hljs-string">`gorm:&quot;polymorphic:Owner;&quot;`</span>
   }
 
   <span class="hljs-keyword">type</span> Toy <span class="hljs-keyword">struct</span> {
-    Id        <span class="hljs-typename">int</span>
-    Name      <span class="hljs-typename">string</span>
-    OwnerId   <span class="hljs-typename">int</span>
-    OwnerType <span class="hljs-typename">string</span>
+    Id        <span class="hljs-keyword">int</span>
+    Name      <span class="hljs-keyword">string</span>
+    OwnerId   <span class="hljs-keyword">int</span>
+    OwnerType <span class="hljs-keyword">string</span>
   }
 </code></pre>
 <p>Note: polymorphic belongs-to and many-to-many are explicitly NOT supported, and will throw errors.</p>
@@ -742,7 +858,7 @@ db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;<
 
             
                 
-                <a href="models.html" class="navigation navigation-prev " aria-label="Previous page: Naming Conventions &amp; Overriding">
+                <a href="models.html" class="navigation navigation-prev " aria-label="Previous page: Conventions &amp; Overriding">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 

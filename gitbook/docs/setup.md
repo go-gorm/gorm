@@ -4,7 +4,7 @@ Getting GitBook installed and ready-to-go should only take a few minutes.
 
 ### GitBook.com
 
-[GitBook.com](https://www.gitbook.com) is an easy to use solution to write, publish and host books. It's best and easier solution for publishing your content and collaborate on it.
+[GitBook.com](https://www.gitbook.com) is an easy to use solution to write, publish and host books. It is the easiest solution for publishing your content and collaborating on it.
 
 It integrates well with the [GitBook Editor](https://www.gitbook.com/editor).
 
@@ -12,7 +12,7 @@ It integrates well with the [GitBook Editor](https://www.gitbook.com/editor).
 
 ##### Requirements
 
-Installing GitBook is easy and straight-forward, but there are a few requirements you’ll need to make sure your system has before you start.
+Installing GitBook is easy and straightforward. Your system just needs to meet these two requirements:
 
 * NodeJS (v4.0.0 and above are adviced)
 * Windows, Linux, Unix, or Mac OS X
@@ -25,7 +25,7 @@ The best way to install GitBook is via **NPM**. At the terminal prompt, simply r
 $ npm install gitbook-cli -g
 ```
 
-`gitbook-cli` is an utility to install and use multiple versions of GitBook on the same system. It will automatically install the required version to build a book.
+`gitbook-cli` is an utility to install and use multiple versions of GitBook on the same system. It will automatically install the required version of GitBook to build a book.
 
 ##### Create a book
 
@@ -43,7 +43,7 @@ Preview and serve your book using:
 $ gitbook serve
 ```
 
-or build the static website using:
+Or build the static website using:
 
 ```
 $ gitbook build
@@ -51,7 +51,7 @@ $ gitbook build
 
 ##### Install pre-releases
 
-`gitbook-cli` makes it easy to install and test other versions of GitBook with your book:
+`gitbook-cli` makes it easy to download and install other versions of GitBook to test with your book:
 
 ```
 $ gitbook fetch beta

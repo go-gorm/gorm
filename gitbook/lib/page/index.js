@@ -23,11 +23,12 @@ function Page(book, filename) {
     this.book = book;
     this.log = this.book.log;
 
+    // Map of attributes from YAML frontmatter
+    // Description is also extracted by default from content
+    this.attributes = {};
+
     // Current content
     this.content = '';
-
-    // Short description for the page
-    this.description = '';
 
     // Relative path to the page
     this.path = location.normalize(filename);
@@ -122,16 +123,15 @@ Page.prototype.getContext = function() {
                 mtime: this.mtime,
                 type: this.type
             },
-            page: {
+            page: _.extend({}, this.attributes, {
                 title: article? article.title : null,
-                description: this.description,
                 next: next? next.getContext() : null,
                 previous: prev? prev.getContext() : null,
                 level: article? article.level : null,
                 depth: article? article.depth : 0,
                 content: this.content,
                 dir: dir
-            }
+            })
         },
         gitbook.getContext(),
         this.book.getContext(),
@@ -165,8 +165,8 @@ Page.prototype.toHTML = function(output) {
     .then(function() {
         var parsed = fm(that.content);
 
-        // Extend page with the fontmatter attribute
-        that.description = parsed.attributes.description || '';
+        // Extract attributes
+        that.attributes = parsed.attributes;
 
         // Keep only the body
         that.update(parsed.body);
@@ -223,8 +223,8 @@ Page.prototype.toHTML = function(output) {
 
             // Extract description from page's content if no frontmatter
             onDescription: function(description) {
-                if (that.description) return;
-                that.description = description;
+                if (that.attributes.description) return;
+                that.attributes.description = description;
             },
 
             // Convert glossary entries to annotations

@@ -8,11 +8,11 @@ Just like for markdown, GitBook is using some special files to extract structure
 
 ### README.adoc
 
-This is the main entry of your book: the introduction. This file is **non optional**.
+This is the main entry of your book: the introduction. This file is **required**.
 
 ### SUMMARY.adoc
 
-This file defines the list of chapters and subchapters. Just like [for markdown](./pages.md), the `SUMMARY.adoc`'s format is simply a list of links, the name of the link is used as the chapter's name, and the target is a path to that chapter's file.
+This file defines the list of chapters and subchapters. Just like  in Markdown, the `SUMMARY.adoc`'s format is simply a list of links, the name of the link is used as the chapter's name, and the target is a path to that chapter's file.
 
 Subchapters are defined simply by adding a nested list to a parent chapter.
 
@@ -51,10 +51,15 @@ This file is used to define terms. [See the glossary section](./lexicon.md).
 = Glossary
 
 == Magic
-Sufficiently advanced technology, beyond the understanding of the observer producing a sense of wonder.
+
+Sufficiently advanced technology, beyond the understanding of the
+observer producing a sense of wonder.
 
 == PHP
-An atrocious language, invented for the sole purpose of inflicting pain and suffering amongst the programming wizards of this world.
-```
+
+A popular web programming language, used by many large websites such
+as Facebook. Rasmus Lerdorf originally created PHP in 1994 to power
+his personal homepage (PHP originally stood for "Personal Home Page"
+but now stands for "PHP: Hypertext Preprocessor"). ```
 
 

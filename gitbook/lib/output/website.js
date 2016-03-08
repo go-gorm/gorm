@@ -117,7 +117,7 @@ WebsiteOutput.prototype.prepare = function() {
 
         // Transform a '.md' into a '.html' (README -> index)
         that.env.addFilter('contentURL', function(s) {
-            return location.normalize(that.outputUrl(s));
+            return that.toURL(s);
         });
 
         // Relase path to an asset

@@ -24,6 +24,7 @@ function Output(book, opts, parent) {
     });
 
     this.book = book;
+    book.output = this;
     this.log = this.book.log;
 
     // Create plugins manager
@@ -146,6 +147,7 @@ Output.prototype.prepare = function() {
         '.ignore',
         '.bookignore',
         'node_modules',
+        '_layouts',
 
         // The configuration file should not be copied in the output
         this.book.config.path,
@@ -183,7 +185,7 @@ Output.prototype.onRelativeLink = function(currentPage, href) {
         href = currentPage.relative(href);
 
         // Replace .md by .html
-        href = this.outputUrl(href);
+        href = this.toURL(href);
     }
 
     return href;
@@ -261,7 +263,7 @@ Output.prototype.outputPath = function(filename, ext) {
 
 // Filename for output
 // /test/index.html -> /test/
-Output.prototype.outputUrl = function(filename, ext) {
+Output.prototype.toURL = function(filename, ext) {
     var href = this.outputPath(filename, ext);
 
     if (path.basename(href) == 'index.html' && this.opts.directoryIndex) {

@@ -6,7 +6,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="gorm.Open return type *gorm.DB instead of gorm.DB">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -67,8 +67,8 @@
     data-level="7"
     data-chapter-title="Change Log"
     data-filepath="changelog.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -176,12 +176,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -479,12 +479,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -494,10 +494,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -530,10 +545,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -583,7 +613,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Change Log</a>
+        <a href="." >Change Log</a>
     </h1>
 </div>
 
@@ -602,20 +632,21 @@
 <li><p><strong>Updating will only update changed fields</strong></p>
 <p>Most applications won&apos;t be affected, only when you are changing updating values in callbacks like <code>BeforeSave</code>, <code>BeforeUpdate</code>, you should use <code>scope.SetColumn</code> then, for example:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">func</span> (user *User) BeforeUpdate(scope *gorm.Scope) {
-  <span class="hljs-keyword">if</span> pw, err := bcrypt.GenerateFromPassword(user.Password, <span class="hljs-number">0</span>); err == <span class="hljs-constant">nil</span> {
+  <span class="hljs-keyword">if</span> pw, err := bcrypt.GenerateFromPassword(user.Password, <span class="hljs-number">0</span>); err == <span class="hljs-literal">nil</span> {
     scope.SetColumn(<span class="hljs-string">&quot;EncryptedPassword&quot;</span>, pw)
     <span class="hljs-comment">// user.EncryptedPassword = pw  // doesn&apos;t work, won&apos;t including EncryptedPassword field when updating</span>
   }
 }
 </code></pre>
 </li>
-<li><p><strong>Soft delete&apos;s default querying scope will only check <code>deleted_at IS NULL</code></strong></p>
-<p>Before <code>db.Find(&amp;user)</code> will generate querying SQL if user has <code>DeletedAt</code> field</p>
+<li><p><strong>Soft Delete&apos;s default querying scope will only check <code>deleted_at IS NULL</code></strong></p>
+<p>Before it will check <code>deleted_at</code> less than <code>0001-01-02</code> also to exclude blank time, like:</p>
 <p><code>SELECT * FROM users WHERE deleted_at IS NULL OR deleted_at &lt;= &apos;0001-01-02&apos;</code></p>
-<p>Now won&apos;t include blank time check <code>&lt;= &apos;0001-01-02</code> anymore, will generat SQL like:</p>
+<p>But it is not necessary if you are using type <code>*time.Time</code> for your model&apos;s <code>DeletedAt</code>, which has been used by <code>gorm.Model</code>, so below SQl is enough</p>
 <p><code>SELECT * FROM users WHERE deleted_at IS NULL</code></p>
-<p>So your application&apos;s <code>DeletedAt</code> field should not use <code>time.Time</code> as data type, need to use pointer <code>*time.Time</code> or something like <code>NullTime</code>.
-If you are using <code>gorm.Model</code>, then you are good, nothing need to be change, just make sure all records using blank time for <code>deleted_at</code> has been set to NULL, sample migration script:</p>
+<p>So if you are using <code>gorm.Model</code>, then you are good, nothing need to be change, just make sure all records having blank time for <code>deleted_at</code> set to <code>NULL</code>, sample migrate script:</p>
+</li>
+</ul>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;github.com/jinzhu/now&quot;</span>
 )
@@ -627,11 +658,17 @@ If you are using <code>gorm.Model</code>, then you are good, nothing need to be 
   }
 }
 </code></pre>
-</li>
+<ul>
 <li><p><strong>New ToDBName logic</strong></p>
 <p>Before when GORM convert Struct, Field&apos;s name to db name, only those common initialisms from <a href="https://github.com/golang/lint/blob/master/lint.go#L702" target="_blank">golint</a> like <code>HTTP</code>, <code>URI</code> are special handled.</p>
-<p>So field <code>HTTP</code>&apos;s db name will be <code>http</code> not <code>h_t_t_p</code>, but some other initialisms like <code>SKU</code> that not in golint, it&apos;s db name will be <code>s_k_u</code>, this release fixed this, any upper case initialisms should be converted correctly.</p>
-<p>If your applications using some upper case initialisms which doesn&apos;t exist in <a href="https://github.com/golang/lint/blob/master/lint.go#L702" target="_blank">golint</a>, you need to overwrite generated column name with tag, like <code>sql:&quot;column:s_k_u&quot;</code>, or alert your database&apos;s column name according to new logic</p>
+<p>So field <code>HTTP</code>&apos;s db name will be <code>http</code> not <code>h_t_t_p</code>, but some other initialisms like <code>SKU</code> that not in golint, it&apos;s db name will be <code>s_k_u</code>, which looks ugly, this release fixed this, any upper case initialisms should be converted correctly.</p>
+<p>If your applications using some upper case initialisms which doesn&apos;t exist in <a href="https://github.com/golang/lint/blob/master/lint.go#L702" target="_blank">golint</a>, you need to overwrite default column name with tag, like <code>gorm:&quot;column:s_k_u&quot;</code>, or alert your database&apos;s column name according to new logic</p>
+</li>
+<li><p>Error <code>RecordNotFound</code> has been renamed to <code>ErrRecordNotFound</code></p>
+</li>
+<li><p><code>mssql</code> driver has been moved out from default drivers, import it with <code>import _ &quot;github.com/jinzhu/gorm/dialects/mssql&quot;</code></p>
+</li>
+<li><p><code>Hstore</code> has been moved to package <code>github.com/jinzhu/gorm/dialects/postgres</code></p>
 </li>
 </ul>
 

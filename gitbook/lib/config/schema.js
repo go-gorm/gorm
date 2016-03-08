@@ -4,13 +4,13 @@ module.exports = {
     'title': 'GitBook Configuration',
     'type': 'object',
     'properties': {
-        'title': {
+        'root': {
             'type': 'string',
-            'title': 'Title of the book, default is extracted from README'
+            'title': 'Path fro the root folder containing the book\'s content'
         },
         'title': {
             'type': 'string',
-            'title': 'Description of the book, default is extracted from README'
+            'title': 'Title of the book, default is extracted from README'
         },
         'isbn': {
             'type': 'string',

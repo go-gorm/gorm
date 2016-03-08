@@ -1,11 +1,9 @@
 var _ = require('lodash');
 var util = require('util');
-var url = require('url');
 
 var location = require('../utils/location');
 var error = require('../utils/error');
 var BackboneFile = require('./file');
-
 
 /*
     An article represent an entry in the Summary.
@@ -33,13 +31,13 @@ function TOCArticle(def, parent) {
 
     // Path can be a relative path or an url, or nothing
     this.ref = def.path;
-    if (this.ref) {
-        var parts = url.parse(this.ref);
+    if (this.ref && !this.isExternal()) {
+        var parts = this.ref.split('#');
+        this.path = (parts.length > 1? parts.slice(0, -1).join('#') : this.ref);
+        this.anchor = (parts.length > 1? '#' + _.last(parts) : null);
 
-        if (!this.isExternal()) {
-            this.path = parts.pathname;
-            this.anchor = parts.hash;
-        }
+        // Normalize path to remove ('./', etc)
+        this.path = location.normalize(this.path);
     }
 
     this.articles = _.map(def.articles || [], function(article) {
@@ -259,6 +257,17 @@ Summary.prototype.find = function(filter) {
             result = article;
             return false;
         }
+    });
+
+    return result;
+};
+
+// Flatten the list of articles
+Summary.prototype.flatten = function() {
+    var result = [];
+
+    this.walk(function(article) {
+        result.push(article);
     });
 
     return result;

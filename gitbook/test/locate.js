@@ -1,27 +1,33 @@
 var path = require('path');
+var should = require('should');
 
-var Book = require('../').Book;
 var mock = require('./mock');
 
 describe('Locate', function() {
     it('should use root folder if no .gitbook', function() {
-        return mock.setupFS({
+        return mock.setupBook({
             'README.md': '# Hello'
         })
-        .then(function(root) {
-            return Book.locate(mock.fs, root)
-                .should.be.fulfilledWith(root);
+        .then(function(book) {
+            return book.prepareConfig()
+            .then(function() {
+                should(book.originalRoot).not.be.ok();
+            });
         });
     });
 
-    it('should use resolve using .gitbook', function() {
-        return mock.setupFS({
+    it('should use resolve using book.js root property', function() {
+        return mock.setupBook({
             'README.md': '# Hello',
-            '.gitbook': './docs'
+            'docs/README.md': '# Hello Book',
+            'book.json': { root: './docs' }
         })
-        .then(function(root) {
-            return Book.locate(mock.fs, root)
-                .should.be.fulfilledWith(path.resolve(root, 'docs'));
+        .then(function(book) {
+            return book.prepareConfig()
+            .then(function() {
+                should(book.originalRoot).be.ok();
+                book.root.should.equal(path.resolve(book.originalRoot, 'docs'));
+            });
         });
     });
 

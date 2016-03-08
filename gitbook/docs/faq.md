@@ -12,7 +12,7 @@ Any text editor should work! But we advise using the [GitBook Editor](https://ww
 
 #### Should I use an `.html` or `.md` extensions in my links?
 
-You should always use `.md` extensions for your relative links, GitBook will automatically replace these links by the right value when the pointing file is referenced in the Table of Contents.
+You should always use paths and the `.md` extensions when linking to your files, GitBook will automatically replace these paths by the appropriate link when the pointing file is referenced in the Table of Contents.
 
 #### Can I create a GitBook in a sub-directory of my repository?
 
@@ -26,8 +26,8 @@ GitBook supports math equations and TeX thanks to plugins. There are currently 2
 
 #### Can I customize/theme the output?
 
-Yes, both the website and ebook outputs can be customized using [themes](themes.md).
+Yes, both the website and ebook outputs can be customized using [themes](themes/README.md).
 
 #### Can I add interactive content (videos, etc)?
 
-GitBook is very [extensible](plugins.md). You can use [existing plugins](https://plugins.gitbook.com) or create your own!
+GitBook is very [extensible](plugins/README.md). You can use [existing plugins](https://plugins.gitbook.com) or create your own!

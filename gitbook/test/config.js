@@ -46,7 +46,7 @@ describe('Configuration', function() {
             return mock.setupDefaultBook()
             .then(function(_book) {
                 book = _book;
-                return book.config.load();
+                return book.prepareConfig();
             });
         });
 
@@ -64,7 +64,7 @@ describe('Configuration', function() {
             })
             .then(function(_book) {
                 book = _book;
-                return book.config.load();
+                return book.prepareConfig();
             });
         });
 
@@ -82,7 +82,7 @@ describe('Configuration', function() {
             })
             .then(function(_book) {
                 book = _book;
-                return book.config.load();
+                return book.prepareConfig();
             });
         });
 

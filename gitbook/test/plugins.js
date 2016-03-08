@@ -53,7 +53,23 @@ describe('Plugins', function() {
                 }
             })
             .then(function(book) {
-                return book.config.load()
+                return book.prepareConfig()
+                .then(function() {
+                    var plugins = new PluginsManager(book);
+                    return plugins.install();
+                });
+            })
+            .should.be.fulfilledWith(1);
+        });
+
+        it('should correctly install dependencies from GitHub', function() {
+            return mock.setupBook({
+                'book.json': {
+                    plugins: ['ga@git+https://github.com/GitbookIO/plugin-ga#master']
+                }
+            })
+            .then(function(book) {
+                return book.prepareConfig()
                 .then(function() {
                     var plugins = new PluginsManager(book);
                     return plugins.install();
@@ -90,7 +106,7 @@ describe('Plugins', function() {
                 }
             })
             .then(function(book2) {
-                return book2.config.load()
+                return book2.prepareConfig()
                 .then(function() {
                     var plugin = new BookPlugin(book2, 'test-config');
                     return plugin.load(PLUGINS_ROOT);

@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var childProcess = require('child_process');
-var spawn = require("spawn-cmd").spawn;
+var spawn = require('spawn-cmd').spawn;
 var Promise = require('./promise');
 
 // Execute a command

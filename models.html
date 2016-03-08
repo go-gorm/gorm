@@ -5,8 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="Gorm has defined struct gorm.Model, which could be embeded in your models, it will add fields ID, CreatedAt, UpdatedAt, DeletedAt to your model">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="Base model definition gorm.Model, including fields ID, CreatedAt, UpdatedAt, DeletedAt, you could embed it in your model, or only write those fields you wa">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -69,8 +69,8 @@
     data-level="2"
     data-chapter-title="Models"
     data-filepath="models.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -178,12 +178,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -481,12 +481,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -496,10 +496,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -532,10 +547,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -585,7 +615,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Models</a>
+        <a href="." >Models</a>
     </h1>
 </div>
 
@@ -599,7 +629,7 @@
 <!-- toc -->
 <ul>
 <li><a href="#model-defination">Model Defination</a></li>
-<li><a href="#conventions-overriding-conventions">Conventions &amp; Overriding Conventions</a><ul>
+<li><a href="#conventions">Conventions</a><ul>
 <li><a href="#gormmodel-struct"><code>gorm.Model</code> struct</a></li>
 <li><a href="#table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</a></li>
 <li><a href="#column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</a></li>
@@ -613,34 +643,84 @@
 <!-- toc stop -->
 <h2 id="model-defination">Model Defination</h2>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
-  gorm.Model
+    gorm.Model
     Birthday     time.Time
-    Age          <span class="hljs-typename">int</span>
-    Name         <span class="hljs-typename">string</span>  <span class="hljs-string">`sql:&quot;size:255&quot;`</span> <span class="hljs-comment">// Default size for string is 255, you could reset it with this tag</span>
-    Num          <span class="hljs-typename">int</span>     <span class="hljs-string">`sql:&quot;AUTO_INCREMENT&quot;`</span>
-    IgnoreMe     <span class="hljs-typename">int</span> <span class="hljs-string">`sql:&quot;-&quot;`</span>   <span class="hljs-comment">// Ignore this field</span>
+    Age          <span class="hljs-keyword">int</span>
+    Name         <span class="hljs-keyword">string</span>  <span class="hljs-string">`gorm:&quot;size:255&quot;`</span> <span class="hljs-comment">// Default size for string is 255, reset it with this tag</span>
+    Num          <span class="hljs-keyword">int</span>     <span class="hljs-string">`gorm:&quot;AUTO_INCREMENT&quot;`</span>
+
+    CreditCard        CreditCard      <span class="hljs-comment">// One-To-One relationship (has one - use CreditCard&apos;s UserID as foreign key)</span>
+    Emails            []Email         <span class="hljs-comment">// One-To-Many relationship (has many - use Email&apos;s UserID as foreign key)</span>
+
+    BillingAddress    Address         <span class="hljs-comment">// One-To-One relationship (belongs to - use BillingAddressID as foreign key)</span>
+    BillingAddressID  sql.NullInt64
+
+    ShippingAddress   Address         <span class="hljs-comment">// One-To-One relationship (belongs to - use ShippingAddressID as foreign key)</span>
+    ShippingAddressID <span class="hljs-keyword">int</span>
+
+    IgnoreMe          <span class="hljs-keyword">int</span> <span class="hljs-string">`gorm:&quot;-&quot;`</span>   <span class="hljs-comment">// Ignore this field</span>
+    Languages         []Language <span class="hljs-string">`gorm:&quot;many2many:user_languages;&quot;`</span> <span class="hljs-comment">// Many-To-Many relationship, &apos;user_languages&apos; is join table</span>
+}
+
+<span class="hljs-keyword">type</span> Email <span class="hljs-keyword">struct</span> {
+    ID      <span class="hljs-keyword">int</span>
+    UserID  <span class="hljs-keyword">int</span>     <span class="hljs-string">`gorm:&quot;index&quot;`</span> <span class="hljs-comment">// Foreign key (belongs to), tag `index` will create index for this column</span>
+    Email   <span class="hljs-keyword">string</span>  <span class="hljs-string">`gorm:&quot;type:varchar(100);unique_index&quot;`</span> <span class="hljs-comment">// `type` set sql type, `unique_index` will create unique index for this column</span>
+    Subscribed <span class="hljs-keyword">bool</span>
+}
+
+<span class="hljs-keyword">type</span> Address <span class="hljs-keyword">struct</span> {
+    ID       <span class="hljs-keyword">int</span>
+    Address1 <span class="hljs-keyword">string</span>         <span class="hljs-string">`gorm:&quot;not null;unique&quot;`</span> <span class="hljs-comment">// Set field as not nullable and unique</span>
+    Address2 <span class="hljs-keyword">string</span>         <span class="hljs-string">`gorm:&quot;type:varchar(100);unique&quot;`</span>
+    Post     sql.NullString <span class="hljs-string">`gorm:&quot;not null&quot;`</span>
+}
+
+<span class="hljs-keyword">type</span> Language <span class="hljs-keyword">struct</span> {
+    ID   <span class="hljs-keyword">int</span>
+    Name <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;index:idx_name_code&quot;`</span> <span class="hljs-comment">// Create index with name, and will create combined index if find other fields defined same name</span>
+    Code <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;index:idx_name_code&quot;`</span> <span class="hljs-comment">// `unique_index` also works</span>
+}
+
+<span class="hljs-keyword">type</span> CreditCard <span class="hljs-keyword">struct</span> {
+    gorm.Model
+    UserID  <span class="hljs-keyword">uint</span>
+    Number  <span class="hljs-keyword">string</span>
 }
 </code></pre>
-<h2 id="conventions--overriding-conventions">Conventions &amp; Overriding Conventions</h2>
+<h2 id="conventions">Conventions</h2>
 <h3 id="gormmodel-struct"><code>gorm.Model</code> struct</h3>
-<p>Gorm has defined struct <code>gorm.Model</code>, which could be embeded in your models, it will add fields <code>ID</code>, <code>CreatedAt</code>, <code>UpdatedAt</code>, <code>DeletedAt</code> to your model</p>
-<pre><code class="lang-go"><span class="hljs-comment">// Model&apos;s definition</span>
+<p>Base model definition <code>gorm.Model</code>, including fields <code>ID</code>, <code>CreatedAt</code>, <code>UpdatedAt</code>, <code>DeletedAt</code>, you could embed it in your model, or only write those fields you want</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Base Model&apos;s definition</span>
 <span class="hljs-keyword">type</span> Model <span class="hljs-keyword">struct</span> {
-  ID        <span class="hljs-typename">uint</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+  ID        <span class="hljs-keyword">uint</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
   CreatedAt time.Time
   UpdatedAt time.Time
   DeletedAt *time.Time
+}
+
+<span class="hljs-comment">// Add fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+}
+
+<span class="hljs-comment">// Only need field `ID`, `CreatedAt`</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  ID        <span class="hljs-keyword">uint</span>
+  CreatedAt time.Time
+  Name      <span class="hljs-keyword">string</span>
 }
 </code></pre>
 <h3 id="table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {} <span class="hljs-comment">// default table name is `users`</span>
 
 <span class="hljs-comment">// set User&apos;s table name to be `profiles</span>
-<span class="hljs-keyword">type</span> (User) TableName() <span class="hljs-typename">string</span> {
+<span class="hljs-keyword">type</span> (User) TableName() <span class="hljs-keyword">string</span> {
   <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;profiles&quot;</span>
 }
 
-<span class="hljs-keyword">func</span> (u User) TableName() <span class="hljs-typename">string</span> {
+<span class="hljs-keyword">func</span> (u User) TableName() <span class="hljs-keyword">string</span> {
     <span class="hljs-keyword">if</span> u.Role == <span class="hljs-string">&quot;admin&quot;</span> {
         <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;admin_users&quot;</span>
     } <span class="hljs-keyword">else</span> {
@@ -649,33 +729,34 @@
 }
 
 <span class="hljs-comment">// Disable table name&apos;s pluralization globally</span>
-db.SingularTable(<span class="hljs-constant">true</span>) <span class="hljs-comment">// if set this to true, `User`&apos;s default table name will be `user`, table name setted with `TableName` won&apos;t be affected</span>
+db.SingularTable(<span class="hljs-literal">true</span>) <span class="hljs-comment">// if set this to true, `User`&apos;s default table name will be `user`, table name setted with `TableName` won&apos;t be affected</span>
 </code></pre>
 <h3 id="column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
-  ID <span class="hljs-typename">uint</span>             <span class="hljs-comment">// column name will be `id`</span>
-  Name <span class="hljs-typename">string</span>         <span class="hljs-comment">// column name will be `name`</span>
+  ID <span class="hljs-keyword">uint</span>             <span class="hljs-comment">// column name will be `id`</span>
+  Name <span class="hljs-keyword">string</span>         <span class="hljs-comment">// column name will be `name`</span>
   Birthday time.Time  <span class="hljs-comment">// column name will be `birthday`</span>
   CreatedAt time.Time <span class="hljs-comment">// column name will be `created_at`</span>
 }
 
+<span class="hljs-comment">// Overriding Column Name</span>
 <span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
-    AnimalId    <span class="hljs-typename">int64</span>     <span class="hljs-string">`gorm:&quot;column:beast_id&quot;`</span>         <span class="hljs-comment">// set column name to `beast_id`</span>
+    AnimalId    <span class="hljs-keyword">int64</span>     <span class="hljs-string">`gorm:&quot;column:beast_id&quot;`</span>         <span class="hljs-comment">// set column name to `beast_id`</span>
     Birthday    time.Time <span class="hljs-string">`gorm:&quot;column:day_of_the_beast&quot;`</span> <span class="hljs-comment">// set column name to `day_of_the_beast`</span>
-    Age         <span class="hljs-typename">int64</span>     <span class="hljs-string">`gorm:&quot;column:age_of_the_beast&quot;`</span> <span class="hljs-comment">// set column name to `age_of_the_beast`</span>
+    Age         <span class="hljs-keyword">int64</span>     <span class="hljs-string">`gorm:&quot;column:age_of_the_beast&quot;`</span> <span class="hljs-comment">// set column name to `age_of_the_beast`</span>
 }
 </code></pre>
 <h3 id="field-id-as-primary-key">Field <code>ID</code> as primary key</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
-  ID <span class="hljs-typename">uint</span>  <span class="hljs-comment">// field named `ID` is the default primary key for `User`</span>
-  Name <span class="hljs-typename">string</span>
+  ID   <span class="hljs-keyword">uint</span>  <span class="hljs-comment">// field named `ID` will be the default primary field</span>
+  Name <span class="hljs-keyword">string</span>
 }
 
-<span class="hljs-comment">// your could also use tag `primary_key` to set other field as primary key</span>
+<span class="hljs-comment">// Set a field to be primary field with tag `primary_key`</span>
 <span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
-  AnimalId <span class="hljs-typename">int64</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span> <span class="hljs-comment">// set AnimalId to be primary key</span>
-  Name     <span class="hljs-typename">string</span>
-  Age      <span class="hljs-typename">int64</span>
+  AnimalId <span class="hljs-keyword">int64</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span> <span class="hljs-comment">// set AnimalId to be primary key</span>
+  Name     <span class="hljs-keyword">string</span>
+  Age      <span class="hljs-keyword">int64</span>
 }
 </code></pre>
 <h3 id="field-createdat-used-to-store-records-created-time">Field <code>CreatedAt</code> used to store record&apos;s created time</h3>
@@ -691,7 +772,7 @@ db.Model(&amp;user).Update(<span class="hljs-string">&quot;CreatedAt&quot;</span
 db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>) <span class="hljs-comment">// will set `UpdatedAt` to current time</span>
 </code></pre>
 <h3 id="use-deletedat-to-store-records-deleted-time-if-field-exists">Use <code>DeletedAt</code> to store record&apos;s deleted time if field exists</h3>
-<p>Delete records having <code>DeletedAt</code> field, it won&apos;t delete the record from database, but will set field <code>DeletedAt</code>&apos;s value to current time.</p>
+<p>Delete records having <code>DeletedAt</code> field, it won&apos;t be deleted from database, but only set field <code>DeletedAt</code>&apos;s value to current time, and the record is not findable when querying, refer <a href="curd.html#soft-delete">Soft Delete</a></p>
 
                             
                             </section>

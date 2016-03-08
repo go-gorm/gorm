@@ -1,6 +1,8 @@
-# Directory structure
+# Directory Structure
 
-GitBook uses a very simple and obvious directory sttructure:
+GitBook uses a simple directory structure. All Markdown/Asciidoc files listed in the [SUMMARY](pages.md) will be transformed as HTML. Multi-Lingual books have a slightly [different structure](languages.md).
+
+A basic GitBook usually looks something like this:
 
 ```
 .
@@ -21,19 +23,19 @@ An overview of what each of these does:
 | -------- | ----------- |
 | `book.json` | Stores [configuration](config.md) data (__optional__) |
 | `README.md` | Preface / Introduction for your book (**required**) |
-| `SUMMARY.md` | Table of Contents |
-
+| `SUMMARY.md` | Table of Contents (See [Pages](pages.md)) (__optional__) |
+| `GLOSSARY.md` | Lexicon / List of terms to annotate (See [Glossary](lexicon.md)) (__optional__) |
 
 ### Static files and Images
 
-A static file is a file that is not listed in the `SUMMARY.md`. All static files, not [ignored](#ignore), are copied to the output.
+A static file is a file that is not listed in the `SUMMARY.md`. All static files, unless [ignored](#ignore), are copied to the output.
 
 ### Ignoring files & folders {#ignore}
 
 GitBook will read the `.gitignore`, `.bookignore` and `.ignore` files to get a list of files and folders to skip.
 The format inside those files, follows the same convention as `.gitignore`:
 
-```markdown
+```
 # This is a comment
 
 # Ignore the file test.md
@@ -43,20 +45,22 @@ test.md
 bin/*
 ```
 
-### Project documentation / Sub-directory {#subdirectory}
+### Project integration with subdirectory {#subdirectory}
 
-For project documentaiton, it sometimes better to use a diretcory (like `docs/`) to store the prject's documentation. You can use a `.gitbook` file to indicate to GitBook in which folder the book is stored:
+For software projects, you can use a subdirectory (like `docs/`) to store the book for the project's documentation. You can configure the [`root` option](config.md) to indicate the folder where GitBook can find the book's files:
 
 ```
 .
-├── .gitbook
+├── book.json
 └── docs/
     ├── README.md
     └── SUMMARY.md
 ```
 
-With `.gitbook` containing:
+With `book.json` containing:
 
 ```
-./docs/
+{
+    "root": "./docs"
+}
 ```

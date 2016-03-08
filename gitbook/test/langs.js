@@ -6,7 +6,7 @@ describe('Langs', function() {
             'LANGS.md': ''
         })
         .then(function(book) {
-            return book.config.load()
+            return book.prepareConfig()
 
             .then(function() {
                 return book.langs.load();

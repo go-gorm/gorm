@@ -202,7 +202,7 @@ TemplateEngine.prototype.addBlock = function(name, block) {
                     lastBlockArgs = parser.parseSignature(null, true);
                     parser.advanceAfterBlockEnd(lastBlockName);
                 }
-            } while (lastBlockName != block.end)
+            } while (lastBlockName != block.end);
 
             parser.advanceAfterBlockEnd();
 

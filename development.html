@@ -5,8 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="The most notable component of Gorm isgorm.DB, which hold database connection. It could be initialized like this:">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="Gorm use chainable API, *gorm.DB is the bridge of chains, for each chain API, it will create a new relation.">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -69,8 +69,8 @@
     data-level="6"
     data-chapter-title="Development"
     data-filepath="development.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -178,12 +178,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -481,12 +481,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -496,10 +496,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -532,10 +547,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -585,7 +615,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Development</a>
+        <a href="." >Development</a>
     </h1>
 </div>
 
@@ -595,34 +625,38 @@
                         <div class="page-inner">
                             <section class="normal markdown-section">
                             
-                            <h1 id="gorm-development">Gorm Development</h1>
+                            <h1 id="development">Development</h1>
 <!-- toc -->
 <ul>
 <li><a href="#architecture">Architecture</a></li>
-<li><a href="#callbacks">Callbacks</a><ul>
+<li><a href="#write-plugins">Write Plugins</a><ul>
 <li><a href="#register-a-new-callback">Register a new callback</a></li>
 <li><a href="#delete-an-existing-callback">Delete an existing callback</a></li>
 <li><a href="#replace-an-existing-callback">Replace an existing callback</a></li>
 <li><a href="#register-callback-orders">Register callback orders</a></li>
-<li><a href="#callback-api">Callback API</a></li>
+<li><a href="#pre-defined-callbacks">Pre-Defined Callbacks</a></li>
 </ul>
 </li>
 </ul>
 <!-- toc stop -->
 <h2 id="architecture">Architecture</h2>
-<p>The most notable component of Gorm is<code>gorm.DB</code>, which hold database connection. It could be initialized like this:</p>
-<pre><code>db, err := gorm.Open(&quot;postgres&quot;, &quot;user=gorm dbname=gorm sslmode=disable&quot;)
-</code></pre><p>Gorm has chainable API, <code>gorm.DB</code> is the bridge of chains, it save related information and pass it to the next chain.</p>
-<p>Lets use below code to explain how it works:</p>
-<pre><code>db.Where(&quot;name = ?&quot;, &quot;jinzhu&quot;).Find(&amp;users)
+<p>Gorm use chainable API, <code>*gorm.DB</code> is the bridge of chains, for each chain API, it will create a new relation.</p>
+<pre><code class="lang-go">db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;user=gorm dbname=gorm sslmode=disable&quot;</span>)
 
-// equivalent code
-newdb := db.Where(&quot;name =?&quot;, &quot;jinzhu&quot;)
-newdb.Find(&amp;user)
-</code></pre><p><code>newdb</code> is <code>db</code>&apos;s clone, in addition, it contains search conditions from the <code>Where</code> method.
-<code>Find</code> is a query method, it creates a <code>Scope</code> instance, and pass it as argument to query callbacks.</p>
-<p>There are four kinds of callbacks corresponds to sql&apos;s CURD: create callbacks, update callbacks, query callbacks, delete callbacks.</p>
-<h2 id="callbacks">Callbacks</h2>
+<span class="hljs-comment">// create a new relation</span>
+db = db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>)
+
+<span class="hljs-comment">// create another new relation</span>
+db = db.Where(<span class="hljs-string">&quot;age = ?&quot;</span>, <span class="hljs-number">20</span>)
+</code></pre>
+<p>When we start to perform any operations, GROM will create a new <code>*gorm.Scope</code> instance based on current <code>*gorm.DB</code></p>
+<pre><code class="lang-go"><span class="hljs-comment">// perform a querying operation</span>
+db.First(&amp;user)
+</code></pre>
+<p>And based on current operation&apos;s type, it will call registered <code>creating</code>, <code>updating</code>, <code>querying</code>, <code>deleting</code> or <code>row_querying</code> callbacks to run the operation.</p>
+<p>For above example, will call <code>querying</code> callbacks, refer <a href="callbacks.html#querying-an-object">Querying Callbacks</a></p>
+<h2 id="write-plugins">Write Plugins</h2>
+<p>GORM itself is powered by <code>Callbacks</code>, so you could fully customize GORM as you want</p>
 <h3 id="register-a-new-callback">Register a new callback</h3>
 <pre><code>func updateCreated(scope *Scope) {
     if scope.HasColumn(&quot;Created&quot;) {
@@ -645,13 +679,28 @@ db.Callback().Query().After(&quot;gorm:query&quot;).Register(&quot;my_plugin:aft
 db.Callback().Delete().After(&quot;gorm:delete&quot;).Register(&quot;my_plugin:after_delete&quot;, afterDelete)
 db.Callback().Update().Before(&quot;gorm:update&quot;).Register(&quot;my_plugin:before_update&quot;, beforeUpdate)
 db.Callback().Create().Before(&quot;gorm:create&quot;).After(&quot;gorm:before_create&quot;).Register(&quot;my_plugin:before_create&quot;, beforeCreate)
-</code></pre><h3 id="callback-api">Callback API</h3>
-<p>Gorm is powered by callbacks, so you could refer below links to learn how to write callbacks</p>
-<p><a href="https://github.com/jinzhu/gorm/blob/master/callback_create.go" target="_blank">Create callbacks</a></p>
-<p><a href="https://github.com/jinzhu/gorm/blob/master/callback_update.go" target="_blank">Update callbacks</a></p>
-<p><a href="https://github.com/jinzhu/gorm/blob/master/callback_query.go" target="_blank">Query callbacks</a></p>
-<p><a href="https://github.com/jinzhu/gorm/blob/master/callback_delete.go" target="_blank">Delete callbacks</a></p>
-<p>View <a href="https://github.com/jinzhu/gorm/blob/master/scope.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/scope.go</a> for all available API</p>
+</code></pre><h3 id="predefined-callbacks">Pre-Defined Callbacks</h3>
+<p>GORM has defiend callbacks to perform its CRUD operations, check them out before start write your plugins</p>
+<ul>
+<li><p><a href="https://github.com/jinzhu/gorm/blob/master/callback_create.go" target="_blank">Create callbacks</a></p>
+</li>
+<li><p><a href="https://github.com/jinzhu/gorm/blob/master/callback_update.go" target="_blank">Update callbacks</a></p>
+</li>
+<li><p><a href="https://github.com/jinzhu/gorm/blob/master/callback_query.go" target="_blank">Query callbacks</a></p>
+</li>
+<li><p><a href="https://github.com/jinzhu/gorm/blob/master/callback_delete.go" target="_blank">Delete callbacks</a></p>
+</li>
+<li><p>Row Query callbacks</p>
+</li>
+</ul>
+<p>Row Query callbacks will be called when run <code>Row</code> or <code>Rows</code>, by default there is no registered callbacks for it, you could register a new one like:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> updateTableName(scope *gorm.Scope) {
+  scope.Search.Table(scope.TableName() + <span class="hljs-string">&quot;_draft&quot;</span>) <span class="hljs-comment">// append `_draft` to table name</span>
+}
+
+db.Callback().RowQuery().Register(<span class="hljs-string">&quot;publish:update_table_name&quot;</span>, updateTableName)
+</code></pre>
+<p>View <a href="https://godoc.org/github.com/jinzhu/gorm" target="_blank">https://godoc.org/github.com/jinzhu/gorm</a> to view all available API</p>
 
                             
                             </section>
@@ -667,7 +716,7 @@ db.Callback().Create().Before(&quot;gorm:create&quot;).After(&quot;gorm:before_c
                 </a>
                 
                 
-                <a href="development.html" class="navigation navigation-next " aria-label="Next page: Write Plugins">
+                <a href="development.html" class="navigation navigation-next " aria-label="Next page: Architecture">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 

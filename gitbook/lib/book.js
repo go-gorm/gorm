@@ -13,6 +13,7 @@ var error = require('./utils/error');
 var Promise = require('./utils/promise');
 var Logger = require('./utils/logger');
 var parsers = require('./parsers');
+var initBook = require('./init');
 
 
 /*
@@ -92,7 +93,27 @@ function Book(opts) {
     // List of page in the book
     this.pages = {};
 
+    // Deprecation for templates
+    Object.defineProperty(this, 'options', {
+        get: function () {
+            this.log.warn.ln('"options" property is deprecated, use config.get(key) instead');
+            var cfg = this.config.dump();
+            error.deprecateField(cfg, 'book', (this.output? this.output.name : null), '"options.generator" property is deprecated, use "output.name" instead');
+
+            // options.generator
+            cfg.generator = this.output? this.output.name : null;
+
+            // options.output
+            cfg.output = this.output? this.output.root() : null;
+
+            return cfg;
+        }
+    });
+
     _.bindAll(this);
+
+    // Loop for template filters/blocks
+    error.deprecateField(this, 'book', this, '"book" property is deprecated, use "this" directly instead');
 }
 
 // Return templating context for the book
@@ -108,7 +129,16 @@ Book.prototype.getContext = function() {
 
 // Parse and prepare the configuration, fail if invalid
 Book.prototype.prepareConfig = function() {
-    return this.config.load();
+    var that = this;
+
+    return this.config.load()
+    .then(function() {
+        var rootFolder = that.config.get('root');
+        if (!rootFolder) return;
+
+        that.originalRoot = that.root;
+        that.root = path.resolve(that.root, rootFolder);
+    });
 };
 
 // Resolve a path in the book source
@@ -329,29 +359,29 @@ Book.prototype.isInLanguageBook = function(filename) {
     });
 };
 
-// Locate a book in a folder
-// - Read the ".gitbook" is exists
-// - Try the folder itself
-// - Try a "docs" folder
-Book.locate = function(fs, root) {
-    return fs.readAsString(path.join(root, '.gitbook'))
-    .then(function(content) {
-        return path.join(root, content);
-    }, function() {
-        // .gitbook doesn't exists, fall back to the root folder
-        return Promise(root);
-    });
-};
+// ----- DEPRECATED METHODS
 
-// Locate and setup a book
-Book.setup = function(fs, root, opts) {
-    return Book.locate(fs, root)
-    .then(function(_root) {
-        return new Book(_.extend(opts || {}, {
-            root: _root,
-            fs: fs
-        }));
-    });
+Book.prototype.contentLink = error.deprecateMethod(function(s) {
+    return this.output.toURL(s);
+}, '.contentLink() is deprecated, use ".output.toURL()" instead');
+
+Book.prototype.contentPath = error.deprecateMethod(function(s) {
+    return this.output.toURL(s);
+}, '.contentPath() is deprecated, use ".output.toURL()" instead');
+
+Book.prototype.isSubBook = error.deprecateMethod(function() {
+    return this.isLanguageBook();
+}, '.isSubBook() is deprecated, use ".isLanguageBook()" instead');
+
+
+// Initialize a book
+Book.init = function(fs, root, opts) {
+    var book = new Book(_.extend(opts || {}, {
+        root: root,
+        fs: fs
+    }));
+
+    return initBook(book);
 };
 
 

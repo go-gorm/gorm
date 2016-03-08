@@ -54,7 +54,7 @@ Config.prototype.load = function() {
                 throw new Error('GitBook version doesn\'t satisfy version required by the book: '+that.options.gitbook);
             }
             if (that.options.gitbook != '*' && !semver.satisfies(semver.inc(gitbook.version, 'patch'), that.options.gitbook)) {
-                that.log.warn.ln('gitbook version specified in your book.json might be too strict for future patches, \''+(_.first(gitbook.version.split('.'))+'.x.x')+'\' is more adequate');
+                that.log.warn.ln('gitbook version specified in your book.json might be too strict for future patches, \'>='+(_.first(gitbook.version.split('.'))+'.x.x')+'\' is more adequate');
             }
 
             that.options.plugins = plugins.toList(that.options.plugins);

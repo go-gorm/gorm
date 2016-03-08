@@ -5,9 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="To perform a set of operations within a transaction, the general flow is as below.
-The database handle returned from db.Begin() should be used for all oper">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="After perform any operations, if there are any error happened, GORM will set it to *DB&#39;s Error field">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -70,8 +69,8 @@ The database handle returned from db.Begin() should be used for all oper">
     data-level="5"
     data-chapter-title="Advanced Usage"
     data-filepath="advanced.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -179,12 +178,12 @@ The database handle returned from db.Begin() should be used for all oper">
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -482,12 +481,12 @@ The database handle returned from db.Begin() should be used for all oper">
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -497,10 +496,25 @@ The database handle returned from db.Begin() should be used for all oper">
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -533,10 +547,25 @@ The database handle returned from db.Begin() should be used for all oper">
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -586,7 +615,7 @@ The database handle returned from db.Begin() should be used for all oper">
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Advanced Usage</a>
+        <a href="." >Advanced Usage</a>
     </h1>
 </div>
 
@@ -604,9 +633,14 @@ The database handle returned from db.Begin() should be used for all oper">
 <li><a href="#a-specific-example">A Specific Example</a></li>
 </ul>
 </li>
-<li><a href="#raw-sql">Raw SQL</a></li>
-<li><a href="#row-rows">Row &amp; Rows</a><ul>
-<li><a href="#scan-rows">Scan Rows</a></li>
+<li><a href="#sql-builder">SQL Builder</a><ul>
+<li><a href="#run-raw-sql">Run Raw SQL</a></li>
+<li><a href="#sqlrow-sqlrows">sql.Row &amp; sql.Rows</a></li>
+<li><a href="#scan-sqlrows-in-iteration">Scan sql.Rows In Iteration</a></li>
+</ul>
+</li>
+<li><a href="#generic-database-interface-sqldb">Generic database interface sql.DB</a><ul>
+<li><a href="#connection-pool">Connection Pool</a></li>
 </ul>
 </li>
 <li><a href="#composite-primary-key">Composite Primary Key</a></li>
@@ -617,40 +651,35 @@ The database handle returned from db.Begin() should be used for all oper">
 </ul>
 <!-- toc stop -->
 <h2 id="error-handling">Error Handling</h2>
-<pre><code class="lang-go">query := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
-query := db.First(&amp;user).Limit(<span class="hljs-number">10</span>).Find(&amp;users)
-<span class="hljs-comment">// query.Error will return the last happened error</span>
-
-<span class="hljs-comment">// So you could do error handing in your application like this:</span>
-<span class="hljs-keyword">if</span> err := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user).Error; err != <span class="hljs-constant">nil</span> {
+<p>After perform any operations, if there are any error happened, GORM will set it to <code>*DB</code>&apos;s <code>Error</code> field</p>
+<pre><code class="lang-go"><span class="hljs-keyword">if</span> err := db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user).Error; err != <span class="hljs-literal">nil</span> {
     <span class="hljs-comment">// error handling...</span>
 }
 
-<span class="hljs-comment">// RecordNotFound</span>
-<span class="hljs-comment">// If no record found when you query data, gorm will return RecordNotFound error, you could check it like this:</span>
-db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;User{}).Error == gorm.RecordNotFound
-<span class="hljs-comment">// Or use the shortcut method</span>
+<span class="hljs-comment">// If there are more than one error happened, get all of them with `GetErrors`, it returns `[]error`</span>
+db.First(&amp;user).Limit(<span class="hljs-number">10</span>).Find(&amp;users).GetErrors()
+
+<span class="hljs-comment">// Check if returns RecordNotFound error</span>
 db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;hello world&quot;</span>).First(&amp;user).RecordNotFound()
 
 <span class="hljs-keyword">if</span> db.Model(&amp;user).Related(&amp;credit_card).RecordNotFound() {
-    <span class="hljs-comment">// no credit card found error handling</span>
+    <span class="hljs-comment">// no credit card found handling</span>
 }
 </code></pre>
 <h2 id="transactions">Transactions</h2>
-<p>To perform a set of operations within a transaction, the general flow is as below.
-The database handle returned from <code>db.Begin()</code> should be used for all operations within the transaction.
-(Note that all individual save and delete operations are run in a transaction by default.)</p>
-<pre><code class="lang-go"><span class="hljs-comment">// begin</span>
+<p>To perform a set of operations within a transaction, the general flow is as below.</p>
+<pre><code class="lang-go"><span class="hljs-comment">// begin a transaction</span>
 tx := db.Begin()
 
-<span class="hljs-comment">// do some database operations (use &apos;tx&apos; from this point, not &apos;db&apos;)</span>
+<span class="hljs-comment">// do some database operations in the transaction (use &apos;tx&apos; from this point, not &apos;db&apos;)</span>
 tx.Create(...)
-...
 
-<span class="hljs-comment">// rollback in case of error</span>
+<span class="hljs-comment">// ...</span>
+
+<span class="hljs-comment">// rollback the transaction in case of error</span>
 tx.Rollback()
 
-<span class="hljs-comment">// Or commit if all is ok</span>
+<span class="hljs-comment">// Or commit the transaction</span>
 tx.Commit()
 </code></pre>
 <h3 id="a-specific-example">A Specific Example</h3>
@@ -658,26 +687,37 @@ tx.Commit()
   tx := db.Begin()
   <span class="hljs-comment">// Note the use of tx as the database handle once you are within a transaction</span>
 
-  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Giraffe&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
+  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Giraffe&quot;</span>}).Error; err != <span class="hljs-literal">nil</span> {
      tx.Rollback()
      <span class="hljs-keyword">return</span> err
   }
 
-  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Lion&quot;</span>}).Error; err != <span class="hljs-constant">nil</span> {
+  <span class="hljs-keyword">if</span> err := tx.Create(&amp;Animal{Name: <span class="hljs-string">&quot;Lion&quot;</span>}).Error; err != <span class="hljs-literal">nil</span> {
      tx.Rollback()
      <span class="hljs-keyword">return</span> err
   }
 
   tx.Commit()
-  <span class="hljs-keyword">return</span> <span class="hljs-constant">nil</span>
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>
 }
 </code></pre>
-<h2 id="raw-sql">Raw SQL</h2>
+<h2 id="sql-builder">SQL Builder</h2>
+<h4 id="run-raw-sql">Run Raw SQL</h4>
+<p>Run Raw SQL</p>
 <pre><code class="lang-go">db.Exec(<span class="hljs-string">&quot;DROP TABLE users;&quot;</span>)
-db.Exec(<span class="hljs-string">&quot;UPDATE orders SET shipped_at=? WHERE id IN (?)&quot;</span>, time.Now, []<span class="hljs-typename">int64</span>{<span class="hljs-number">11</span>,<span class="hljs-number">22</span>,<span class="hljs-number">33</span>})
+db.Exec(<span class="hljs-string">&quot;UPDATE orders SET shipped_at=? WHERE id IN (?)&quot;</span>, time.Now, []<span class="hljs-keyword">int64</span>{<span class="hljs-number">11</span>,<span class="hljs-number">22</span>,<span class="hljs-number">33</span>})
+
+<span class="hljs-comment">// Scan</span>
+<span class="hljs-keyword">type</span> Result <span class="hljs-keyword">struct</span> {
+    Name <span class="hljs-keyword">string</span>
+    Age  <span class="hljs-keyword">int</span>
+}
+
+<span class="hljs-keyword">var</span> result Result
+db.Raw(<span class="hljs-string">&quot;SELECT name, age FROM users WHERE name = ?&quot;</span>, <span class="hljs-number">3</span>).Scan(&amp;result)
 </code></pre>
-<h2 id="row--rows">Row &amp; Rows</h2>
-<p>It is even possible to get query result as <code>*sql.Row</code> or <code>*sql.Rows</code></p>
+<h4 id="sqlrow--sqlrows">sql.Row &amp; sql.Rows</h4>
+<p>Get query result as <code>*sql.Row</code> or <code>*sql.Rows</code></p>
 <pre><code class="lang-go">row := db.Table(<span class="hljs-string">&quot;users&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age&quot;</span>).Row() <span class="hljs-comment">// (*sql.Row)</span>
 row.Scan(&amp;name, &amp;age)
 
@@ -698,7 +738,7 @@ rows, err := db.Raw(<span class="hljs-string">&quot;select name, age, email from
     ...
 }
 </code></pre>
-<h3 id="scan-rows">Scan Rows</h3>
+<h4 id="scan-sqlrows-in-iteration">Scan sql.Rows In Iteration</h4>
 <pre><code class="lang-go">rows, err := db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Select(<span class="hljs-string">&quot;name, age, email&quot;</span>).Rows() <span class="hljs-comment">// (*sql.Rows, error)</span>
 <span class="hljs-keyword">defer</span> rows.Close()
 
@@ -708,27 +748,39 @@ rows, err := db.Raw(<span class="hljs-string">&quot;select name, age, email from
   <span class="hljs-comment">// do something</span>
 }
 </code></pre>
+<h2 id="generic-database-interface-sqldb">Generic database interface sql.DB</h2>
+<p>Get generic database interface <a href="http://golang.org/pkg/database/sql/#DB" target="_blank">*sql.DB</a> from <code>*gorm.DB</code> connection</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Get generic database object `*sql.DB` to use its functions</span>
+db.DB()
+
+<span class="hljs-comment">// Ping</span>
+db.DB().Ping()
+</code></pre>
+<h4 id="connection-pool">Connection Pool</h4>
+<pre><code class="lang-go">db.DB().SetMaxIdleConns(<span class="hljs-number">10</span>)
+db.DB().SetMaxOpenConns(<span class="hljs-number">100</span>)
+</code></pre>
 <h2 id="composite-primary-key">Composite Primary Key</h2>
+<p>Set multiple fields as priamry key to enable composite primary key</p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
-    ID           <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
-    LanguageCode <span class="hljs-typename">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+    ID           <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
+    LanguageCode <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;primary_key&quot;`</span>
 }
 </code></pre>
 <h2 id="logger">Logger</h2>
-<p>Gorm has built-in logger support</p>
-<pre><code class="lang-go"><span class="hljs-comment">// Enable Logger</span>
-db.LogMode(<span class="hljs-constant">true</span>)
+<p>Gorm has built-in logger support, by default, it will print happened errors</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Enable Logger, show detailed log</span>
+db.LogMode(<span class="hljs-literal">true</span>)
 
-<span class="hljs-comment">// Diable Logger</span>
-db.LogMode(<span class="hljs-constant">false</span>)
+<span class="hljs-comment">// Diable Logger, don&apos;t show any log</span>
+db.LogMode(<span class="hljs-literal">false</span>)
 
-<span class="hljs-comment">// Debug a single operation</span>
+<span class="hljs-comment">// Debug a single operation, show detailed log for this operation</span>
 db.Debug().Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;User{})
 </code></pre>
-<p><img src="https:/raw.github.com/jinzhu/gorm/master/doc/logger.png" alt="logger"></p>
-<h3 id="customize-logger">Customize Logger</h3>
-<pre><code class="lang-go"><span class="hljs-comment">// Refer gorm&apos;s default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files</span>
-db.SetLogger(gorm.Logger{revel.TRACE})
+<h4 id="customize-logger">Customize Logger</h4>
+<p>Refer GORM&apos;s default logger for how to customize it <a href="https://github.com/jinzhu/gorm/blob/master/logger.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/logger.go</a></p>
+<pre><code class="lang-go">db.SetLogger(gorm.Logger{revel.TRACE})
 db.SetLogger(log.New(os.Stdout, <span class="hljs-string">&quot;\r\n&quot;</span>, <span class="hljs-number">0</span>))
 </code></pre>
 

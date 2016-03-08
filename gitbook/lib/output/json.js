@@ -22,7 +22,7 @@ JSONOutput.prototype.onPage = function(page) {
         delete json.config;
 
         // Specify JSON output version
-        json.version = '2';
+        json.version = '3';
 
         return that.writeFile(
             page.withExtension('.json'),

@@ -59,6 +59,34 @@ describe('Summary / Table of contents', function() {
         });
     });
 
+    describe('Unicode summary', function() {
+        var book;
+
+        before(function() {
+            return mockSummary({
+                'SUMMARY.md': '# Summary\n\n'
+                    + '* [Hello](./hello world.md)\n'
+                    + '* [Spanish](./Descripción del problema.md)\n\n'
+                    + '* [Chinese](读了这本书.md)\n\n'
+            })
+            .then(function(_book) {
+                book = _book;
+            });
+        });
+
+        it('should accept article with spaces', function() {
+            should(book.summary.getArticle('hello world.md')).be.ok();
+        });
+
+        it('should accept article with chinese filename', function() {
+            should(book.summary.getArticle('读了这本书.md')).be.ok();
+        });
+
+        it('should accept article with accents', function() {
+            should(book.summary.getArticle('Descripción del problema.md')).be.ok();
+        });
+    });
+
     describe('Non-empty summary list', function() {
         var book;
 

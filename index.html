@@ -6,7 +6,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="The fantastic ORM library for Golang, aims to be developer friendly.">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -67,8 +67,8 @@
     data-level="0"
     data-chapter-title="Getting Started with GORM"
     data-filepath="README.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -176,12 +176,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -479,12 +479,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -494,10 +494,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -530,10 +545,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -583,7 +613,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Getting Started with GORM</a>
+        <a href="." >Getting Started with GORM</a>
     </h1>
 </div>
 
@@ -595,53 +625,64 @@
                             
                             <h1 id="gorm">GORM</h1>
 <p>The fantastic ORM library for Golang, aims to be developer friendly.</p>
-<p><a href="https://app.wercker.com/project/bykey/0cb7bb1039e21b74f8274941428e0921" target="_blank"><img src="https:/app.wercker.com/status/0cb7bb1039e21b74f8274941428e0921/s/master" alt="wercker status" title="wercker status"></a>
-<a href="https://godoc.org/github.com/jinzhu/gorm" target="_blank"><img src="https:/godoc.org/github.com/jinzhu/gorm?status.svg" alt="GoDoc"></a>
-<a href="https://gitter.im/jinzhu/gorm?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge" target="_blank"><img src="https:/badges.gitter.im/Join%20Chat.svg" alt="Join the chat at https://gitter.im/jinzhu/gorm"></a></p>
+<p><a href="https://gitter.im/jinzhu/gorm?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge" target="_blank"><img src="https:/badges.gitter.im/Join%20Chat.svg" alt="Join the chat at https://gitter.im/jinzhu/gorm"></a>
+<a href="https://app.wercker.com/project/bykey/0cb7bb1039e21b74f8274941428e0921" target="_blank"><img src="https:/app.wercker.com/status/0cb7bb1039e21b74f8274941428e0921/s/master" alt="wercker status" title="wercker status"></a>
+<a href="https://godoc.org/github.com/jinzhu/gorm" target="_blank"><img src="https:/godoc.org/github.com/jinzhu/gorm?status.svg" alt="GoDoc"></a></p>
 <h2 id="overview">Overview</h2>
 <ul>
 <li>Full-Featured ORM (almost)</li>
-<li>Chainable API</li>
-<li>Auto Migrations</li>
-<li>Relations (Has One, Has Many, Belongs To, Many To Many, Polymorphism)</li>
+<li>Associations (Has One, Has Many, Belongs To, Many To Many, Polymorphism)</li>
 <li>Callbacks (Before/After Create/Save/Update/Delete/Find)</li>
 <li>Preloading (eager loading)</li>
 <li>Transactions</li>
-<li>Embed Anonymous Struct</li>
-<li>Soft Deletes</li>
-<li>Customizable Logger</li>
-<li>Iteration Support via Rows</li>
+<li>Composite Primary Key</li>
+<li>SQL Builder</li>
+<li>Auto Migrations</li>
+<li>Logger</li>
+<li>Extendable, write Plugins based on GORM callbacks</li>
 <li>Every feature comes with tests</li>
 <li>Developer Friendly</li>
 </ul>
 <h2 id="install">Install</h2>
-<pre><code>go get -u github.com/jinzhu/gorm
-</code></pre><h2 id="upgrading">Upgrading</h2>
-<p><a href="changelog.html">Change Log</a></p>
-<h2 id="basic-usage">Basic Usage</h2>
-<pre><code class="lang-go"><span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
+<pre><code class="lang-sh">go get -u github.com/jinzhu/gorm
+</code></pre>
+<h2 id="upgrading-to-v10">Upgrading To V1.0</h2>
+<ul>
+<li><a href="changelog.html">CHANGELOG</a></li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<pre><code class="lang-go"><span class="hljs-keyword">package</span> main
+
+<span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/sqlite&quot;</span>
+)
+
+<span class="hljs-keyword">type</span> Product <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Code <span class="hljs-typename">string</span>
-  Price <span class="hljs-typename">uint</span>
-}
-
-<span class="hljs-keyword">var</span> db *gorm.DB
-
-<span class="hljs-keyword">func</span> init() {
-  <span class="hljs-keyword">var</span> err error
-  db, err = gorm.Open(<span class="hljs-string">&quot;sqlite&quot;</span>, <span class="hljs-string">&quot;test.db&quot;</span>)
+  Code <span class="hljs-keyword">string</span>
+  Price <span class="hljs-keyword">uint</span>
 }
 
 <span class="hljs-keyword">func</span> main() {
+  db, err := gorm.Open(<span class="hljs-string">&quot;sqlite&quot;</span>, <span class="hljs-string">&quot;test.db&quot;</span>)
+  <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> {
+    <span class="hljs-built_in">panic</span>(<span class="hljs-string">&quot;faield to connect database&quot;</span>)
+  }
+
+  <span class="hljs-comment">// Create</span>
   db.Create(&amp;Product{Code: <span class="hljs-string">&quot;L1212&quot;</span>, Price: <span class="hljs-number">1000</span>})
 
+  <span class="hljs-comment">// Read</span>
   <span class="hljs-keyword">var</span> product Product
   db.First(&amp;product, <span class="hljs-number">1</span>) <span class="hljs-comment">// find product with id 1</span>
   db.First(&amp;product, <span class="hljs-string">&quot;code = ?&quot;</span>, <span class="hljs-string">&quot;L1212&quot;</span>) <span class="hljs-comment">// find product with code l1212</span>
 
-  db.Model(&amp;product).Update(<span class="hljs-string">&quot;Price&quot;</span>, <span class="hljs-number">2000</span>) <span class="hljs-comment">// update product&apos;s price to 2000</span>
+  <span class="hljs-comment">// Update - update product&apos;s price to 2000</span>
+  db.Model(&amp;product).Update(<span class="hljs-string">&quot;Price&quot;</span>, <span class="hljs-number">2000</span>)
 
-  db.Delete(&amp;product) <span class="hljs-comment">// delete product</span>
+  <span class="hljs-comment">// Delete - delete product</span>
+  db.Delete(&amp;product)
 }
 </code></pre>
 <h1 id="author">Author</h1>

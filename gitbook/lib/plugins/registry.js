@@ -87,7 +87,7 @@ function installPlugin(book, plugin, version) {
             throw new Error('Found no satisfactory version for plugin "' + plugin + '"');
         }
 
-        book.log.info.ln('install plugin' + plugin +'" from npm ('+npnName+') with version', version);
+        book.log.info.ln('install plugin "' + plugin +'" from npm ('+npnName+') with version', version);
         return Promise.nfcall(npmi, {
             'name': npnName,
             'version': version,

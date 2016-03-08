@@ -204,7 +204,6 @@ BookPlugin.prototype._getResources = function(base) {
     .then(function() {
         if (that._resources[base]) return that._resources[base];
 
-        base = base;
         var book = that.content[base];
 
         // Compatibility with version 1.x.x

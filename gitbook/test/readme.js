@@ -6,7 +6,7 @@ describe('Readme', function() {
             'README.md': ''
         })
         .then(function(book) {
-            return book.config.load()
+            return book.prepareConfig()
 
             .then(function() {
                 return book.readme.load();

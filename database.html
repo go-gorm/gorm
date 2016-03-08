@@ -5,8 +5,8 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="NOTE don&#39;t forgot params parseTime to handle data type time.Time, more support parameters">
-        <meta name="generator" content="GitBook 3.0.0-pre.1">
+        <meta name="description" content="When connect to a database, you need to import the database&#39;s driver first, for example:">
+        <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
         
@@ -69,8 +69,8 @@
     data-level="1"
     data-chapter-title="Database"
     data-filepath="database.md"
-    data-basepath=""
-    data-revision="Wed Mar 02 2016 08:53:45 GMT+0800 (CST)"
+    data-basepath="."
+    data-revision="Tue Mar 08 2016 12:18:21 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -178,12 +178,12 @@
     
         <li class="chapter " data-level="2.2" data-path="models.html">
             
-                <a href="models.html#conventions-overriding-conventions">
+                <a href="models.html#conventions">
             
                     
                         <b>2.2.</b>
                     
-                    Naming Conventions &amp; Overriding
+                    Conventions &amp; Overriding
             
                 </a>
             
@@ -481,12 +481,12 @@
     
         <li class="chapter " data-level="5.4" data-path="advanced.html">
             
-                <a href="advanced.html#compose-primary-key">
+                <a href="advanced.html#generic-database-interface-sqldb">
             
                     
                         <b>5.4.</b>
                     
-                    Composite Primary Key
+                    Generic database interface sql.DB
             
                 </a>
             
@@ -496,10 +496,25 @@
     
         <li class="chapter " data-level="5.5" data-path="advanced.html">
             
-                <a href="advanced.html#logger">
+                <a href="advanced.html#compose-primary-key">
             
                     
                         <b>5.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="5.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>5.6.</b>
                     
                     Overriding Logger
             
@@ -532,10 +547,25 @@
     
         <li class="chapter " data-level="6.1" data-path="development.html">
             
-                <a href="development.html#callbacks">
+                <a href="development.html#architecture">
             
                     
                         <b>6.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="6.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>6.2.</b>
                     
                     Write Plugins
             
@@ -585,7 +615,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="" >Database</a>
+        <a href="." >Database</a>
     </h1>
 </div>
 
@@ -605,7 +635,6 @@
 <li><a href="#write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</a></li>
 </ul>
 </li>
-<li><a href="#generic-database-object-sqldb">Generic database object *sql.DB</a></li>
 <li><a href="#migration">Migration</a><ul>
 <li><a href="#auto-migration">Auto Migration</a></li>
 <li><a href="#has-table">Has Table</a></li>
@@ -620,12 +649,22 @@
 </ul>
 <!-- toc stop -->
 <h2 id="connecting-to-a-database">Connecting to a database</h2>
+<p>When connect to a database, you need to import the database&apos;s driver first, for example:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;github.com/go-sql-driver/mysql&quot;</span>
+</code></pre>
+<p>GORM has wrapped some drivers, for easier to remember the import path, so you could import the mysql driver with</p>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/mysql&quot;</span>
+<span class="hljs-comment">// import _ &quot;github.com/jinzhu/gorm/dialects/postgres&quot;</span>
+<span class="hljs-comment">// import _ &quot;github.com/jinzhu/gorm/dialects/sqlite&quot;</span>
+<span class="hljs-comment">// import _ &quot;github.com/jinzhu/gorm/dialects/mssql&quot;</span>
+</code></pre>
 <h4 id="mysql">MySQL</h4>
-<p><strong>NOTE</strong> don&apos;t forgot params <code>parseTime</code> to handle data type <code>time.Time</code>, <a href="https://github.com/go-sql-driver/mysql#parameters" target="_blank">more support parameters</a></p>
+<p><strong>NOTE</strong> in order to handle <code>time.Time</code> you need to include <code>parseTime</code> as param <a href="https://github.com/go-sql-driver/mysql#parameters" target="_blank">more supported parameters</a></p>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
-    _ <span class="hljs-string">&quot;github.com/go-sql-driver/mysql&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/mysql&quot;</span>
 )
+
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;mysql&quot;</span>, <span class="hljs-string">&quot;user:password@/dbname?charset=utf8&amp;parseTime=True&amp;loc=Local&quot;</span>)
 }
@@ -633,8 +672,9 @@
 <h4 id="postgresql">PostgreSQL</h4>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
-    _ <span class="hljs-string">&quot;github.com/lib/pq&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/postgres&quot;</span>
 )
+
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;user=gorm dbname=gorm sslmode=disable&quot;</span>)
 }
@@ -642,33 +682,20 @@
 <h4 id="sqlite3">Sqlite3</h4>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
-    _ <span class="hljs-string">&quot;github.com/mattn/go-sqlite3&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/sqlite&quot;</span>
 )
+
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;sqlite3&quot;</span>, <span class="hljs-string">&quot;/tmp/gorm.db&quot;</span>)
 }
 </code></pre>
 <h4 id="write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</h4>
-<p>GORM officially support above databases, for unsupported databaes, you could write a dialect for that.</p>
+<p>GORM officially support above databases, but you could write a dialect for those unsupported databaes,</p>
 <p>Refer: <a href="https://github.com/jinzhu/gorm/blob/master/dialect.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/dialect.go</a></p>
-<h2 id="generic-database-object-sqldb">Generic database object *sql.DB</h2>
-<p><a href="http://golang.org/pkg/database/sql/#DB" target="_blank">*sql.DB</a></p>
-<pre><code class="lang-go"><span class="hljs-comment">// Get generic database object *sql.DB to use its functions</span>
-db.DB()
-
-<span class="hljs-comment">// Connection Pool</span>
-db.DB().SetMaxIdleConns(<span class="hljs-number">10</span>)
-db.DB().SetMaxOpenConns(<span class="hljs-number">100</span>)
-
-  <span class="hljs-comment">// Ping</span>
-db.DB().Ping()
-</code></pre>
 <h2 id="migration">Migration</h2>
-<!-- toc -->
 <h3 id="auto-migration">Auto Migration</h3>
 <p>Automatically migrate your schema, to keep your schema update to date</p>
-<p><strong>WARNING</strong> AutoMigrate will ONLY create tables, columns and indexes if doesn&apos;t exist,
-WON&apos;T change existing column&apos;s type or delete unused columns to protect your data</p>
+<p><strong>WARNING</strong> AutoMigrate will ONLY create tables, missing columns and missing indexes, <strong>WON&apos;T</strong> change existing column&apos;s type or delete unused columns to protect your data</p>
 <pre><code class="lang-go">db.AutoMigrate(&amp;User{})
 
 db.AutoMigrate(&amp;User{}, &amp;Product{}, &amp;Order{})
@@ -677,28 +704,37 @@ db.AutoMigrate(&amp;User{}, &amp;Product{}, &amp;Order{})
 db.Set(<span class="hljs-string">&quot;gorm:table_options&quot;</span>, <span class="hljs-string">&quot;ENGINE=InnoDB&quot;</span>).AutoMigrate(&amp;User{})
 </code></pre>
 <h3 id="has-table">Has Table</h3>
-<pre><code class="lang-go"><span class="hljs-comment">// Check if model `User`&apos;s table has been created or not</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Check model `User`&apos;s table exists or not</span>
 db.HasTable(&amp;User{})
 
 <span class="hljs-comment">// Check table `users` exists or not</span>
 db.HasTable(<span class="hljs-string">&quot;users&quot;</span>)
 </code></pre>
 <h3 id="create-table">Create Table</h3>
-<pre><code class="lang-go">db.CreateTable(&amp;User{})
+<pre><code class="lang-go"><span class="hljs-comment">// Create table for model `User`</span>
+db.CreateTable(&amp;User{})
 
-db.Set(<span class="hljs-string">&quot;gorm:table_options&quot;</span>, <span class="hljs-string">&quot;ENGINE=InnoDB&quot;</span>).CreateTable(&amp;User{})
 <span class="hljs-comment">// will append &quot;ENGINE=InnoDB&quot; to the SQL statement when creating table `users`</span>
+db.Set(<span class="hljs-string">&quot;gorm:table_options&quot;</span>, <span class="hljs-string">&quot;ENGINE=InnoDB&quot;</span>).CreateTable(&amp;User{})
 </code></pre>
 <h3 id="drop-table">Drop table</h3>
-<pre><code class="lang-go">db.DropTable(&amp;User{})
+<pre><code class="lang-go"><span class="hljs-comment">// Drop model `User`&apos;s table</span>
+db.DropTable(&amp;User{})
+
+<span class="hljs-comment">// Drop table `users</span>
+db.DropTable(<span class="hljs-string">&quot;users&quot;</span>)
+
+<span class="hljs-comment">// Drop model&apos;s `User`&apos;s table and table `products`</span>
+db.DropTableIfExists(&amp;User{}, <span class="hljs-string">&quot;products&quot;</span>)
 </code></pre>
 <h3 id="modifycolumn">ModifyColumn</h3>
-<p>Change column&apos;s type</p>
-<pre><code class="lang-go"><span class="hljs-comment">// change column description&apos;s data type to `text` for model `User`&apos;s table</span>
+<p>Modify column&apos;s type to given value</p>
+<pre><code class="lang-go"><span class="hljs-comment">// change column description&apos;s data type to `text` for model `User`</span>
 db.Model(&amp;User{}).ModifyColumn(<span class="hljs-string">&quot;description&quot;</span>, <span class="hljs-string">&quot;text&quot;</span>)
 </code></pre>
 <h3 id="dropcolumn">DropColumn</h3>
-<pre><code class="lang-go">db.Model(&amp;User{}).DropColumn(<span class="hljs-string">&quot;description&quot;</span>)
+<pre><code class="lang-go"><span class="hljs-comment">// Drop column description from model `User`</span>
+db.Model(&amp;User{}).DropColumn(<span class="hljs-string">&quot;description&quot;</span>)
 </code></pre>
 <h3 id="add-foreign-key">Add Foreign Key</h3>
 <pre><code class="lang-go"><span class="hljs-comment">// Add foreign key</span>
@@ -709,16 +745,16 @@ db.Model(&amp;User{}).ModifyColumn(<span class="hljs-string">&quot;description&q
 db.Model(&amp;User{}).AddForeignKey(<span class="hljs-string">&quot;city_id&quot;</span>, <span class="hljs-string">&quot;cities(id)&quot;</span>, <span class="hljs-string">&quot;RESTRICT&quot;</span>, <span class="hljs-string">&quot;RESTRICT&quot;</span>)
 </code></pre>
 <h3 id="indexes">Indexes</h3>
-<pre><code class="lang-go"><span class="hljs-comment">// Add index</span>
+<pre><code class="lang-go"><span class="hljs-comment">// Add index for columns `name` with given name `idx_user_name`</span>
 db.Model(&amp;User{}).AddIndex(<span class="hljs-string">&quot;idx_user_name&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>)
 
-<span class="hljs-comment">// Multiple column index</span>
+<span class="hljs-comment">// Add index for columns `name`, `age` with given name `idx_user_name_age`</span>
 db.Model(&amp;User{}).AddIndex(<span class="hljs-string">&quot;idx_user_name_age&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>)
 
 <span class="hljs-comment">// Add unique index</span>
 db.Model(&amp;User{}).AddUniqueIndex(<span class="hljs-string">&quot;idx_user_name&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>)
 
-<span class="hljs-comment">// Multiple column unique index</span>
+<span class="hljs-comment">// Add unique index for multiple columns</span>
 db.Model(&amp;User{}).AddUniqueIndex(<span class="hljs-string">&quot;idx_user_name_age&quot;</span>, <span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>)
 
 <span class="hljs-comment">// Remove index</span>

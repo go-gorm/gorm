@@ -4,7 +4,7 @@ description: Real world examples of content published using GitBook.
 
 # Examples
 
-More than 50,000 books have benn published on [GitBook.com](https://www.gitbook.com/explore).
+More than 50,000 books have been published on [GitBook.com](https://www.gitbook.com/explore).
 
 ### Books
 
@@ -17,11 +17,11 @@ More than 50,000 books have benn published on [GitBook.com](https://www.gitbook.
 
 ### Research Papers
 
-- [TowCenter Collection](https://www.gitbook.com/@towcenter) by [Columbia Journalism School]()
+- [TowCenter Collection](https://www.gitbook.com/@towcenter) by [Columbia Journalism School](http://www.journalism.columbia.edu/)
 - [Block Relaxation Algorithms in Statistics](https://www.gitbook.com/@jandeleeuw) by Jan de Leeuw
 
 ### Documentation
 
-- [DuckDuckHack Documentation](http://docs.duckduckhack.com) by DuckDuckGo
+- [DuckDuckHack Documentation](http://docs.duckduckhack.com) by [DuckDuckGo](https://duckduckgo.com/about)
 - This documentation
 

@@ -1,10 +1,12 @@
 # GitBook Format Documentation
 
-> This documentation is for GitBook version **{{ book.version }}**
+This document aims to be a comprehensive guide to GitBook. It contains the full documentation for version **{{ book.version }}**. Help for GitBook.com specific questions can be found at [help.gitbook.com](https://help.gitbook.com).
 
-GitBook is a command line tool (and Node.js library) for building beautiful books using GitHub/Git and Markdown (or AsciiDoc). Here is an example: [Learn Javascript](https://www.gitbook.com/book/GitBookIO/javascript). This documentation has been generated using GitBook.
+### What is GitBook?
 
-GitBook can output your content as a website ([customizable](themes.md) and [extensibles](plugins.md)) or as an ebook (PDF, ePub or Mobi).
+GitBook is a command line tool (and Node.js library) for building beautiful books using GitHub/Git and Markdown (or AsciiDoc). . This documentation has been generated using GitBook.
+
+GitBook can output your content as a website ([customizable](themes/README.md) and [extensibles](plugins/README.md)) or as an ebook (PDF, ePub or Mobi).
 
 [GitBook.com](https://www.gitbook.com) is the online platform to create and host books built using the GitBook format. It offers hosting, collaboration features and an [easy-to-use editor](https://www.gitbook.com/editor).
 
@@ -12,9 +14,11 @@ GitBook can output your content as a website ([customizable](themes.md) and [ext
 
 We're always happy to help out with your books or any other questions you might have. You can ask a question on the following contact form at [gitbook.com/contact](https://www.gitbook.com/contact) or signal an issue on [GitHub](https://github.com/GitbookIO/gitbook).
 
+Check out the [GitBook Community Slack Channel](https://slack.gitbook.com), Stay updated by following [@GitBookIO](https://twitter.com/GitBookIO) on Twitter or [GitBook](https://www.facebook.com/gitbookcom) on Facebook.
+
 ### FAQ
 
-There are questions that are asked quite often, [check this out before creating an issue](faq.md).
+Some questions are frequently asked. If you have a problem you should  [check this out](faq.md) first.
 
 ### Contribute to this documentation
 

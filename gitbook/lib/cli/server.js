@@ -64,8 +64,9 @@ Server.prototype.start = function(dir, port) {
             }
 
             // Send file
-            send(req, url.parse(req.url).pathname)
-            .root(dir)
+            send(req, url.parse(req.url).pathname, {
+                root: dir
+            })
             .on('error', error)
             .on('directory', redirect)
             .pipe(res);
