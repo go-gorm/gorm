@@ -18,10 +18,9 @@ func queryCallback(scope *Scope) {
 	defer scope.trace(NowFunc())
 
 	var (
-		isSlice    bool
-		isPtr      bool
-		results    = scope.IndirectValue()
-		resultType reflect.Type
+		isSlice, isPtr bool
+		resultType     reflect.Type
+		results        = scope.IndirectValue()
 	)
 
 	if orderBy, ok := scope.Get("gorm:order_by_primary_key"); ok {

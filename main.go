@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // DB contains information for current db connection
@@ -221,7 +222,7 @@ func (s *DB) Unscoped() *DB {
 	return s.clone().search.unscoped().db
 }
 
-// Attrs initalize struct with argument if record not found with `FirstOrInit` https://jinzhu.github.io/gorm/curd.html#firstorinit or `FirstOrCreate` https://jinzhu.github.io/gorm/curd.html#firstorcreate
+// Attrs initialize struct with argument if record not found with `FirstOrInit` https://jinzhu.github.io/gorm/curd.html#firstorinit or `FirstOrCreate` https://jinzhu.github.io/gorm/curd.html#firstorcreate
 func (s *DB) Attrs(attrs ...interface{}) *DB {
 	return s.clone().search.Attrs(attrs...).db
 }
@@ -299,7 +300,7 @@ func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
 	return s.clone().NewScope(s.Value).related(value, foreignKeys...).db
 }
 
-// FirstOrInit find first matched record or initalize a new one with given conditions (only works with struct, map conditions)
+// FirstOrInit find first matched record or initialize a new one with given conditions (only works with struct, map conditions)
 // https://jinzhu.github.io/gorm/curd.html#firstorinit
 func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
@@ -659,4 +660,41 @@ func (s *DB) GetErrors() (errors []error) {
 		return []error{s.Error}
 	}
 	return
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Private Methods For *gorm.DB
+////////////////////////////////////////////////////////////////////////////////
+
+func (s *DB) clone() *DB {
+	db := DB{db: s.db, parent: s.parent, logger: s.logger, logMode: s.logMode, values: map[string]interface{}{}, Value: s.Value, Error: s.Error}
+
+	for key, value := range s.values {
+		db.values[key] = value
+	}
+
+	if s.search == nil {
+		db.search = &search{limit: -1, offset: -1}
+	} else {
+		db.search = s.search.clone()
+	}
+
+	db.search.db = &db
+	return &db
+}
+
+func (s *DB) print(v ...interface{}) {
+	s.logger.(logger).Print(v...)
+}
+
+func (s *DB) log(v ...interface{}) {
+	if s != nil && s.logMode == 2 {
+		s.print(append([]interface{}{"log", fileWithLineNum()}, v...)...)
+	}
+}
+
+func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
+	if s.logMode == 2 {
+		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars)
+	}
 }

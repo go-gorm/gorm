@@ -92,7 +92,7 @@ func TestCreateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 
 	// We must fetch the value again, to have the default fields updated
 	// (We can't do this in the update statements, since sql default can be expressions
-	// And be different from the fields' type (eg. a time.Time fiels has a default value of "now()"
+	// And be different from the fields' type (eg. a time.Time fields has a default value of "now()"
 	DB.Model(Animal{}).Where(&Animal{Counter: an.Counter}).First(&an)
 
 	if an.Name != "galeone" {
