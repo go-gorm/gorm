@@ -174,6 +174,20 @@ db.Model(&user).Related(&languages)
 //// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
 ```
 
+*Specify Foreign Key & Association Key*
+
+```go
+type CustomizePerson struct {
+  IdPerson string             `gorm:"primary_key:true"`
+  Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;AssociationForeignKey:idAccount;ForeignKey:idPerson"`
+}
+
+type CustomizeAccount struct {
+  IdAccount string `gorm:"primary_key:true"`
+  Name      string
+}
+```
+
 ## Polymorphism
 
 Supports polymorphic has-many and has-one associations.
