@@ -56,36 +56,3 @@ func (field *Field) Set(value interface{}) (err error) {
 	field.IsBlank = isBlank(field.Field)
 	return nil
 }
-
-// Fields get value's fields
-func (scope *Scope) Fields() []*Field {
-	var (
-		fields             []*Field
-		indirectScopeValue = scope.IndirectValue()
-		isStruct           = indirectScopeValue.Kind() == reflect.Struct
-	)
-
-	for _, structField := range scope.GetModelStruct().StructFields {
-		if isStruct {
-			fieldValue := indirectScopeValue
-			for _, name := range structField.Names {
-				fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
-			}
-			fields = append(fields, &Field{StructField: structField, Field: fieldValue, IsBlank: isBlank(fieldValue)})
-		} else {
-			fields = append(fields, &Field{StructField: structField, IsBlank: true})
-		}
-	}
-
-	return fields
-}
-
-func (scope *Scope) fieldsMap() map[string]*Field {
-	var results = map[string]*Field{}
-	for _, field := range scope.Fields() {
-		if field.IsNormal {
-			results[field.DBName] = field
-		}
-	}
-	return results
-}

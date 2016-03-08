@@ -23,7 +23,7 @@ type Scope struct {
 	instanceID      string
 	primaryKeyField *Field
 	skipLeft        bool
-	fields          map[string]*Field
+	fields          *[]*Field
 	selectAttrs     *[]string
 }
 
@@ -37,6 +37,15 @@ func (scope *Scope) New(value interface{}) *Scope {
 	return &Scope{db: scope.NewDB(), Search: &search{}, Value: value}
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Scope DB
+////////////////////////////////////////////////////////////////////////////////
+
+// DB return scope's DB connection
+func (scope *Scope) DB() *DB {
+	return scope.db
+}
+
 // NewDB create a new DB without search information
 func (scope *Scope) NewDB() *DB {
 	if scope.db != nil {
@@ -48,19 +57,14 @@ func (scope *Scope) NewDB() *DB {
 	return nil
 }
 
-// DB return scope's DB connection
-func (scope *Scope) DB() *DB {
-	return scope.db
-}
-
 // SQLDB return *sql.DB
 func (scope *Scope) SQLDB() sqlCommon {
 	return scope.db.db
 }
 
-// SkipLeft skip remaining callbacks
-func (scope *Scope) SkipLeft() {
-	scope.skipLeft = true
+// Dialect get dialect
+func (scope *Scope) Dialect() Dialect {
+	return scope.db.parent.dialect
 }
 
 // Quote used to quote string to escape them for database
@@ -76,18 +80,6 @@ func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
-func (scope *Scope) quoteIfPossible(str string) string {
-	if regexp.MustCompile("^[a-zA-Z]+(.[a-zA-Z]+)*$").MatchString(str) {
-		return scope.Quote(str)
-	}
-	return str
-}
-
-// Dialect get dialect
-func (scope *Scope) Dialect() Dialect {
-	return scope.db.parent.dialect
-}
-
 // Err add error to Scope
 func (scope *Scope) Err(err error) error {
 	if err != nil {
@@ -96,14 +88,63 @@ func (scope *Scope) Err(err error) error {
 	return err
 }
 
+// HasError check if there are any error
+func (scope *Scope) HasError() bool {
+	return scope.db.Error != nil
+}
+
 // Log print log message
 func (scope *Scope) Log(v ...interface{}) {
 	scope.db.log(v...)
 }
 
-// HasError check if there are any error
-func (scope *Scope) HasError() bool {
-	return scope.db.Error != nil
+// SkipLeft skip remaining callbacks
+func (scope *Scope) SkipLeft() {
+	scope.skipLeft = true
+}
+
+// Fields get value's fields
+func (scope *Scope) Fields() []*Field {
+	if scope.fields == nil {
+		var (
+			fields             []*Field
+			indirectScopeValue = scope.IndirectValue()
+			isStruct           = indirectScopeValue.Kind() == reflect.Struct
+		)
+
+		for _, structField := range scope.GetModelStruct().StructFields {
+			if isStruct {
+				fieldValue := indirectScopeValue
+				for _, name := range structField.Names {
+					fieldValue = reflect.Indirect(fieldValue).FieldByName(name)
+				}
+				fields = append(fields, &Field{StructField: structField, Field: fieldValue, IsBlank: isBlank(fieldValue)})
+			} else {
+				fields = append(fields, &Field{StructField: structField, IsBlank: true})
+			}
+		}
+		scope.fields = &fields
+	}
+
+	return *scope.fields
+}
+
+// FieldByName find `gorm.Field` with field name or db name
+func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
+	var (
+		dbName           = ToDBName(name)
+		mostMatchedField *Field
+	)
+
+	for _, field := range scope.Fields() {
+		if field.Name == name || field.DBName == name {
+			return field, true
+		}
+		if field.DBName == dbName {
+			mostMatchedField = field
+		}
+	}
+	return mostMatchedField, mostMatchedField != nil
 }
 
 // PrimaryFields return scope's primary fields
@@ -195,35 +236,6 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	return errors.New("could not convert column to field")
 }
 
-func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
-	if reflectValue.CanAddr() {
-		reflectValue = reflectValue.Addr()
-	}
-
-	if methodValue := reflectValue.MethodByName(methodName); methodValue.IsValid() {
-		switch method := methodValue.Interface().(type) {
-		case func():
-			method()
-		case func(*Scope):
-			method(scope)
-		case func(*DB):
-			newDB := scope.NewDB()
-			method(newDB)
-			scope.Err(newDB.Error)
-		case func() error:
-			scope.Err(method())
-		case func(*Scope) error:
-			scope.Err(method(scope))
-		case func(*DB) error:
-			newDB := scope.NewDB()
-			scope.Err(method(newDB))
-			scope.Err(newDB.Error)
-		default:
-			scope.Err(fmt.Errorf("unsupported function %v", methodName))
-		}
-	}
-}
-
 // CallMethod call scope value's method, if it is a slice, will call its element's method one by one
 func (scope *Scope) CallMethod(methodName string) {
 	if scope.Value == nil {
@@ -251,6 +263,31 @@ func (scope *Scope) AddToVars(value interface{}) string {
 
 	scope.SQLVars = append(scope.SQLVars, value)
 	return scope.Dialect().BindVar(len(scope.SQLVars))
+}
+
+// SelectAttrs return selected attributes
+func (scope *Scope) SelectAttrs() []string {
+	if scope.selectAttrs == nil {
+		attrs := []string{}
+		for _, value := range scope.Search.selects {
+			if str, ok := value.(string); ok {
+				attrs = append(attrs, str)
+			} else if strs, ok := value.([]string); ok {
+				attrs = append(attrs, strs...)
+			} else if strs, ok := value.([]interface{}); ok {
+				for _, str := range strs {
+					attrs = append(attrs, fmt.Sprintf("%v", str))
+				}
+			}
+		}
+		scope.selectAttrs = &attrs
+	}
+	return *scope.selectAttrs
+}
+
+// OmitAttrs return omitted attributes
+func (scope *Scope) OmitAttrs() []string {
+	return scope.Search.omits
 }
 
 type tabler interface {
@@ -294,24 +331,6 @@ func (scope *Scope) QuotedTableName() (name string) {
 func (scope *Scope) CombinedConditionSql() string {
 	return scope.joinsSQL() + scope.whereSQL() + scope.groupSQL() +
 		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
-}
-
-// FieldByName find `gorm.Field` with field name or db name
-func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
-	var (
-		dbName           = ToDBName(name)
-		mostMatchedField *Field
-	)
-
-	for _, field := range scope.Fields() {
-		if field.Name == name || field.DBName == name {
-			return field, true
-		}
-		if field.DBName == dbName {
-			mostMatchedField = field
-		}
-	}
-	return mostMatchedField, mostMatchedField != nil
 }
 
 // Raw set raw sql
@@ -389,34 +408,55 @@ func (scope *Scope) CommitOrRollback() *Scope {
 	return scope
 }
 
-// SelectAttrs return selected attributes
-func (scope *Scope) SelectAttrs() []string {
-	if scope.selectAttrs == nil {
-		attrs := []string{}
-		for _, value := range scope.Search.selects {
-			if str, ok := value.(string); ok {
-				attrs = append(attrs, str)
-			} else if strs, ok := value.([]string); ok {
-				attrs = append(attrs, strs...)
-			} else if strs, ok := value.([]interface{}); ok {
-				for _, str := range strs {
-					attrs = append(attrs, fmt.Sprintf("%v", str))
-				}
-			}
-		}
-		scope.selectAttrs = &attrs
-	}
-	return *scope.selectAttrs
-}
-
-// OmitAttrs return omitted attributes
-func (scope *Scope) OmitAttrs() []string {
-	return scope.Search.omits
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Private Methods For *gorm.Scope
 ////////////////////////////////////////////////////////////////////////////////
+
+func (scope *Scope) fieldsMap() map[string]*Field {
+	var results = map[string]*Field{}
+	for _, field := range scope.Fields() {
+		if field.IsNormal {
+			results[field.DBName] = field
+		}
+	}
+	return results
+}
+
+func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
+	if reflectValue.CanAddr() {
+		reflectValue = reflectValue.Addr()
+	}
+
+	if methodValue := reflectValue.MethodByName(methodName); methodValue.IsValid() {
+		switch method := methodValue.Interface().(type) {
+		case func():
+			method()
+		case func(*Scope):
+			method(scope)
+		case func(*DB):
+			newDB := scope.NewDB()
+			method(newDB)
+			scope.Err(newDB.Error)
+		case func() error:
+			scope.Err(method())
+		case func(*Scope) error:
+			scope.Err(method(scope))
+		case func(*DB) error:
+			newDB := scope.NewDB()
+			scope.Err(method(newDB))
+			scope.Err(newDB.Error)
+		default:
+			scope.Err(fmt.Errorf("unsupported function %v", methodName))
+		}
+	}
+}
+
+func (scope *Scope) quoteIfPossible(str string) string {
+	if regexp.MustCompile("^[a-zA-Z]+(.[a-zA-Z]+)*$").MatchString(str) {
+		return scope.Quote(str)
+	}
+	return str
+}
 
 func (scope *Scope) scan(rows *sql.Rows, columns []string, fieldsMap map[string]*Field) {
 	var values = make([]interface{}, len(columns))
@@ -448,6 +488,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fieldsMap map[string]
 		}
 	}
 }
+
 func (scope *Scope) primaryCondition(value interface{}) string {
 	return fmt.Sprintf("(%v = %v)", scope.Quote(scope.PrimaryKey()), value)
 }

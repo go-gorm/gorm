@@ -167,13 +167,13 @@ func TestNestedPreload2(t *testing.T) {
 		Level2s: []Level2{
 			{
 				Level1s: []*Level1{
-					&Level1{Value: "value1"},
-					&Level1{Value: "value2"},
+					{Value: "value1"},
+					{Value: "value2"},
 				},
 			},
 			{
 				Level1s: []*Level1{
-					&Level1{Value: "value3"},
+					{Value: "value3"},
 				},
 			},
 		},
@@ -265,8 +265,8 @@ func TestNestedPreload4(t *testing.T) {
 	want := Level3{
 		Level2: Level2{
 			Level1s: []Level1{
-				Level1{Value: "value1"},
-				Level1{Value: "value2"},
+				{Value: "value1"},
+				{Value: "value2"},
 			},
 		},
 	}
@@ -489,8 +489,8 @@ func TestNestedPreload8(t *testing.T) {
 	want[0] = Level3{
 		Level2: Level2{
 			Level1s: []Level1{
-				Level1{Value: "value1"},
-				Level1{Value: "value2"},
+				{Value: "value1"},
+				{Value: "value2"},
 			},
 		},
 	}
@@ -500,8 +500,8 @@ func TestNestedPreload8(t *testing.T) {
 	want[1] = Level3{
 		Level2: Level2{
 			Level1s: []Level1{
-				Level1{Value: "value3"},
-				Level1{Value: "value4"},
+				{Value: "value3"},
+				{Value: "value4"},
 			},
 		},
 	}
@@ -563,17 +563,17 @@ func TestNestedPreload9(t *testing.T) {
 	want[0] = Level3{
 		Level2: Level2{
 			Level1s: []Level1{
-				Level1{Value: "value1"},
-				Level1{Value: "value2"},
+				{Value: "value1"},
+				{Value: "value2"},
 			},
 		},
 		Level2_1: Level2_1{
 			Level1s: []Level1{
-				Level1{
+				{
 					Value:   "value1-1",
 					Level0s: []Level0{{Value: "Level0-1"}},
 				},
-				Level1{
+				{
 					Value:   "value2-2",
 					Level0s: []Level0{{Value: "Level0-2"}},
 				},
@@ -586,14 +586,14 @@ func TestNestedPreload9(t *testing.T) {
 	want[1] = Level3{
 		Level2: Level2{
 			Level1s: []Level1{
-				Level1{Value: "value3"},
-				Level1{Value: "value4"},
+				{Value: "value3"},
+				{Value: "value4"},
 			},
 		},
 		Level2_1: Level2_1{
 			Level1s: []Level1{
-				Level1{Value: "value3-3"},
-				Level1{Value: "value4-4"},
+				{Value: "value3-3"},
+				{Value: "value4-4"},
 			},
 		},
 	}
@@ -646,16 +646,16 @@ func TestNestedPreload10(t *testing.T) {
 	}
 
 	want := []*LevelA2{
-		&LevelA2{
+		{
 			Value: "bar",
 			LevelA3s: []*LevelA3{
-				&LevelA3{
+				{
 					Value:   "qux",
 					LevelA1: levelA1,
 				},
 			},
 		},
-		&LevelA2{
+		{
 			Value: "bar 2",
 		},
 	}
@@ -1151,11 +1151,11 @@ func TestNestedManyToManyPreload4(t *testing.T) {
 
 	dummy := Level1{
 		Value: "Level1",
-		Level2s: []*Level2{&Level2{
+		Level2s: []*Level2{{
 			Value: "Level2",
-			Level3s: []*Level3{&Level3{
+			Level3s: []*Level3{{
 				Value: "Level3",
-				Level4s: []*Level4{&Level4{
+				Level4s: []*Level4{{
 					Value: "Level4",
 				}},
 			}},

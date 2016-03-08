@@ -37,7 +37,7 @@ var compareToys = func(toys []Toy, contents []string) bool {
 
 func TestPolymorphic(t *testing.T) {
 	cat := Cat{Name: "Mr. Bigglesworth", Toy: Toy{Name: "cat toy"}}
-	dog := Dog{Name: "Pluto", Toys: []Toy{Toy{Name: "dog toy 1"}, Toy{Name: "dog toy 2"}}}
+	dog := Dog{Name: "Pluto", Toys: []Toy{{Name: "dog toy 1"}, {Name: "dog toy 2"}}}
 	DB.Save(&cat).Save(&dog)
 
 	if DB.Model(&cat).Association("Toy").Count() != 1 {

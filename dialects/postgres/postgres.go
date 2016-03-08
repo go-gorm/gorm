@@ -10,6 +10,7 @@ import (
 
 type Hstore map[string]*string
 
+// Value get value of Hstore
 func (h Hstore) Value() (driver.Value, error) {
 	hstore := hstore.Hstore{Map: map[string]sql.NullString{}}
 	if len(h) == 0 {
@@ -27,6 +28,7 @@ func (h Hstore) Value() (driver.Value, error) {
 	return hstore.Value()
 }
 
+// Scan scan value into Hstore
 func (h *Hstore) Scan(value interface{}) error {
 	hstore := hstore.Hstore{}
 
