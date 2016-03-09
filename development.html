@@ -70,7 +70,7 @@
     data-chapter-title="Development"
     data-filepath="development.md"
     data-basepath="."
-    data-revision="Wed Mar 09 2016 20:51:24 GMT+0800 (CST)"
+    data-revision="Wed Mar 09 2016 21:05:14 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -646,8 +646,15 @@
 <span class="hljs-comment">// create a new relation</span>
 db = db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>)
 
-<span class="hljs-comment">// create another new relation</span>
-db = db.Where(<span class="hljs-string">&quot;age = ?&quot;</span>, <span class="hljs-number">20</span>)
+<span class="hljs-comment">// filter even more</span>
+<span class="hljs-keyword">if</span> SomeCondition {
+    db = db.Where(<span class="hljs-string">&quot;age = ?&quot;</span>, <span class="hljs-number">20</span>)
+} <span class="hljs-keyword">else</span> {
+    db = db.Where(<span class="hljs-string">&quot;age = ?&quot;</span>, <span class="hljs-number">30</span>)
+}
+<span class="hljs-keyword">if</span> YetAnotherCondition {
+    db = db.Where(<span class="hljs-string">&quot;active = ?&quot;</span>, <span class="hljs-number">1</span>)
+}
 </code></pre>
 <p>When we start to perform any operations, GROM will create a new <code>*gorm.Scope</code> instance based on current <code>*gorm.DB</code></p>
 <pre><code class="lang-go"><span class="hljs-comment">// perform a querying operation</span>
