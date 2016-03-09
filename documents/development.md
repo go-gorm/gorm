@@ -12,8 +12,15 @@ db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
 // create a new relation
 db = db.Where("name = ?", "jinzhu")
 
-// create another new relation
-db = db.Where("age = ?", 20)
+// filter even more
+if SomeCondition {
+    db = db.Where("age = ?", 20)
+} else {
+    db = db.Where("age = ?", 30)
+}
+if YetAnotherCondition {
+    db = db.Where("active = ?", 1)
+}
 ```
 
 When we start to perform any operations, GROM will create a new `*gorm.Scope` instance based on current `*gorm.DB`
