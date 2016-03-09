@@ -2,7 +2,7 @@
 
 <!-- toc -->
 
-## Model Defination
+## Model Definition
 
 ```go
 type User struct {

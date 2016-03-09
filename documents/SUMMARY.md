@@ -5,7 +5,7 @@
   * [Database Connection](database.md#connecting-to-a-database)
   * [Migration](database.md#migration)
 * [Models](models.md)
-  * [Model Defination](models.md#model-defination),
+  * [Model Definition](models.md#model-definition),
   * [Conventions & Overriding](models.md#conventions),
   * [Associations](associations.md)
     * [Belongs To](associations.md#belongs-to)
