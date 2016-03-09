@@ -81,7 +81,7 @@ func ToDBName(name string) string {
 	)
 
 	for i, v := range value[:len(value)-1] {
-		nextCase = value[i+1] >= 'A' && value[i+1] <= 'Z'
+		nextCase = strCase(value[i+1] >= 'A' && value[i+1] <= 'Z')
 		if i > 0 {
 			if currCase == upper {
 				if lastCase == upper && nextCase == upper {

@@ -41,6 +41,7 @@ func (c *Callback) clone() *Callback {
 		updates:    c.updates,
 		deletes:    c.deletes,
 		queries:    c.queries,
+		rowQueries: c.rowQueries,
 		processors: c.processors,
 	}
 }
