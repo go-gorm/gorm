@@ -20,13 +20,6 @@ func TestUpdate(t *testing.T) {
 	DB.First(&product1, product1.Id)
 	DB.First(&product2, product2.Id)
 	updatedAt1 := product1.UpdatedAt
-	updatedAt2 := product2.UpdatedAt
-
-	var product3 Product
-	DB.First(&product3, product2.Id).Update("code", "product2newcode")
-	if updatedAt2.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updatedAt should not be updated if nothing changed")
-	}
 
 	if DB.First(&Product{}, "code = ?", product1.Code).RecordNotFound() {
 		t.Errorf("Product1 should not be updated")
@@ -135,18 +128,7 @@ func TestUpdates(t *testing.T) {
 
 	DB.First(&product1, product1.Id)
 	DB.First(&product2, product2.Id)
-	updatedAt1 := product1.UpdatedAt
 	updatedAt2 := product2.UpdatedAt
-
-	var product3 Product
-	DB.First(&product3, product1.Id).Updates(Product{Code: "product1newcode", Price: 100})
-	if product3.Code != "product1newcode" || product3.Price != 100 {
-		t.Errorf("Record should be updated with struct")
-	}
-
-	if updatedAt1.Format(time.RFC3339Nano) != product3.UpdatedAt.Format(time.RFC3339Nano) {
-		t.Errorf("updatedAt should not be updated if nothing changed")
-	}
 
 	if DB.First(&Product{}, "code = ? and price = ?", product2.Code, product2.Price).RecordNotFound() {
 		t.Errorf("Product2 should not be updated")

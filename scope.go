@@ -793,27 +793,55 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 	return scope
 }
 
-func (scope *Scope) updatedAttrsWithValues(values map[string]interface{}) (results map[string]interface{}, hasUpdate bool) {
+func convertInterfaceToMap(values interface{}) map[string]interface{} {
+	var attrs = map[string]interface{}{}
+
+	switch value := values.(type) {
+	case map[string]interface{}:
+		return value
+	case []interface{}:
+		for _, v := range value {
+			for key, value := range convertInterfaceToMap(v) {
+				attrs[key] = value
+			}
+		}
+	case interface{}:
+		reflectValue := reflect.ValueOf(values)
+
+		switch reflectValue.Kind() {
+		case reflect.Map:
+			for _, key := range reflectValue.MapKeys() {
+				attrs[ToDBName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
+			}
+		default:
+			for _, field := range (&Scope{Value: values}).Fields() {
+				if !field.IsBlank {
+					attrs[field.DBName] = field.Field.Interface()
+				}
+			}
+		}
+	}
+	return attrs
+}
+
+func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[string]interface{}, hasUpdate bool) {
 	if scope.IndirectValue().Kind() != reflect.Struct {
-		return values, true
+		return convertInterfaceToMap(value), true
 	}
 
 	results = map[string]interface{}{}
-	for key, value := range values {
+
+	for key, value := range convertInterfaceToMap(value) {
 		if field, ok := scope.FieldByName(key); ok && scope.changeableField(field) {
-			if !reflect.DeepEqual(field.Field, reflect.ValueOf(value)) {
-				if _, ok := value.(*expr); ok {
-					hasUpdate = true
-					results[field.DBName] = value
-				} else if !equalAsString(field.Field.Interface(), value) {
-					field.Set(value)
-					if field.IsNormal {
-						hasUpdate = true
-						results[field.DBName] = field.Field.Interface()
-					}
-				}
+			if _, ok := value.(*expr); ok {
+				hasUpdate = true
+				results[field.DBName] = value
 			} else {
 				field.Set(value)
+				if field.IsNormal {
+					hasUpdate = true
+					results[field.DBName] = field.Field.Interface()
+				}
 			}
 		}
 	}
@@ -836,10 +864,10 @@ func (scope *Scope) rows() (*sql.Rows, error) {
 
 func (scope *Scope) initialize() *Scope {
 	for _, clause := range scope.Search.whereConditions {
-		scope.updatedAttrsWithValues(convertInterfaceToMap(clause["query"]))
+		scope.updatedAttrsWithValues(clause["query"])
 	}
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.initAttrs))
-	scope.updatedAttrsWithValues(convertInterfaceToMap(scope.Search.assignAttrs))
+	scope.updatedAttrsWithValues(scope.Search.initAttrs)
+	scope.updatedAttrsWithValues(scope.Search.assignAttrs)
 	return scope
 }
 

@@ -21,12 +21,10 @@ func init() {
 // assignUpdatingAttributesCallback assign updating attributes to model
 func assignUpdatingAttributesCallback(scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
-		if maps := convertInterfaceToMap(attrs); len(maps) > 0 {
-			if updateMaps, hasUpdate := scope.updatedAttrsWithValues(maps); hasUpdate {
-				scope.InstanceSet("gorm:update_attrs", updateMaps)
-			} else {
-				scope.SkipLeft()
-			}
+		if updateMaps, hasUpdate := scope.updatedAttrsWithValues(attrs); hasUpdate {
+			scope.InstanceSet("gorm:update_attrs", updateMaps)
+		} else {
+			scope.SkipLeft()
 		}
 	}
 }

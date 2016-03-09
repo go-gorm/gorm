@@ -310,7 +310,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 		}
 		c.NewScope(out).inlineCondition(where...).initialize()
 	} else {
-		c.NewScope(out).updatedAttrsWithValues(convertInterfaceToMap(c.search.assignAttrs))
+		c.NewScope(out).updatedAttrsWithValues(c.search.assignAttrs)
 	}
 	return c
 }
