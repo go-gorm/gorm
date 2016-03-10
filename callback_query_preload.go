@@ -255,20 +255,23 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	for rows.Next() {
 		var (
 			elem   = reflect.New(fieldType).Elem()
-			fields = scope.New(elem.Addr().Interface()).fieldsMap()
+			fields = scope.New(elem.Addr().Interface()).Fields()
 		)
 
 		// register foreign keys in join tables
+		var joinTableFields []*Field
 		for _, sourceKey := range sourceKeys {
-			fields[sourceKey] = &Field{Field: reflect.New(foreignKeyType).Elem()}
+			joinTableFields = append(joinTableFields, &Field{StructField: &StructField{DBName: sourceKey, IsNormal: true}, Field: reflect.New(foreignKeyType).Elem()})
 		}
 
-		scope.scan(rows, columns, fields)
+		scope.scan(rows, columns, append(fields, joinTableFields...))
 
-		// generate hashed forkey keys in join table
 		var foreignKeys = make([]interface{}, len(sourceKeys))
-		for idx, sourceKey := range sourceKeys {
-			foreignKeys[idx] = fields[sourceKey].Field.Elem().Interface()
+		// generate hashed forkey keys in join table
+		for idx, joinTableField := range joinTableFields {
+			if !joinTableField.Field.IsNil() {
+				foreignKeys[idx] = joinTableField.Field.Elem().Interface()
+			}
 		}
 		hashedSourceKeys := toString(foreignKeys)
 
@@ -284,11 +287,10 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		indirectScopeValue = scope.IndirectValue()
 		fieldsSourceMap    = map[string]reflect.Value{}
 		foreignFieldNames  = []string{}
-		fields             = scope.fieldsMap()
 	)
 
 	for _, dbName := range relation.ForeignFieldNames {
-		if field, ok := fields[dbName]; ok {
+		if field, ok := scope.FieldByName(dbName); ok {
 			foreignFieldNames = append(foreignFieldNames, field.Name)
 		}
 	}

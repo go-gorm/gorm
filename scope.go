@@ -412,16 +412,6 @@ func (scope *Scope) CommitOrRollback() *Scope {
 // Private Methods For *gorm.Scope
 ////////////////////////////////////////////////////////////////////////////////
 
-func (scope *Scope) fieldsMap() map[string]*Field {
-	var results = map[string]*Field{}
-	for _, field := range scope.Fields() {
-		if field.IsNormal {
-			results[field.DBName] = field
-		}
-	}
-	return results
-}
-
 func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 	if reflectValue.CanAddr() {
 		reflectValue = reflectValue.Addr()
@@ -458,33 +448,43 @@ func (scope *Scope) quoteIfPossible(str string) string {
 	return str
 }
 
-func (scope *Scope) scan(rows *sql.Rows, columns []string, fieldsMap map[string]*Field) {
-	var values = make([]interface{}, len(columns))
-	var ignored interface{}
+func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
+	var (
+		ignored            interface{}
+		selectFields       []*Field
+		values             = make([]interface{}, len(columns))
+		selectedColumnsMap = map[string]int{}
+		resetFields        = map[*Field]int{}
+	)
 
 	for index, column := range columns {
-		if field, ok := fieldsMap[column]; ok {
-			if field.Field.Kind() == reflect.Ptr {
-				values[index] = field.Field.Addr().Interface()
-			} else {
-				reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
-				reflectValue.Elem().Set(field.Field.Addr())
-				values[index] = reflectValue.Interface()
+		values[index] = &ignored
+
+		selectFields = fields
+		if idx, ok := selectedColumnsMap[column]; ok {
+			selectFields = selectFields[idx:]
+		}
+
+		for _, field := range selectFields {
+			if field.DBName == column {
+				if field.Field.Kind() == reflect.Ptr {
+					values[index] = field.Field.Addr().Interface()
+				} else {
+					reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
+					reflectValue.Elem().Set(field.Field.Addr())
+					values[index] = reflectValue.Interface()
+					resetFields[field] = index
+				}
+				break
 			}
-		} else {
-			values[index] = &ignored
 		}
 	}
 
 	scope.Err(rows.Scan(values...))
 
-	for index, column := range columns {
-		if field, ok := fieldsMap[column]; ok {
-			if field.Field.Kind() != reflect.Ptr {
-				if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
-					field.Field.Set(v)
-				}
-			}
+	for field, index := range resetFields {
+		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
+			field.Field.Set(v)
 		}
 	}
 }
@@ -710,9 +710,6 @@ func (scope *Scope) whereSQL() (sql string) {
 
 func (scope *Scope) selectSQL() string {
 	if len(scope.Search.selects) == 0 {
-		if len(scope.Search.joinConditions) > 0 {
-			return fmt.Sprintf("%v.*", scope.QuotedTableName())
-		}
 		return "*"
 	}
 	return scope.buildSelectQuery(scope.Search.selects)

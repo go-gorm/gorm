@@ -277,7 +277,7 @@ func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 	)
 
 	if clone.AddError(err) == nil {
-		scope.scan(rows, columns, scope.fieldsMap())
+		scope.scan(rows, columns, scope.Fields())
 	}
 
 	return clone.Error
