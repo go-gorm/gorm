@@ -20,13 +20,14 @@ type logger interface {
 	Print(v ...interface{})
 }
 
-type logWriter interface {
+// LogWriter log writer interface
+type LogWriter interface {
 	Println(v ...interface{})
 }
 
 // Logger default logger
 type Logger struct {
-	logWriter
+	LogWriter
 }
 
 // Print format & print log
