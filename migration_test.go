@@ -16,7 +16,8 @@ type User struct {
 	Id                int64
 	Age               int64
 	UserNum           Num
-	Name              string        `sql:"size:255"`
+	Name              string `sql:"size:255"`
+	Email             string
 	Birthday          time.Time     // Time
 	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically

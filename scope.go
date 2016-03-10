@@ -462,10 +462,10 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 		selectFields = fields
 		if idx, ok := selectedColumnsMap[column]; ok {
-			selectFields = selectFields[idx:]
+			selectFields = selectFields[idx+1:]
 		}
 
-		for _, field := range selectFields {
+		for fieldIndex, field := range selectFields {
 			if field.DBName == column {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
@@ -475,6 +475,8 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 					values[index] = reflectValue.Interface()
 					resetFields[field] = index
 				}
+
+				selectedColumnsMap[column] = fieldIndex
 				break
 			}
 		}

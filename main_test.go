@@ -544,7 +544,7 @@ func TestJoinsWithSelect(t *testing.T) {
 	DB.Save(&user)
 
 	var results []result
-	DB.Table("users").Select("name, email").Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins_with_select").Scan(&results)
+	DB.Table("users").Select("name, emails.email").Joins("left join emails on emails.user_id = users.id").Where("name = ?", "joins_with_select").Scan(&results)
 	if len(results) != 2 || results[0].Email != "join1@example.com" || results[1].Email != "join2@example.com" {
 		t.Errorf("Should find all two emails with Join select")
 	}
