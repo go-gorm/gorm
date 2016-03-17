@@ -466,7 +466,7 @@ func (s *DB) RecordNotFound() bool {
 
 // CreateTable create table for models
 func (s *DB) CreateTable(models ...interface{}) *DB {
-	db := s.clone()
+	db := s.Unscoped()
 	for _, model := range models {
 		db = db.NewScope(model).createTable().db
 	}
@@ -517,7 +517,7 @@ func (s *DB) HasTable(value interface{}) bool {
 
 // AutoMigrate run auto migration for given models, will only add missing fields, won't delete/change current data
 func (s *DB) AutoMigrate(values ...interface{}) *DB {
-	db := s.clone()
+	db := s.Unscoped()
 	for _, value := range values {
 		db = db.NewScope(value).autoMigrate().db
 	}
@@ -547,7 +547,7 @@ func (s *DB) AddIndex(indexName string, columns ...string) *DB {
 
 // AddUniqueIndex add unique index for columns with given name
 func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
-	scope := s.clone().Unscoped().NewScope(s.Value)
+	scope := s.Unscoped().NewScope(s.Value)
 	scope.addIndex(true, indexName, columns...)
 	return scope.db
 }
