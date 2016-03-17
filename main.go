@@ -547,7 +547,7 @@ func (s *DB) AddIndex(indexName string, columns ...string) *DB {
 
 // AddUniqueIndex add unique index for columns with given name
 func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.clone().Unscoped().NewScope(s.Value)
 	scope.addIndex(true, indexName, columns...)
 	return scope.db
 }
