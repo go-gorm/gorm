@@ -4,7 +4,7 @@
 
 ## Connecting to a database
 
-When connect to a database, you need to import the database's driver first, for example:
+In order to connect to a database, you need to import the database's driver first. For example:
 
 ```go
 import _ "github.com/go-sql-driver/mysql"
@@ -21,7 +21,7 @@ import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 #### MySQL
 
-**NOTE** in order to handle `time.Time` you need to include `parseTime` as param [more supported parameters](https://github.com/go-sql-driver/mysql#parameters)
+**NOTE:** In order to handle `time.Time`, you need to include `parseTime` as a parameter. ([More supported parameters](https://github.com/go-sql-driver/mysql#parameters))
 
 ```go
 import (
@@ -62,17 +62,17 @@ func main() {
 
 #### Write Dialect for unsupported databases
 
-GORM officially support above databases, but you could write a dialect for those unsupported databaes,
+GORM officially supports the above databases, but you could write a dialect for unsupported databases.
 
-Refer: [https://github.com/jinzhu/gorm/blob/master/dialect.go](https://github.com/jinzhu/gorm/blob/master/dialect.go)
+To write your own dialect, refer to: [https://github.com/jinzhu/gorm/blob/master/dialect.go](https://github.com/jinzhu/gorm/blob/master/dialect.go)
 
 ## Migration
 
 ### Auto Migration
 
-Automatically migrate your schema, to keep your schema update to date
+Automatically migrate your schema, to keep your schema update to date.
 
-**WARNING** AutoMigrate will ONLY create tables, missing columns and missing indexes, **WON'T** change existing column's type or delete unused columns to protect your data
+**WARNING:** AutoMigrate will **ONLY** create tables, missing columns and missing indexes, and **WON'T** change existing column's type or delete unused columns to protect your data.
 
 ```go
 db.AutoMigrate(&User{})
