@@ -80,6 +80,17 @@ func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
+// PrimaryKeys used to define the primary keys of a table
+func (scope *Scope) PrimaryKeys(keys []string) string {
+	res := scope.Dialect().PrimaryKeys(keys)
+
+	if res != "" {
+		return fmt.Sprintf(", %v", res)
+	}
+
+	return ""
+}
+
 // Err add error to Scope
 func (scope *Scope) Err(err error) error {
 	if err != nil {
@@ -1027,7 +1038,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 				}
 			}
 
-			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v)) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
+			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), scope.PrimaryKeys(primaryKeys), scope.getTableOptions())).Error)
 		}
 		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
@@ -1059,7 +1070,7 @@ func (scope *Scope) createTable() *Scope {
 
 	var primaryKeyStr string
 	if len(primaryKeys) > 0 && !primaryKeyInColumnType {
-		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
+		primaryKeyStr = scope.PrimaryKeys(primaryKeys)
 	}
 
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v) %s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()

@@ -42,6 +42,10 @@ func (mssql) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
+func (mssql) PrimaryKeys(keys []string) string {
+	return fmt.Sprintf("PRIMARY KEY (%v)", strings.Join(keys, ","))
+}
+
 func (mssql) DataTypeOf(field *gorm.StructField) string {
 	var dataValue, sqlType, size, additionalType = gorm.ParseFieldStructForDialect(field)
 
