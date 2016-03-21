@@ -16,6 +16,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/ql"
 	"github.com/jinzhu/now"
 )
 
@@ -59,6 +60,9 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mssql":
 		fmt.Println("testing mssql...")
 		db, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
+	case "ql":
+		fmt.Println("testing ql...")
+		db, err = gorm.Open("ql", "/tmp/gorm.ql")
 	default:
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
