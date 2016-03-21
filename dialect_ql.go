@@ -20,37 +20,53 @@ func (ql) GetName() string {
   return "ql"
 }
 
+func (ql) Quote(key string) string {
+  return fmt.Sprintf(`%s`, key)
+}
+
+func (ql) PrimaryKeys(keys []string) string {
+  return ""
+}
+
 // Get Data Type for Sqlite Dialect
 func (ql) DataTypeOf(field *StructField) string {
-  var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
+  var dataValue, sqlType, _, additionalType = ParseFieldStructForDialect(field)
 
   if sqlType == "" {
     switch dataValue.Kind() {
     case reflect.Bool:
       sqlType = "bool"
-    case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-      if field.IsPrimaryKey {
-        sqlType = "integer primary key autoincrement"
-      } else {
-        sqlType = "integer"
-      }
-    case reflect.Int64, reflect.Uint64:
-      if field.IsPrimaryKey {
-        sqlType = "integer primary key autoincrement"
-      } else {
-        sqlType = "bigint"
-      }
-    case reflect.Float32, reflect.Float64:
-      sqlType = "real"
+    case reflect.Int:
+      sqlType = "int"
+    case reflect.Int8:
+      sqlType = "int8"
+    case reflect.Int16:
+      sqlType = "int16"
+    case reflect.Int32:
+      sqlType = "int32"
+    case reflect.Int64:
+      sqlType = "int64"
+    case reflect.Uint:
+      sqlType = "uint"
+    case reflect.Uint8:
+      sqlType = "uint8"
+    case reflect.Uint16:
+      sqlType = "uint16"
+    case reflect.Uint32:
+      sqlType = "uint32"
+    case reflect.Uint64:
+      sqlType = "uint64"
+    case reflect.Uintptr:
+      sqlType = "uint"
+    case reflect.Float32:
+      sqlType = "float32"
+    case reflect.Float64:
+      sqlType = "float64"
     case reflect.String:
-      if size > 0 && size < 65532 {
-        sqlType = fmt.Sprintf("varchar(%d)", size)
-      } else {
-        sqlType = "text"
-      }
+      sqlType = "string"
     case reflect.Struct:
       if _, ok := dataValue.Interface().(time.Time); ok {
-        sqlType = "datetime"
+        sqlType = "time"
       }
     default:
       if _, ok := dataValue.Interface().([]byte); ok {
@@ -86,4 +102,9 @@ func (s ql) HasIndex(tableName string, indexName string) bool {
   var count int
   s.db.QueryRow("SELECT COUNT(*) FROM __Index WHERE TableName = ? AND Name = ?", tableName, indexName).Scan(&count)
   return count > 0
+}
+
+func (s ql) RemoveIndex(tableName string, indexName string) error {
+  _, err := s.db.Exec(fmt.Sprintf("BEGIN TRANSACTION; DROP INDEX %v; COMMIT;", indexName))
+  return err
 }
