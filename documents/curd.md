@@ -554,6 +554,18 @@ db.Preload("Orders").Preload("Profile").Preload("Role").Find(&users)
 //// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to
 ```
 
+#### Custom Preloading SQL
+
+You could custom preloading SQL by passing in `func(db *gorm.DB) *gorm.DB` (same type as the one used for [Scopes](#scopes)), for example:
+
+```go
+db.Preload("Orders", func(db *gorm.DB) *gorm.DB {
+    return db.Order("orders.amount DESC")
+}).Find(&users)
+//// SELECT * FROM users;
+//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) order by orders.amount DESC;
+```
+
 ### Nested Preloading
 
 ```go

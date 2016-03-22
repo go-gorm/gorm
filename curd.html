@@ -70,7 +70,7 @@
     data-chapter-title="CRUD: Reading and Writing Data"
     data-filepath="curd.md"
     data-basepath="."
-    data-revision="Wed Mar 09 2016 21:05:14 GMT+0800 (CST)"
+    data-revision="Wed Mar 23 2016 07:30:36 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -671,7 +671,10 @@
 </ul>
 </li>
 <li><a href="#preloading-eager-loading">Preloading (Eager loading)</a><ul>
+<li><a href="#custom-preloading-sql">Custom Preloading SQL</a><ul>
 <li><a href="#nested-preloading">Nested Preloading</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a href="#update">Update</a><ul>
@@ -1127,6 +1130,14 @@ db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>).Preload(<span cl
 <span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many</span>
 <span class="hljs-comment">//// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one</span>
 <span class="hljs-comment">//// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to</span>
+</code></pre>
+<h4 id="custom-preloading-sql">Custom Preloading SQL</h4>
+<p>You could custom preloading SQL by passing in <code>func(db *gorm.DB) *gorm.DB</code> (same type as the one used for <a href="#scopes">Scopes</a>), for example:</p>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-keyword">func</span>(db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> db.Order(<span class="hljs-string">&quot;orders.amount DESC&quot;</span>)
+}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) order by orders.amount DESC;</span>
 </code></pre>
 <h3 id="nested-preloading">Nested Preloading</h3>
 <pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders.OrderItems&quot;</span>).Find(&amp;users)

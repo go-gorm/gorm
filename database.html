@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="When connect to a database, you need to import the database&#39;s driver first, for example:">
+        <meta name="description" content="In order to connect to a database, you need to import the database&#39;s driver first. For example:">
         <meta name="generator" content="GitBook 3.0.0-pre.5">
         
         
@@ -70,7 +70,7 @@
     data-chapter-title="Database"
     data-filepath="database.md"
     data-basepath="."
-    data-revision="Wed Mar 09 2016 21:05:14 GMT+0800 (CST)"
+    data-revision="Wed Mar 23 2016 07:30:36 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -649,7 +649,7 @@
 </ul>
 <!-- toc stop -->
 <h2 id="connecting-to-a-database">Connecting to a database</h2>
-<p>When connect to a database, you need to import the database&apos;s driver first, for example:</p>
+<p>In order to connect to a database, you need to import the database&apos;s driver first. For example:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;github.com/go-sql-driver/mysql&quot;</span>
 </code></pre>
 <p>GORM has wrapped some drivers, for easier to remember the import path, so you could import the mysql driver with</p>
@@ -659,7 +659,7 @@
 <span class="hljs-comment">// import _ &quot;github.com/jinzhu/gorm/dialects/mssql&quot;</span>
 </code></pre>
 <h4 id="mysql">MySQL</h4>
-<p><strong>NOTE</strong> in order to handle <code>time.Time</code> you need to include <code>parseTime</code> as param <a href="https://github.com/go-sql-driver/mysql#parameters" target="_blank">more supported parameters</a></p>
+<p><strong>NOTE:</strong> In order to handle <code>time.Time</code>, you need to include <code>parseTime</code> as a parameter. (<a href="https://github.com/go-sql-driver/mysql#parameters" target="_blank">More supported parameters</a>)</p>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
     _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/mysql&quot;</span>
@@ -690,12 +690,12 @@
 }
 </code></pre>
 <h4 id="write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</h4>
-<p>GORM officially support above databases, but you could write a dialect for those unsupported databaes,</p>
-<p>Refer: <a href="https://github.com/jinzhu/gorm/blob/master/dialect.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/dialect.go</a></p>
+<p>GORM officially supports the above databases, but you could write a dialect for unsupported databases.</p>
+<p>To write your own dialect, refer to: <a href="https://github.com/jinzhu/gorm/blob/master/dialect.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/dialect.go</a></p>
 <h2 id="migration">Migration</h2>
 <h3 id="auto-migration">Auto Migration</h3>
-<p>Automatically migrate your schema, to keep your schema update to date</p>
-<p><strong>WARNING</strong> AutoMigrate will ONLY create tables, missing columns and missing indexes, <strong>WON&apos;T</strong> change existing column&apos;s type or delete unused columns to protect your data</p>
+<p>Automatically migrate your schema, to keep your schema update to date.</p>
+<p><strong>WARNING:</strong> AutoMigrate will <strong>ONLY</strong> create tables, missing columns and missing indexes, and <strong>WON&apos;T</strong> change existing column&apos;s type or delete unused columns to protect your data.</p>
 <pre><code class="lang-go">db.AutoMigrate(&amp;User{})
 
 db.AutoMigrate(&amp;User{}, &amp;Product{}, &amp;Order{})
