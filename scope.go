@@ -441,8 +441,10 @@ func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 	}
 }
 
+var columnRegexp = regexp.MustCompile("^[a-zA-Z]+(\\.[a-zA-Z]+)*$") // only match string like `name`, `users.name`
+
 func (scope *Scope) quoteIfPossible(str string) string {
-	if regexp.MustCompile("^[a-zA-Z]+(.[a-zA-Z]+)*$").MatchString(str) {
+	if columnRegexp.MatchString(str) {
 		return scope.Quote(str)
 	}
 	return str
@@ -724,7 +726,12 @@ func (scope *Scope) orderSQL() string {
 	if len(scope.Search.orders) == 0 || scope.Search.countingQuery {
 		return ""
 	}
-	return " ORDER BY " + strings.Join(scope.Search.orders, ",")
+
+	var orders []string
+	for _, order := range scope.Search.orders {
+		orders = append(orders, scope.quoteIfPossible(order))
+	}
+	return " ORDER BY " + strings.Join(orders, ",")
 }
 
 func (scope *Scope) limitAndOffsetSQL() string {
