@@ -87,3 +87,13 @@ Current version is {{ softwareVersion }}.
 ##### include and block
 
 Inclusion and inheritance is detailled in the [Content References](conrefs.md) section.
+
+### Escaping
+
+If you want GitBook to ignore any of the special templating tags, you can use raw and anything inside of it will be output as plain text.
+
+``` twig
+{% raw %}
+  this will {{ not be processed }}
+{% endraw %}
+```

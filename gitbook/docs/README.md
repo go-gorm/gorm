@@ -1,4 +1,4 @@
-# GitBook Format Documentation
+# GitBook Toolchain Documentation
 
 This document aims to be a comprehensive guide to GitBook. It contains the full documentation for version **{{ book.version }}**. Help for GitBook.com specific questions can be found at [help.gitbook.com](https://help.gitbook.com).
 

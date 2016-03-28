@@ -41,7 +41,7 @@ function Page(book, filename) {
 
     // Can we parse it?
     extension = path.extname(this.path);
-    this.parser = parsers.get(extension);
+    this.parser = parsers.getByExt(extension);
     if (!this.parser) throw error.ParsingError(new Error('Can\'t parse file "'+this.path+'"'));
 
     this.type = this.parser.name;
@@ -116,30 +116,27 @@ Page.prototype.getContext = function() {
         if (dir == 'neutral') dir = null;
     }
 
-    return _.extend(
-        {
-            file: {
-                path: this.path,
-                mtime: this.mtime,
-                type: this.type
-            },
-            page: _.extend({}, this.attributes, {
-                title: article? article.title : null,
-                next: next? next.getContext() : null,
-                previous: prev? prev.getContext() : null,
-                level: article? article.level : null,
-                depth: article? article.depth : 0,
-                content: this.content,
-                dir: dir
-            })
+    return {
+        file: {
+            path: this.path,
+            mtime: this.mtime,
+            type: this.type
         },
-        gitbook.getContext(),
-        this.book.getContext(),
-        this.book.langs.getContext(),
-        this.book.summary.getContext(),
-        this.book.glossary.getContext(),
-        this.book.config.getContext()
-    );
+        page: _.extend({}, this.attributes, {
+            title: article? article.title : null,
+            next: next? next.getContext() : null,
+            previous: prev? prev.getContext() : null,
+            level: article? article.level : null,
+            depth: article? article.depth() : 0,
+            content: this.content,
+            dir: dir
+        })
+    };
+};
+
+// Return complete context for templating (page + book + summary + ...)
+Page.prototype.getOutputContext = function(output) {
+    return _.extend({}, this.getContext(), output.getContext());
 };
 
 // Parse the page and return its content
@@ -184,7 +181,7 @@ Page.prototype.toHTML = function(output) {
 
     // Render template
     .then(function() {
-        return output.template.render(that.content, that.getContext(), {
+        return output.template.render(that.content, that.getOutputContext(output), {
             path: that.path
         })
         .then(that.update);

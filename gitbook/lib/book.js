@@ -320,7 +320,7 @@ Book.prototype.findParsableFile = function(filename) {
                 if (!realFilepath) return null;
 
                 return {
-                    parser: parsers.get(ext),
+                    parser: parsers.getByExt(ext),
                     path: realFilepath
                 };
             });
@@ -358,6 +358,23 @@ Book.prototype.isInLanguageBook = function(filename) {
         );
     });
 };
+
+// ----- Parser Methods
+
+// Render a markup string in inline mode
+Book.prototype.renderInline = function(type, src) {
+    var parser = parsers.get(type);
+    return parser.inline(src)
+        .get('content');
+};
+
+// Render a markup string in block mode
+Book.prototype.renderBlock = function(type, src) {
+    var parser = parsers.get(type);
+    return parser.page(src)
+        .get('content');
+};
+
 
 // ----- DEPRECATED METHODS
 

@@ -21,6 +21,11 @@ function PluginsManager(book) {
     _.bindAll(this);
 }
 
+// Returns the list of plugins
+PluginsManager.prototype.list = function() {
+    return this.plugins;
+};
+
 // Return count of plugins loaded
 PluginsManager.prototype.count = function() {
     return _.size(this.plugins);
@@ -33,24 +38,21 @@ PluginsManager.prototype.get = function(name) {
     });
 };
 
-// Load a plugin, or a list of plugins
-PluginsManager.prototype.load = function(name) {
+// Load a plugin (could be a BookPlugin or {name,path})
+PluginsManager.prototype.load = function(plugin) {
     var that = this;
 
-    if (_.isArray(name)) {
-        return Promise.serie(name, function(_name) {
-            return that.load(_name);
-        });
+    if (_.isArray(plugin)) {
+        return Promise.serie(plugin, that.load);
     }
 
     return Promise()
 
     // Initiate and load the plugin
     .then(function() {
-        var plugin;
-
-        if (!_.isString(name)) plugin = name;
-        else plugin = new BookPlugin(that.book, name);
+        if (!(plugin instanceof BookPlugin)) {
+            plugin = new BookPlugin(that.book, plugin.name, plugin.path);
+        }
 
         if (that.get(plugin.id)) {
             throw new Error('Plugin "'+plugin.id+'" is already loaded');
@@ -68,10 +70,41 @@ PluginsManager.prototype.load = function(name) {
 
 // Load all plugins from the book's configuration
 PluginsManager.prototype.loadAll = function() {
-    var plugins = _.pluck(this.book.config.get('plugins'), 'name');
+    var that = this;
+    var pluginNames = _.pluck(this.book.config.get('plugins'), 'name');
 
-    this.log.info.ln('loading', plugins.length, 'plugins');
-    return this.load(plugins);
+    return registry.list(this.book)
+    .then(function(plugins) {
+        // Filter out plugins not listed of first level
+        // (aka pre-installed plugins)
+        plugins = _.filter(plugins, function(plugin) {
+            return (
+                plugin.depth > 1 ||
+                _.contains(pluginNames, plugin.name)
+            );
+        });
+
+        // Sort plugins to match list in book.json
+        plugins.sort(function(a, b){
+            return pluginNames.indexOf(a.name) < pluginNames.indexOf(b.name) ? -1 : 1;
+        });
+
+        // Log state
+        that.log.info.ln(_.size(plugins) + ' are installed');
+        if (_.size(pluginNames) != _.size(plugins)) that.log.info.ln(_.size(pluginNames) + ' explicitly listed');
+
+        // Verify that all plugins are present
+        var notInstalled = _.filter(pluginNames, function(name) {
+            return !_.find(plugins, { name: name });
+        });
+
+        if (_.size(notInstalled) > 0) {
+            throw new Error('Couldn\'t locate plugins "' + notInstalled.join(', ') + '", Run \'gitbook install\' to install plugins from registry.');
+        }
+
+        // Load plugins
+        return that.load(plugins);
+    });
 };
 
 // Setup a plugin

@@ -16,7 +16,7 @@
     
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
                 
             
                 
@@ -24,7 +24,7 @@
                 
             
                 
-                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
                 
             
         
@@ -70,7 +70,7 @@
     data-chapter-title="Models"
     data-filepath="models.md"
     data-basepath="."
-    data-revision="Wed Mar 23 2016 07:30:36 GMT+0800 (CST)"
+    data-revision="Mon Mar 28 2016 10:39:40 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -716,7 +716,7 @@
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {} <span class="hljs-comment">// default table name is `users`</span>
 
 <span class="hljs-comment">// set User&apos;s table name to be `profiles</span>
-<span class="hljs-keyword">type</span> (User) TableName() <span class="hljs-keyword">string</span> {
+<span class="hljs-keyword">func</span> (User) TableName() <span class="hljs-keyword">string</span> {
   <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;profiles&quot;</span>
 }
 
@@ -801,15 +801,11 @@ db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <s
     <script src="gitbook/app.js"></script>
     
         
-        <script src="gitbook/gitbook-plugin-github/plugin.js"></script>
+        <script src="gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
         
     
         
-        <script src="gitbook/gitbook-plugin-edit-link/plugin.js"></script>
-        
-    
-        
-        <script src="gitbook/gitbook-plugin-anker-enable/anker.js"></script>
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
         
     
         
@@ -821,11 +817,15 @@ db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <s
         
     
         
-        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        <script src="gitbook/gitbook-plugin-anker-enable/anker.js"></script>
         
     
         
-        <script src="gitbook/gitbook-plugin-fontsettings/buttons.js"></script>
+        <script src="gitbook/gitbook-plugin-edit-link/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-github/plugin.js"></script>
         
     
     <script>

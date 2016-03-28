@@ -1,7 +1,9 @@
 var npm = require('npm');
 var npmi = require('npmi');
+var path = require('path');
 var semver = require('semver');
 var _ = require('lodash');
+var readInstalled = require('read-installed');
 
 var Promise = require('../utils/promise');
 var gitbook = require('../gitbook');
@@ -21,7 +23,7 @@ function pluginId(name) {
 
 // Validate an NPM plugin ID
 function validateId(name) {
-    return name.indexOf(PLUGIN_PREFIX) === 0;
+    return name && name.indexOf(PLUGIN_PREFIX) === 0;
 }
 
 // Initialize NPM for operations
@@ -104,6 +106,52 @@ function installPlugin(book, plugin, version) {
     });
 }
 
+// List all packages installed inside a folder
+// Returns an ordered list of plugins
+function listInstalled(folder) {
+    var options = {
+        dev: false,
+        log: function() {},
+        depth: 4
+    };
+    var results = [];
+
+    function onPackage(pkg, isRoot) {
+        if (!validateId(pkg.name)){
+            if (!isRoot) return;
+        } else {
+            results.push({
+                name: pluginId(pkg.name),
+                version: pkg.version,
+                path: pkg.realPath,
+                depth: pkg.depth
+            });
+        }
+
+        _.each(pkg.dependencies, function(dep) {
+            onPackage(dep);
+        });
+    }
+
+    return Promise.nfcall(readInstalled, folder, options)
+    .then(function(data) {
+        onPackage(data, true);
+        return _.uniq(results, 'name');
+    });
+}
+
+// List installed plugins for a book (defaults and installed)
+function listPlugins(book) {
+    return Promise.all([
+        listInstalled(path.resolve(__dirname, '../..')),
+        listInstalled(book.root)
+    ])
+    .spread(function(defaultPlugins, plugins) {
+        var results = plugins.concat(defaultPlugins);
+        return _.uniq(results, 'name');
+    });
+}
+
 module.exports = {
     npmId: npmId,
     pluginId: pluginId,
@@ -111,5 +159,7 @@ module.exports = {
 
     resolve: resolveVersion,
     link: linkPlugin,
-    install: installPlugin
+    install: installPlugin,
+    list: listPlugins,
+    listInstalled: listInstalled
 };

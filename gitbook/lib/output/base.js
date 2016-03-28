@@ -5,8 +5,10 @@ var path = require('path');
 var Promise = require('../utils/promise');
 var pathUtil = require('../utils/path');
 var location = require('../utils/location');
+var error = require('../utils/error');
 var PluginsManager = require('../plugins');
 var TemplateEngine = require('../template');
+var gitbook = require('../gitbook');
 
 /*
 Output is like a stream interface for a parsed book
@@ -36,6 +38,9 @@ function Output(book, opts, parent) {
     // Files to ignore in output
     this.ignore = Ignore();
 }
+
+// Default name for generator
+Output.prototype.name = 'base';
 
 // Default extension for output
 Output.prototype.defaultExtension = '.html';
@@ -221,16 +226,31 @@ Output.prototype.onLanguageBook = function(book) {
 
 // ---- Utilities ----
 
+// Return conetxt for the output itself
+Output.prototype.getSelfContext = function() {
+    return {
+        name: this.name
+    };
+};
+
 // Return a default context for templates
 Output.prototype.getContext = function() {
-    return _.extend(
-        {},
+    var ctx = _.extend(
+        {
+            output: this.getSelfContext()
+        },
         this.book.getContext(),
         this.book.langs.getContext(),
         this.book.summary.getContext(),
         this.book.glossary.getContext(),
-        this.book.config.getContext()
+        this.book.config.getContext(),
+        gitbook.getContext()
     );
+
+    // Deprecated fields
+    error.deprecateField(ctx.gitbook, 'generator', this.name, '"gitbook.generator" property is deprecated, use "output.name" instead');
+
+    return ctx;
 };
 
 // Resolve a file path in the context of a specific page

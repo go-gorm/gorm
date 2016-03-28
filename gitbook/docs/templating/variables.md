@@ -12,6 +12,7 @@ The following is a reference of the available data during book's parsing and the
 | `file` | File associated with the current page specific information |
 | `summary` | Information about the table of contents |
 | `languages` | List of languages for multi-lingual books |
+| `output` | Information about the output generator |
 | `config` | Dump of the `book.json` |
 
 ### Book Variables
@@ -62,3 +63,11 @@ The whole table of contents (`SUMMARY.md`) can be accessed:
 | `languages.list` | List of languages for this book |
 
 Languages are defined by `{ id: 'en', title: 'English' }`.
+
+### Output Variables
+
+| Variable | Description |
+| -------- | ----------- |
+| `output.name` | Name of the output generator, possible values are `website`, `json`, `ebook` |
+| `output.format` | When `output.name == "ebook"`, `format` defines the ebook format that will be generated, possible values are `pdf`, `epub` or `mobi` |
+

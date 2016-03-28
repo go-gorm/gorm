@@ -12,5 +12,25 @@ module.exports = {
             html: false,
             body: blk.body
         };
+    },
+
+    // Render some markdown to HTML
+    markdown: function(blk) {
+        return this.book.renderInline('markdown', blk.body)
+        .then(function(out) {
+            return { body: out };
+        });
+    },
+    asciidoc: function(blk) {
+        return this.book.renderInline('asciidoc', blk.body)
+        .then(function(out) {
+            return { body: out };
+        });
+    },
+    markup: function(blk) {
+        return this.book.renderInline(this.ctx.file.type, blk.body)
+        .then(function(out) {
+            return { body: out };
+        });
     }
 };

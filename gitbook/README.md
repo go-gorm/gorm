@@ -12,7 +12,7 @@ You can publish and host books easily online using [gitbook.com](https://www.git
 
 Check out the [GitBook Community Slack Channel](https://slack.gitbook.com), Stay updated by following [@GitBookIO](https://twitter.com/GitBookIO) on Twitter or [GitBook](https://www.facebook.com/gitbookcom) on Facebook.
 
-Complete documentation is available at [help.gitbook.com](http://help.gitbook.com/).
+Complete documentation is available at [toolchain.gitbook.com](http://toolchain.gitbook.com/).
 
 ![Image](https://raw.github.com/GitbookIO/gitbook/master/preview.png)
 
@@ -32,14 +32,14 @@ We're always happy to help out with your books or any other questions you might 
 
 ## Features
 
-* [Output as a website or ebook (pdf, epub, mobi)](http://help.gitbook.com/format/output.html)
-* [Multi-Languages](http://help.gitbook.com/format/languages.html)
-* [Glossary](http://help.gitbook.com/format/glossary.html)
-* [Cover](http://help.gitbook.com/format/cover.html)
-* [AsciiDoc Support](http://help.gitbook.com/format/asciidoc.html)
-* [Variables and Templating](http://help.gitbook.com/format/templating.html)
-* [Content References](http://help.gitbook.com/format/conrefs.html)
-* [Plugins](http://help.gitbook.com/format/plugins.html)
+* Write using [Markdown](http://toolchain.gitbook.com/syntax/markdown.html) or [AsciiDoc](http://toolchain.gitbook.com/syntax/asciidoc.html)
+* Output as a website or [ebook (pdf, epub, mobi)](http://toolchain.gitbook.com/ebook.html)
+* [Multi-Languages](http://toolchain.gitbook.com/languages.html)
+* [Lexicon / Glossary](http://toolchain.gitbook.com/lexicon.html)
+* [Cover](http://toolchain.gitbook.com/ebook.html)
+* [Variables and Templating](http://toolchain.gitbook.com/templating/)
+* [Content References](http://toolchain.gitbook.com/templating/conrefs.html)
+* [Plugins](http://toolchain.gitbook.com/plugins/)
 * [Beautiful default theme](https://github.com/GitbookIO/theme-default)
 
 ## Publish your book

@@ -23,7 +23,27 @@ Adding a nested list to a parent chapter will create subchapters.
 
 Each chapter has a dedicated page (`part#/README.md`) and is split into subchapters.
 
-##### Example with subchapters split into parts
+##### Anchors
+
+Chaptersi n the Table of Contents can be pointing to specific part of a file using anchor.
+
+```markdown
+# Summary
+
+### Part I
+
+* [Part I](part1/README.md)
+    * [Writing is nice](part1/README.md#writing)
+    * [GitBook is nice](part1/README.md#gitbook)
+* [Part II](part2/README.md)
+    * [We love feedback](part2/README.md#feedback)
+    * [Better tools for authors](part2/README.md#tools)
+```
+
+
+##### Parts
+
+The Table of Contents can be divided into parts separated by headings or horizontal lines:
 
 ```markdown
 # Summary
@@ -37,9 +57,13 @@ Each chapter has a dedicated page (`part#/README.md`) and is split into subchapt
 
 * [We love feedback](part2/feedback_please.md)
 * [Better tools for authors](part2/better_tools.md)
+
+----
+
+* [Last part without title](part3/title.md)
 ```
 
-Here, parts are just groups of chapters and do not have dedicated pages, but will show in the navigation for example.
+Parts are just groups of chapters and do not have dedicated pages, but according to the theme, it will show in the navigation.
 
 ### Pages
 

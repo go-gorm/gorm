@@ -24,13 +24,14 @@ function isModuleNotFound(err) {
     return err.message.indexOf('Cannot find module') >= 0;
 }
 
-function BookPlugin(book, pluginId) {
+function BookPlugin(book, pluginId, pluginFolder) {
     this.book = book;
     this.log = this.book.log.prefix(pluginId);
 
+
     this.id = pluginId;
     this.npmId = registry.npmId(pluginId);
-    this.root;
+    this.root = pluginFolder;
 
     this.packageInfos = undefined;
     this.content = undefined;
@@ -51,8 +52,7 @@ BookPlugin.prototype.bind = function(fn) {
     return fn.bind(compatibility.pluginCtx(this));
 };
 
-// Load this plugin
-// An optional folder to search in can be passed
+// Load this plugin from its root folder
 BookPlugin.prototype.load = function(folder) {
     var that = this;
 
@@ -60,18 +60,12 @@ BookPlugin.prototype.load = function(folder) {
         return Promise.reject(new Error('Plugin "' + this.id + '" is already loaded'));
     }
 
-    // Fodlers to search plugins in
-    var searchPaths = _.compact([
-        folder,
-        this.book.resolve('node_modules'),
-        __dirname
-    ]);
-
     // Try loading plugins from different location
-    var p = Promise.some(searchPaths, function(baseDir) {
+    var p = Promise()
+    .then(function() {
         // Locate plugin and load pacjage.json
         try {
-            var res = resolve.sync(that.npmId + '/package.json', { basedir: baseDir });
+            var res = resolve.sync('./package.json', { basedir: that.root });
 
             that.root = path.dirname(res);
             that.packageInfos = require(res);
@@ -81,12 +75,12 @@ BookPlugin.prototype.load = function(folder) {
             that.packageInfos = undefined;
             that.content = undefined;
 
-            return false;
+            return;
         }
 
         // Load plugin JS content
         try {
-            that.content = require(resolve.sync(that.npmId, { basedir: baseDir }));
+            that.content = require(that.root);
         } catch(err) {
             // It's no big deal if the plugin doesn't have an "index.js"
             // (For example: themes)
@@ -98,8 +92,6 @@ BookPlugin.prototype.load = function(folder) {
                 });
             }
         }
-
-        return true;
     })
 
     .then(that.validate)
@@ -122,18 +114,15 @@ BookPlugin.prototype.load = function(folder) {
 // This method throws erros if plugin is invalid
 BookPlugin.prototype.validate = function() {
     var isValid = (
+        this.isLoaded() &&
         this.packageInfos &&
         this.packageInfos.name &&
         this.packageInfos.engines &&
         this.packageInfos.engines.gitbook
     );
 
-    if (!this.isLoaded()) {
-        throw new Error('Couldn\'t locate plugin "' + this.id + '", Run \'gitbook install\' to install plugins from registry.');
-    }
-
     if (!isValid) {
-        throw new Error('Invalid plugin "' + this.id + '"');
+        throw new Error('Error loading plugin "' + this.id + '" at "' + this.root + '"');
     }
 
     if (!gitbook.satisfies(this.packageInfos.engines.gitbook)) {

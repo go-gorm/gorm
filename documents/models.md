@@ -87,7 +87,7 @@ type User struct {
 type User struct {} // default table name is `users`
 
 // set User's table name to be `profiles
-type (User) TableName() string {
+func (User) TableName() string {
   return "profiles"
 }
 

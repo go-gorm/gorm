@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var mock = require('./mock');
 var WebsiteOutput = require('../lib/output/website');
 
@@ -95,5 +97,28 @@ describe('Website Output', function() {
         });
     });
 
+    describe('Theming', function() {
+        var output;
+
+        before(function() {
+            return mock.outputDefaultBook(WebsiteOutput, {
+                '_layouts/website/page.html': '{% extends "website/page.html" %}{% block body %}{{ super() }}<div id="theming-added"></div>{% endblock %}'
+
+            })
+            .then(function(_output) {
+                output = _output;
+            });
+        });
+
+        it('should extend default theme', function() {
+            var readme = fs.readFileSync(output.resolve('index.html'), 'utf-8');
+
+            readme.should.be.html({
+                '#theming-added': {
+                    count: 1
+                }
+            });
+        });
+    });
 });
 

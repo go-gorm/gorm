@@ -21,6 +21,15 @@ var EbookOutput = assetsInliner(_EbookOutput);
 
 EbookOutput.prototype.name = 'ebook';
 
+// Return context for templating
+// Incldue type of ebbook generated
+EbookOutput.prototype.getSelfContext = function() {
+    var ctx = EbookOutput.super_.prototype.getSelfContext.apply(this);
+    ctx.format = this.opts.format;
+
+    return ctx;
+};
+
 // Finish generation, create ebook using ebook-convert
 EbookOutput.prototype.finish = function() {
     var that = this;

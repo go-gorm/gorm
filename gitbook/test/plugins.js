@@ -9,6 +9,10 @@ var BookPlugin = require('../lib/plugins/plugin');
 
 var PLUGINS_ROOT = path.resolve(__dirname, 'node_modules');
 
+function TestPlugin(book, name) {
+    return new BookPlugin(book, name, path.resolve(PLUGINS_ROOT, 'gitbook-plugin-'+name));
+}
+
 describe('Plugins', function() {
     var book;
 
@@ -90,7 +94,7 @@ describe('Plugins', function() {
 
     describe('Configuration', function() {
         it('should fail loading a plugin with an invalid configuration', function() {
-            var plugin = new BookPlugin(book, 'test-config');
+            var plugin = TestPlugin(book, 'test-config');
             return plugin.load(PLUGINS_ROOT)
                 .should.be.rejectedWith('Error with book\'s configuration: pluginsConfig.test-config.myProperty is required');
         });
@@ -108,7 +112,7 @@ describe('Plugins', function() {
             .then(function(book2) {
                 return book2.prepareConfig()
                 .then(function() {
-                    var plugin = new BookPlugin(book2, 'test-config');
+                    var plugin = TestPlugin(book2, 'test-config');
                     return plugin.load(PLUGINS_ROOT);
                 })
                 .then(function() {
@@ -122,7 +126,7 @@ describe('Plugins', function() {
         var plugin;
 
         before(function() {
-            plugin = new BookPlugin(book, 'test-resources');
+            plugin = TestPlugin(book, 'test-resources');
             return plugin.load(PLUGINS_ROOT);
         });
 
@@ -146,7 +150,7 @@ describe('Plugins', function() {
         var plugin, filters;
 
         before(function() {
-            plugin = new BookPlugin(book, 'test-filters');
+            plugin = TestPlugin(book, 'test-filters');
             return plugin.load(PLUGINS_ROOT)
 
             .then(function() {
@@ -171,7 +175,7 @@ describe('Plugins', function() {
         var plugin, blocks;
 
         before(function() {
-            plugin = new BookPlugin(book, 'test-blocks');
+            plugin = TestPlugin(book, 'test-blocks');
             return plugin.load(PLUGINS_ROOT)
 
             .then(function() {
@@ -196,7 +200,7 @@ describe('Plugins', function() {
         var plugin;
 
         before(function() {
-            plugin = new BookPlugin(book, 'test-hooks');
+            plugin = TestPlugin(book, 'test-hooks');
             return plugin.load(PLUGINS_ROOT);
         });
 

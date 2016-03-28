@@ -16,7 +16,7 @@ JSONOutput.prototype.onPage = function(page) {
 
     // Write as json
     .then(function() {
-        var json = page.getContext();
+        var json = page.getOutputContext(that);
 
         // Delete some private properties
         delete json.config;

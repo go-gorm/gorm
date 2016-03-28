@@ -37,11 +37,20 @@ function createParser(parser, base) {
     nparser.page = Promise.wrapfn(parser.page);
     nparser.page.prepare = Promise.wrapfn(parser.page.prepare || _.identity);
 
+    nparser.inline = Promise.wrapfn(parser.inline);
+
     return nparser;
 }
 
+// Return a specific parser
+function getParser(name) {
+    return _.find(PARSERS, {
+        name: name
+    });
+}
+
 // Return a specific parser according to an extension
-function getParser(ext) {
+function getParserByExt(ext) {
     return _.find(PARSERS, function(input) {
         return input.name == ext || _.contains(input.extensions, ext);
     });
@@ -56,5 +65,6 @@ module.exports = {
     all: PARSERS,
     extensions: _.flatten(_.pluck(PARSERS, 'extensions')),
     get: getParser,
+    getByExt: getParserByExt,
     getForFile: getParserForFile
 };

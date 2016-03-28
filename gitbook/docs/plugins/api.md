@@ -12,6 +12,14 @@ var value = book.config.get('title', 'Default Value');
 
 // Resolve a filename to an absolute path
 var filepath = book.resolve('README.md');
+
+// Render an inline markup string
+book.renderInline('markdown', 'This is **Markdown**')
+    .then(function(str) { ... })
+
+// Render a markup string (block mode)
+book.renderBlock('markdown', '* This is **Markdown**')
+    .then(function(str) { ... })
 ```
 
 #### Output instance

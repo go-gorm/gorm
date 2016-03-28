@@ -2,13 +2,11 @@
 
 Since version 3.0.0, GitBook can be easily themed. Books are using by default the [theme-default](https://github.com/GitbookIO/theme-default).
 
-The theme to use is specified in the [book's configuration](../config.md) using key `theme`.
-
 > **Caution**: Custom theming can block some plugins from working correctly.
 
 ### Structure of a theme
 
-A theme is a folder containing templates and assets. All the templates are optionnal, since theme are always extending the default theme.
+A theme is a plugin containing templates and assets. All the templates are optionnal, since theme are always extending the default theme.
 
 | Folder | Description |
 | -------- | ----------- |

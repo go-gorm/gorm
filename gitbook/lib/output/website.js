@@ -8,13 +8,10 @@ var Promise = require('../utils/promise');
 var location = require('../utils/location');
 var fs = require('../utils/fs');
 var defaultFilters = require('../template/filters');
+var FSLoader = require('../template/fs-loader');
 var conrefsLoader = require('./conrefs');
 var Output = require('./base');
 
-// Tranform a theme ID into a plugin
-function themeID(plugin) {
-    return 'theme-' + plugin;
-}
 
 // Directory for a theme with the templates
 function templatesPath(dir) {
@@ -57,32 +54,11 @@ WebsiteOutput.prototype.prepare = function() {
     })
 
     .then(function() {
-        var themeName = that.book.config.get('theme');
-        that.theme = that.plugins.get(themeID(themeName));
-        that.themeDefault = that.plugins.get(themeID('default'));
-
-        if (!that.theme) {
-            throw new Error('Theme "' + themeName + '" is not installed, add "' + themeID(themeName) + '" to your "book.json"');
-        }
-
-        if (that.themeDefault.root != that.theme.root) {
-            that.log.info.ln('build using theme "' + themeName + '"');
-        }
-
         // This list is ordered to give priority to templates in the book
-        var searchPaths = _.chain([
-            // The book itself can contains a "_layouts" folder
-            that.book.root,
+        var searchPaths = _.pluck(that.plugins.list(), 'root');
 
-            // Installed plugin (it can be identical to themeDefault.root)
-            that.theme.root,
-
-            // Is default theme still installed
-            that.themeDefault? that.themeDefault.root : null
-        ])
-        .compact()
-        .uniq()
-        .value();
+        // The book itself can contains a "_layouts" folder
+        searchPaths.unshift(that.book.root);
 
         // Load i18n
         _.each(searchPaths.concat().reverse(), function(searchPath) {
@@ -92,7 +68,7 @@ WebsiteOutput.prototype.prepare = function() {
             that.i18n.load(i18nRoot);
         });
 
-        that.env = new nunjucks.Environment(new nunjucks.FileSystemLoader(_.map(searchPaths, templatesPath)));
+        that.env = new nunjucks.Environment(new FSLoader(_.map(searchPaths, templatesPath)));
 
         // Add GitBook default filters
         _.each(defaultFilters, function(fn, filter) {
@@ -142,21 +118,11 @@ WebsiteOutput.prototype.prepare = function() {
     .then(function() {
         if (that.book.isLanguageBook()) return;
 
-        return Promise.serie([
-            // Assets from the book are already copied
-            // The order is reversed from the template's one
-
-            // Is default theme still installed
-            that.themeDefault && that.themeDefault.root != that.theme.root?
-                that.themeDefault.root : null,
-
-            // Installed plugin (it can be identical to themeDefault.root)
-            that.theme.root
-        ], function(folder) {
-            if (!folder) return;
-
+        // Assets from the book are already copied
+        // Copy assets from plugins (start with default plugins)
+        return Promise.serie(that.plugins.list().reverse(), function(plugin) {
             // Copy assets only if exists (don't fail otherwise)
-            var assetFolder = path.join(folder, '_assets', that.name);
+            var assetFolder = path.join(plugin.root, '_assets', that.name);
             if (!fs.existsSync(assetFolder)) return;
 
             that.log.debug.ln('copy assets from theme', assetFolder);
@@ -164,7 +130,7 @@ WebsiteOutput.prototype.prepare = function() {
                 assetFolder,
                 that.resolve('gitbook'),
                 {
-                    deleteFirst: false, // Delete "to" before
+                    deleteFirst: false,
                     overwrite: true,
                     confirm: true
                 }
@@ -190,7 +156,7 @@ WebsiteOutput.prototype.onPage = function(page) {
 
     // Render the page template with the same context as the json output
     .then(function() {
-        return that.render('page', page.getContext());
+        return that.render('page', page.getOutputContext(that));
     })
 
     // Write the HTML file
@@ -243,13 +209,10 @@ WebsiteOutput.prototype.outputMultilingualIndex = function() {
 // Templates are stored in `_layouts` folders
 WebsiteOutput.prototype.render = function(tpl, context) {
     var filename = this.templateName(tpl);
+
     context = _.extend(context, {
         template: {
-            // Same template but in the default theme
-            default: this.themeDefault? path.resolve(templatesPath(this.themeDefault.root), filename) : null,
-
-            // Same template but in the theme
-            theme: path.resolve(templatesPath(this.theme.root), filename)
+            self: filename
         },
 
         plugins: {

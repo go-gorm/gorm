@@ -68,19 +68,23 @@ function TemplateEngine(output) {
 // Bind a function to a context
 // Filters and blocks are binded to this context
 TemplateEngine.prototype.bindContext = function(func) {
-    var ctx = {
-        ctx: this.ctx,
-        book: this.book,
-        output: this.output
-    };
-    error.deprecateField(ctx, 'generator', this.output.name, '"generator" property is deprecated, use "output.generator" instead');
+    var that = this;
 
-    return _.bind(func, ctx);
+    return function() {
+        var ctx = {
+            ctx: this.ctx,
+            book: that.book,
+            output: that.output
+        };
+        error.deprecateField(ctx, 'generator', that.output.name, '"generator" property is deprecated, use "output.generator" instead');
+
+        return func.apply(ctx, arguments);
+    };
 };
 
 // Interpolate a string content to replace shortcuts according to the filetype
 TemplateEngine.prototype.interpolate = function(filepath, source) {
-    var parser = parsers.get(path.extname(filepath));
+    var parser = parsers.getByExt(path.extname(filepath));
     var type = parser? parser.name : null;
 
     return this.applyShortcuts(type, source);
@@ -339,7 +343,7 @@ TemplateEngine.prototype.processBlock = function(blk) {
     }
 
     // Return it as a position marker
-    return '@%@'+blk.id+'@%@';
+    return '{{-%'+blk.id+'%-}}';
 };
 
 // Render a string (without post processing)
@@ -387,7 +391,7 @@ TemplateEngine.prototype.applyShortcut = function(content, shortcut) {
 TemplateEngine.prototype.replaceBlocks = function(content) {
     var that = this;
 
-    return content.replace(/\@\%\@([\s\S]+?)\@\%\@/g, function(match, key) {
+    return content.replace(/\{\{\-\%([\s\S]+?)\%\-\}\}/g, function(match, key) {
         var blk = that.blockBodies[key];
         if (!blk) return match;
 
