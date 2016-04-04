@@ -413,7 +413,8 @@ func (scope *Scope) CommitOrRollback() *Scope {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
-	if reflectValue.CanAddr() {
+	// Only get address from non-pointer
+	if reflectValue.CanAddr() && reflectValue.Kind() != reflect.Ptr {
 		reflectValue = reflectValue.Addr()
 	}
 
