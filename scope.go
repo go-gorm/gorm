@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"crypto/sha1"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -1112,6 +1113,24 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 	}
 
 	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSQL())).Exec()
+}
+
+func (scope *Scope) addLongForeignKey(field string, dest string, onDelete string, onUpdate string) {
+	getHash := func(rawKey string) string {
+		h := sha1.New()
+		h.Write([]byte(rawKey))
+		bs := h.Sum(nil)
+		return fmt.Sprintf("%x", bs)
+	}
+	keyName := scope.TableName() + field + dest
+	hash := getHash(keyName)
+	query := `ALTER TABLE ` + scope.QuotedTableName() +
+		` ADD CONSTRAINT ` + "`" + hash + "`" +
+		` FOREIGN KEY (` + scope.quoteIfPossible(field) + `)` +
+		` REFERENCES ` + dest +
+		` ON DELETE ` + onDelete +
+		` ON UPDATE ` + onUpdate + `;`
+	scope.Raw(query).Exec()
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
