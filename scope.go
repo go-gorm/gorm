@@ -849,7 +849,7 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 				field.Set(value)
 				if field.IsNormal {
 					hasUpdate = true
-					results[field.DBName] = field.Field.Interface()
+					results[field.DBName] = value
 				}
 			}
 		}

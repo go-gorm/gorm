@@ -54,5 +54,5 @@ func (field *Field) Set(value interface{}) (err error) {
 	}
 
 	field.IsBlank = isBlank(field.Field)
-	return nil
+	return err
 }
