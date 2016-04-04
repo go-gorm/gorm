@@ -14,6 +14,8 @@ var (
 	ErrInvalidTransaction = errors.New("no valid transaction")
 	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
 	ErrCantStartTransaction = errors.New("can't start transaction")
+	// ErrUnaddressable unaddressable value
+	ErrUnaddressable = errors.New("using unaddressable value")
 )
 
 type errorsInterface interface {
