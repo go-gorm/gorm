@@ -53,6 +53,9 @@ func main() {
     panic("failed to connect database")
   }
 
+  // Migrate the schema
+  db.AutoMigrate(&Product{})
+  
   // Create
   db.Create(&Product{Code: "L1212", Price: 1000})
 
