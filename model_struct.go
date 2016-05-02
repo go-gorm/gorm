@@ -157,7 +157,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			}
 
 			// is ignored field
-			if fieldStruct.Tag.Get("sql") == "-" {
+			if _, ok := field.TagSettings["-"]; ok {
 				field.IsIgnored = true
 			} else {
 				if _, ok := field.TagSettings["PRIMARY_KEY"]; ok {
