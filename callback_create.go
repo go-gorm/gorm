@@ -52,7 +52,7 @@ func createCallback(scope *Scope) {
 				if field.IsNormal {
 					if !field.IsPrimaryKey || !field.IsBlank {
 						if field.IsBlank && field.HasDefaultValue {
-							blankColumnsWithDefaultValue = append(blankColumnsWithDefaultValue, field.DBName)
+							blankColumnsWithDefaultValue = append(blankColumnsWithDefaultValue, scope.Quote(field.DBName))
 							scope.InstanceSet("gorm:blank_columns_with_default_value", blankColumnsWithDefaultValue)
 						} else {
 							columns = append(columns, scope.Quote(field.DBName))
