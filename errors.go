@@ -5,19 +5,6 @@ import (
 	"strings"
 )
 
-var (
-	// ErrRecordNotFound record not found error, happens when haven't find any matched data when looking up with a struct
-	ErrRecordNotFound = errors.New("record not found")
-	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
-	ErrInvalidSQL = errors.New("invalid SQL")
-	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = errors.New("no valid transaction")
-	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = errors.New("can't start transaction")
-	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = errors.New("using unaddressable value")
-)
-
 type errorsInterface interface {
 	GetErrors() []error
 }
@@ -30,6 +17,36 @@ type Errors struct {
 // GetErrors get all happened errors
 func (errs Errors) GetErrors() []error {
 	return errs.errors
+}
+
+type ErrRecordNotFound struct{ error }
+
+type ErrInvalidSQL struct{ error }
+
+type ErrInvalidTransaction struct{ error }
+
+type ErrCantStartTransaction struct{ error }
+
+type ErrUnaddressable struct{ error }
+
+func NewErrRecordNotFound() error {
+	return ErrRecordNotFound{errors.New("record not found")}
+}
+
+func NewErrInvalidSQL() error {
+	return ErrInvalidSQL{errors.New("invalid SQL")}
+}
+
+func NewErrInvalidTransaction() error {
+	return ErrCantStartTransaction{errors.New("no valid transaction")}
+}
+
+func NewErrCantStartTransaction() error {
+	return ErrCantStartTransaction{errors.New("can't start transaction")}
+}
+
+func NewErrUnaddressable() error {
+	return ErrUnaddressable{errors.New("using unaddressable value")}
 }
 
 // Add add an error
