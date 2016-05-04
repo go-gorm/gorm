@@ -23,11 +23,11 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Getting Started
 
-* GORM Guides [jinzhu.github.com/gorm](https://jinzhu.github.io/gorm)
+* GORM Guides [jinzhu.github.com/gorm](http://jinzhu.github.io/gorm)
 
 ## Upgrading To V1.0
 
-* [CHANGELOG](https://jinzhu.github.io/gorm/changelog.html)
+* [CHANGELOG](http://jinzhu.github.io/gorm/changelog.html)
 
 # Author
 
