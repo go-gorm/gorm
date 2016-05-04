@@ -70,7 +70,7 @@
     data-chapter-title="Database"
     data-filepath="database.md"
     data-basepath="."
-    data-revision="Mon Mar 28 2016 10:39:40 GMT+0800 (CST)"
+    data-revision="Wed May 04 2016 21:23:42 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -676,7 +676,7 @@
 )
 
 <span class="hljs-keyword">func</span> main() {
-  db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;user=gorm dbname=gorm sslmode=disable&quot;</span>)
+  db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;host=myhost user=gorm dbname=gorm sslmode=disable password=mypassword&quot;</span>)
 }
 </code></pre>
 <h4 id="sqlite3">Sqlite3</h4>
