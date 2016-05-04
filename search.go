@@ -139,7 +139,7 @@ func (s *search) getInterfaceAsSQL(value interface{}) (str string) {
 	case string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		str = fmt.Sprintf("%v", value)
 	default:
-		s.db.AddError(ErrInvalidSQL)
+		s.db.AddError(NewErrInvalidSQL())
 	}
 
 	if str == "-1" {

@@ -79,7 +79,7 @@ func queryCallback(scope *Scope) {
 			}
 
 			if scope.db.RowsAffected == 0 && !isSlice {
-				scope.Err(ErrRecordNotFound)
+				scope.Err(NewErrRecordNotFound())
 			}
 		}
 	}

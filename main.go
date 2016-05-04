@@ -424,7 +424,7 @@ func (s *DB) Begin() *DB {
 		c.db = interface{}(tx).(sqlCommon)
 		c.AddError(err)
 	} else {
-		c.AddError(ErrCantStartTransaction)
+		c.AddError(NewErrCantStartTransaction())
 	}
 	return c
 }
@@ -434,7 +434,7 @@ func (s *DB) Commit() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Commit())
 	} else {
-		s.AddError(ErrInvalidTransaction)
+		s.AddError(NewErrInvalidTransaction())
 	}
 	return s
 }
@@ -444,7 +444,7 @@ func (s *DB) Rollback() *DB {
 	if db, ok := s.db.(sqlTx); ok {
 		s.AddError(db.Rollback())
 	} else {
-		s.AddError(ErrInvalidTransaction)
+		s.AddError(NewErrInvalidTransaction())
 	}
 	return s
 }
@@ -457,7 +457,7 @@ func (s *DB) NewRecord(value interface{}) bool {
 // RecordNotFound check if returning ErrRecordNotFound error
 func (s *DB) RecordNotFound() bool {
 	for _, err := range s.GetErrors() {
-		if err == ErrRecordNotFound {
+		if _, ok := err.(ErrRecordNotFound); ok {
 			return true
 		}
 	}
@@ -633,7 +633,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 // AddError add error to the db
 func (s *DB) AddError(err error) error {
 	if err != nil {
-		if err != ErrRecordNotFound {
+		if _, ok := err.(ErrRecordNotFound); !ok {
 			if s.logMode == 0 {
 				go s.print(fileWithLineNum(), err)
 			} else {
