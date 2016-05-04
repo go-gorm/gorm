@@ -43,7 +43,7 @@ import (
 )
 
 func main() {
-  db, err := gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
+  db, err := gorm.Open("postgres", "host=myhost user=gorm dbname=gorm sslmode=disable password=mypassword")
 }
 ```
 
