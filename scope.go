@@ -723,15 +723,22 @@ func (scope *Scope) selectSQL() string {
 	return scope.buildSelectQuery(scope.Search.selects)
 }
 
+// only match string like `name`, `users.name`, `name ASC`, `users.name desc`
+var orderByRegexp = regexp.MustCompile("^\"?[a-zA-Z0-9]+\"?(\\.\"?[a-zA-Z0-9]+\"?)?(?i)( (asc|desc))?$")
+
 func (scope *Scope) orderSQL() string {
-	if len(scope.Search.orders) == 0 || scope.Search.countingQuery {
+	var orders = []string{}
+	for _, order := range scope.Search.orders {
+		if !orderByRegexp.MatchString(order) {
+			continue
+		}
+		orders = append(orders, scope.quoteIfPossible(order))
+	}
+
+	if len(orders) == 0 || scope.Search.countingQuery {
 		return ""
 	}
 
-	var orders []string
-	for _, order := range scope.Search.orders {
-		orders = append(orders, scope.quoteIfPossible(order))
-	}
 	return " ORDER BY " + strings.Join(orders, ",")
 }
 
@@ -743,7 +750,7 @@ func (scope *Scope) groupSQL() string {
 	if len(scope.Search.group) == 0 {
 		return ""
 	}
-	return " GROUP BY " + scope.Search.group
+	return " GROUP BY " + scope.Quote(scope.Search.group)
 }
 
 func (scope *Scope) havingSQL() string {
