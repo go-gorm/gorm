@@ -62,12 +62,12 @@ func (s *search) Assign(attrs ...interface{}) *search {
 func (s *search) Order(value string, reorder ...bool) *search {
 	if len(reorder) > 0 && reorder[0] {
 		if value != "" {
-			s.orders = []string{value}
+			s.orders = []string{s.db.dialect.Quote(value)}
 		} else {
 			s.orders = []string{}
 		}
 	} else if value != "" {
-		s.orders = append(s.orders, value)
+		s.orders = append(s.orders, s.db.dialect.Quote(value))
 	}
 	return s
 }
@@ -93,7 +93,7 @@ func (s *search) Offset(offset int) *search {
 }
 
 func (s *search) Group(query string) *search {
-	s.group = s.getInterfaceAsSQL(query)
+	s.group = s.db.dialect.Quote(s.getInterfaceAsSQL(query))
 	return s
 }
 
