@@ -22,6 +22,10 @@ func (association *Association) Find(value interface{}) *Association {
 
 // Append append new associations for many2many, has_many, replace current association for has_one, belongs_to
 func (association *Association) Append(values ...interface{}) *Association {
+	if association.Error != nil {
+		return association
+	}
+
 	if relationship := association.field.Relationship; relationship.Kind == "has_one" {
 		return association.Replace(values...)
 	}
@@ -30,6 +34,10 @@ func (association *Association) Append(values ...interface{}) *Association {
 
 // Replace replace current associations with new one
 func (association *Association) Replace(values ...interface{}) *Association {
+	if association.Error != nil {
+		return association
+	}
+
 	var (
 		relationship = association.field.Relationship
 		scope        = association.scope
@@ -118,6 +126,10 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 // Delete remove relationship between source & passed arguments, but won't delete those arguments
 func (association *Association) Delete(values ...interface{}) *Association {
+	if association.Error != nil {
+		return association
+	}
+
 	var (
 		relationship = association.field.Relationship
 		scope        = association.scope
