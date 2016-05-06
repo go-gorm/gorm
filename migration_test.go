@@ -130,7 +130,7 @@ func (i *Num) Scan(src interface{}) error {
 }
 
 type Animal struct {
-	Counter    uint64    `gorm:"primary_key:yes"`
+	Counter    uint64    `gorm:"primary_key:yes;AUTO_INCREMENT"`
 	Name       string    `sql:"DEFAULT:'galeone'"`
 	From       string    //test reserved sql keyword as field name
 	Age        time.Time `sql:"DEFAULT:current_timestamp"`
