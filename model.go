@@ -7,7 +7,7 @@ import "time"
 //      gorm.Model
 //    }
 type Model struct {
-	ID        uint `gorm:"primary_key"`
+	ID        uint `gorm:"primary_key;AUTO_INCREMENT"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `sql:"index"`
