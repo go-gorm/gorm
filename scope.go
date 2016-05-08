@@ -329,8 +329,12 @@ func (scope *Scope) QuotedTableName() (name string) {
 
 // CombinedConditionSql return combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
+	limitWhereSQL, limitSuffixSQL := scope.limitAndOffsetSQL()
+	if len(limitWhereSQL) > 0 {
+		scope.Search = scope.Search.Where(limitWhereSQL)
+	}
 	return scope.joinsSQL() + scope.whereSQL() + scope.groupSQL() +
-		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
+		scope.havingSQL() + scope.orderSQL() + limitSuffixSQL
 }
 
 // Raw set raw sql
@@ -469,7 +473,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
-			if field.DBName == column {
+			if strings.EqualFold(field.DBName, column) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -663,7 +667,7 @@ func (scope *Scope) whereSQL() (sql string) {
 	)
 
 	if !scope.Search.Unscoped && scope.HasColumn("deleted_at") {
-		sql := fmt.Sprintf("%v.deleted_at IS NULL", quotedTableName)
+		sql := fmt.Sprintf("%s.%s IS NULL", quotedTableName, scope.Dialect().Quote("deleted_at"))
 		primaryConditions = append(primaryConditions, sql)
 	}
 
@@ -735,7 +739,7 @@ func (scope *Scope) orderSQL() string {
 	return " ORDER BY " + strings.Join(orders, ",")
 }
 
-func (scope *Scope) limitAndOffsetSQL() string {
+func (scope *Scope) limitAndOffsetSQL() (whereSQL, suffixSQL string) {
 	return scope.Dialect().LimitAndOffsetSQL(scope.Search.limit, scope.Search.offset)
 }
 
@@ -1122,8 +1126,14 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
+	var query = fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s", scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)
+	if len(onDelete) > 0 {
+		query += fmt.Sprintf(" ON DELETE %s", onDelete)
+	}
+	if len(onUpdate) > 0 {
+		query += fmt.Sprintf(" ON UPDATE %s", onUpdate)
+	}
+	scope.Raw(query).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
