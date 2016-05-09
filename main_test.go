@@ -68,7 +68,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 
 func TestStringPrimaryKey(t *testing.T) {
 	type UUIDStruct struct {
-		ID   string `gorm:"primary_key"`
+		ID   string `gorm:"primary_key;AUTO_INCREMENT"`
 		Name string
 	}
 	DB.AutoMigrate(&UUIDStruct{})

@@ -8,7 +8,7 @@ import (
 )
 
 type Blog struct {
-	ID         uint   `gorm:"primary_key"`
+	ID         uint   `gorm:"primary_key;AUTO_INCREMENT"`
 	Locale     string `gorm:"primary_key"`
 	Subject    string
 	Body       string
@@ -18,7 +18,7 @@ type Blog struct {
 }
 
 type Tag struct {
-	ID     uint   `gorm:"primary_key"`
+	ID     uint   `gorm:"primary_key;AUTO_INCREMENT"`
 	Locale string `gorm:"primary_key"`
 	Value  string
 	Blogs  []*Blog `gorm:"many2many:blogs_tags"`

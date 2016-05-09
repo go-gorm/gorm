@@ -8,7 +8,7 @@ import (
 )
 
 type CustomizeColumn struct {
-	ID   int64     `gorm:"column:mapped_id; primary_key:yes"`
+	ID   int64     `gorm:"column:mapped_id; primary_key:yes; AUTO_INCREMENT"`
 	Name string    `gorm:"column:mapped_name"`
 	Date time.Time `gorm:"column:mapped_time"`
 }
@@ -67,12 +67,12 @@ func TestCustomColumnAndIgnoredFieldClash(t *testing.T) {
 }
 
 type CustomizePerson struct {
-	IdPerson string             `gorm:"column:idPerson;primary_key:true"`
+	IdPerson string             `gorm:"column:idPerson;primary_key:true;AUTO_INCREMENT"`
 	Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;associationforeignkey:idAccount;foreignkey:idPerson"`
 }
 
 type CustomizeAccount struct {
-	IdAccount string `gorm:"column:idAccount;primary_key:true"`
+	IdAccount string `gorm:"column:idAccount;primary_key:true;AUTO_INCREMENT"`
 	Name      string
 }
 

@@ -734,12 +734,12 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 
 	type (
 		Level1 struct {
-			ID           uint   `gorm:"primary_key;"`
+			ID           uint   `gorm:"primary_key;AUTO_INCREMENT"`
 			LanguageCode string `gorm:"primary_key"`
 			Value        string
 		}
 		Level2 struct {
-			ID           uint   `gorm:"primary_key;"`
+			ID           uint   `gorm:"primary_key;AUTO_INCREMENT"`
 			LanguageCode string `gorm:"primary_key"`
 			Value        string
 			Level1s      []Level1 `gorm:"many2many:levels;"`
