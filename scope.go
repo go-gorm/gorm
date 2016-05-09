@@ -1027,6 +1027,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
 					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
+					delete(foreignKeyStruct.TagSettings, "AUTO_INCREMENT")
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
 				}
@@ -1037,6 +1038,7 @@ func (scope *Scope) createJoinTable(field *StructField) {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
 					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
+					delete(foreignKeyStruct.TagSettings, "AUTO_INCREMENT")
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))
 				}

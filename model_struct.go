@@ -71,7 +71,7 @@ type StructField struct {
 }
 
 func (structField *StructField) clone() *StructField {
-	return &StructField{
+	clone := &StructField{
 		DBName:          structField.DBName,
 		Name:            structField.Name,
 		Names:           structField.Names,
@@ -81,11 +81,17 @@ func (structField *StructField) clone() *StructField {
 		IsScanner:       structField.IsScanner,
 		HasDefaultValue: structField.HasDefaultValue,
 		Tag:             structField.Tag,
-		TagSettings:     structField.TagSettings,
+		TagSettings:     map[string]string{},
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
 		Relationship:    structField.Relationship,
 	}
+
+	for key, value := range structField.TagSettings {
+		clone.TagSettings[key] = value
+	}
+
+	return clone
 }
 
 // Relationship described the relationship between models
