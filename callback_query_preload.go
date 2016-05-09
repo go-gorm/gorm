@@ -160,15 +160,10 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 			preloadMap[toString(foreignValues)] = append(preloadMap[toString(foreignValues)], result)
 		}
 
-		objects := scope.IndirectValue()
-		for j := 0; j < objects.Len(); j++ {
-			object := reflect.Indirect(objects.Index(j))
+		for j := 0; j < indirectScopeValue.Len(); j++ {
+			object := indirect(indirectScopeValue.Index(j))
 			objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
-			objectStringValue := toString(objectRealValue)
-			if results, ok := preloadMap[objectStringValue]; ok {
-				if object.Kind() == reflect.Ptr {
-					object = object.Elem()
-				}
+			if results, ok := preloadMap[toString(objectRealValue)]; ok {
 				f := object.FieldByName(field.Name)
 				f.Set(reflect.Append(f, results...))
 			}
