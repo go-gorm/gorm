@@ -288,7 +288,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	// assign find results
 	var (
 		indirectScopeValue = scope.IndirectValue()
-		fieldsSourceMap    = map[string]reflect.Value{}
+		fieldsSourceMap    = map[string][]reflect.Value{}
 		foreignFieldNames  = []string{}
 	)
 
@@ -301,13 +301,16 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
 			object := indirect(indirectScopeValue.Index(j))
-			fieldsSourceMap[toString(getValueFromFields(object, foreignFieldNames))] = object.FieldByName(field.Name)
+			fieldsSourceMap[toString(getValueFromFields(object, foreignFieldNames))] = append(fieldsSourceMap[toString(getValueFromFields(object, foreignFieldNames))], object.FieldByName(field.Name))
 		}
 	} else if indirectScopeValue.IsValid() {
-		fieldsSourceMap[toString(getValueFromFields(indirectScopeValue, foreignFieldNames))] = indirectScopeValue.FieldByName(field.Name)
+		fieldsSourceMap[toString(getValueFromFields(indirectScopeValue, foreignFieldNames))] = append(fieldsSourceMap[toString(getValueFromFields(indirectScopeValue, foreignFieldNames))], indirectScopeValue.FieldByName(field.Name))
 	}
 
 	for source, link := range linkHash {
-		fieldsSourceMap[source].Set(reflect.Append(fieldsSourceMap[source], link...))
+		for i, field := range fieldsSourceMap[source] {
+			field.Set(reflect.Append(fieldsSourceMap[source][i], link...))
+		}
+
 	}
 }
