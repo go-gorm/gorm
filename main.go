@@ -220,7 +220,11 @@ func (s *DB) Row() *sql.Row {
 }
 
 func (s *DB) Rows() (*sql.Rows, error) {
-	return s.NewScope(s.Value).rows()
+	result, err := s.NewScope(s.Value).rows()
+	if intf, ok := s.values["__orig"]; ok {
+		intf.(*DB).Error = err
+	}
+	return result, err
 }
 
 func (s *DB) Pluck(column string, value interface{}) *DB {
@@ -286,10 +290,14 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.clone().NewScope(value)
+	var result *DB
 	if scope.PrimaryKeyZero() {
-		return scope.callCallbacks(s.parent.callback.creates).db
+		result = scope.callCallbacks(s.parent.callback.creates).db
+	} else {
+		result = scope.callCallbacks(s.parent.callback.updates).db
 	}
-	return scope.callCallbacks(s.parent.callback.updates).db
+	s.Error = result.Error
+	return result
 }
 
 func (s *DB) Create(value interface{}) *DB {
@@ -298,11 +306,16 @@ func (s *DB) Create(value interface{}) *DB {
 }
 
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callback.deletes).db
+	result := s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callback.deletes).db
+	s.Error = result.Error
+	return result
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
-	return s.clone().search.Raw(true).Where(sql, values...).db
+	result := s.clone().search.Raw(true).Where(sql, values...).db
+	result.values["__orig"] = s
+	s.Error = result.Error
+	return result
 }
 
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
@@ -310,7 +323,9 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	generatedSql := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
 	generatedSql = strings.TrimSuffix(strings.TrimPrefix(generatedSql, "("), ")")
 	scope.Raw(generatedSql)
-	return scope.Exec().db
+	result := scope.Exec().db
+	s.Error = result.Error
+	return result
 }
 
 func (s *DB) Model(value interface{}) *DB {
