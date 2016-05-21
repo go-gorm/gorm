@@ -809,7 +809,7 @@ func TestRelated(t *testing.T) {
 
 func TestForeignKey(t *testing.T) {
 	for _, structField := range DB.NewScope(&User{}).GetStructFields() {
-		for _, foreignKey := range []string{"BillingAddressID", "ShippingAddressId", "CompanyID"} {
+		for _, foreignKey := range []string{"BillingAddressID", "ShippingAddressId", "CompanyID", "ReallyLongThingID"} {
 			if structField.Name == foreignKey && !structField.IsForeignKey {
 				t.Errorf(fmt.Sprintf("%v should be foreign key", foreignKey))
 			}
@@ -838,5 +838,24 @@ func TestForeignKey(t *testing.T) {
 				t.Errorf(fmt.Sprintf("%v should be foreign key", foreignKey))
 			}
 		}
+	}
+}
+
+func TestLongForeignKey(t *testing.T) {
+	targetScope := DB.NewScope(&ReallyLongTableNameToTestMySQLNameLengthLimit{})
+	targetTableName := targetScope.TableName()
+	modelScope := DB.NewScope(&User{})
+	modelField, ok := modelScope.FieldByName("ReallyLongThingID")
+	if !ok {
+		t.Fatalf("Failed to get field by name: ReallyLongThingID")
+	}
+	targetField, ok := targetScope.FieldByName("ID")
+	if !ok {
+		t.Fatalf("Failed to get field by name: ID")
+	}
+	dest := fmt.Sprintf("%v(%v)", targetTableName, targetField.DBName)
+	err := DB.Model(&User{}).AddForeignKey(modelField.DBName, dest, "CASCADE", "CASCADE").Error
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("Failed to create foreign key: %v", err))
 	}
 }
