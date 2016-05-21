@@ -49,10 +49,18 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// CREATE DATABASE gorm;
 		// GRANT ALL ON gorm.* TO 'gorm'@'localhost';
 		fmt.Println("testing mysql...")
-		db, err = gorm.Open("mysql", "gorm:gorm@/gorm?charset=utf8&parseTime=True")
+		dbhost := os.Getenv("GORM_DBADDRESS")
+		if dbhost != "" {
+			dbhost = fmt.Sprintf("tcp(%v)", dbhost)
+		}
+		db, err = gorm.Open("mysql", fmt.Sprintf("gorm:gorm@%v/gorm?charset=utf8&parseTime=True", dbhost))
 	case "postgres":
 		fmt.Println("testing postgres...")
-		db, err = gorm.Open("postgres", "user=gorm DB.name=gorm sslmode=disable")
+		dbhost := os.Getenv("GORM_DBHOST")
+		if dbhost != "" {
+			dbhost = fmt.Sprintf("host=%v ", dbhost)
+		}
+		db, err = gorm.Open("postgres", fmt.Sprintf("%vuser=gorm password=gorm DB.name=gorm sslmode=disable", dbhost))
 	case "foundation":
 		fmt.Println("testing foundation...")
 		db, err = gorm.Open("foundation", "dbname=gorm port=15432 sslmode=disable")

@@ -1,0 +1,53 @@
+# use the default golang container from Docker Hub
+box: golang
+
+services:
+    - id: mariadb:10.0
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - id: postgres
+      env:
+          POSTGRES_USER: gorm
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_DB: gorm
+
+# The steps that will be executed in the build pipeline
+build:
+    # The steps that will be executed on build
+    steps:
+        # Sets the go workspace and places you package
+        # at the right place in the workspace tree
+        - setup-go-workspace
+
+        # Gets the dependencies
+        - script:
+                name: go get
+                code: |
+                    cd $WERCKER_SOURCE_DIR
+                    go version
+                    go get -t ./...
+
+        # Build the project
+        - script:
+                name: go build
+                code: |
+                    go build ./...
+
+        # Test the project
+        - script:
+                name: test sqlite
+                code: |
+                    go test ./...
+
+        - script:
+                name: test mysql
+                code: |
+                    GORM_DIALECT=mysql GORM_DBADDRESS=mariadb:3306 go test ./...
+
+        - script:
+                name: test postgres
+                code: |
+                    GORM_DIALECT=postgres GORM_DBHOST=postgres go test ./...
