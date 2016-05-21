@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -842,6 +843,10 @@ func TestForeignKey(t *testing.T) {
 }
 
 func TestLongForeignKey(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "" || dialect == "sqlite" {
+		// sqlite does not support ADD CONSTRAINT in ALTER TABLE
+		return
+	}
 	targetScope := DB.NewScope(&ReallyLongTableNameToTestMySQLNameLengthLimit{})
 	targetTableName := targetScope.TableName()
 	modelScope := DB.NewScope(&User{})
