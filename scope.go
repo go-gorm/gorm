@@ -1117,8 +1117,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	var keyName = fmt.Sprintf("%s_%s_%s_foreign", scope.TableName(), field, dest)
-	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
+	keyName := scope.Dialect().BuildForeignKeyName(scope.TableName(), field, dest)
 
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return

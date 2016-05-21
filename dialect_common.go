@@ -4,12 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
 
+// DefaultForeignKeyNamer contains the default foreign key name generator method
+type DefaultForeignKeyNamer struct {
+}
+
 type commonDialect struct {
 	db *sql.DB
+	DefaultForeignKeyNamer
 }
 
 func init() {
@@ -134,4 +140,10 @@ func (commonDialect) SelectFromDummyTable() string {
 
 func (commonDialect) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
+}
+
+func (DefaultForeignKeyNamer) BuildForeignKeyName(tableName, field, dest string) string {
+	keyName := fmt.Sprintf("%s_%s_%s_foreign", tableName, field, dest)
+	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
+	return keyName
 }

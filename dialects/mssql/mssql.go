@@ -24,6 +24,7 @@ func init() {
 
 type mssql struct {
 	db *sql.DB
+	gorm.DefaultForeignKeyNamer
 }
 
 func (mssql) GetName() string {
