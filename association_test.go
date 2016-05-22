@@ -842,25 +842,33 @@ func TestForeignKey(t *testing.T) {
 	}
 }
 
-func TestLongForeignKey(t *testing.T) {
+func testForeignKey(t *testing.T, source interface{}, sourceFieldName string, target interface{}, targetFieldName string) {
 	if dialect := os.Getenv("GORM_DIALECT"); dialect == "" || dialect == "sqlite" {
 		// sqlite does not support ADD CONSTRAINT in ALTER TABLE
 		return
 	}
-	targetScope := DB.NewScope(&ReallyLongTableNameToTestMySQLNameLengthLimit{})
+	targetScope := DB.NewScope(target)
 	targetTableName := targetScope.TableName()
-	modelScope := DB.NewScope(&NotSoLongTableName{})
-	modelField, ok := modelScope.FieldByName("ReallyLongThingID")
+	modelScope := DB.NewScope(source)
+	modelField, ok := modelScope.FieldByName(sourceFieldName)
 	if !ok {
-		t.Fatalf("Failed to get field by name: ReallyLongThingID")
+		t.Fatalf(fmt.Sprintf("Failed to get field by name: %v", sourceFieldName))
 	}
-	targetField, ok := targetScope.FieldByName("ID")
+	targetField, ok := targetScope.FieldByName(targetFieldName)
 	if !ok {
-		t.Fatalf("Failed to get field by name: ID")
+		t.Fatalf(fmt.Sprintf("Failed to get field by name: %v", targetFieldName))
 	}
 	dest := fmt.Sprintf("%v(%v)", targetTableName, targetField.DBName)
-	err := DB.Model(&NotSoLongTableName{}).AddForeignKey(modelField.DBName, dest, "CASCADE", "CASCADE").Error
+	err := DB.Model(source).AddForeignKey(modelField.DBName, dest, "CASCADE", "CASCADE").Error
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Failed to create foreign key: %v", err))
 	}
+}
+
+func TestLongForeignKey(t *testing.T) {
+	testForeignKey(t, &NotSoLongTableName{}, "ReallyLongThingID", &ReallyLongTableNameToTestMySQLNameLengthLimit{}, "ID")
+}
+
+func TestLongForeignKeyWithShortDest(t *testing.T) {
+	testForeignKey(t, &ReallyLongThingThatReferencesShort{}, "ShortID", &Short{}, "ID")
 }

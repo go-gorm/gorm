@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 type mysql struct {
@@ -120,7 +121,7 @@ func (mysql) SelectFromDummyTable() string {
 
 func (s mysql) BuildForeignKeyName(tableName, field, dest string) string {
 	keyName := s.commonDialect.BuildForeignKeyName(tableName, field, dest)
-	if len(keyName) <= 64 {
+	if utf8.RuneCountInString(keyName) <= 64 {
 		return keyName
 	}
 	h := sha1.New()
@@ -128,7 +129,10 @@ func (s mysql) BuildForeignKeyName(tableName, field, dest string) string {
 	bs := h.Sum(nil)
 
 	// sha1 is 40 digits, keep first 24 characters of destination
-	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(dest, "_")
+	destRunes := []rune(regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(dest, "_"))
+	if len(destRunes) > 24 {
+		destRunes = destRunes[:24]
+	}
 
-	return fmt.Sprintf("%s%x", keyName[:24], bs)
+	return fmt.Sprintf("%s%x", string(destRunes), bs)
 }
