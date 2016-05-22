@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"testing"
@@ -838,5 +839,28 @@ func TestForeignKey(t *testing.T) {
 				t.Errorf(fmt.Sprintf("%v should be foreign key", foreignKey))
 			}
 		}
+	}
+}
+
+func TestLongForeignKey(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "" || dialect == "sqlite" {
+		// sqlite does not support ADD CONSTRAINT in ALTER TABLE
+		return
+	}
+	targetScope := DB.NewScope(&ReallyLongTableNameToTestMySQLNameLengthLimit{})
+	targetTableName := targetScope.TableName()
+	modelScope := DB.NewScope(&NotSoLongTableName{})
+	modelField, ok := modelScope.FieldByName("ReallyLongThingID")
+	if !ok {
+		t.Fatalf("Failed to get field by name: ReallyLongThingID")
+	}
+	targetField, ok := targetScope.FieldByName("ID")
+	if !ok {
+		t.Fatalf("Failed to get field by name: ID")
+	}
+	dest := fmt.Sprintf("%v(%v)", targetTableName, targetField.DBName)
+	err := DB.Model(&NotSoLongTableName{}).AddForeignKey(modelField.DBName, dest, "CASCADE", "CASCADE").Error
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("Failed to create foreign key: %v", err))
 	}
 }

@@ -1,8 +1,10 @@
 package gorm
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -114,4 +116,19 @@ func (s mysql) currentDatabase() (name string) {
 
 func (mysql) SelectFromDummyTable() string {
 	return "FROM DUAL"
+}
+
+func (s mysql) BuildForeignKeyName(tableName, field, dest string) string {
+	keyName := s.commonDialect.BuildForeignKeyName(tableName, field, dest)
+	if len(keyName) <= 64 {
+		return keyName
+	}
+	h := sha1.New()
+	h.Write([]byte(keyName))
+	bs := h.Sum(nil)
+
+	// sha1 is 40 digits, keep first 24 characters of destination
+	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(dest, "_")
+
+	return fmt.Sprintf("%s%x", keyName[:24], bs)
 }

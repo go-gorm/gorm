@@ -39,6 +39,16 @@ type User struct {
 	IgnoredPointer    *User                 `sql:"-"`
 }
 
+type NotSoLongTableName struct {
+	Id                int64
+	ReallyLongThingID int64
+	ReallyLongThing   ReallyLongTableNameToTestMySQLNameLengthLimit
+}
+
+type ReallyLongTableNameToTestMySQLNameLengthLimit struct {
+	Id int64
+}
+
 type CreditCard struct {
 	ID        int8
 	Number    string
@@ -231,7 +241,7 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Toy{}}
+	values := []interface{}{&ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Toy{}}
 	for _, value := range values {
 		DB.DropTable(value)
 	}
