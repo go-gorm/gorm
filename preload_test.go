@@ -1288,17 +1288,23 @@ func TestNilPointerSlice(t *testing.T) {
 		t.Error(err)
 	}
 
-	want := Level1{Value: "Bob", Level2: &Level2{
-		Value: "en",
-		Level3: &Level3{
-			Value: "native",
+	want := Level1{
+		Value: "Bob",
+		Level2: &Level2{
+			Value: "en",
+			Level3: &Level3{
+				Value: "native",
+			},
 		},
-	}}
+	}
 	if err := DB.Save(&want).Error; err != nil {
 		t.Error(err)
 	}
 
-	want2 := Level1{Value: "Tom", Level2: nil}
+	want2 := Level1{
+		Value:  "Tom",
+		Level2: nil,
+	}
 	if err := DB.Save(&want2).Error; err != nil {
 		t.Error(err)
 	}
@@ -1318,6 +1324,52 @@ func TestNilPointerSlice(t *testing.T) {
 
 	if !reflect.DeepEqual(got[0], want2) && !reflect.DeepEqual(got[1], want2) {
 		t.Errorf("got %s; want array containing %s", toJSONString(got), toJSONString(want2))
+	}
+}
+
+func TestNilPointerSlice2(t *testing.T) {
+	type (
+		Level4 struct {
+			ID uint
+		}
+		Level3 struct {
+			ID       uint
+			Level4ID sql.NullInt64 `sql:"index"`
+			Level4   *Level4
+		}
+		Level2 struct {
+			ID      uint
+			Level3s []*Level3 `gorm:"many2many:level2_level3s"`
+		}
+		Level1 struct {
+			ID       uint
+			Level2ID sql.NullInt64 `sql:"index"`
+			Level2   *Level2
+		}
+	)
+
+	DB.DropTableIfExists(new(Level4))
+	DB.DropTableIfExists(new(Level3))
+	DB.DropTableIfExists(new(Level2))
+	DB.DropTableIfExists(new(Level1))
+
+	if err := DB.AutoMigrate(new(Level4), new(Level3), new(Level2), new(Level1)).Error; err != nil {
+		t.Error(err)
+	}
+
+	want := new(Level1)
+	if err := DB.Save(want).Error; err != nil {
+		t.Error(err)
+	}
+
+	got := new(Level1)
+	err := DB.Preload("Level2.Level3s.Level4").Last(&got).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
 	}
 }
 

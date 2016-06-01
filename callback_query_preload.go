@@ -28,6 +28,10 @@ func preloadCallback(scope *Scope) {
 		for idx, preloadField := range preloadFields {
 			var currentPreloadConditions []interface{}
 
+			if currentScope == nil {
+				continue
+			}
+
 			// if not preloaded
 			if preloadKey := strings.Join(preloadFields[:idx+1], "."); !preloadedMap[preloadKey] {
 
@@ -67,7 +71,9 @@ func preloadCallback(scope *Scope) {
 			// preload next level
 			if idx < len(preloadFields)-1 {
 				currentScope = currentScope.getColumnAsScope(preloadField)
-				currentFields = currentScope.Fields()
+				if currentScope != nil {
+					currentFields = currentScope.Fields()
+				}
 			}
 		}
 	}
