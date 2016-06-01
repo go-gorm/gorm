@@ -22,6 +22,7 @@ var NowFunc = func() time.Time {
 type DB struct {
 	Value             interface{}
 	Error             error
+	PropagatedError   error
 	RowsAffected      int64
 	callback          *callback
 	db                sqlCommon
@@ -296,7 +297,7 @@ func (s *DB) Save(value interface{}) *DB {
 	} else {
 		result = scope.callCallbacks(s.parent.callback.updates).db
 	}
-	s.Error = result.Error
+	s.PropagatedError = result.Error
 	return result
 }
 
@@ -307,14 +308,14 @@ func (s *DB) Create(value interface{}) *DB {
 
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	result := s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callback.deletes).db
-	s.Error = result.Error
+	s.PropagatedError = result.Error
 	return result
 }
 
 func (s *DB) Raw(sql string, values ...interface{}) *DB {
 	result := s.clone().search.Raw(true).Where(sql, values...).db
 	result.values["__orig"] = s
-	s.Error = result.Error
+	s.PropagatedError = result.Error
 	return result
 }
 
@@ -324,7 +325,7 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	generatedSql = strings.TrimSuffix(strings.TrimPrefix(generatedSql, "("), ")")
 	scope.Raw(generatedSql)
 	result := scope.Exec().db
-	s.Error = result.Error
+	s.PropagatedError = result.Error
 	return result
 }
 
