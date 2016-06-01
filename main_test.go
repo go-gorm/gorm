@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
@@ -61,7 +62,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		db, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
 	default:
 		fmt.Println("testing sqlite3...")
-		db, err = gorm.Open("sqlite3", "/tmp/gorm.db")
+		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
 	}
 	return
 }
