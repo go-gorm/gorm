@@ -21,7 +21,7 @@ type User struct {
     ShippingAddress   Address         // One-To-One relationship (belongs to - use ShippingAddressID as foreign key)
     ShippingAddressID int
 
-    IgnoreMe          int `gorm:"-"`   // Ignore this field
+    IgnoreMe          int `sql:"-"`   // Ignore this field
     Languages         []Language `gorm:"many2many:user_languages;"` // Many-To-Many relationship, 'user_languages' is join table
 }
 
