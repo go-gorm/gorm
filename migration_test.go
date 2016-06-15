@@ -367,3 +367,68 @@ func TestAutoMigration(t *testing.T) {
 		t.Error("Big Emails should be saved and fetched correctly")
 	}
 }
+
+type MultipleIndexes struct {
+	ID     int64
+	UserID int64  `sql:"unique_index:uix_multipleindexes_user_name,uix_multipleindexes_user_email;index:idx_multipleindexes_user_other"`
+	Name   string `sql:"unique_index:uix_multipleindexes_user_name"`
+	Email  string `sql:"unique_index:,uix_multipleindexes_user_email"`
+	Other  string `sql:"index:,idx_multipleindexes_user_other"`
+}
+
+func TestMultipleIndexes(t *testing.T) {
+	if err := DB.DropTableIfExists(&MultipleIndexes{}).Error; err != nil {
+		fmt.Printf("Got error when try to delete table multiple_indexes, %+v\n", err)
+	}
+
+	DB.Debug().AutoMigrate(&MultipleIndexes{})
+	if err := DB.AutoMigrate(&BigEmail{}).Error; err != nil {
+		t.Errorf("Auto Migrate should not raise any error")
+	}
+
+	DB.Save(&MultipleIndexes{UserID: 1, Name: "jinzhu", Email: "jinzhu@example.org", Other: "foo"})
+
+	scope := DB.NewScope(&MultipleIndexes{})
+	if !scope.Dialect().HasIndex(scope.TableName(), "uix_multipleindexes_user_name") {
+		t.Errorf("Failed to create index")
+	}
+
+	if !scope.Dialect().HasIndex(scope.TableName(), "uix_multipleindexes_user_email") {
+		t.Errorf("Failed to create index")
+	}
+
+	if !scope.Dialect().HasIndex(scope.TableName(), "uix_multiple_indexes_email") {
+		t.Errorf("Failed to create index")
+	}
+
+	if !scope.Dialect().HasIndex(scope.TableName(), "idx_multipleindexes_user_other") {
+		t.Errorf("Failed to create index")
+	}
+
+	if !scope.Dialect().HasIndex(scope.TableName(), "idx_multiple_indexes_other") {
+		t.Errorf("Failed to create index")
+	}
+
+	var mutipleIndexes MultipleIndexes
+	DB.First(&mutipleIndexes, "name = ?", "jinzhu")
+	if mutipleIndexes.Email != "jinzhu@example.org" || mutipleIndexes.Name != "jinzhu" {
+		t.Error("MutipleIndexes should be saved and fetched correctly")
+	}
+
+	// Check unique constraints
+	if err := DB.Save(&MultipleIndexes{UserID: 1, Name: "name1", Email: "jinzhu@example.org", Other: "foo"}).Error; err == nil {
+		t.Error("MultipleIndexes unique index failed")
+	}
+
+	if err := DB.Save(&MultipleIndexes{UserID: 1, Name: "name1", Email: "foo@example.org", Other: "foo"}).Error; err != nil {
+		t.Error("MultipleIndexes unique index failed")
+	}
+
+	if err := DB.Save(&MultipleIndexes{UserID: 2, Name: "name1", Email: "jinzhu@example.org", Other: "foo"}).Error; err == nil {
+		t.Error("MultipleIndexes unique index failed")
+	}
+
+	if err := DB.Save(&MultipleIndexes{UserID: 2, Name: "name1", Email: "foo2@example.org", Other: "foo"}).Error; err != nil {
+		t.Error("MultipleIndexes unique index failed")
+	}
+}

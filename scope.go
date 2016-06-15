@@ -1157,17 +1157,25 @@ func (scope *Scope) autoIndex() *Scope {
 
 	for _, field := range scope.GetStructFields() {
 		if name, ok := field.TagSettings["INDEX"]; ok {
-			if name == "INDEX" {
-				name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
+			names := strings.Split(name, ",")
+
+			for _, name := range names {
+				if name == "INDEX" || name == "" {
+					name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
+				}
+				indexes[name] = append(indexes[name], field.DBName)
 			}
-			indexes[name] = append(indexes[name], field.DBName)
 		}
 
 		if name, ok := field.TagSettings["UNIQUE_INDEX"]; ok {
-			if name == "UNIQUE_INDEX" {
-				name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+			names := strings.Split(name, ",")
+
+			for _, name := range names {
+				if name == "UNIQUE_INDEX" || name == "" {
+					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+				}
+				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 			}
-			uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 		}
 	}
 
