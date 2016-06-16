@@ -127,7 +127,7 @@ func (s mssql) currentDatabase() (name string) {
 	return
 }
 
-func (mssql) LimitAndOffsetSQL(limit, offset int64) (sql string) {
+func (mssql) LimitAndOffsetSQL(limit, offset int) (sql string) {
 	if limit > 0 || offset > 0 {
 		if offset < 0 {
 			offset = 0
