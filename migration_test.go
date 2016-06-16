@@ -381,7 +381,7 @@ func TestMultipleIndexes(t *testing.T) {
 		fmt.Printf("Got error when try to delete table multiple_indexes, %+v\n", err)
 	}
 
-	DB.Debug().AutoMigrate(&MultipleIndexes{})
+	DB.AutoMigrate(&MultipleIndexes{})
 	if err := DB.AutoMigrate(&BigEmail{}).Error; err != nil {
 		t.Errorf("Auto Migrate should not raise any error")
 	}

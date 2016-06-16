@@ -727,6 +727,67 @@ func TestNestedPreload11(t *testing.T) {
 	}
 }
 
+type LevelC1 struct {
+	ID        uint
+	Value     string
+	LevelC2ID uint
+}
+
+type LevelC2 struct {
+	ID      uint
+	Value   string
+	LevelC1 LevelC1
+}
+
+type LevelC3 struct {
+	ID        uint
+	Value     string
+	LevelC2ID uint
+	LevelC2   LevelC2
+}
+
+func TestNestedPreload12(t *testing.T) {
+	DB.DropTableIfExists(&LevelC2{})
+	DB.DropTableIfExists(&LevelC3{})
+	DB.DropTableIfExists(&LevelC1{})
+	if err := DB.AutoMigrate(&LevelC1{}, &LevelC2{}, &LevelC3{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	level2 := LevelC2{
+		Value: "c2",
+		LevelC1: LevelC1{
+			Value: "c1",
+		},
+	}
+	DB.Create(&level2)
+
+	want := []LevelC3{
+		{
+			Value:   "c3-1",
+			LevelC2: level2,
+		}, {
+			Value:   "c3-2",
+			LevelC2: level2,
+		},
+	}
+
+	for i := range want {
+		if err := DB.Create(&want[i]).Error; err != nil {
+			t.Error(err)
+		}
+	}
+
+	var got []LevelC3
+	if err := DB.Preload("LevelC2").Preload("LevelC2.LevelC1").Find(&got).Error; err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
 func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	if dialect := os.Getenv("GORM_DIALECT"); dialect == "" || dialect == "sqlite" {
 		return

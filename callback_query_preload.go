@@ -126,18 +126,22 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 		indirectScopeValue = scope.IndirectValue()
 	)
 
-	for i := 0; i < resultsValue.Len(); i++ {
-		result := resultsValue.Index(i)
-		if indirectScopeValue.Kind() == reflect.Slice {
-			foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
-			for j := 0; j < indirectScopeValue.Len(); j++ {
+	if indirectScopeValue.Kind() == reflect.Slice {
+		for j := 0; j < indirectScopeValue.Len(); j++ {
+			for i := 0; i < resultsValue.Len(); i++ {
+				result := resultsValue.Index(i)
+				foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
 				if indirectValue := indirect(indirectScopeValue.Index(j)); equalAsString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames), foreignValues) {
 					indirectValue.FieldByName(field.Name).Set(result)
 					break
 				}
 			}
-		} else {
+		}
+	} else {
+		for i := 0; i < resultsValue.Len(); i++ {
+			result := resultsValue.Index(i)
 			scope.Err(field.Set(result))
+			break
 		}
 	}
 }
