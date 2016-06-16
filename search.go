@@ -15,8 +15,8 @@ type search struct {
 	omits            []string
 	orders           []string
 	preload          []searchPreload
-	offset           int64
-	limit            int64
+	offset           int
+	limit            int
 	group            string
 	tableName        string
 	raw              bool
@@ -82,12 +82,12 @@ func (s *search) Omit(columns ...string) *search {
 	return s
 }
 
-func (s *search) Limit(limit int64) *search {
+func (s *search) Limit(limit int) *search {
 	s.limit = limit
 	return s
 }
 
-func (s *search) Offset(offset int64) *search {
+func (s *search) Offset(offset int) *search {
 	s.offset = offset
 	return s
 }
