@@ -141,7 +141,6 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 		for i := 0; i < resultsValue.Len(); i++ {
 			result := resultsValue.Index(i)
 			scope.Err(field.Set(result))
-			break
 		}
 	}
 }
