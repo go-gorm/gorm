@@ -561,7 +561,15 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 
 // AddForeignKey Add foreign key to the given scope, e.g:
 //     db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
-func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
+func (s *DB) AddForeignKey(field string, dest string, options ...string) *DB {
+	var onDelete string
+	var onUpdate string
+	if len(options) >= 1 {
+		onDelete = options[0]
+	}
+	if len(options) >= 2 {
+		onUpdate = options[1]
+	}
 	scope := s.clone().NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
 	return scope.db

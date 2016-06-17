@@ -122,13 +122,13 @@ func (s commonDialect) currentDatabase() (name string) {
 	return
 }
 
-func (commonDialect) LimitAndOffsetSQL(limit, offset int) (sql string) {
+func (commonDialect) LimitAndOffsetSQL(limit, offset int) (whereSQL, suffixSQL string) {
 	if limit > 0 || offset > 0 {
 		if limit >= 0 {
-			sql += fmt.Sprintf(" LIMIT %d", limit)
+			suffixSQL += fmt.Sprintf(" LIMIT %d", limit)
 		}
 		if offset >= 0 {
-			sql += fmt.Sprintf(" OFFSET %d", offset)
+			suffixSQL += fmt.Sprintf(" OFFSET %d", offset)
 		}
 	}
 	return
