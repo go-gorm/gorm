@@ -262,7 +262,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	// generate query with join table
 	newScope := scope.New(reflect.New(fieldType).Interface())
-	preloadDB = preloadDB.Table(newScope.TableName()).Select("*")
+	preloadDB = preloadDB.Table(newScope.TableName()).Model(newScope.Value).Select("*")
 	preloadDB = joinTableHandler.JoinWith(joinTableHandler, preloadDB, scope.Value)
 
 	// preload inline conditions
