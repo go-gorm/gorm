@@ -33,6 +33,7 @@ type User struct {
 	Company           Company
 	Role
 	PasswordHash      []byte
+	Sequence          uint                  `gorm:"AUTO_INCREMENT"`
 	IgnoreMe          int64                 `sql:"-"`
 	IgnoreStringSlice []string              `sql:"-"`
 	Ignored           struct{ Name string } `sql:"-"`
