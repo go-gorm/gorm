@@ -58,6 +58,9 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateWithAutoIncrement(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
+		t.Skip("Skipping this because only postgres properly support auto_increment on a non-primary_key column")
+	}
 	user1 := User{}
 	user2 := User{}
 
