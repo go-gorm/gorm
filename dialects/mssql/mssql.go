@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
@@ -127,16 +128,15 @@ func (s mssql) currentDatabase() (name string) {
 	return
 }
 
-func (mssql) LimitAndOffsetSQL(limit, offset int) (sql string) {
-	if limit > 0 || offset > 0 {
-		if offset < 0 {
-			offset = 0
+func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+	if limit != nil {
+		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
+			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
 		}
-
-		sql += fmt.Sprintf(" OFFSET %d ROWS", offset)
-
-		if limit >= 0 {
-			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", limit)
+	}
+	if offset != nil {
+		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
+			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
 		}
 	}
 	return
