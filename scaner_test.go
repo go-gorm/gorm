@@ -3,6 +3,7 @@ package gorm_test
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"testing"
 )
 
@@ -51,6 +52,12 @@ func (l ExampleStringSlice) Value() (driver.Value, error) {
 }
 
 func (l *ExampleStringSlice) Scan(input interface{}) error {
+	switch input.(type) {
+	case string:
+		fmt.Printf("string: %+v\n", input.(string))
+	case []byte:
+		fmt.Printf("[]byte: %+v\n", string(input.([]byte)))
+	}
 	return json.Unmarshal(input.([]byte), l)
 }
 

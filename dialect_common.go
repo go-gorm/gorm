@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -122,13 +123,15 @@ func (s commonDialect) currentDatabase() (name string) {
 	return
 }
 
-func (commonDialect) LimitAndOffsetSQL(limit, offset int) (sql string) {
-	if limit > 0 || offset > 0 {
-		if limit >= 0 {
-			sql += fmt.Sprintf(" LIMIT %d", limit)
+func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+	if limit != nil {
+		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
+			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
 		}
-		if offset >= 0 {
-			sql += fmt.Sprintf(" OFFSET %d", offset)
+	}
+	if offset != nil {
+		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
+			sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
 		}
 	}
 	return

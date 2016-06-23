@@ -156,12 +156,12 @@ func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 }
 
 // Limit specify the number of records to be retrieved
-func (s *DB) Limit(limit int) *DB {
+func (s *DB) Limit(limit interface{}) *DB {
 	return s.clone().search.Limit(limit).db
 }
 
 // Offset specify the number of records to skip before starting to return the records
-func (s *DB) Offset(offset int) *DB {
+func (s *DB) Offset(offset interface{}) *DB {
 	return s.clone().search.Offset(offset).db
 }
 
