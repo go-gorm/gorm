@@ -166,7 +166,10 @@ func (s *DB) Offset(offset interface{}) *DB {
 }
 
 // Order specify order when retrieve records from database, set reorder to `true` to overwrite defined conditions
-func (s *DB) Order(value string, reorder ...bool) *DB {
+//     db.Order("name DESC")
+//     db.Order("name DESC", true) // reorder
+//     db.Order(gorm.Expr("name = ? DESC", "first")) // sql expression
+func (s *DB) Order(value interface{}, reorder ...bool) *DB {
 	return s.clone().search.Order(value, reorder...).db
 }
 

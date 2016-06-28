@@ -730,7 +730,15 @@ func (scope *Scope) orderSQL() string {
 
 	var orders []string
 	for _, order := range scope.Search.orders {
-		orders = append(orders, scope.quoteIfPossible(order))
+		if str, ok := order.(string); ok {
+			orders = append(orders, scope.quoteIfPossible(str))
+		} else if expr, ok := order.(*expr); ok {
+			exp := expr.expr
+			for _, arg := range expr.args {
+				exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+			}
+			orders = append(orders, exp)
+		}
 	}
 	return " ORDER BY " + strings.Join(orders, ",")
 }

@@ -13,7 +13,7 @@ type search struct {
 	assignAttrs      []interface{}
 	selects          map[string]interface{}
 	omits            []string
-	orders           []string
+	orders           []interface{}
 	preload          []searchPreload
 	offset           interface{}
 	limit            interface{}
@@ -59,14 +59,12 @@ func (s *search) Assign(attrs ...interface{}) *search {
 	return s
 }
 
-func (s *search) Order(value string, reorder ...bool) *search {
+func (s *search) Order(value interface{}, reorder ...bool) *search {
 	if len(reorder) > 0 && reorder[0] {
-		if value != "" {
-			s.orders = []string{value}
-		} else {
-			s.orders = []string{}
-		}
-	} else if value != "" {
+		s.orders = []interface{}{}
+	}
+
+	if value != nil {
 		s.orders = append(s.orders, value)
 	}
 	return s
