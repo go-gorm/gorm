@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 // preloadCallback used to preload associations
@@ -16,7 +17,9 @@ func preloadCallback(scope *Scope) {
 	var (
 		preloadedMap = map[string]bool{}
 		fields       = scope.Fields()
+		wg           = &sync.WaitGroup{}
 	)
+	defer wg.Wait()
 
 	for _, preload := range scope.Search.preload {
 		var (
@@ -45,16 +48,18 @@ func preloadCallback(scope *Scope) {
 						continue
 					}
 
+					wg.Add(1)
 					switch field.Relationship.Kind {
 					case "has_one":
-						currentScope.handleHasOnePreload(field, currentPreloadConditions)
+						go currentScope.handleHasOnePreload(field, currentPreloadConditions, wg)
 					case "has_many":
-						currentScope.handleHasManyPreload(field, currentPreloadConditions)
+						go currentScope.handleHasManyPreload(field, currentPreloadConditions, wg)
 					case "belongs_to":
-						currentScope.handleBelongsToPreload(field, currentPreloadConditions)
+						go currentScope.handleBelongsToPreload(field, currentPreloadConditions, wg)
 					case "many_to_many":
-						currentScope.handleManyToManyPreload(field, currentPreloadConditions)
+						go currentScope.handleManyToManyPreload(field, currentPreloadConditions, wg)
 					default:
+						wg.Done()
 						scope.Err(errors.New("unsupported relation"))
 					}
 
@@ -77,6 +82,7 @@ func preloadCallback(scope *Scope) {
 			}
 		}
 	}
+
 }
 
 func (scope *Scope) generatePreloadDBWithConditions(conditions []interface{}) (*DB, []interface{}) {
@@ -97,7 +103,8 @@ func (scope *Scope) generatePreloadDBWithConditions(conditions []interface{}) (*
 }
 
 // handleHasOnePreload used to preload has one associations
-func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	relation := field.Relationship
 
 	// get relations's primary keys
@@ -146,7 +153,8 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 }
 
 // handleHasManyPreload used to preload has many associations
-func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	relation := field.Relationship
 
 	// get relations's primary keys
@@ -197,7 +205,8 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 }
 
 // handleBelongsToPreload used to preload belongs to associations
-func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	relation := field.Relationship
 
 	// preload conditions
@@ -236,7 +245,8 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 }
 
 // handleManyToManyPreload used to preload many to many associations
-func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}, wg *sync.WaitGroup) {
+	defer wg.Done()
 	var (
 		relation         = field.Relationship
 		joinTableHandler = relation.JoinTableHandler
