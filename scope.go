@@ -967,7 +967,7 @@ func (scope *Scope) shouldSaveAssociations() bool {
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 
-	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
+	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"ID", scope.typeName()+"ID") {
 		fromField, _ := scope.FieldByName(foreignKey)
 		toField, _ := toScope.FieldByName(foreignKey)
 
