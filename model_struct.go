@@ -175,6 +175,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.HasDefaultValue = true
 				}
 
+				if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+					field.HasDefaultValue = true
+				}
+
 				indirectType := fieldStruct.Type
 				for indirectType.Kind() == reflect.Ptr {
 					indirectType = indirectType.Elem()

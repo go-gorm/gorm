@@ -57,6 +57,21 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateWithAutoIncrement(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" {
+		t.Skip("Skipping this because only postgres properly support auto_increment on a non-primary_key column")
+	}
+	user1 := User{}
+	user2 := User{}
+
+	DB.Create(&user1)
+	DB.Create(&user2)
+
+	if user2.Sequence-user1.Sequence != 1 {
+		t.Errorf("Auto increment should apply on Sequence")
+	}
+}
+
 func TestCreateWithNoGORMPrimayKey(t *testing.T) {
 	if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" {
 		t.Skip("Skipping this because MSSQL will return identity only if the table has an Id column")
