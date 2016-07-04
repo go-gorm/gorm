@@ -144,7 +144,7 @@ db.DB().SetMaxOpenConns(100)
 
 ## Composite Primary Key
 
-Set multiple fields as priamry key to enable composite primary key
+Set multiple fields as primary key to enable composite primary key
 
 ```go
 type Product struct {
