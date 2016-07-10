@@ -1513,19 +1513,23 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 	type (
 		Level4 struct {
 			ID       uint
+			Name     string
 			Level3ID uint
 		}
 		Level3 struct {
 			ID      uint
+			Name    string
 			Level4s []*Level4
 		}
 		Level2 struct {
 			ID       uint
+			Name     string
 			Level3ID sql.NullInt64 `sql:"index"`
 			Level3   *Level3
 		}
 		Level1 struct {
 			ID       uint
+			Name     string
 			Level2ID sql.NullInt64 `sql:"index"`
 			Level2   *Level2
 		}
@@ -1540,7 +1544,7 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 		t.Error(err)
 	}
 
-	lvl := new(Level3)
+	lvl := &Level3{}
 	if err := DB.Save(lvl).Error; err != nil {
 		t.Error(err)
 	}
