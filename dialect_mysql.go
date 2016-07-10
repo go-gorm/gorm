@@ -30,6 +30,14 @@ func (mysql) Quote(key string) string {
 func (mysql) DataTypeOf(field *StructField) string {
 	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 
+	// MySQL allows only one auto increment column per table, and it must
+	// be a KEY column.
+	if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+		if _, ok = field.TagSettings["INDEX"]; !ok && !field.IsPrimaryKey {
+			delete(field.TagSettings, "AUTO_INCREMENT")
+		}
+	}
+
 	if sqlType == "" {
 		switch dataValue.Kind() {
 		case reflect.Bool:
