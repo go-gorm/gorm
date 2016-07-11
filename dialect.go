@@ -43,6 +43,9 @@ type Dialect interface {
 
 	// BuildForeignKeyName returns a foreign key name for the given table, field and reference
 	BuildForeignKeyName(tableName, field, dest string) string
+
+	// CurrentDatabase return current database name
+	CurrentDatabase() string
 }
 
 var dialectsMap = map[string]Dialect{}
