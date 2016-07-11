@@ -89,7 +89,7 @@ func (s sqlite3) HasColumn(tableName string, columnName string) bool {
 	return count > 0
 }
 
-func (s sqlite3) currentDatabase() (name string) {
+func (s sqlite3) CurrentDatabase() (name string) {
 	var (
 		ifaces   = make([]interface{}, 3)
 		pointers = make([]*string, 3)

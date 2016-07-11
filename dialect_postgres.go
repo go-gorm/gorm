@@ -107,7 +107,7 @@ func (s postgres) HasColumn(tableName string, columnName string) bool {
 	return count > 0
 }
 
-func (s postgres) currentDatabase() (name string) {
+func (s postgres) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT CURRENT_DATABASE()").Scan(&name)
 	return
 }
