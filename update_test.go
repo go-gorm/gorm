@@ -419,6 +419,37 @@ func TestUpdatesWithBlankValues(t *testing.T) {
 	}
 }
 
+type ElementWithIgnoredField struct {
+	Id           int64
+	Value        string
+	IgnoredField int64 `sql:"-"`
+}
+
+func (e ElementWithIgnoredField) TableName() string {
+	return "element_with_ignored_field"
+}
+
+func TestUpdatesTableWithIgnoredValues(t *testing.T) {
+	elem := ElementWithIgnoredField{Value: "foo", IgnoredField: 10}
+	DB.LogMode(true)
+	DB.Save(&elem)
+
+	DB.Table(elem.TableName()).
+		Where("id = ?", elem.Id).
+		// DB.Model(&ElementWithIgnoredField{Id: elem.Id}).
+		Updates(&ElementWithIgnoredField{Value: "bar", IgnoredField: 100})
+
+	var elem1 ElementWithIgnoredField
+	err := DB.First(&elem1, elem.Id).Error
+	if err != nil {
+		t.Errorf("error getting an element from database: %s", err.Error())
+	}
+
+	if elem1.IgnoredField != 0 {
+		t.Errorf("element's ignored field should not be updated")
+	}
+}
+
 func TestUpdateDecodeVirtualAttributes(t *testing.T) {
 	var user = User{
 		Name:     "jinzhu",
