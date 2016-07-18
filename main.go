@@ -298,6 +298,11 @@ func (s *DB) Count(value interface{}) *DB {
 	return s.NewScope(s.Value).count(value).db
 }
 
+// CountDistinct get how many distinct records for a model
+func (s *DB) CountDistinct(value interface{}, columnName string) *DB {
+	return s.NewScope(s.Value).countDistinct(value, columnName).db
+}
+
 // Related get related associations
 func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
 	return s.clone().NewScope(s.Value).related(value, foreignKeys...).db
