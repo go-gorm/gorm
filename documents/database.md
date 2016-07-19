@@ -31,6 +31,7 @@ import (
 
 func main() {
   db, err := gorm.Open("mysql", "user:password@/dbname?charset=utf8&parseTime=True&loc=Local")
+  defer db.Close()
 }
 ```
 
@@ -44,6 +45,7 @@ import (
 
 func main() {
   db, err := gorm.Open("postgres", "host=myhost user=gorm dbname=gorm sslmode=disable password=mypassword")
+  defer db.Close()
 }
 ```
 
@@ -57,6 +59,7 @@ import (
 
 func main() {
   db, err := gorm.Open("sqlite3", "/tmp/gorm.db")
+  defer db.Close()
 }
 ```
 

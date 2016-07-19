@@ -52,6 +52,7 @@ func main() {
   if err != nil {
     panic("failed to connect database")
   }
+  defer db.Close()
 
   // Migrate the schema
   db.AutoMigrate(&Product{})
