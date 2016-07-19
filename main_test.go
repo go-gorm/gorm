@@ -247,7 +247,19 @@ func TestTableName(t *testing.T) {
 	if DB.NewScope([]Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("[]Cart's singular table name should be shopping_cart")
 	}
+
+	// Test prefix
+	if DB.Prefix("my_prefix_").NewScope(Order{}).TableName() != "my_prefix_order" {
+		t.Errorf("Order's table name should be my_prefix_order")
+	}
+
 	DB.SingularTable(false)
+
+	// Test prefix
+	if DB.Prefix("my_prefix_").NewScope(Order{}).TableName() != "my_prefix_orders" {
+		t.Errorf("Order's table name should be my_prefix_orders")
+	}
+
 }
 
 func TestNullValues(t *testing.T) {
