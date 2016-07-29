@@ -1204,10 +1204,7 @@ func (scope *Scope) autoIndex() *Scope {
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
 	for _, value := range values {
-		indirectValue := reflect.ValueOf(value)
-		for indirectValue.Kind() == reflect.Ptr {
-			indirectValue = indirectValue.Elem()
-		}
+		indirectValue := indirect(reflect.ValueOf(value))
 
 		switch indirectValue.Kind() {
 		case reflect.Slice:
@@ -1227,6 +1224,40 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 			results = append(results, result)
 		}
 	}
+	return
+}
+
+func (scope *Scope) getColumnAsArrayUnique(columns []string, values ...interface{}) (results [][]interface{}) {
+	unfilteredResults := scope.getColumnAsArray(columns, values...)
+
+	rootMap := map[interface{}]interface{}{}
+
+	for _, valueSet := range unfilteredResults {
+		currentMap := rootMap
+		appendResult := false
+
+		for _, value := range valueSet {
+			if isBlank(reflect.ValueOf(value)) {
+				appendResult = false
+				break
+			}
+
+			innerMap, ok := currentMap[value]
+			if !ok {
+				innerMap = map[interface{}]interface{}{}
+				currentMap[value] = innerMap
+
+				appendResult = true
+			}
+
+			currentMap = innerMap.(map[interface{}]interface{})
+		}
+
+		if appendResult {
+			results = append(results, valueSet)
+		}
+	}
+
 	return
 }
 
