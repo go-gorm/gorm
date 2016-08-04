@@ -136,7 +136,7 @@ type Profile struct {
 
 type User struct {
   gorm.Model
-  Profile []Profiles `gorm:"ForeignKey:UserRefer"`
+  Profiles []Profile `gorm:"ForeignKey:UserRefer"`
 }
 ```
 
@@ -152,7 +152,7 @@ type Profile struct {
 type User struct {
   gorm.Model
   Refer   string
-  Profile []Profiles `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+  Profiles []Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
 }
 ```
 
