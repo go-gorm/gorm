@@ -353,9 +353,7 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 		if indirectReflectValue.Kind() == reflect.Struct {
 			saveAssociation(reflectValue)
 		} else if indirectReflectValue.Kind() == reflect.Slice {
-			for i := 0; i < indirectReflectValue.Len(); i++ {
-				saveAssociation(indirectReflectValue.Index(i))
-			}
+			saveAssociation(indirectReflectValue)
 		} else {
 			association.setErr(errors.New("invalid value type"))
 		}
