@@ -129,7 +129,7 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 	if blankColumnsWithDefaultValue, ok := scope.InstanceGet("gorm:blank_columns_with_default_value"); ok {
 		db := scope.DB().New().Table(scope.TableName()).Select(blankColumnsWithDefaultValue.([]string))
 		for _, field := range scope.Fields() {
-			if field.IsPrimaryKey && !field.IsBlank {
+			if field.IsPrimaryKey {
 				db = db.Where(fmt.Sprintf("%v = ?", field.DBName), field.Field.Interface())
 			}
 		}
