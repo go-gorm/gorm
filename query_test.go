@@ -628,6 +628,8 @@ func TestSelectWithVariables(t *testing.T) {
 			t.Errorf("Should only contains one column")
 		}
 	}
+
+	rows.Close()
 }
 
 func TestSelectWithArrayInput(t *testing.T) {
