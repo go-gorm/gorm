@@ -47,6 +47,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 	} else {
 		var source string
 		var dbSQL sqlCommon
+		dontPing := false
 
 		switch value := args[0].(type) {
 		case string:
@@ -61,6 +62,12 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		case sqlCommon:
 			source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
 			dbSQL = value
+			if len(args) == 2 {
+				aBool, correct := args[1].(bool)
+				if correct == true {
+					dontPing = aBool
+				}
+			}
 		}
 
 		db = DB{
@@ -73,7 +80,7 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 		}
 		db.parent = &db
 
-		if err == nil {
+		if err == nil && !dontPing {
 			err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
 		}
 	}
