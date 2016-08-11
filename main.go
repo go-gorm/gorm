@@ -253,7 +253,8 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 
 // Find find records that match given conditions
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+	newScope := s.clone().NewScope(out)
+	return newScope.Set("gorm:order_by_primary_key", "ASC").inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Scan scan value to a struct
