@@ -32,14 +32,6 @@ func init() {
 		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", err))
 	}
 
-	// DB.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
-	// DB.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	if os.Getenv("DEBUG") == "true" {
-		DB.LogMode(true)
-	}
-
-	DB.DB().SetMaxIdleConns(10)
-
 	runMigration()
 }
 
@@ -72,6 +64,15 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
 	}
+
+	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
+	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+	if os.Getenv("DEBUG") == "true" {
+		db.LogMode(true)
+	}
+
+	db.DB().SetMaxIdleConns(10)
+
 	return
 }
 
