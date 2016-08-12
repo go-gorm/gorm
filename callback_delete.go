@@ -20,6 +20,10 @@ func beforeDeleteCallback(scope *Scope) {
 
 // deleteCallback used to delete data from database or set deleted_at to current time (when using with soft delete)
 func deleteCallback(scope *Scope) {
+	if scope.PrimaryKeyZero() {
+		scope.db.AddError(ErrNonSpecificDelete)
+	}
+
 	if !scope.HasError() {
 		var extraOption string
 		if str, ok := scope.Get("gorm:delete_option"); ok {

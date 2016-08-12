@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	// ErrNonSpecificDelete no primary key specified for delete, happens when you try to `Delete` a record without a primary key set
+	ErrNonSpecificDelete = errors.New("no primary key specified for delete")
 	// ErrRecordNotFound record not found error, happens when haven't find any matched data when looking up with a struct
 	ErrRecordNotFound = errors.New("record not found")
 	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
