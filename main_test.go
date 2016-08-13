@@ -539,6 +539,12 @@ func TestJoins(t *testing.T) {
 	if len(users4) != 0 {
 		t.Errorf("should find no user when searching with unexisting credit card")
 	}
+
+	var users5 []User
+	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where(User{Id:1}).Where(Email{Id:1}).Not(Email{Id:10}).First(&users5)
+	if db5.Error != nil {
+		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
+	}
 }
 
 func TestJoinsWithSelect(t *testing.T) {
