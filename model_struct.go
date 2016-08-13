@@ -175,7 +175,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.HasDefaultValue = true
 				}
 
-				if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+				if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok && !field.IsPrimaryKey {
 					field.HasDefaultValue = true
 				}
 
