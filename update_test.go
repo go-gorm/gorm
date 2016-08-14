@@ -431,7 +431,6 @@ func (e ElementWithIgnoredField) TableName() string {
 
 func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 	elem := ElementWithIgnoredField{Value: "foo", IgnoredField: 10}
-	DB.LogMode(true)
 	DB.Save(&elem)
 
 	DB.Table(elem.TableName()).
