@@ -917,7 +917,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
-	if query, ok := scope.Search.selects["query"]; !ok || !strings.Contains(fmt.Sprint(query), "count(") {
+	if query, ok := scope.Search.selects["query"]; !ok || !regexp.MustCompile("(?i)^count(.+)$").MatchString(fmt.Sprint(query)) {
 		scope.Search.Select("count(*)")
 	}
 	scope.Search.countingQuery = true
