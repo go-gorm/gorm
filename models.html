@@ -70,7 +70,7 @@
     data-chapter-title="Models"
     data-filepath="models.md"
     data-basepath="."
-    data-revision="Tue Aug 16 2016 16:37:38 GMT+0800 (CST)"
+    data-revision="Tue Aug 16 2016 16:57:46 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -632,6 +632,7 @@
 <li><a href="#conventions">Conventions</a><ul>
 <li><a href="#gormmodel-struct"><code>gorm.Model</code> struct</a></li>
 <li><a href="#table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</a></li>
+<li><a href="#change-default-tablenames">Change default tablenames</a></li>
 <li><a href="#column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</a></li>
 <li><a href="#field-id-as-primary-key">Field <code>ID</code> as primary key</a></li>
 <li><a href="#field-createdat-used-to-store-records-created-time">Field <code>CreatedAt</code> used to store record&apos;s created time</a></li>
@@ -731,7 +732,12 @@
 <span class="hljs-comment">// Disable table name&apos;s pluralization globally</span>
 db.SingularTable(<span class="hljs-literal">true</span>) <span class="hljs-comment">// if set this to true, `User`&apos;s default table name will be `user`, table name setted with `TableName` won&apos;t be affected</span>
 </code></pre>
-<h3 id="column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</h3>
+<h3 id="change-default-tablenames">Change default tablenames</h3>
+<p>You can apply any rules on the default table name by defining the <code>DefaultTableNameHandler</code></p>
+<pre><code>gorm.DefaultTableNameHandler = func (db *gorm.DB, defaultTableName string) string  {
+    return &quot;prefix_&quot; + defaultTableName;
+}
+</code></pre><h3 id="column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   ID <span class="hljs-keyword">uint</span>             <span class="hljs-comment">// column name will be `id`</span>
   Name <span class="hljs-keyword">string</span>         <span class="hljs-comment">// column name will be `name`</span>
