@@ -68,7 +68,7 @@
     data-chapter-title="Getting Started with GORM"
     data-filepath="README.md"
     data-basepath="."
-    data-revision="Wed May 04 2016 21:23:42 GMT+0800 (CST)"
+    data-revision="Tue Aug 16 2016 16:37:38 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -669,6 +669,7 @@
   <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> {
     <span class="hljs-built_in">panic</span>(<span class="hljs-string">&quot;failed to connect database&quot;</span>)
   }
+  <span class="hljs-keyword">defer</span> db.Close()
 
   <span class="hljs-comment">// Migrate the schema</span>
   db.AutoMigrate(&amp;Product{})

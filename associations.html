@@ -70,7 +70,7 @@
     data-chapter-title="Associations"
     data-filepath="associations.md"
     data-basepath="."
-    data-revision="Wed May 04 2016 21:23:42 GMT+0800 (CST)"
+    data-revision="Tue Aug 16 2016 16:37:38 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -747,7 +747,7 @@ db.Model(&amp;user).Related(&amp;emails)
 
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Profile []Profiles <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
+  Profiles []Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
 }
 </code></pre>
 <p><em>Specify Foreign Key &amp; Association Key</em></p>
@@ -760,7 +760,7 @@ db.Model(&amp;user).Related(&amp;emails)
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
   Refer   <span class="hljs-keyword">string</span>
-  Profile []Profiles <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
+  Profiles []Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
 }
 </code></pre>
 <h2 id="many-to-many">Many To Many</h2>

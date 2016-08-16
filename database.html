@@ -70,7 +70,7 @@
     data-chapter-title="Database"
     data-filepath="database.md"
     data-basepath="."
-    data-revision="Wed May 04 2016 21:23:42 GMT+0800 (CST)"
+    data-revision="Tue Aug 16 2016 16:37:38 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -667,6 +667,7 @@
 
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;mysql&quot;</span>, <span class="hljs-string">&quot;user:password@/dbname?charset=utf8&amp;parseTime=True&amp;loc=Local&quot;</span>)
+  <span class="hljs-keyword">defer</span> db.Close()
 }
 </code></pre>
 <h4 id="postgresql">PostgreSQL</h4>
@@ -677,6 +678,7 @@
 
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;postgres&quot;</span>, <span class="hljs-string">&quot;host=myhost user=gorm dbname=gorm sslmode=disable password=mypassword&quot;</span>)
+  <span class="hljs-keyword">defer</span> db.Close()
 }
 </code></pre>
 <h4 id="sqlite3">Sqlite3</h4>
@@ -687,6 +689,7 @@
 
 <span class="hljs-keyword">func</span> main() {
   db, err := gorm.Open(<span class="hljs-string">&quot;sqlite3&quot;</span>, <span class="hljs-string">&quot;/tmp/gorm.db&quot;</span>)
+  <span class="hljs-keyword">defer</span> db.Close()
 }
 </code></pre>
 <h4 id="write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</h4>
