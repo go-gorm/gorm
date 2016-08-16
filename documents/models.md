@@ -103,6 +103,16 @@ func (u User) TableName() string {
 db.SingularTable(true) // if set this to true, `User`'s default table name will be `user`, table name setted with `TableName` won't be affected
 ```
 
+### Change default tablenames
+
+You can apply any rules on the default table name by defining the `DefaultTableNameHandler`
+
+```
+gorm.DefaultTableNameHandler = func (db *gorm.DB, defaultTableName string) string  {
+	return "prefix_" + defaultTableName;
+}
+```
+
 ### Column name is the snake case of field's name
 
 ```go
