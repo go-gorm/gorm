@@ -117,7 +117,7 @@ type Company struct {
 }
 
 type Role struct {
-	Name string
+	Name string `gorm:"size:256"`
 }
 
 func (role *Role) Scan(value interface{}) error {
