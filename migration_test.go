@@ -256,7 +256,6 @@ func runMigration() {
 	for _, value := range values {
 		DB.DropTable(value)
 	}
-
 	if err := DB.AutoMigrate(values...).Error; err != nil {
 		panic(fmt.Sprintf("No error should happen when create table, but got %+v", err))
 	}

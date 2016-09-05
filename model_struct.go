@@ -203,6 +203,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					for _, subField := range scope.New(fieldValue).GetStructFields() {
 						subField = subField.clone()
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
+						if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
+							subField.DBName = prefix + subField.DBName
+						}
 						if subField.IsPrimaryKey {
 							modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
 						}

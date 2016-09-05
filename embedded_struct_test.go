@@ -8,14 +8,32 @@ type BasePost struct {
 	URL   string
 }
 
+type Author struct {
+	Name  string
+	Email string
+}
+
 type HNPost struct {
 	BasePost
+	Author  `gorm:"embedded_prefix:user_"` // Embedded struct
 	Upvotes int32
 }
 
 type EngadgetPost struct {
 	BasePost BasePost `gorm:"embedded"`
+	Author   Author   `gorm:"embedded;embedded_prefix:author_"` // Embedded struct
 	ImageUrl string
+}
+
+func TestPrefixColumnNameForEmbeddedStruct(t *testing.T) {
+	dialect := DB.NewScope(&EngadgetPost{}).Dialect()
+	if !dialect.HasColumn(DB.NewScope(&EngadgetPost{}).TableName(), "author_name") || !dialect.HasColumn(DB.NewScope(&EngadgetPost{}).TableName(), "author_email") {
+		t.Errorf("should has prefix for embedded columns")
+	}
+
+	if !dialect.HasColumn(DB.NewScope(&HNPost{}).TableName(), "user_name") || !dialect.HasColumn(DB.NewScope(&HNPost{}).TableName(), "user_email") {
+		t.Errorf("should has prefix for embedded columns")
+	}
 }
 
 func TestSaveAndQueryEmbeddedStruct(t *testing.T) {
