@@ -81,10 +81,16 @@ func TestStringPrimaryKey(t *testing.T) {
 		ID   string `gorm:"primary_key"`
 		Name string
 	}
+	DB.DropTable(&UUIDStruct{})
 	DB.AutoMigrate(&UUIDStruct{})
 
 	data := UUIDStruct{ID: "uuid", Name: "hello"}
-	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" {
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.Name != "hello" {
+		t.Errorf("string primary key should not be populated")
+	}
+
+	data = UUIDStruct{ID: "uuid", Name: "hello world"}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.Name != "hello world" {
 		t.Errorf("string primary key should not be populated")
 	}
 }
@@ -541,7 +547,7 @@ func TestJoins(t *testing.T) {
 	}
 
 	var users5 []User
-	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where(User{Id:1}).Where(Email{Id:1}).Not(Email{Id:10}).First(&users5)
+	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
 	if db5.Error != nil {
 		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
 	}
