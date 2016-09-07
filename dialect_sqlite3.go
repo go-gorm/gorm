@@ -89,6 +89,15 @@ func (s sqlite3) HasColumn(tableName string, columnName string) bool {
 	return count > 0
 }
 
+func (s sqlite3) HasForeignKey(tableName string, foreignKeyName string) bool {
+	// We return intentional true here since foreign keys are a little bit
+	// complicated on SQLite. You have to enable them first to being able to
+	// create and use them. Since a true value here prevents any further query to
+	// create the foreign key we just added that. For further information about
+	// foreign keys on SQLite take a look at http://www.sqlite.org/foreignkeys.html
+	return true
+}
+
 func (s sqlite3) CurrentDatabase() (name string) {
 	var (
 		ifaces   = make([]interface{}, 3)
