@@ -106,6 +106,11 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
+// DialectName returns the name of the used dialect.
+func (s *DB) DialectName() string {
+	return s.dialect.GetName()
+}
+
 // CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() sqlCommon {
 	return s.db
