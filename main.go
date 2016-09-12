@@ -91,6 +91,11 @@ func (s *DB) DB() *sql.DB {
 	return s.db.(*sql.DB)
 }
 
+// Dialect get dialect
+func (s *DB) Dialect() Dialect {
+	return s.parent.dialect
+}
+
 // New clone a new db connection without search conditions
 func (s *DB) New() *DB {
 	clone := s.clone()
