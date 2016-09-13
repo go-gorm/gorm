@@ -454,10 +454,10 @@ func (scope *Scope) quoteIfPossible(str string) string {
 func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 	var (
 		ignored            interface{}
-		selectFields       []*Field
 		values             = make([]interface{}, len(columns))
+		selectFields       []*Field
 		selectedColumnsMap = map[string]int{}
-		resetFields        = map[*Field]int{}
+		resetFields        = map[int]*Field{}
 	)
 
 	for index, column := range columns {
@@ -476,18 +476,21 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 					reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
 					reflectValue.Elem().Set(field.Field.Addr())
 					values[index] = reflectValue.Interface()
-					resetFields[field] = index
+					resetFields[index] = field
 				}
 
 				selectedColumnsMap[column] = fieldIndex
-				break
+
+				if field.IsNormal {
+					break
+				}
 			}
 		}
 	}
 
 	scope.Err(rows.Scan(values...))
 
-	for field, index := range resetFields {
+	for index, field := range resetFields {
 		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
 			field.Field.Set(v)
 		}
@@ -861,7 +864,6 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 				if field.IsNormal {
 					hasUpdate = true
 					if err == ErrUnaddressable {
-						fmt.Println(err)
 						results[field.DBName] = value
 					} else {
 						results[field.DBName] = field.Field.Interface()
