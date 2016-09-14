@@ -1217,19 +1217,48 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 				var result []interface{}
 				var object = indirect(indirectValue.Index(i))
 				for _, column := range columns {
-					result = append(result, object.FieldByName(column).Interface())
+					field := object.FieldByName(column)
+					if isNil(field) {
+						continue
+					}
+					result = append(result, field.Interface())
 				}
-				results = append(results, result)
+				if len(result) > 0 {
+					results = append(results, result)
+				}
 			}
 		case reflect.Struct:
 			var result []interface{}
 			for _, column := range columns {
-				result = append(result, indirectValue.FieldByName(column).Interface())
+				field := indirectValue.FieldByName(column)
+				if isNil(field) {
+					continue
+				}
+				result = append(result, field.Interface())
 			}
-			results = append(results, result)
+			if len(result) > 0 {
+				results = append(results, result)
+			}
 		}
 	}
 	return
+}
+
+func isNil(v reflect.Value) bool {
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return true
+	}
+	switch v := v.Interface().(type) {
+	case sql.NullBool:
+		return !v.Valid
+	case sql.NullFloat64:
+		return !v.Valid
+	case sql.NullInt64:
+		return !v.Valid
+	case sql.NullString:
+		return !v.Valid
+	}
+	return false
 }
 
 func (scope *Scope) getColumnAsScope(column string) *Scope {
