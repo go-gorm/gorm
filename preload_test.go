@@ -90,6 +90,8 @@ func TestPreload(t *testing.T) {
 			}
 		} else if len(user.Emails) != 0 {
 			t.Errorf("should not preload any emails for other users when with condition")
+		} else if user.Emails == nil {
+			t.Errorf("should return an empty slice to indicate zero results")
 		}
 	}
 }
@@ -592,8 +594,14 @@ func TestNestedPreload9(t *testing.T) {
 		},
 		Level2_1: Level2_1{
 			Level1s: []Level1{
-				{Value: "value3-3"},
-				{Value: "value4-4"},
+				{
+					Value: "value3-3",
+					Level0s: []Level0{},
+				},
+				{
+					Value: "value4-4",
+					Level0s: []Level0{},
+				},
 			},
 		},
 	}
@@ -657,6 +665,7 @@ func TestNestedPreload10(t *testing.T) {
 		},
 		{
 			Value: "bar 2",
+			LevelA3s: []*LevelA3{},
 		},
 	}
 	for _, levelA2 := range want {

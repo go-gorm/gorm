@@ -186,9 +186,11 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 		for j := 0; j < indirectScopeValue.Len(); j++ {
 			object := indirect(indirectScopeValue.Index(j))
 			objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
+			f := object.FieldByName(field.Name)
 			if results, ok := preloadMap[toString(objectRealValue)]; ok {
-				f := object.FieldByName(field.Name)
 				f.Set(reflect.Append(f, results...))
+			} else {
+				f.Set(reflect.MakeSlice(f.Type(), 0, 0))
 			}
 		}
 	} else {
