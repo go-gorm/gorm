@@ -99,6 +99,7 @@ type Relationship struct {
 	Kind                         string
 	PolymorphicType              string
 	PolymorphicDBName            string
+	PolymorphicValue             string
 	ForeignFieldNames            []string
 	ForeignDBNames               []string
 	AssociationForeignFieldNames []string
@@ -292,6 +293,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											associationType = polymorphic
 											relationship.PolymorphicType = polymorphicType.Name
 											relationship.PolymorphicDBName = polymorphicType.DBName
+											// if Dog has multiple set of toys set name of the set (instead of default 'dogs')
+											relationship.PolymorphicValue = field.TagSettings["VALUE"]
 											polymorphicType.IsForeignKey = true
 										}
 									}
@@ -384,6 +387,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									associationType = polymorphic
 									relationship.PolymorphicType = polymorphicType.Name
 									relationship.PolymorphicDBName = polymorphicType.DBName
+									// if Cat has several different types of toys set name for each (instead of default 'cats')
+									relationship.PolymorphicValue = field.TagSettings["VALUE"]
 									polymorphicType.IsForeignKey = true
 								}
 							}
