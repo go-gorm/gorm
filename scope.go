@@ -348,6 +348,9 @@ func (scope *Scope) Exec() *Scope {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
+			if lastInsertId, err := result.LastInsertId(); scope.Err(err) == nil {
+				scope.db.LastInsertId = lastInsertId
+			}
 		}
 	}
 	return scope
