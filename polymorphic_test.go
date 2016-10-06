@@ -21,8 +21,8 @@ type Dog struct {
 type Hamster struct {
 	Id           int
 	Name         string
-	PreferredToy Toy `gorm:"polymorphic:Owner;value:hamster_preferred"`
-	OtherToy     Toy `gorm:"polymorphic:Owner;value:hamster_other"`
+	PreferredToy Toy `gorm:"polymorphic:Owner;polymorphic_value:hamster_preferred"`
+	OtherToy     Toy `gorm:"polymorphic:Owner;polymorphic_value:hamster_other"`
 }
 
 type Toy struct {

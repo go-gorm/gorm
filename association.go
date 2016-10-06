@@ -63,11 +63,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 	} else {
 		// Polymorphic Relations
 		if relationship.PolymorphicDBName != "" {
-			value := scope.TableName()
-			if relationship.PolymorphicValue != "" {
-				value = relationship.PolymorphicValue
-			}
-			newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), value)
+			newDB = newDB.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), relationship.PolymorphicValue)
 		}
 
 		// Delete Relations except new created
@@ -286,13 +282,9 @@ func (association *Association) Count() int {
 	}
 
 	if relationship.PolymorphicType != "" {
-		value := scope.TableName()
-		if relationship.PolymorphicValue != "" {
-			value = relationship.PolymorphicValue
-		}
 		query = query.Where(
 			fmt.Sprintf("%v.%v = ?", scope.New(fieldValue).QuotedTableName(), scope.Quote(relationship.PolymorphicDBName)),
-			value,
+			relationship.PolymorphicValue,
 		)
 	}
 

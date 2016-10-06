@@ -60,11 +60,7 @@ func saveAfterAssociationsCallback(scope *Scope) {
 						}
 
 						if relationship.PolymorphicType != "" {
-							value := scope.TableName()
-							if relationship.PolymorphicValue != "" {
-								value = relationship.PolymorphicValue
-							}
-							scope.Err(newScope.SetColumn(relationship.PolymorphicType, value))
+							scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
 						}
 
 						scope.Err(newDB.Save(elem).Error)
@@ -86,11 +82,7 @@ func saveAfterAssociationsCallback(scope *Scope) {
 					}
 
 					if relationship.PolymorphicType != "" {
-						value := scope.TableName()
-						if relationship.PolymorphicValue != "" {
-							value = relationship.PolymorphicValue
-						}
-						scope.Err(newScope.SetColumn(relationship.PolymorphicType, value))
+						scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
 					}
 					scope.Err(scope.NewDB().Save(elem).Error)
 				}

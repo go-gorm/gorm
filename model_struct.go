@@ -294,7 +294,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											relationship.PolymorphicType = polymorphicType.Name
 											relationship.PolymorphicDBName = polymorphicType.DBName
 											// if Dog has multiple set of toys set name of the set (instead of default 'dogs')
-											relationship.PolymorphicValue = field.TagSettings["VALUE"]
+											if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
+												relationship.PolymorphicValue = value
+											} else {
+												relationship.PolymorphicValue = scope.TableName()
+											}
 											polymorphicType.IsForeignKey = true
 										}
 									}
@@ -388,7 +392,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									relationship.PolymorphicType = polymorphicType.Name
 									relationship.PolymorphicDBName = polymorphicType.DBName
 									// if Cat has several different types of toys set name for each (instead of default 'cats')
-									relationship.PolymorphicValue = field.TagSettings["VALUE"]
+									if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
+										relationship.PolymorphicValue = value
+									} else {
+										relationship.PolymorphicValue = scope.TableName()
+									}
 									polymorphicType.IsForeignKey = true
 								}
 							}
