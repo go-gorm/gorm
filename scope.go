@@ -999,7 +999,11 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					}
 
 					if relationship.PolymorphicType != "" {
-						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), scope.TableName())
+						value := scope.TableName()
+						if relationship.PolymorphicValue != "" {
+							value = relationship.PolymorphicValue
+						}
+						query = query.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), value)
 					}
 					scope.Err(query.Find(value).Error)
 				}

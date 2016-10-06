@@ -75,6 +75,9 @@ func Open(dialect string, args ...interface{}) (*DB, error) {
 
 		if err == nil {
 			err = db.DB().Ping() // Send a ping to make sure the database connection is alive.
+			if err != nil {
+				db.DB().Close()
+			}
 		}
 	}
 

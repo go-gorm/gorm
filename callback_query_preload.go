@@ -114,7 +114,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	values := toQueryValues(primaryKeys)
 	if relation.PolymorphicType != "" {
 		query += fmt.Sprintf(" AND %v = ?", scope.Quote(relation.PolymorphicDBName))
-		values = append(values, scope.TableName())
+		values = append(values, relation.PolymorphicValue)
 	}
 
 	results := makeSlice(field.Struct.Type)
@@ -163,7 +163,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 	values := toQueryValues(primaryKeys)
 	if relation.PolymorphicType != "" {
 		query += fmt.Sprintf(" AND %v = ?", scope.Quote(relation.PolymorphicDBName))
-		values = append(values, scope.TableName())
+		values = append(values, relation.PolymorphicValue)
 	}
 
 	results := makeSlice(field.Struct.Type)
