@@ -144,3 +144,7 @@ func (s mysql) BuildForeignKeyName(tableName, field, dest string) string {
 
 	return fmt.Sprintf("%s%x", string(destRunes), bs)
 }
+
+func (mysql) SupportLastInsertID() bool {
+	return true
+}
