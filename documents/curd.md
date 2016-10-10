@@ -52,7 +52,7 @@ db.Set("gorm:save_associations", false).Create(&user)
 
 ### Default Values
 
-You could define default value in the `gorm` tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into databae, gorm will load those fields's value from database.
+You could define default value in the `gorm` tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into database, gorm will load those fields's value from database.
 
 ```go
 type Animal struct {
