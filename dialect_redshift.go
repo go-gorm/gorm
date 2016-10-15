@@ -35,25 +35,14 @@ func (redshift) DataTypeOf(field *StructField) string {
 		case reflect.Float64:
 			sqlType = "float8"
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32:
-			if field.IsPrimaryKey {
-				delete(field.TagSettings, "AUTO_INCREMENT")
-				delete(field.TagSettings, "IDENTITY(1, 1)")
-				sqlType = "integer IDENTITY(1, 1)"
-			} else if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
-				delete(field.TagSettings, "AUTO_INCREMENT")
-				delete(field.TagSettings, "IDENTITY(1, 1)")
-				sqlType = "integer IDENTITY(1, 1)"
-			} else if _, ok := field.TagSettings["IDENTITY(1, 1)"]; ok {
-				delete(field.TagSettings, "AUTO_INCREMENT")
-				delete(field.TagSettings, "IDENTITY(1, 1)")
-				sqlType = "integer IDENTITY(1, 1)"
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; field.IsPrimaryKey || ok {
+				sqlType = "integer DISTKEY IDENTITY(1, 1)"
 			} else {
 				sqlType = "integer"
 			}
 		case reflect.Int64, reflect.Uintptr, reflect.Uint64:
-			if _, ok := field.TagSettings["IDENTITY(1, 1)"]; ok || field.IsPrimaryKey {
-				field.TagSettings["IDENTITY(1, 1)"] = "IDENTITY(1, 1)"
-				sqlType = "bigint"
+			if _, ok := field.TagSettings["AUTO_INCREMENT"]; field.IsPrimaryKey || ok {
+				sqlType = "bigint DISTKEY IDENTITY(1, 1)"
 			} else {
 				sqlType = "bigint"
 			}
