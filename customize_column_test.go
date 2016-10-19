@@ -8,9 +8,9 @@ import (
 )
 
 type CustomizeColumn struct {
-	ID   int64     `gorm:"column:mapped_id; primary_key:yes"`
-	Name string    `gorm:"column:mapped_name"`
-	Date time.Time `gorm:"column:mapped_time"`
+	ID   int64      `gorm:"column:mapped_id; primary_key:yes"`
+	Name string     `gorm:"column:mapped_name"`
+	Date *time.Time `gorm:"column:mapped_time"`
 }
 
 // Make sure an ignored field does not interfere with another field's custom
@@ -36,7 +36,8 @@ func TestCustomizeColumn(t *testing.T) {
 	}
 
 	expected := "foo"
-	cc := CustomizeColumn{ID: 666, Name: expected, Date: time.Now()}
+	now := time.Now()
+	cc := CustomizeColumn{ID: 666, Name: expected, Date: &now}
 
 	if count := DB.Create(&cc).RowsAffected; count != 1 {
 		t.Error("There should be one record be affected when create record")

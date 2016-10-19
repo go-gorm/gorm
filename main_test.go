@@ -371,9 +371,9 @@ func TestTransaction(t *testing.T) {
 }
 
 func TestRow(t *testing.T) {
-	user1 := User{Name: "RowUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
-	user2 := User{Name: "RowUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
-	user3 := User{Name: "RowUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	user1 := User{Name: "RowUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "RowUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "RowUser3", Age: 20, Birthday: parseTime("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	row := DB.Table("users").Where("name = ?", user2.Name).Select("age").Row()
@@ -385,9 +385,9 @@ func TestRow(t *testing.T) {
 }
 
 func TestRows(t *testing.T) {
-	user1 := User{Name: "RowsUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
-	user2 := User{Name: "RowsUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
-	user3 := User{Name: "RowsUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	user1 := User{Name: "RowsUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "RowsUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "RowsUser3", Age: 20, Birthday: parseTime("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
@@ -409,9 +409,9 @@ func TestRows(t *testing.T) {
 }
 
 func TestScanRows(t *testing.T) {
-	user1 := User{Name: "ScanRowsUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
-	user2 := User{Name: "ScanRowsUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
-	user3 := User{Name: "ScanRowsUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	user1 := User{Name: "ScanRowsUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "ScanRowsUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "ScanRowsUser3", Age: 20, Birthday: parseTime("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	rows, err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("name, age").Rows()
@@ -439,9 +439,9 @@ func TestScanRows(t *testing.T) {
 }
 
 func TestScan(t *testing.T) {
-	user1 := User{Name: "ScanUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
-	user2 := User{Name: "ScanUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
-	user3 := User{Name: "ScanUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	user1 := User{Name: "ScanUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "ScanUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "ScanUser3", Age: 20, Birthday: parseTime("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	type result struct {
@@ -469,9 +469,9 @@ func TestScan(t *testing.T) {
 }
 
 func TestRaw(t *testing.T) {
-	user1 := User{Name: "ExecRawSqlUser1", Age: 1, Birthday: now.MustParse("2000-1-1")}
-	user2 := User{Name: "ExecRawSqlUser2", Age: 10, Birthday: now.MustParse("2010-1-1")}
-	user3 := User{Name: "ExecRawSqlUser3", Age: 20, Birthday: now.MustParse("2020-1-1")}
+	user1 := User{Name: "ExecRawSqlUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "ExecRawSqlUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "ExecRawSqlUser3", Age: 20, Birthday: parseTime("2020-1-1")}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	type result struct {
@@ -611,11 +611,12 @@ func TestTimeWithZone(t *testing.T) {
 
 	for index, vtime := range times {
 		name := "time_with_zone_" + strconv.Itoa(index)
-		user := User{Name: name, Birthday: vtime}
+		user := User{Name: name, Birthday: &vtime}
 
 		if !DialectHasTzSupport() {
 			// If our driver dialect doesn't support TZ's, just use UTC for everything here.
-			user.Birthday = vtime.UTC()
+			utcBirthday := user.Birthday.UTC()
+			user.Birthday = &utcBirthday
 		}
 
 		DB.Save(&user)
@@ -758,7 +759,8 @@ func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
 		e := strconv.Itoa(x) + "benchmark@example.org"
-		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		now := time.Now()
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: &now}
 		// Insert
 		DB.Save(&email)
 		// Query
@@ -782,7 +784,8 @@ func BenchmarkRawSql(b *testing.B) {
 	for x := 0; x < b.N; x++ {
 		var id int64
 		e := strconv.Itoa(x) + "benchmark@example.org"
-		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: time.Now()}
+		now := time.Now()
+		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: &now}
 		// Insert
 		DB.QueryRow(insertSql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
 		// Query
@@ -793,4 +796,9 @@ func BenchmarkRawSql(b *testing.B) {
 		// Delete
 		DB.Exec(deleteSql, id)
 	}
+}
+
+func parseTime(str string) *time.Time {
+	t := now.MustParse(str)
+	return &t
 }

@@ -18,7 +18,7 @@ type User struct {
 	UserNum           Num
 	Name              string `sql:"size:255"`
 	Email             string
-	Birthday          time.Time     // Time
+	Birthday          *time.Time    // Time
 	CreatedAt         time.Time     // CreatedAt: Time of record is created, will be insert automatically
 	UpdatedAt         time.Time     // UpdatedAt: Time of record is updated, will be updated automatically
 	Emails            []Email       // Embedded structs
@@ -333,9 +333,9 @@ func TestIndexes(t *testing.T) {
 type BigEmail struct {
 	Id           int64
 	UserId       int64
-	Email        string    `sql:"index:idx_email_agent"`
-	UserAgent    string    `sql:"index:idx_email_agent"`
-	RegisteredAt time.Time `sql:"unique_index"`
+	Email        string     `sql:"index:idx_email_agent"`
+	UserAgent    string     `sql:"index:idx_email_agent"`
+	RegisteredAt *time.Time `sql:"unique_index"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -350,7 +350,8 @@ func TestAutoMigration(t *testing.T) {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 
-	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
+	now := time.Now()
+	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: &now})
 
 	scope := DB.NewScope(&BigEmail{})
 	if !scope.Dialect().HasIndex(scope.TableName(), "idx_email_agent") {
