@@ -170,7 +170,7 @@ type Language struct {
 	Name string
 }
 
-db.Model(&user).Related(&languages)
+db.Model(&user).Related(&languages, "Languages")
 //// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
 ```
 
