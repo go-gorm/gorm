@@ -872,3 +872,15 @@ func TestLongForeignKey(t *testing.T) {
 func TestLongForeignKeyWithShortDest(t *testing.T) {
 	testForeignKey(t, &ReallyLongThingThatReferencesShort{}, "ShortID", &Short{}, "ID")
 }
+
+func TestHasManyChildrenWithOneStruct(t *testing.T) {
+	category := Category{
+		Name: "main",
+		Categories: []Category{
+			{Name: "sub1"},
+			{Name: "sub2"},
+		},
+	}
+
+	DB.Save(&category)
+}

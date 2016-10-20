@@ -180,6 +180,9 @@ type Post struct {
 type Category struct {
 	gorm.Model
 	Name string
+
+	Categories []Category
+	CategoryID *uint
 }
 
 type Comment struct {

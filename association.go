@@ -68,26 +68,28 @@ func (association *Association) Replace(values ...interface{}) *Association {
 
 		// Delete Relations except new created
 		if len(values) > 0 {
-			var associationForeignFieldNames []string
+			var associationForeignFieldNames, associationForeignDBNames []string
 			if relationship.Kind == "many_to_many" {
 				// if many to many relations, get association fields name from association foreign keys
 				associationScope := scope.New(reflect.New(field.Type()).Interface())
-				for _, dbName := range relationship.AssociationForeignFieldNames {
+				for idx, dbName := range relationship.AssociationForeignFieldNames {
 					if field, ok := associationScope.FieldByName(dbName); ok {
 						associationForeignFieldNames = append(associationForeignFieldNames, field.Name)
+						associationForeignDBNames = append(associationForeignDBNames, relationship.AssociationForeignDBNames[idx])
 					}
 				}
 			} else {
-				// If other relations, use primary keys
+				// If has one/many relations, use primary keys
 				for _, field := range scope.New(reflect.New(field.Type()).Interface()).PrimaryFields() {
 					associationForeignFieldNames = append(associationForeignFieldNames, field.Name)
+					associationForeignDBNames = append(associationForeignDBNames, field.DBName)
 				}
 			}
 
 			newPrimaryKeys := scope.getColumnAsArray(associationForeignFieldNames, field.Interface())
 
 			if len(newPrimaryKeys) > 0 {
-				sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(newPrimaryKeys))
+				sql := fmt.Sprintf("%v NOT IN (%v)", toQueryCondition(scope, associationForeignDBNames), toQueryMarks(newPrimaryKeys))
 				newDB = newDB.Where(sql, toQueryValues(newPrimaryKeys)...)
 			}
 		}
