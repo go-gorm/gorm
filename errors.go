@@ -16,6 +16,8 @@ var (
 	ErrCantStartTransaction = errors.New("can't start transaction")
 	// ErrUnaddressable unaddressable value
 	ErrUnaddressable = errors.New("using unaddressable value")
+	// ErrUnsupportedType unsupported type
+	ErrUnsupportedType = errors.New("using unsupported type")
 )
 
 type errorsInterface interface {
