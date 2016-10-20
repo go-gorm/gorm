@@ -60,7 +60,19 @@ func (postgres) SqlTag(value reflect.Value, size int, autoIncrease bool) string 
 }
 
 func (s postgres) ReturningStr(tableName, key string) string {
-	return fmt.Sprintf("RETURNING %v.%v", s.Quote(tableName), key)
+	return fmt.Sprintf("RETURNING %v.%v", s.quoteSplitPeriods(tableName), key)
+}
+
+func (s postgres) quoteSplitPeriods(str string) string {
+	if strings.Index(str, ".") != -1 {
+		newStrs := []string{}
+		for _, str := range strings.Split(str, ".") {
+			newStrs = append(newStrs, s.Quote(str))
+		}
+		return strings.Join(newStrs, ".")
+	} else {
+		return s.Quote(str)
+	}
 }
 
 func (postgres) HasTable(scope *Scope, tableName string) bool {
