@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/lib/pq/hstore"
