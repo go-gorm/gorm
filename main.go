@@ -330,13 +330,13 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 // https://jinzhu.github.io/gorm/curd.html#firstorcreate
 func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	c := s.clone()
-	if result := c.First(out, where...); result.Error != nil {
+	if result := s.First(out, where...); result.Error != nil {
 		if !result.RecordNotFound() {
 			return result
 		}
-		c.AddError(c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db.Error)
+		return c.NewScope(out).inlineCondition(where...).initialize().callCallbacks(c.parent.callbacks.creates).db
 	} else if len(c.search.assignAttrs) > 0 {
-		c.AddError(c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db.Error)
+		return c.NewScope(out).InstanceSet("gorm:update_interface", c.search.assignAttrs).callCallbacks(c.parent.callbacks.updates).db
 	}
 	return c
 }

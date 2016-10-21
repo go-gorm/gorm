@@ -315,8 +315,14 @@ func TestNullValuesWithFirstOrCreate(t *testing.T) {
 	}
 
 	var nv2 NullValue
-	if err := DB.Where(nv1).FirstOrCreate(&nv2).Error; err != nil {
-		t.Errorf("Should not raise any error, but got %v", err)
+	result := DB.Where(nv1).FirstOrCreate(&nv2)
+
+	if result.RowsAffected != 1 {
+		t.Errorf("RowsAffected should be 1 after create some record")
+	}
+
+	if result.Error != nil {
+		t.Errorf("Should not raise any error, but got %v", result.Error)
 	}
 
 	if nv2.Name.String != "first_or_create" || nv2.Gender.String != "M" {
