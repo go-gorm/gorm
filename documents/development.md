@@ -23,7 +23,7 @@ if YetAnotherCondition {
 }
 ```
 
-When we start to perform any operations, GROM will create a new `*gorm.Scope` instance based on current `*gorm.DB`
+When we start to perform any operations, GORM will create a new `*gorm.Scope` instance based on current `*gorm.DB`
 
 ```go
 // perform a querying operation
