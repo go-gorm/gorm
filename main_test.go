@@ -761,6 +761,16 @@ func TestDdlErrors(t *testing.T) {
 	}
 }
 
+func TestOpenWithOneParameter(t *testing.T) {
+	db, err := gorm.Open("dialect")
+	if db != nil {
+		t.Error("Open with one parameter returned non nil for db")
+	}
+	if err == nil {
+		t.Error("Open with one parameter returned err as nil")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
