@@ -70,7 +70,7 @@
     data-chapter-title="CRUD: Reading and Writing Data"
     data-filepath="curd.md"
     data-basepath="."
-    data-revision="Tue Aug 16 2016 16:57:46 GMT+0800 (CST)"
+    data-revision="Mon Oct 24 2016 10:42:41 GMT+0800 (CST)"
     data-innerlanguage="">
     
 
@@ -735,7 +735,7 @@ db.Create(&amp;user)
 <pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
 </code></pre>
 <h3 id="default-values">Default Values</h3>
-<p>You could define default value in the <code>gorm</code> tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into databae, gorm will load those fields&apos;s value from database.</p>
+<p>You could define default value in the <code>gorm</code> tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into database, gorm will load those fields&apos;s value from database.</p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
     ID   <span class="hljs-keyword">int64</span>
     Name <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;default:&apos;galeone&apos;&quot;`</span>
