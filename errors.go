@@ -18,40 +18,38 @@ var (
 	ErrUnaddressable = errors.New("using unaddressable value")
 )
 
-type errorsInterface interface {
-	GetErrors() []error
-}
-
 // Errors contains all happened errors
-type Errors struct {
-	errors []error
-}
+type Errors []error
 
-// GetErrors get all happened errors
+// GetErrors gets all happened errors
 func (errs Errors) GetErrors() []error {
-	return errs.errors
+	return errs
 }
 
-// Add add an error
-func (errs *Errors) Add(err error) {
-	if errors, ok := err.(errorsInterface); ok {
-		for _, err := range errors.GetErrors() {
-			errs.Add(err)
-		}
-	} else {
-		for _, e := range errs.errors {
-			if err == e {
-				return
+// Add adds an error
+func (errs Errors) Add(newErrors ...error) Errors {
+	for _, err := range newErrors {
+		if errors, ok := err.(Errors); ok {
+			errs = errs.Add(errors...)
+		} else {
+			ok = true
+			for _, e := range errs {
+				if err == e {
+					ok = false
+				}
+			}
+			if ok {
+				errs = append(errs, err)
 			}
 		}
-		errs.errors = append(errs.errors, err)
 	}
+	return errs
 }
 
 // Error format happened errors
 func (errs Errors) Error() string {
 	var errors = []string{}
-	for _, e := range errs.errors {
+	for _, e := range errs {
 		errors = append(errors, e.Error())
 	}
 	return strings.Join(errors, "; ")
