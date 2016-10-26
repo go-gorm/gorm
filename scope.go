@@ -530,7 +530,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		newScope := scope.New(value)
 		for _, field := range newScope.Fields() {
 			if !field.IsIgnored && !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v.%v = %v)", newScope.QuotedTableName(), scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+				sqls = append(sqls, fmt.Sprintf("(%v.%v = %v)", scope.QuotedTableName(), scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 			}
 		}
 		return strings.Join(sqls, " AND ")
@@ -602,7 +602,7 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		var newScope = scope.New(value)
 		for _, field := range newScope.Fields() {
 			if !field.IsBlank {
-				sqls = append(sqls, fmt.Sprintf("(%v.%v <> %v)", newScope.QuotedTableName(), scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+				sqls = append(sqls, fmt.Sprintf("(%v.%v <> %v)", scope.QuotedTableName(), scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 			}
 		}
 		return strings.Join(sqls, " AND ")
