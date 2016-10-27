@@ -1,7 +1,7 @@
 {
   "title": "GORM Guide",
   "plugins": [
-    "toc", "github", "edit-link", "anker-enable"
+    "toc", "github", "edit-link"
   ],
   "pluginsConfig": {
     "fontsettings": {

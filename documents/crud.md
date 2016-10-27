@@ -14,40 +14,6 @@ db.NewRecord(user) // => returns `true` as primary key is blank
 db.Create(&user)
 
 db.NewRecord(user) // => return `false` after `user` created
-
-// Associations will be inserted automatically when save the record
-user := User{
-	Name:            "jinzhu",
-	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
-	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
-	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
-}
-
-db.Create(&user)
-//// BEGIN TRANSACTION;
-//// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
-//// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
-//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
-//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
-//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
-//// INSERT INTO "languages" ("name") VALUES ('ZH');
-//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 1);
-//// INSERT INTO "languages" ("name") VALUES ('EN');
-//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
-//// COMMIT;
-```
-
-### Create With Associations
-
-Refer [Associations](associations.html) for more details
-
-#### Skip Save Associations when creating
-
-By default, GORM will save associations also when creating, you could skip it by set `gorm:save_associations` to `false`
-
-```go
-db.Set("gorm:save_associations", false).Create(&user)
 ```
 
 ### Default Values
@@ -685,14 +651,6 @@ func (user *User) BeforeSave(scope *gorm.Scope) (err error) {
 }
 ```
 
-### Skip Save Associations when updating
-
-By default, GORM will save associations also when updating, you could skip it by set `gorm:save_associations` to `false`
-
-```go
-db.Set("gorm:save_associations", false).Save(&user)
-```
-
 ### Extra Updating option
 
 ```go
@@ -750,4 +708,63 @@ db.Unscoped().Where("age = 20").Find(&users)
 // Delete record permanently with Unscoped
 db.Unscoped().Delete(&order)
 //// DELETE FROM orders WHERE id=10;
+```
+
+## Associations
+
+By default when creating/updating a record, GORM will save its associations, if the association has primary key, GORM will call `Update` to save it, otherwise it will be created.
+
+```go
+user := User{
+	Name:            "jinzhu",
+	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
+	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
+	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
+}
+
+db.Create(&user)
+//// BEGIN TRANSACTION;
+//// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
+//// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
+//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+//// INSERT INTO "languages" ("name") VALUES ('ZH');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 1);
+//// INSERT INTO "languages" ("name") VALUES ('EN');
+//// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 2);
+//// COMMIT;
+
+db.Save(&user)
+```
+
+Refer [Associations](associations.html) for more details
+
+### Skip Save Associations when creating/updating
+
+By default when saving an record, GORM will save its associations also, you could skip it by set `gorm:save_associations` to `false`
+
+```go
+db.Set("gorm:save_associations", false).Create(&user)
+
+db.Set("gorm:save_associations", false).Save(&user)
+```
+
+### Skip Save Associations by Tag
+
+You could use Tag to config your struct to never save an association when creating/updating
+
+```go
+type User struct {
+  gorm.Model
+  Name      string
+  CompanyID uint
+  Company   Company `gorm:"save_associations:false"`
+}
+
+type Company struct {
+  gorm.Model
+  Name string
+}
 ```

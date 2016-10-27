@@ -1,0 +1,1412 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>CRUD: Reading and Writing Data · GORM Guide</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.2">
+        
+        
+        
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="crud.html" />
+    
+    
+    <link rel="prev" href="associations.html" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<div class="book-summary">
+    
+    <nav role="navigation">
+        <ul class="summary">
+            
+            
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                        <b>1.1.</b>
+                    
+                    Getting Started with GORM
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2" data-path="database.html">
+            
+                <a href="database.html">
+            
+                    
+                        <b>1.2.</b>
+                    
+                    Database
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.2.1" data-path="database.html">
+            
+                <a href="database.html#connecting-to-a-database">
+            
+                    
+                        <b>1.2.1.</b>
+                    
+                    Database Connection
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.2.2" data-path="database.html">
+            
+                <a href="database.html#migration">
+            
+                    
+                        <b>1.2.2.</b>
+                    
+                    Migration
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="models.html">
+            
+                <a href="models.html">
+            
+                    
+                        <b>1.3.</b>
+                    
+                    Models
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.1" data-path="models.html">
+            
+                <a href="models.html#model-definition">
+            
+                    
+                        <b>1.3.1.</b>
+                    
+                    Model Definition
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.2" data-path="models.html">
+            
+                <a href="models.html#conventions">
+            
+                    
+                        <b>1.3.2.</b>
+                    
+                    Conventions & Overriding
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3" data-path="associations.html">
+            
+                <a href="associations.html">
+            
+                    
+                        <b>1.3.3.</b>
+                    
+                    Associations
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.3.3.1" data-path="associations.html">
+            
+                <a href="associations.html#belongs-to">
+            
+                    
+                        <b>1.3.3.1.</b>
+                    
+                    Belongs To
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3.2" data-path="associations.html">
+            
+                <a href="associations.html#has-one">
+            
+                    
+                        <b>1.3.3.2.</b>
+                    
+                    Has One
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3.3" data-path="associations.html">
+            
+                <a href="associations.html#has-many">
+            
+                    
+                        <b>1.3.3.3.</b>
+                    
+                    Has Many
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3.4" data-path="associations.html">
+            
+                <a href="associations.html#many-to-many">
+            
+                    
+                        <b>1.3.3.4.</b>
+                    
+                    Many To Many
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3.5" data-path="associations.html">
+            
+                <a href="associations.html#polymorphism">
+            
+                    
+                        <b>1.3.3.5.</b>
+                    
+                    Polymorphism
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.3.6" data-path="associations.html">
+            
+                <a href="associations.html#association-mode">
+            
+                    
+                        <b>1.3.3.6.</b>
+                    
+                    Association Mode
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.4" data-path="crud.html">
+            
+                <a href="crud.html">
+            
+                    
+                        <b>1.4.</b>
+                    
+                    CRUD: Reading and Writing Data
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.4.1" data-path="crud.html">
+            
+                <a href="crud.html#create">
+            
+                    
+                        <b>1.4.1.</b>
+                    
+                    Create
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.2" data-path="crud.html">
+            
+                <a href="crud.html#query">
+            
+                    
+                        <b>1.4.2.</b>
+                    
+                    Query
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.3" data-path="crud.html">
+            
+                <a href="crud.html#preloading-eager-loading">
+            
+                    
+                        <b>1.4.3.</b>
+                    
+                    Preloading (Eager Loading)
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.4" data-path="crud.html">
+            
+                <a href="crud.html#update">
+            
+                    
+                        <b>1.4.4.</b>
+                    
+                    Update
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.5" data-path="crud.html">
+            
+                <a href="crud.html#delete">
+            
+                    
+                        <b>1.4.5.</b>
+                    
+                    Delete / Soft Delete
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.4.6" data-path="crud.html">
+            
+                <a href="crud.html#associations">
+            
+                    
+                        <b>1.4.6.</b>
+                    
+                    Associations
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.5" data-path="callbacks.html">
+            
+                <a href="callbacks.html">
+            
+                    
+                        <b>1.5.</b>
+                    
+                    Callbacks
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6" data-path="advanced.html">
+            
+                <a href="advanced.html">
+            
+                    
+                        <b>1.6.</b>
+                    
+                    Advanced Usage
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.6.1" data-path="advanced.html">
+            
+                <a href="advanced.html#error-handling">
+            
+                    
+                        <b>1.6.1.</b>
+                    
+                    Error Handling
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.2" data-path="advanced.html">
+            
+                <a href="advanced.html#transactions">
+            
+                    
+                        <b>1.6.2.</b>
+                    
+                    Transactions
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.3" data-path="advanced.html">
+            
+                <a href="advanced.html#sql-builder">
+            
+                    
+                        <b>1.6.3.</b>
+                    
+                    Raw SQL & SQL Builder
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.4" data-path="advanced.html">
+            
+                <a href="advanced.html#generic-database-interface-sqldb">
+            
+                    
+                        <b>1.6.4.</b>
+                    
+                    Generic database interface sql.DB
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.5" data-path="advanced.html">
+            
+                <a href="advanced.html#compose-primary-key">
+            
+                    
+                        <b>1.6.5.</b>
+                    
+                    Composite Primary Key
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.6.6" data-path="advanced.html">
+            
+                <a href="advanced.html#logger">
+            
+                    
+                        <b>1.6.6.</b>
+                    
+                    Overriding Logger
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7" data-path="development.html">
+            
+                <a href="development.html">
+            
+                    
+                        <b>1.7.</b>
+                    
+                    Development
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.7.1" data-path="development.html">
+            
+                <a href="development.html#architecture">
+            
+                    
+                        <b>1.7.1.</b>
+                    
+                    Architecture
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.7.2" data-path="development.html">
+            
+                <a href="development.html#write-plugins">
+            
+                    
+                        <b>1.7.2.</b>
+                    
+                    Write Plugins
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.8" data-path="changelog.html">
+            
+                <a href="changelog.html">
+            
+                    
+                        <b>1.8.</b>
+                    
+                    Change Log
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            <li class="divider"></li>
+            
+        </ul>
+    </nav>
+    
+</div>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >CRUD: Reading and Writing Data</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h1 id="crud-reading-and-writing-data">CRUD: Reading and Writing Data</h1>
+<!-- toc -->
+<ul>
+<li><a href="#create">Create</a><ul>
+<li><a href="#create-record">Create Record</a></li>
+<li><a href="#default-values">Default Values</a></li>
+<li><a href="#setting-primary-key-in-callbacks">Setting Primary Key In Callbacks</a></li>
+<li><a href="#extra-creating-option">Extra Creating option</a></li>
+</ul>
+</li>
+<li><a href="#query">Query</a><ul>
+<li><a href="#query-with-where-plain-sql">Query With Where (Plain SQL)</a></li>
+<li><a href="#query-with-where-struct-map">Query With Where (Struct &amp; Map)</a></li>
+<li><a href="#query-with-not">Query With Not</a></li>
+<li><a href="#query-with-inline-condition">Query With Inline Condition</a></li>
+<li><a href="#query-with-or">Query With Or</a></li>
+<li><a href="#query-chains">Query Chains</a></li>
+<li><a href="#extra-querying-option">Extra Querying option</a></li>
+<li><a href="#firstorinit">FirstOrInit</a><ul>
+<li><a href="#attrs">Attrs</a></li>
+<li><a href="#assign">Assign</a></li>
+</ul>
+</li>
+<li><a href="#firstorcreate">FirstOrCreate</a><ul>
+<li><a href="#attrs">Attrs</a></li>
+<li><a href="#assign">Assign</a></li>
+</ul>
+</li>
+<li><a href="#select">Select</a></li>
+<li><a href="#order">Order</a></li>
+<li><a href="#limit">Limit</a></li>
+<li><a href="#offset">Offset</a></li>
+<li><a href="#count">Count</a></li>
+<li><a href="#group-having">Group &amp; Having</a></li>
+<li><a href="#joins">Joins</a></li>
+<li><a href="#pluck">Pluck</a></li>
+<li><a href="#scan">Scan</a></li>
+<li><a href="#scopes">Scopes</a></li>
+<li><a href="#specifying-the-table-name">Specifying The Table Name</a></li>
+</ul>
+</li>
+<li><a href="#preloading-eager-loading">Preloading (Eager loading)</a><ul>
+<li><a href="#custom-preloading-sql">Custom Preloading SQL</a><ul>
+<li><a href="#nested-preloading">Nested Preloading</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#update">Update</a><ul>
+<li><a href="#update-all-fields">Update All Fields</a></li>
+<li><a href="#update-changed-fields">Update Changed Fields</a></li>
+<li><a href="#update-selected-fields">Update Selected Fields</a></li>
+<li><a href="#update-changed-fields-without-callbacks">Update Changed Fields Without Callbacks</a></li>
+<li><a href="#batch-updates">Batch Updates</a></li>
+<li><a href="#update-with-sql-expression">Update with SQL Expression</a></li>
+<li><a href="#change-updating-values-in-callbacks">Change Updating Values In Callbacks</a></li>
+<li><a href="#extra-updating-option">Extra Updating option</a></li>
+</ul>
+</li>
+<li><a href="#delete">Delete</a><ul>
+<li><a href="#batch-delete">Batch Delete</a></li>
+<li><a href="#soft-delete">Soft Delete</a></li>
+</ul>
+</li>
+<li><a href="#associations">Associations</a><ul>
+<li><a href="#skip-save-associations-when-creatingupdating">Skip Save Associations when creating/updating</a></li>
+<li><a href="#skip-save-associations-by-tag">Skip Save Associations by Tag</a></li>
+</ul>
+</li>
+</ul>
+<!-- toc stop -->
+<h2 id="create">Create</h2>
+<h3 id="create-record">Create Record</h3>
+<pre><code class="lang-go">user := User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>, Age: <span class="hljs-number">18</span>, Birthday: time.Now()}
+
+db.NewRecord(user) <span class="hljs-comment">// =&gt; returns `true` as primary key is blank</span>
+
+db.Create(&amp;user)
+
+db.NewRecord(user) <span class="hljs-comment">// =&gt; return `false` after `user` created</span>
+</code></pre>
+<h3 id="default-values">Default Values</h3>
+<p>You could define default value in the <code>gorm</code> tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into database, gorm will load those fields&apos;s value from database.</p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
+    ID   <span class="hljs-keyword">int64</span>
+    Name <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;default:&apos;galeone&apos;&quot;`</span>
+    Age  <span class="hljs-keyword">int64</span>
+}
+
+<span class="hljs-keyword">var</span> animal = Animal{Age: <span class="hljs-number">99</span>, Name: <span class="hljs-string">&quot;&quot;</span>}
+db.Create(&amp;animal)
+<span class="hljs-comment">// INSERT INTO animals(&quot;age&quot;) values(&apos;99&apos;);</span>
+<span class="hljs-comment">// SELECT name from animals WHERE ID=111; // the returning primary key is 111</span>
+<span class="hljs-comment">// animal.Name =&gt; &apos;galeone&apos;</span>
+</code></pre>
+<h3 id="setting-primary-key-in-callbacks">Setting Primary Key In Callbacks</h3>
+<p>If you want to set primary field&apos;s value in <code>BeforeCreate</code> callback, you could use <code>scope.SetColumn</code>, for example:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> (user *User) BeforeCreate(scope *gorm.Scope) error {
+  scope.SetColumn(<span class="hljs-string">&quot;ID&quot;</span>, uuid.New())
+  <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span>
+}
+</code></pre>
+<h3 id="extra-creating-option">Extra Creating option</h3>
+<pre><code class="lang-go"><span class="hljs-comment">// Add extra SQL option for inserting SQL</span>
+db.Set(<span class="hljs-string">&quot;gorm:insert_option&quot;</span>, <span class="hljs-string">&quot;ON CONFLICT&quot;</span>).Create(&amp;product)
+<span class="hljs-comment">// INSERT INTO products (name, code) VALUES (&quot;name&quot;, &quot;code&quot;) ON CONFLICT;</span>
+</code></pre>
+<h2 id="query">Query</h2>
+<pre><code class="lang-go"><span class="hljs-comment">// Get first record, order by primary key</span>
+db.First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY id LIMIT 1;</span>
+
+<span class="hljs-comment">// Get last record, order by primary key</span>
+db.Last(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY id DESC LIMIT 1;</span>
+
+<span class="hljs-comment">// Get all records</span>
+db.Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+
+<span class="hljs-comment">// Get record with primary key</span>
+db.First(&amp;user, <span class="hljs-number">10</span>)
+<span class="hljs-comment">//// SELECT * FROM users WHERE id = 10;</span>
+</code></pre>
+<h3 id="query-with-where-plain-sql">Query With Where (Plain SQL)</h3>
+<pre><code class="lang-go"><span class="hljs-comment">// Get first matched record</span>
+db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;jinzhu&apos; limit 1;</span>
+
+<span class="hljs-comment">// Get all matched records</span>
+db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;jinzhu&apos;;</span>
+
+db.Where(<span class="hljs-string">&quot;name &lt;&gt; ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Find(&amp;users)
+
+<span class="hljs-comment">// IN</span>
+db.Where(<span class="hljs-string">&quot;name in (?)&quot;</span>, []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;jinzhu&quot;</span>, <span class="hljs-string">&quot;jinzhu 2&quot;</span>}).Find(&amp;users)
+
+<span class="hljs-comment">// LIKE</span>
+db.Where(<span class="hljs-string">&quot;name LIKE ?&quot;</span>, <span class="hljs-string">&quot;%jin%&quot;</span>).Find(&amp;users)
+
+<span class="hljs-comment">// AND</span>
+db.Where(<span class="hljs-string">&quot;name = ? AND age &gt;= ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>, <span class="hljs-string">&quot;22&quot;</span>).Find(&amp;users)
+
+<span class="hljs-comment">// Time</span>
+db.Where(<span class="hljs-string">&quot;updated_at &gt; ?&quot;</span>, lastWeek).Find(&amp;users)
+
+db.Where(<span class="hljs-string">&quot;created_at BETWEEN ? AND ?&quot;</span>, lastWeek, today).Find(&amp;users)
+</code></pre>
+<h3 id="query-with-where-struct--map">Query With Where (Struct &amp; Map)</h3>
+<p><strong>NOTE</strong> When query with struct, GORM will only query with those fields has value</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Struct</span>
+db.Where(&amp;User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>, Age: <span class="hljs-number">20</span>}).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &quot;jinzhu&quot; AND age = 20 LIMIT 1;</span>
+
+<span class="hljs-comment">// Map</span>
+db.Where(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;jinzhu&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">20</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &quot;jinzhu&quot; AND age = 20;</span>
+
+<span class="hljs-comment">// Slice of primary keys</span>
+db.Where([]<span class="hljs-keyword">int64</span>{<span class="hljs-number">20</span>, <span class="hljs-number">21</span>, <span class="hljs-number">22</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE id IN (20, 21, 22);</span>
+</code></pre>
+<h3 id="query-with-not">Query With Not</h3>
+<pre><code class="lang-go">db.Not(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name &lt;&gt; &quot;jinzhu&quot; LIMIT 1;</span>
+
+<span class="hljs-comment">// Not In</span>
+db.Not(<span class="hljs-string">&quot;name&quot;</span>, []<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;jinzhu&quot;</span>, <span class="hljs-string">&quot;jinzhu 2&quot;</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name NOT IN (&quot;jinzhu&quot;, &quot;jinzhu 2&quot;);</span>
+
+<span class="hljs-comment">// Not In slice of primary keys</span>
+db.Not([]<span class="hljs-keyword">int64</span>{<span class="hljs-number">1</span>,<span class="hljs-number">2</span>,<span class="hljs-number">3</span>}).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE id NOT IN (1,2,3);</span>
+
+db.Not([]<span class="hljs-keyword">int64</span>{}).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+
+<span class="hljs-comment">// Plain SQL</span>
+db.Not(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE NOT(name = &quot;jinzhu&quot;);</span>
+
+<span class="hljs-comment">// Struct</span>
+db.Not(User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>}).First(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name &lt;&gt; &quot;jinzhu&quot;;</span>
+</code></pre>
+<h3 id="query-with-inline-condition">Query With Inline Condition</h3>
+<p><strong>NOTE</strong> When query with primary key, you should carefully check the value you passed is a valid primary key, to avoid SQL injection</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Get by primary key</span>
+db.First(&amp;user, <span class="hljs-number">23</span>)
+<span class="hljs-comment">//// SELECT * FROM users WHERE id = 23 LIMIT 1;</span>
+
+<span class="hljs-comment">// Plain SQL</span>
+db.Find(&amp;user, <span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &quot;jinzhu&quot;;</span>
+
+db.Find(&amp;users, <span class="hljs-string">&quot;name &lt;&gt; ? AND age &gt; ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>, <span class="hljs-number">20</span>)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name &lt;&gt; &quot;jinzhu&quot; AND age &gt; 20;</span>
+
+<span class="hljs-comment">// Struct</span>
+db.Find(&amp;users, User{Age: <span class="hljs-number">20</span>})
+<span class="hljs-comment">//// SELECT * FROM users WHERE age = 20;</span>
+
+<span class="hljs-comment">// Map</span>
+db.Find(&amp;users, <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">20</span>})
+<span class="hljs-comment">//// SELECT * FROM users WHERE age = 20;</span>
+</code></pre>
+<h3 id="query-with-or">Query With Or</h3>
+<pre><code class="lang-go">db.Where(<span class="hljs-string">&quot;role = ?&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>).Or(<span class="hljs-string">&quot;role = ?&quot;</span>, <span class="hljs-string">&quot;super_admin&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE role = &apos;admin&apos; OR role = &apos;super_admin&apos;;</span>
+
+<span class="hljs-comment">// Struct</span>
+db.Where(<span class="hljs-string">&quot;name = &apos;jinzhu&apos;&quot;</span>).Or(User{Name: <span class="hljs-string">&quot;jinzhu 2&quot;</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;jinzhu&apos; OR name = &apos;jinzhu 2&apos;;</span>
+
+<span class="hljs-comment">// Map</span>
+db.Where(<span class="hljs-string">&quot;name = &apos;jinzhu&apos;&quot;</span>).Or(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;jinzhu 2&quot;</span>}).Find(&amp;users)
+</code></pre>
+<h3 id="query-chains">Query Chains</h3>
+<p>Gorm has a chainable API, you could use it like this</p>
+<pre><code class="lang-go">db.Where(<span class="hljs-string">&quot;name &lt;&gt; ?&quot;</span>,<span class="hljs-string">&quot;jinzhu&quot;</span>).Where(<span class="hljs-string">&quot;age &gt;= ? and role &lt;&gt; ?&quot;</span>,<span class="hljs-number">20</span>,<span class="hljs-string">&quot;admin&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name &lt;&gt; &apos;jinzhu&apos; AND age &gt;= 20 AND role &lt;&gt; &apos;admin&apos;;</span>
+
+db.Where(<span class="hljs-string">&quot;role = ?&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>).Or(<span class="hljs-string">&quot;role = ?&quot;</span>, <span class="hljs-string">&quot;super_admin&quot;</span>).Not(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Find(&amp;users)
+</code></pre>
+<h3 id="extra-querying-option">Extra Querying option</h3>
+<pre><code class="lang-go"><span class="hljs-comment">// Add extra SQL option for selecting SQL</span>
+db.Set(<span class="hljs-string">&quot;gorm:query_option&quot;</span>, <span class="hljs-string">&quot;FOR UPDATE&quot;</span>).First(&amp;user, <span class="hljs-number">10</span>)
+<span class="hljs-comment">//// SELECT * FROM users WHERE id = 10 FOR UPDATE;</span>
+</code></pre>
+<h3 id="firstorinit">FirstOrInit</h3>
+<p>Get first matched record, or initalize a new one with given conditions (only works with struct, map conditions)</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.FirstOrInit(&amp;user, User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>})
+<span class="hljs-comment">//// user -&gt; User{Name: &quot;non_existing&quot;}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>}).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;Jinzhu&quot;, Age: 20}</span>
+db.FirstOrInit(&amp;user, <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;jinzhu&quot;</span>})
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;Jinzhu&quot;, Age: 20}</span>
+</code></pre>
+<h4 id="attrs">Attrs</h4>
+<p>Initalize struct with argument if record haven&apos;t been found</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.Where(User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>}).Attrs(User{Age: <span class="hljs-number">20</span>}).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM USERS WHERE name = &apos;non_existing&apos;;</span>
+<span class="hljs-comment">//// user -&gt; User{Name: &quot;non_existing&quot;, Age: 20}</span>
+
+db.Where(User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>}).Attrs(<span class="hljs-string">&quot;age&quot;</span>, <span class="hljs-number">20</span>).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM USERS WHERE name = &apos;non_existing&apos;;</span>
+<span class="hljs-comment">//// user -&gt; User{Name: &quot;non_existing&quot;, Age: 20}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>}).Attrs(User{Age: <span class="hljs-number">30</span>}).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM USERS WHERE name = jinzhu&apos;;</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;Jinzhu&quot;, Age: 20}</span>
+</code></pre>
+<h4 id="assign">Assign</h4>
+<p>Assign argument to results regardless it is found or not</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.Where(User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>}).Assign(User{Age: <span class="hljs-number">20</span>}).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// user -&gt; User{Name: &quot;non_existing&quot;, Age: 20}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>}).Assign(User{Age: <span class="hljs-number">30</span>}).FirstOrInit(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM USERS WHERE name = jinzhu&apos;;</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;Jinzhu&quot;, Age: 30}</span>
+</code></pre>
+<h3 id="firstorcreate">FirstOrCreate</h3>
+<p>Get first matched record, or create a new one with given conditions (only works with struct, map conditions)</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.FirstOrCreate(&amp;user, User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>})
+<span class="hljs-comment">//// INSERT INTO &quot;users&quot; (name) VALUES (&quot;non_existing&quot;);</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 112, Name: &quot;non_existing&quot;}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>}).FirstOrCreate(&amp;user)
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;Jinzhu&quot;}</span>
+</code></pre>
+<h4 id="attrs">Attrs</h4>
+<p>Assgin struct with argument if record haven&apos;t been found</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.Where(User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>}).Attrs(User{Age: <span class="hljs-number">20</span>}).FirstOrCreate(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;non_existing&apos;;</span>
+<span class="hljs-comment">//// INSERT INTO &quot;users&quot; (name, age) VALUES (&quot;non_existing&quot;, 20);</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 112, Name: &quot;non_existing&quot;, Age: 20}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>}).Attrs(User{Age: <span class="hljs-number">30</span>}).FirstOrCreate(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;jinzhu&apos;;</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;jinzhu&quot;, Age: 20}</span>
+</code></pre>
+<h4 id="assign">Assign</h4>
+<p>Assign it to the record regardless it is found or not, and save back to database.</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Unfound</span>
+db.Where(User{Name: <span class="hljs-string">&quot;non_existing&quot;</span>}).Assign(User{Age: <span class="hljs-number">20</span>}).FirstOrCreate(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;non_existing&apos;;</span>
+<span class="hljs-comment">//// INSERT INTO &quot;users&quot; (name, age) VALUES (&quot;non_existing&quot;, 20);</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 112, Name: &quot;non_existing&quot;, Age: 20}</span>
+
+<span class="hljs-comment">// Found</span>
+db.Where(User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>}).Assign(User{Age: <span class="hljs-number">30</span>}).FirstOrCreate(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &apos;jinzhu&apos;;</span>
+<span class="hljs-comment">//// UPDATE users SET age=30 WHERE id = 111;</span>
+<span class="hljs-comment">//// user -&gt; User{Id: 111, Name: &quot;jinzhu&quot;, Age: 30}</span>
+</code></pre>
+<h3 id="select">Select</h3>
+<p>Specify fields that you want to retrieve from database, by default, will select all fields;</p>
+<pre><code class="lang-go">db.Select(<span class="hljs-string">&quot;name, age&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT name, age FROM users;</span>
+
+db.Select([]<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT name, age FROM users;</span>
+
+db.Table(<span class="hljs-string">&quot;users&quot;</span>).Select(<span class="hljs-string">&quot;COALESCE(age,?)&quot;</span>, <span class="hljs-number">42</span>).Rows()
+<span class="hljs-comment">//// SELECT COALESCE(age,&apos;42&apos;) FROM users;</span>
+</code></pre>
+<h3 id="order">Order</h3>
+<p>Specify order when retrieve records from database, set reorder to <code>true</code> to overwrite defined conditions</p>
+<pre><code class="lang-go">db.Order(<span class="hljs-string">&quot;age desc, name&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY age desc, name;</span>
+
+<span class="hljs-comment">// Multiple orders</span>
+db.Order(<span class="hljs-string">&quot;age desc&quot;</span>).Order(<span class="hljs-string">&quot;name&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY age desc, name;</span>
+
+<span class="hljs-comment">// ReOrder</span>
+db.Order(<span class="hljs-string">&quot;age desc&quot;</span>).Find(&amp;users1).Order(<span class="hljs-string">&quot;age&quot;</span>, <span class="hljs-literal">true</span>).Find(&amp;users2)
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY age desc; (users1)</span>
+<span class="hljs-comment">//// SELECT * FROM users ORDER BY age; (users2)</span>
+</code></pre>
+<h3 id="limit">Limit</h3>
+<p>Specify the number of records to be retrieved</p>
+<pre><code class="lang-go">db.Limit(<span class="hljs-number">3</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users LIMIT 3;</span>
+
+<span class="hljs-comment">// Cancel limit condition with -1</span>
+db.Limit(<span class="hljs-number">10</span>).Find(&amp;users1).Limit(<span class="hljs-number">-1</span>).Find(&amp;users2)
+<span class="hljs-comment">//// SELECT * FROM users LIMIT 10; (users1)</span>
+<span class="hljs-comment">//// SELECT * FROM users; (users2)</span>
+</code></pre>
+<h3 id="offset">Offset</h3>
+<p>Specify the number of records to skip before starting to return the records</p>
+<pre><code class="lang-go">db.Offset(<span class="hljs-number">3</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users OFFSET 3;</span>
+
+<span class="hljs-comment">// Cancel offset condition with -1</span>
+db.Offset(<span class="hljs-number">10</span>).Find(&amp;users1).Offset(<span class="hljs-number">-1</span>).Find(&amp;users2)
+<span class="hljs-comment">//// SELECT * FROM users OFFSET 10; (users1)</span>
+<span class="hljs-comment">//// SELECT * FROM users; (users2)</span>
+</code></pre>
+<h3 id="count">Count</h3>
+<p>Get how many records for a model</p>
+<pre><code class="lang-go">db.Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Or(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu 2&quot;</span>).Find(&amp;users).Count(&amp;count)
+<span class="hljs-comment">//// SELECT * from USERS WHERE name = &apos;jinzhu&apos; OR name = &apos;jinzhu 2&apos;; (users)</span>
+<span class="hljs-comment">//// SELECT count(*) FROM users WHERE name = &apos;jinzhu&apos; OR name = &apos;jinzhu 2&apos;; (count)</span>
+
+db.Model(&amp;User{}).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Count(&amp;count)
+<span class="hljs-comment">//// SELECT count(*) FROM users WHERE name = &apos;jinzhu&apos;; (count)</span>
+
+db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Count(&amp;count)
+<span class="hljs-comment">//// SELECT count(*) FROM deleted_users;</span>
+</code></pre>
+<h3 id="group--having">Group &amp; Having</h3>
+<pre><code class="lang-go">rows, err := db.Table(<span class="hljs-string">&quot;orders&quot;</span>).Select(<span class="hljs-string">&quot;date(created_at) as date, sum(amount) as total&quot;</span>).Group(<span class="hljs-string">&quot;date(created_at)&quot;</span>).Rows()
+<span class="hljs-keyword">for</span> rows.Next() {
+    ...
+}
+
+rows, err := db.Table(<span class="hljs-string">&quot;orders&quot;</span>).Select(<span class="hljs-string">&quot;date(created_at) as date, sum(amount) as total&quot;</span>).Group(<span class="hljs-string">&quot;date(created_at)&quot;</span>).Having(<span class="hljs-string">&quot;sum(amount) &gt; ?&quot;</span>, <span class="hljs-number">100</span>).Rows()
+<span class="hljs-keyword">for</span> rows.Next() {
+    ...
+}
+
+<span class="hljs-keyword">type</span> Result <span class="hljs-keyword">struct</span> {
+    Date  time.Time
+    Total <span class="hljs-keyword">int64</span>
+}
+db.Table(<span class="hljs-string">&quot;orders&quot;</span>).Select(<span class="hljs-string">&quot;date(created_at) as date, sum(amount) as total&quot;</span>).Group(<span class="hljs-string">&quot;date(created_at)&quot;</span>).Having(<span class="hljs-string">&quot;sum(amount) &gt; ?&quot;</span>, <span class="hljs-number">100</span>).Scan(&amp;results)
+</code></pre>
+<h3 id="joins">Joins</h3>
+<p>Specify Joins conditions</p>
+<pre><code class="lang-go">rows, err := db.Table(<span class="hljs-string">&quot;users&quot;</span>).Select(<span class="hljs-string">&quot;users.name, emails.email&quot;</span>).Joins(<span class="hljs-string">&quot;left join emails on emails.user_id = users.id&quot;</span>).Rows()
+<span class="hljs-keyword">for</span> rows.Next() {
+    ...
+}
+
+db.Table(<span class="hljs-string">&quot;users&quot;</span>).Select(<span class="hljs-string">&quot;users.name, emails.email&quot;</span>).Joins(<span class="hljs-string">&quot;left join emails on emails.user_id = users.id&quot;</span>).Scan(&amp;results)
+
+<span class="hljs-comment">// multiple joins with parameter</span>
+db.Joins(<span class="hljs-string">&quot;JOIN emails ON emails.user_id = users.id AND emails.email = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu@example.org&quot;</span>).Joins(<span class="hljs-string">&quot;JOIN credit_cards ON credit_cards.user_id = users.id&quot;</span>).Where(<span class="hljs-string">&quot;credit_cards.number = ?&quot;</span>, <span class="hljs-string">&quot;411111111111&quot;</span>).Find(&amp;user)
+</code></pre>
+<h3 id="pluck">Pluck</h3>
+<p>Query single column from a model as a map, if you want to query multiple columns, you could use <a href="#scan"><code>Scan</code></a></p>
+<pre><code class="lang-go"><span class="hljs-keyword">var</span> ages []<span class="hljs-keyword">int64</span>
+db.Find(&amp;users).Pluck(<span class="hljs-string">&quot;age&quot;</span>, &amp;ages)
+
+<span class="hljs-keyword">var</span> names []<span class="hljs-keyword">string</span>
+db.Model(&amp;User{}).Pluck(<span class="hljs-string">&quot;name&quot;</span>, &amp;names)
+
+db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Pluck(<span class="hljs-string">&quot;name&quot;</span>, &amp;names)
+
+<span class="hljs-comment">// Requesting more than one column? Do it like this:</span>
+db.Select(<span class="hljs-string">&quot;name, age&quot;</span>).Find(&amp;users)
+</code></pre>
+<h3 id="scan">Scan</h3>
+<p>Scan results into another struct.</p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> Result <span class="hljs-keyword">struct</span> {
+    Name <span class="hljs-keyword">string</span>
+    Age  <span class="hljs-keyword">int</span>
+}
+
+<span class="hljs-keyword">var</span> result Result
+db.Table(<span class="hljs-string">&quot;users&quot;</span>).Select(<span class="hljs-string">&quot;name, age&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-number">3</span>).Scan(&amp;result)
+
+<span class="hljs-comment">// Raw SQL</span>
+db.Raw(<span class="hljs-string">&quot;SELECT name, age FROM users WHERE name = ?&quot;</span>, <span class="hljs-number">3</span>).Scan(&amp;result)
+</code></pre>
+<h3 id="scopes">Scopes</h3>
+<p>Pass current database connection to <code>func(*DB) *DB</code>, which could be used to add conditions dynamically</p>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> db.Where(<span class="hljs-string">&quot;amount &gt; ?&quot;</span>, <span class="hljs-number">1000</span>)
+}
+
+<span class="hljs-keyword">func</span> PaidWithCreditCard(db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> db.Where(<span class="hljs-string">&quot;pay_mode_sign = ?&quot;</span>, <span class="hljs-string">&quot;C&quot;</span>)
+}
+
+<span class="hljs-keyword">func</span> PaidWithCod(db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> db.Where(<span class="hljs-string">&quot;pay_mode_sign = ?&quot;</span>, <span class="hljs-string">&quot;C&quot;</span>)
+}
+
+<span class="hljs-keyword">func</span> OrderStatus(status []<span class="hljs-keyword">string</span>) <span class="hljs-keyword">func</span> (db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">func</span> (db *gorm.DB) *gorm.DB {
+        <span class="hljs-keyword">return</span> db.Scopes(AmountGreaterThan1000).Where(<span class="hljs-string">&quot;status in (?)&quot;</span>, status)
+    }
+}
+
+db.Scopes(AmountGreaterThan1000, PaidWithCreditCard).Find(&amp;orders)
+<span class="hljs-comment">// Find all credit card orders and amount greater than 1000</span>
+
+db.Scopes(AmountGreaterThan1000, PaidWithCod).Find(&amp;orders)
+<span class="hljs-comment">// Find all COD orders and amount greater than 1000</span>
+
+db.Scopes(OrderStatus([]<span class="hljs-keyword">string</span>{<span class="hljs-string">&quot;paid&quot;</span>, <span class="hljs-string">&quot;shipped&quot;</span>})).Find(&amp;orders)
+<span class="hljs-comment">// Find all paid, shipped orders</span>
+</code></pre>
+<h3 id="specifying-the-table-name">Specifying The Table Name</h3>
+<pre><code class="lang-go"><span class="hljs-comment">// Create `deleted_users` table with struct User&apos;s definition</span>
+db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).CreateTable(&amp;User{})
+
+<span class="hljs-keyword">var</span> deleted_users []User
+db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Find(&amp;deleted_users)
+<span class="hljs-comment">//// SELECT * FROM deleted_users;</span>
+
+db.Table(<span class="hljs-string">&quot;deleted_users&quot;</span>).Where(<span class="hljs-string">&quot;name = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).Delete()
+<span class="hljs-comment">//// DELETE FROM deleted_users WHERE name = &apos;jinzhu&apos;;</span>
+</code></pre>
+<h2 id="preloading-eager-loading">Preloading (Eager loading)</h2>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4);</span>
+
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state NOT IN (?)&quot;</span>, <span class="hljs-string">&quot;cancelled&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) AND state NOT IN (&apos;cancelled&apos;);</span>
+
+db.Where(<span class="hljs-string">&quot;state = ?&quot;</span>, <span class="hljs-string">&quot;active&quot;</span>).Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state NOT IN (?)&quot;</span>, <span class="hljs-string">&quot;cancelled&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE state = &apos;active&apos;;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2) AND state NOT IN (&apos;cancelled&apos;);</span>
+
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>).Preload(<span class="hljs-string">&quot;Profile&quot;</span>).Preload(<span class="hljs-string">&quot;Role&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4); // has many</span>
+<span class="hljs-comment">//// SELECT * FROM profiles WHERE user_id IN (1,2,3,4); // has one</span>
+<span class="hljs-comment">//// SELECT * FROM roles WHERE id IN (4,5,6); // belongs to</span>
+</code></pre>
+<h4 id="custom-preloading-sql">Custom Preloading SQL</h4>
+<p>You could custom preloading SQL by passing in <code>func(db *gorm.DB) *gorm.DB</code> (same type as the one used for <a href="#scopes">Scopes</a>), for example:</p>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-keyword">func</span>(db *gorm.DB) *gorm.DB {
+    <span class="hljs-keyword">return</span> db.Order(<span class="hljs-string">&quot;orders.amount DESC&quot;</span>)
+}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users;</span>
+<span class="hljs-comment">//// SELECT * FROM orders WHERE user_id IN (1,2,3,4) order by orders.amount DESC;</span>
+</code></pre>
+<h3 id="nested-preloading">Nested Preloading</h3>
+<pre><code class="lang-go">db.Preload(<span class="hljs-string">&quot;Orders.OrderItems&quot;</span>).Find(&amp;users)
+db.Preload(<span class="hljs-string">&quot;Orders&quot;</span>, <span class="hljs-string">&quot;state = ?&quot;</span>, <span class="hljs-string">&quot;paid&quot;</span>).Preload(<span class="hljs-string">&quot;Orders.OrderItems&quot;</span>).Find(&amp;users)
+</code></pre>
+<h2 id="update">Update</h2>
+<h3 id="update-all-fields">Update All Fields</h3>
+<p><code>Save</code> will include all fields when perform the Updating SQL, even it is not changed</p>
+<pre><code class="lang-go">db.First(&amp;user)
+
+user.Name = <span class="hljs-string">&quot;jinzhu 2&quot;</span>
+user.Age = <span class="hljs-number">100</span>
+db.Save(&amp;user)
+
+<span class="hljs-comment">//// UPDATE users SET name=&apos;jinzhu 2&apos;, age=100, birthday=&apos;2016-01-01&apos;, updated_at = &apos;2013-11-17 21:34:10&apos; WHERE id=111;</span>
+</code></pre>
+<h3 id="update-changed-fields">Update Changed Fields</h3>
+<p>If you only want to update changed Fields, you could use <code>Update</code>, <code>Updates</code></p>
+<pre><code class="lang-go"><span class="hljs-comment">// Update single attribute if it is changed</span>
+db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;hello&quot;</span>)
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, updated_at=&apos;2013-11-17 21:34:10&apos; WHERE id=111;</span>
+
+<span class="hljs-comment">// Update single attribute with combined conditions</span>
+db.Model(&amp;user).Where(<span class="hljs-string">&quot;active = ?&quot;</span>, <span class="hljs-literal">true</span>).Update(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;hello&quot;</span>)
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, updated_at=&apos;2013-11-17 21:34:10&apos; WHERE id=111 AND active=true;</span>
+
+<span class="hljs-comment">// Update multiple attributes with `map`, will only update those changed fields</span>
+db.Model(&amp;user).Updates(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;hello&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">18</span>, <span class="hljs-string">&quot;actived&quot;</span>: <span class="hljs-literal">false</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, age=18, actived=false, updated_at=&apos;2013-11-17 21:34:10&apos; WHERE id=111;</span>
+
+<span class="hljs-comment">// Update multiple attributes with `struct`, will only update those changed &amp; non blank fields</span>
+db.Model(&amp;user).Updates(User{Name: <span class="hljs-string">&quot;hello&quot;</span>, Age: <span class="hljs-number">18</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, age=18, updated_at = &apos;2013-11-17 21:34:10&apos; WHERE id = 111;</span>
+
+<span class="hljs-comment">// WARNING when update with struct, GORM will only update those fields that with non blank value</span>
+<span class="hljs-comment">// For below Update, nothing will be updated as &quot;&quot;, 0, false are blank values of their types</span>
+db.Model(&amp;user).Updates(User{Name: <span class="hljs-string">&quot;&quot;</span>, Age: <span class="hljs-number">0</span>, Actived: <span class="hljs-literal">false</span>})
+</code></pre>
+<h3 id="update-selected-fields">Update Selected Fields</h3>
+<p>If you only want to update or ignore some fields when updating, you could use <code>Select</code>, <code>Omit</code></p>
+<pre><code class="lang-go">db.Model(&amp;user).Select(<span class="hljs-string">&quot;name&quot;</span>).Updates(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;hello&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">18</span>, <span class="hljs-string">&quot;actived&quot;</span>: <span class="hljs-literal">false</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, updated_at=&apos;2013-11-17 21:34:10&apos; WHERE id=111;</span>
+
+db.Model(&amp;user).Omit(<span class="hljs-string">&quot;name&quot;</span>).Updates(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;hello&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">18</span>, <span class="hljs-string">&quot;actived&quot;</span>: <span class="hljs-literal">false</span>})
+<span class="hljs-comment">//// UPDATE users SET age=18, actived=false, updated_at=&apos;2013-11-17 21:34:10&apos; WHERE id=111;</span>
+</code></pre>
+<h3 id="update-changed-fields-without-callbacks">Update Changed Fields Without Callbacks</h3>
+<p>Above updating operations will perform the mdoel&apos;s <code>BeforeUpdate</code>, <code>AfterUpdate</code> method, update its <code>UpdatedAt</code> timestamp, save its <code>Associations</code> when updaing, if you don&apos;t want to call them, you could use <code>UpdateColumn</code>, <code>UpdateColumns</code></p>
+<pre><code class="lang-go"><span class="hljs-comment">// Update single attribute, similar with `Update`</span>
+db.Model(&amp;user).UpdateColumn(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;hello&quot;</span>)
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos; WHERE id = 111;</span>
+
+<span class="hljs-comment">// Update multiple attributes, similar with `Updates`</span>
+db.Model(&amp;user).UpdateColumns(User{Name: <span class="hljs-string">&quot;hello&quot;</span>, Age: <span class="hljs-number">18</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, age=18 WHERE id = 111;</span>
+</code></pre>
+<h3 id="batch-updates">Batch Updates</h3>
+<p>Callbacks won&apos;t run when do batch updates</p>
+<pre><code class="lang-go">db.Table(<span class="hljs-string">&quot;users&quot;</span>).Where(<span class="hljs-string">&quot;id IN (?)&quot;</span>, []<span class="hljs-keyword">int</span>{<span class="hljs-number">10</span>, <span class="hljs-number">11</span>}).Updates(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;name&quot;</span>: <span class="hljs-string">&quot;hello&quot;</span>, <span class="hljs-string">&quot;age&quot;</span>: <span class="hljs-number">18</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, age=18 WHERE id IN (10, 11);</span>
+
+<span class="hljs-comment">// Update with struct only works with none zero values, or use map[string]interface{}</span>
+db.Model(User{}).Updates(User{Name: <span class="hljs-string">&quot;hello&quot;</span>, Age: <span class="hljs-number">18</span>})
+<span class="hljs-comment">//// UPDATE users SET name=&apos;hello&apos;, age=18;</span>
+
+<span class="hljs-comment">// Get updated records count with `RowsAffected`</span>
+db.Model(User{}).Updates(User{Name: <span class="hljs-string">&quot;hello&quot;</span>, Age: <span class="hljs-number">18</span>}).RowsAffected
+</code></pre>
+<h3 id="update-with-sql-expression">Update with SQL Expression</h3>
+<pre><code class="lang-go">DB.Model(&amp;product).Update(<span class="hljs-string">&quot;price&quot;</span>, gorm.Expr(<span class="hljs-string">&quot;price * ? + ?&quot;</span>, <span class="hljs-number">2</span>, <span class="hljs-number">100</span>))
+<span class="hljs-comment">//// UPDATE &quot;products&quot; SET &quot;price&quot; = price * &apos;2&apos; + &apos;100&apos;, &quot;updated_at&quot; = &apos;2013-11-17 21:34:10&apos; WHERE &quot;id&quot; = &apos;2&apos;;</span>
+
+DB.Model(&amp;product).Updates(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">interface</span>{}{<span class="hljs-string">&quot;price&quot;</span>: gorm.Expr(<span class="hljs-string">&quot;price * ? + ?&quot;</span>, <span class="hljs-number">2</span>, <span class="hljs-number">100</span>)})
+<span class="hljs-comment">//// UPDATE &quot;products&quot; SET &quot;price&quot; = price * &apos;2&apos; + &apos;100&apos;, &quot;updated_at&quot; = &apos;2013-11-17 21:34:10&apos; WHERE &quot;id&quot; = &apos;2&apos;;</span>
+
+DB.Model(&amp;product).UpdateColumn(<span class="hljs-string">&quot;quantity&quot;</span>, gorm.Expr(<span class="hljs-string">&quot;quantity - ?&quot;</span>, <span class="hljs-number">1</span>))
+<span class="hljs-comment">//// UPDATE &quot;products&quot; SET &quot;quantity&quot; = quantity - 1 WHERE &quot;id&quot; = &apos;2&apos;;</span>
+
+DB.Model(&amp;product).Where(<span class="hljs-string">&quot;quantity &gt; 1&quot;</span>).UpdateColumn(<span class="hljs-string">&quot;quantity&quot;</span>, gorm.Expr(<span class="hljs-string">&quot;quantity - ?&quot;</span>, <span class="hljs-number">1</span>))
+<span class="hljs-comment">//// UPDATE &quot;products&quot; SET &quot;quantity&quot; = quantity - 1 WHERE &quot;id&quot; = &apos;2&apos; AND quantity &gt; 1;</span>
+</code></pre>
+<h3 id="change-updating-values-in-callbacks">Change Updating Values In Callbacks</h3>
+<p>If you want to change updating values in callbacks using <code>BeforeUpdate</code>, <code>BeforeSave</code>, you could use <code>scope.SetColumn</code>, for example:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> (user *User) BeforeSave(scope *gorm.Scope) (err error) {
+  <span class="hljs-keyword">if</span> pw, err := bcrypt.GenerateFromPassword(user.Password, <span class="hljs-number">0</span>); err == <span class="hljs-literal">nil</span> {
+    scope.SetColumn(<span class="hljs-string">&quot;EncryptedPassword&quot;</span>, pw)
+  }
+}
+</code></pre>
+<h3 id="extra-updating-option">Extra Updating option</h3>
+<pre><code class="lang-go">// Add extra SQL option for updating SQL
+db.Model(&amp;user).Set(&quot;gorm:update_option&quot;, &quot;OPTION (OPTIMIZE FOR UNKNOWN)&quot;).Update(&quot;name, &quot;hello&quot;)
+//// UPDATE users SET name=&apos;hello&apos;, updated_at = &apos;2013-11-17 21:34:10&apos; WHERE id=111 OPTION (OPTIMIZE FOR UNKNOWN);
+</code></pre>
+<h2 id="delete">Delete</h2>
+<p><strong>WARNING</strong> When delete a record, you need to ensure it&apos;s primary field has value, and GORM will use the primary key to delete the record, if primary field&apos;s blank, GORM will delete all records for the model</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Delete an existing record</span>
+db.Delete(&amp;email)
+<span class="hljs-comment">//// DELETE from emails where id=10;</span>
+
+<span class="hljs-comment">// Add extra SQL option for deleting SQL</span>
+db.Set(<span class="hljs-string">&quot;gorm:delete_option&quot;</span>, <span class="hljs-string">&quot;OPTION (OPTIMIZE FOR UNKNOWN)&quot;</span>).Delete(&amp;email)
+<span class="hljs-comment">//// DELETE from emails where id=10 OPTION (OPTIMIZE FOR UNKNOWN);</span>
+</code></pre>
+<h3 id="batch-delete">Batch Delete</h3>
+<p>Delete all matched records</p>
+<pre><code class="lang-go">db.Where(<span class="hljs-string">&quot;email LIKE ?&quot;</span>, <span class="hljs-string">&quot;%jinzhu%&quot;</span>).Delete(Email{})
+<span class="hljs-comment">//// DELETE from emails where email LIKE &quot;%jinhu%&quot;;</span>
+
+db.Delete(Email{}, <span class="hljs-string">&quot;email LIKE ?&quot;</span>, <span class="hljs-string">&quot;%jinzhu%&quot;</span>)
+<span class="hljs-comment">//// DELETE from emails where email LIKE &quot;%jinhu%&quot;;</span>
+</code></pre>
+<h3 id="soft-delete">Soft Delete</h3>
+<p>If model has <code>DeletedAt</code> field, it will get soft delete ability automatically! then it won&apos;t be deleted from database permanently when call <code>Delete</code>, but only set field <code>DeletedAt</code>&apos;s value to current time</p>
+<pre><code class="lang-go">db.Delete(&amp;user)
+<span class="hljs-comment">//// UPDATE users SET deleted_at=&quot;2013-10-29 10:23&quot; WHERE id = 111;</span>
+
+<span class="hljs-comment">// Batch Delete</span>
+db.Where(<span class="hljs-string">&quot;age = ?&quot;</span>, <span class="hljs-number">20</span>).Delete(&amp;User{})
+<span class="hljs-comment">//// UPDATE users SET deleted_at=&quot;2013-10-29 10:23&quot; WHERE age = 20;</span>
+
+<span class="hljs-comment">// Soft deleted records will be ignored when query them</span>
+db.Where(<span class="hljs-string">&quot;age = 20&quot;</span>).Find(&amp;user)
+<span class="hljs-comment">//// SELECT * FROM users WHERE age = 20 AND deleted_at IS NULL;</span>
+
+<span class="hljs-comment">// Find soft deleted records with Unscoped</span>
+db.Unscoped().Where(<span class="hljs-string">&quot;age = 20&quot;</span>).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE age = 20;</span>
+
+<span class="hljs-comment">// Delete record permanently with Unscoped</span>
+db.Unscoped().Delete(&amp;order)
+<span class="hljs-comment">//// DELETE FROM orders WHERE id=10;</span>
+</code></pre>
+<h2 id="associations">Associations</h2>
+<p>By default when creating/updating a record, GORM will save its associations, if the association has primary key, GORM will call <code>Update</code> to save it, otherwise it will be created.</p>
+<pre><code class="lang-go">user := User{
+    Name:            <span class="hljs-string">&quot;jinzhu&quot;</span>,
+    BillingAddress:  Address{Address1: <span class="hljs-string">&quot;Billing Address - Address 1&quot;</span>},
+    ShippingAddress: Address{Address1: <span class="hljs-string">&quot;Shipping Address - Address 1&quot;</span>},
+    Emails:          []Email{{Email: <span class="hljs-string">&quot;jinzhu@example.com&quot;</span>}, {Email: <span class="hljs-string">&quot;jinzhu-2@example@example.com&quot;</span>}},
+    Languages:       []Language{{Name: <span class="hljs-string">&quot;ZH&quot;</span>}, {Name: <span class="hljs-string">&quot;EN&quot;</span>}},
+}
+
+db.Create(&amp;user)
+<span class="hljs-comment">//// BEGIN TRANSACTION;</span>
+<span class="hljs-comment">//// INSERT INTO &quot;addresses&quot; (address1) VALUES (&quot;Billing Address - Address 1&quot;);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;addresses&quot; (address1) VALUES (&quot;Shipping Address - Address 1&quot;);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;users&quot; (name,billing_address_id,shipping_address_id) VALUES (&quot;jinzhu&quot;, 1, 2);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;emails&quot; (user_id,email) VALUES (111, &quot;jinzhu@example.com&quot;);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;emails&quot; (user_id,email) VALUES (111, &quot;jinzhu-2@example.com&quot;);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;languages&quot; (&quot;name&quot;) VALUES (&apos;ZH&apos;);</span>
+<span class="hljs-comment">//// INSERT INTO user_languages (&quot;user_id&quot;,&quot;language_id&quot;) VALUES (111, 1);</span>
+<span class="hljs-comment">//// INSERT INTO &quot;languages&quot; (&quot;name&quot;) VALUES (&apos;EN&apos;);</span>
+<span class="hljs-comment">//// INSERT INTO user_languages (&quot;user_id&quot;,&quot;language_id&quot;) VALUES (111, 2);</span>
+<span class="hljs-comment">//// COMMIT;</span>
+
+db.Save(&amp;user)
+</code></pre>
+<p>Refer <a href="associations.html">Associations</a> for more details</p>
+<h3 id="skip-save-associations-when-creatingupdating">Skip Save Associations when creating/updating</h3>
+<p>By default when saving an record, GORM will save its associations also, you could skip it by set <code>gorm:save_associations</code> to <code>false</code></p>
+<pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+
+db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
+</code></pre>
+<h3 id="skip-save-associations-by-tag">Skip Save Associations by Tag</h3>
+<p>You could use Tag to config your struct to never save an association when creating/updating</p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name      <span class="hljs-keyword">string</span>
+  CompanyID <span class="hljs-keyword">uint</span>
+  Company   Company <span class="hljs-string">`gorm:&quot;save_associations:false&quot;`</span>
+}
+
+<span class="hljs-keyword">type</span> Company <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+}
+</code></pre>
+
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="associations.html#association-mode" class="navigation navigation-prev " aria-label="Previous page: Association Mode">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="crud.html#create" class="navigation navigation-next " aria-label="Next page: Create">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Association Mode","level":"1.3.3.6","depth":3,"anchor":"#association-mode","path":"associations.md","ref":"associations.md#association-mode","articles":[]},"dir":"ltr"},"config":{"plugins":["toc","github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/jinzhu/gorm"},"toc":{"addClass":true,"className":"toc"},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"night","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2016-10-27T04:26:59.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-10-27T04:29:04.339Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-github/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-edit-link/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+

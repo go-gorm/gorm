@@ -1,27 +1,35 @@
-.book .book-summary .book-search {
-  padding: 6px;
-  background: transparent;
-  position: absolute;
-  top: -50px;
-  left: 0px;
-  right: 0px;
-  transition: top 0.5s ease;
+/*
+    This CSS only styled the search results section, not the search input
+    It defines the basic interraction to hide content when displaying results, etc
+*/
+#book-search-results .search-results {
+  display: none;
 }
-.book .book-summary .book-search input,
-.book .book-summary .book-search input:focus,
-.book .book-summary .book-search input:hover {
-  width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
-  box-shadow: none;
-  outline: none;
-  line-height: 22px;
-  padding: 7px 4px;
-  color: inherit;
+#book-search-results .search-results ul.search-results-list {
+  list-style-type: none;
+  padding-left: 0;
 }
-.book.with-search .book-summary .book-search {
-  top: 0px;
+#book-search-results .search-results ul.search-results-list li {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  /* Highlight results */
 }
-.book.with-search .book-summary ul.summary {
-  top: 50px;
+#book-search-results .search-results ul.search-results-list li p em {
+  background-color: rgba(255, 220, 0, 0.4);
+  font-style: normal;
+}
+#book-search-results .search-results .no-results {
+  display: none;
+}
+#book-search-results.open .search-results {
+  display: block;
+}
+#book-search-results.open .search-noresults {
+  display: none;
+}
+#book-search-results.no-results .search-results .has-results {
+  display: none;
+}
+#book-search-results.no-results .search-results .no-results {
+  display: block;
 }

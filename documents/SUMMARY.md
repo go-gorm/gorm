@@ -14,12 +14,13 @@
     * [Many To Many](associations.md#many-to-many)
     * [Polymorphism](associations.md#polymorphism)
     * [Association Mode](associations.md#association-mode)
-* [CRUD: Reading and Writing Data](curd.md)
-  * [Create](curd.md#create),
-  * [Query](curd.md#query),
-  * [Preloading (Eager Loading)](curd.md#preloading-eager-loading),
-  * [Update](curd.md#update),
-  * [Delete / Soft Delete](curd.md#delete)
+* [CRUD: Reading and Writing Data](crud.md)
+  * [Create](crud.md#create),
+  * [Query](crud.md#query),
+  * [Preloading (Eager Loading)](crud.md#preloading-eager-loading),
+  * [Update](crud.md#update),
+  * [Delete / Soft Delete](crud.md#delete)
+  * [Associations](crud.md#associations)
 * [Callbacks](callbacks.md)
 * [Advanced Usage](advanced.md)
   * [Error Handling](advanced.md#error-handling)
