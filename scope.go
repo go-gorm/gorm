@@ -329,8 +329,12 @@ func (scope *Scope) QuotedTableName() (name string) {
 
 // CombinedConditionSql return combined condition sql
 func (scope *Scope) CombinedConditionSql() string {
+	limitWhereSQL, limitSuffixSQL := scope.limitAndOffsetSQL()
+	if len(limitWhereSQL) > 0 {
+		scope.Search = scope.Search.Where(limitWhereSQL)
+	}
 	return scope.joinsSQL() + scope.whereSQL() + scope.groupSQL() +
-		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
+		scope.havingSQL() + scope.orderSQL() + limitSuffixSQL
 }
 
 // Raw set raw sql
@@ -469,7 +473,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
-			if field.DBName == column {
+			if strings.EqualFold(field.DBName, column) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -668,7 +672,7 @@ func (scope *Scope) whereSQL() (sql string) {
 	)
 
 	if !scope.Search.Unscoped && scope.HasColumn("deleted_at") {
-		sql := fmt.Sprintf("%v.deleted_at IS NULL", quotedTableName)
+		sql := fmt.Sprintf("%s.%s IS NULL", quotedTableName, scope.Dialect().Quote("deleted_at"))
 		primaryConditions = append(primaryConditions, sql)
 	}
 
@@ -748,7 +752,7 @@ func (scope *Scope) orderSQL() string {
 	return " ORDER BY " + strings.Join(orders, ",")
 }
 
-func (scope *Scope) limitAndOffsetSQL() string {
+func (scope *Scope) limitAndOffsetSQL() (whereSQL, suffixSQL string) {
 	return scope.Dialect().LimitAndOffsetSQL(scope.Search.limit, scope.Search.offset)
 }
 
@@ -947,7 +951,7 @@ func (scope *Scope) trace(t time.Time) {
 func (scope *Scope) changeableField(field *Field) bool {
 	if selectAttrs := scope.SelectAttrs(); len(selectAttrs) > 0 {
 		for _, attr := range selectAttrs {
-			if field.Name == attr || field.DBName == attr {
+			if strings.EqualFold(field.Name, attr) || strings.EqualFold(field.DBName, attr) {
 				return true
 			}
 		}
@@ -1065,7 +1069,6 @@ func (scope *Scope) createJoinTable(field *StructField) {
 
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v)) %s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
 		}
-		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
 	}
 }
 
@@ -1082,6 +1085,13 @@ func (scope *Scope) createTable() *Scope {
 			// one column as the primary key.
 			if strings.Contains(strings.ToLower(sqlTag), "primary key") {
 				primaryKeyInColumnType = true
+			}
+
+			if _, ok := field.TagSettings["SEQUENCE"]; ok {
+				sequenceName := scope.Dialect().SequenceName(scope.TableName(), field.DBName)
+				if len(sequenceName) > 0 {
+					scope.Raw(fmt.Sprintf("CREATE SEQUENCE %s", scope.Dialect().Quote(sequenceName))).Exec()
+				}
 			}
 
 			tags = append(tags, scope.Quote(field.DBName)+" "+sqlTag)
@@ -1105,7 +1115,20 @@ func (scope *Scope) createTable() *Scope {
 }
 
 func (scope *Scope) dropTable() *Scope {
+	for _, field := range scope.Fields() {
+		if field.IsNormal {
+			scope.Dialect().DataTypeOf(field.StructField)
+			if _, ok := field.TagSettings["SEQUENCE"]; ok {
+				sequenceName := scope.Dialect().SequenceName(scope.TableName(), field.DBName)
+				if len(sequenceName) > 0 {
+					scope.Raw(fmt.Sprintf("DROP SEQUENCE %s", scope.Dialect().Quote(sequenceName))).Exec()
+				}
+			}
+		}
+	}
+
 	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.QuotedTableName())).Exec()
+
 	return scope
 }
 
@@ -1132,7 +1155,10 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 		sqlCreate = "CREATE UNIQUE INDEX"
 	}
 
-	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSQL())).Exec()
+	if scope.Dialect().GetName() == "oci8" {
+		indexName = scope.Dialect().Quote(indexName)
+	}
+	scope.Raw(fmt.Sprintf("%s %v ON %v (%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSQL())).Exec()
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
@@ -1141,8 +1167,14 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
+	var query = fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s", scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)
+	if len(onDelete) > 0 {
+		query += fmt.Sprintf(" ON DELETE %s", onDelete)
+	}
+	if len(onUpdate) > 0 {
+		query += fmt.Sprintf(" ON UPDATE %s", onUpdate)
+	}
+	scope.Raw(query).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {

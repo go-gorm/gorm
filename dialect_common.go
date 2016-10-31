@@ -123,15 +123,15 @@ func (s commonDialect) CurrentDatabase() (name string) {
 	return
 }
 
-func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (whereSQL, suffixSQL string) {
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
-			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
+		if parsedLimit, _ := strconv.ParseInt(fmt.Sprint(limit), 0, 0); parsedLimit > 0 {
+			suffixSQL += fmt.Sprintf(" LIMIT %d", parsedLimit)
 		}
 	}
 	if offset != nil {
-		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
-			sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
+		if parsedOffset, _ := strconv.ParseInt(fmt.Sprint(offset), 0, 0); parsedOffset > 0 {
+			suffixSQL += fmt.Sprintf(" OFFSET %d", parsedOffset)
 		}
 	}
 	return
@@ -149,4 +149,12 @@ func (DefaultForeignKeyNamer) BuildForeignKeyName(tableName, field, dest string)
 	keyName := fmt.Sprintf("%s_%s_%s_foreign", tableName, field, dest)
 	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
 	return keyName
+}
+
+func (*commonDialect) SequenceName(tableName, columnName string) string {
+	return ""
+}
+
+func (*commonDialect) NextSequenceSQL(tableName, columnName string) string {
+	return ""
 }
