@@ -34,8 +34,8 @@ type Dialect interface {
 	// HasColumn check has column or not
 	HasColumn(tableName string, columnName string) bool
 
-	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
-	LimitAndOffsetSQL(limit, offset interface{}) string
+	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql and oracle has special case
+	LimitAndOffsetSQL(limit, offset interface{}) (whereSQL, suffixSQL string)
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
 	// LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
@@ -46,6 +46,13 @@ type Dialect interface {
 
 	// CurrentDatabase return current database name
 	CurrentDatabase() string
+
+	// CreateSequenceSQL returns the sequence name for a given table and column. Oracle only.
+	SequenceName(tableName, columnName string) string
+
+	// NextSequenceSQL returns the SQL to fetch the next sequence value.
+	// It will be used in INSERT statements. Oracle only.
+	NextSequenceSQL(tableName, columnName string) string
 }
 
 var dialectsMap = map[string]Dialect{}

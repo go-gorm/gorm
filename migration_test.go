@@ -252,7 +252,7 @@ func runMigration() {
 	}
 
 	for _, table := range []string{"animals", "user_languages"} {
-		DB.Exec(fmt.Sprintf("drop table %v;", table))
+		DB.DropTable(table)
 	}
 
 	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}}

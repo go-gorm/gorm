@@ -128,15 +128,15 @@ func (s mssql) CurrentDatabase() (name string) {
 	return
 }
 
-func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (whereSQL, suffixSQL string) {
 	if limit != nil {
 		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
-			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
+			suffixSQL += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
 		}
 	}
 	if offset != nil {
 		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
-			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
+			suffixSQL += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
 		}
 	}
 	return
@@ -147,5 +147,13 @@ func (mssql) SelectFromDummyTable() string {
 }
 
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
+	return ""
+}
+
+func (*mssql) SequenceName(tableName, columnName string) string {
+	return ""
+}
+
+func (*mssql) NextSequenceSQL(tableName, columnName string) string {
 	return ""
 }

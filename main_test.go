@@ -60,18 +60,26 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mssql":
 		fmt.Println("testing mssql...")
 		db, err = gorm.Open("mssql", "server=SERVER_HERE;database=rogue;user id=USER_HERE;password=PW_HERE;port=1433")
+	case "oci8":
+		// CREATE USER gorm IDENTIFIED BY gorm;
+		// GRANT RESOURCE TO gorm;
+		// GRANT CREATE SESSION TO gorm;
+		fmt.Println("testing oci8...")
+		db, err = gorm.Open("oci8", "gorm/gorm@localhost/XE")
 	default:
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
 	}
 
-	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
-	// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
-	if os.Getenv("DEBUG") == "true" {
-		db.LogMode(true)
-	}
+	if db != nil {
+		// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})
+		// db.SetLogger(log.New(os.Stdout, "\r\n", 0))
+		if os.Getenv("DEBUG") == "true" {
+			db.LogMode(true)
+		}
 
-	db.DB().SetMaxIdleConns(10)
+		db.DB().SetMaxIdleConns(10)
+	}
 
 	return
 }
