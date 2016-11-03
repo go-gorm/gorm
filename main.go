@@ -655,9 +655,9 @@ func (s *DB) AddError(err error) error {
 				s.log(err)
 			}
 
-			errors := Errors{errors: s.GetErrors()}
+			errors := Errors(s.GetErrors())
 			errors.Add(err)
-			if len(errors.GetErrors()) > 1 {
+			if len(errors) > 1 {
 				err = errors
 			}
 		}
@@ -669,8 +669,8 @@ func (s *DB) AddError(err error) error {
 
 // GetErrors get happened errors from the db
 func (s *DB) GetErrors() (errors []error) {
-	if errs, ok := s.Error.(errorsInterface); ok {
-		return errs.GetErrors()
+	if errs, ok := s.Error.(Errors); ok {
+		return errs
 	} else if s.Error != nil {
 		return []error{s.Error}
 	}
