@@ -55,6 +55,24 @@ func TestFirstAndLastWithNoStdPrimaryKey(t *testing.T) {
 	}
 }
 
+func TestFirstAndLastWithRaw(t *testing.T) {
+	user1 := User{Name: "user", Emails: []Email{{Email: "user1@example.com"}}}
+	user2 := User{Name: "user", Emails: []Email{{Email: "user2@example.com"}}}
+	DB.Save(&user1)
+	DB.Save(&user2)
+
+	var user3, user4 User
+	DB.Raw("select * from users WHERE name = ?", "user").First(&user3)
+	if user3.Id != user1.Id {
+		t.Errorf("Find first record with raw")
+	}
+
+	DB.Raw("select * from users WHERE name = ?", "user").Last(&user4)
+	if user4.Id != user2.Id {
+		t.Errorf("Find last record with raw")
+	}
+}
+
 func TestUIntPrimaryKey(t *testing.T) {
 	var animal Animal
 	DB.First(&animal, uint64(1))
