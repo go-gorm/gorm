@@ -771,6 +771,44 @@ func TestOpenWithOneParameter(t *testing.T) {
 	}
 }
 
+func TestBlockGlobalUpdate(t *testing.T) {
+	db := DB.New()
+	db.Create(&Toy{Name: "Stuffed Animal", OwnerType: "Nobody"})
+
+	err := db.Model(&Toy{}).Update("OwnerType", "Human").Error
+	if err != nil {
+		t.Error("Unexpected error on global update")
+	}
+
+	err = db.Delete(&Toy{}).Error
+	if err != nil {
+		t.Error("Unexpected error on global delete")
+	}
+
+	db.BlockGlobalUpdate(true)
+
+	db.Create(&Toy{Name: "Stuffed Animal", OwnerType: "Nobody"})
+
+	err = db.Model(&Toy{}).Update("OwnerType", "Human").Error
+	if err == nil {
+		t.Error("Expected error on global update")
+	}
+
+	err = db.Model(&Toy{}).Where(&Toy{OwnerType: "Martian"}).Update("OwnerType", "Astronaut").Error
+	if err != nil {
+		t.Error("Unxpected error on conditional update")
+	}
+
+	err = db.Delete(&Toy{}).Error
+	if err == nil {
+		t.Error("Expected error on global delete")
+	}
+	err = db.Where(&Toy{OwnerType: "Martian"}).Delete(&Toy{}).Error
+	if err != nil {
+		t.Error("Unexpected error on conditional delete")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
