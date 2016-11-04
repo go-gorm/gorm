@@ -117,9 +117,13 @@ func createCallback(scope *Scope) {
 				}
 			}
 		} else {
-			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
-				primaryField.IsBlank = false
-				scope.db.RowsAffected = 1
+			if primaryField.Field.CanAddr() {
+				if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+					primaryField.IsBlank = false
+					scope.db.RowsAffected = 1
+				}
+			} else {
+				scope.Err(ErrUnaddressable)
 			}
 		}
 	}
