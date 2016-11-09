@@ -656,7 +656,7 @@ func (s *DB) AddError(err error) error {
 			}
 
 			errors := Errors(s.GetErrors())
-			errors.Add(err)
+			errors = errors.Add(err)
 			if len(errors) > 1 {
 				err = errors
 			}
@@ -668,13 +668,13 @@ func (s *DB) AddError(err error) error {
 }
 
 // GetErrors get happened errors from the db
-func (s *DB) GetErrors() (errors []error) {
+func (s *DB) GetErrors() []error {
 	if errs, ok := s.Error.(Errors); ok {
 		return errs
 	} else if s.Error != nil {
 		return []error{s.Error}
 	}
-	return
+	return []error{}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
