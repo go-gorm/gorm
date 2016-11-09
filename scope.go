@@ -256,12 +256,12 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	if expr, ok := value.(*expr); ok {
 		exp := expr.expr
 		for _, arg := range expr.args {
-			exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+			exp = strings.Replace(exp, "?", scope.AddToVars(scope.toUTC(arg)), 1)
 		}
 		return exp
 	}
 
-	scope.SQLVars = append(scope.SQLVars, value)
+	scope.SQLVars = append(scope.SQLVars, scope.toUTC(value))
 	return scope.Dialect().BindVar(len(scope.SQLVars))
 }
 
@@ -1279,4 +1279,14 @@ func (scope *Scope) getColumnAsScope(column string) *Scope {
 		}
 	}
 	return nil
+}
+
+func (scope *Scope) toUTC(v interface{}) interface{} {
+	if !scope.db.HasForcedUTC() {
+		return v
+	}
+	if tm, ok := v.(time.Time); ok {
+		return tm.UTC()
+	}
+	return v
 }

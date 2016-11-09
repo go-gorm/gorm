@@ -25,6 +25,7 @@ type DB struct {
 	source            string
 	values            map[string]interface{}
 	joinTableHandlers map[string]JoinTableHandler
+	forceUTC          bool
 }
 
 // Open initialize a new db connection, need to import driver first, e.g:
@@ -140,6 +141,17 @@ func (s *DB) LogMode(enable bool) *DB {
 		s.logMode = 1
 	}
 	return s
+}
+
+// ForceUTC set to `true` to force all time values to be normalized as UTC, `false` for regular behavior (default)
+func (s *DB) ForceUTC(enable bool) *DB {
+	s.forceUTC = enable
+	return s
+}
+
+// HasForcedUTC return the state of the forceUTC flag
+func (s *DB) HasForcedUTC() bool {
+	return s.forceUTC
 }
 
 // SingularTable use singular table by default
@@ -682,7 +694,7 @@ func (s *DB) GetErrors() []error {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (s *DB) clone() *DB {
-	db := DB{db: s.db, parent: s.parent, logger: s.logger, logMode: s.logMode, values: map[string]interface{}{}, Value: s.Value, Error: s.Error}
+	db := DB{db: s.db, parent: s.parent, logger: s.logger, logMode: s.logMode, values: map[string]interface{}{}, Value: s.Value, Error: s.Error, forceUTC: s.forceUTC}
 
 	for key, value := range s.values {
 		db.values[key] = value
