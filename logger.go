@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	defaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
-	sqlRegexp     = regexp.MustCompile(`(\$\d+)|\?`)
+	defaultLogger            = Logger{log.New(os.Stdout, "\r\n", 0)}
+	sqlRegexp                = regexp.MustCompile(`\?`)
+	numericPlaceHolderRegexp = regexp.MustCompile(`\$\d+`)
 )
 
 type logger interface {
@@ -71,11 +72,21 @@ func (logger Logger) Print(values ...interface{}) {
 				}
 			}
 
-			var formattedValuesLength = len(formattedValues)
-			for index, value := range sqlRegexp.Split(values[3].(string), -1) {
-				sql += value
-				if index < formattedValuesLength {
-					sql += formattedValues[index]
+			// differentiate between $n placeholders or else treat like ?
+			if numericPlaceHolderRegexp.MatchString(values[3].(string)) {
+				sql = values[3].(string)
+				for index, value := range formattedValues {
+					placeholder := fmt.Sprintf(`\$%d`, index+1)
+					subre := regexp.MustCompile(placeholder)
+					sql = subre.ReplaceAllString(sql, value)
+				}
+			} else {
+				var formattedValuesLength = len(formattedValues)
+				for index, value := range sqlRegexp.Split(values[3].(string), -1) {
+					sql += value
+					if index < formattedValuesLength {
+						sql += formattedValues[index]
+					}
 				}
 			}
 
