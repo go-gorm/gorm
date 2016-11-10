@@ -1280,3 +1280,10 @@ func (scope *Scope) getColumnAsScope(column string) *Scope {
 	}
 	return nil
 }
+
+func (scope *Scope) hasConditions() bool {
+	return !scope.PrimaryKeyZero() ||
+		len(scope.Search.whereConditions) > 0 ||
+		len(scope.Search.orConditions) > 0 ||
+		len(scope.Search.notConditions) > 0
+}
