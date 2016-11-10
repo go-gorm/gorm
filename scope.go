@@ -1216,29 +1216,43 @@ func (scope *Scope) autoIndex() *Scope {
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
 	for _, value := range values {
-		indirectValue := reflect.ValueOf(value)
-		for indirectValue.Kind() == reflect.Ptr {
-			indirectValue = indirectValue.Elem()
-		}
+		indirectValue := indirect(reflect.ValueOf(value))
 
 		switch indirectValue.Kind() {
 		case reflect.Slice:
 			for i := 0; i < indirectValue.Len(); i++ {
 				var result []interface{}
 				var object = indirect(indirectValue.Index(i))
+				var hasValue = false
 				for _, column := range columns {
-					result = append(result, object.FieldByName(column).Interface())
+					field := object.FieldByName(column)
+					if hasValue || !isBlank(field) {
+						hasValue = true
+					}
+					result = append(result, field.Interface())
 				}
-				results = append(results, result)
+
+				if hasValue {
+					results = append(results, result)
+				}
 			}
 		case reflect.Struct:
 			var result []interface{}
+			var hasValue = false
 			for _, column := range columns {
-				result = append(result, indirectValue.FieldByName(column).Interface())
+				field := indirectValue.FieldByName(column)
+				if hasValue || !isBlank(field) {
+					hasValue = true
+				}
+				result = append(result, field.Interface())
 			}
-			results = append(results, result)
+
+			if hasValue {
+				results = append(results, result)
+			}
 		}
 	}
+
 	return
 }
 
