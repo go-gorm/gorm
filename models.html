@@ -811,7 +811,7 @@ db.Model(&amp;user).Update(<span class="hljs-string">&quot;CreatedAt&quot;</span
 db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>) <span class="hljs-comment">// will set `UpdatedAt` to current time</span>
 </code></pre>
 <h3 id="use-deletedat-to-store-records-deleted-time-if-field-exists">Use <code>DeletedAt</code> to store record&apos;s deleted time if field exists</h3>
-<p>Delete records having <code>DeletedAt</code> field, it won&apos;t be deleted from database, but only set field <code>DeletedAt</code>&apos;s value to current time, and the record is not findable when querying, refer <a href="curd.html#soft-delete">Soft Delete</a></p>
+<p>Delete records having <code>DeletedAt</code> field, it won&apos;t be deleted from database, but only set field <code>DeletedAt</code>&apos;s value to current time, and the record is not findable when querying, refer <a href="crud.html#soft-delete">Soft Delete</a></p>
 
                                 
                                 </section>
