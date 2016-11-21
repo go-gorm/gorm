@@ -169,4 +169,4 @@ db.Model(&user).Update("name", "jinzhu") // will set `UpdatedAt` to current time
 
 ### Use `DeletedAt` to store record's deleted time if field exists
 
-Delete records having `DeletedAt` field, it won't be deleted from database, but only set field `DeletedAt`'s value to current time, and the record is not findable when querying, refer [Soft Delete](curd.html#soft-delete)
+Delete records having `DeletedAt` field, it won't be deleted from database, but only set field `DeletedAt`'s value to current time, and the record is not findable when querying, refer [Soft Delete](crud.html#soft-delete)
