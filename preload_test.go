@@ -595,11 +595,11 @@ func TestNestedPreload9(t *testing.T) {
 		Level2_1: Level2_1{
 			Level1s: []Level1{
 				{
-					Value: "value3-3",
+					Value:   "value3-3",
 					Level0s: []Level0{},
 				},
 				{
-					Value: "value4-4",
+					Value:   "value4-4",
 					Level0s: []Level0{},
 				},
 			},
@@ -664,7 +664,7 @@ func TestNestedPreload10(t *testing.T) {
 			},
 		},
 		{
-			Value: "bar 2",
+			Value:    "bar 2",
 			LevelA3s: []*LevelA3{},
 		},
 	}

@@ -734,7 +734,7 @@ func (scope *Scope) selectSQL() string {
 }
 
 func (scope *Scope) orderSQL() string {
-	if len(scope.Search.orders) == 0 || scope.Search.countingQuery {
+	if len(scope.Search.orders) == 0 || scope.Search.ignoreOrderQuery {
 		return ""
 	}
 
@@ -927,7 +927,7 @@ func (scope *Scope) count(value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !regexp.MustCompile("(?i)^count(.+)$").MatchString(fmt.Sprint(query)) {
 		scope.Search.Select("count(*)")
 	}
-	scope.Search.countingQuery = true
+	scope.Search.ignoreOrderQuery = true
 	scope.Err(scope.row().Scan(value))
 	return scope
 }

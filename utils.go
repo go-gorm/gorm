@@ -134,7 +134,7 @@ func toQueryMarks(primaryValues [][]interface{}) string {
 
 	for _, primaryValue := range primaryValues {
 		var marks []string
-		for _,_ = range primaryValue {
+		for _, _ = range primaryValue {
 			marks = append(marks, "?")
 		}
 
