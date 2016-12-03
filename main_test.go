@@ -9,7 +9,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 	testdb "github.com/erikstmartin/go-testdb"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
+	"github.com/embroker/gorm"
 	"github.com/jinzhu/now"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -94,7 +94,7 @@ func TestExceptionsWithInvalidSql(t *testing.T) {
 		t.Errorf("Should find some users")
 	}
 
-	if DB.Where("name = ?", "jinzhu; delete * from users").First(&User{}).Error == nil {
+	if DB.Where("name = ?", "embroker; delete * from users").First(&User{}).Error == nil {
 		t.Errorf("Should got error with invalid SQL")
 	}
 
@@ -400,7 +400,7 @@ func TestRaw(t *testing.T) {
 		t.Errorf("Raw with Rows should find one record with name 3")
 	}
 
-	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
+	DB.Exec("update users set name=? where name in (?)", "embroker", []string{user1.Name, user2.Name, user3.Name})
 	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.RecordNotFound {
 		t.Error("Raw sql to update records")
 	}

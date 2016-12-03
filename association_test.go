@@ -59,10 +59,10 @@ func TestHasOneAndHasManyAssociation(t *testing.T) {
 
 func TestRelated(t *testing.T) {
 	user := User{
-		Name:            "jinzhu",
+		Name:            "embroker",
 		BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 		ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-		Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+		Emails:          []Email{{Email: "embroker@example.com"}, {Email: "embroker-2@example@example.com"}},
 		CreditCard:      CreditCard{Number: "1234567890"},
 		Company:         Company{Name: "company1"},
 	}
@@ -88,7 +88,7 @@ func TestRelated(t *testing.T) {
 	}
 
 	var emails2 []Email
-	DB.Model(&user).Where("email = ?", "jinzhu@example.com").Related(&emails2)
+	DB.Model(&user).Where("email = ?", "embroker@example.com").Related(&emails2)
 	if len(emails2) != 1 {
 		t.Errorf("Should have two emails")
 	}

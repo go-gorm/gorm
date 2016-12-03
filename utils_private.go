@@ -10,7 +10,7 @@ import (
 func fileWithLineNum() string {
 	for i := 2; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		if ok && (!regexp.MustCompile(`jinzhu/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`jinzhu/gorm/.*test.go`).MatchString(file)) {
+		if ok && (!regexp.MustCompile(`embroker/gorm/.*.go`).MatchString(file) || regexp.MustCompile(`embroker/gorm/.*test.go`).MatchString(file)) {
 			return fmt.Sprintf("%v:%v", file, line)
 		}
 	}

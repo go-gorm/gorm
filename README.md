@@ -25,7 +25,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 ## Install
 
 ```
-go get -u github.com/jinzhu/gorm
+go get -u github.com/embroker/gorm
 ```
 
 ## Define Models (Structs)
@@ -104,7 +104,7 @@ type User struct {
 
 ```go
 import (
-	"github.com/jinzhu/gorm"
+	"github.com/embroker/gorm"
 	_ "github.com/lib/pq"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
@@ -164,10 +164,10 @@ db.NewRecord(user) // => return `false` after `user` created
 
 // Associations will be inserted automatically when save the record
 user := User{
-	Name:            "jinzhu",
+	Name:            "embroker",
 	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	Emails:          []Email{{Email: "embroker@example.com"}, {Email: "embroker-2@example@example.com"}},
 	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
 }
 
@@ -175,9 +175,9 @@ db.Create(&user)
 //// BEGIN TRANSACTION;
 //// INSERT INTO "addresses" (address1) VALUES ("Billing Address - Address 1");
 //// INSERT INTO "addresses" (address1) VALUES ("Shipping Address - Address 1");
-//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("jinzhu", 1, 2);
-//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu@example.com");
-//// INSERT INTO "emails" (user_id,email) VALUES (111, "jinzhu-2@example.com");
+//// INSERT INTO "users" (name,billing_address_id,shipping_address_id) VALUES ("embroker", 1, 2);
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "embroker@example.com");
+//// INSERT INTO "emails" (user_id,email) VALUES (111, "embroker-2@example.com");
 //// INSERT INTO "languages" ("name") VALUES ('ZH');
 //// INSERT INTO user_languages ("user_id","language_id") VALUES (111, 1);
 //// INSERT INTO "languages" ("name") VALUES ('EN');
@@ -211,23 +211,23 @@ db.First(&user, 10)
 
 ```go
 // Get the first matched record
-db.Where("name = ?", "jinzhu").First(&user)
-//// SELECT * FROM users WHERE name = 'jinzhu' limit 1;
+db.Where("name = ?", "embroker").First(&user)
+//// SELECT * FROM users WHERE name = 'embroker' limit 1;
 
 // Get all matched records
-db.Where("name = ?", "jinzhu").Find(&users)
-//// SELECT * FROM users WHERE name = 'jinzhu';
+db.Where("name = ?", "embroker").Find(&users)
+//// SELECT * FROM users WHERE name = 'embroker';
 
-db.Where("name <> ?", "jinzhu").Find(&users)
+db.Where("name <> ?", "embroker").Find(&users)
 
 // IN
-db.Where("name in (?)", []string{"jinzhu", "jinzhu 2"}).Find(&users)
+db.Where("name in (?)", []string{"embroker", "embroker 2"}).Find(&users)
 
 // LIKE
 db.Where("name LIKE ?", "%jin%").Find(&users)
 
 // AND
-db.Where("name = ? and age >= ?", "jinzhu", "22").Find(&users)
+db.Where("name = ? and age >= ?", "embroker", "22").Find(&users)
 
 // Time
 db.Where("updated_at > ?", lastWeek).Find(&users)
@@ -239,12 +239,12 @@ db.Where("created_at BETWEEN ? AND ?", lastWeek, today).Find(&users)
 
 ```go
 // Struct
-db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
-//// SELECT * FROM users WHERE name = "jinzhu" AND age = 20 LIMIT 1;
+db.Where(&User{Name: "embroker", Age: 20}).First(&user)
+//// SELECT * FROM users WHERE name = "embroker" AND age = 20 LIMIT 1;
 
 // Map
-db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).Find(&users)
-//// SELECT * FROM users WHERE name = "jinzhu" AND age = 20;
+db.Where(map[string]interface{}{"name": "embroker", "age": 20}).Find(&users)
+//// SELECT * FROM users WHERE name = "embroker" AND age = 20;
 
 // Slice of primary keys
 db.Where([]int64{20, 21, 22}).Find(&users)
@@ -254,12 +254,12 @@ db.Where([]int64{20, 21, 22}).Find(&users)
 ### Query With Not
 
 ```go
-db.Not("name", "jinzhu").First(&user)
-//// SELECT * FROM users WHERE name <> "jinzhu" LIMIT 1;
+db.Not("name", "embroker").First(&user)
+//// SELECT * FROM users WHERE name <> "embroker" LIMIT 1;
 
 // Not In
-db.Not("name", []string{"jinzhu", "jinzhu 2"}).Find(&users)
-//// SELECT * FROM users WHERE name NOT IN ("jinzhu", "jinzhu 2");
+db.Not("name", []string{"embroker", "embroker 2"}).Find(&users)
+//// SELECT * FROM users WHERE name NOT IN ("embroker", "embroker 2");
 
 // Not In slice of primary keys
 db.Not([]int64{1,2,3}).First(&user)
@@ -269,12 +269,12 @@ db.Not([]int64{}).First(&user)
 //// SELECT * FROM users;
 
 // Plain SQL
-db.Not("name = ?", "jinzhu").First(&user)
-//// SELECT * FROM users WHERE NOT(name = "jinzhu");
+db.Not("name = ?", "embroker").First(&user)
+//// SELECT * FROM users WHERE NOT(name = "embroker");
 
 // Struct
-db.Not(User{Name: "jinzhu"}).First(&user)
-//// SELECT * FROM users WHERE name <> "jinzhu";
+db.Not(User{Name: "embroker"}).First(&user)
+//// SELECT * FROM users WHERE name <> "embroker";
 ```
 
 ### Query With Inline Condition
@@ -285,11 +285,11 @@ db.First(&user, 23)
 //// SELECT * FROM users WHERE id = 23 LIMIT 1;
 
 // Plain SQL
-db.Find(&user, "name = ?", "jinzhu")
-//// SELECT * FROM users WHERE name = "jinzhu";
+db.Find(&user, "name = ?", "embroker")
+//// SELECT * FROM users WHERE name = "embroker";
 
-db.Find(&users, "name <> ? AND age > ?", "jinzhu", 20)
-//// SELECT * FROM users WHERE name <> "jinzhu" AND age > 20;
+db.Find(&users, "name <> ? AND age > ?", "embroker", 20)
+//// SELECT * FROM users WHERE name <> "embroker" AND age > 20;
 
 // Struct
 db.Find(&users, User{Age: 20})
@@ -307,11 +307,11 @@ db.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&users)
 //// SELECT * FROM users WHERE role = 'admin' OR role = 'super_admin';
 
 // Struct
-db.Where("name = 'jinzhu'").Or(User{Name: "jinzhu 2"}).Find(&users)
-//// SELECT * FROM users WHERE name = 'jinzhu' OR name = 'jinzhu 2';
+db.Where("name = 'embroker'").Or(User{Name: "embroker 2"}).Find(&users)
+//// SELECT * FROM users WHERE name = 'embroker' OR name = 'embroker 2';
 
 // Map
-db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(&users)
+db.Where("name = 'embroker'").Or(map[string]interface{}{"name": "embroker 2"}).Find(&users)
 ```
 
 ### Query Chains
@@ -319,10 +319,10 @@ db.Where("name = 'jinzhu'").Or(map[string]interface{}{"name": "jinzhu 2"}).Find(
 Gorm has a chainable API, you could use it like this
 
 ```go
-db.Where("name <> ?","jinzhu").Where("age >= ? and role <> ?",20,"admin").Find(&users)
-//// SELECT * FROM users WHERE name <> 'jinzhu' AND age >= 20 AND role <> 'admin';
+db.Where("name <> ?","embroker").Where("age >= ? and role <> ?",20,"admin").Find(&users)
+//// SELECT * FROM users WHERE name <> 'embroker' AND age >= 20 AND role <> 'admin';
 
-db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jinzhu").Find(&users)
+db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "embroker").Find(&users)
 ```
 
 ### Preloading (Eager loading)
@@ -359,13 +359,13 @@ db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&use
 ```go
 // Update an existing struct
 db.First(&user)
-user.Name = "jinzhu 2"
+user.Name = "embroker 2"
 user.Age = 100
 db.Save(&user)
-//// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111;
+//// UPDATE users SET name='embroker 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111;
 
 db.Where("active = ?", true).Save(&user)
-//// UPDATE users SET name='jinzhu 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111 AND active = true;
+//// UPDATE users SET name='embroker 2', age=100, updated_at = '2013-11-17 21:34:10' WHERE id=111 AND active = true;
 
 // Update an attribute if it is changed
 db.Model(&user).Update("name", "hello")
@@ -442,7 +442,7 @@ db.Delete(&email)
 ### Batch Delete
 
 ```go
-db.Where("email LIKE ?", "%jinzhu%").Delete(Email{})
+db.Where("email LIKE ?", "%embroker%").Delete(Email{})
 //// DELETE from emails where email LIKE "%jinhu%";
 ```
 
@@ -593,7 +593,7 @@ db.FirstOrInit(&user, User{Name: "non_existing"})
 // Found
 db.Where(User{Name: "Jinzhu"}).FirstOrInit(&user)
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
-db.FirstOrInit(&user, map[string]interface{}{"name": "jinzhu"})
+db.FirstOrInit(&user, map[string]interface{}{"name": "embroker"})
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 ```
 
@@ -613,7 +613,7 @@ db.Where(User{Name: "noexisting_user"}).Attrs("age", 20).FirstOrInit(&user)
 
 // Found
 db.Where(User{Name: "Jinzhu"}).Attrs(User{Age: 30}).FirstOrInit(&user)
-//// SELECT * FROM USERS WHERE name = jinzhu';
+//// SELECT * FROM USERS WHERE name = embroker';
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 20}
 ```
 
@@ -628,7 +628,7 @@ db.Where(User{Name: "non_existing"}).Assign(User{Age: 20}).FirstOrInit(&user)
 
 // Found
 db.Where(User{Name: "Jinzhu"}).Assign(User{Age: 30}).FirstOrInit(&user)
-//// SELECT * FROM USERS WHERE name = jinzhu';
+//// SELECT * FROM USERS WHERE name = embroker';
 //// user -> User{Id: 111, Name: "Jinzhu", Age: 30}
 ```
 
@@ -659,9 +659,9 @@ db.Where(User{Name: "non_existing"}).Attrs(User{Age: 20}).FirstOrCreate(&user)
 //// user -> User{Id: 112, Name: "non_existing", Age: 20}
 
 // Found
-db.Where(User{Name: "jinzhu"}).Attrs(User{Age: 30}).FirstOrCreate(&user)
-//// SELECT * FROM users WHERE name = 'jinzhu';
-//// user -> User{Id: 111, Name: "jinzhu", Age: 20}
+db.Where(User{Name: "embroker"}).Attrs(User{Age: 30}).FirstOrCreate(&user)
+//// SELECT * FROM users WHERE name = 'embroker';
+//// user -> User{Id: 111, Name: "embroker", Age: 20}
 ```
 
 ### Assign
@@ -676,10 +676,10 @@ db.Where(User{Name: "non_existing"}).Assign(User{Age: 20}).FirstOrCreate(&user)
 //// user -> User{Id: 112, Name: "non_existing", Age: 20}
 
 // Found
-db.Where(User{Name: "jinzhu"}).Assign(User{Age: 30}).FirstOrCreate(&user)
-//// SELECT * FROM users WHERE name = 'jinzhu';
+db.Where(User{Name: "embroker"}).Assign(User{Age: 30}).FirstOrCreate(&user)
+//// SELECT * FROM users WHERE name = 'embroker';
 //// UPDATE users SET age=30 WHERE id = 111;
-//// user -> User{Id: 111, Name: "jinzhu", Age: 30}
+//// user -> User{Id: 111, Name: "embroker", Age: 30}
 ```
 
 ## Select
@@ -738,12 +738,12 @@ db.Offset(10).Find(&users1).Offset(-1).Find(&users2)
 ## Count
 
 ```go
-db.Where("name = ?", "jinzhu").Or("name = ?", "jinzhu 2").Find(&users).Count(&count)
-//// SELECT * from USERS WHERE name = 'jinzhu' OR name = 'jinzhu 2'; (users)
-//// SELECT count(*) FROM users WHERE name = 'jinzhu' OR name = 'jinzhu 2'; (count)
+db.Where("name = ?", "embroker").Or("name = ?", "embroker 2").Find(&users).Count(&count)
+//// SELECT * from USERS WHERE name = 'embroker' OR name = 'embroker 2'; (users)
+//// SELECT count(*) FROM users WHERE name = 'embroker' OR name = 'embroker 2'; (count)
 
-db.Model(User{}).Where("name = ?", "jinzhu").Count(&count)
-//// SELECT count(*) FROM users WHERE name = 'jinzhu'; (count)
+db.Model(User{}).Where("name = ?", "embroker").Count(&count)
+//// SELECT count(*) FROM users WHERE name = 'embroker'; (count)
 
 db.Table("deleted_users").Count(&count)
 //// SELECT count(*) FROM deleted_users;
@@ -778,10 +778,10 @@ db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,2
 It is even possible to get query result as `*sql.Row` or `*sql.Rows`
 
 ```go
-row := db.Table("users").Where("name = ?", "jinzhu").Select("name, age").Row() // (*sql.Row)
+row := db.Table("users").Where("name = ?", "embroker").Select("name, age").Row() // (*sql.Row)
 row.Scan(&name, &age)
 
-rows, err := db.Model(User{}).Where("name = ?", "jinzhu").Select("name, age, email").Rows() // (*sql.Rows, error)
+rows, err := db.Model(User{}).Where("name = ?", "embroker").Select("name, age, email").Rows() // (*sql.Rows, error)
 defer rows.Close()
 for rows.Next() {
 	...
@@ -790,7 +790,7 @@ for rows.Next() {
 }
 
 // Raw SQL
-rows, err := db.Raw("select name, age, email from users where name = ?", "jinzhu").Rows() // (*sql.Rows, error)
+rows, err := db.Raw("select name, age, email from users where name = ?", "embroker").Rows() // (*sql.Rows, error)
 defer rows.Close()
 for rows.Next() {
 	...
@@ -850,7 +850,7 @@ db.Table("users").Select("users.name, emails.email").Joins("left join emails on 
 db.Joins("inner join emails on emails.user_id = users.id").Where("emails.email = ?", "x@example.org").Find(&user)
 
 // find all email addresses for a user
-db.Joins("left join users on users.id = emails.user_id").Where("users.name = ?", "jinzhu").Find(&emails)
+db.Joins("left join users on users.id = emails.user_id").Where("users.name = ?", "embroker").Find(&emails)
 ```
 
 ## Transactions
@@ -986,8 +986,8 @@ var deleted_users []User
 db.Table("deleted_users").Find(&deleted_users)
 //// SELECT * FROM deleted_users;
 
-db.Table("deleted_users").Where("name = ?", "jinzhu").Delete()
-//// DELETE FROM deleted_users WHERE name = 'jinzhu';
+db.Table("deleted_users").Where("name = ?", "embroker").Delete()
+//// DELETE FROM deleted_users WHERE name = 'embroker';
 ```
 
 ### Specifying The Table Name For A Struct Permanently with TableName
@@ -1012,12 +1012,12 @@ func (u User) TableName() string {
 ## Error Handling
 
 ```go
-query := db.Where("name = ?", "jinzhu").First(&user)
+query := db.Where("name = ?", "embroker").First(&user)
 query := db.First(&user).Limit(10).Find(&users)
 // query.Error will return the last happened error
 
 // So you could do error handing in your application like this:
-if err := db.Where("name = ?", "jinzhu").First(&user).Error; err != nil {
+if err := db.Where("name = ?", "embroker").First(&user).Error; err != nil {
 	// error handling...
 }
 
@@ -1044,15 +1044,15 @@ db.LogMode(true)
 db.LogMode(false)
 
 // Debug a single operation
-db.Debug().Where("name = ?", "jinzhu").First(&User{})
+db.Debug().Where("name = ?", "embroker").First(&User{})
 ```
 
-![logger](https://raw.github.com/jinzhu/gorm/master/images/logger.png)
+![logger](https://raw.github.com/embroker/gorm/master/images/logger.png)
 
 ### Customize Logger
 
 ```go
-// Refer gorm's default logger for how to: https://github.com/jinzhu/gorm/blob/master/logger.go#files
+// Refer gorm's default logger for how to: https://github.com/embroker/gorm/blob/master/logger.go#files
 db.SetLogger(gorm.Logger{revel.TRACE})
 db.SetLogger(log.New(os.Stdout, "\r\n", 0))
 ```
@@ -1182,14 +1182,11 @@ db.Where("email = ?", "x@example.org").Attrs(User{RegisteredIp: "111.111.111.111
 
 # Author
 
-**jinzhu**
+**embroker**
 
-* <http://github.com/jinzhu>
-* <wosmvp@gmail.com>
-* <http://twitter.com/zhangjinzhu>
 
 ## License
 
-Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License).
+Released under the [MIT License](https://github.com/embroker/gorm/blob/master/License).
 
-[![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.png)](http://godoc.org/github.com/jinzhu/gorm)
+[![GoDoc](https://godoc.org/github.com/embroker/gorm?status.png)](http://godoc.org/github.com/embroker/gorm)

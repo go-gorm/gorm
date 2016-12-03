@@ -104,7 +104,7 @@ func TestAutoMigration(t *testing.T) {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 
-	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
+	DB.Save(&BigEmail{Email: "embroker@example.org", UserAgent: "pc", RegisteredAt: time.Now()})
 
 	scope := DB.NewScope(&BigEmail{})
 	if !scope.Dialect().HasIndex(scope, scope.TableName(), "idx_email_agent") {
@@ -117,7 +117,7 @@ func TestAutoMigration(t *testing.T) {
 
 	var bigemail BigEmail
 	DB.First(&bigemail, "user_agent = ?", "pc")
-	if bigemail.Email != "jinzhu@example.org" || bigemail.UserAgent != "pc" || bigemail.RegisteredAt.IsZero() {
+	if bigemail.Email != "embroker@example.org" || bigemail.UserAgent != "pc" || bigemail.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
 	}
 }
