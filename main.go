@@ -598,7 +598,7 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
-	scope := s.clone().NewScope(s.Value)
+	var scope = s.Set("gorm:association:source", s.Value).NewScope(s.Value)
 
 	if primaryField := scope.PrimaryField(); primaryField.IsBlank {
 		err = errors.New("primary key can't be nil")
