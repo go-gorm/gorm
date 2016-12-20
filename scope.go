@@ -447,7 +447,12 @@ func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 	}
 }
 
-var columnRegexp = regexp.MustCompile("^[a-zA-Z]+(\\.[a-zA-Z]+)*$") // only match string like `name`, `users.name`
+var (
+	columnRegexp        = regexp.MustCompile("^[a-zA-Z]+(\\.[a-zA-Z]+)*$") // only match string like `name`, `users.name`
+	isNumberRegexp      = regexp.MustCompile("^\\s*\\d+\\s*$")             // match if string is number
+	comparisonRegexp    = regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS|IN) ")
+	countingQueryRegexp = regexp.MustCompile("(?i)^count(.+)$")
+)
 
 func (scope *Scope) quoteIfPossible(str string) string {
 	if columnRegexp.MatchString(str) {
@@ -509,8 +514,7 @@ func (scope *Scope) primaryCondition(value interface{}) string {
 func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str string) {
 	switch value := clause["query"].(type) {
 	case string:
-		// if string is number
-		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
+		if isNumberRegexp.MatchString(value) {
 			return scope.primaryCondition(scope.AddToVars(value))
 		} else if value != "" {
 			str = fmt.Sprintf("(%v)", value)
@@ -573,11 +577,10 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 
 	switch value := clause["query"].(type) {
 	case string:
-		// is number
-		if regexp.MustCompile("^\\s*\\d+\\s*$").MatchString(value) {
+		if isNumberRegexp.MatchString(value) {
 			id, _ := strconv.Atoi(value)
 			return fmt.Sprintf("(%v <> %v)", scope.Quote(primaryKey), id)
-		} else if regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS|IN) ").MatchString(value) {
+		} else if comparisonRegexp.MatchString(value) {
 			str = fmt.Sprintf(" NOT (%v) ", value)
 			notEqualSQL = fmt.Sprintf("NOT (%v)", value)
 		} else {
@@ -924,7 +927,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
-	if query, ok := scope.Search.selects["query"]; !ok || !regexp.MustCompile("(?i)^count(.+)$").MatchString(fmt.Sprint(query)) {
+	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
 		scope.Search.Select("count(*)")
 	}
 	scope.Search.ignoreOrderQuery = true
