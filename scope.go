@@ -947,6 +947,9 @@ func (scope *Scope) typeName() string {
 
 // trace print sql log
 func (scope *Scope) trace(t time.Time) {
+	scope.Set("gorm:trace-time", t)
+	scope.callCallbacks(scope.db.parent.callbacks.trace)
+
 	if len(scope.SQL) > 0 {
 		scope.db.slog(scope.SQL, t, scope.SQLVars...)
 	}

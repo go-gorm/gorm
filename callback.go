@@ -13,6 +13,7 @@ var DefaultCallback = &Callback{}
 //   Field `deletes` contains callbacks will be call when deleting object
 //   Field `queries` contains callbacks will be call when querying object with query methods like Find, First, Related, Association...
 //   Field `rowQueries` contains callbacks will be call when querying object with Row, Rows...
+//   Field `trace` contains callbacks will be call after any sql query was executed
 //   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
 	creates    []*func(scope *Scope)
@@ -20,6 +21,7 @@ type Callback struct {
 	deletes    []*func(scope *Scope)
 	queries    []*func(scope *Scope)
 	rowQueries []*func(scope *Scope)
+	trace      []*func(scope *Scope)
 	processors []*CallbackProcessor
 }
 
@@ -43,6 +45,7 @@ func (c *Callback) clone() *Callback {
 		queries:    c.queries,
 		rowQueries: c.rowQueries,
 		processors: c.processors,
+		trace:      c.trace,
 	}
 }
 
@@ -77,6 +80,11 @@ func (c *Callback) Query() *CallbackProcessor {
 // RowQuery could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
 func (c *Callback) RowQuery() *CallbackProcessor {
 	return &CallbackProcessor{kind: "row_query", parent: c}
+}
+
+// Trace could be used to register callbacks for tracing sql queries, refer `Create` for usage
+func (c *Callback) Trace() *CallbackProcessor {
+	return &CallbackProcessor{kind: "trace", parent: c}
 }
 
 // After insert a new callback after callback `callbackName`, refer `Callbacks.Create`
@@ -210,7 +218,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 
 // reorder all registered processors, and reset CURD callbacks
 func (c *Callback) reorder() {
-	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
+	var creates, updates, deletes, queries, rowQueries, trace []*CallbackProcessor
 
 	for _, processor := range c.processors {
 		if processor.name != "" {
@@ -225,6 +233,8 @@ func (c *Callback) reorder() {
 				queries = append(queries, processor)
 			case "row_query":
 				rowQueries = append(rowQueries, processor)
+			case "trace":
+				trace = append(trace, processor)
 			}
 		}
 	}
@@ -234,4 +244,5 @@ func (c *Callback) reorder() {
 	c.deletes = sortProcessors(deletes)
 	c.queries = sortProcessors(queries)
 	c.rowQueries = sortProcessors(rowQueries)
+	c.trace = sortProcessors(trace)
 }
