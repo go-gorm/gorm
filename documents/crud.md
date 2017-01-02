@@ -719,7 +719,10 @@ user := User{
 	Name:            "jinzhu",
 	BillingAddress:  Address{Address1: "Billing Address - Address 1"},
 	ShippingAddress: Address{Address1: "Shipping Address - Address 1"},
-	Emails:          []Email{{Email: "jinzhu@example.com"}, {Email: "jinzhu-2@example@example.com"}},
+	Emails:          []Email{
+										{Email: "jinzhu@example.com"},
+										{Email: "jinzhu-2@example@example.com"},
+                   },
 	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
 }
 
