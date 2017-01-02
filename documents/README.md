@@ -73,14 +73,6 @@ func main() {
 }
 ```
 
-# Author
-
-**jinzhu**
-
-* <http://github.com/jinzhu>
-* <wosmvp@gmail.com>
-* <http://twitter.com/zhangjinzhu>
-
 # Contributors
 
 https://github.com/jinzhu/gorm/graphs/contributors
@@ -88,6 +80,14 @@ https://github.com/jinzhu/gorm/graphs/contributors
 # Supporting the project
 
 [![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
+
+# Author
+
+**jinzhu**
+
+* <http://github.com/jinzhu>
+* <wosmvp@gmail.com>
+* <http://twitter.com/zhangjinzhu>
 
 ## License
 
