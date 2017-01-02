@@ -660,21 +660,6 @@
                                 
                                 <h1 id="models">Models</h1>
 <!-- toc -->
-<ul>
-<li><a href="#model-definition">Model Definition</a></li>
-<li><a href="#conventions">Conventions</a><ul>
-<li><a href="#gormmodel-struct"><code>gorm.Model</code> struct</a></li>
-<li><a href="#table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</a></li>
-<li><a href="#change-default-tablenames">Change default tablenames</a></li>
-<li><a href="#column-name-is-the-snake-case-of-fields-name">Column name is the snake case of field&apos;s name</a></li>
-<li><a href="#field-id-as-primary-key">Field <code>ID</code> as primary key</a></li>
-<li><a href="#field-createdat-used-to-store-records-created-time">Field <code>CreatedAt</code> used to store record&apos;s created time</a></li>
-<li><a href="#use-updatedat-used-to-store-records-updated-time">Use <code>UpdatedAt</code> used to store record&apos;s updated time</a></li>
-<li><a href="#use-deletedat-to-store-records-deleted-time-if-field-exists">Use <code>DeletedAt</code> to store record&apos;s deleted time if field exists</a></li>
-</ul>
-</li>
-</ul>
-<!-- toc stop -->
 <h2 id="model-definition">Model Definition</h2>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
     gorm.Model
@@ -749,7 +734,7 @@
 <h3 id="table-name-is-the-pluralized-version-of-struct-name">Table name is the pluralized version of struct name</h3>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {} <span class="hljs-comment">// default table name is `users`</span>
 
-<span class="hljs-comment">// set User&apos;s table name to be `profiles</span>
+<span class="hljs-comment">// set User&apos;s table name to be `profiles`</span>
 <span class="hljs-keyword">func</span> (User) TableName() <span class="hljs-keyword">string</span> {
   <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;profiles&quot;</span>
 }
@@ -855,7 +840,7 @@ db.Model(&amp;user).Update(<span class="hljs-string">&quot;name&quot;</span>, <s
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Models","level":"1.3","depth":1,"next":{"title":"Model Definition","level":"1.3.1","depth":2,"anchor":"#model-definition","path":"models.md","ref":"models.md#model-definition","articles":[]},"previous":{"title":"Migration","level":"1.2.2","depth":2,"anchor":"#migration","path":"database.md","ref":"database.md#migration","articles":[]},"dir":"ltr"},"config":{"plugins":["toc","github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/jinzhu/gorm"},"toc":{"addClass":true,"className":"toc"},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"night","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"models.md","mtime":"2016-10-27T02:32:23.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-10-27T04:34:17.895Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Models","level":"1.3","depth":1,"next":{"title":"Model Definition","level":"1.3.1","depth":2,"anchor":"#model-definition","path":"models.md","ref":"models.md#model-definition","articles":[]},"previous":{"title":"Migration","level":"1.2.2","depth":2,"anchor":"#migration","path":"database.md","ref":"database.md#migration","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"models.md","mtime":"2017-01-02T12:58:41.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-02T13:55:56.479Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>

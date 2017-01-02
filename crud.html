@@ -660,75 +660,6 @@
                                 
                                 <h1 id="crud-reading-and-writing-data">CRUD: Reading and Writing Data</h1>
 <!-- toc -->
-<ul>
-<li><a href="#create">Create</a><ul>
-<li><a href="#create-record">Create Record</a></li>
-<li><a href="#default-values">Default Values</a></li>
-<li><a href="#setting-primary-key-in-callbacks">Setting Primary Key In Callbacks</a></li>
-<li><a href="#extra-creating-option">Extra Creating option</a></li>
-</ul>
-</li>
-<li><a href="#query">Query</a><ul>
-<li><a href="#query-with-where-plain-sql">Query With Where (Plain SQL)</a></li>
-<li><a href="#query-with-where-struct-map">Query With Where (Struct &amp; Map)</a></li>
-<li><a href="#query-with-not">Query With Not</a></li>
-<li><a href="#query-with-inline-condition">Query With Inline Condition</a></li>
-<li><a href="#query-with-or">Query With Or</a></li>
-<li><a href="#query-chains">Query Chains</a></li>
-<li><a href="#extra-querying-option">Extra Querying option</a></li>
-<li><a href="#firstorinit">FirstOrInit</a><ul>
-<li><a href="#attrs">Attrs</a></li>
-<li><a href="#assign">Assign</a></li>
-</ul>
-</li>
-<li><a href="#firstorcreate">FirstOrCreate</a><ul>
-<li><a href="#attrs">Attrs</a></li>
-<li><a href="#assign">Assign</a></li>
-</ul>
-</li>
-<li><a href="#select">Select</a></li>
-<li><a href="#order">Order</a></li>
-<li><a href="#limit">Limit</a></li>
-<li><a href="#offset">Offset</a></li>
-<li><a href="#count">Count</a></li>
-<li><a href="#group-having">Group &amp; Having</a></li>
-<li><a href="#joins">Joins</a></li>
-<li><a href="#pluck">Pluck</a></li>
-<li><a href="#scan">Scan</a></li>
-<li><a href="#scopes">Scopes</a></li>
-<li><a href="#specifying-the-table-name">Specifying The Table Name</a></li>
-</ul>
-</li>
-<li><a href="#preloading-eager-loading">Preloading (Eager loading)</a><ul>
-<li><a href="#custom-preloading-sql">Custom Preloading SQL</a><ul>
-<li><a href="#nested-preloading">Nested Preloading</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#update">Update</a><ul>
-<li><a href="#update-all-fields">Update All Fields</a></li>
-<li><a href="#update-changed-fields">Update Changed Fields</a></li>
-<li><a href="#update-selected-fields">Update Selected Fields</a></li>
-<li><a href="#update-changed-fields-without-callbacks">Update Changed Fields Without Callbacks</a></li>
-<li><a href="#batch-updates">Batch Updates</a></li>
-<li><a href="#update-with-sql-expression">Update with SQL Expression</a></li>
-<li><a href="#change-updating-values-in-callbacks">Change Updating Values In Callbacks</a></li>
-<li><a href="#extra-updating-option">Extra Updating option</a></li>
-</ul>
-</li>
-<li><a href="#delete">Delete</a><ul>
-<li><a href="#batch-delete">Batch Delete</a></li>
-<li><a href="#soft-delete">Soft Delete</a></li>
-</ul>
-</li>
-<li><a href="#associations">Associations</a><ul>
-<li><a href="#skip-save-associations-when-creatingupdating">Skip Save Associations when creating/updating</a></li>
-<li><a href="#skip-save-associations-by-tag">Skip Save Associations by Tag</a></li>
-</ul>
-</li>
-</ul>
-<!-- toc stop -->
 <h2 id="create">Create</h2>
 <h3 id="create-record">Create Record</h3>
 <pre><code class="lang-go">user := User{Name: <span class="hljs-string">&quot;Jinzhu&quot;</span>, Age: <span class="hljs-number">18</span>, Birthday: time.Now()}
@@ -1365,7 +1296,7 @@ db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <spa
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Association Mode","level":"1.3.3.6","depth":3,"anchor":"#association-mode","path":"associations.md","ref":"associations.md#association-mode","articles":[]},"dir":"ltr"},"config":{"plugins":["toc","github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/jinzhu/gorm"},"toc":{"addClass":true,"className":"toc"},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"night","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2016-10-27T04:26:59.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-10-27T04:34:17.895Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Association Mode","level":"1.3.3.6","depth":3,"anchor":"#association-mode","path":"associations.md","ref":"associations.md#association-mode","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2017-01-02T12:58:30.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-02T13:55:56.479Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>

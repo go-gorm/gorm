@@ -85,6 +85,10 @@ func main() {
 
 https://github.com/jinzhu/gorm/graphs/contributors
 
+# Supporting the project
+
+[![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
+
 ## License
 
 Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License).

@@ -660,27 +660,6 @@
                                 
                                 <h1 id="database">Database</h1>
 <!-- toc -->
-<ul>
-<li><a href="#connecting-to-a-database">Connecting to a database</a><ul>
-<li><a href="#mysql">MySQL</a></li>
-<li><a href="#postgresql">PostgreSQL</a></li>
-<li><a href="#sqlite3">Sqlite3</a></li>
-<li><a href="#write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</a></li>
-</ul>
-</li>
-<li><a href="#migration">Migration</a><ul>
-<li><a href="#auto-migration">Auto Migration</a></li>
-<li><a href="#has-table">Has Table</a></li>
-<li><a href="#create-table">Create Table</a></li>
-<li><a href="#drop-table">Drop table</a></li>
-<li><a href="#modifycolumn">ModifyColumn</a></li>
-<li><a href="#dropcolumn">DropColumn</a></li>
-<li><a href="#add-foreign-key">Add Foreign Key</a></li>
-<li><a href="#indexes">Indexes</a></li>
-</ul>
-</li>
-</ul>
-<!-- toc stop -->
 <h2 id="connecting-to-a-database">Connecting to a database</h2>
 <p>In order to connect to a database, you need to import the database&apos;s driver first. For example:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> _ <span class="hljs-string">&quot;github.com/go-sql-driver/mysql&quot;</span>
@@ -839,7 +818,7 @@ db.Model(&amp;User{}).RemoveIndex(<span class="hljs-string">&quot;idx_user_name&
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Database","level":"1.2","depth":1,"next":{"title":"Database Connection","level":"1.2.1","depth":2,"anchor":"#connecting-to-a-database","path":"database.md","ref":"database.md#connecting-to-a-database","articles":[]},"previous":{"title":"Getting Started with GORM","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["toc","github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"github":{"url":"https://github.com/jinzhu/gorm"},"toc":{"addClass":true,"className":"toc"},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"fontsettings":{"theme":"night","family":"sans","size":2},"highlight":{},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"database.md","mtime":"2016-10-27T02:32:23.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2016-10-27T04:34:17.895Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Database","level":"1.2","depth":1,"next":{"title":"Database Connection","level":"1.2.1","depth":2,"anchor":"#connecting-to-a-database","path":"database.md","ref":"database.md#connecting-to-a-database","articles":[]},"previous":{"title":"Getting Started with GORM","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"database.md","mtime":"2017-01-02T12:58:30.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-01-02T13:55:56.479Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
