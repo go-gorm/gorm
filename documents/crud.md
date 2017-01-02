@@ -723,7 +723,10 @@ user := User{
 										{Email: "jinzhu@example.com"},
 										{Email: "jinzhu-2@example@example.com"},
                    },
-	Languages:       []Language{{Name: "ZH"}, {Name: "EN"}},
+	Languages:       []Language{
+                     {Name: "ZH"},
+                     {Name: "EN"},
+                   },
 }
 
 db.Create(&user)
