@@ -86,7 +86,7 @@ type User struct {
 ```go
 type User struct {} // default table name is `users`
 
-// set User's table name to be `profiles
+// set User's table name to be `profiles`
 func (User) TableName() string {
   return "profiles"
 }
