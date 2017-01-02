@@ -7,7 +7,7 @@ import (
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
 
-// Callback is a struct that contains all CURD callbacks
+// Callback is a struct that contains all CRUD callbacks
 //   Field `creates` contains callbacks will be call when creating object
 //   Field `updates` contains callbacks will be call when updating object
 //   Field `deletes` contains callbacks will be call when deleting object
