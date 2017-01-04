@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"reflect"
 )
@@ -346,9 +345,10 @@ func (scope *Scope) Raw(sql string) *Scope {
 
 // Exec perform generated SQL
 func (scope *Scope) Exec() *Scope {
-	defer scope.trace(NowFunc())
-
 	if !scope.HasError() {
+		scope.callCallbacks(scope.db.parent.callbacks.beforeSQL)
+		defer scope.callCallbacks(scope.db.parent.callbacks.afterSQL)
+
 		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
@@ -884,14 +884,18 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 }
 
 func (scope *Scope) row() *sql.Row {
-	defer scope.trace(NowFunc())
+	scope.callCallbacks(scope.db.parent.callbacks.beforeSQL)
+	defer scope.callCallbacks(scope.db.parent.callbacks.afterSQL)
+
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
 	scope.prepareQuerySQL()
 	return scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
-	defer scope.trace(NowFunc())
+	scope.callCallbacks(scope.db.parent.callbacks.beforeSQL)
+	defer scope.callCallbacks(scope.db.parent.callbacks.afterSQL)
+
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
 	scope.prepareQuerySQL()
 	return scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
@@ -943,16 +947,6 @@ func (scope *Scope) typeName() string {
 	}
 
 	return typ.Name()
-}
-
-// trace print sql log
-func (scope *Scope) trace(t time.Time) {
-	scope.Set("gorm:trace-time", t)
-	scope.callCallbacks(scope.db.parent.callbacks.trace)
-
-	if len(scope.SQL) > 0 {
-		scope.db.slog(scope.SQL, t, scope.SQLVars...)
-	}
 }
 
 func (scope *Scope) changeableField(field *Field) bool {

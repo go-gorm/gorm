@@ -15,7 +15,8 @@ func init() {
 
 // queryCallback used to query data from database
 func queryCallback(scope *Scope) {
-	defer scope.trace(NowFunc())
+	scope.callCallbacks(scope.db.parent.callbacks.beforeSQL)
+	defer scope.callCallbacks(scope.db.parent.callbacks.afterSQL)
 
 	var (
 		isSlice, isPtr bool
