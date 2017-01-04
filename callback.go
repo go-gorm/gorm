@@ -208,7 +208,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 	return sortedFuncs
 }
 
-// reorder all registered processors, and reset CURD callbacks
+// reorder all registered processors, and reset CRUD callbacks
 func (c *Callback) reorder() {
 	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
