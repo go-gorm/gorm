@@ -593,8 +593,9 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		if reflect.ValueOf(value).Len() > 0 {
 			str = fmt.Sprintf("(%v.%v NOT IN (?))", scope.QuotedTableName(), scope.Quote(primaryKey))
 			clause["args"] = []interface{}{value}
+		} else {
+			return ""
 		}
-		return ""
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
