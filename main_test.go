@@ -95,6 +95,27 @@ func TestStringPrimaryKey(t *testing.T) {
 	}
 }
 
+type UUIDStruct struct {
+	ID   string `gorm:"primary_key"`
+	Name string
+}
+
+func (u *UUIDStruct) BeforeSave() {
+	u.ID = "new_uuid"
+	return
+}
+
+func TestBeforeSaveGenerateId(t *testing.T) {
+
+	DB.DropTable(&UUIDStruct{})
+	DB.AutoMigrate(&UUIDStruct{})
+
+	data := UUIDStruct{}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "new_uuid" {
+		t.Errorf("string primary key should be changed")
+	}
+}
+
 func TestExceptionsWithInvalidSql(t *testing.T) {
 	var columns []string
 	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {
