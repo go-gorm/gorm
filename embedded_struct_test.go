@@ -9,6 +9,7 @@ type BasePost struct {
 }
 
 type Author struct {
+	ID    string
 	Name  string
 	Email string
 }
@@ -27,11 +28,17 @@ type EngadgetPost struct {
 
 func TestPrefixColumnNameForEmbeddedStruct(t *testing.T) {
 	dialect := DB.NewScope(&EngadgetPost{}).Dialect()
-	if !dialect.HasColumn(DB.NewScope(&EngadgetPost{}).TableName(), "author_name") || !dialect.HasColumn(DB.NewScope(&EngadgetPost{}).TableName(), "author_email") {
+	engadgetPostScope := DB.NewScope(&EngadgetPost{})
+	if !dialect.HasColumn(engadgetPostScope.TableName(), "author_id") || !dialect.HasColumn(engadgetPostScope.TableName(), "author_name") || !dialect.HasColumn(engadgetPostScope.TableName(), "author_email") {
 		t.Errorf("should has prefix for embedded columns")
 	}
 
-	if !dialect.HasColumn(DB.NewScope(&HNPost{}).TableName(), "user_name") || !dialect.HasColumn(DB.NewScope(&HNPost{}).TableName(), "user_email") {
+	if len(engadgetPostScope.PrimaryFields()) != 1 {
+		t.Errorf("should have only one primary field with embedded struct, but got %v", len(engadgetPostScope.PrimaryFields()))
+	}
+
+	hnScope := DB.NewScope(&HNPost{})
+	if !dialect.HasColumn(hnScope.TableName(), "user_id") || !dialect.HasColumn(hnScope.TableName(), "user_name") || !dialect.HasColumn(hnScope.TableName(), "user_email") {
 		t.Errorf("should has prefix for embedded columns")
 	}
 }

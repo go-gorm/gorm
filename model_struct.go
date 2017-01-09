@@ -201,14 +201,19 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.IsNormal = true
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 					// is embedded struct
-					for _, subField := range scope.New(fieldValue).GetStructFields() {
+					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
 						subField = subField.clone()
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
 						if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
 							subField.DBName = prefix + subField.DBName
 						}
+
 						if subField.IsPrimaryKey {
-							modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
+							if _, ok := subField.TagSettings["PRIMARY_KEY"]; ok {
+								modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
+							} else {
+								subField.IsPrimaryKey = false
+							}
 						}
 						modelStruct.StructFields = append(modelStruct.StructFields, subField)
 					}
