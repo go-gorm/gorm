@@ -436,3 +436,66 @@ func TestMultipleIndexes(t *testing.T) {
 		t.Error("MultipleIndexes unique index failed")
 	}
 }
+
+type FractionalSeconds struct {
+	Id                 int
+	NoFractional       time.Time
+	MillisecFractional time.Time  `sql:"frac:3"`
+	MicrosecFractional *time.Time `sql:"frac:6;not null"`
+}
+
+func TestFractionalSeconds(t *testing.T) {
+	if err := DB.DropTableIfExists(&FractionalSeconds{}).Error; err != nil {
+		fmt.Printf("Failed to delete table fractional_seconds: %+v\n", err)
+		return
+	}
+
+	if err := DB.AutoMigrate(&FractionalSeconds{}).Error; err != nil {
+		t.Error("Auto Migrating FractionalSeconds should not raise any error.")
+		return
+	}
+
+	testTime := time.Date(2017, 1, 9, 10, 12, 23, 123456789, time.UTC)
+
+	record := FractionalSeconds{
+		Id:                 123,
+		NoFractional:       testTime,
+		MillisecFractional: testTime,
+		MicrosecFractional: &testTime,
+	}
+
+	if err := DB.Save(&record).Error; err != nil {
+		t.Error("Saving FractionalSeconds should not raise any error.")
+		return
+	}
+
+	retrieve := FractionalSeconds{}
+	if err := DB.First(&retrieve).Error; err != nil {
+		t.Error("Retrieving FractionalSeconds should not raise any error.")
+		return
+	}
+
+	if retrieve.NoFractional.Nanosecond() != 0 {
+		t.Error("NoFractional column value is incorrect.")
+	}
+
+	if retrieve.MillisecFractional.Nanosecond() != 123000000 {
+		t.Error("MillisecFractional column value is incorrect.")
+	}
+
+	if retrieve.MicrosecFractional.Nanosecond() != 123456000 {
+		t.Error("MicrosecFractional column value is incorrect.")
+	}
+
+	record = FractionalSeconds{
+		Id:                 456,
+		NoFractional:       testTime,
+		MillisecFractional: testTime,
+		MicrosecFractional: nil,
+	}
+
+	if err := DB.Save(&record).Error; err == nil {
+		t.Error("Saving FractionalSeconds should raise error when not null column is null.")
+		return
+	}
+}
