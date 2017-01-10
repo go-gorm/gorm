@@ -39,6 +39,10 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
+func (commonDialect) PrimaryKeys(keys []string) string {
+	return fmt.Sprintf("PRIMARY KEY (%v)", strings.Join(keys, ","))
+}
+
 func (commonDialect) DataTypeOf(field *StructField) string {
 	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
 

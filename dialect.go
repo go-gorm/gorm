@@ -20,6 +20,8 @@ type Dialect interface {
 	BindVar(i int) string
 	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name
 	Quote(key string) string
+	// PrimaryKeys used to define the primary keys of a table
+	PrimaryKeys(keys []string) string
 	// DataTypeOf return data's sql type
 	DataTypeOf(field *StructField) string
 
