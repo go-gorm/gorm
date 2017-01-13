@@ -32,7 +32,7 @@ type Profile struct {
 type User struct {
 	gorm.Model
 	Profile      Profile `gorm:"ForeignKey:ProfileRefer"` // use ProfileRefer as foreign key
-	ProfileRefer int
+	ProfileRefer uint
 }
 ```
 
@@ -41,7 +41,7 @@ type User struct {
 ```go
 type Profile struct {
 	gorm.Model
-	Refer string
+	Refer int
 	Name  string
 }
 
@@ -101,7 +101,7 @@ type Profile struct {
 
 type User struct {
   gorm.Model
-  Refer   string
+  Refer   uint
   Profile Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
 }
 ```
@@ -151,7 +151,7 @@ type Profile struct {
 
 type User struct {
   gorm.Model
-  Refer   string
+  Refer   uint
   Profiles []Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
 }
 ```
