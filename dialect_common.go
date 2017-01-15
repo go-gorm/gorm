@@ -39,8 +39,8 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (commonDialect) DataTypeOf(field *StructField) string {
-	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
+func (s *commonDialect) DataTypeOf(field *StructField) string {
+	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field, s)
 
 	if sqlType == "" {
 		switch dataValue.Kind() {

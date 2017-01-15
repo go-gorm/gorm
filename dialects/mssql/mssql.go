@@ -44,8 +44,8 @@ func (mssql) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
-func (mssql) DataTypeOf(field *gorm.StructField) string {
-	var dataValue, sqlType, size, additionalType = gorm.ParseFieldStructForDialect(field)
+func (s *mssql) DataTypeOf(field *gorm.StructField) string {
+	var dataValue, sqlType, size, additionalType = gorm.ParseFieldStructForDialect(field, s)
 
 	if sqlType == "" {
 		switch dataValue.Kind() {

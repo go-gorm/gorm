@@ -27,8 +27,8 @@ func (mysql) Quote(key string) string {
 }
 
 // Get Data Type for MySQL Dialect
-func (mysql) DataTypeOf(field *StructField) string {
-	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field)
+func (s *mysql) DataTypeOf(field *StructField) string {
+	var dataValue, sqlType, size, additionalType = ParseFieldStructForDialect(field, s)
 
 	// MySQL allows only one auto increment column per table, and it must
 	// be a KEY column.
