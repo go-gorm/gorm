@@ -33,7 +33,7 @@ func createBatchCallback(scope *Scope) {
 	// Filling up the columns
 	for _, field := range fields(scope) {
 		// We don't treat non-normal fields on batch operations (relationships, etc)
-		if !field.IsNormal {
+		if !field.IsNormal || field.IsIgnored {
 			continue
 		}
 
@@ -51,7 +51,7 @@ func createBatchCallback(scope *Scope) {
 
 		for _, structField := range structFields {
 			// When inserting, the primary key is usually auto-increment
-			if !structField.IsPrimaryKey {
+			if !structField.IsPrimaryKey && !structField.IsIgnored {
 				fieldValue := reflect.Indirect(value.Index(elementIndex)).FieldByName(structField.Names[0]).Interface()
 				valuePlaceholders = append(valuePlaceholders, scope.AddToVars(fieldValue))
 			}
