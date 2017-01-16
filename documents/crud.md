@@ -154,8 +154,8 @@ db.Not(User{Name: "jinzhu"}).First(&user)
 db.First(&user, 23)
 //// SELECT * FROM users WHERE id = 23 LIMIT 1;
 // Get by primary key if it were a non-integer type
-db.First(&user, "id=?", 23) 
-//// SELECT * FROM users WHERE id = 23 LIMIT 1;
+db.First(&user, "id = ?", "string_primary_key")
+//// SELECT * FROM users WHERE id = 'string_primary_key' LIMIT 1;
 
 // Plain SQL
 db.Find(&user, "name = ?", "jinzhu")
