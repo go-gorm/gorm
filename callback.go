@@ -93,6 +93,13 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 
 // Register a new callback, refer `Callbacks.Create`
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
+	if cp.kind == "row_query" {
+		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
+			fmt.Printf("Registing RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...\n", callbackName)
+			cp.before = "gorm:row_query"
+		}
+	}
+
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.parent.processors = append(cp.parent.processors, cp)
