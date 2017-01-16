@@ -68,7 +68,7 @@ db.Last(&user)
 db.Find(&users)
 //// SELECT * FROM users;
 
-// Get record with primary key
+// Get record with primary key (only works for integer primary key)
 db.First(&user, 10)
 //// SELECT * FROM users WHERE id = 10;
 ```
@@ -150,8 +150,11 @@ db.Not(User{Name: "jinzhu"}).First(&user)
 **NOTE** When query with primary key, you should carefully check the value you passed is a valid primary key, to avoid SQL injection
 
 ```go
-// Get by primary key
+// Get by primary key (only works for integer primary key)
 db.First(&user, 23)
+//// SELECT * FROM users WHERE id = 23 LIMIT 1;
+// Get by primary key if it were a non-integer type
+db.First(&user, "id=?", 23) 
 //// SELECT * FROM users WHERE id = 23 LIMIT 1;
 
 // Plain SQL
