@@ -676,11 +676,14 @@ func (scope *Scope) whereSQL() (sql string) {
 		primaryConditions, andConditions, orConditions []string
 	)
 
-	if !scope.Search.Unscoped && scope.HasColumn("deleted_at") {
-		sql := fmt.Sprintf("%v.deleted_at IS NULL", quotedTableName)
-		primaryConditions = append(primaryConditions, sql)
+	if !scope.Search.Unscoped && scope.HasColumn("DeletedAt") {
+		for _, field := range scope.Fields() {
+			if field.Name == "DeletedAt" {
+				sql := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(field.DBName))
+				primaryConditions = append(primaryConditions, sql)
+			}
+		}
 	}
-
 	if !scope.PrimaryKeyZero() {
 		for _, field := range scope.PrimaryFields() {
 			sql := fmt.Sprintf("%v.%v = %v", quotedTableName, scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface()))

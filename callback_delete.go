@@ -34,13 +34,19 @@ func deleteCallback(scope *Scope) {
 		}
 
 		if !scope.Search.Unscoped && scope.HasColumn("DeletedAt") {
-			scope.Raw(fmt.Sprintf(
-				"UPDATE %v SET deleted_at=%v%v%v",
-				scope.QuotedTableName(),
-				scope.AddToVars(NowFunc()),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
-				addExtraSpaceIfExist(extraOption),
-			)).Exec()
+			for _, field := range scope.Fields() {
+				if field.Name == "DeletedAt" {
+					scope.Raw(fmt.Sprintf(
+						"UPDATE %v SET %v=%v%v%v",
+						scope.QuotedTableName(),
+						scope.Quote(field.DBName),
+						scope.AddToVars(NowFunc()),
+						addExtraSpaceIfExist(scope.CombinedConditionSql()),
+						addExtraSpaceIfExist(extraOption),
+					)).Exec()
+				}
+
+			}
 		} else {
 			scope.Raw(fmt.Sprintf(
 				"DELETE FROM %v%v%v",
