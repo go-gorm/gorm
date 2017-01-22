@@ -174,6 +174,25 @@ db.Model(&user).Related(&languages, "Languages")
 //// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
 ```
 
+*With back-reference :
+```go
+// User has and belongs to many languages, use `user_languages` as join table
+// Make sure the two models are in different files
+type User struct {
+	gorm.Model
+	Languages         []Language `gorm:"many2many:user_languages;"`
+}
+
+type Language struct {
+	gorm.Model
+	Name string
+	Users         	  []User     `gorm:"many2many:user_languages;"`
+}
+
+db.Model(&language).Related(&users)
+//// SELECT * FROM "users" INNER JOIN "user_languages" ON "user_languages"."user_id" = "users"."id" WHERE  ("user_languages"."language_id" IN ('111'))
+```
+
 *Specify Foreign Key & Association Key*
 
 ```go
