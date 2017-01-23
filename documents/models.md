@@ -163,9 +163,9 @@ db.Model(&user).Update("CreatedAt", time.Now())
 Save records having `UpdatedAt` field will set it to current time.
 
 ```go
+// Whenever one or more `user` fields are edited using Save() or Update(), `UpdatedAt` will be set to current time
 db.Save(&user) // will set `UpdatedAt` to current time
-db.Model(&user).Update("name", "jinzhu") // will set `UpdatedAt` to current time
-```
+db.Model(&user).Update("name", "jinzhu") // will set `UpdatedAt` to current time 
 
 ### Use `DeletedAt` to store record's deleted time if field exists
 
