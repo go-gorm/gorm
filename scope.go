@@ -677,7 +677,7 @@ func (scope *Scope) whereSQL() (sql string) {
 	)
 
 	if !scope.Search.Unscoped && scope.HasColumn("deleted_at") {
-		sql := fmt.Sprintf("%v.deleted_at IS NULL", quotedTableName)
+		sql := fmt.Sprintf("(%v.deleted_at IS NULL OR %v.deleted_at = '0000-00-00 00:00:00')", quotedTableName, quotedTableName)
 		primaryConditions = append(primaryConditions, sql)
 	}
 
