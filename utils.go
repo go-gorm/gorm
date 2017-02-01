@@ -19,10 +19,13 @@ func init() {
 }
 
 var smap = map[string]string{}
-var mutex = &sync.Mutex{}
+var mutex = &sync.RWMutex{}
 
 func ToDBName(name string) string {
-	if v, ok := smap[name]; ok {
+	mutex.RLock()
+	v, ok := smap[name]
+	mutex.RUnlock()
+	if ok {
 		return v
 	}
 
