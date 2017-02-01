@@ -23,11 +23,11 @@ var mutex = &sync.RWMutex{}
 
 func ToDBName(name string) string {
 	mutex.RLock()
-	if v, ok := smap[name]; ok {
-		mutex.RUnlock()
+	v, ok := smap[name]
+	mutex.RUnlock()
+	if ok {
 		return v
 	}
-	mutex.RUnlock()
 
 	value := commonInitialismsReplacer.Replace(name)
 	buf := bytes.NewBufferString("")
