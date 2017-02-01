@@ -19,12 +19,15 @@ func init() {
 }
 
 var smap = map[string]string{}
-var mutex = &sync.Mutex{}
+var mutex = &sync.RWMutex{}
 
 func ToDBName(name string) string {
+	mutex.RLock()
 	if v, ok := smap[name]; ok {
+		mutex.RUnlock()
 		return v
 	}
+	mutex.RUnlock()
 
 	value := commonInitialismsReplacer.Replace(name)
 	buf := bytes.NewBufferString("")
