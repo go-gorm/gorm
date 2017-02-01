@@ -66,3 +66,26 @@ func TestSoftDelete(t *testing.T) {
 		t.Errorf("Can't find permanently deleted record")
 	}
 }
+
+func TestSoftDeleteWithCustomizedDeletedAtColumnName(t *testing.T) {
+	creditCard := CreditCard{Number: "411111111234567"}
+	DB.Save(&creditCard)
+	DB.Delete(&creditCard)
+
+	if deletedAtField, ok := DB.NewScope(&CreditCard{}).FieldByName("DeletedAt"); !ok || deletedAtField.DBName != "deleted_time" {
+		t.Errorf("CreditCard's DeletedAt's column name should be `deleted_time`")
+	}
+
+	if DB.First(&CreditCard{}, "number = ?", creditCard.Number).Error == nil {
+		t.Errorf("Can't find a soft deleted record")
+	}
+
+	if err := DB.Unscoped().First(&CreditCard{}, "number = ?", creditCard.Number).Error; err != nil {
+		t.Errorf("Should be able to find soft deleted record with Unscoped, but err=%s", err)
+	}
+
+	DB.Unscoped().Delete(&creditCard)
+	if !DB.Unscoped().First(&CreditCard{}, "number = ?", creditCard.Number).RecordNotFound() {
+		t.Errorf("Can't find permanently deleted record")
+	}
+}

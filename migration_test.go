@@ -66,7 +66,7 @@ type CreditCard struct {
 	UserId    sql.NullInt64
 	CreatedAt time.Time `sql:"not null"`
 	UpdatedAt time.Time
-	DeletedAt *time.Time
+	DeletedAt *time.Time `sql:"column:deleted_time"`
 }
 
 type Email struct {
