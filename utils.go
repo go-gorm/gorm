@@ -183,7 +183,7 @@ func fileWithLineNum() string {
 
 func isBlank(value reflect.Value) bool {
 	switch value.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+	case reflect.String:
 		return value.Len() == 0
 	case reflect.Bool:
 		return !value.Bool()
