@@ -194,7 +194,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					if indirectType.Kind() == reflect.Struct {
 						for i := 0; i < indirectType.NumField(); i++ {
 							for key, value := range parseTagSetting(indirectType.Field(i).Tag) {
-								field.TagSettings[key] = value
+								if _, ok := field.TagSettings[key]; !ok {
+									field.TagSettings[key] = value
+								}
 							}
 						}
 					}
