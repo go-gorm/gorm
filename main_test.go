@@ -461,8 +461,10 @@ func TestScan(t *testing.T) {
 		t.Errorf("Scan into struct should work")
 	}
 
-	var doubleAgeRes result
-	DB.Table("users").Select("age + age as age").Where("name = ?", user3.Name).Scan(&doubleAgeRes)
+	var doubleAgeRes = &result{}
+	if err := DB.Table("users").Select("age + age as age").Where("name = ?", user3.Name).Scan(&doubleAgeRes).Error; err != nil {
+		t.Errorf("Scan to pointer of pointer")
+	}
 	if doubleAgeRes.Age != res.Age*2 {
 		t.Errorf("Scan double age as age")
 	}

@@ -18,7 +18,8 @@ func TestFirstAndLast(t *testing.T) {
 	DB.First(&user1)
 	DB.Order("id").Limit(1).Find(&user2)
 
-	DB.Last(&user3)
+	ptrOfUser3 := &user3
+	DB.Last(&ptrOfUser3)
 	DB.Order("id desc").Limit(1).Find(&user4)
 	if user1.Id != user2.Id || user3.Id != user4.Id {
 		t.Errorf("First and Last should by order by primary key")
