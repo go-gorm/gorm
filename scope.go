@@ -1185,40 +1185,81 @@ func (scope *Scope) autoMigrate() *Scope {
 	return scope
 }
 
+type derivedIndex struct {
+	columns []string
+	q       *DB
+}
+
 func (scope *Scope) autoIndex() *Scope {
-	var indexes = map[string][]string{}
-	var uniqueIndexes = map[string][]string{}
+	indexes := map[string]map[string]*derivedIndex{
+		"INDEX":        make(map[string]*derivedIndex),
+		"UNIQUE_INDEX": make(map[string]*derivedIndex),
+	}
+
+	derive := func(field *StructField, tag, prefix string) {
+		if name, ok := field.TagSettings[tag]; ok {
+			names := strings.Split(name, ",")
+
+			for _, name := range names {
+				exclude := false
+
+				if name == tag || name == "" {
+					name = fmt.Sprintf("%s_%v_%v", prefix, scope.TableName(), field.DBName)
+				} else if name[0] == '!' {
+					exclude = true
+					name = name[1:]
+				}
+
+				idx, ok := indexes[tag][name]
+				if !ok {
+					idx = &derivedIndex{q: scope.NewDB().Model(scope.Value)}
+					indexes[tag][name] = idx
+				}
+
+				if exclude {
+					// We can't just bind this; most (all?) DBMSes don't seem
+					// to support parameterizing partial indices.
+					f, _ := scope.FieldByName(field.Name)
+					v, _ := driver.DefaultParameterConverter.ConvertValue(reflect.Zero(f.Field.Type()).Interface())
+
+					// Possibilities are limited:
+					// https://golang.org/pkg/database/sql/driver/#Value
+					cond := "IS NULL"
+					switch value := v.(type) {
+					case int64, float64:
+						cond = "= 0"
+					case bool:
+						switch scope.Dialect().DataTypeOf(field) {
+						case "bool", "boolean":
+							cond = "= false"
+						default:
+							cond = "= 0"
+						}
+					case []byte, string:
+						cond = "= ''"
+					case time.Time:
+						cond = fmt.Sprintf("= '%s'", value.Format(time.RFC3339))
+					}
+
+					idx.q = idx.q.Where(fmt.Sprintf("%s %s", scope.Quote(field.DBName), cond))
+				} else {
+					idx.columns = append(idx.columns, field.DBName)
+				}
+			}
+		}
+	}
 
 	for _, field := range scope.GetStructFields() {
-		if name, ok := field.TagSettings["INDEX"]; ok {
-			names := strings.Split(name, ",")
-
-			for _, name := range names {
-				if name == "INDEX" || name == "" {
-					name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
-				}
-				indexes[name] = append(indexes[name], field.DBName)
-			}
-		}
-
-		if name, ok := field.TagSettings["UNIQUE_INDEX"]; ok {
-			names := strings.Split(name, ",")
-
-			for _, name := range names {
-				if name == "UNIQUE_INDEX" || name == "" {
-					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
-				}
-				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
-			}
-		}
+		derive(field, "INDEX", "idx")
+		derive(field, "UNIQUE_INDEX", "uix")
 	}
 
-	for name, columns := range indexes {
-		scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
+	for name, idx := range indexes["INDEX"] {
+		idx.q.AddIndex(name, idx.columns...)
 	}
 
-	for name, columns := range uniqueIndexes {
-		scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
+	for name, idx := range indexes["UNIQUE_INDEX"] {
+		idx.q.AddUniqueIndex(name, idx.columns...)
 	}
 
 	return scope

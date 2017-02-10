@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -434,5 +435,52 @@ func TestMultipleIndexes(t *testing.T) {
 
 	if err := DB.Save(&MultipleIndexes{UserID: 2, Name: "name1", Email: "foo2@example.org", Other: "foo"}).Error; err != nil {
 		t.Error("MultipleIndexes unique index failed")
+	}
+}
+
+type ExcludedColumnIndex struct {
+	ID      int64
+	Email   string `sql:"unique_index:uix_excluded_column_index_email"`
+	Deleted bool   `sql:"unique_index:!uix_excluded_column_index_email"`
+}
+
+func TestConditionalIndexExcludesColumn(t *testing.T) {
+	// This behavior is only supported for DBMSes that support partial indices
+	// (i.e., not MySQL).
+	dialect := os.Getenv("GORM_DIALECT")
+	switch dialect {
+	case "", "sqlite", "postgres", "mssql":
+	default:
+		return
+	}
+
+	if err := DB.DropTableIfExists(&ExcludedColumnIndex{}).Error; err != nil {
+		fmt.Printf("Got error when try to delete table excluded_column_index, %+v\n", err)
+	}
+
+	if err := DB.AutoMigrate(&ExcludedColumnIndex{}).Error; err != nil {
+		t.Errorf("Failed to migrate: %+v", err)
+	}
+
+	if err := DB.Save(&ExcludedColumnIndex{Email: "impl@example.com"}).Error; err != nil {
+		t.Errorf("Unexpected error saving first entry: %v", err)
+	}
+
+	if err := DB.Save(&ExcludedColumnIndex{Email: "impl@example.com"}).Error; err == nil {
+		t.Error("Unique index was not created")
+	}
+
+	var u ExcludedColumnIndex
+	if err := DB.First(&u).Error; err != nil {
+		t.Errorf("Enexpected error retrieving first entry: %v", err)
+	}
+
+	u.Deleted = true
+	if err := DB.Save(&u).Error; err != nil {
+		t.Errorf("Unexpected error saving first entry: %v", err)
+	}
+
+	if err := DB.Save(&ExcludedColumnIndex{Email: "impl@example.com"}).Error; err != nil {
+		t.Errorf("Conditional index failed: %v", err)
 	}
 }

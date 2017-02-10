@@ -27,7 +27,7 @@ func (s *sqlite3) DataTypeOf(field *StructField) string {
 	if sqlType == "" {
 		switch dataValue.Kind() {
 		case reflect.Bool:
-			sqlType = "bool"
+			sqlType = "numeric"
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 			if field.IsPrimaryKey {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
