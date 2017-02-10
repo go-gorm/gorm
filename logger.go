@@ -73,8 +73,8 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 			if numericPlaceHolderRegexp.MatchString(values[3].(string)) {
 				sql = values[3].(string)
 				for index, value := range formattedValues {
-					placeholder := fmt.Sprintf(`\$%d`, index+1)
-					sql = regexp.MustCompile(placeholder).ReplaceAllString(sql, value)
+					placeholder := fmt.Sprintf(`\$%d([^\d])`, index+1)
+					sql = regexp.MustCompile(placeholder).ReplaceAllString(sql, value+"$1")
 				}
 			} else {
 				formattedValuesLength := len(formattedValues)
