@@ -175,6 +175,6 @@ func TestOmitWithCreate(t *testing.T) {
 
 	if queryuser.BillingAddressID.Int64 != 0 || queryuser.ShippingAddressId == 0 ||
 		queryuser.CreditCard.ID != 0 || len(queryuser.Emails) != 0 {
-		t.Errorf("Should not create omited relationships")
+		t.Errorf("Should not create omitted relationships")
 	}
 }

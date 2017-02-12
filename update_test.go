@@ -97,7 +97,7 @@ func TestUpdateWithNoStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	DB.Save(&animal).Update("From", "a nice place") // The name field shoul be untouched
 	DB.First(&animal, animal.Counter)
 	if animal.Name != "galeone" {
-		t.Errorf("Name fiels shouldn't be changed if untouched, but got %v", animal.Name)
+		t.Errorf("Name fields shouldn't be changed if untouched, but got %v", animal.Name)
 	}
 
 	// When changing a field with a default value, the change must occur
@@ -300,7 +300,7 @@ func TestOmitWithUpdate(t *testing.T) {
 		queryUser.ShippingAddressId == user.ShippingAddressId ||
 		queryUser.CreditCard.ID != user.CreditCard.ID ||
 		len(queryUser.Emails) != len(user.Emails) || queryUser.Company.Id != user.Company.Id {
-		t.Errorf("Should only update relationships that not omited")
+		t.Errorf("Should only update relationships that not omitted")
 	}
 }
 
@@ -336,7 +336,7 @@ func TestOmitWithUpdateWithMap(t *testing.T) {
 		queryUser.ShippingAddressId == user.ShippingAddressId ||
 		queryUser.CreditCard.ID != user.CreditCard.ID ||
 		len(queryUser.Emails) != len(user.Emails) || queryUser.Company.Id != user.Company.Id {
-		t.Errorf("Should only update relationships not omited")
+		t.Errorf("Should only update relationships not omitted")
 	}
 }
 
