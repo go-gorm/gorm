@@ -1124,6 +1124,10 @@ func (scope *Scope) dropTable() *Scope {
 	return scope
 }
 
+func (scope *Scope) addColumn(column string, typ string) {
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v", scope.QuotedTableName(), scope.Quote(column), typ)).Exec()
+}
+
 func (scope *Scope) modifyColumn(column string, typ string) {
 	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.QuotedTableName(), scope.Quote(column), typ)).Exec()
 }
