@@ -594,6 +594,11 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("user should be created with search value and assigned attrs")
 	}
 
+	DB.Where(&User{Name: "find or create 4"}).Assign(User{Age: 0}).FirstOrCreate(&user4)
+	if user4.Name != "find or create 4" || user4.Id == 0 || user4.Age != 0 {
+		t.Errorf("user should be created with search value and assigned attrs")
+	}
+
 	DB.Where(&User{Name: "find or create"}).Attrs("age", 44).FirstOrInit(&user5)
 	if user5.Name != "find or create" || user5.Id == 0 || user5.Age != 33 {
 		t.Errorf("user should be found and not initialized by Attrs")
