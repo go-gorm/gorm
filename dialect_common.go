@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -15,7 +14,7 @@ type DefaultForeignKeyNamer struct {
 }
 
 type commonDialect struct {
-	db *sql.DB
+	db SQLCommon
 	DefaultForeignKeyNamer
 }
 
@@ -27,7 +26,7 @@ func (commonDialect) GetName() string {
 	return "common"
 }
 
-func (s *commonDialect) SetDB(db *sql.DB) {
+func (s *commonDialect) SetDB(db SQLCommon) {
 	s.db = db
 }
 
