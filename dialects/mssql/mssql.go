@@ -1,7 +1,6 @@
 package mssql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -24,7 +23,7 @@ func init() {
 }
 
 type mssql struct {
-	db *sql.DB
+	db gorm.SQLCommon
 	gorm.DefaultForeignKeyNamer
 }
 
@@ -32,7 +31,7 @@ func (mssql) GetName() string {
 	return "mssql"
 }
 
-func (s *mssql) SetDB(db *sql.DB) {
+func (s *mssql) SetDB(db gorm.SQLCommon) {
 	s.db = db
 }
 

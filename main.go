@@ -16,7 +16,7 @@ type DB struct {
 	RowsAffected int64
 
 	// single db
-	db                sqlCommon
+	db                SQLCommon
 	blockGlobalUpdate bool
 	logMode           int
 	logger            logger
@@ -47,7 +47,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 		return nil, err
 	}
 	var source string
-	var dbSQL *sql.DB
+	var dbSQL SQLCommon
 
 	switch value := args[0].(type) {
 	case string:
@@ -59,8 +59,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 			source = args[1].(string)
 		}
 		dbSQL, err = sql.Open(driver, source)
-	case *sql.DB:
-		source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
+	case SQLCommon:
 		dbSQL = value
 	}
 
@@ -104,7 +103,7 @@ func (s *DB) DB() *sql.DB {
 }
 
 // CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
-func (s *DB) CommonDB() sqlCommon {
+func (s *DB) CommonDB() SQLCommon {
 	return s.db
 }
 
@@ -449,7 +448,7 @@ func (s *DB) Begin() *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok {
 		tx, err := db.Begin()
-		c.db = interface{}(tx).(sqlCommon)
+		c.db = interface{}(tx).(SQLCommon)
 		c.AddError(err)
 	} else {
 		c.AddError(ErrCantStartTransaction)
