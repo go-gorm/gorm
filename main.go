@@ -16,7 +16,7 @@ type DB struct {
 	RowsAffected int64
 
 	// single db
-	db                sqlCommon
+	db                SQLCommon
 	blockGlobalUpdate bool
 	logMode           int
 	logger            logger
@@ -47,7 +47,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 		return nil, err
 	}
 	var source string
-	var dbSQL *sql.DB
+	var dbSQL SQLCommon
 
 	switch value := args[0].(type) {
 	case string:
@@ -59,8 +59,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 			source = args[1].(string)
 		}
 		dbSQL, err = sql.Open(driver, source)
-	case *sql.DB:
-		source = reflect.Indirect(reflect.ValueOf(value)).FieldByName("dsn").String()
+	case SQLCommon:
 		dbSQL = value
 	}
 
@@ -90,21 +89,27 @@ func (s *DB) New() *DB {
 	return clone
 }
 
-// Close close current db connection
+type closer interface {
+	Close() error
+}
+
+// Close close current db connection.  If database connection is not an io.Closer, returns an error.
 func (s *DB) Close() error {
-	if db, ok := s.parent.db.(*sql.DB); ok {
+	if db, ok := s.parent.db.(closer); ok {
 		return db.Close()
 	}
 	return errors.New("can't close current db")
 }
 
 // DB get `*sql.DB` from current connection
+// If the underlying database connection is not a *sql.DB, returns nil
 func (s *DB) DB() *sql.DB {
-	return s.db.(*sql.DB)
+	db, _ := s.db.(*sql.DB)
+	return db
 }
 
 // CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
-func (s *DB) CommonDB() sqlCommon {
+func (s *DB) CommonDB() SQLCommon {
 	return s.db
 }
 
@@ -449,7 +454,7 @@ func (s *DB) Begin() *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok {
 		tx, err := db.Begin()
-		c.db = interface{}(tx).(sqlCommon)
+		c.db = interface{}(tx).(SQLCommon)
 		c.AddError(err)
 	} else {
 		c.AddError(ErrCantStartTransaction)

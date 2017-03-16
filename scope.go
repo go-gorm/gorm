@@ -58,7 +58,7 @@ func (scope *Scope) NewDB() *DB {
 }
 
 // SQLDB return *sql.DB
-func (scope *Scope) SQLDB() sqlCommon {
+func (scope *Scope) SQLDB() SQLCommon {
 	return scope.db.db
 }
 
@@ -391,7 +391,7 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 func (scope *Scope) Begin() *Scope {
 	if db, ok := scope.SQLDB().(sqlDb); ok {
 		if tx, err := db.Begin(); err == nil {
-			scope.db.db = interface{}(tx).(sqlCommon)
+			scope.db.db = interface{}(tx).(SQLCommon)
 			scope.InstanceSet("gorm:started_transaction", true)
 		}
 	}

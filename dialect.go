@@ -14,7 +14,7 @@ type Dialect interface {
 	GetName() string
 
 	// SetDB set db for dialect
-	SetDB(db *sql.DB)
+	SetDB(db SQLCommon)
 
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
@@ -50,7 +50,7 @@ type Dialect interface {
 
 var dialectsMap = map[string]Dialect{}
 
-func newDialect(name string, db *sql.DB) Dialect {
+func newDialect(name string, db SQLCommon) Dialect {
 	if value, ok := dialectsMap[name]; ok {
 		dialect := reflect.New(reflect.TypeOf(value).Elem()).Interface().(Dialect)
 		dialect.SetDB(db)
