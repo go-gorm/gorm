@@ -704,6 +704,17 @@
   <span class="hljs-keyword">defer</span> db.Close()
 }
 </code></pre>
+<h4 id="sql-server">SQL Server</h4>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    _ <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/mssql&quot;</span>
+)
+
+<span class="hljs-keyword">func</span> main() {
+  db, err = gorm.Open(<span class="hljs-string">&quot;mssql&quot;</span>, <span class="hljs-string">&quot;sqlserver://username:password@localhost:1433?database=dbname&quot;</span>)
+  <span class="hljs-keyword">defer</span> db.Close()
+}
+</code></pre>
 <h4 id="write-dialect-for-unsupported-databases">Write Dialect for unsupported databases</h4>
 <p>GORM officially supports the above databases, but you could write a dialect for unsupported databases.</p>
 <p>To write your own dialect, refer to: <a href="https://github.com/jinzhu/gorm/blob/master/dialect.go" target="_blank">https://github.com/jinzhu/gorm/blob/master/dialect.go</a></p>
@@ -818,7 +829,7 @@ db.Model(&amp;User{}).RemoveIndex(<span class="hljs-string">&quot;idx_user_name&
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Database","level":"1.2","depth":1,"next":{"title":"Database Connection","level":"1.2.1","depth":2,"anchor":"#connecting-to-a-database","path":"database.md","ref":"database.md#connecting-to-a-database","articles":[]},"previous":{"title":"Getting Started with GORM","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"database.md","mtime":"2017-03-17T09:18:31.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-03-17T09:20:34.244Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Database","level":"1.2","depth":1,"next":{"title":"Database Connection","level":"1.2.1","depth":2,"anchor":"#connecting-to-a-database","path":"database.md","ref":"database.md#connecting-to-a-database","articles":[]},"previous":{"title":"Getting Started with GORM","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"database.md","mtime":"2017-03-22T16:04:07.000Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-03-22T16:04:18.436Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>

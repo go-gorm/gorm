@@ -63,6 +63,20 @@ func main() {
 }
 ```
 
+#### SQL Server
+
+```go
+import (
+    "github.com/jinzhu/gorm"
+    _ "github.com/jinzhu/gorm/dialects/mssql"
+)
+
+func main() {
+  db, err = gorm.Open("mssql", "sqlserver://username:password@localhost:1433?database=dbname")
+  defer db.Close()
+}
+```
+
 #### Write Dialect for unsupported databases
 
 GORM officially supports the above databases, but you could write a dialect for unsupported databases.
