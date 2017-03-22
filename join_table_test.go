@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -23,14 +24,23 @@ type PersonAddress struct {
 }
 
 func (*PersonAddress) Add(handler gorm.JoinTableHandlerInterface, db *gorm.DB, foreignValue interface{}, associationValue interface{}) error {
-	return db.Where(map[string]interface{}{
-		"person_id":  db.NewScope(foreignValue).PrimaryKeyValue(),
-		"address_id": db.NewScope(associationValue).PrimaryKeyValue(),
-	}).Assign(map[string]interface{}{
-		"person_id":  foreignValue,
-		"address_id": associationValue,
+	foreignPrimaryKey, _ := strconv.Atoi(fmt.Sprint(db.NewScope(foreignValue).PrimaryKeyValue()))
+	associationPrimaryKey, _ := strconv.Atoi(fmt.Sprint(db.NewScope(associationValue).PrimaryKeyValue()))
+	if result := db.Unscoped().Model(&PersonAddress{}).Where(map[string]interface{}{
+		"person_id":  foreignPrimaryKey,
+		"address_id": associationPrimaryKey,
+	}).Update(map[string]interface{}{
+		"person_id":  foreignPrimaryKey,
+		"address_id": associationPrimaryKey,
 		"deleted_at": gorm.Expr("NULL"),
-	}).FirstOrCreate(&PersonAddress{}).Error
+	}).RowsAffected; result == 0 {
+		return db.Create(&PersonAddress{
+			PersonID:  foreignPrimaryKey,
+			AddressID: associationPrimaryKey,
+		}).Error
+	}
+
+	return nil
 }
 
 func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB, sources ...interface{}) error {

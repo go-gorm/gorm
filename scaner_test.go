@@ -50,7 +50,8 @@ type RecordWithSlice struct {
 type ExampleStringSlice []string
 
 func (l ExampleStringSlice) Value() (driver.Value, error) {
-	return json.Marshal(l)
+	bytes, err := json.Marshal(l)
+	return string(bytes), err
 }
 
 func (l *ExampleStringSlice) Scan(input interface{}) error {
@@ -72,7 +73,8 @@ type ExampleStruct struct {
 type ExampleStructSlice []ExampleStruct
 
 func (l ExampleStructSlice) Value() (driver.Value, error) {
-	return json.Marshal(l)
+	bytes, err := json.Marshal(l)
+	return string(bytes), err
 }
 
 func (l *ExampleStructSlice) Scan(input interface{}) error {

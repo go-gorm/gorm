@@ -31,9 +31,8 @@ type User struct {
 	Languages         []Language `gorm:"many2many:user_languages;"`
 	CompanyID         *int
 	Company           Company
-	Role
+	Role              Role
 	PasswordHash      []byte
-	Sequence          uint                  `gorm:"AUTO_INCREMENT"`
 	IgnoreMe          int64                 `sql:"-"`
 	IgnoreStringSlice []string              `sql:"-"`
 	Ignored           struct{ Name string } `sql:"-"`
@@ -333,7 +332,7 @@ func TestIndexes(t *testing.T) {
 	}
 }
 
-type BigEmail struct {
+type EmailWithIdx struct {
 	Id           int64
 	UserId       int64
 	Email        string     `sql:"index:idx_email_agent"`
@@ -343,29 +342,26 @@ type BigEmail struct {
 	UpdatedAt    time.Time
 }
 
-func (b BigEmail) TableName() string {
-	return "emails"
-}
-
 func TestAutoMigration(t *testing.T) {
 	DB.AutoMigrate(&Address{})
-	if err := DB.Table("emails").AutoMigrate(&BigEmail{}).Error; err != nil {
+	DB.DropTable(&EmailWithIdx{})
+	if err := DB.AutoMigrate(&EmailWithIdx{}).Error; err != nil {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 
 	now := time.Now()
-	DB.Save(&BigEmail{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: &now})
+	DB.Save(&EmailWithIdx{Email: "jinzhu@example.org", UserAgent: "pc", RegisteredAt: &now})
 
-	scope := DB.NewScope(&BigEmail{})
+	scope := DB.NewScope(&EmailWithIdx{})
 	if !scope.Dialect().HasIndex(scope.TableName(), "idx_email_agent") {
 		t.Errorf("Failed to create index")
 	}
 
-	if !scope.Dialect().HasIndex(scope.TableName(), "uix_emails_registered_at") {
+	if !scope.Dialect().HasIndex(scope.TableName(), "uix_email_with_idxes_registered_at") {
 		t.Errorf("Failed to create index")
 	}
 
-	var bigemail BigEmail
+	var bigemail EmailWithIdx
 	DB.First(&bigemail, "user_agent = ?", "pc")
 	if bigemail.Email != "jinzhu@example.org" || bigemail.UserAgent != "pc" || bigemail.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
@@ -386,7 +382,7 @@ func TestMultipleIndexes(t *testing.T) {
 	}
 
 	DB.AutoMigrate(&MultipleIndexes{})
-	if err := DB.AutoMigrate(&BigEmail{}).Error; err != nil {
+	if err := DB.AutoMigrate(&EmailWithIdx{}).Error; err != nil {
 		t.Errorf("Auto Migrate should not raise any error")
 	}
 

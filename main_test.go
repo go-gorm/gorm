@@ -821,11 +821,11 @@ func BenchmarkGorm(b *testing.B) {
 	for x := 0; x < b.N; x++ {
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		now := time.Now()
-		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: &now}
+		email := EmailWithIdx{Email: e, UserAgent: "pc", RegisteredAt: &now}
 		// Insert
 		DB.Save(&email)
 		// Query
-		DB.First(&BigEmail{}, "email = ?", e)
+		DB.First(&EmailWithIdx{}, "email = ?", e)
 		// Update
 		DB.Model(&email).UpdateColumn("email", "new-"+e)
 		// Delete
@@ -846,7 +846,7 @@ func BenchmarkRawSql(b *testing.B) {
 		var id int64
 		e := strconv.Itoa(x) + "benchmark@example.org"
 		now := time.Now()
-		email := BigEmail{Email: e, UserAgent: "pc", RegisteredAt: &now}
+		email := EmailWithIdx{Email: e, UserAgent: "pc", RegisteredAt: &now}
 		// Insert
 		DB.QueryRow(insertSql, email.UserId, email.Email, email.UserAgent, email.RegisteredAt, time.Now(), time.Now()).Scan(&id)
 		// Query
@@ -860,6 +860,6 @@ func BenchmarkRawSql(b *testing.B) {
 }
 
 func parseTime(str string) *time.Time {
-	t := now.MustParse(str)
+	t := now.New(time.Now().UTC()).MustParse(str)
 	return &t
 }

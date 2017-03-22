@@ -35,7 +35,7 @@ func compareTags(tags []Tag, contents []string) bool {
 }
 
 func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
-	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" && dialect != "mssql" {
 		DB.DropTable(&Blog{}, &Tag{})
 		DB.DropTable("blog_tags")
 		DB.CreateTable(&Blog{}, &Tag{})
@@ -119,7 +119,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 }
 
 func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
-	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" && dialect != "mssql" {
 		DB.DropTable(&Blog{}, &Tag{})
 		DB.DropTable("shared_blog_tags")
 		DB.CreateTable(&Blog{}, &Tag{})
@@ -236,7 +236,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 }
 
 func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
-	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "" && dialect != "sqlite" && dialect != "mssql" {
 		DB.DropTable(&Blog{}, &Tag{})
 		DB.DropTable("locale_blog_tags")
 		DB.CreateTable(&Blog{}, &Tag{})
