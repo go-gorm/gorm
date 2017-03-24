@@ -930,6 +930,10 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 			scope.Err(rows.Scan(elem))
 			dest.Set(reflect.Append(dest, reflect.ValueOf(elem).Elem()))
 		}
+
+		if err := rows.Err(); err != nil {
+			scope.Err(err)
+		}
 	}
 	return scope
 }

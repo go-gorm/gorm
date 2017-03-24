@@ -310,6 +310,10 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 	}
 
+	if err := rows.Err(); err != nil {
+		scope.Err(err)
+	}
+
 	// assign find results
 	var (
 		indirectScopeValue = scope.IndirectValue()
