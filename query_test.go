@@ -360,6 +360,11 @@ func TestOrderAndPluck(t *testing.T) {
 		t.Errorf("Order with multiple orders")
 	}
 
+	var ages6 []int64
+	if err := scopedb.Order("").Pluck("age", &ages6).Error; err != nil {
+		t.Errorf("An empty string as order clause produces invalid queries")
+	}
+
 	DB.Model(User{}).Select("name, age").Find(&[]User{})
 }
 
