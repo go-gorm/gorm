@@ -67,7 +67,7 @@ func (s *search) Order(value interface{}, reorder ...bool) *search {
 		s.orders = []interface{}{}
 	}
 
-	if value != nil {
+	if value != nil && value != "" {
 		s.orders = append(s.orders, value)
 	}
 	return s
