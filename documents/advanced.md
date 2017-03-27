@@ -72,7 +72,7 @@ Run Raw SQL
 
 ```go
 db.Exec("DROP TABLE users;")
-db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now, []int64{11,22,33})
+db.Exec("UPDATE orders SET shipped_at=? WHERE id IN (?)", time.Now(), []int64{11,22,33})
 
 // Scan
 type Result struct {
