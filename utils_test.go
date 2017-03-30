@@ -9,11 +9,13 @@ import (
 func TestToDBNameGenerateFriendlyName(t *testing.T) {
 	var maps = map[string]string{
 		"":                          "",
+		"X":                         "x",
 		"ThisIsATest":               "this_is_a_test",
 		"PFAndESI":                  "pf_and_esi",
 		"AbcAndJkl":                 "abc_and_jkl",
 		"EmployeeID":                "employee_id",
 		"SKU_ID":                    "sku_id",
+		"FieldX":                    "field_x",
 		"HTTPAndSMTP":               "http_and_smtp",
 		"HTTPServerHandlerForURLID": "http_server_handler_for_url_id",
 		"UUID":     "uuid",

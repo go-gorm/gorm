@@ -97,6 +97,9 @@ func ToDBName(name string) string {
 				}
 			} else {
 				buf.WriteRune(v)
+				if i == len(value)-2 && nextCase == upper {
+					buf.WriteRune('_')
+				}
 			}
 		} else {
 			currCase = upper
