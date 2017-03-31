@@ -41,7 +41,7 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 	if sqlType == "" {
 		switch dataValue.Kind() {
 		case reflect.Bool:
-			sqlType = "boolean"
+			sqlType = "tinyint(1) unsigned" // NOTE: "boolean" does not set as UNSIGNED by default.
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32:
 			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
