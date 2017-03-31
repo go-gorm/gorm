@@ -452,7 +452,7 @@ func (s *DB) Debug() *DB {
 // Begin begin a transaction
 func (s *DB) Begin() *DB {
 	c := s.clone()
-	if db, ok := c.db.(sqlDb); ok {
+	if db, ok := c.db.(sqlDb); ok && db != nil {
 		tx, err := db.Begin()
 		c.db = interface{}(tx).(SQLCommon)
 		c.AddError(err)
@@ -464,7 +464,7 @@ func (s *DB) Begin() *DB {
 
 // Commit commit a transaction
 func (s *DB) Commit() *DB {
-	if db, ok := s.db.(sqlTx); ok {
+	if db, ok := s.db.(sqlTx); ok && db != nil {
 		s.AddError(db.Commit())
 	} else {
 		s.AddError(ErrInvalidTransaction)
@@ -474,7 +474,7 @@ func (s *DB) Commit() *DB {
 
 // Rollback rollback a transaction
 func (s *DB) Rollback() *DB {
-	if db, ok := s.db.(sqlTx); ok {
+	if db, ok := s.db.(sqlTx); ok && db != nil {
 		s.AddError(db.Rollback())
 	} else {
 		s.AddError(ErrInvalidTransaction)
