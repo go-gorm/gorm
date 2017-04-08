@@ -22,9 +22,9 @@ func rowQueryCallback(scope *Scope) {
 		scope.prepareQuerySQL()
 
 		if rowResult, ok := result.(*RowQueryResult); ok {
-			rowResult.Row = scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
+			rowResult.Row = scope.sqldbQueryRow(scope.SQL, scope.SQLVars...)
 		} else if rowsResult, ok := result.(*RowsQueryResult); ok {
-			rowsResult.Rows, rowsResult.Error = scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
+			rowsResult.Rows, rowsResult.Error = scope.sqldbQuery(scope.SQL, scope.SQLVars...)
 		}
 	}
 }

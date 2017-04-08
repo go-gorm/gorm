@@ -11,6 +11,14 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+const (
+	queryMSSQLHasIndex        = "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)"
+	queryMSSQLRemoveIndex     = "DROP INDEX %v ON %v"
+	queryMSSQLHasTable        = "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?"
+	queryMSSQLHasColumn       = "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?"
+	queryMSSQLCurrentDatabase = "SELECT DB_NAME() AS [Current Database]"
+)
+
 func setIdentityInsert(scope *gorm.Scope) {
 	if scope.Dialect().GetName() == "mssql" {
 		for _, field := range scope.PrimaryFields() {
@@ -111,36 +119,8 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s mssql) HasIndex(tableName string, indexName string) bool {
-	var count int
-	s.db.QueryRow("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
-	return count > 0
-}
-
-func (s mssql) RemoveIndex(tableName string, indexName string) error {
-	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
-	return err
-}
-
 func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return false
-}
-
-func (s mssql) HasTable(tableName string) bool {
-	var count int
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.CurrentDatabase()).Scan(&count)
-	return count > 0
-}
-
-func (s mssql) HasColumn(tableName string, columnName string) bool {
-	var count int
-	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.CurrentDatabase(), tableName, columnName).Scan(&count)
-	return count > 0
-}
-
-func (s mssql) CurrentDatabase() (name string) {
-	s.db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
-	return
 }
 
 func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
