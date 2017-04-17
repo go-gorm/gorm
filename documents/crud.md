@@ -598,7 +598,7 @@ db.Model(&user).Omit("name").Updates(map[string]interface{}{"name": "hello", "ag
 
 ### Update Changed Fields Without Callbacks
 
-Above updating operations will perform the mdoel's `BeforeUpdate`, `AfterUpdate` method, update its `UpdatedAt` timestamp, save its `Associations` when updaing, if you don't want to call them, you could use `UpdateColumn`, `UpdateColumns`
+Above updating operations will perform the model's `BeforeUpdate`, `AfterUpdate` method, update its `UpdatedAt` timestamp, save its `Associations` when updaing, if you don't want to call them, you could use `UpdateColumn`, `UpdateColumns`
 
 ```go
 // Update single attribute, similar with `Update`
