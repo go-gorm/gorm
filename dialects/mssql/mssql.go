@@ -50,7 +50,7 @@ func (s *mssql) SetDB(db gorm.SQLCommon) {
 }
 
 func (mssql) BindVar(i int) string {
-	return "$$" // ?
+	return "$$$" // ?
 }
 
 func (mssql) Quote(key string) string {

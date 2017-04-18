@@ -31,7 +31,7 @@ func (s *commonDialect) SetDB(db SQLCommon) {
 }
 
 func (commonDialect) BindVar(i int) string {
-	return "$$" // ?
+	return "$$$" // ?
 }
 
 func (commonDialect) Quote(key string) string {

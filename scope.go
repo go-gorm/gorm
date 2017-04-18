@@ -340,7 +340,7 @@ func (scope *Scope) CombinedConditionSql() string {
 
 // Raw set raw sql
 func (scope *Scope) Raw(sql string) *Scope {
-	scope.SQL = strings.Replace(sql, "$$", "?", -1)
+	scope.SQL = strings.Replace(sql, "$$$", "?", -1)
 	return scope
 }
 
