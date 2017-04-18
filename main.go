@@ -71,11 +71,13 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 		dialect:   newDialect(dialect, dbSQL),
 	}
 	db.parent = db
-
-	if err == nil {
-		// Send a ping to make sure the database connection is alive.
-		if err = db.DB().Ping(); err != nil {
-			db.DB().Close()
+	if err != nil {
+		return
+	}
+	// Send a ping to make sure the database connection is alive.
+	if d, ok := dbSQL.(*sql.DB); ok {
+		if err = d.Ping(); err != nil {
+			d.Close()
 		}
 	}
 	return
