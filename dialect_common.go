@@ -124,12 +124,12 @@ func (s commonDialect) CurrentDatabase() (name string) {
 
 func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
+		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
 			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
 		}
 	}
 	if offset != nil {
-		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
+		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
 		}
 	}
