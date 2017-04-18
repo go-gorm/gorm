@@ -1,10 +1,10 @@
-Before posting a bug report about a problem, please try to verify that it is a bug and that it has not been reported already.
+Before posting a bug report about a problem, please try to verify that it is a bug and that it has not been reported already, please apply corresponding GitHub labels to the issue, for feature requests, please apply `type:feature`.
 
-Also please apply corresponding GitHub labels to the issue, for feature requests, please apply `type:feature`.
-
-For usage questions, please ask in https://gitter.im/jinzhu/gorm or http://stackoverflow.com/questions/tagged/go-gorm
+DON'T post usage related questions, ask in https://gitter.im/jinzhu/gorm or http://stackoverflow.com/questions/tagged/go-gorm,
 
 Please answer these questions before submitting your issue. Thanks!
+
+
 
 ### What version of Go are you using (`go version`)?
 
