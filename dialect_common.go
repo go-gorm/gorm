@@ -149,3 +149,8 @@ func (DefaultForeignKeyNamer) BuildForeignKeyName(tableName, field, dest string)
 	keyName = regexp.MustCompile("(_*[^a-zA-Z]+_*|_+)").ReplaceAllString(keyName, "_")
 	return keyName
 }
+
+// IsByteArrayOrSlice returns true of the reflected value is an array or slice
+func IsByteArrayOrSlice(value reflect.Value) bool {
+	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == reflect.TypeOf(uint8(0))
+}

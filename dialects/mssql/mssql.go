@@ -81,21 +81,21 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		case reflect.Float32, reflect.Float64:
 			sqlType = "float"
 		case reflect.String:
-			if size > 0 && size < 65532 {
+			if size > 0 && size < 8000 {
 				sqlType = fmt.Sprintf("nvarchar(%d)", size)
 			} else {
-				sqlType = "text"
+				sqlType = "nvarchar(max)"
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
 				sqlType = "datetime2"
 			}
 		default:
-			if _, ok := dataValue.Interface().([]byte); ok {
-				if size > 0 && size < 65532 {
-					sqlType = fmt.Sprintf("varchar(%d)", size)
+			if gorm.IsByteArrayOrSlice(dataValue) {
+				if size > 0 && size < 8000 {
+					sqlType = fmt.Sprintf("varbinary(%d)", size)
 				} else {
-					sqlType = "text"
+					sqlType = "varbinary(max)"
 				}
 			}
 		}

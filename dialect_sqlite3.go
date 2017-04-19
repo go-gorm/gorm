@@ -54,7 +54,7 @@ func (s *sqlite3) DataTypeOf(field *StructField) string {
 				sqlType = "datetime"
 			}
 		default:
-			if _, ok := dataValue.Interface().([]byte); ok {
+			if IsByteArrayOrSlice(dataValue) {
 				sqlType = "blob"
 			}
 		}
