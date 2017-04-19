@@ -222,7 +222,7 @@ func TestSearchWithStruct(t *testing.T) {
 	}
 
 	DB.First(&user, User{Name: user1.Name})
-	if user.Id == 0 || user.Name != user.Name {
+	if user.Id == 0 || user.Name != user1.Name {
 		t.Errorf("Search first record with inline struct")
 	}
 
