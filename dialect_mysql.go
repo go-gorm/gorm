@@ -87,7 +87,7 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 				}
 			}
 		default:
-			if _, ok := dataValue.Interface().([]byte); ok {
+			if IsByteArrayOrSlice(dataValue) {
 				if size > 0 && size < 65532 {
 					sqlType = fmt.Sprintf("varbinary(%d)", size)
 				} else {

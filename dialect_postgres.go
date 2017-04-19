@@ -65,7 +65,7 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 				sqlType = "hstore"
 			}
 		default:
-			if isByteArrayOrSlice(dataValue) {
+			if IsByteArrayOrSlice(dataValue) {
 				sqlType = "bytea"
 			} else if isUUID(dataValue) {
 				sqlType = "uuid"
@@ -118,10 +118,6 @@ func (s postgres) LastInsertIDReturningSuffix(tableName, key string) string {
 
 func (postgres) SupportLastInsertID() bool {
 	return false
-}
-
-func isByteArrayOrSlice(value reflect.Value) bool {
-	return (value.Kind() == reflect.Array || value.Kind() == reflect.Slice) && value.Type().Elem() == reflect.TypeOf(uint8(0))
 }
 
 func isUUID(value reflect.Value) bool {
