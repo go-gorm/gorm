@@ -105,3 +105,7 @@ func (s sqlite3) CurrentDatabase() (name string) {
 	}
 	return
 }
+
+func (sqlite3) SupportLastInsertID() bool {
+	return true
+}

@@ -109,8 +109,32 @@ func createCallback(scope *Scope) {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
 
-				// set primary value to primary field
-				if primaryField != nil && primaryField.IsBlank {
+				// Set primary value to primary field
+				// * If `LastInsertID` isn't supported, then pull the last inserted row from the db
+				// * Else, use the `LastInsertID` field stored in `result`
+				if !scope.Dialect().SupportLastInsertID() && primaryField != nil {
+					// Build the WHERE query for each inserted column
+					where_filter := make([]string, len(columns))
+					for i, column := range columns {
+						where_filter[i] = fmt.Sprintf("%v = $%v", column, i + 1)
+					}
+					// Store the query in scope.SQL
+					scope.Raw(fmt.Sprintf(
+						"SELECT \"%v\" FROM %v WHERE %v ORDER BY \"%v\" DESC LIMIT 1",
+						primaryField.Name,
+						scope.QuotedTableName(),
+						strings.Join(where_filter, " AND "),
+						primaryField.Name,
+					))
+					// Execute the query and store the results in primaryField & scope.Err
+					var id int64
+					if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(&id); err == nil {
+						primaryField.Set(id)
+						scope.Err(nil)
+					} else {
+						scope.Err(primaryField.Set(err.Error()))
+					}
+				} else if primaryField != nil && primaryField.IsBlank {
 					if primaryValue, err := result.LastInsertId(); scope.Err(err) == nil {
 						scope.Err(primaryField.Set(primaryValue))
 					}
