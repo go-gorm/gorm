@@ -96,6 +96,33 @@ func TestPreload(t *testing.T) {
 	}
 }
 
+func TestAutoPreload(t *testing.T) {
+	user1 := getPreloadUser("auto_user1")
+	DB.Save(user1)
+
+	preloadDB := DB.Set("gorm:auto_preload", true).Where("role = ?", "Preload")
+	var user User
+	preloadDB.Find(&user)
+	checkUserHasPreloadData(user, t)
+
+	user2 := getPreloadUser("auto_user2")
+	DB.Save(user2)
+
+	var users []User
+	preloadDB.Find(&users)
+
+	for _, user := range users {
+		checkUserHasPreloadData(user, t)
+	}
+
+	var users2 []*User
+	preloadDB.Find(&users2)
+
+	for _, user := range users2 {
+		checkUserHasPreloadData(*user, t)
+	}
+}
+
 func TestNestedPreload1(t *testing.T) {
 	type (
 		Level1 struct {
