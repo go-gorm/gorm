@@ -33,6 +33,10 @@ func queryCallback(scope *Scope) {
 		results = indirect(reflect.ValueOf(value))
 	}
 
+	for results.Kind() == reflect.Ptr {
+		results = results.Elem()
+	}
+
 	if kind := results.Kind(); kind == reflect.Slice {
 		isSlice = true
 		resultType = results.Type().Elem()
