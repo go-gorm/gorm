@@ -1270,6 +1270,40 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 	return
 }
 
+func (scope *Scope) getColumnAsArrayUnique(columns []string, values ...interface{}) (results [][]interface{}) {
+	unfilteredResults := scope.getColumnAsArray(columns, values...)
+
+	rootMap := map[interface{}]interface{}{}
+
+	for _, valueSet := range unfilteredResults {
+		currentMap := rootMap
+		appendResult := false
+
+		for _, value := range valueSet {
+			if isBlank(reflect.ValueOf(value)) {
+				appendResult = false
+				break
+			}
+
+			innerMap, ok := currentMap[value]
+			if !ok {
+				innerMap = map[interface{}]interface{}{}
+				currentMap[value] = innerMap
+
+				appendResult = true
+			}
+
+			currentMap = innerMap.(map[interface{}]interface{})
+		}
+
+		if appendResult {
+			results = append(results, valueSet)
+		}
+	}
+
+	return
+}
+
 func (scope *Scope) getColumnAsScope(column string) *Scope {
 	indirectScopeValue := scope.IndirectValue()
 
