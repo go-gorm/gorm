@@ -335,7 +335,7 @@ func (scope *Scope) CombinedConditionSql() string {
 		whereSql = strings.TrimSuffix(strings.TrimPrefix(whereSql, "WHERE ("), ")")
 	}
 	return joinSql + whereSql + scope.groupSQL() +
-		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
+		scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL() + scope.Search.countEnd
 }
 
 // Raw set raw sql
@@ -940,7 +940,12 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 
 func (scope *Scope) count(value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
-		scope.Search.Select("count(*)")
+		if len(scope.Search.group) != 0 {
+			scope.Search.Select("count(*) FROM ( SELECT count(*) ")
+			scope.Search.countEnd = " ) AS count"
+		} else {
+			scope.Search.Select("count(*)")
+		}
 	}
 	scope.Search.ignoreOrderQuery = true
 	scope.Err(scope.row().Scan(value))
