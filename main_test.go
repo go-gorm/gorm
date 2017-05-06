@@ -381,6 +381,92 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
+func TestFindInBatches(t *testing.T) {
+	type SomeProduct struct {
+		gorm.Model
+		Code  int
+		Price uint
+	}
+	type NoTableStruct struct {
+		gorm.Model
+	}
+	DB.DropTable(&SomeProduct{})
+	DB.AutoMigrate(&SomeProduct{})
+	for i := 0; i < 10; i++ {
+		m := SomeProduct{Code: i}
+		err := DB.Save(&m).Error
+		if err != nil {
+			panic(err)
+		}
+	}
+	var arr []SomeProduct
+	var products []SomeProduct
+
+	DB.Limit(3).FindInBatches(&arr, func() {
+		for i := 0; i < len(arr); i++ {
+			products = append(products, arr[i])
+		}
+	})
+	if len(products) != 10 {
+		t.Errorf("not all products were returned in find in batches")
+	}
+	for i := 0; i < 10; i++ {
+		if products[i].Code != i {
+			t.Errorf("product %d didn't match %d", products[i].Code, i)
+		}
+	}
+	//test errors
+	err := DB.FindInBatches(SomeProduct{}, func() {}).Error
+	if err == nil {
+		t.Errorf("FindInBatches was supposed to fail when given a struct")
+	} else if err != gorm.ErrUnsupportedType {
+		t.Errorf("FindInBatches was supposed to return an ErrUnsupportedType")
+	}
+	err = DB.FindInBatches(&[]NoTableStruct{}, func() {}).Error
+	if err == nil {
+		t.Errorf("FindInBatches was supposed to return the underlying error")
+	}
+}
+
+func TestFindEach(t *testing.T) {
+	type SomeProduct struct {
+		gorm.Model
+		Code  int
+		Price uint
+	}
+	type NoTableStruct struct {
+		gorm.Model
+	}
+	DB.DropTable(&SomeProduct{})
+	DB.AutoMigrate(&SomeProduct{})
+	for i := 0; i < 10; i++ {
+		m := SomeProduct{Code: i}
+		err := DB.Save(&m).Error
+		if err != nil {
+			panic(err)
+		}
+	}
+	var out SomeProduct
+	var products []SomeProduct
+
+	DB.Limit(3).FindEach(&out, func() {
+		products = append(products, out)
+	})
+	if len(products) != 10 {
+		t.Errorf("not all products were returned in find in batches")
+	}
+	for i := 0; i < 10; i++ {
+		if products[i].Code != i {
+			t.Errorf("product %d didn't match %d", products[i].Code, i)
+		}
+	}
+	//test errors
+	err := DB.FindEach(&NoTableStruct{}, func() {}).Error
+	if err == nil {
+		t.Errorf("find each was supposed to return the underlying error")
+	}
+}
+
 func TestRow(t *testing.T) {
 	user1 := User{Name: "RowUser1", Age: 1, Birthday: parseTime("2000-1-1")}
 	user2 := User{Name: "RowUser2", Age: 10, Birthday: parseTime("2010-1-1")}

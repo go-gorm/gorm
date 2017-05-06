@@ -284,6 +284,58 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// FindInBatches find records in batches for large tables and allow callbacks to operate
+// on each batch
+func (s *DB) FindInBatches(out interface{}, cb func(), where ...interface{}) *DB {
+	var limit interface{}
+	newDB := s.clone()
+	if len(newDB.search.orders) != 0 {
+		//ordering by non primary col not supported - can cause infinite loop
+		newDB.search.orders = []interface{}{}
+	}
+	value := indirect(reflect.ValueOf(out))
+	if value.Kind() != reflect.Array && value.Kind() != reflect.Slice {
+		newDB.AddError(ErrUnsupportedType)
+		return newDB
+	}
+	if newDB.search.limit == -1 {
+		limit = 1000
+	} else {
+		limit = newDB.search.limit
+	}
+	err := newDB.Limit(limit).Find(out, where...).Error
+	records := indirect(reflect.ValueOf(out))
+	for err == nil && records.Len() > 0 {
+		cb()
+		lastRecord := records.Index(records.Len() - 1).Interface()
+		scope := s.NewScope(lastRecord)
+		err = newDB.Limit(limit).
+			Where(fmt.Sprintf("`%v` > '%v'", scope.PrimaryKey(), scope.PrimaryKeyValue())).
+			Find(out, where...).Error
+		records = indirect(reflect.ValueOf(out))
+	}
+	if err != nil {
+		newDB.AddError(err)
+	}
+	return newDB
+}
+
+// FindEach find records in batches for large tables and allow callbacks to operate
+// on each of them between iterations
+func (s *DB) FindEach(out interface{}, cb func(), where ...interface{}) *DB {
+	c := s.clone()
+	v := indirect(reflect.ValueOf(&out)).Interface()
+	slice := makeSlice(reflect.TypeOf(v))
+	c = c.FindInBatches(slice, func() {
+		valueOfSlice := indirect(reflect.ValueOf(slice))
+		for i := 0; i < valueOfSlice.Len(); i++ {
+			reflect.ValueOf(out).Elem().Set(indirect(valueOfSlice.Index(i)))
+			cb()
+		}
+	}, where...)
+	return c
+}
+
 // Scan scan value to a struct
 func (s *DB) Scan(dest interface{}) *DB {
 	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
