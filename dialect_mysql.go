@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -94,10 +95,18 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
-				if _, ok := field.TagSettings["NOT NULL"]; ok {
-					sqlType = "timestamp"
+				if num, ok := field.TagSettings["FRAC"]; ok {
+					frac, err := strconv.Atoi(num)
+					if err != nil || frac < 0 {
+						frac = 0
+					}
+					if frac > 6 {
+						frac = 6
+					}
+
+					sqlType = fmt.Sprintf("timestamp(%d)", frac)
 				} else {
-					sqlType = "timestamp NULL"
+					sqlType = "timestamp"
 				}
 			}
 		default:
