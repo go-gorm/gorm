@@ -542,7 +542,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if value, ok := field.TagSettings["COLUMN"]; ok {
 				field.DBName = value
 			} else {
-				field.DBName = ToDBName(fieldStruct.Name)
+
+				tag := field.Tag.Get("gorm")
+
+				if len(tag) > 0 && strings.HasPrefix(tag, "cloumn:") {
+					field.DBName = strings.Replace(tag, "cloumn:", "", -1)
+				} else {
+					field.DBName = ToDBName(fieldStruct.Name)
+				}
 			}
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
