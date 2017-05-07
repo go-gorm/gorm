@@ -602,6 +602,15 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return scope.db
 }
 
+// AddLongForeignKey can be used when the identifier of foreign key is exceeds 64 characters
+// It uses sha1 to shorten it
+//     db.Model(&User{}).AddLongForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
+func (s *DB) AddLongForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.addLongForeignKey(field, dest, onDelete, onUpdate)
+	return scope.db
+}
+
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
