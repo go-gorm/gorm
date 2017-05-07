@@ -1168,6 +1168,14 @@ func (scope *Scope) removeIndex(indexName string) {
 	scope.Dialect().RemoveIndex(scope.TableName(), indexName)
 }
 
+func (scope *Scope) removeForeignKey(keyName string) {
+	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
+		return
+	}
+
+	scope.Dialect().RemoveForeignKey(scope.TableName(), keyName)
+}
+
 func (scope *Scope) autoMigrate() *Scope {
 	tableName := scope.TableName()
 	quotedTableName := scope.QuotedTableName()

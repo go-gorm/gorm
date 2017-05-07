@@ -132,6 +132,11 @@ func (s mysql) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return count > 0
 }
 
+func (s mysql) RemoveForeignKey(tableName string, foreignKeyName string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v DROP FOREIGN KEY %v", s.Quote(tableName), foreignKeyName))
+	return err
+}
+
 func (s mysql) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
 	return

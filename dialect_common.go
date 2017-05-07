@@ -105,6 +105,11 @@ func (s commonDialect) HasForeignKey(tableName string, foreignKeyName string) bo
 	return false
 }
 
+func (s commonDialect) RemoveForeignKey(tableName string, foreignKeyName string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v DROP CONSTRAINT %v", tableName, foreignKeyName))
+	return err
+}
+
 func (s commonDialect) HasTable(tableName string) bool {
 	var count int
 	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", s.CurrentDatabase(), tableName).Scan(&count)
