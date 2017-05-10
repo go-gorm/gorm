@@ -677,7 +677,7 @@ func (scope *Scope) whereSQL() (sql string) {
 		primaryConditions, andConditions, orConditions []string
 	)
 
-	if !scope.Search.Unscoped && hasDeletedAtField {
+	if !scope.Search.Unscoped && hasDeletedAtField && !scope.Search.raw {
 		sql := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
 		primaryConditions = append(primaryConditions, sql)
 	}
