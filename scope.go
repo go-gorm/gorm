@@ -947,6 +947,13 @@ func (scope *Scope) count(value interface{}) *Scope {
 	return scope
 }
 
+func (scope *Scope) countDistinct(value interface{}, column string) *Scope {
+	scope.Search.Select(fmt.Sprintf("count(%s)", column))
+	scope.Search.countingQuery = true
+	scope.Err(scope.row().Scan(value))
+	return scope
+}
+
 func (scope *Scope) typeName() string {
 	typ := scope.IndirectValue().Type()
 
