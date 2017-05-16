@@ -12,9 +12,17 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
+type tagHandlerFunc func(*StructField)
+
 // DefaultTableNameHandler default table name handler
 var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
+}
+
+var tagHandlers = map[string]tagHandlerFunc{}
+
+func AddTagHandler(tagName string, handler tagHandlerFunc) {
+	tagHandlers[tagName] = handler
 }
 
 type safeModelStructsMap struct {
@@ -205,19 +213,14 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					field.IsNormal = true
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 					// is embedded struct
-					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
+					for _, subField := range scope.New(fieldValue).GetStructFields() {
 						subField = subField.clone()
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
 						if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
 							subField.DBName = prefix + subField.DBName
 						}
-
 						if subField.IsPrimaryKey {
-							if _, ok := subField.TagSettings["PRIMARY_KEY"]; ok {
-								modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
-							} else {
-								subField.IsPrimaryKey = false
-							}
+							modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, subField)
 						}
 						modelStruct.StructFields = append(modelStruct.StructFields, subField)
 					}
@@ -543,6 +546,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				field.DBName = value
 			} else {
 				field.DBName = ToDBName(fieldStruct.Name)
+			}
+
+			for tagName := range field.TagSettings {
+				if handler, ok := tagHandlers[tagName]; ok {
+					handler(field)
+				}
 			}
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
