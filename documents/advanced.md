@@ -161,7 +161,7 @@ Gorm has built-in logger support, by default, it will print happened errors
 // Enable Logger, show detailed log
 db.LogMode(true)
 
-// Diable Logger, don't show any log
+// Disable Logger, don't show any log
 db.LogMode(false)
 
 // Debug a single operation, show detailed log for this operation
