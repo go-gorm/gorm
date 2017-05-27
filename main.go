@@ -110,6 +110,11 @@ func (s *DB) DB() *sql.DB {
 	return db
 }
 
+// DialectName returns the name of the used dialect.
+func (s *DB) DialectName() string {
+	return s.dialect.GetName()
+}
+
 // CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() SQLCommon {
 	return s.db
