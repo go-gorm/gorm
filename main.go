@@ -446,6 +446,12 @@ func (s *DB) Table(name string) *DB {
 	return clone
 }
 
+func (s *DB) Prefix(name string) *DB {
+	clone := s.clone()
+	clone.search.Prefix(name)
+	return clone
+}
+
 // Debug start debug mode
 func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)

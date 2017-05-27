@@ -301,15 +301,27 @@ type dbTabler interface {
 // TableName return table name
 func (scope *Scope) TableName() string {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		return scope.Search.tableName
+		return scope.Search.prefix + scope.Search.tableName
 	}
 
 	if tabler, ok := scope.Value.(tabler); ok {
+		if scope.Search != nil {
+			return scope.Search.prefix + tabler.TableName()
+		}
+
 		return tabler.TableName()
 	}
 
 	if tabler, ok := scope.Value.(dbTabler); ok {
+		if scope.Search != nil {
+			return scope.Search.prefix + tabler.TableName(scope.db)
+		}
+
 		return tabler.TableName(scope.db)
+	}
+
+	if scope.Search != nil {
+		return scope.Search.prefix + scope.GetModelStruct().TableName(scope.db.Model(scope.Value))
 	}
 
 	return scope.GetModelStruct().TableName(scope.db.Model(scope.Value))
@@ -319,9 +331,9 @@ func (scope *Scope) TableName() string {
 func (scope *Scope) QuotedTableName() (name string) {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
 		if strings.Index(scope.Search.tableName, " ") != -1 {
-			return scope.Search.tableName
+			return scope.Search.prefix + scope.Search.tableName
 		}
-		return scope.Quote(scope.Search.tableName)
+		return scope.Quote(scope.Search.prefix + scope.Search.tableName)
 	}
 
 	return scope.Quote(scope.TableName())

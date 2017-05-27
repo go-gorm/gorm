@@ -22,6 +22,7 @@ type search struct {
 	limit            interface{}
 	group            string
 	tableName        string
+	prefix           string
 	raw              bool
 	Unscoped         bool
 	ignoreOrderQuery bool
@@ -138,6 +139,11 @@ func (s *search) unscoped() *search {
 
 func (s *search) Table(name string) *search {
 	s.tableName = name
+	return s
+}
+
+func (s *search) Prefix(name string) *search {
+	s.prefix = name
 	return s
 }
 
