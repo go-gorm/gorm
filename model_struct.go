@@ -219,6 +219,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								subField.IsPrimaryKey = false
 							}
 						}
+
+						if subField.Relationship != nil && subField.Relationship.JoinTableHandler != nil {
+							if joinTableHandler, ok := subField.Relationship.JoinTableHandler.(*JoinTableHandler); ok {
+								joinTableHandler.Setup(subField.Relationship, joinTableHandler.TableName, reflectType, joinTableHandler.Destination.ModelType)
+							}
+						}
+
 						modelStruct.StructFields = append(modelStruct.StructFields, subField)
 					}
 					continue
