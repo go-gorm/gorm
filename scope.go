@@ -1143,7 +1143,7 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 
 	var columns []string
 	for _, name := range column {
-		columns = append(columns, scope.quoteIfPossible(name))
+		columns = append(columns, scope.Quote(name))
 	}
 
 	sqlCreate := "CREATE INDEX"
