@@ -106,7 +106,7 @@ func TestEmbeddedMany2ManyRelationship(t *testing.T) {
 		t.Errorf("no error should return when delete embedded many2many relationship, but got %v", err)
 	}
 
-	association := DB.Model(person).Debug().Association("Addresses")
+	association := DB.Model(person).Association("Addresses")
 	if count := association.Count(); count != 1 || association.Error != nil {
 		t.Errorf("Should found one address, but got %v, error is %v", count, association.Error)
 	}
