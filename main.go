@@ -702,7 +702,7 @@ func (s *DB) GetErrors() []error {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (s *DB) clone() *DB {
-	db := DB{
+	db := &DB{
 		db:                s.db,
 		parent:            s.parent,
 		logger:            s.logger,
@@ -723,8 +723,8 @@ func (s *DB) clone() *DB {
 		db.search = s.search.clone()
 	}
 
-	db.search.db = &db
-	return &db
+	db.search.db = db
+	return db
 }
 
 func (s *DB) print(v ...interface{}) {
