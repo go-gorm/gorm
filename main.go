@@ -702,7 +702,7 @@ func (s *DB) GetErrors() []error {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (s *DB) clone() *DB {
-	db := DB{
+	db := &DB{
 		db:                s.db,
 		parent:            s.parent,
 		logger:            s.logger,
@@ -723,8 +723,8 @@ func (s *DB) clone() *DB {
 		db.search = s.search.clone()
 	}
 
-	db.search.db = &db
-	return &db
+	db.search.db = db
+	return db
 }
 
 func (s *DB) print(v ...interface{}) {
@@ -739,6 +739,6 @@ func (s *DB) log(v ...interface{}) {
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
 	if s.logMode == 2 {
-		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars)
+		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
 }
