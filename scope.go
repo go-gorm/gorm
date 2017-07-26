@@ -256,7 +256,11 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	if expr, ok := value.(*expr); ok {
 		exp := expr.expr
 		for _, arg := range expr.args {
-			exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+			if pgParameterRegexp.MatchString(exp) {
+				exp = pgParameterRegexp.ReplaceAllLiteralString(exp, scope.AddToVars(arg))
+			} else {
+				exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+			}
 		}
 		return exp
 	}
@@ -452,6 +456,7 @@ var (
 	isNumberRegexp      = regexp.MustCompile("^\\s*\\d+\\s*$")                   // match if string is number
 	comparisonRegexp    = regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS|IN) ")
 	countingQueryRegexp = regexp.MustCompile("(?i)^count(.+)$")
+	pgParameterRegexp   = regexp.MustCompile(`\$[0-9]+`)                         // to exchange postgres `$1` style parameter placeholders
 )
 
 func (scope *Scope) quoteIfPossible(str string) string {
