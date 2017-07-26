@@ -456,7 +456,7 @@ var (
 	isNumberRegexp      = regexp.MustCompile("^\\s*\\d+\\s*$")                   // match if string is number
 	comparisonRegexp    = regexp.MustCompile("(?i) (=|<>|>|<|LIKE|IS|IN) ")
 	countingQueryRegexp = regexp.MustCompile("(?i)^count(.+)$")
-	pgParameterRegexp   = regexp.MustCompile(`\$[0-9]+`)                         // to exchange postgres `$1` style parameter placeholders
+	pgParameterRegexp   = regexp.MustCompile(`\$[0-9]+`) // to exchange postgres `$1` style parameter placeholders
 )
 
 func (scope *Scope) quoteIfPossible(str string) string {
