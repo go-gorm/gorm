@@ -50,6 +50,19 @@ type Dialect interface {
 
 	// CurrentDatabase return current database name
 	CurrentDatabase() string
+
+	// Formates the date and tries to be as similar as possible with all databases
+	// |             | gorm | SQLITE            | MYSQL             | MSSQL            | POSTGRES         |
+	// | ----------- | ---- | ----------------- | ----------------- | ---------------- | ---------------- |
+	// | YEAR        | %y   | %Y (0000-9999)    | %Y (0000-9999)    | YYYY (0000-9999) | YYYY (0000-9999) |
+	// | MONTH       | %m   | %m (01-12)        | %m (01-12)        | MM (00-12)       | MM (0000-9999)   |
+	// | WEEK        | %w   | %W (00-53)        | %u (00-53)        | --               | WW (1-53)        |
+	// | DAY         | %d   | %d (00-31)        | %d (00-31)        | dd (00-31)       | DD (00-31)       |
+	// | DAY OF WEEK | %D   | %w (SUN 0-6 SAT)  | %w (SUN 0-6 SAT)  | --               | D (SUN 1-7 SAT)  |
+	// | HOUR        | %h   | %H (00-24)        | %H (00-23)        | HH (00-31)       | HH24 (00-23)     |
+	// | MINUTE      | %m   | %M (00-59)        | %i (00-59)        | mm (00-59)       | MI (00-59)       |
+	// | SECOND      | %s   | %S (00-59)        | %S (00-59)        | ss (00-59)       | SS (00-59)       |
+	FormatDate(*expr, string) *expr
 }
 
 var dialectsMap = map[string]Dialect{}
@@ -127,4 +140,30 @@ func currentDatabaseAndTable(dialect Dialect, tableName string) (string, string)
 		return splitStrings[0], splitStrings[1]
 	}
 	return dialect.CurrentDatabase(), tableName
+}
+
+func parseDateFormat(format string, mapping map[rune]string) string {
+	var parsedFormat string
+	isFormatter := false
+
+	for _, rune := range format {
+		if !isFormatter {
+			if rune == '%' {
+				isFormatter = true
+			} else {
+				parsedFormat += string(rune)
+			}
+			continue
+		}
+
+		isFormatter = false
+
+		if sign, ok := mapping[rune]; ok {
+			parsedFormat += sign
+		} else {
+			parsedFormat += "%" + string(rune)
+		}
+	}
+
+	return parsedFormat
 }

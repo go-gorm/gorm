@@ -189,3 +189,20 @@ func (s mysql) BuildKeyName(kind, tableName string, fields ...string) string {
 func (mysql) DefaultValueStr() string {
 	return "VALUES()"
 }
+
+func (mysql) FormatDate(e *expr, format string) *expr {
+	mapping := map[rune]string{
+		'y': "%Y",
+		'm': "%m",
+		'w': "%u",
+		'd': "%d",
+		'D': "%w",
+		'h': "%H",
+		'M': "%i",
+		's': "%S",
+	}
+	parsedFormat := parseDateFormat(format, mapping)
+
+	e.expr = "(DATE_FORMAT(" + e.expr + ", '" + parsedFormat + "'))"
+	return e
+}

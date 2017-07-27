@@ -142,6 +142,7 @@ func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 		if field.Name == name || field.DBName == name {
 			return field, true
 		}
+
 		if field.DBName == dbName {
 			mostMatchedField = field
 		}
@@ -274,6 +275,7 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	if skipBindVar {
 		return "?"
 	}
+
 	return scope.Dialect().BindVar(len(scope.SQLVars))
 }
 
@@ -304,6 +306,10 @@ func (scope *Scope) OmitAttrs() []string {
 
 type tabler interface {
 	TableName() string
+}
+
+type columnPrefixer interface {
+	ColumnPrefix() string
 }
 
 type dbTabler interface {
@@ -339,7 +345,7 @@ func (scope *Scope) QuotedTableName() (name string) {
 	return scope.Quote(scope.TableName())
 }
 
-// CombinedConditionSql return combined condition sql
+// CombinedConditionSQL return combined condition SQL
 func (scope *Scope) CombinedConditionSql() string {
 	joinSQL := scope.joinsSQL()
 	whereSQL := scope.whereSQL()
@@ -473,6 +479,18 @@ func (scope *Scope) quoteIfPossible(str string) string {
 	return str
 }
 
+func (scope *Scope) replaceParameterPlaceholderLiteral(sql string, parameter interface{}, addToVars bool) string {
+	if val, ok := parameter.(string); ok && !addToVars {
+		return strings.Replace(sql, "?", val, 1)
+	}
+
+	return strings.Replace(sql, "?", scope.AddToVars(parameter), 1)
+}
+
+func (scope *Scope) replaceParameterPlaceholder(sql string, parameter interface{}) string {
+	return scope.replaceParameterPlaceholderLiteral(sql, parameter, true)
+}
+
 func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 	var (
 		ignored            interface{}
@@ -578,6 +596,9 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 			}
 		}
 		return strings.Join(sqls, " AND ")
+	case *expr:
+		clause["args"] = []interface{}{value}
+		str = "?"
 	case interface{}:
 		var sqls []string
 		newScope := scope.New(value)
@@ -1048,7 +1069,7 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 	tx := scope.db.Set("gorm:association:source", scope.Value)
 
-	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"Id", scope.typeName()+"Id") {
+	for _, foreignKey := range append(foreignKeys, toScope.typeName()+"ID", scope.typeName()+"ID", toScope.typeName()+"Id", scope.typeName()+"Id") {
 		fromField, _ := scope.FieldByName(foreignKey)
 		toField, _ := toScope.FieldByName(foreignKey)
 

@@ -133,6 +133,11 @@ func (s *DB) SetLogger(log logger) {
 	s.logger = log
 }
 
+// SetLogWriter sets the LogWriter the default logger should write to
+func (s *DB) SetLogWriter(log LogWriter) {
+	s.logger = Logger{log}
+}
+
 // LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
 func (s *DB) LogMode(enable bool) *DB {
 	if enable {
@@ -169,10 +174,14 @@ func (s *DB) NewScope(value interface{}) *Scope {
 }
 
 // QueryExpr returns the query as expr object
-func (s *DB) QueryExpr() *expr {
+func (s *DB) QueryExpr(alias ...string) *expr {
 	scope := s.NewScope(s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
+
+	if len(alias) > 0 {
+		return Expr("( "+scope.SQL+" ) "+alias[0]+" ", scope.SQLVars...)
+	}
 
 	return Expr(scope.SQL, scope.SQLVars...)
 }
@@ -242,7 +251,7 @@ func (s *DB) Having(query interface{}, values ...interface{}) *DB {
 
 // Joins specify Joins conditions
 //     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
-func (s *DB) Joins(query string, args ...interface{}) *DB {
+func (s *DB) Joins(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Joins(query, args...).db
 }
 

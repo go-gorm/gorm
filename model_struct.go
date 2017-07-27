@@ -158,6 +158,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 	modelStruct.ModelType = reflectType
 
+	var columnPrefix string
+	if columnPrefixer, ok := reflect.New(modelStruct.ModelType).Interface().(columnPrefixer); ok {
+		columnPrefix = columnPrefixer.ColumnPrefix()
+	}
+
 	// Get all fields
 	for i := 0; i < reflectType.NumField(); i++ {
 		if fieldStruct := reflectType.Field(i); ast.IsExported(fieldStruct.Name) {
@@ -587,7 +592,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if value, ok := field.TagSettings["COLUMN"]; ok {
 				field.DBName = value
 			} else {
-				field.DBName = ToDBName(fieldStruct.Name)
+				field.DBName = columnPrefix + ToDBName(fieldStruct.Name)
 			}
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)

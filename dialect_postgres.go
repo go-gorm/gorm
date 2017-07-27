@@ -141,3 +141,20 @@ func isJSON(value reflect.Value) bool {
 	_, ok := value.Interface().(json.RawMessage)
 	return ok
 }
+
+func (postgres) FormatDate(e *expr, format string) *expr {
+	mapping := map[rune]string{
+		'y': "YYYY",
+		'm': "MM",
+		'w': "WW",
+		'd': "DD",
+		'D': "D",
+		'h': "HH24",
+		'M': "MI",
+		's': "SS",
+	}
+	parsedFormat := parseDateFormat(format, mapping)
+
+	e.expr = "(to_char(" + e.expr + ", '" + parsedFormat + "'))"
+	return e
+}

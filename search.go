@@ -106,8 +106,12 @@ func (s *search) Having(query interface{}, values ...interface{}) *search {
 	return s
 }
 
-func (s *search) Joins(query string, values ...interface{}) *search {
-	s.joinConditions = append(s.joinConditions, map[string]interface{}{"query": query, "args": values})
+func (s *search) Joins(query interface{}, values ...interface{}) *search {
+	if val, ok := query.(*expr); ok {
+		s.joinConditions = append(s.joinConditions, map[string]interface{}{"query": val.expr, "args": val.args})
+	} else {
+		s.joinConditions = append(s.joinConditions, map[string]interface{}{"query": query, "args": values})
+	}
 	return s
 }
 
