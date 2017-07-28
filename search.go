@@ -104,8 +104,12 @@ func (s *search) Group(query string) *search {
 	return s
 }
 
-func (s *search) Having(query string, values ...interface{}) *search {
-	s.havingConditions = append(s.havingConditions, map[string]interface{}{"query": query, "args": values})
+func (s *search) Having(query interface{}, values ...interface{}) *search {
+	if val, ok := query.(*expr); ok {
+		s.havingConditions = append(s.havingConditions, map[string]interface{}{"query": val.expr, "args": val.args})
+	} else {
+		s.havingConditions = append(s.havingConditions, map[string]interface{}{"query": query, "args": values})
+	}
 	return s
 }
 

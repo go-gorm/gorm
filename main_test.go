@@ -633,6 +633,25 @@ func TestQueryBuilderSubselectInWhere(t *testing.T) {
 	}
 }
 
+func TestQueryBuilderSubselectInHaving(t *testing.T) {
+	user := User{Name: "user1", Email: "root@user1.com", Age: 64}
+	DB.Save(&user)
+	user = User{Name: "user2", Email: "root@user2.com", Age: 128}
+	DB.Save(&user)
+	user = User{Name: "user3", Email: "root@user1.com", Age: 64}
+	DB.Save(&user)
+	user = User{Name: "user4", Email: "root@user2.com", Age: 128}
+	DB.Save(&user)
+
+	var users []User
+	DB.Debug().Select("AVG(age) as avgage").Group("email").Having("avgage > ?", DB.
+		Select("AVG(age)").Table("users").Subquery()).Find(&users)
+
+	if len(users) != 1 {
+		t.Errorf("One user group should be found, instead found %d", len(users))
+	}
+}
+
 func DialectHasTzSupport() bool {
 	// NB: mssql and FoundationDB do not support time zones.
 	if dialect := os.Getenv("GORM_DIALECT"); dialect == "mssql" || dialect == "foundation" {

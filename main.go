@@ -226,7 +226,7 @@ func (s *DB) Group(query string) *DB {
 }
 
 // Having specify HAVING conditions for GROUP BY
-func (s *DB) Having(query string, values ...interface{}) *DB {
+func (s *DB) Having(query interface{}, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
