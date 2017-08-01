@@ -168,6 +168,14 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
+// Subquery returns the query as eprx object
+func (s *DB) Subquery() *expr {
+	scope := s.NewScope(s.Value)
+	scope.prepareQuerySQL()
+
+	return Expr("("+scope.SQL+")", scope.SQLVars...)
+}
+
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
@@ -218,7 +226,7 @@ func (s *DB) Group(query string) *DB {
 }
 
 // Having specify HAVING conditions for GROUP BY
-func (s *DB) Having(query string, values ...interface{}) *DB {
+func (s *DB) Having(query interface{}, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
