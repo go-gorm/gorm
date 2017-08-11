@@ -67,8 +67,9 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 		default:
 			if IsByteArrayOrSlice(dataValue) {
 				sqlType = "bytea"
-			} else if isUUID(dataValue) {
-				sqlType = "uuid"
+				if isUUID(dataValue) {
+					sqlType = "uuid"
+				}
 			}
 		}
 	}
