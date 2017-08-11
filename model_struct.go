@@ -97,7 +97,11 @@ func (structField *StructField) clone() *StructField {
 		TagSettings:     map[string]string{},
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
-		Relationship:    structField.Relationship,
+	}
+
+	if structField.Relationship != nil {
+		relationship := *structField.Relationship
+		clone.Relationship = &relationship
 	}
 
 	for key, value := range structField.TagSettings {
@@ -222,7 +226,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 						if subField.Relationship != nil && subField.Relationship.JoinTableHandler != nil {
 							if joinTableHandler, ok := subField.Relationship.JoinTableHandler.(*JoinTableHandler); ok {
-								joinTableHandler.Setup(subField.Relationship, joinTableHandler.TableName, reflectType, joinTableHandler.Destination.ModelType)
+								newJoinTableHandler := &JoinTableHandler{}
+								newJoinTableHandler.Setup(subField.Relationship, joinTableHandler.TableName, reflectType, joinTableHandler.Destination.ModelType)
+								subField.Relationship.JoinTableHandler = newJoinTableHandler
 							}
 						}
 
