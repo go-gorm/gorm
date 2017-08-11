@@ -608,25 +608,25 @@ func TestHaving(t *testing.T) {
 }
 
 func TestQueryBuilderSubselectInWhere(t *testing.T) {
-	user := User{Name: "ruser1", Email: "root@user1.com", Age: 32}
+	user := User{Name: "query_expr_select_ruser1", Email: "root@user1.com", Age: 32}
 	DB.Save(&user)
-	user = User{Name: "ruser2", Email: "nobody@user2.com", Age: 16}
+	user = User{Name: "query_expr_select_ruser2", Email: "nobody@user2.com", Age: 16}
 	DB.Save(&user)
-	user = User{Name: "ruser3", Email: "root@user3.com", Age: 64}
+	user = User{Name: "query_expr_select_ruser3", Email: "root@user3.com", Age: 64}
 	DB.Save(&user)
-	user = User{Name: "ruser4", Email: "somebody@user3.com", Age: 128}
+	user = User{Name: "query_expr_select_ruser4", Email: "somebody@user3.com", Age: 128}
 	DB.Save(&user)
 
 	var users []User
 	DB.Select("*").Where("name IN (?)", DB.
-		Select("name").Table("users").Where("email LIKE ?", "root@%").SubqueryExpr()).Find(&users)
+		Select("name").Table("users").Where("name LIKE ?", "query_expr_select%").QueryExpr()).Find(&users)
 
-	if len(users) != 2 {
-		t.Errorf("Two users should be found, instead found %d", len(users))
+	if len(users) != 4 {
+		t.Errorf("Four users should be found, instead found %d", len(users))
 	}
 
-	DB.Select("*").Where("email LIKE ?", "root%").Where("age >= (?)", DB.
-		Select("AVG(age)").Table("users").SubqueryExpr()).Find(&users)
+	DB.Select("*").Where("name LIKE ?", "query_expr_select%").Where("age >= (?)", DB.
+		Select("AVG(age)").Table("users").Where("name LIKE ?", "query_expr_select%").QueryExpr()).Find(&users)
 
 	if len(users) != 2 {
 		t.Errorf("Two users should be found, instead found %d", len(users))
@@ -634,21 +634,21 @@ func TestQueryBuilderSubselectInWhere(t *testing.T) {
 }
 
 func TestQueryBuilderSubselectInHaving(t *testing.T) {
-	user := User{Name: "ruser1", Email: "root@user1.com", Age: 64}
+	user := User{Name: "query_expr_having_ruser1", Email: "root@user1.com", Age: 64}
 	DB.Save(&user)
-	user = User{Name: "ruser2", Email: "root@user2.com", Age: 128}
+	user = User{Name: "query_expr_having_ruser2", Email: "root@user2.com", Age: 128}
 	DB.Save(&user)
-	user = User{Name: "ruser3", Email: "root@user1.com", Age: 64}
+	user = User{Name: "query_expr_having_ruser3", Email: "root@user1.com", Age: 64}
 	DB.Save(&user)
-	user = User{Name: "ruser4", Email: "root@user2.com", Age: 128}
+	user = User{Name: "query_expr_having_ruser4", Email: "root@user2.com", Age: 128}
 	DB.Save(&user)
 
 	var users []User
-	DB.Select("AVG(age) as avgage").Where("email LIKE ?", "root%").Group("email").Having("AVG(age) > (?)", DB.
-		Select("AVG(age)").Where("email LIKE ?", "root%").Table("users").SubqueryExpr()).Find(&users)
+	DB.Select("AVG(age) as avgage").Where("name LIKE ?", "query_expr_having_%").Group("email").Having("AVG(age) > (?)", DB.
+		Select("AVG(age)").Where("name LIKE ?", "query_expr_having_%").Table("users").QueryExpr()).Find(&users)
 
 	if len(users) != 1 {
-		t.Errorf("One user group should be found, instead found %d", len(users))
+		t.Errorf("Two user group should be found, instead found %d", len(users))
 	}
 }
 
