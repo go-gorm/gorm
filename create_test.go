@@ -79,11 +79,11 @@ func TestCreateWithExistingTimestamp(t *testing.T) {
 	var newUser User
 	DB.First(&newUser, user.Id)
 
-	if newUser.CreatedAt.Format(time.RFC3339) != timeA.Format(time.RFC3339) {
+	if newUser.CreatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
 		t.Errorf("CreatedAt should not be changed")
 	}
 
-	if newUser.UpdatedAt.Format(time.RFC3339) != timeA.Format(time.RFC3339) {
+	if newUser.UpdatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
 		t.Errorf("UpdatedAt should not be changed")
 	}
 }

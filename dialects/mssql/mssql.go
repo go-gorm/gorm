@@ -88,7 +88,7 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
-				sqlType = "datetime2"
+				sqlType = "datetimeoffset"
 			}
 		default:
 			if gorm.IsByteArrayOrSlice(dataValue) {
