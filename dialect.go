@@ -48,10 +48,10 @@ type Dialect interface {
 	CurrentDatabase() string
 }
 
-var dialectsMap = map[string]Dialect{}
+var DialectsMap = map[string]Dialect{}
 
 func newDialect(name string, db SQLCommon) Dialect {
-	if value, ok := dialectsMap[name]; ok {
+	if value, ok := DialectsMap[name]; ok {
 		dialect := reflect.New(reflect.TypeOf(value).Elem()).Interface().(Dialect)
 		dialect.SetDB(db)
 		return dialect
@@ -65,7 +65,7 @@ func newDialect(name string, db SQLCommon) Dialect {
 
 // RegisterDialect register new dialect
 func RegisterDialect(name string, dialect Dialect) {
-	dialectsMap[name] = dialect
+	DialectsMap[name] = dialect
 }
 
 // ParseFieldStructForDialect get field's sql data type
