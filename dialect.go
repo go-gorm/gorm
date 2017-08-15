@@ -48,6 +48,7 @@ type Dialect interface {
 	CurrentDatabase() string
 }
 
+// DialectsMap map of registered dialects
 var DialectsMap = map[string]Dialect{}
 
 func newDialect(name string, db SQLCommon) Dialect {
