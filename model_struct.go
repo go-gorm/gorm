@@ -81,6 +81,7 @@ type StructField struct {
 	Struct          reflect.StructField
 	IsForeignKey    bool
 	Relationship    *Relationship
+	Offset          uintptr
 }
 
 func (structField *StructField) clone() *StructField {
@@ -97,6 +98,7 @@ func (structField *StructField) clone() *StructField {
 		TagSettings:     map[string]string{},
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
+		Offset:          structField.Offset,
 	}
 
 	if structField.Relationship != nil {
@@ -167,6 +169,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				Names:       []string{fieldStruct.Name},
 				Tag:         fieldStruct.Tag,
 				TagSettings: parseTagSetting(fieldStruct.Tag),
+				Offset:      fieldStruct.Offset,
 			}
 
 			// is ignored field
@@ -210,6 +213,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 					// is embedded struct
 					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
+						subField.Offset += fieldStruct.Offset
 						subField = subField.clone()
 						subField.Names = append([]string{fieldStruct.Name}, subField.Names...)
 						if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
