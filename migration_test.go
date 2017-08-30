@@ -32,6 +32,7 @@ type User struct {
 	CompanyID         *int
 	Company           Company
 	Role              Role
+	Password          EncryptedData
 	PasswordHash      []byte
 	IgnoreMe          int64                 `sql:"-"`
 	IgnoreStringSlice []string              `sql:"-"`
@@ -113,6 +114,31 @@ type Company struct {
 	Id    int64
 	Name  string
 	Owner *User `sql:"-"`
+}
+
+type EncryptedData []byte
+
+func (data *EncryptedData) Scan(value interface{}) error {
+	if b, ok := value.([]byte); ok {
+		if len(b) < 3 || b[0] != '*' || b[1] != '*' || b[2] != '*'{
+			return errors.New("Too short")
+		}
+
+		*data = b[3:]
+		return nil
+	} else {
+		return errors.New("Bytes expected")
+	}
+}
+
+func (data EncryptedData) Value() (driver.Value, error) {
+	if len(data) > 0 && data[0] == 'x' {
+		//needed to test failures
+		return nil, errors.New("Should not start with 'x'")
+	}
+
+	//prepend asterisks
+	return append([]byte("***"), data...), nil
 }
 
 type Role struct {
