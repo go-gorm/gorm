@@ -1,7 +1,10 @@
 package gorm_test
 
 import (
+	"encoding/hex"
 	"github.com/jinzhu/gorm"
+	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -40,4 +43,43 @@ func TestScopes(t *testing.T) {
 	if len(users3) != 2 {
 		t.Errorf("Should found two users's name in 1, 3")
 	}
+}
+
+func randName() string {
+	data := make([]byte, 8)
+	rand.Read(data)
+
+	return "n-" + hex.EncodeToString(data)
+}
+
+func TestValuer(t *testing.T) {
+	name := randName()
+
+	origUser := User{Name: name, Age: 1, Password: EncryptedData("pass1"), PasswordHash: []byte("abc")}
+	err := DB.Save(&origUser).Error
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+
+	var user2 User
+	err = DB.Where("name=? AND password=? AND password_hash=?", name, EncryptedData("pass1"), []byte("abc")).First(&user2).Error
+	if err != nil {
+		t.Log(err)
+		t.FailNow()
+	}
+}
+
+func TestFailedValuer(t *testing.T) {
+	name := randName()
+
+	err := DB.Exec("INSERT INTO users(name, password) VALUES(?, ?)", name, EncryptedData("xpass1")).Error
+	if err == nil {
+		t.FailNow()
+	}
+
+	if !strings.HasPrefix(err.Error(), "Should not start with") {
+		t.FailNow()
+	}
+
 }
