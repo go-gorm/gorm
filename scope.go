@@ -687,8 +687,19 @@ func (scope *Scope) whereSQL() (sql string) {
 		primaryConditions, andConditions, orConditions []string
 	)
 
+	switch deletedAtField.Field.Type().Kind() {
+	case reflect.Int64:
+		sql = fmt.Sprintf("%v.%v = 0", quotedTableName, scope.Quote(deletedAtField.DBName))
+		break
+	case reflect.String:
+		sql = fmt.Sprintf("%v.%v = ''", quotedTableName, scope.Quote(deletedAtField.DBName))
+		break
+	default:
+		sql = fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
+		break
+	}
+
 	if !scope.Search.Unscoped && hasDeletedAtField {
-		sql := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
 		primaryConditions = append(primaryConditions, sql)
 	}
 
