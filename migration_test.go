@@ -120,15 +120,15 @@ type EncryptedData []byte
 
 func (data *EncryptedData) Scan(value interface{}) error {
 	if b, ok := value.([]byte); ok {
-		if len(b) < 3 || b[0] != '*' || b[1] != '*' || b[2] != '*'{
+		if len(b) < 3 || b[0] != '*' || b[1] != '*' || b[2] != '*' {
 			return errors.New("Too short")
 		}
 
 		*data = b[3:]
 		return nil
-	} else {
-		return errors.New("Bytes expected")
 	}
+
+	return errors.New("Bytes expected")
 }
 
 func (data EncryptedData) Value() (driver.Value, error) {
