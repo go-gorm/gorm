@@ -13,6 +13,7 @@ type postgres struct {
 
 func init() {
 	RegisterDialect("postgres", &postgres{})
+	RegisterDialect("cloudsqlpostgres", &postgres{})
 }
 
 func (postgres) GetName() string {
