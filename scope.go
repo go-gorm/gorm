@@ -925,12 +925,16 @@ func (scope *Scope) initialize() *Scope {
 }
 
 func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
-	queryStr := fmt.Sprint(query)
+	queryStr := strings.ToLower(fmt.Sprint(query))
 	if queryStr == column {
 		return true
 	}
 
-	if strings.HasSuffix(strings.ToLower(queryStr), "as "+column) {
+	if strings.HasSuffix(queryStr, "as "+column) {
+		return true
+	}
+
+	if strings.HasSuffix(queryStr, "as \""+column+"\"") {
 		return true
 	}
 

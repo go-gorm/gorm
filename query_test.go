@@ -665,3 +665,27 @@ func TestSelectWithArrayInput(t *testing.T) {
 		t.Errorf("Should have selected both age and name")
 	}
 }
+
+func TestPluckWithSelect(t *testing.T) {
+	DB.Save(&User{Name: "matematik7", Age: 25})
+
+	var userAges []string
+	err := DB.Model(&User{}).Where("age = ?", 25).Select("name || ' - ' || age as user_age").Pluck("user_age", &userAges).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(userAges) != 1 || userAges[0] != "matematik7 - 25" {
+		t.Errorf("Should correctly pluck with select, got: %s", userAges)
+	}
+
+	userAges = userAges[:0]
+	err = DB.Model(&User{}).Where("age = ?", 25).Select("name || ' - ' || age as \"user_age\"").Pluck("user_age", &userAges).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(userAges) != 1 || userAges[0] != "matematik7 - 25" {
+		t.Errorf("Should correctly pluck with select, got: %s", userAges)
+	}
+}
