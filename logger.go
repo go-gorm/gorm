@@ -18,6 +18,11 @@ var (
 	numericPlaceHolderRegexp = regexp.MustCompile(`\$\d+`)
 )
 
+// SetDefaultLogger replaces the default Logger instance.
+func SetDefaultLogger(l Logger) {
+	defaultLogger = l
+}
+
 func isPrintable(s string) bool {
 	for _, r := range s {
 		if !unicode.IsPrint(r) {
