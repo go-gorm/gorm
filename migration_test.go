@@ -432,3 +432,20 @@ func TestMultipleIndexes(t *testing.T) {
 		t.Error("MultipleIndexes unique index failed")
 	}
 }
+
+func TestModifyColumnType(t *testing.T) {
+	type ModifyColumnType struct {
+		gorm.Model
+		Name1 string `gorm:"length:100"`
+		Name2 string `gorm:"length:200"`
+	}
+	DB.DropTable(&ModifyColumnType{})
+	DB.CreateTable(&ModifyColumnType{})
+
+	name2Field, _ := DB.NewScope(&ModifyColumnType{}).FieldByName("Name2")
+	name2Type := DB.Dialect().DataTypeOf(name2Field.StructField)
+
+	if err := DB.Model(&ModifyColumnType{}).ModifyColumn("name1", name2Type).Error; err != nil {
+		t.Errorf("No error should happen when ModifyColumn, but got %v", err)
+	}
+}
