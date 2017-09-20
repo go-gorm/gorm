@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -434,6 +435,13 @@ func TestMultipleIndexes(t *testing.T) {
 }
 
 func TestModifyColumnType(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect != "postgres" &&
+		dialect != "mysql" &&
+		dialect != "mssql" {
+		t.Skip("Skipping this because only postgres, mysql and mssql support altering a column type")
+	}
+
 	type ModifyColumnType struct {
 		gorm.Model
 		Name1 string `gorm:"length:100"`
