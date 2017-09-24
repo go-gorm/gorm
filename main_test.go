@@ -861,6 +861,36 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	}
 }
 
+func TestUpdatePrimaryKey(t *testing.T) {
+	type Product struct {
+		gorm.Model
+		Name  string
+		Price int
+	}
+	type LightItem struct {
+		gorm.Model
+		Name        string
+		MyProductID uint `gorm:"index"`
+		MyProduct   Product
+	}
+	tables := []interface{}{&LightItem{}, &Product{}}
+	for _, t := range tables {
+		DB.DropTableIfExists(t)
+		DB.CreateTable(t)
+	}
+	p := Product{Name: "mi6", Price: 2499}
+	if err := DB.Save(&p).Error; err != nil {
+		t.Errorf("Failure to Save with product(%v)", err)
+	}
+	l := LightItem{Name: "line", MyProductID: p.ID}
+	if err := DB.Save(&l).Error; err != nil {
+		t.Errorf("Failure to Save with light item(%v)", err)
+	}
+	if err := DB.Updates(&l).Error; err != nil {
+		t.Errorf("Failure to update that have primary key object:reason(%v)", err)
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
