@@ -16,6 +16,8 @@ var (
 	ErrCantStartTransaction = errors.New("can't start transaction")
 	// ErrUnaddressable unaddressable value
 	ErrUnaddressable = errors.New("using unaddressable value")
+	// ErrUpdateWithInvalidPrimaryKey ,when update with a invalid primary key
+	ErrUpdateWithInvalidPrimaryKey = errors.New("invalid primary key")
 )
 
 // Errors contains all happened errors

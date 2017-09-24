@@ -377,10 +377,19 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.clone().NewScope(s.Value).
-		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
-		InstanceSet("gorm:update_interface", values).
-		callCallbacks(s.parent.callbacks.updates).db
+	scope := s.clone().NewScope(values)
+	// if not primary key ,use old updates rule
+	if scope.PrimaryKeyZero() {
+		return s.clone().NewScope(s.Value).
+			Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
+			InstanceSet("gorm:update_interface", values).
+			callCallbacks(s.parent.callbacks.updates).db
+	}
+	newDB := scope.callCallbacks(s.parent.callbacks.updates).db
+	if newDB.Error == nil && newDB.RowsAffected == 0 {
+		newDB.AddError(ErrUpdateWithInvalidPrimaryKey)
+	}
+	return newDB
 }
 
 // UpdateColumn update attributes without callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
