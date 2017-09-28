@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -430,5 +431,29 @@ func TestMultipleIndexes(t *testing.T) {
 
 	if err := DB.Save(&MultipleIndexes{UserID: 2, Name: "name1", Email: "foo2@example.org", Other: "foo"}).Error; err != nil {
 		t.Error("MultipleIndexes unique index failed")
+	}
+}
+
+func TestModifyColumnType(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect != "postgres" &&
+		dialect != "mysql" &&
+		dialect != "mssql" {
+		t.Skip("Skipping this because only postgres, mysql and mssql support altering a column type")
+	}
+
+	type ModifyColumnType struct {
+		gorm.Model
+		Name1 string `gorm:"length:100"`
+		Name2 string `gorm:"length:200"`
+	}
+	DB.DropTable(&ModifyColumnType{})
+	DB.CreateTable(&ModifyColumnType{})
+
+	name2Field, _ := DB.NewScope(&ModifyColumnType{}).FieldByName("Name2")
+	name2Type := DB.Dialect().DataTypeOf(name2Field.StructField)
+
+	if err := DB.Model(&ModifyColumnType{}).ModifyColumn("name1", name2Type).Error; err != nil {
+		t.Errorf("No error should happen when ModifyColumn, but got %v", err)
 	}
 }
