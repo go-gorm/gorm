@@ -6,6 +6,9 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/lib/pq/hstore"
+	"encoding/json"
+	"errors"
+	"fmt"
 )
 
 type Hstore map[string]*string
@@ -51,4 +54,22 @@ func (h *Hstore) Scan(value interface{}) error {
 	}
 
 	return nil
+}
+
+// for Postgresql's JSONB data type
+type Jsonb struct {
+	json.RawMessage
+}
+
+func (j Jsonb) Value() (driver.Value, error){
+	return j.MarshalJSON()
+}
+
+func (j *Jsonb) Scan (value interface{}) error {
+	bytes, ok := value.([]byte);
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
+	}
+
+	return json.Unmarshal(bytes, j)
 }
