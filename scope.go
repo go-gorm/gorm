@@ -563,7 +563,7 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 		var err error
 
 		//non byte slice and non driver.Valuer
-		if rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
+		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
 			if rArg.Len() > 0 {
 				tempMarks := make([]string, 0, rArg.Len())
 				for i := 0; i < rArg.Len(); i++ {
@@ -642,7 +642,7 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 		var err error
 
 		//non byte slice and non driver.Valuer
-		if rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
+		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
 			if rArg.Len() > 0 {
 				tempMarks := make([]string, 0, rArg.Len())
 				for i := 0; i < rArg.Len(); i++ {
@@ -683,7 +683,7 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 		var err error
 
 		//non byte slice and non driver.Valuer
-		if rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
+		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
 			if rArg.Len() > 0 {
 				tempMarks := make([]string, 0, rArg.Len())
 				for i := 0; i < rArg.Len(); i++ {
