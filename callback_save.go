@@ -11,35 +11,34 @@ func commitOrRollbackTransactionCallback(scope *Scope) {
 }
 
 func saveFieldAsAssociation(scope *Scope, field *Field) (bool, *Relationship) {
-	if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
-		if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; !ok || (value != "false" && value != "skip") {
-			if relationship := field.Relationship; relationship != nil {
-				return true, relationship
-			}
-		}
-	}
-	return false, nil
+  if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
+    if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; !ok || (value != "false" && value != "skip") {
+      return true, field.Relationship
+    }
+    return false, field.Relationship
+  }
+  return false, nil
 }
 
 func saveBeforeAssociationsCallback(scope *Scope) {
-	if !scope.shouldSaveAssociations() {
-		return
-	}
-	for _, field := range scope.Fields() {
-		if ok, relationship := saveFieldAsAssociation(scope, field); ok && relationship.Kind == "belongs_to" {
-			fieldValue := field.Field.Addr().Interface()
-			scope.Err(scope.NewDB().Save(fieldValue).Error)
-			if len(relationship.ForeignFieldNames) != 0 {
-				// set value's foreign key
-				for idx, fieldName := range relationship.ForeignFieldNames {
-					associationForeignName := relationship.AssociationForeignDBNames[idx]
-					if foreignField, ok := scope.New(fieldValue).FieldByName(associationForeignName); ok {
-						scope.Err(scope.SetColumn(fieldName, foreignField.Field.Interface()))
-					}
-				}
-			}
-		}
-	}
+  for _, field := range scope.Fields() {
+    ok, relationship := saveFieldAsAssociation(scope, field);
+    if relationship != nil && relationship.Kind == "belongs_to" {
+      fieldValue := field.Field.Addr().Interface()
+      if ok && scope.shouldSaveAssociations() {
+        scope.Err(scope.NewDB().Save(fieldValue).Error)
+      }
+      if len(relationship.ForeignFieldNames) != 0 {
+        // set value's foreign key
+        for idx, fieldName := range relationship.ForeignFieldNames {
+          associationForeignName := relationship.AssociationForeignDBNames[idx]
+          if foreignField, ok := scope.New(fieldValue).FieldByName(associationForeignName); ok {
+            scope.Err(scope.SetColumn(fieldName, foreignField.Field.Interface()))
+          }
+        }
+      }
+    }
+  }
 }
 
 func saveAfterAssociationsCallback(scope *Scope) {
@@ -47,7 +46,7 @@ func saveAfterAssociationsCallback(scope *Scope) {
 		return
 	}
 	for _, field := range scope.Fields() {
-		if ok, relationship := saveFieldAsAssociation(scope, field); ok &&
+		if ok, relationship := saveFieldAsAssociation(scope, field); ok && relationship != nil &&
 			(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {
 			value := field.Field
 
