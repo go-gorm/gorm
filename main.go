@@ -143,24 +143,6 @@ func (s *DB) LogMode(enable bool) *DB {
 	return s
 }
 
-// BlockGlobalUpdate if true, generates an error on update/delete without where clause.
-// This is to prevent eventual error with empty objects updates/deletions
-func (s *DB) BlockGlobalUpdate(enable bool) *DB {
-	s.blockGlobalUpdate = enable
-	return s
-}
-
-// HasBlockGlobalUpdate return state of block
-func (s *DB) HasBlockGlobalUpdate() bool {
-	return s.blockGlobalUpdate
-}
-
-// SingularTable use singular table by default
-func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = newModelStructsMap()
-	s.parent.singularTable = enable
-}
-
 // NewScope create a scope for current operation
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
