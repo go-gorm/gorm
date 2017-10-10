@@ -18,8 +18,6 @@ type DB struct {
 	// single db
 	db                SQLCommon
 	blockGlobalUpdate bool
-	logMode           int
-	logger            logger
 	search            *search
 	values            map[string]interface{}
 
@@ -711,8 +709,6 @@ func (s *DB) clone() *DB {
 	db := &DB{
 		db:                s.db,
 		parent:            s.parent,
-		logger:            s.logger,
-		logMode:           s.logMode,
 		values:            map[string]interface{}{},
 		Value:             s.Value,
 		Error:             s.Error,
