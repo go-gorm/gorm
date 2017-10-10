@@ -192,6 +192,16 @@ type Comment struct {
 	Post    Post
 }
 
+type Class struct {
+	Id   int64
+	Year string
+}
+
+type Student struct {
+	Id      int64
+	ClassID int64
+}
+
 // Scanner
 type NullValue struct {
 	Id      int64
@@ -255,7 +265,7 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}}
+	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &Class{}, &Student{}}
 	for _, value := range values {
 		DB.DropTable(value)
 	}
@@ -330,6 +340,25 @@ func TestIndexes(t *testing.T) {
 
 	if DB.Save(&User{Name: "unique_indexes", Emails: []Email{{Email: "user1@example.com"}, {Email: "user1@example.com"}}}).Error != nil {
 		t.Errorf("Should be able to create duplicated emails after remove unique index")
+	}
+}
+
+func TestForeignKeys(t *testing.T) {
+	if err := DB.Model(&Student{}).AddForeignKey("class_id", "classes (id)", "RESTRICT", "RESTRICT").Error; err != nil {
+		t.Errorf("Got error while trying to create foreign key: %+v", err)
+	}
+
+	scope := DB.NewScope(&Student{})
+	if !scope.Dialect().HasForeignKey(scope.TableName(), "student_class_id_class_id_foreign") {
+		t.Errorf("Student should have foreign key students_class_id_classes_id_foreign")
+	}
+
+	if err := DB.Model(&Student{}).RemoveForeignKey("students_class_id_classes_id_foreign").Error; err != nil {
+		t.Errorf("Got error while trying to remove foreign key: %+v", err)
+	}
+
+	if scope.Dialect().HasForeignKey(scope.TableName(), "student_class_id_class_id_foreign") {
+		t.Errorf("Student should no longer have foreign key students_class_id_classes_id_foreign")
 	}
 }
 
