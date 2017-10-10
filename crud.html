@@ -986,7 +986,7 @@ db.Table(<span class="hljs-string">&quot;users&quot;</span>).Select(<span class=
 db.Joins(<span class="hljs-string">&quot;JOIN emails ON emails.user_id = users.id AND emails.email = ?&quot;</span>, <span class="hljs-string">&quot;jinzhu@example.org&quot;</span>).Joins(<span class="hljs-string">&quot;JOIN credit_cards ON credit_cards.user_id = users.id&quot;</span>).Where(<span class="hljs-string">&quot;credit_cards.number = ?&quot;</span>, <span class="hljs-string">&quot;411111111111&quot;</span>).Find(&amp;user)
 </code></pre>
 <h3 id="pluck">Pluck</h3>
-<p>Query single column from a model as a map, if you want to query multiple columns, you could use <a href="#scan"><code>Scan</code></a></p>
+<p>Query single column from a model as a slice, if you want to query multiple columns, you could use <a href="#scan"><code>Scan</code></a></p>
 <pre><code class="lang-go"><span class="hljs-keyword">var</span> ages []<span class="hljs-keyword">int64</span>
 db.Find(&amp;users).Pluck(<span class="hljs-string">&quot;age&quot;</span>, &amp;ages)
 
