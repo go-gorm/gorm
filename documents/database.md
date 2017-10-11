@@ -128,7 +128,7 @@ db.Set("gorm:table_options", "ENGINE=InnoDB").CreateTable(&User{})
 // Drop model `User`'s table
 db.DropTable(&User{})
 
-// Drop table `users
+// Drop table `users`
 db.DropTable("users")
 
 // Drop model's `User`'s table and table `products`
