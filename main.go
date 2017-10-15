@@ -63,7 +63,6 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 
 	db = &DB{
 		db:        dbSQL,
-		logger:    defaultLogger,
 		values:    map[string]interface{}{},
 		callbacks: DefaultCallback,
 		dialect:   newDialect(dialect, dbSQL),
@@ -124,21 +123,6 @@ func (s *DB) Dialect() Dialect {
 func (s *DB) Callback() *Callback {
 	s.parent.callbacks = s.parent.callbacks.clone()
 	return s.parent.callbacks
-}
-
-// SetLogger replace default logger
-func (s *DB) SetLogger(log logger) {
-	s.logger = log
-}
-
-// LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
-func (s *DB) LogMode(enable bool) *DB {
-	if enable {
-		s.logMode = 2
-	} else {
-		s.logMode = 1
-	}
-	return s
 }
 
 // NewScope create a scope for current operation
@@ -437,7 +421,8 @@ func (s *DB) Table(name string) *DB {
 
 // Debug start debug mode
 func (s *DB) Debug() *DB {
-	return s.clone().LogMode(true)
+	// FIXME Debug Mode
+	return s
 }
 
 // Begin begin a transaction
