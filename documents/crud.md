@@ -198,6 +198,13 @@ db.Where("name <> ?","jinzhu").Where("age >= ? and role <> ?",20,"admin").Find(&
 db.Where("role = ?", "admin").Or("role = ?", "super_admin").Not("name = ?", "jinzhu").Find(&users)
 ```
 
+### SubQuery
+
+```go
+db.Where("amount > ?", DB.Table("orders").Select("AVG(amount)").Where("state = ?", "paid").QueryExpr()).Find(&orders)
+// SELECT * FROM "orders"  WHERE "orders"."deleted_at" IS NULL AND (amount > (SELECT AVG(amount) FROM "orders"  WHERE (state = 'paid')));
+```
+
 ### Extra Querying option
 
 ```go
