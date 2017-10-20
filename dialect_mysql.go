@@ -96,9 +96,9 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
 				if _, ok := field.TagSettings["NOT NULL"]; ok {
-					sqlType = "timestamp"
+					sqlType = fmt.Sprintf("timestamp(%d)", size)
 				} else {
-					sqlType = "timestamp NULL"
+					sqlType = fmt.Sprintf("timestamp(%d) NULL", size)
 				}
 			}
 		default:
