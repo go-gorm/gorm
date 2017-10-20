@@ -41,7 +41,7 @@ func beforeUpdateCallback(scope *Scope) {
 			scope.CallMethod("BeforeSave")
 		}
 		if !scope.HasError() {
-			scope.CallMethod("BeforeUpdate")
+			scope.CallMethod("GormBeforeUpdate")
 		}
 	}
 }
@@ -100,7 +100,7 @@ func updateCallback(scope *Scope) {
 func afterUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		if !scope.HasError() {
-			scope.CallMethod("AfterUpdate")
+			scope.CallMethod("GormAfterUpdate")
 		}
 		if !scope.HasError() {
 			scope.CallMethod("AfterSave")
