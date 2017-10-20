@@ -17,7 +17,7 @@ func (s *Product) BeforeCreate() (err error) {
 	return
 }
 
-func (s *Product) BeforeUpdate() (err error) {
+func (s *Product) GormBeforeUpdate() (err error) {
 	if s.Code == "dont_update" {
 		err = errors.New("can't update")
 	}
