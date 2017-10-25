@@ -21,6 +21,9 @@ import (
 var NowFunc = func() time.Time {
 	return time.Now()
 }
+var UnixFunc = func() int64 {
+	return time.Now().Unix()
+}
 
 // Copied from golint
 var commonInitialisms = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}
