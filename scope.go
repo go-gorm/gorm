@@ -1185,8 +1185,14 @@ func (scope *Scope) autoMigrate() *Scope {
 	if !scope.Dialect().HasTable(tableName) {
 		scope.createTable()
 	} else {
+		columns := scope.Dialect().TableColumns(tableName)
+		columnsM := map[string]bool{}
+		for _, column := range columns {
+			columnsM[column] = true
+		}
+
 		for _, field := range scope.GetModelStruct().StructFields {
-			if !scope.Dialect().HasColumn(tableName, field.DBName) {
+			if _, ok := columnsM[field.DBName]; !ok {
 				if field.IsNormal {
 					sqlTag := scope.Dialect().DataTypeOf(field)
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()

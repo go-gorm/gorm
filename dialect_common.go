@@ -116,6 +116,12 @@ func (s commonDialect) HasColumn(tableName string, columnName string) bool {
 	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", s.CurrentDatabase(), tableName, columnName).Scan(&count)
 	return count > 0
 }
+func (s commonDialect) TableColumns(tableName string) []string {
+
+	var columns []string
+	s.db.QueryRow("SELECT column_name  FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ?", s.CurrentDatabase(), tableName).Scan(&colums)
+	return columns
+}
 
 func (s commonDialect) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
