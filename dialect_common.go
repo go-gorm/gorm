@@ -119,7 +119,7 @@ func (s commonDialect) HasColumn(tableName string, columnName string) bool {
 func (s commonDialect) TableColumns(tableName string) []string {
 
 	var columns []string
-	s.db.QueryRow("SELECT column_name  FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ?", s.CurrentDatabase(), tableName).Scan(&colums)
+	s.db.QueryRow("SELECT column_name  FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ?", s.CurrentDatabase(), tableName).Scan(&columns)
 	return columns
 }
 
