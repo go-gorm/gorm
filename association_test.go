@@ -902,6 +902,20 @@ func TestSkipSaveAssociation(t *testing.T) {
 	DB.Save(&User{Name: "jinzhu", Company: Company{Name: "skip_save_association"}})
 
 	if !DB.Where("name = ?", "skip_save_association").First(&Company{}).RecordNotFound() {
-		t.Errorf("Company skip_save_association should not been saved")
+		t.Errorf("Company skip_save_association should not have been saved")
+	}
+
+	// if foreign key is set, this should be saved even if association isn't
+	company := Company{Name: "skip_save_association"}
+	DB.Save(&company)
+	company.Name = "skip_save_association_modified"
+	user := User{Name: "jinzhu", CompanyID: company.ID, Company: company}
+	DB.Save(&user)
+
+	if !DB.Where("name = ?", "skip_save_association_modified").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company skip_save_association should not have been updated")
+	}
+	if DB.Where("id = ? AND company_id = ?", user.ID, company.ID).First(&User{}).RecordNotFound() {
+		t.Errorf("User's foreign key should have been saved")
 	}
 }
