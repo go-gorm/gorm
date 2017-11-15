@@ -42,7 +42,7 @@ type Address struct {
 type Language struct {
     ID   int
     Name string `gorm:"index:idx_name_code"` // Create index with name, and will create combined index if find other fields defined same name
-    Code string `gorm:"index:idx_name_code"` // `unique_index` also works
+    Code string `gorm:"unique_index:idx_name_code"` // `unique_index` also works
 }
 
 type CreditCard struct {
@@ -165,7 +165,7 @@ Save records having `UpdatedAt` field will set it to current time.
 ```go
 // Whenever one or more `user` fields are edited using Save() or Update(), `UpdatedAt` will be set to current time
 db.Save(&user) // will set `UpdatedAt` to current time
-db.Model(&user).Update("name", "jinzhu") // will set `UpdatedAt` to current time 
+db.Model(&user).Update("name", "jinzhu") // will set `UpdatedAt` to current time
 ```
 
 ### Use `DeletedAt` to store record's deleted time if field exists
