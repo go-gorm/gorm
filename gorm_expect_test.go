@@ -6,21 +6,21 @@ import (
 	"github.com/iantanwx/gorm"
 )
 
+var helper *gorm.TestHelper
+var mockDb *gorm.DB
+
 func TestOpenWithSqlmock(t *testing.T) {
-	err, _, _ := gorm.NewTestHelper(&gorm.SqlmockAdapter{})
+	err, db, h := gorm.NewTestHelper(&gorm.SqlmockAdapter{})
 
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
+
+	helper = h
+	mockDb = db
 }
 
 func TestQuery(t *testing.T) {
-	err, db, helper := gorm.NewTestHelper(&gorm.SqlmockAdapter{})
-
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
 	helper.ExpectFirst(&User{}).Return(&User{})
-	db.First(&User{})
+	mockDb.First(&User{})
 }
