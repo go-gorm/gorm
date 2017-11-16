@@ -11,7 +11,13 @@ import (
 type TestHelper struct {
 	gormDb   *DB
 	mockDb   *sql.DB
+	adapter  Adapter
 	asserter Asserter
+}
+
+// Close closes the DB connection
+func (h *TestHelper) Close() error {
+	return h.adapter.Close()
 }
 
 func (h *TestHelper) ExpectFirst(model interface{}) Query {
@@ -104,5 +110,5 @@ func NewTestHelper(adapter Adapter) (error, *DB, *TestHelper) {
 		return err, nil, nil
 	}
 
-	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, asserter: asserter}
+	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, adapter: adapter, asserter: asserter}
 }
