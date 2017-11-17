@@ -7,30 +7,28 @@ import (
 )
 
 type Adapter interface {
-	Open() (error, *sql.DB, *DB, Asserter)
+	Open() (error, Asserter)
 	Close() error
 }
 
+// SqlmockAdapter implemenets the Adapter interface using go-sqlmock
+// it is the default Adapter
 type SqlmockAdapter struct {
 	mockDb *sql.DB
 	mock   *sqlmock.Sqlmock
 }
 
-// Open returns the raw sql.DB and a gorm DB instance
-func (adapter *SqlmockAdapter) Open() (error, *sql.DB, *DB, Asserter) {
+// Open returns the raw sql.DB instance and an Asserter
+func (adapter *SqlmockAdapter) Open() (error, Asserter) {
 	mockDb, mock, err := sqlmock.NewWithDSN("mock_gorm_dsn")
 
-	if err != nil {
-		return err, nil, nil, nil
-	}
-
-	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
+	adapter.mockDb = mockDb
 
 	if err != nil {
-		return err, nil, nil, nil
+		return err, nil
 	}
 
-	return nil, mockDb, gormDb, &SqlmockAsserter{mock: mock, sqlmockDB: mockDb}
+	return nil, &SqlmockAsserter{mock: mock, sqlmockDB: mockDb}
 }
 
 func (adapter *SqlmockAdapter) Close() error {

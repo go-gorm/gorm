@@ -1,14 +1,11 @@
 package gorm
 
 import (
-	"database/sql"
 	"fmt"
 )
 
 // TestHelper is the exported struct used for setting expectations
 type TestHelper struct {
-	gormDb   *DB
-	mockDb   *sql.DB
 	adapter  Adapter
 	asserter Asserter
 }
@@ -29,24 +26,35 @@ func (h *TestHelper) ExpectFind(model interface{}) {
 
 // NewTestHelper returns a fresh TestHelper with an arbitary Adapter
 func NewTestHelper(adapter Adapter) (error, *DB, *TestHelper) {
-	err, mockDb, gormDb, asserter := adapter.Open()
+	err, asserter := adapter.Open()
 
 	if err != nil {
 		return err, nil, nil
 	}
 
-	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, adapter: adapter, asserter: asserter}
+	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
+
+	if err != nil {
+		return err, nil, nil
+	}
+
+	return nil, gormDb, &TestHelper{adapter: adapter, asserter: asserter}
 }
 
 // NewDefaultTestHelper returns a TestHelper powered by go-sqlmock
 func NewDefaultTestHelper() (error, *DB, *TestHelper) {
 	adapter := &SqlmockAdapter{}
-	err, mockDb, gormDb, asserter := adapter.Open()
+	err, asserter := adapter.Open()
 
 	if err != nil {
 		return err, nil, nil
 	}
 
-	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, adapter: adapter, asserter: asserter}
+	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
 
+	if err != nil {
+		return err, nil, nil
+	}
+
+	return nil, gormDb, &TestHelper{adapter: adapter, asserter: asserter}
 }
