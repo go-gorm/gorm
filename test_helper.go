@@ -27,7 +27,7 @@ func (h *TestHelper) ExpectFind(model interface{}) {
 	fmt.Println("Expecting query: %s", "some query involving Find")
 }
 
-// NewTestHelper returns a fresh TestHelper
+// NewTestHelper returns a fresh TestHelper with an arbitary Adapter
 func NewTestHelper(adapter Adapter) (error, *DB, *TestHelper) {
 	err, mockDb, gormDb, asserter := adapter.Open()
 
@@ -36,4 +36,17 @@ func NewTestHelper(adapter Adapter) (error, *DB, *TestHelper) {
 	}
 
 	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, adapter: adapter, asserter: asserter}
+}
+
+// NewDefaultTestHelper returns a TestHelper powered by go-sqlmock
+func NewDefaultTestHelper() (error, *DB, *TestHelper) {
+	adapter := &SqlmockAdapter{}
+	err, mockDb, gormDb, asserter := adapter.Open()
+
+	if err != nil {
+		return err, nil, nil
+	}
+
+	return nil, gormDb, &TestHelper{gormDb: gormDb, mockDb: mockDb, adapter: adapter, asserter: asserter}
+
 }
