@@ -3,7 +3,7 @@ package gorm_test
 import (
 	"testing"
 
-	"github.com/iantanwx/gorm"
+	"github.com/jinzhu/gorm"
 )
 
 var helper *gorm.TestHelper
