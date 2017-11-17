@@ -107,7 +107,7 @@ db.SingularTable(true) // if set this to true, `User`'s default table name will 
 
 You can apply any rules on the default table name by defining the `DefaultTableNameHandler`
 
-```
+```go
 gorm.DefaultTableNameHandler = func (db *gorm.DB, defaultTableName string) string  {
 	return "prefix_" + defaultTableName;
 }
