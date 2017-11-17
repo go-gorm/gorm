@@ -4,57 +4,43 @@ import (
 	"fmt"
 )
 
-// TestHelper is the exported struct used for setting expectations
-type TestHelper struct {
-	adapter  Adapter
-	asserter Asserter
+// Expecter is the exported struct used for setting expectations
+type Expecter struct {
+	adapter Adapter
 }
 
-// Close closes the DB connection
-func (h *TestHelper) Close() error {
-	return h.adapter.Close()
-}
+// AdapterFactory is a generic interface for arbitrary adapters that satisfy
+// the interface. variadic args are passed to gorm.Open.
+type AdapterFactory func(dialect string, args ...interface{}) (error, *DB, Adapter)
 
-func (h *TestHelper) ExpectFirst(model interface{}) Query {
+func (h *Expecter) ExpectFirst(model interface{}) ExpectedQuery {
 	fmt.Printf("Expecting query: %s", "some query\n")
-	return h.asserter.Query("some sql")
+	return h.adapter.ExpectQuery("some sql")
 }
 
-func (h *TestHelper) ExpectFind(model interface{}) {
+func (h *Expecter) ExpectFind(model interface{}) ExpectedQuery {
 	fmt.Println("Expecting query: %s", "some query involving Find")
+	return h.adapter.ExpectQuery("some find condition")
 }
 
-// NewTestHelper returns a fresh TestHelper with an arbitary Adapter
-func NewTestHelper(adapter Adapter) (error, *DB, *TestHelper) {
-	err, asserter := adapter.Open()
+// NewDefaultExpecter returns a Expecter powered by go-sqlmock
+func NewDefaultExpecter() (error, *DB, *Expecter) {
+	err, gormDb, adapter := NewSqlmockAdapter("sqlmock", "mock_gorm_dsn")
 
 	if err != nil {
 		return err, nil, nil
 	}
 
-	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
-
-	if err != nil {
-		return err, nil, nil
-	}
-
-	return nil, gormDb, &TestHelper{adapter: adapter, asserter: asserter}
+	return nil, gormDb, &Expecter{adapter: adapter}
 }
 
-// NewDefaultTestHelper returns a TestHelper powered by go-sqlmock
-func NewDefaultTestHelper() (error, *DB, *TestHelper) {
-	adapter := &SqlmockAdapter{}
-	err, asserter := adapter.Open()
+// NewExpecter returns an Expecter for arbitrary adapters
+func NewExpecter(fn AdapterFactory, dialect string, args ...interface{}) (error, *DB, *Expecter) {
+	err, gormDb, adapter := fn(dialect, args...)
 
 	if err != nil {
 		return err, nil, nil
 	}
 
-	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
-
-	if err != nil {
-		return err, nil, nil
-	}
-
-	return nil, gormDb, &TestHelper{adapter: adapter, asserter: asserter}
+	return nil, gormDb, &Expecter{adapter: adapter}
 }
