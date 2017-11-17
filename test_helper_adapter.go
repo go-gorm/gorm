@@ -6,42 +6,53 @@ import (
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
+var (
+	db   *sql.DB
+	mock sqlmock.Sqlmock
+)
+
+func init() {
+	var err error
+
+	db, mock, err = sqlmock.NewWithDSN("mock_gorm_dsn")
+
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+// Adapter provides an abstract interface over concrete mock database
+// implementations (e.g. go-sqlmock or go-testdb)
 type Adapter interface {
-	Open() (error, Asserter)
-	Close() error
+	ExpectQuery(stmt string) ExpectedQuery
+	ExpectExec(stmt string) ExpectedExec
 }
 
 // SqlmockAdapter implemenets the Adapter interface using go-sqlmock
 // it is the default Adapter
 type SqlmockAdapter struct {
-	mockDb *sql.DB
-	mock   *sqlmock.Sqlmock
+	db     *sql.DB
+	mocker sqlmock.Sqlmock
 }
 
-// Open returns the raw sql.DB instance and an Asserter
-func (adapter *SqlmockAdapter) Open() (error, Asserter) {
-	mockDb, mock, err := sqlmock.NewWithDSN("mock_gorm_dsn")
-
-	adapter.mockDb = mockDb
+func NewSqlmockAdapter(dialect string, args ...interface{}) (error, *DB, Adapter) {
+	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
 
 	if err != nil {
-		return err, nil
+		return err, nil, nil
 	}
 
-	return nil, &SqlmockAsserter{mock: mock, sqlmockDB: mockDb}
+	return nil, gormDb, &SqlmockAdapter{db: db, mocker: mock}
 }
 
-func (adapter *SqlmockAdapter) Close() error {
-	return adapter.mockDb.Close()
+func (a *SqlmockAdapter) ExpectQuery(stmt string) ExpectedQuery {
+	q := a.mocker.ExpectQuery(stmt)
+
+	return &SqlmockQuery{query: q}
 }
 
-type SqlmockAsserter struct {
-	sqlmockDB *sql.DB
-	mock      sqlmock.Sqlmock
-}
+func (a *SqlmockAdapter) ExpectExec(stmt string) ExpectedExec {
+	e := a.mocker.ExpectExec(stmt)
 
-func (a *SqlmockAsserter) Query(query string) Query {
-	q := a.mock.ExpectQuery(query)
-
-	return &SqlmockQuery{q}
+	return &SqlmockExec{exec: e}
 }
