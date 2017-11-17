@@ -665,7 +665,7 @@ func (user *User) BeforeSave(scope *gorm.Scope) (err error) {
 
 ```go
 // Add extra SQL option for updating SQL
-db.Model(&user).Set("gorm:update_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Update("name, "hello")
+db.Model(&user).Set("gorm:update_option", "OPTION (OPTIMIZE FOR UNKNOWN)").Update("name", "hello")
 //// UPDATE users SET name='hello', updated_at = '2013-11-17 21:34:10' WHERE id=111 OPTION (OPTIMIZE FOR UNKNOWN);
 ```
 
