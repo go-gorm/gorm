@@ -39,8 +39,9 @@ func TestQuery(t *testing.T) {
 	}
 
 	expect.First(&User{})
-
 	db.First(&User{})
 
-	expect.AssertExpectations()
+	if err := expect.AssertExpectations(); err != nil {
+		t.Error(err)
+	}
 }

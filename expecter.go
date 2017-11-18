@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 )
 
 type Recorder struct {
@@ -116,8 +117,8 @@ func (h *Expecter) AssertExpectations() error {
 
 // First triggers a Query
 func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
-	h.gorm.First(out, where)
-	return h.adapter.ExpectQuery(h.recorder.stmt)
+	h.gorm.First(out)
+	return h.adapter.ExpectQuery(regexp.QuoteMeta(h.recorder.stmt))
 }
 
 // Find triggers a Query
