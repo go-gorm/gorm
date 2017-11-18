@@ -117,7 +117,7 @@ func (h *Expecter) AssertExpectations() error {
 
 // First triggers a Query
 func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
-	h.gorm.First(out)
+	h.gorm.First(out, where...)
 	return h.adapter.ExpectQuery(regexp.QuoteMeta(h.recorder.stmt))
 }
 
