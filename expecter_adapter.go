@@ -35,14 +35,14 @@ type SqlmockAdapter struct {
 	mocker sqlmock.Sqlmock
 }
 
-func NewSqlmockAdapter(dialect string, args ...interface{}) (error, *DB, Adapter) {
+func NewSqlmockAdapter(dialect string, args ...interface{}) (*DB, Adapter, error) {
 	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
 
 	if err != nil {
-		return err, nil, nil
+		return nil, nil, err
 	}
 
-	return nil, gormDb, &SqlmockAdapter{db: db, mocker: mock}
+	return gormDb, &SqlmockAdapter{db: db, mocker: mock}, nil
 }
 
 func (a *SqlmockAdapter) ExpectQuery(stmt string) ExpectedQuery {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestNewDefaultExpecter(t *testing.T) {
-	err, db, _ := gorm.NewDefaultExpecter()
+	db, _, err := gorm.NewDefaultExpecter()
 	defer func() {
 		db.Close()
 	}()
@@ -18,7 +18,7 @@ func TestNewDefaultExpecter(t *testing.T) {
 }
 
 func TestNewCustomExpecter(t *testing.T) {
-	err, db, _ := gorm.NewExpecter(gorm.NewSqlmockAdapter, "sqlmock", "mock_gorm_dsn")
+	db, _, err := gorm.NewExpecter(gorm.NewSqlmockAdapter, "sqlmock", "mock_gorm_dsn")
 	defer func() {
 		db.Close()
 	}()
@@ -29,7 +29,7 @@ func TestNewCustomExpecter(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
-	err, db, expect := gorm.NewDefaultExpecter()
+	db, expect, err := gorm.NewDefaultExpecter()
 	defer func() {
 		db.Close()
 	}()
@@ -38,6 +38,6 @@ func TestQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expect.ExpectFirst(&User{}).Returns(&User{})
+	expect.First(&User{}).Returns(&User{})
 	db.First(&User{})
 }
