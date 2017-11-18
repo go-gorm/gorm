@@ -26,6 +26,7 @@ func init() {
 type Adapter interface {
 	ExpectQuery(stmt string) ExpectedQuery
 	ExpectExec(stmt string) ExpectedExec
+	AssertExpectations() error
 }
 
 // SqlmockAdapter implemenets the Adapter interface using go-sqlmock
@@ -55,4 +56,8 @@ func (a *SqlmockAdapter) ExpectExec(stmt string) ExpectedExec {
 	e := a.mocker.ExpectExec(stmt)
 
 	return &SqlmockExec{exec: e}
+}
+
+func (a *SqlmockAdapter) AssertExpectations() error {
+	return a.mocker.ExpectationsWereMet()
 }

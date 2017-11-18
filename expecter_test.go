@@ -38,6 +38,9 @@ func TestQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expect.First(&User{}).Returns(&User{})
+	expect.First(&User{})
+
 	db.First(&User{})
+
+	expect.AssertExpectations()
 }

@@ -16,15 +16,6 @@ func (r *Recorder) Print(args ...interface{}) {
 		if v, ok := msgs[3].(string); ok {
 			r.stmt = v
 		}
-		// for i, msg := range msgs {
-		// 	switch v := msg.(type) {
-		// 	case string:
-		// 	case []byte:
-		// 		r.buf.Read([]byte(v))
-		// 	default:
-		// 		return
-		// 	}
-		// }
 	}
 }
 
@@ -118,6 +109,10 @@ func NewExpecter(fn AdapterFactory, dialect string, args ...interface{}) (*DB, *
 }
 
 /* PUBLIC METHODS */
+
+func (h *Expecter) AssertExpectations() error {
+	return h.adapter.AssertExpectations()
+}
 
 // First triggers a Query
 func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
