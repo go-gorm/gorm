@@ -42,7 +42,7 @@ type Address struct {
 type Language struct {
     ID   int
     Name string `gorm:"index:idx_name_code"` // Create index with name, and will create combined index if find other fields defined same name
-    Code string `gorm:"unique_index:idx_name_code"` // `unique_index` also works
+    Code string `gorm:"index:idx_name_code"` // `unique_index` also works
 }
 
 type CreditCard struct {
