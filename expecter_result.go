@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/davecgh/go-spew/spew"
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
@@ -19,7 +18,6 @@ type ExpectedExec interface {
 
 // SqlmockQuery implements Query for asserter go-sqlmock
 type SqlmockQuery struct {
-	scope *Scope
 	query *sqlmock.ExpectedQuery
 }
 
@@ -35,16 +33,13 @@ func getRowForFields(fields []*Field) []driver.Value {
 			}
 
 			// check if we have a zero Value
+			// just append nil if it's not valid, so sqlmock won't complain
 			if !value.IsValid() {
 				values = append(values, nil)
 				continue
 			}
 
 			concreteVal := value.Interface()
-
-			// if we already have a driver.Value, just append
-			_, isValuer := concreteVal.(driver.Valuer)
-			spew.Printf("%s: %v\r\n", field.DBName, isValuer)
 
 			if driver.IsValue(concreteVal) {
 				values = append(values, concreteVal)
@@ -91,9 +86,6 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) *sqlmock.Rows {
 		panic(fmt.Errorf("Can only get rows for slice or struct"))
 	}
 
-	spew.Dump(columns)
-	spew.Dump(rows)
-
 	return rows
 }
 
@@ -105,8 +97,7 @@ func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 }
 
 type SqlmockExec struct {
-	scope *Scope
-	exec  *sqlmock.ExpectedExec
+	exec *sqlmock.ExpectedExec
 }
 
 func (e *SqlmockExec) Returns(result driver.Result) ExpectedExec {
