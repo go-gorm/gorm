@@ -12,14 +12,37 @@ type Recorder struct {
 	stmt string
 }
 
+type Stmt struct {
+	stmtType string
+	sql      string
+	args     []interface{}
+}
+
+func getStmtFromLog(values ...interface{}) Stmt {
+	var statement Stmt
+
+	if len(values) > 1 {
+		var (
+			level = values[0]
+		)
+
+		if level == "sql" {
+			statement.args = values[4].([]interface{})
+			statement.sql = values[3].(string)
+		}
+
+		return statement
+	}
+
+	return statement
+}
+
 // Print just sets the last recorded SQL statement
 // TODO: find a better way to extract SQL from log messages
 func (r *Recorder) Print(args ...interface{}) {
-	msgs := LogFormatter(args...)
-	if len(msgs) >= 4 {
-		if v, ok := msgs[3].(string); ok {
-			r.stmt = v
-		}
+	statement := getStmtFromLog(args...)
+	if statement.sql != "" {
+		r.stmt = statement.sql
 	}
 }
 
