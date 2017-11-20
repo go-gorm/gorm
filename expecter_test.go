@@ -57,22 +57,67 @@ func TestQueryReturn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	in := &User{Id: 1}
-	expectedOut := User{Id: 1, Name: "jinzhu"}
+	in := User{Id: 1}
+	out := User{Id: 1, Name: "jinzhu"}
 
-	expect.First(in).Returns(User{Id: 1, Name: "jinzhu"})
+	expect.First(&in).Returns(out)
 
-	db.First(in)
+	db.First(&in)
 
 	if e := expect.AssertExpectations(); e != nil {
 		t.Error(e)
 	}
 
 	if in.Name != "jinzhu" {
-		t.Errorf("Expected %s, got %s", expectedOut.Name, in.Name)
+		t.Errorf("Expected %s, got %s", out.Name, in.Name)
 	}
 
-	if ne := reflect.DeepEqual(*in, expectedOut); !ne {
+	if ne := reflect.DeepEqual(in, out); !ne {
 		t.Errorf("Not equal")
+	}
+}
+
+func TestFindStructDest(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in := &User{Id: 1}
+
+	expect.Find(in)
+	db.Find(&User{Id: 1})
+
+	if e := expect.AssertExpectations(); e != nil {
+		t.Error(e)
+	}
+}
+
+func TestFindSlice(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in := []User{}
+	out := []User{User{Id: 1, Name: "jinzhu"}, User{Id: 2, Name: "itwx"}}
+
+	expect.Find(&in).Returns(&out)
+	db.Find(&in)
+
+	if e := expect.AssertExpectations(); e != nil {
+		t.Error(e)
+	}
+
+	if ne := reflect.DeepEqual(in, out); !ne {
+		t.Error("Expected equal slices")
 	}
 }

@@ -3,7 +3,6 @@ package gorm
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"regexp"
 )
 
@@ -148,6 +147,6 @@ func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
 
 // Find triggers a Query
 func (h *Expecter) Find(out interface{}, where ...interface{}) ExpectedQuery {
-	fmt.Printf("Expecting query: %s\n", "some query involving Find")
-	return h.adapter.ExpectQuery("some find condition")
+	h.gorm.Find(out, where...)
+	return h.adapter.ExpectQuery(regexp.QuoteMeta(h.recorder.stmt))
 }

@@ -139,9 +139,9 @@ func (role Role) IsAdmin() bool {
 
 type Num int64
 
-func (i *Num) Value() (driver.Value, error) {
+func (i Num) Value() (driver.Value, error) {
 	// guaranteed ok
-	return int64(*i), nil
+	return int64(i), nil
 }
 
 func (i *Num) Scan(src interface{}) error {
