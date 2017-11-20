@@ -7,10 +7,13 @@ import (
 	"regexp"
 )
 
+// Recorder satisfies the logger interface
 type Recorder struct {
 	stmt string
 }
 
+// Print just sets the last recorded SQL statement
+// TODO: find a better way to extract SQL from log messages
 func (r *Recorder) Print(args ...interface{}) {
 	msgs := LogFormatter(args...)
 	if len(msgs) >= 4 {
@@ -28,17 +31,15 @@ type AdapterFactory func(dialect string, args ...interface{}) (*DB, Adapter, err
 type Expecter struct {
 	// globally scoped expecter
 	adapter  Adapter
-	noop     NoopDB
+	noop     SQLCommon
 	gorm     *DB
 	recorder *Recorder
 }
 
-type NoopDB interface {
-	GetStmts() []string
-}
-
+// DefaultNoopDB is a noop db used to get generated sql from gorm.DB
 type DefaultNoopDB struct{}
 
+// NoopResult is a noop struct that satisfies sql.Result
 type NoopResult struct{}
 
 func (r NoopResult) LastInsertId() (int64, error) {
@@ -49,28 +50,29 @@ func (r NoopResult) RowsAffected() (int64, error) {
 	return 1, nil
 }
 
-func NewNoopDB() NoopDB {
+// NewNoopDB initialises a new DefaultNoopDB
+func NewNoopDB() SQLCommon {
 	return &DefaultNoopDB{}
 }
 
+// Exec simulates a sql.DB.Exec
 func (r *DefaultNoopDB) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return NoopResult{}, nil
 }
 
+// Prepare simulates a sql.DB.Prepare
 func (r *DefaultNoopDB) Prepare(query string) (*sql.Stmt, error) {
 	return &sql.Stmt{}, nil
 }
 
+// Query simulates a sql.DB.Query
 func (r *DefaultNoopDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return nil, errors.New("noop")
 }
 
+// QueryRow simulates a sql.DB.QueryRow
 func (r *DefaultNoopDB) QueryRow(query string, args ...interface{}) *sql.Row {
 	return &sql.Row{}
-}
-
-func (r *DefaultNoopDB) GetStmts() []string {
-	return []string{"not", "implemented"}
 }
 
 // NewDefaultExpecter returns a Expecter powered by go-sqlmock
@@ -83,7 +85,6 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 
 	recorder := &Recorder{}
 	noop := &DefaultNoopDB{}
-
 	gorm := &DB{
 		db:        noop,
 		logger:    recorder,
@@ -111,6 +112,7 @@ func NewExpecter(fn AdapterFactory, dialect string, args ...interface{}) (*DB, *
 
 /* PUBLIC METHODS */
 
+// AssertExpectations checks if all expected Querys and Execs were satisfied.
 func (h *Expecter) AssertExpectations() error {
 	return h.adapter.AssertExpectations()
 }
