@@ -36,6 +36,8 @@ type SqlmockAdapter struct {
 	mocker sqlmock.Sqlmock
 }
 
+// NewSqlmockAdapter returns a mock gorm.DB and an Adapter backed by
+// go-sqlmock
 func NewSqlmockAdapter(dialect string, args ...interface{}) (*DB, Adapter, error) {
 	gormDb, err := Open("sqlmock", "mock_gorm_dsn")
 
@@ -46,18 +48,25 @@ func NewSqlmockAdapter(dialect string, args ...interface{}) (*DB, Adapter, error
 	return gormDb, &SqlmockAdapter{db: db, mocker: mock}, nil
 }
 
+// ExpectQuery wraps the underlying mock method for setting a query
+// expectation
 func (a *SqlmockAdapter) ExpectQuery(stmt string) ExpectedQuery {
 	q := a.mocker.ExpectQuery(stmt)
 
 	return &SqlmockQuery{query: q}
 }
 
+// ExpectExec wraps the underlying mock method for setting a exec
+// expectation
 func (a *SqlmockAdapter) ExpectExec(stmt string) ExpectedExec {
 	e := a.mocker.ExpectExec(stmt)
 
 	return &SqlmockExec{exec: e}
 }
 
+// AssertExpectations asserts that _all_ expectations for a test have been met
+// and returns an error specifying which have not if there are unmet
+// expectations
 func (a *SqlmockAdapter) AssertExpectations() error {
 	return a.mocker.ExpectationsWereMet()
 }

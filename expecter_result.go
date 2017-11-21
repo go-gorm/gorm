@@ -8,15 +8,21 @@ import (
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
+// ExpectedQuery represents an expected query that will be executed and can
+// return some rows. It presents a fluent API for chaining calls to other
+// expectations
 type ExpectedQuery interface {
 	Returns(model interface{}) ExpectedQuery
 }
 
+// ExpectedExec represents an expected exec that will be executed and can
+// return a result. It presents a fluent API for chaining calls to other
+// expectations
 type ExpectedExec interface {
 	Returns(result driver.Result) ExpectedExec
 }
 
-// SqlmockQuery implements Query for asserter go-sqlmock
+// SqlmockQuery implements Query for go-sqlmock
 type SqlmockQuery struct {
 	query *sqlmock.ExpectedQuery
 }
@@ -89,6 +95,9 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) *sqlmock.Rows {
 	return rows
 }
 
+// Returns accepts an out type which should either be a struct or slice. Under
+// the hood, it converts a gorm model struct to sql.Rows that can be passed to
+// the underlying mock db
 func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 	rows := q.getRowsForOutType(out)
 	q.query = q.query.WillReturnRows(rows)
@@ -96,10 +105,14 @@ func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 	return q
 }
 
+// SqlmockExec implements Exec for go-sqlmock
 type SqlmockExec struct {
 	exec *sqlmock.ExpectedExec
 }
 
+// Returns accepts a driver.Result. It is passed directly to the underlying
+// mock db. Useful for checking DAO behaviour in the event that the incorrect
+// number of rows are affected by an Exec
 func (e *SqlmockExec) Returns(result driver.Result) ExpectedExec {
 	e.exec = e.exec.WillReturnResult(result)
 

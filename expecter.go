@@ -11,6 +11,7 @@ type Recorder struct {
 	stmt string
 }
 
+// Stmt represents a sql statement. It can be an Exec or Query
 type Stmt struct {
 	stmtType string
 	sql      string
@@ -64,10 +65,12 @@ type DefaultNoopDB struct{}
 // NoopResult is a noop struct that satisfies sql.Result
 type NoopResult struct{}
 
+// LastInsertId is a noop method for satisfying drive.Result
 func (r NoopResult) LastInsertId() (int64, error) {
 	return 1, nil
 }
 
+// RowsAffected is a noop method for satisfying drive.Result
 func (r NoopResult) RowsAffected() (int64, error) {
 	return 1, nil
 }
