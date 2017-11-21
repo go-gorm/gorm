@@ -24,7 +24,7 @@ type ExpectedExec interface {
 
 // SqlmockQuery implements Query for go-sqlmock
 type SqlmockQuery struct {
-	query *sqlmock.ExpectedQuery
+	queries []*sqlmock.ExpectedQuery
 }
 
 func getRowForFields(fields []*Field) []driver.Value {
@@ -49,6 +49,8 @@ func getRowForFields(fields []*Field) []driver.Value {
 
 			if driver.IsValue(concreteVal) {
 				values = append(values, concreteVal)
+			} else if value.Kind() == reflect.Int || value.Kind() == reflect.Int8 || value.Kind() == reflect.Int16 || value.Kind() == reflect.Int64 {
+				values = append(values, value.Int())
 			} else if valuer, ok := concreteVal.(driver.Valuer); ok {
 				if convertedValue, err := valuer.Value(); err == nil {
 					values = append(values, convertedValue)
@@ -60,12 +62,27 @@ func getRowForFields(fields []*Field) []driver.Value {
 	return values
 }
 
-func (q *SqlmockQuery) getRowsForOutType(out interface{}) *sqlmock.Rows {
-	var columns []string
+func (q *SqlmockQuery) getRowsForOutType(out interface{}) []*sqlmock.Rows {
+	var (
+		columns   []string
+		relations = make(map[string]*Relationship)
+		rowsSet   []*sqlmock.Rows
+	)
 
 	for _, field := range (&Scope{}).New(out).GetModelStruct().StructFields {
+		// we get the primary model's columns here
 		if field.IsNormal {
 			columns = append(columns, field.DBName)
+		}
+
+		// check relations
+		if !field.IsNormal {
+			relationVal := reflect.ValueOf(field.Relationship)
+			isNil := relationVal.IsNil()
+
+			if !isNil {
+				relations[field.Name] = field.Relationship
+			}
 		}
 	}
 
@@ -83,16 +100,50 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) *sqlmock.Rows {
 			scope := &Scope{Value: outElem}
 			row := getRowForFields(scope.Fields())
 			rows = rows.AddRow(row...)
+			rowsSet = append(rowsSet, rows)
 		}
 	} else if outVal.Kind() == reflect.Struct {
 		scope := &Scope{Value: out}
 		row := getRowForFields(scope.Fields())
 		rows = rows.AddRow(row...)
+		rowsSet = append(rowsSet, rows)
+
+		for name, relation := range relations {
+			switch relation.Kind {
+			case "has_many":
+				rVal := outVal.FieldByName(name)
+				rType := rVal.Type().Elem()
+				rScope := &Scope{Value: reflect.New(rType).Interface()}
+				rColumns := []string{}
+
+				for _, field := range rScope.GetModelStruct().StructFields {
+					rColumns = append(rColumns, field.DBName)
+				}
+
+				hasReturnRows := rVal.Len() > 0
+
+				// in this case we definitely have a slice
+				if hasReturnRows {
+					rRows := sqlmock.NewRows(rColumns)
+
+					for i := 0; i < rVal.Len(); i++ {
+						scope := &Scope{Value: rVal.Index(i).Interface()}
+						row := getRowForFields(scope.Fields())
+						rRows = rRows.AddRow(row...)
+						rowsSet = append(rowsSet, rRows)
+					}
+				}
+			case "has_one":
+			case "many2many":
+			default:
+				continue
+			}
+		}
 	} else {
 		panic(fmt.Errorf("Can only get rows for slice or struct"))
 	}
 
-	return rows
+	return rowsSet
 }
 
 // Returns accepts an out type which should either be a struct or slice. Under
@@ -100,7 +151,10 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) *sqlmock.Rows {
 // the underlying mock db
 func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 	rows := q.getRowsForOutType(out)
-	q.query = q.query.WillReturnRows(rows)
+
+	for i, query := range q.queries {
+		query.WillReturnRows(rows[i])
+	}
 
 	return q
 }

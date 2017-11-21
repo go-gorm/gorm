@@ -2,6 +2,8 @@ package gorm
 
 import (
 	"regexp"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 // Recorder satisfies the logger interface
@@ -38,6 +40,7 @@ func getStmtFromLog(values ...interface{}) Stmt {
 // Print just sets the last recorded SQL statement
 // TODO: find a better way to extract SQL from log messages
 func (r *Recorder) Print(args ...interface{}) {
+	spew.Dump(args...)
 	statement := getStmtFromLog(args...)
 
 	if statement.sql != "" {
@@ -72,6 +75,7 @@ type Expecter struct {
 	adapter  Adapter
 	gorm     *DB
 	recorder *Recorder
+	preload  []string // records fields to be preloaded
 }
 
 // NewDefaultExpecter returns a Expecter powered by go-sqlmock
@@ -134,7 +138,9 @@ func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
 
 // Find triggers a Query
 func (h *Expecter) Find(out interface{}, where ...interface{}) ExpectedQuery {
-	var q ExpectedQuery
+	var (
+		stmts []string
+	)
 	h.gorm.Find(out, where...)
 
 	if empty := h.recorder.IsEmpty(); empty {
@@ -142,10 +148,10 @@ func (h *Expecter) Find(out interface{}, where ...interface{}) ExpectedQuery {
 	}
 
 	for _, stmt := range h.recorder.stmts {
-		q = h.adapter.ExpectQuery(regexp.QuoteMeta(stmt.sql))
+		stmts = append(stmts, regexp.QuoteMeta(stmt.sql))
 	}
 
-	return q
+	return h.adapter.ExpectQuery(stmts...)
 }
 
 // Preload clones the expecter and sets a preload condition on gorm.DB
