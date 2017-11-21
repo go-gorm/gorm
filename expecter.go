@@ -1,14 +1,12 @@
 package gorm
 
 import (
-	"database/sql"
-	"errors"
 	"regexp"
 )
 
 // Recorder satisfies the logger interface
 type Recorder struct {
-	stmt string
+	stmts []Stmt
 }
 
 // Stmt represents a sql statement. It can be an Exec or Query
@@ -41,9 +39,27 @@ func getStmtFromLog(values ...interface{}) Stmt {
 // TODO: find a better way to extract SQL from log messages
 func (r *Recorder) Print(args ...interface{}) {
 	statement := getStmtFromLog(args...)
+
 	if statement.sql != "" {
-		r.stmt = statement.sql
+		r.stmts = append(r.stmts, statement)
 	}
+}
+
+// GetFirst returns the first recorded sql statement logged. If there are no
+// statements, false is returned
+func (r *Recorder) GetFirst() (Stmt, bool) {
+	var stmt Stmt
+	if len(r.stmts) > 0 {
+		stmt = r.stmts[0]
+		return stmt, true
+	}
+
+	return stmt, false
+}
+
+// IsEmpty returns true if the statements slice is empty
+func (r *Recorder) IsEmpty() bool {
+	return len(r.stmts) == 0
 }
 
 // AdapterFactory is a generic interface for arbitrary adapters that satisfy
@@ -54,50 +70,8 @@ type AdapterFactory func(dialect string, args ...interface{}) (*DB, Adapter, err
 type Expecter struct {
 	// globally scoped expecter
 	adapter  Adapter
-	noop     SQLCommon
 	gorm     *DB
 	recorder *Recorder
-}
-
-// DefaultNoopDB is a noop db used to get generated sql from gorm.DB
-type DefaultNoopDB struct{}
-
-// NoopResult is a noop struct that satisfies sql.Result
-type NoopResult struct{}
-
-// LastInsertId is a noop method for satisfying drive.Result
-func (r NoopResult) LastInsertId() (int64, error) {
-	return 1, nil
-}
-
-// RowsAffected is a noop method for satisfying drive.Result
-func (r NoopResult) RowsAffected() (int64, error) {
-	return 1, nil
-}
-
-// NewNoopDB initialises a new DefaultNoopDB
-func NewNoopDB() SQLCommon {
-	return &DefaultNoopDB{}
-}
-
-// Exec simulates a sql.DB.Exec
-func (r *DefaultNoopDB) Exec(query string, args ...interface{}) (sql.Result, error) {
-	return NoopResult{}, nil
-}
-
-// Prepare simulates a sql.DB.Prepare
-func (r *DefaultNoopDB) Prepare(query string) (*sql.Stmt, error) {
-	return &sql.Stmt{}, nil
-}
-
-// Query simulates a sql.DB.Query
-func (r *DefaultNoopDB) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	return nil, errors.New("noop")
-}
-
-// QueryRow simulates a sql.DB.QueryRow
-func (r *DefaultNoopDB) QueryRow(query string, args ...interface{}) *sql.Row {
-	return &sql.Row{}
 }
 
 // NewDefaultExpecter returns a Expecter powered by go-sqlmock
@@ -109,7 +83,7 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 	}
 
 	recorder := &Recorder{}
-	noop := &DefaultNoopDB{}
+	noop, _ := NewNoopDB()
 	gorm := &DB{
 		db:        noop,
 		logger:    recorder,
@@ -121,7 +95,7 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 
 	gorm.parent = gorm
 
-	return gormDb, &Expecter{adapter: adapter, noop: noop, gorm: gorm, recorder: recorder}, nil
+	return gormDb, &Expecter{adapter: adapter, gorm: gorm, recorder: recorder}, nil
 }
 
 // NewExpecter returns an Expecter for arbitrary adapters
@@ -144,12 +118,50 @@ func (h *Expecter) AssertExpectations() error {
 
 // First triggers a Query
 func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
+	var q ExpectedQuery
 	h.gorm.First(out, where...)
-	return h.adapter.ExpectQuery(regexp.QuoteMeta(h.recorder.stmt))
+
+	if empty := h.recorder.IsEmpty(); empty {
+		panic("No recorded statements")
+	}
+
+	for _, stmt := range h.recorder.stmts {
+		q = h.adapter.ExpectQuery(regexp.QuoteMeta(stmt.sql))
+	}
+
+	return q
 }
 
 // Find triggers a Query
 func (h *Expecter) Find(out interface{}, where ...interface{}) ExpectedQuery {
+	var q ExpectedQuery
 	h.gorm.Find(out, where...)
-	return h.adapter.ExpectQuery(regexp.QuoteMeta(h.recorder.stmt))
+
+	if empty := h.recorder.IsEmpty(); empty {
+		panic("No recorded statements")
+	}
+
+	for _, stmt := range h.recorder.stmts {
+		q = h.adapter.ExpectQuery(regexp.QuoteMeta(stmt.sql))
+	}
+
+	return q
+}
+
+// Preload clones the expecter and sets a preload condition on gorm.DB
+func (h *Expecter) Preload(column string, conditions ...interface{}) *Expecter {
+	clone := h.clone()
+	clone.gorm = clone.gorm.Preload(column, conditions...)
+
+	return clone
+}
+
+/* PRIVATE METHODS */
+
+func (h *Expecter) clone() *Expecter {
+	return &Expecter{
+		adapter:  h.adapter,
+		gorm:     h.gorm,
+		recorder: h.recorder,
+	}
 }

@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -20,9 +21,7 @@ func TestNewDefaultExpecter(t *testing.T) {
 
 func TestNewCustomExpecter(t *testing.T) {
 	db, _, err := gorm.NewExpecter(gorm.NewSqlmockAdapter, "sqlmock", "mock_gorm_dsn")
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -31,16 +30,14 @@ func TestNewCustomExpecter(t *testing.T) {
 
 func TestQuery(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	fmt.Println("Got here")
 	expect.First(&User{})
-	db.LogMode(true).First(&User{})
+	db.First(&User{})
 
 	if err := expect.AssertExpectations(); err != nil {
 		t.Error(err)
@@ -119,5 +116,31 @@ func TestFindSlice(t *testing.T) {
 
 	if ne := reflect.DeepEqual(in, out); !ne {
 		t.Error("Expected equal slices")
+	}
+}
+
+func TestMockPreload(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in := User{Id: 1}
+	outEmails := []Email{Email{Id: 1, UserId: 1}, Email{Id: 2, UserId: 1}}
+	out := User{Id: 1, Emails: outEmails}
+
+	expect.Preload("Emails").Find(&in).Returns(out)
+	db.Preload("Emails").Find(&in)
+
+	// if err := expect.AssertExpectations(); err != nil {
+	// 	t.Error(err)
+	// }
+
+	if !reflect.DeepEqual(in, out) {
+		t.Error("In and out are not equal")
 	}
 }
