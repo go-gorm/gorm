@@ -62,6 +62,38 @@ func getRowForFields(fields []*Field) []driver.Value {
 	return values
 }
 
+func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationship) (*sqlmock.Rows, bool) {
+	var (
+		rows    *sqlmock.Rows
+		columns []string
+	)
+
+	switch relation.Kind {
+	case "has_many":
+		elem := rVal.Type().Elem()
+		scope := &Scope{Value: reflect.New(elem).Interface()}
+
+		for _, field := range scope.GetModelStruct().StructFields {
+			columns = append(columns, field.DBName)
+		}
+
+		rows = sqlmock.NewRows(columns)
+
+		// in this case we definitely have a slice
+		if rVal.Len() > 0 {
+			for i := 0; i < rVal.Len(); i++ {
+				scope := &Scope{Value: rVal.Index(i).Interface()}
+				row := getRowForFields(scope.Fields())
+				rows = rows.AddRow(row...)
+			}
+		}
+
+		return rows, true
+	default:
+		return nil, false
+	}
+}
+
 func (q *SqlmockQuery) getRowsForOutType(out interface{}) []*sqlmock.Rows {
 	var (
 		columns   []string
@@ -109,34 +141,11 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) []*sqlmock.Rows {
 		rowsSet = append(rowsSet, rows)
 
 		for name, relation := range relations {
-			switch relation.Kind {
-			case "has_many":
-				rVal := outVal.FieldByName(name)
-				rType := rVal.Type().Elem()
-				rScope := &Scope{Value: reflect.New(rType).Interface()}
-				rColumns := []string{}
+			rVal := outVal.FieldByName(name)
+			relationRows, hasRows := getRelationRows(rVal, name, relation)
 
-				for _, field := range rScope.GetModelStruct().StructFields {
-					rColumns = append(rColumns, field.DBName)
-				}
-
-				hasReturnRows := rVal.Len() > 0
-
-				// in this case we definitely have a slice
-				if hasReturnRows {
-					rRows := sqlmock.NewRows(rColumns)
-
-					for i := 0; i < rVal.Len(); i++ {
-						scope := &Scope{Value: rVal.Index(i).Interface()}
-						row := getRowForFields(scope.Fields())
-						rRows = rRows.AddRow(row...)
-						rowsSet = append(rowsSet, rRows)
-					}
-				}
-			case "has_one":
-			case "many2many":
-			default:
-				continue
+			if hasRows {
+				rowsSet = append(rowsSet, relationRows)
 			}
 		}
 	} else {

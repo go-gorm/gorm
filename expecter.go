@@ -2,8 +2,6 @@ package gorm
 
 import (
 	"regexp"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // Recorder satisfies the logger interface
@@ -40,7 +38,6 @@ func getStmtFromLog(values ...interface{}) Stmt {
 // Print just sets the last recorded SQL statement
 // TODO: find a better way to extract SQL from log messages
 func (r *Recorder) Print(args ...interface{}) {
-	spew.Dump(args...)
 	statement := getStmtFromLog(args...)
 
 	if statement.sql != "" {

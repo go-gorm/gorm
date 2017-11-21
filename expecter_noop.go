@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 var pool *NoopDriver
@@ -141,8 +139,6 @@ func (c *NoopConnection) open() (*sql.DB, error) {
 		return db, err
 	}
 
-	fmt.Println(db.Ping())
-
 	return db, db.Ping()
 }
 
@@ -161,7 +157,6 @@ func (c *NoopConnection) Close() error {
 
 // Begin implements sql/driver.Conn
 func (c *NoopConnection) Begin() (driver.Tx, error) {
-	fmt.Println("Called Begin()")
 	return c, nil
 }
 
@@ -172,13 +167,11 @@ func (c *NoopConnection) Exec(query string, args []driver.Value) (driver.Result,
 
 // Prepare implements sql/driver.Conn
 func (c *NoopConnection) Prepare(query string) (driver.Stmt, error) {
-	spew.Dump(query)
 	return &NoopStmt{}, nil
 }
 
 // Query implements sql/driver.Conn
 func (c *NoopConnection) Query(query string, args []driver.Value) (driver.Rows, error) {
-	spew.Dump(args)
 	return &NoopRows{}, nil
 }
 
