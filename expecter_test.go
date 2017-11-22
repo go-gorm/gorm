@@ -119,7 +119,7 @@ func TestFindSlice(t *testing.T) {
 	}
 }
 
-func TestMockPreload(t *testing.T) {
+func TestMockPreloadHasMany(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
 	defer func() {
 		db.Close()
@@ -143,4 +143,30 @@ func TestMockPreload(t *testing.T) {
 	if !reflect.DeepEqual(in, out) {
 		t.Error("In and out are not equal")
 	}
+}
+
+func TestMockPreloadMany2Many(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	in := User{Id: 1}
+	languages := []Language{Language{Name: "ZH"}, Language{Name: "EN"}}
+	out := User{Id: 1, Languages: languages}
+
+	expect.Preload("Languages").Find(&in).Returns(out)
+	db.Preload("Languages").Find(&in)
+
+	if err := expect.AssertExpectations(); err != nil {
+		t.Error(err)
+	}
+
+	// if !reflect.DeepEqual(in, out) {
+	// 	t.Error("In and out are not equal")
+	// }
 }

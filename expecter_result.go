@@ -49,8 +49,8 @@ func getRowForFields(fields []*Field) []driver.Value {
 
 			if driver.IsValue(concreteVal) {
 				values = append(values, concreteVal)
-			} else if value.Kind() == reflect.Int || value.Kind() == reflect.Int8 || value.Kind() == reflect.Int16 || value.Kind() == reflect.Int64 {
-				values = append(values, value.Int())
+			} else if num, err := driver.DefaultParameterConverter.ConvertValue(concreteVal); err == nil {
+				values = append(values, num)
 			} else if valuer, ok := concreteVal.(driver.Valuer); ok {
 				if convertedValue, err := valuer.Value(); err == nil {
 					values = append(values, convertedValue)
@@ -69,12 +69,14 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 	)
 
 	switch relation.Kind {
-	case "has_many":
+	case "has_many", "many_to_many":
 		elem := rVal.Type().Elem()
 		scope := &Scope{Value: reflect.New(elem).Interface()}
 
 		for _, field := range scope.GetModelStruct().StructFields {
-			columns = append(columns, field.DBName)
+			if field.IsNormal {
+				columns = append(columns, field.DBName)
+			}
 		}
 
 		rows = sqlmock.NewRows(columns)
