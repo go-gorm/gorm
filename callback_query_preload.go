@@ -60,6 +60,7 @@ func preloadCallback(scope *Scope) {
 						currentScope.handleBelongsToPreload(field, currentPreloadConditions)
 					case "many_to_many":
 						currentScope.handleManyToManyPreload(field, currentPreloadConditions)
+
 					default:
 						scope.Err(errors.New("unsupported relation"))
 					}
@@ -264,6 +265,8 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 
 // handleManyToManyPreload used to preload many to many associations
 func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
+	// spew.Println("___ENTERING HANDLE MANY TO MANY___\r\n")
+	// spew.Printf("___POPULATING %s___:\r\n%s\r\n", field.Name, spew.Sdump(field))
 	var (
 		relation         = field.Relationship
 		joinTableHandler = relation.JoinTableHandler
@@ -303,6 +306,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	}
 
 	rows, err := preloadDB.Rows()
+	// spew.Printf("___RETURNED ROWS___: \r\n%s\r\n", spew.Sdump(rows))
 
 	if scope.Err(err) != nil {
 		return
@@ -312,6 +316,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	columns, _ := rows.Columns()
 	for rows.Next() {
 		var (
+			// This is a Language zero value struct
 			elem   = reflect.New(fieldType).Elem()
 			fields = scope.New(elem.Addr().Interface()).Fields()
 		)
@@ -323,6 +328,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 
 		scope.scan(rows, columns, append(fields, joinTableFields...))
+		// spew.Printf("___FIELDS___: \r\n%s\r\n", spew.Sdump(fields))
 
 		var foreignKeys = make([]interface{}, len(sourceKeys))
 		// generate hashed forkey keys in join table
@@ -351,12 +357,14 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		foreignFieldNames  = []string{}
 	)
 
+	// spew.Printf("Foreign fields: %s", spew.Sdump(relation.ForeignFieldNames))
 	for _, dbName := range relation.ForeignFieldNames {
 		if field, ok := scope.FieldByName(dbName); ok {
 			foreignFieldNames = append(foreignFieldNames, field.Name)
 		}
 	}
 
+	// spew.Printf("Scope value: %s", spew.Sdump(indirectScopeValue))
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
 			object := indirect(indirectScopeValue.Index(j))
@@ -367,6 +375,9 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		key := toString(getValueFromFields(indirectScopeValue, foreignFieldNames))
 		fieldsSourceMap[key] = append(fieldsSourceMap[key], indirectScopeValue.FieldByName(field.Name))
 	}
+
+	// spew.Printf("Field source map: %s", spew.Sdump(fieldsSourceMap))
+	// spew.Printf("Link hash: %s", spew.Sdump(linkHash))
 	for source, link := range linkHash {
 		for i, field := range fieldsSourceMap[source] {
 			//If not 0 this means Value is a pointer and we already added preloaded models to it

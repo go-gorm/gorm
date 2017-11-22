@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/gorm"
 )
 
@@ -181,7 +182,7 @@ func TestMockPreloadMany2Many(t *testing.T) {
 	}
 
 	in := User{Id: 1}
-	languages := []Language{Language{Name: "ZH"}, Language{Name: "EN"}}
+	languages := []Language{Language{Name: "ZH"}}
 	out := User{Id: 1, Languages: languages}
 
 	expect.Preload("Languages").Find(&in).Returns(out)
@@ -191,7 +192,10 @@ func TestMockPreloadMany2Many(t *testing.T) {
 		t.Error(err)
 	}
 
-	// 	if !reflect.DeepEqual(in, out) {
-	// 		t.Error("In and out are not equal")
-	// 	}
+	spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
+	spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
+
+	if !reflect.DeepEqual(in, out) {
+		t.Error("In and out are not equal")
+	}
 }

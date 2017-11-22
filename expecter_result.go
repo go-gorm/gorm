@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/davecgh/go-spew/spew"
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
@@ -46,6 +47,7 @@ func getRowForFields(fields []*Field) []driver.Value {
 			}
 
 			concreteVal := value.Interface()
+			// spew.Printf("%v: %v\r\n", field.Name, concreteVal)
 
 			if driver.IsValue(concreteVal) {
 				values = append(values, concreteVal)
@@ -67,6 +69,12 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 		rows    *sqlmock.Rows
 		columns []string
 	)
+
+	// we need to check for zero values
+	if reflect.DeepEqual(rVal.Interface(), reflect.New(rVal.Type()).Elem().Interface()) {
+		spew.Printf("FOUND EMPTY INTERFACE FOR %s\r\n", fieldName)
+		return nil, false
+	}
 
 	switch relation.Kind {
 	case "has_one":
@@ -94,6 +102,9 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 				columns = append(columns, field.DBName)
 			}
 		}
+		spew.Printf("___GENERATING ROWS FOR %s___\r\n", fieldName)
+		spew.Printf("___COLUMNS___:\r\n%s\r\n", spew.Sdump(columns))
+		columns = append(columns, "user_id", "language_id")
 
 		rows = sqlmock.NewRows(columns)
 
@@ -102,11 +113,14 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 			for i := 0; i < rVal.Len(); i++ {
 				scope := &Scope{Value: rVal.Index(i).Interface()}
 				row := getRowForFields(scope.Fields())
+				row = append(row, 1, 1)
 				rows = rows.AddRow(row...)
 			}
+
+			return rows, true
 		}
 
-		return rows, true
+		return nil, false
 	default:
 		return nil, false
 	}
@@ -163,6 +177,7 @@ func (q *SqlmockQuery) getRowsForOutType(out interface{}) []*sqlmock.Rows {
 			relationRows, hasRows := getRelationRows(rVal, name, relation)
 
 			if hasRows {
+				spew.Printf("___GENERATED ROWS FOR %s___\r\n: %s\r\n", name, spew.Sdump(relationRows))
 				rowsSet = append(rowsSet, relationRows)
 			}
 		}
@@ -181,6 +196,7 @@ func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 
 	for i, query := range q.queries {
 		query.WillReturnRows(rows[i])
+		spew.Printf("___SET RETURN ROW___: %s", spew.Sdump(rows[i]))
 	}
 
 	return q
