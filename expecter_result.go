@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/davecgh/go-spew/spew"
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
@@ -71,7 +70,6 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 
 	switch relation.Kind {
 	case "has_one":
-		// just a plain struct
 		scope := &Scope{Value: rVal.Interface()}
 
 		for _, field := range scope.GetModelStruct().StructFields {
@@ -88,7 +86,6 @@ func getRelationRows(rVal reflect.Value, fieldName string, relation *Relationshi
 
 		return rows, true
 	case "has_many", "many_to_many":
-		// in this case, we're guarnateed to have a slice
 		elem := rVal.Type().Elem()
 		scope := &Scope{Value: reflect.New(elem).Interface()}
 
@@ -184,7 +181,6 @@ func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 
 	for i, query := range q.queries {
 		query.WillReturnRows(rows[i])
-		spew.Dump(query)
 	}
 
 	return q
