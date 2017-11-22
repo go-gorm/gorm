@@ -314,14 +314,6 @@ func (scope *Scope) TableName() string {
 		return scope.Search.tableName
 	}
 
-	if tabler, ok := scope.Value.(tabler); ok {
-		return tabler.TableName()
-	}
-
-	if tabler, ok := scope.Value.(dbTabler); ok {
-		return tabler.TableName(scope.db)
-	}
-
 	return scope.GetModelStruct().TableName(scope.db.Model(scope.Value))
 }
 
