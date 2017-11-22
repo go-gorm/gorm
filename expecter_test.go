@@ -136,9 +136,9 @@ func TestMockPreload(t *testing.T) {
 	expect.Preload("Emails").Find(&in).Returns(out)
 	db.Preload("Emails").Find(&in)
 
-	// if err := expect.AssertExpectations(); err != nil {
-	// 	t.Error(err)
-	// }
+	if err := expect.AssertExpectations(); err != nil {
+		t.Error(err)
+	}
 
 	if !reflect.DeepEqual(in, out) {
 		t.Error("In and out are not equal")
