@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/gorm"
 )
 
@@ -192,8 +191,39 @@ func TestMockPreloadMany2Many(t *testing.T) {
 		t.Error(err)
 	}
 
-	spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
-	spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
+	// spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
+	// spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
+
+	if !reflect.DeepEqual(in, out) {
+		t.Error("In and out are not equal")
+	}
+}
+
+func TestMockPreloadMultiple(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	creditCard := CreditCard{Number: "12345678"}
+	languages := []Language{Language{Name: "ZH"}}
+
+	in := User{Id: 1}
+	out := User{Id: 1, Languages: languages, CreditCard: creditCard}
+
+	expect.Preload("Languages").Preload("CreditCard").Find(&in).Returns(out)
+	db.Preload("Languages").Preload("CreditCard").Find(&in)
+
+	if err := expect.AssertExpectations(); err != nil {
+		t.Error(err)
+	}
+
+	// spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
+	// spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
 
 	if !reflect.DeepEqual(in, out) {
 		t.Error("In and out are not equal")
