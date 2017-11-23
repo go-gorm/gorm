@@ -146,7 +146,6 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 
 	gorm.parent = gorm
 	gorm = gorm.Set("gorm:recorder", recorder)
-	gorm = gorm.Set("gorm:preload_idx", 0)
 	gorm.Callback().Query().Before("gorm:preload").Register("gorm:record_preload", recordPreloadCallback)
 	gorm.Callback().Query().After("gorm:query").Register("gorm:record_query", recordQueryCallback)
 	gorm.Callback().RowQuery().Before("gorm:row_query").Register("gorm:record_query", recordQueryCallback)
