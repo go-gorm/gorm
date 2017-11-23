@@ -65,8 +65,23 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			if dataValue.Type().Name() == "Hstore" {
 				sqlType = "hstore"
 			}
+		case reflect.Slice:
+			if dataValue.Type().Name() == "StringArray" {
+				if _, ok := field.TagSettings["SIZE"]; !ok {
+					size = 0 // if SIZE haven't been set, use `text` as the default type, as there are no performance different
+				}
+				if size > 0 && size < 65532 {
+					sqlType = fmt.Sprintf("varchar(%d)[]", size)
+				} else {
+					sqlType = "text[]"
+				}
+				break
+			}
+			fallthrough
 		default:
-			if IsByteArrayOrSlice(dataValue) {
+			if dataValue.Type().Name() == "RawMessage" {
+				sqlType = "JSONB DEFAULT '{}'::JSONB"
+			} else if IsByteArrayOrSlice(dataValue) {
 				sqlType = "bytea"
 				if isUUID(dataValue) {
 					sqlType = "uuid"
