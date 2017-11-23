@@ -24,7 +24,7 @@ func init() {
 // Adapter provides an abstract interface over concrete mock database
 // implementations (e.g. go-sqlmock or go-testdb)
 type Adapter interface {
-	ExpectQuery(stmts ...string) ExpectedQuery
+	ExpectQuery(stmts ...Stmt) ExpectedQuery
 	ExpectExec(stmt string) ExpectedExec
 	AssertExpectations() error
 }
@@ -50,14 +50,8 @@ func NewSqlmockAdapter(dialect string, args ...interface{}) (*DB, Adapter, error
 
 // ExpectQuery wraps the underlying mock method for setting a query
 // expectation. It accepts multiple statements in the event of preloading
-func (a *SqlmockAdapter) ExpectQuery(stmts ...string) ExpectedQuery {
-	var queries []*sqlmock.ExpectedQuery
-
-	for _, stmt := range stmts {
-		queries = append(queries, a.mocker.ExpectQuery(stmt))
-	}
-
-	return &SqlmockQuery{queries: queries}
+func (a *SqlmockAdapter) ExpectQuery(queries ...Stmt) ExpectedQuery {
+	return &SqlmockQuery{mock: a.mocker, queries: queries}
 }
 
 // ExpectExec wraps the underlying mock method for setting a exec
