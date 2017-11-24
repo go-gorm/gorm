@@ -272,3 +272,76 @@ func TestMockCreateError(t *testing.T) {
 		t.Errorf("Expected *DB.Error to be set, but it was not")
 	}
 }
+
+func TestMockSaveBasic(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user := User{Name: "jinzhu"}
+	expect.Save(&user).WillSucceed(1, 1)
+	expected := db.Save(&user)
+
+	if err := expect.AssertExpectations(); err != nil {
+		t.Errorf("Expectations were not met %s", err.Error())
+	}
+
+	if expected.RowsAffected != 1 || user.Id != 1 {
+		t.Errorf("Expected result was not returned")
+	}
+}
+
+func TestMockUpdateBasic(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newName := "uhznij"
+	user := User{Name: "jinzhu"}
+
+	expect.Model(&user).Update("name", newName).WillSucceed(1, 1)
+	db.Model(&user).Update("name", newName)
+
+	if err := expect.AssertExpectations(); err != nil {
+		t.Errorf("Expectations were not met %s", err.Error())
+	}
+
+	if user.Name != newName {
+		t.Errorf("Should have name %s but got %s", newName, user.Name)
+	}
+}
+
+func TestMockUpdatesBasic(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user := User{Name: "jinzhu", Age: 18}
+	updated := User{Name: "jinzhu", Age: 88}
+
+	expect.Model(&user).Updates(updated).WillSucceed(1, 1)
+	db.Model(&user).Updates(updated)
+
+	if err := expect.AssertExpectations(); err != nil {
+		t.Errorf("Expectations were not met %s", err.Error())
+	}
+
+	if user.Age != updated.Age {
+		t.Errorf("Should have age %d but got %d", user.Age, updated.Age)
+	}
+}

@@ -18,7 +18,7 @@ type Stmt struct {
 	args    []interface{}
 }
 
-func recordCreateCallback(scope *Scope) {
+func recordExecCallback(scope *Scope) {
 	r, ok := scope.Get("gorm:recorder")
 
 	if !ok {
@@ -131,10 +131,11 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 
 	gorm.parent = gorm
 	gorm = gorm.Set("gorm:recorder", recorder)
-	gorm.Callback().Create().After("gorm:create").Register("gorm:record_exec", recordCreateCallback)
+	gorm.Callback().Create().After("gorm:create").Register("gorm:record_exec", recordExecCallback)
 	gorm.Callback().Query().Before("gorm:preload").Register("gorm:record_preload", recordPreloadCallback)
 	gorm.Callback().Query().After("gorm:query").Register("gorm:record_query", recordQueryCallback)
 	gorm.Callback().RowQuery().Before("gorm:row_query").Register("gorm:record_query", recordQueryCallback)
+	gorm.Callback().Update().After("gorm:update").Register("gorm:record_exec", recordExecCallback)
 
 	return gormDb, &Expecter{adapter: adapter, gorm: gorm, recorder: recorder}, nil
 }
@@ -155,6 +156,12 @@ func NewExpecter(fn AdapterFactory, dialect string, args ...interface{}) (*DB, *
 // AssertExpectations checks if all expected Querys and Execs were satisfied.
 func (h *Expecter) AssertExpectations() error {
 	return h.adapter.AssertExpectations()
+}
+
+// Model sets scope.Value
+func (h *Expecter) Model(model interface{}) *Expecter {
+	h.gorm = h.gorm.Model(model)
+	return h
 }
 
 /* CREATE */
@@ -185,6 +192,26 @@ func (h *Expecter) Preload(column string, conditions ...interface{}) *Expecter {
 	clone.gorm = clone.gorm.Preload(column, conditions...)
 
 	return clone
+}
+
+/* UPDATE */
+
+// Save mocks updating a record in the DB and will trigger db.Exec()
+func (h *Expecter) Save(model interface{}) ExpectedExec {
+	h.gorm.Save(model)
+	return h.adapter.ExpectExec(h.recorder.stmts[0])
+}
+
+// Update mocks updating the given attributes in the DB
+func (h *Expecter) Update(attrs ...interface{}) ExpectedExec {
+	h.gorm.Update(attrs...)
+	return h.adapter.ExpectExec(h.recorder.stmts[0])
+}
+
+// Updates does the same thing as Update, but with map or struct
+func (h *Expecter) Updates(values interface{}, ignoreProtectedAttrs ...bool) ExpectedExec {
+	h.gorm.Updates(values, ignoreProtectedAttrs...)
+	return h.adapter.ExpectExec(h.recorder.stmts[0])
 }
 
 /* PRIVATE METHODS */
