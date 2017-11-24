@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -222,10 +223,52 @@ func TestMockPreloadMultiple(t *testing.T) {
 		t.Error(err)
 	}
 
-	// spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
-	// spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
-
 	if !reflect.DeepEqual(in, out) {
 		t.Error("In and out are not equal")
+	}
+}
+
+func TestMockCreateBasic(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	user := User{Name: "jinzhu"}
+	expect.Create(&user).WillSucceed(1, 1)
+	rowsAffected := db.Create(&user).RowsAffected
+
+	if rowsAffected != 1 {
+		t.Errorf("Expected rows affected to be 1 but got %d", rowsAffected)
+	}
+
+	if user.Id != 1 {
+		t.Errorf("User id field should be 1, but got %d", user.Id)
+	}
+}
+
+func TestMockCreateError(t *testing.T) {
+	db, expect, err := gorm.NewDefaultExpecter()
+	defer func() {
+		db.Close()
+	}()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockError := errors.New("Could not insert user")
+
+	user := User{Name: "jinzhu"}
+	expect.Create(&user).WillFail(mockError)
+
+	dbError := db.Create(&user).Error
+
+	if dbError == nil || dbError != mockError {
+		t.Errorf("Expected *DB.Error to be set, but it was not")
 	}
 }

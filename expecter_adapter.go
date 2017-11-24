@@ -25,7 +25,7 @@ func init() {
 // implementations (e.g. go-sqlmock or go-testdb)
 type Adapter interface {
 	ExpectQuery(stmts ...Stmt) ExpectedQuery
-	ExpectExec(stmt string) ExpectedExec
+	ExpectExec(stmt Stmt) ExpectedExec
 	AssertExpectations() error
 }
 
@@ -56,10 +56,8 @@ func (a *SqlmockAdapter) ExpectQuery(queries ...Stmt) ExpectedQuery {
 
 // ExpectExec wraps the underlying mock method for setting a exec
 // expectation
-func (a *SqlmockAdapter) ExpectExec(stmt string) ExpectedExec {
-	e := a.mocker.ExpectExec(stmt)
-
-	return &SqlmockExec{exec: e}
+func (a *SqlmockAdapter) ExpectExec(exec Stmt) ExpectedExec {
+	return &SqlmockExec{mock: a.mocker, exec: exec}
 }
 
 // AssertExpectations asserts that _all_ expectations for a test have been met

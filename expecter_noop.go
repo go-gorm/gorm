@@ -45,12 +45,12 @@ type NoopResult struct{}
 
 // LastInsertId is a noop method for satisfying drive.Result
 func (r NoopResult) LastInsertId() (int64, error) {
-	return 1, nil
+	return 0, nil
 }
 
 // RowsAffected is a noop method for satisfying drive.Result
 func (r NoopResult) RowsAffected() (int64, error) {
-	return 1, nil
+	return 0, nil
 }
 
 // NoopRows implements driver.Rows

@@ -20,7 +20,8 @@ type ExpectedQuery interface {
 // return a result. It presents a fluent API for chaining calls to other
 // expectations
 type ExpectedExec interface {
-	Returns(result driver.Result) ExpectedExec
+	WillSucceed(lastInsertID, rowsAffected int64) ExpectedExec
+	WillFail(err error) ExpectedExec
 }
 
 // SqlmockQuery implements Query for go-sqlmock
@@ -234,14 +235,25 @@ func (q *SqlmockQuery) Returns(out interface{}) ExpectedQuery {
 
 // SqlmockExec implements Exec for go-sqlmock
 type SqlmockExec struct {
-	exec *sqlmock.ExpectedExec
+	exec  Stmt
+	mock  sqlmock.Sqlmock
+	scope *Scope
 }
 
-// Returns accepts a driver.Result. It is passed directly to the underlying
+// WillSucceed accepts a two int64s. They are passed directly to the underlying
 // mock db. Useful for checking DAO behaviour in the event that the incorrect
 // number of rows are affected by an Exec
-func (e *SqlmockExec) Returns(result driver.Result) ExpectedExec {
-	e.exec = e.exec.WillReturnResult(result)
+func (e *SqlmockExec) WillSucceed(lastReturnedID, rowsAffected int64) ExpectedExec {
+	result := sqlmock.NewResult(lastReturnedID, rowsAffected)
+	e.mock.ExpectExec(regexp.QuoteMeta(e.exec.sql)).WillReturnResult(result)
+
+	return e
+}
+
+// WillFail simulates returning an Error from an unsuccessful exec
+func (e *SqlmockExec) WillFail(err error) ExpectedExec {
+	result := sqlmock.NewErrorResult(err)
+	e.mock.ExpectExec(regexp.QuoteMeta(e.exec.sql)).WillReturnResult(result)
 
 	return e
 }

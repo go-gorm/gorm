@@ -18,6 +18,24 @@ type Stmt struct {
 	args    []interface{}
 }
 
+func recordCreateCallback(scope *Scope) {
+	r, ok := scope.Get("gorm:recorder")
+
+	if !ok {
+		panic(fmt.Errorf("Expected a recorder to be set, but got none"))
+	}
+
+	stmt := Stmt{
+		kind: "exec",
+		sql:  scope.SQL,
+		args: scope.SQLVars,
+	}
+
+	recorder := r.(*Recorder)
+
+	recorder.Record(stmt)
+}
+
 func recordQueryCallback(scope *Scope) {
 	r, ok := scope.Get("gorm:recorder")
 
@@ -37,9 +55,6 @@ func recordQueryCallback(scope *Scope) {
 		// this will cause the scope.SQL to mutate to the preload query
 		scope.prepareQuerySQL()
 		stmt.preload = recorder.preload[0].schema
-
-		// spew.Printf("_____PRELOADING_____\r\n%s\r\n", stmt.preload)
-		// spew.Printf("_____SQL_____\r\n%s\r\n", scope.SQL)
 
 		// we just want to pop the first element off
 		recorder.preload = recorder.preload[1:]
@@ -65,35 +80,6 @@ func recordPreloadCallback(scope *Scope) {
 // Record records a Stmt for use when SQL is finally executed
 func (r *Recorder) Record(stmt Stmt) {
 	r.stmts = append(r.stmts, stmt)
-}
-
-func getStmtFromLog(values ...interface{}) Stmt {
-	var statement Stmt
-
-	if len(values) > 1 {
-		var (
-			level = values[0]
-		)
-
-		if level == "sql" {
-			statement.args = values[4].([]interface{})
-			statement.sql = values[3].(string)
-		}
-
-		return statement
-	}
-
-	return statement
-}
-
-// Print just sets the last recorded SQL statement
-// TODO: find a better way to extract SQL from log messages
-func (r *Recorder) Print(args ...interface{}) {
-	statement := getStmtFromLog(args...)
-
-	if statement.sql != "" {
-		r.stmts = append(r.stmts, statement)
-	}
 }
 
 // GetFirst returns the first recorded sql statement logged. If there are no
@@ -138,7 +124,6 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 	gorm := &DB{
 		db:        noop,
 		logger:    defaultLogger,
-		logMode:   2,
 		values:    map[string]interface{}{},
 		callbacks: DefaultCallback,
 		dialect:   newDialect("sqlmock", noop),
@@ -146,6 +131,7 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 
 	gorm.parent = gorm
 	gorm = gorm.Set("gorm:recorder", recorder)
+	gorm.Callback().Create().After("gorm:create").Register("gorm:record_exec", recordCreateCallback)
 	gorm.Callback().Query().Before("gorm:preload").Register("gorm:record_preload", recordPreloadCallback)
 	gorm.Callback().Query().After("gorm:query").Register("gorm:record_query", recordQueryCallback)
 	gorm.Callback().RowQuery().Before("gorm:row_query").Register("gorm:record_query", recordQueryCallback)
@@ -170,6 +156,16 @@ func NewExpecter(fn AdapterFactory, dialect string, args ...interface{}) (*DB, *
 func (h *Expecter) AssertExpectations() error {
 	return h.adapter.AssertExpectations()
 }
+
+/* CREATE */
+
+// Create mocks insertion of a model into the DB
+func (h *Expecter) Create(model interface{}) ExpectedExec {
+	h.gorm.Create(model)
+	return h.adapter.ExpectExec(h.recorder.stmts[0])
+}
+
+/* READ */
 
 // First triggers a Query
 func (h *Expecter) First(out interface{}, where ...interface{}) ExpectedQuery {
