@@ -43,17 +43,16 @@ func recordQueryCallback(scope *Scope) {
 		panic(fmt.Errorf("Expected a recorder to be set, but got none"))
 	}
 
+	recorder := r.(*Recorder)
+
 	stmt := Stmt{
 		kind: "query",
 		sql:  scope.SQL,
 		args: scope.SQLVars,
 	}
 
-	recorder := r.(*Recorder)
-
 	if len(recorder.preload) > 0 {
 		// this will cause the scope.SQL to mutate to the preload query
-		scope.prepareQuerySQL()
 		stmt.preload = recorder.preload[0].schema
 
 		// we just want to pop the first element off
@@ -71,6 +70,7 @@ func recordPreloadCallback(scope *Scope) {
 	if !ok {
 		panic(fmt.Errorf("Expected a recorder to be set, but got none"))
 	}
+
 	if len(scope.Search.preload) > 0 {
 		// spew.Printf("callback:preload\r\n%s\r\n", spew.Sdump(scope.Search.preload))
 		recorder.(*Recorder).preload = scope.Search.preload
@@ -134,7 +134,7 @@ func NewDefaultExpecter() (*DB, *Expecter, error) {
 	gorm.Callback().Create().After("gorm:create").Register("gorm:record_exec", recordExecCallback)
 	gorm.Callback().Query().Before("gorm:preload").Register("gorm:record_preload", recordPreloadCallback)
 	gorm.Callback().Query().After("gorm:query").Register("gorm:record_query", recordQueryCallback)
-	gorm.Callback().RowQuery().Before("gorm:row_query").Register("gorm:record_query", recordQueryCallback)
+	gorm.Callback().RowQuery().After("gorm:row_query").Register("gorm:record_query", recordQueryCallback)
 	gorm.Callback().Update().After("gorm:update").Register("gorm:record_exec", recordExecCallback)
 
 	return gormDb, &Expecter{adapter: adapter, gorm: gorm, recorder: recorder}, nil

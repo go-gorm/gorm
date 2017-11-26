@@ -2,7 +2,6 @@ package gorm_test
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -11,9 +10,8 @@ import (
 
 func TestNewDefaultExpecter(t *testing.T) {
 	db, _, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	//lint:ignore SA5001 just a mock
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -22,6 +20,7 @@ func TestNewDefaultExpecter(t *testing.T) {
 
 func TestNewCustomExpecter(t *testing.T) {
 	db, _, err := gorm.NewExpecter(gorm.NewSqlmockAdapter, "sqlmock", "mock_gorm_dsn")
+	//lint:ignore SA5001 just a mock
 	defer db.Close()
 
 	if err != nil {
@@ -36,7 +35,6 @@ func TestQuery(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fmt.Println("Got here")
 	expect.First(&User{})
 	db.First(&User{})
 
@@ -97,9 +95,7 @@ func TestFindStructDest(t *testing.T) {
 
 func TestFindSlice(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -122,9 +118,7 @@ func TestFindSlice(t *testing.T) {
 
 func TestMockPreloadHasMany(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -148,9 +142,7 @@ func TestMockPreloadHasMany(t *testing.T) {
 
 func TestMockPreloadHasOne(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -173,9 +165,7 @@ func TestMockPreloadHasOne(t *testing.T) {
 
 func TestMockPreloadMany2Many(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -192,9 +182,6 @@ func TestMockPreloadMany2Many(t *testing.T) {
 		t.Error(err)
 	}
 
-	// spew.Printf("______IN______\r\n%s\r\n", spew.Sdump(in))
-	// spew.Printf("______OUT______\r\n%s\r\n", spew.Sdump(out))
-
 	if !reflect.DeepEqual(in, out) {
 		t.Error("In and out are not equal")
 	}
@@ -202,9 +189,7 @@ func TestMockPreloadMany2Many(t *testing.T) {
 
 func TestMockPreloadMultiple(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -230,9 +215,7 @@ func TestMockPreloadMultiple(t *testing.T) {
 
 func TestMockCreateBasic(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -253,9 +236,7 @@ func TestMockCreateBasic(t *testing.T) {
 
 func TestMockCreateError(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -275,9 +256,7 @@ func TestMockCreateError(t *testing.T) {
 
 func TestMockSaveBasic(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -298,9 +277,7 @@ func TestMockSaveBasic(t *testing.T) {
 
 func TestMockUpdateBasic(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
@@ -323,9 +300,7 @@ func TestMockUpdateBasic(t *testing.T) {
 
 func TestMockUpdatesBasic(t *testing.T) {
 	db, expect, err := gorm.NewDefaultExpecter()
-	defer func() {
-		db.Close()
-	}()
+	defer db.Close()
 
 	if err != nil {
 		t.Fatal(err)
