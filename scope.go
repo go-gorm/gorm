@@ -1228,11 +1228,19 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
+		db := scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
+		if db.Error != nil {
+			scope.db.Error = db.Error
+			return scope
+		}
 	}
 
 	for name, columns := range uniqueIndexes {
-		scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
+		db := scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
+		if db.Error != nil {
+			scope.db.Error = db.Error
+			return scope
+		}
 	}
 
 	return scope
