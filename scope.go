@@ -1122,6 +1122,25 @@ func (scope *Scope) createTable() *Scope {
 		scope.createJoinTable(field)
 	}
 
+	var uniqueConstraints = map[string][]string{}
+
+	for _, field := range scope.GetStructFields() {
+		if name, ok := field.TagSettings["UNIQUE_CONSTRAINT"]; ok {
+			names := strings.Split(name, ",")
+
+			for _, name := range names {
+				if name == "UNIQUE_CONSTRAINT" || name == "" {
+					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+				}
+				uniqueConstraints[name] = append(uniqueConstraints[name], field.DBName)
+			}
+		}
+	}
+
+	for _, columns := range uniqueConstraints {
+		tags = append(tags, fmt.Sprintf("UNIQUE (%s)", strings.Join(columns, ",")))
+	}
+
 	var primaryKeyStr string
 	if len(primaryKeys) > 0 && !primaryKeyInColumnType {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
