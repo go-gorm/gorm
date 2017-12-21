@@ -267,12 +267,17 @@ func (scope *Scope) AddToVars(value interface{}) string {
 		return exp
 	}
 
+	dialect := scope.Dialect()
+	if str, ok := dialect.StringifyVar(value); ok {
+		return str
+	}
+
 	scope.SQLVars = append(scope.SQLVars, value)
 
 	if skipBindVar {
 		return "?"
 	}
-	return scope.Dialect().BindVar(len(scope.SQLVars))
+	return dialect.BindVar(len(scope.SQLVars))
 }
 
 // SelectAttrs return selected attributes

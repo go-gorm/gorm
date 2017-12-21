@@ -1,10 +1,14 @@
 package gorm
 
 import (
+	"database/sql/driver"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
+
+	dPostgres "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type postgres struct {
@@ -18,6 +22,88 @@ func init() {
 
 func (postgres) GetName() string {
 	return "postgres"
+}
+
+func literal(s string) string {
+	p := ""
+
+	if strings.Contains(s, `\`) {
+		p = "E"
+	}
+
+	s = strings.Replace(s, `'`, `''`, -1)
+	s = strings.Replace(s, `\`, `\\`, -1)
+	return p + `'` + s + `'`
+}
+
+func isNil(value interface{}) (ret bool) {
+	ret = false
+	defer func() {
+		if e := recover(); e != nil {
+			// DO NOTHING
+		}
+	}()
+
+	if value == nil {
+		ret = true
+		return
+	}
+
+	if reflect.ValueOf(value).IsNil() {
+		ret = true
+		return
+	}
+
+	return
+}
+
+func (p postgres) StringifyVar(value interface{}) (ret string, ok bool) {
+	ok = true
+	if isNil(value) {
+		ret = "NULL"
+		return
+	}
+
+	if reflect.TypeOf(value).Kind() == reflect.Ptr {
+		ret, ok = p.StringifyVar(reflect.ValueOf(value).Elem().Interface())
+		return
+	}
+
+	switch value.(type) {
+	case string:
+		s := value.(string)
+		ret = literal(s)
+		return
+	case time.Time:
+		s := value.(time.Time)
+		ret = literal(s.Format(time.RFC3339Nano))
+		return
+	case dPostgres.Hstore:
+		s := value.(dPostgres.Hstore)
+		if v, err := s.Value(); err == nil {
+			ret = literal(string(v.([]byte)))
+			return
+		}
+	case []byte:
+		s := value.([]byte)
+		ret = "decode(" + literal(hex.EncodeToString(s)) + ", 'hex')"
+		return
+	}
+
+	if s, ok2 := value.(driver.Valuer); ok2 {
+		if v, err := s.Value(); err == nil {
+			ret, ok = p.StringifyVar(v)
+			return
+		}
+	}
+
+	if s, ok2 := value.(fmt.Stringer); ok2 {
+		ret = literal(s.String())
+		return
+	}
+
+	ret = fmt.Sprintf("%v", value)
+	return
 }
 
 func (postgres) BindVar(i int) string {

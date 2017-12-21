@@ -16,6 +16,9 @@ type Dialect interface {
 	// SetDB set db for dialect
 	SetDB(db SQLCommon)
 
+	// StringifyVar return escape string of var
+	StringifyVar(value interface{}) (string, bool)
+
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
 	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name

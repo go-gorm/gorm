@@ -727,6 +727,7 @@ func TestHstore(t *testing.T) {
 		"bankAccountId": &bankAccountId,
 		"phoneNumber":   &phoneNumber,
 		"opinion":       &opinion,
+		"nil":           nil,
 	}
 	d := Details{Bulk: bulk}
 	DB.Save(&d)
@@ -738,8 +739,15 @@ func TestHstore(t *testing.T) {
 
 	for k := range bulk {
 		if r, ok := d2.Bulk[k]; ok {
-			if res, _ := bulk[k]; *res != *r {
-				t.Errorf("Details should be equal")
+			res, _ := bulk[k]
+			if res == nil || r == nil {
+				if res != r {
+					t.Errorf("Details should be equal")
+				}
+			} else {
+				if *res != *r {
+					t.Errorf("Details should be equal")
+				}
 			}
 		} else {
 			t.Errorf("Details should be existed")
