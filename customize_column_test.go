@@ -279,3 +279,25 @@ func TestBelongsToWithPartialCustomizedColumn(t *testing.T) {
 		t.Errorf("should preload discount from coupon")
 	}
 }
+
+type SelfReferencingUser struct {
+	gorm.Model
+	Friends []*SelfReferencingUser `gorm:"many2many:UserFriends;AssociationForeignKey:ID=friend_id"`
+}
+
+func TestSelfReferencingMany2ManyColumn(t *testing.T) {
+	DB.DropTable(&SelfReferencingUser{}, "UserFriends")
+	DB.AutoMigrate(&SelfReferencingUser{})
+
+	friend := SelfReferencingUser{}
+	if err := DB.Create(&friend).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	user := SelfReferencingUser{
+		Friends: []*SelfReferencingUser{&friend},
+	}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+}
