@@ -289,11 +289,24 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 
 									for _, name := range associationForeignKeys {
+
+										// In order to allow self-referencing many2many tables, the name
+										// may be followed by "=" to allow renaming the column
+										parts := strings.Split(name, "=")
+										name = parts[0]
+
 										if field, ok := toScope.FieldByName(name); ok {
 											// association foreign keys (db names)
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, field.DBName)
+
+											// If a new name was provided for the field, use it
+											name = field.DBName
+											if len(parts) > 1 {
+												name = parts[1]
+											}
+
 											// join table foreign keys for association
-											joinTableDBName := ToDBName(elemType.Name()) + "_" + field.DBName
+											joinTableDBName := ToDBName(elemType.Name()) + "_" + name
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, joinTableDBName)
 										}
 									}
