@@ -393,6 +393,13 @@ func TestRow(t *testing.T) {
 	if age != 10 {
 		t.Errorf("Scan with Row")
 	}
+
+	age = 0
+	row = DB.Debug().Table("users").Where("name != ? AND name != ? AND Age = ? AND name != ?", "???", "???", 10, "???").Select("age").Row()
+	row.Scan(&age)
+	if age != 10 {
+		t.Errorf("Scan with Row")
+	}
 }
 
 func TestRows(t *testing.T) {
