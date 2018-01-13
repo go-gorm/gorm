@@ -56,6 +56,8 @@ func updateTimeStampForUpdateCallback(scope *Scope) {
 // updateCallback the callback used to update data to database
 func updateCallback(scope *Scope) {
 	if !scope.HasError() {
+		scope.db.reconnectGuard.Wait()
+
 		var sqls []string
 
 		if updateAttrs, ok := scope.InstanceGet("gorm:update_attrs"); ok {

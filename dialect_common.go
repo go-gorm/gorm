@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -21,7 +22,9 @@ type commonDialect struct {
 func init() {
 	RegisterDialect("common", &commonDialect{})
 }
-
+func (commonDialect) IsDisconnectError(err error) bool {
+	return err == driver.ErrBadConn
+}
 func (commonDialect) GetName() string {
 	return "common"
 }
