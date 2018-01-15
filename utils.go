@@ -22,6 +22,11 @@ var NowFunc = func() time.Time {
 	return time.Now()
 }
 
+var NowFuncString = func() *string {
+	t := time.Now().UTC().Format(time.RFC3339)
+	return &t
+}
+
 // Copied from golint
 var commonInitialisms = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UI", "UID", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}
 var commonInitialismsReplacer *strings.Replacer

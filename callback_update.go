@@ -49,7 +49,7 @@ func beforeUpdateCallback(scope *Scope) {
 // updateTimeStampForUpdateCallback will set `UpdatedAt` when updating
 func updateTimeStampForUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.SetColumn("UpdatedAt", NowFunc())
+		scope.SetColumn("UpdatedAt", NowFuncString())
 	}
 }
 
