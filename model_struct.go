@@ -300,13 +300,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, field.DBName)
 
 											// If a new name was provided for the field, use it
-											name = field.DBName
+											name = ToDBName(elemType.Name()) + "_" + field.DBName
 											if len(parts) > 1 {
 												name = parts[1]
 											}
 
 											// join table foreign keys for association
-											joinTableDBName := ToDBName(elemType.Name()) + "_" + name
+											joinTableDBName := name
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, joinTableDBName)
 										}
 									}
