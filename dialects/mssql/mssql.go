@@ -54,7 +54,7 @@ func (mssql) BindVar(i int) string {
 }
 
 func (mssql) Quote(key string) string {
-	return fmt.Sprintf(`"%s"`, key)
+	return fmt.Sprintf(`[%s]`, key)
 }
 
 func (s *mssql) DataTypeOf(field *gorm.StructField) string {
