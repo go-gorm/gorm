@@ -32,7 +32,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Supporting the project
 
-[![http://patreon.com/jinzhu](http://patreon_public_assets.s3.amazonaws.com/sized/becomeAPatronBanner.png)](http://patreon.com/jinzhu)
+[![http://patreon.com/jinzhu](https://c5.patreon.com/external/logo/become_a_patron_button.png)](http://patreon.com/jinzhu)
 
 ## Author
 
