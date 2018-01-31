@@ -73,7 +73,7 @@ func (u *User) BeforeUpdate() (err error) {
 
 // Rollback the insertion if user's id greater than 1000
 func (u *User) AfterCreate() (err error) {
-	if (u.Id > 1000) {
+	if u.Id > 1000 {
 		err = errors.New("user id is already greater than 1000")
 	}
 	return
