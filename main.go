@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,7 +23,11 @@ type DB struct {
 	logger            logger
 	search            *search
 	values            map[string]interface{}
-
+	//Mutex to block all operations during reconnection
+	reconnectGuard *sync.WaitGroup
+	//connection string passed to Open saved for reconnect
+	dialectName string
+	dialectArgs []interface{}
 	// global db
 	parent        *DB
 	callbacks     *Callback
@@ -64,11 +69,14 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 	}
 
 	db = &DB{
-		db:        dbSQL,
-		logger:    defaultLogger,
-		values:    map[string]interface{}{},
-		callbacks: DefaultCallback,
-		dialect:   newDialect(dialect, dbSQL),
+		db:             dbSQL,
+		logger:         defaultLogger,
+		values:         map[string]interface{}{},
+		callbacks:      DefaultCallback,
+		dialect:        newDialect(dialect, dbSQL),
+		reconnectGuard: &sync.WaitGroup{},
+		dialectArgs:    args,
+		dialectName:    dialect,
 	}
 	db.parent = db
 	if err != nil {
@@ -712,11 +720,15 @@ func (s *DB) GetErrors() []error {
 
 func (s *DB) clone() *DB {
 	db := &DB{
-		db:                s.db,
-		parent:            s.parent,
-		logger:            s.logger,
-		logMode:           s.logMode,
-		values:            map[string]interface{}{},
+		db:      s.db,
+		parent:  s.parent,
+		logger:  s.logger,
+		logMode: s.logMode,
+		values:  map[string]interface{}{},
+		//share reconnection info with new copy
+		reconnectGuard:    s.reconnectGuard,
+		dialectName:       s.dialectName,
+		dialectArgs:       s.dialectArgs,
 		Value:             s.Value,
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,

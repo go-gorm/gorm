@@ -18,6 +18,8 @@ type RowsQueryResult struct {
 
 // queryCallback used to query data from database
 func rowQueryCallback(scope *Scope) {
+	scope.db.reconnectGuard.Wait()
+
 	if result, ok := scope.InstanceGet("row_query_result"); ok {
 		scope.prepareQuerySQL()
 

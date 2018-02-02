@@ -14,7 +14,10 @@ type sqlite3 struct {
 func init() {
 	RegisterDialect("sqlite3", &sqlite3{})
 }
-
+func (sqlite3) IsDisconnectError(err error) bool {
+	//sqlite is a file db so i think no reconnect needed or it is possible to treat file errors as disconnect
+	return false
+}
 func (sqlite3) GetName() string {
 	return "sqlite3"
 }
