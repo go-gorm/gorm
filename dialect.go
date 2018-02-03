@@ -114,3 +114,11 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 
 	return fieldValue, dataType, size, strings.TrimSpace(additionalType)
 }
+
+func currentDatabaseAndTable(dialect Dialect, tableName string) (string, string) {
+	if strings.Contains(tableName, ".") {
+		splitStrings := strings.SplitN(tableName, ".", 2)
+		return splitStrings[0], splitStrings[1]
+	}
+	return dialect.CurrentDatabase(), tableName
+}

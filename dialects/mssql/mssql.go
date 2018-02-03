@@ -128,13 +128,15 @@ func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
 
 func (s mssql) HasTable(tableName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.CurrentDatabase()).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
 	return count > 0
 }
 
 func (s mssql) HasColumn(tableName string, columnName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.CurrentDatabase(), tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
 }
 
@@ -167,4 +169,12 @@ func (mssql) SelectFromDummyTable() string {
 
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
+}
+
+func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
+	if strings.Contains(tableName, ".") {
+		splitStrings := strings.SplitN(tableName, ".", 2)
+		return splitStrings[0], splitStrings[1]
+	}
+	return dialect.CurrentDatabase(), tableName
 }
