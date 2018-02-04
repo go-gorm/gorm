@@ -1175,6 +1175,25 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
 }
 
+func (scope *Scope) addCheckConstraint(constraintName, check string) {
+	q := fmt.Sprintf(
+		"ALTER TABLE %s ADD CONSTRAINT %s CHECK (%s)",
+		scope.QuotedTableName(),
+		scope.quoteIfPossible(constraintName),
+		check,
+	)
+	scope.Raw(q).Exec()
+}
+
+func (scope *Scope) dropCheckConstraint(constraintName string) {
+	q := fmt.Sprintf(
+		"ALTER TABLE %s DROP CONSTRAINT %s",
+		scope.QuotedTableName(),
+		scope.quoteIfPossible(constraintName),
+	)
+	scope.Raw(q).Exec()
+}
+
 func (scope *Scope) removeIndex(indexName string) {
 	scope.Dialect().RemoveIndex(scope.TableName(), indexName)
 }

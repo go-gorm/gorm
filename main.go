@@ -611,6 +611,22 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return scope.db
 }
 
+// AddCheckConstraint Add check to the given scope, e.g:
+//     db.Model(&User{}).AddCheckConstraint("users_login_count_chk", "login_count >= 0")
+func (s *DB) AddCheckConstraint(constraintName, check string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.addCheckConstraint(constraintName, check)
+	return scope.db
+}
+
+// DropCheckConstraint Drop check constraint, e.g:
+//     db.Model(&User{}).DropCheckConstraint("users_login_count_chk")
+func (s *DB) DropCheckConstraint(constraintName string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.dropCheckConstraint(constraintName)
+	return scope.db
+}
+
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
