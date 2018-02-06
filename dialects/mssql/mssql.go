@@ -49,6 +49,10 @@ func (s *mssql) SetDB(db gorm.SQLCommon) {
 	s.db = db
 }
 
+func (mssql) StringifyVar(value interface{}) (string, bool) {
+	return "", false
+}
+
 func (mssql) BindVar(i int) string {
 	return "$$$" // ?
 }

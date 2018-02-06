@@ -12,7 +12,7 @@ import (
 func TestCreate(t *testing.T) {
 	float := 35.03554004971999
 	now := time.Now()
-	user := User{Name: "CreateUser", Age: 18, Birthday: &now, UserNum: Num(111), PasswordHash: []byte{'f', 'a', 'k', '4'}, Latitude: float}
+	user := User{Name: "CreateUser", Age: 18, Birthday: &now, UserNum: Num(111), PasswordHash: []byte{0, 'f', 'a', 'k', '4'}, Latitude: float}
 
 	if !DB.NewRecord(user) || !DB.NewRecord(&user) {
 		t.Error("User should be new record before create")
@@ -29,7 +29,7 @@ func TestCreate(t *testing.T) {
 	var newUser User
 	DB.First(&newUser, user.Id)
 
-	if !reflect.DeepEqual(newUser.PasswordHash, []byte{'f', 'a', 'k', '4'}) {
+	if !reflect.DeepEqual(newUser.PasswordHash, []byte{0, 'f', 'a', 'k', '4'}) {
 		t.Errorf("User's PasswordHash should be saved ([]byte)")
 	}
 

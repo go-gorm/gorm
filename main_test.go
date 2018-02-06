@@ -393,6 +393,13 @@ func TestRow(t *testing.T) {
 	if age != 10 {
 		t.Errorf("Scan with Row")
 	}
+
+	age = 0
+	row = DB.Debug().Table("users").Where("name != ? AND name != ? AND Age = ? AND name != ?", "???", "???", 10, "???").Select("age").Row()
+	row.Scan(&age)
+	if age != 10 {
+		t.Errorf("Scan with Row")
+	}
 }
 
 func TestRows(t *testing.T) {
@@ -727,6 +734,7 @@ func TestHstore(t *testing.T) {
 		"bankAccountId": &bankAccountId,
 		"phoneNumber":   &phoneNumber,
 		"opinion":       &opinion,
+		"nil":           nil,
 	}
 	d := Details{Bulk: bulk}
 	DB.Save(&d)
@@ -738,8 +746,15 @@ func TestHstore(t *testing.T) {
 
 	for k := range bulk {
 		if r, ok := d2.Bulk[k]; ok {
-			if res, _ := bulk[k]; *res != *r {
-				t.Errorf("Details should be equal")
+			res, _ := bulk[k]
+			if res == nil || r == nil {
+				if res != r {
+					t.Errorf("Details should be equal")
+				}
+			} else {
+				if *res != *r {
+					t.Errorf("Details should be equal")
+				}
 			}
 		} else {
 			t.Errorf("Details should be existed")

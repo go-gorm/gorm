@@ -79,10 +79,13 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 				}
 			} else {
 				formattedValuesLength := len(formattedValues)
-				for index, value := range sqlRegexp.Split(values[3].(string), -1) {
+				s := sqlRegexp.Split(values[3].(string), -1)
+				for index, value := range s {
 					sql += value
 					if index < formattedValuesLength {
 						sql += formattedValues[index]
+					} else if index != len(s)-1 {
+						sql += "?"
 					}
 				}
 			}

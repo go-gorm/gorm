@@ -30,6 +30,10 @@ func (s *commonDialect) SetDB(db SQLCommon) {
 	s.db = db
 }
 
+func (commonDialect) StringifyVar(value interface{}) (string, bool) {
+	return "", false
+}
+
 func (commonDialect) BindVar(i int) string {
 	return "$$$" // ?
 }
