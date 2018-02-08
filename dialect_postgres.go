@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 	"time"
+	"encoding/json"
 )
 
 type postgres struct {
@@ -67,9 +68,12 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			}
 		default:
 			if IsByteArrayOrSlice(dataValue) {
-				sqlType = "bytea"
 				if isUUID(dataValue) {
 					sqlType = "uuid"
+				} else if _, ok := dataValue.Interface().(json.RawMessage); ok {
+					sqlType = "jsonb"
+				} else {
+					sqlType = "bytea"
 				}
 			}
 		}
