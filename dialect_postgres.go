@@ -1,11 +1,11 @@
 package gorm
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
-	"encoding/json"
 )
 
 type postgres struct {
@@ -68,12 +68,14 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			}
 		default:
 			if IsByteArrayOrSlice(dataValue) {
+				sqlType = "bytea"
+
 				if isUUID(dataValue) {
 					sqlType = "uuid"
-				} else if isJSON(dataValue) {
+				}
+
+				if isJSON(dataValue) {
 					sqlType = "jsonb"
-				} else {
-					sqlType = "bytea"
 				}
 			}
 		}
@@ -136,9 +138,6 @@ func isUUID(value reflect.Value) bool {
 }
 
 func isJSON(value reflect.Value) bool {
-	if _, ok := value.Interface().(json.RawMessage); ok {
-		return true
-	} else {
-		return false
-	}
+	_, ok := value.Interface().(json.RawMessage)
+	return ok
 }
