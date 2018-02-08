@@ -70,7 +70,7 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			if IsByteArrayOrSlice(dataValue) {
 				if isUUID(dataValue) {
 					sqlType = "uuid"
-				} else if _, ok := dataValue.Interface().(json.RawMessage); ok {
+				} else if isJSON(dataValue) {
 					sqlType = "jsonb"
 				} else {
 					sqlType = "bytea"
@@ -133,4 +133,12 @@ func isUUID(value reflect.Value) bool {
 	typename := value.Type().Name()
 	lower := strings.ToLower(typename)
 	return "uuid" == lower || "guid" == lower
+}
+
+func isJSON(value reflect.Value) bool {
+	if _, ok := value.Interface().(json.RawMessage); ok {
+		return true
+	} else {
+		return false
+	}
 }
