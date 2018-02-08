@@ -32,4 +32,6 @@
 * [Development](development.md)
   * [Architecture](development.md#architecture)
   * [Write Plugins](development.md#write-plugins)
+* [Dialects](dialects.md)
+  * [Dialect Specific Columns](dialects.md#dialect-specific-columns)
 * [Change Log](changelog.md)
