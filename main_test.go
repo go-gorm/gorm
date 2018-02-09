@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 var (
 	DB                 *gorm.DB
 	t1, t2, t3, t4, t5 time.Time
+	mu                 sync.RWMutex
 )
 
 func init() {
@@ -260,6 +262,38 @@ func TestTableName(t *testing.T) {
 		t.Errorf("[]Cart's singular table name should be shopping_cart")
 	}
 	DB.SingularTable(false)
+}
+
+func TestTableNameWithTableNameHandler(t *testing.T) {
+	mu.Lock()
+	orig := gorm.DefaultTableNameHandler
+	defer func() {
+		mu.Unlock()
+		gorm.DefaultTableNameHandler = orig
+	}()
+	gorm.DefaultTableNameHandler = func(db *gorm.DB, defaultTableName string) string {
+		return "renamed_" + defaultTableName
+	}
+
+	if DB.NewScope(Cart{}).TableName() != "renamed_shopping_cart" {
+		t.Errorf("Cart's table name should be renamed_shopping_cart")
+	}
+
+	if DB.NewScope(&Cart{}).TableName() != "renamed_shopping_cart" {
+		t.Errorf("&Cart's table name should be renamed_shopping_cart")
+	}
+
+	var cart interface{}
+
+	cart = Cart{}
+	if DB.NewScope(cart).TableName() != "renamed_shopping_cart" {
+		t.Errorf("interface{}'s table name should be renamed_shopping_cart")
+	}
+
+	cart = &Cart{}
+	if DB.NewScope(cart).TableName() != "renamed_shopping_cart" {
+		t.Errorf("interface{}'s table name should be renamed_shopping_cart")
+	}
 }
 
 func TestNullValues(t *testing.T) {
