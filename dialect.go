@@ -33,6 +33,8 @@ type Dialect interface {
 	HasTable(tableName string) bool
 	// HasColumn check has column or not
 	HasColumn(tableName string, columnName string) bool
+	// TableColumns return all columns
+	TableColumns(tableName string) []string
 
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset interface{}) string
