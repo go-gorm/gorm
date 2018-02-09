@@ -1139,7 +1139,7 @@ func (scope *Scope) dropTable() *Scope {
 }
 
 func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", scope.QuotedTableName(), scope.Quote(column), typ)).Exec()
+	scope.db.AddError(scope.Dialect().ModifyColumn(scope.QuotedTableName(), scope.Quote(column), typ))
 }
 
 func (scope *Scope) dropColumn(column string) {

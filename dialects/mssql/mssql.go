@@ -140,6 +140,11 @@ func (s mssql) HasColumn(tableName string, columnName string) bool {
 	return count > 0
 }
 
+func (s mssql) ModifyColumn(tableName string, columnName string, typ string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
+	return err
+}
+
 func (s mssql) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
 	return

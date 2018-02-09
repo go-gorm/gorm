@@ -120,6 +120,11 @@ func (s commonDialect) HasColumn(tableName string, columnName string) bool {
 	return count > 0
 }
 
+func (s commonDialect) ModifyColumn(tableName string, columnName string, typ string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", tableName, columnName, typ))
+	return err
+}
+
 func (s commonDialect) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
 	return
