@@ -568,6 +568,13 @@ func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	return db
 }
 
+// AddColumn add column with type
+func (s *DB) AddColumn(column string, typ string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.addColumn(column, typ)
+	return scope.db
+}
+
 // ModifyColumn modify column to type
 func (s *DB) ModifyColumn(column string, typ string) *DB {
 	scope := s.clone().NewScope(s.Value)
