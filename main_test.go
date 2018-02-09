@@ -12,11 +12,12 @@ import (
 	"time"
 
 	"github.com/erikstmartin/go-testdb"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mssql"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"gorm"
+	_ "gorm/dialects/mssql"
+	_ "gorm/dialects/mysql"
+	"gorm/dialects/postgres"
+	_ "gorm/dialects/sqlite"
+	_ "gorm/dialects/pgx"
 	"github.com/jinzhu/now"
 )
 
@@ -54,6 +55,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			dbhost = fmt.Sprintf("host=%v ", dbhost)
 		}
 		db, err = gorm.Open("postgres", fmt.Sprintf("%vuser=gorm password=gorm DB.name=gorm sslmode=disable", dbhost))
+	case "pgx":
+		fmt.Println("testing pgx...")
+		dbhost := os.Getenv("GORM_DBHOST")
+		if dbhost != "" {
+			dbhost = fmt.Sprintf("host=%v ", dbhost)
+		}
+		db, err = gorm.Open("pgx", fmt.Sprintf("%vuser=gorm password=gorm database=gorm sslmode=disable", dbhost))
 	case "foundation":
 		fmt.Println("testing foundation...")
 		db, err = gorm.Open("foundation", "dbname=gorm port=15432 sslmode=disable")
