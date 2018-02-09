@@ -1175,6 +1175,16 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
 }
 
+func (scope *Scope) removeForeignKey(field string, dest string) {
+	keyName := scope.Dialect().BuildForeignKeyName(scope.TableName(), field, dest)
+
+	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
+		return
+	}
+	var query = `ALTER TABLE %s DROP CONSTRAINT %s;`
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName))).Exec()
+}
+
 func (scope *Scope) removeIndex(indexName string) {
 	scope.Dialect().RemoveIndex(scope.TableName(), indexName)
 }
