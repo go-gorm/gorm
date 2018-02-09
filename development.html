@@ -7,7 +7,7 @@
         <title>Development · GORM Guide</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
-        <meta name="generator" content="GitBook 3.2.2">
+        <meta name="generator" content="GitBook 3.2.3">
         
         
         
@@ -602,12 +602,48 @@
             
         </li>
     
-        <li class="chapter " data-level="1.8" data-path="changelog.html">
+        <li class="chapter " data-level="1.8" data-path="dialects.html">
+            
+                <a href="dialects.html">
+            
+                    
+                        <b>1.8.</b>
+                    
+                    Dialects
+            
+                </a>
+            
+
+            
+            <ul class="articles">
+                
+    
+        <li class="chapter " data-level="1.8.1" data-path="dialects.html">
+            
+                <a href="dialects.html#dialect-specific-columns">
+            
+                    
+                        <b>1.8.1.</b>
+                    
+                    Dialect Specific Columns
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+            </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.9" data-path="changelog.html">
             
                 <a href="changelog.html">
             
                     
-                        <b>1.8.</b>
+                        <b>1.9.</b>
                     
                     Change Log
             
@@ -686,28 +722,32 @@ db.First(&amp;user)
 <h2 id="write-plugins">Write Plugins</h2>
 <p>GORM itself is powered by <code>Callbacks</code>, so you could fully customize GORM as you want</p>
 <h3 id="register-a-new-callback">Register a new callback</h3>
-<pre><code>func updateCreated(scope *Scope) {
-    if scope.HasColumn(&quot;Created&quot;) {
-        scope.SetColumn(&quot;Created&quot;, NowFunc())
+<pre><code class="lang-go"><span class="hljs-keyword">func</span> updateCreated(scope *Scope) {
+    <span class="hljs-keyword">if</span> scope.HasColumn(<span class="hljs-string">&quot;Created&quot;</span>) {
+        scope.SetColumn(<span class="hljs-string">&quot;Created&quot;</span>, NowFunc())
     }
 }
 
-db.Callback().Create().Register(&quot;update_created_at&quot;, updateCreated)
-// register a callback for Create process
-</code></pre><h3 id="delete-an-existing-callback">Delete an existing callback</h3>
-<pre><code>db.Callback().Create().Remove(&quot;gorm:create&quot;)
-// delete callback `gorm:create` from Create callbacks
-</code></pre><h3 id="replace-an-existing-callback">Replace an existing callback</h3>
-<pre><code>db.Callback().Create().Replace(&quot;gorm:create&quot;, newCreateFunction)
-// replace callback `gorm:create` with new function `newCreateFunction` for Create process
-</code></pre><h3 id="register-callback-orders">Register callback orders</h3>
-<pre><code>db.Callback().Create().Before(&quot;gorm:create&quot;).Register(&quot;update_created_at&quot;, updateCreated)
-db.Callback().Create().After(&quot;gorm:create&quot;).Register(&quot;update_created_at&quot;, updateCreated)
-db.Callback().Query().After(&quot;gorm:query&quot;).Register(&quot;my_plugin:after_query&quot;, afterQuery)
-db.Callback().Delete().After(&quot;gorm:delete&quot;).Register(&quot;my_plugin:after_delete&quot;, afterDelete)
-db.Callback().Update().Before(&quot;gorm:update&quot;).Register(&quot;my_plugin:before_update&quot;, beforeUpdate)
-db.Callback().Create().Before(&quot;gorm:create&quot;).After(&quot;gorm:before_create&quot;).Register(&quot;my_plugin:before_create&quot;, beforeCreate)
-</code></pre><h3 id="pre-defined-callbacks">Pre-Defined Callbacks</h3>
+db.Callback().Create().Register(<span class="hljs-string">&quot;update_created_at&quot;</span>, updateCreated)
+<span class="hljs-comment">// register a callback for Create process</span>
+</code></pre>
+<h3 id="delete-an-existing-callback">Delete an existing callback</h3>
+<pre><code class="lang-go">db.Callback().Create().Remove(<span class="hljs-string">&quot;gorm:create&quot;</span>)
+<span class="hljs-comment">// delete callback `gorm:create` from Create callbacks</span>
+</code></pre>
+<h3 id="replace-an-existing-callback">Replace an existing callback</h3>
+<pre><code class="lang-go">db.Callback().Create().Replace(<span class="hljs-string">&quot;gorm:create&quot;</span>, newCreateFunction)
+<span class="hljs-comment">// replace callback `gorm:create` with new function `newCreateFunction` for Create process</span>
+</code></pre>
+<h3 id="register-callback-orders">Register callback orders</h3>
+<pre><code class="lang-go">db.Callback().Create().Before(<span class="hljs-string">&quot;gorm:create&quot;</span>).Register(<span class="hljs-string">&quot;update_created_at&quot;</span>, updateCreated)
+db.Callback().Create().After(<span class="hljs-string">&quot;gorm:create&quot;</span>).Register(<span class="hljs-string">&quot;update_created_at&quot;</span>, updateCreated)
+db.Callback().Query().After(<span class="hljs-string">&quot;gorm:query&quot;</span>).Register(<span class="hljs-string">&quot;my_plugin:after_query&quot;</span>, afterQuery)
+db.Callback().Delete().After(<span class="hljs-string">&quot;gorm:delete&quot;</span>).Register(<span class="hljs-string">&quot;my_plugin:after_delete&quot;</span>, afterDelete)
+db.Callback().Update().Before(<span class="hljs-string">&quot;gorm:update&quot;</span>).Register(<span class="hljs-string">&quot;my_plugin:before_update&quot;</span>, beforeUpdate)
+db.Callback().Create().Before(<span class="hljs-string">&quot;gorm:create&quot;</span>).After(<span class="hljs-string">&quot;gorm:before_create&quot;</span>).Register(<span class="hljs-string">&quot;my_plugin:before_create&quot;</span>, beforeCreate)
+</code></pre>
+<h3 id="pre-defined-callbacks">Pre-Defined Callbacks</h3>
 <p>GORM has defiend callbacks to perform its CRUD operations, check them out before start write your plugins</p>
 <ul>
 <li><p><a href="https://github.com/jinzhu/gorm/blob/master/callback_create.go" target="_blank">Create callbacks</a></p>
@@ -772,7 +812,7 @@ db.Callback().RowQuery().Register(<span class="hljs-string">&quot;publish:update
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Development","level":"1.7","depth":1,"next":{"title":"Architecture","level":"1.7.1","depth":2,"anchor":"#architecture","path":"development.md","ref":"development.md#architecture","articles":[]},"previous":{"title":"Overriding Logger","level":"1.6.6","depth":2,"anchor":"#logger","path":"advanced.md","ref":"advanced.md#logger","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"development.md","mtime":"2017-10-18T10:40:29.847Z","type":"markdown"},"gitbook":{"version":"3.2.2","time":"2017-10-18T10:41:23.502Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Development","level":"1.7","depth":1,"next":{"title":"Architecture","level":"1.7.1","depth":2,"anchor":"#architecture","path":"development.md","ref":"development.md#architecture","articles":[]},"previous":{"title":"Overriding Logger","level":"1.6.6","depth":2,"anchor":"#logger","path":"advanced.md","ref":"advanced.md#logger","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"development.md","mtime":"2018-02-09T00:12:01.494Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:14:37.173Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>

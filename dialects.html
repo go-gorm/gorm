@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Callbacks · GORM Guide</title>
+        <title>Dialects · GORM Guide</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.3">
@@ -57,10 +57,10 @@
     <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="advanced.html" />
+    <link rel="next" href="dialects.html" />
     
     
-    <link rel="prev" href="crud.html" />
+    <link rel="prev" href="development.html" />
     
 
     </head>
@@ -425,7 +425,7 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.5" data-path="callbacks.html">
+        <li class="chapter " data-level="1.5" data-path="callbacks.html">
             
                 <a href="callbacks.html">
             
@@ -602,7 +602,7 @@
             
         </li>
     
-        <li class="chapter " data-level="1.8" data-path="dialects.html">
+        <li class="chapter active" data-level="1.8" data-path="dialects.html">
             
                 <a href="dialects.html">
             
@@ -679,7 +679,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="." >Callbacks</a>
+        <a href="." >Dialects</a>
     </h1>
 </div>
 
@@ -694,77 +694,54 @@
     
                                 <section class="normal markdown-section">
                                 
-                                <h1 id="callbacks">Callbacks</h1>
+                                <h1 id="dialects">Dialects</h1>
 <!-- toc -->
-<p>You could define callback methods to pointer of model struct, it will be called when creating, updating, querying, deleting, if any callback returns an error, gorm will stop future operations and rollback all changes.</p>
-<h3 id="creating-an-object">Creating An Object</h3>
-<p>Available Callbacks for creating</p>
-<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
-BeforeSave
-BeforeCreate
-<span class="hljs-comment">// save before associations</span>
-<span class="hljs-comment">// update timestamp `CreatedAt`, `UpdatedAt`</span>
-<span class="hljs-comment">// save self</span>
-<span class="hljs-comment">// reload fields that have default value and its value is blank</span>
-<span class="hljs-comment">// save after associations</span>
-AfterCreate
-AfterSave
-<span class="hljs-comment">// commit or rollback transaction</span>
+<h2 id="dialect-specific-columns">Dialect Specific Columns</h2>
+<p>Certain dialects of SQL ship with their own custom, non-standard column types, such as the <code>jsonb</code> column in PostgreSQL. GORM supports loading several of such types, as listed in the following sections.</p>
+<h4 id="postgresql">PostgreSQL</h4>
+<p>GORM supports loading the following PostgreSQL exclusive column types:</p>
+<ul>
+<li>jsonb</li>
+<li>hstore</li>
+</ul>
+<p>Given the following Model definition: </p>
+<pre><code class="lang-go"><span class="hljs-keyword">import</span> (
+    <span class="hljs-string">&quot;encoding/json&quot;</span>
+    <span class="hljs-string">&quot;fmt&quot;</span>
+    <span class="hljs-string">&quot;reflect&quot;</span>
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm&quot;</span>
+    <span class="hljs-string">&quot;github.com/jinzhu/gorm/dialects/postgres&quot;</span>
+)
+
+<span class="hljs-keyword">type</span> Document <span class="hljs-keyword">struct</span> {
+    Metadata    postgres.Jsonb        
+    Secrets     postgres.Hstore     
+    Body        <span class="hljs-keyword">string</span>
+
+    ID          <span class="hljs-keyword">int</span>   
+}
 </code></pre>
-<h3 id="updating-an-object">Updating An Object</h3>
-<p>Available Callbacks for updating</p>
-<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
-BeforeSave
-BeforeUpdate
-<span class="hljs-comment">// save before associations</span>
-<span class="hljs-comment">// update timestamp `UpdatedAt`</span>
-<span class="hljs-comment">// save self</span>
-<span class="hljs-comment">// save after associations</span>
-AfterUpdate
-AfterSave
-<span class="hljs-comment">// commit or rollback transaction</span>
-</code></pre>
-<h3 id="deleting-an-object">Deleting An Object</h3>
-<p>Available Callbacks for deleting</p>
-<pre><code class="lang-go"><span class="hljs-comment">// begin transaction</span>
-BeforeDelete
-<span class="hljs-comment">// delete self</span>
-AfterDelete
-<span class="hljs-comment">// commit or rollback transaction</span>
-</code></pre>
-<h3 id="querying-an-object">Querying An Object</h3>
-<p>Available Callbacks for querying</p>
-<pre><code class="lang-go"><span class="hljs-comment">// load data from database</span>
-<span class="hljs-comment">// Preloading (edger loading)</span>
-AfterFind
-</code></pre>
-<h3 id="callback-examples">Callback Examples</h3>
-<pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) BeforeUpdate() (err error) {
-    <span class="hljs-keyword">if</span> u.readonly() {
-        err = errors.New(<span class="hljs-string">&quot;read only user&quot;</span>)
-    }
-    <span class="hljs-keyword">return</span>
+<p>You may use the model like so: </p>
+<pre><code class="lang-go">password := <span class="hljs-string">&quot;0654857340&quot;</span>
+metadata := json.RawMessage(<span class="hljs-string">`{&quot;is_archived&quot;: 0}`</span>)
+sampleDoc := Document{
+    Body : <span class="hljs-string">&quot;This is a test document&quot;</span>,
+    Metadata : postgres.Jsonb{ metadata },
+    Secrets : postgres.Hstore{<span class="hljs-string">&quot;password&quot;</span> : &amp;password },
 }
 
-<span class="hljs-comment">// Rollback the insertion if user&apos;s id greater than 1000</span>
-<span class="hljs-keyword">func</span> (u *User) AfterCreate() (err error) {
-    <span class="hljs-keyword">if</span> u.Id &gt; <span class="hljs-number">1000</span> {
-        err = errors.New(<span class="hljs-string">&quot;user id is already greater than 1000&quot;</span>)
-    }
-    <span class="hljs-keyword">return</span>
-}
-</code></pre>
-<p>Save/Delete operations in gorm are running in transactions, so changes made in that transaction are not visible unless it is commited.
-If you want to use those changes in your callbacks, you need to run your SQL in the same transaction. So you need to pass current transaction to callbacks like this:</p>
-<pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) AfterCreate(tx *gorm.DB) (err error) {
-    tx.Model(u).Update(<span class="hljs-string">&quot;role&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>)
-    <span class="hljs-keyword">return</span>
-}
-</code></pre>
-<pre><code class="lang-go"><span class="hljs-keyword">func</span> (u *User) AfterCreate(scope *gorm.Scope) (err error) {
-  scope.DB().Model(u).Update(<span class="hljs-string">&quot;role&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>)
-    <span class="hljs-keyword">return</span>
-}
+<span class="hljs-comment">//insert sampleDoc into the database</span>
+db.Create(&amp;sampleDoc)
+
+<span class="hljs-comment">//retrieve the fields again to confirm if they were inserted correctly</span>
+resultDoc := Document{}
+db.Where(<span class="hljs-string">&quot;id = ?&quot;</span>, sampleDoc.ID).First(&amp;resultDoc)
+
+metadataIsEqual := reflect.DeepEqual( resultDoc.Metadata, sampleDoc.Metadata)
+secretsIsEqual := reflect.DeepEqual( resultDoc.Secrets, resultDoc.Secrets)
+
+<span class="hljs-comment">//this should print &quot;true&quot;</span>
+fmt.Println(<span class="hljs-string">&quot;Inserted fields are as expected:&quot;</span>, metadataIsEqual &amp;&amp; secretsIsEqual)
 </code></pre>
 
                                 
@@ -793,12 +770,12 @@ If you want to use those changes in your callbacks, you need to run your SQL in 
 
             
                 
-                <a href="crud.html#associations" class="navigation navigation-prev " aria-label="Previous page: Associations">
+                <a href="development.html#write-plugins" class="navigation navigation-prev " aria-label="Previous page: Write Plugins">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="advanced.html" class="navigation navigation-next " aria-label="Next page: Advanced Usage">
+                <a href="dialects.html#dialect-specific-columns" class="navigation navigation-next " aria-label="Next page: Dialect Specific Columns">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -809,7 +786,7 @@ If you want to use those changes in your callbacks, you need to run your SQL in 
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Callbacks","level":"1.5","depth":1,"next":{"title":"Advanced Usage","level":"1.6","depth":1,"path":"advanced.md","ref":"advanced.md","articles":[{"title":"Error Handling","level":"1.6.1","depth":2,"anchor":"#error-handling","path":"advanced.md","ref":"advanced.md#error-handling","articles":[]},{"title":"Transactions","level":"1.6.2","depth":2,"anchor":"#transactions","path":"advanced.md","ref":"advanced.md#transactions","articles":[]},{"title":"Raw SQL & SQL Builder","level":"1.6.3","depth":2,"anchor":"#sql-builder","path":"advanced.md","ref":"advanced.md#sql-builder","articles":[]},{"title":"Generic database interface sql.DB","level":"1.6.4","depth":2,"anchor":"#generic-database-interface-sqldb","path":"advanced.md","ref":"advanced.md#generic-database-interface-sqldb","articles":[]},{"title":"Composite Primary Key","level":"1.6.5","depth":2,"anchor":"#compose-primary-key","path":"advanced.md","ref":"advanced.md#compose-primary-key","articles":[]},{"title":"Overriding Logger","level":"1.6.6","depth":2,"anchor":"#logger","path":"advanced.md","ref":"advanced.md#logger","articles":[]}]},"previous":{"title":"Associations","level":"1.4.6","depth":2,"anchor":"#associations","path":"crud.md","ref":"crud.md#associations","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"callbacks.md","mtime":"2018-02-09T00:12:01.491Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:14:37.173Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Dialects","level":"1.8","depth":1,"next":{"title":"Dialect Specific Columns","level":"1.8.1","depth":2,"anchor":"#dialect-specific-columns","path":"dialects.md","ref":"dialects.md#dialect-specific-columns","articles":[]},"previous":{"title":"Write Plugins","level":"1.7.2","depth":2,"anchor":"#write-plugins","path":"development.md","ref":"development.md#write-plugins","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"dialects.md","mtime":"2018-02-09T00:12:01.494Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:14:37.173Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
