@@ -1627,6 +1627,46 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 	}
 }
 
+func TestPreloadManyToManyCallbacks(t *testing.T) {
+	type (
+		Level2 struct {
+			ID uint
+		}
+		Level1 struct {
+			ID      uint
+			Level2s []Level2 `gorm:"many2many:level1_level2s;AssociationForeignKey:ID;ForeignKey:ID"`
+		}
+	)
+
+	DB.DropTableIfExists("level1_level2s")
+	DB.DropTableIfExists(new(Level1))
+	DB.DropTableIfExists(new(Level2))
+
+	if err := DB.AutoMigrate(new(Level1), new(Level2)).Error; err != nil {
+		t.Error(err)
+	}
+
+	lvl := Level1{
+		Level2s: []Level2{
+			Level2{},
+		},
+	}
+	DB.Save(&lvl)
+
+	called := 0
+
+	DB.Callback().Query().After("gorm:query").Register("TestPreloadManyToManyCallbacks", func(scope *gorm.Scope) {
+		called = called + 1
+	})
+
+	found := Level1{ID: lvl.ID}
+	DB.Preload("Level2s").First(&found, &found)
+
+	if called != 2 {
+		t.Errorf("Wanted callback to be called 2 times but got %d", called)
+	}
+}
+
 func toJSONString(v interface{}) []byte {
 	r, _ := json.MarshalIndent(v, "", "  ")
 	return r
