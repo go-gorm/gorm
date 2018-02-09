@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"reflect"
 )
 
 // Define callbacks for deleting
@@ -36,11 +37,23 @@ func deleteCallback(scope *Scope) {
 		deletedAtField, hasDeletedAtField := scope.FieldByName("DeletedAt")
 
 		if !scope.Search.Unscoped && hasDeletedAtField {
+			var time interface{}
+			switch deletedAtField.Field.Type().Kind() {
+			case reflect.Int64:
+				time = NowFunc().Unix()
+				break
+			case reflect.String:
+				time = NowFunc().String()
+				break
+			default:
+				time = NowFunc()
+				break
+			}
 			scope.Raw(fmt.Sprintf(
 				"UPDATE %v SET %v=%v%v%v",
 				scope.QuotedTableName(),
 				scope.Quote(deletedAtField.DBName),
-				scope.AddToVars(NowFunc()),
+				scope.AddToVars(time),
 				addExtraSpaceIfExist(scope.CombinedConditionSql()),
 				addExtraSpaceIfExist(extraOption),
 			)).Exec()

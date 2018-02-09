@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"reflect"
 )
 
 // Define callbacks for updating
@@ -48,8 +49,22 @@ func beforeUpdateCallback(scope *Scope) {
 
 // updateTimeStampForUpdateCallback will set `UpdatedAt` when updating
 func updateTimeStampForUpdateCallback(scope *Scope) {
+	var time interface{}
+	if createdAtField, ok := scope.FieldByName("UpdatedAt"); ok {
+		switch createdAtField.Field.Type().Kind() {
+		case reflect.Int64:
+			time = NowFunc().Unix()
+			break
+		case reflect.String:
+			time = NowFunc().String()
+			break
+		default:
+			time = NowFunc()
+			break
+		}
+	}
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.SetColumn("UpdatedAt", NowFunc())
+		scope.SetColumn("UpdatedAt", time)
 	}
 }
 
