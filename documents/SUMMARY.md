@@ -14,6 +14,7 @@
     * [Many To Many](associations.md#many-to-many)
     * [Polymorphism](associations.md#polymorphism)
     * [Association Mode](associations.md#association-mode)
+  * [Dialect Specific Data Type](dialects.md#dialect-data-type)
 * [CRUD: Reading and Writing Data](crud.md)
   * [Create](crud.md#create),
   * [Query](crud.md#query),
@@ -32,6 +33,4 @@
 * [Development](development.md)
   * [Architecture](development.md#architecture)
   * [Write Plugins](development.md#write-plugins)
-* [Dialects](dialects.md)
-  * [Dialect Specific Columns](dialects.md#dialect-specific-columns)
 * [Change Log](changelog.md)

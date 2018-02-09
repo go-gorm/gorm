@@ -2,17 +2,19 @@
 
 <!-- toc -->
 
-## Dialect Specific Columns
+## Dialect Specific Data Type
 
-Certain dialects of SQL ship with their own custom, non-standard column types, such as the ```jsonb``` column in PostgreSQL. GORM supports loading several of such types, as listed in the following sections.
+Certain dialects of SQL ship with their own custom, non-standard column types, such as the `jsonb` column in PostgreSQL. GORM supports loading several of such types, as listed in the following sections.
 
 #### PostgreSQL
+
 GORM supports loading the following PostgreSQL exclusive column types:
 - jsonb
 - hstore
 
-Given the following Model definition: 
-````go
+Given the following Model definition:
+
+```go
 import (
 	"encoding/json"
 	"fmt"
@@ -22,17 +24,17 @@ import (
 )
 
 type Document struct {
-	Metadata    postgres.Jsonb	    
-	Secrets     postgres.Hstore     
+	Metadata    postgres.Jsonb
+	Secrets     postgres.Hstore
 	Body        string
 
-	ID          int   
+	ID          int
 }
-````
+```
 
-You may use the model like so: 
+You may use the model like so:
 
-````go
+```go
 password := "0654857340"
 metadata := json.RawMessage(`{"is_archived": 0}`)
 sampleDoc := Document{
@@ -54,5 +56,4 @@ secretsIsEqual := reflect.DeepEqual( resultDoc.Secrets, resultDoc.Secrets)
 //this should print "true"
 fmt.Println("Inserted fields are as expected:", metadataIsEqual && secretsIsEqual)
 
-```` 
-
+```

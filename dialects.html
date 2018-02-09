@@ -4,7 +4,7 @@
     <head>
         <meta charset="UTF-8">
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <title>Dialects · GORM Guide</title>
+        <title>Dialect Specific Data Type · GORM Guide</title>
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="description" content="">
         <meta name="generator" content="GitBook 3.2.3">
@@ -57,10 +57,10 @@
     <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
 
     
-    <link rel="next" href="dialects.html" />
+    <link rel="next" href="crud.html" />
     
     
-    <link rel="prev" href="development.html" />
+    <link rel="prev" href="associations.html" />
     
 
     </head>
@@ -306,6 +306,21 @@
     
 
             </ul>
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3.4" data-path="dialects.html">
+            
+                <a href="dialects.html#dialect-data-type">
+            
+                    
+                        <b>1.3.4.</b>
+                    
+                    Dialect Specific Data Type
+            
+                </a>
+            
+
             
         </li>
     
@@ -602,48 +617,12 @@
             
         </li>
     
-        <li class="chapter active" data-level="1.8" data-path="dialects.html">
-            
-                <a href="dialects.html">
-            
-                    
-                        <b>1.8.</b>
-                    
-                    Dialects
-            
-                </a>
-            
-
-            
-            <ul class="articles">
-                
-    
-        <li class="chapter " data-level="1.8.1" data-path="dialects.html">
-            
-                <a href="dialects.html#dialect-specific-columns">
-            
-                    
-                        <b>1.8.1.</b>
-                    
-                    Dialect Specific Columns
-            
-                </a>
-            
-
-            
-        </li>
-    
-
-            </ul>
-            
-        </li>
-    
-        <li class="chapter " data-level="1.9" data-path="changelog.html">
+        <li class="chapter " data-level="1.8" data-path="changelog.html">
             
                 <a href="changelog.html">
             
                     
-                        <b>1.9.</b>
+                        <b>1.8.</b>
                     
                     Change Log
             
@@ -679,7 +658,7 @@
     <!-- Title -->
     <h1>
         <i class="fa fa-circle-o-notch fa-spin"></i>
-        <a href="." >Dialects</a>
+        <a href="." >Dialect Specific Data Type</a>
     </h1>
 </div>
 
@@ -696,7 +675,7 @@
                                 
                                 <h1 id="dialects">Dialects</h1>
 <!-- toc -->
-<h2 id="dialect-specific-columns">Dialect Specific Columns</h2>
+<h2 id="dialect-specific-data-type">Dialect Specific Data Type</h2>
 <p>Certain dialects of SQL ship with their own custom, non-standard column types, such as the <code>jsonb</code> column in PostgreSQL. GORM supports loading several of such types, as listed in the following sections.</p>
 <h4 id="postgresql">PostgreSQL</h4>
 <p>GORM supports loading the following PostgreSQL exclusive column types:</p>
@@ -704,7 +683,7 @@
 <li>jsonb</li>
 <li>hstore</li>
 </ul>
-<p>Given the following Model definition: </p>
+<p>Given the following Model definition:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">import</span> (
     <span class="hljs-string">&quot;encoding/json&quot;</span>
     <span class="hljs-string">&quot;fmt&quot;</span>
@@ -714,14 +693,14 @@
 )
 
 <span class="hljs-keyword">type</span> Document <span class="hljs-keyword">struct</span> {
-    Metadata    postgres.Jsonb        
-    Secrets     postgres.Hstore     
+    Metadata    postgres.Jsonb
+    Secrets     postgres.Hstore
     Body        <span class="hljs-keyword">string</span>
 
-    ID          <span class="hljs-keyword">int</span>   
+    ID          <span class="hljs-keyword">int</span>
 }
 </code></pre>
-<p>You may use the model like so: </p>
+<p>You may use the model like so:</p>
 <pre><code class="lang-go">password := <span class="hljs-string">&quot;0654857340&quot;</span>
 metadata := json.RawMessage(<span class="hljs-string">`{&quot;is_archived&quot;: 0}`</span>)
 sampleDoc := Document{
@@ -770,12 +749,12 @@ fmt.Println(<span class="hljs-string">&quot;Inserted fields are as expected:&quo
 
             
                 
-                <a href="development.html#write-plugins" class="navigation navigation-prev " aria-label="Previous page: Write Plugins">
+                <a href="associations.html#association-mode" class="navigation navigation-prev " aria-label="Previous page: Association Mode">
                     <i class="fa fa-angle-left"></i>
                 </a>
                 
                 
-                <a href="dialects.html#dialect-specific-columns" class="navigation navigation-next " aria-label="Next page: Dialect Specific Columns">
+                <a href="crud.html" class="navigation navigation-next " aria-label="Next page: CRUD: Reading and Writing Data">
                     <i class="fa fa-angle-right"></i>
                 </a>
                 
@@ -786,7 +765,7 @@ fmt.Println(<span class="hljs-string">&quot;Inserted fields are as expected:&quo
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Dialects","level":"1.8","depth":1,"next":{"title":"Dialect Specific Columns","level":"1.8.1","depth":2,"anchor":"#dialect-specific-columns","path":"dialects.md","ref":"dialects.md#dialect-specific-columns","articles":[]},"previous":{"title":"Write Plugins","level":"1.7.2","depth":2,"anchor":"#write-plugins","path":"development.md","ref":"development.md#write-plugins","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"dialects.md","mtime":"2018-02-09T00:12:01.494Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:14:37.173Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"next":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"path":"crud.md","ref":"crud.md","articles":[{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},{"title":"Query","level":"1.4.2","depth":2,"anchor":"#query","path":"crud.md","ref":"crud.md#query","articles":[]},{"title":"Preloading (Eager Loading)","level":"1.4.3","depth":2,"anchor":"#preloading-eager-loading","path":"crud.md","ref":"crud.md#preloading-eager-loading","articles":[]},{"title":"Update","level":"1.4.4","depth":2,"anchor":"#update","path":"crud.md","ref":"crud.md#update","articles":[]},{"title":"Delete / Soft Delete","level":"1.4.5","depth":2,"anchor":"#delete","path":"crud.md","ref":"crud.md#delete","articles":[]},{"title":"Associations","level":"1.4.6","depth":2,"anchor":"#associations","path":"crud.md","ref":"crud.md#associations","articles":[]}]},"previous":{"title":"Association Mode","level":"1.3.3.6","depth":3,"anchor":"#association-mode","path":"associations.md","ref":"associations.md#association-mode","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"dialects.md","mtime":"2018-02-09T00:17:38.563Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:19:45.327Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
