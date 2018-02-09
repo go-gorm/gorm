@@ -1630,10 +1630,12 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 func TestPreloadManyToManyCallbacks(t *testing.T) {
 	type (
 		Level2 struct {
-			ID uint
+			ID   uint
+			Name string
 		}
 		Level1 struct {
 			ID      uint
+			Name    string
 			Level2s []Level2 `gorm:"many2many:level1_level2s;AssociationForeignKey:ID;ForeignKey:ID"`
 		}
 	)
@@ -1647,8 +1649,9 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 	}
 
 	lvl := Level1{
+		Name: "l1",
 		Level2s: []Level2{
-			Level2{},
+			Level2{Name: "l2-1"}, Level2{Name: "l2-2"},
 		},
 	}
 	DB.Save(&lvl)
@@ -1659,11 +1662,10 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 		called = called + 1
 	})
 
-	found := Level1{ID: lvl.ID}
-	DB.Preload("Level2s").First(&found, &found)
+	DB.Preload("Level2s").First(&Level1{}, "id = ?", lvl.ID)
 
-	if called != 2 {
-		t.Errorf("Wanted callback to be called 2 times but got %d", called)
+	if called != 3 {
+		t.Errorf("Wanted callback to be called 3 times but got %d", called)
 	}
 }
 
