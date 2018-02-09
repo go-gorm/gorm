@@ -95,10 +95,15 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
+				precision := ""
+				if p, ok := field.TagSettings["PRECISION"]; ok {
+					precision = fmt.Sprintf("(%s)", p)
+				}
+
 				if _, ok := field.TagSettings["NOT NULL"]; ok {
-					sqlType = "timestamp"
+					sqlType = fmt.Sprintf("timestamp%v", precision)
 				} else {
-					sqlType = "timestamp NULL"
+					sqlType = fmt.Sprintf("timestamp%v NULL", precision)
 				}
 			}
 		default:
