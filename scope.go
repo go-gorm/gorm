@@ -1176,7 +1176,7 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 }
 
 func (scope *Scope) removeForeignKey(field string, dest string) {
-	keyName := scope.Dialect().BuildForeignKeyName(scope.TableName(), field, dest)
+	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest)
 
 	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
