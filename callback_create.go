@@ -31,17 +31,17 @@ func beforeCreateCallback(scope *Scope) {
 // updateTimeStampForCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
 func updateTimeStampForCreateCallback(scope *Scope) {
 	if !scope.HasError() {
-		now := NowFunc()
+		unix := UnixFunc()
 
 		if createdAtField, ok := scope.FieldByName("CreatedAt"); ok {
 			if createdAtField.IsBlank {
-				createdAtField.Set(now)
+				createdAtField.Set(unix)
 			}
 		}
 
 		if updatedAtField, ok := scope.FieldByName("UpdatedAt"); ok {
 			if updatedAtField.IsBlank {
-				updatedAtField.Set(now)
+				updatedAtField.Set(unix)
 			}
 		}
 	}
