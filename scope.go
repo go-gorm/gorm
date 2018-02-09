@@ -1165,7 +1165,8 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	keyName := scope.Dialect().BuildForeignKeyName(scope.TableName(), field, dest)
+	// Compatible with old generated key
+	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
 
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
@@ -1209,7 +1210,7 @@ func (scope *Scope) autoIndex() *Scope {
 
 			for _, name := range names {
 				if name == "INDEX" || name == "" {
-					name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
+					name = scope.Dialect().BuildKeyName("idx", scope.TableName(), field.DBName)
 				}
 				indexes[name] = append(indexes[name], field.DBName)
 			}
@@ -1220,7 +1221,7 @@ func (scope *Scope) autoIndex() *Scope {
 
 			for _, name := range names {
 				if name == "UNIQUE_INDEX" || name == "" {
-					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+					name = scope.Dialect().BuildKeyName("uix", scope.TableName(), field.DBName)
 				}
 				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 			}
@@ -1228,17 +1229,15 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		db := scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
-		if db.Error != nil {
-			scope.db.Error = db.Error
+		if db := scope.NewDB().Model(scope.Value).AddIndex(name, columns...); db.Error != nil {
+			scope.db.AddError(db.Error)
 			return scope
 		}
 	}
 
 	for name, columns := range uniqueIndexes {
-		db := scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
-		if db.Error != nil {
-			scope.db.Error = db.Error
+		if db := scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...); db.Error != nil {
+			scope.db.AddError(db.Error)
 			return scope
 		}
 	}

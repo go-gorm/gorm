@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -68,8 +69,13 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 		default:
 			if IsByteArrayOrSlice(dataValue) {
 				sqlType = "bytea"
+
 				if isUUID(dataValue) {
 					sqlType = "uuid"
+				}
+
+				if isJSON(dataValue) {
+					sqlType = "jsonb"
 				}
 			}
 		}
@@ -129,4 +135,9 @@ func isUUID(value reflect.Value) bool {
 	typename := value.Type().Name()
 	lower := strings.ToLower(typename)
 	return "uuid" == lower || "guid" == lower
+}
+
+func isJSON(value reflect.Value) bool {
+	_, ok := value.Interface().(json.RawMessage)
+	return ok
 }
