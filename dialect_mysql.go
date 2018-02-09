@@ -44,42 +44,42 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 		case reflect.Bool:
 			sqlType = "boolean"
 		case reflect.Int8:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "tinyint AUTO_INCREMENT"
 			} else {
 				sqlType = "tinyint"
 			}
 		case reflect.Int, reflect.Int16, reflect.Int32:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "int AUTO_INCREMENT"
 			} else {
 				sqlType = "int"
 			}
 		case reflect.Uint8:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "tinyint unsigned AUTO_INCREMENT"
 			} else {
 				sqlType = "tinyint unsigned"
 			}
 		case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "int unsigned AUTO_INCREMENT"
 			} else {
 				sqlType = "int unsigned"
 			}
 		case reflect.Int64:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "bigint AUTO_INCREMENT"
 			} else {
 				sqlType = "bigint"
 			}
 		case reflect.Uint64:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "bigint unsigned AUTO_INCREMENT"
 			} else {
