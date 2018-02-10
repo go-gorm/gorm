@@ -29,6 +29,10 @@ func (errs Errors) GetErrors() []error {
 // Add adds an error
 func (errs Errors) Add(newErrors ...error) Errors {
 	for _, err := range newErrors {
+		if err == nil {
+			continue
+		}
+
 		if errors, ok := err.(Errors); ok {
 			errs = errs.Add(errors...)
 		} else {

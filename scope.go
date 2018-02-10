@@ -1167,7 +1167,7 @@ func (scope *Scope) dropTable() *Scope {
 }
 
 func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", scope.QuotedTableName(), scope.Quote(column), typ)).Exec()
+	scope.db.AddError(scope.Dialect().ModifyColumn(scope.QuotedTableName(), scope.Quote(column), typ))
 }
 
 func (scope *Scope) dropColumn(column string) {
@@ -1193,13 +1193,24 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 }
 
 func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
-	keyName := scope.Dialect().BuildForeignKeyName(scope.TableName(), field, dest)
+	// Compatible with old generated key
+	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
 
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
+}
+
+func (scope *Scope) removeForeignKey(field string, dest string) {
+	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest)
+
+	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
+		return
+	}
+	var query = `ALTER TABLE %s DROP CONSTRAINT %s;`
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName))).Exec()
 }
 
 func (scope *Scope) removeIndex(indexName string) {
@@ -1237,7 +1248,7 @@ func (scope *Scope) autoIndex() *Scope {
 
 			for _, name := range names {
 				if name == "INDEX" || name == "" {
-					name = fmt.Sprintf("idx_%v_%v", scope.TableName(), field.DBName)
+					name = scope.Dialect().BuildKeyName("idx", scope.TableName(), field.DBName)
 				}
 				indexes[name] = append(indexes[name], field.DBName)
 			}
@@ -1248,7 +1259,7 @@ func (scope *Scope) autoIndex() *Scope {
 
 			for _, name := range names {
 				if name == "UNIQUE_INDEX" || name == "" {
-					name = fmt.Sprintf("uix_%v_%v", scope.TableName(), field.DBName)
+					name = scope.Dialect().BuildKeyName("uix", scope.TableName(), field.DBName)
 				}
 				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
 			}
@@ -1256,11 +1267,15 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		scope.NewDB().Model(scope.Value).AddIndex(name, columns...)
+		if db := scope.NewDB().Model(scope.Value).AddIndex(name, columns...); db.Error != nil {
+			scope.db.AddError(db.Error)
+		}
 	}
 
 	for name, columns := range uniqueIndexes {
-		scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...)
+		if db := scope.NewDB().Model(scope.Value).AddUniqueIndex(name, columns...); db.Error != nil {
+			scope.db.AddError(db.Error)
+		}
 	}
 
 	return scope
