@@ -65,14 +65,14 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		case reflect.Bool:
 			sqlType = "bit"
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "int IDENTITY(1,1)"
 			} else {
 				sqlType = "int"
 			}
 		case reflect.Int64, reflect.Uint64:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "bigint IDENTITY(1,1)"
 			} else {
@@ -109,6 +109,13 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		return sqlType
 	}
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
+}
+
+func (s mssql) fieldCanAutoIncrement(field *gorm.StructField) bool {
+	if value, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+		return value != "FALSE"
+	}
+	return field.IsPrimaryKey
 }
 
 func (s mssql) HasIndex(tableName string, indexName string) bool {
