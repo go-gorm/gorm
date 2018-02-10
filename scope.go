@@ -993,7 +993,7 @@ func (scope *Scope) changeableField(field *Field) bool {
 	return true
 }
 
-func (scope *Scope) shouldSaveAssociations() bool {
+func (scope *Scope) allowSaveAssociations() bool {
 	if saveAssociations, ok := scope.Get("gorm:save_associations"); ok {
 		if v, ok := saveAssociations.(bool); ok && !v {
 			return false

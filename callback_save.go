@@ -12,22 +12,25 @@ func commitOrRollbackTransactionCallback(scope *Scope) {
 
 func saveFieldAsAssociation(scope *Scope, field *Field) (bool, *Relationship) {
 	if scope.changeableField(field) && !field.IsBlank && !field.IsIgnored {
-		if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; !ok || (value != "false" && value != "skip") {
-			return true, field.Relationship
+		if field.Relationship != nil {
+			if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; (!ok || (value != "false" && value != "skip")) && scope.allowSaveAssociations() {
+				return true, field.Relationship
+			}
+			return false, field.Relationship
 		}
-		return false, field.Relationship
 	}
 	return false, nil
 }
 
 func saveBeforeAssociationsCallback(scope *Scope) {
 	for _, field := range scope.Fields() {
-		ok, relationship := saveFieldAsAssociation(scope, field)
-		if relationship != nil && relationship.Kind == "belongs_to" {
+		if allowSaveAssociation, relationship := saveFieldAsAssociation(scope, field); relationship != nil && relationship.Kind == "belongs_to" {
 			fieldValue := field.Field.Addr().Interface()
-			if ok && scope.shouldSaveAssociations() {
+
+			if allowSaveAssociation {
 				scope.Err(scope.NewDB().Save(fieldValue).Error)
 			}
+
 			if len(relationship.ForeignFieldNames) != 0 {
 				// set value's foreign key
 				for idx, fieldName := range relationship.ForeignFieldNames {
@@ -42,11 +45,8 @@ func saveBeforeAssociationsCallback(scope *Scope) {
 }
 
 func saveAfterAssociationsCallback(scope *Scope) {
-	if !scope.shouldSaveAssociations() {
-		return
-	}
 	for _, field := range scope.Fields() {
-		if ok, relationship := saveFieldAsAssociation(scope, field); ok && relationship != nil &&
+		if allowSaveAssociation, relationship := saveFieldAsAssociation(scope, field); relationship != nil &&
 			(relationship.Kind == "has_one" || relationship.Kind == "has_many" || relationship.Kind == "many_to_many") {
 			value := field.Field
 
@@ -70,9 +70,11 @@ func saveAfterAssociationsCallback(scope *Scope) {
 						scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
 					}
 
-					scope.Err(newDB.Save(elem).Error)
+					if allowSaveAssociation {
+						scope.Err(newDB.Save(elem).Error)
+					}
 
-					if joinTableHandler := relationship.JoinTableHandler; joinTableHandler != nil {
+					if joinTableHandler := relationship.JoinTableHandler; joinTableHandler != nil && !newScope.PrimaryKeyZero() {
 						scope.Err(joinTableHandler.Add(joinTableHandler, newDB, scope.Value, newScope.Value))
 					}
 				}
@@ -91,7 +93,10 @@ func saveAfterAssociationsCallback(scope *Scope) {
 				if relationship.PolymorphicType != "" {
 					scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
 				}
-				scope.Err(scope.NewDB().Save(elem).Error)
+
+				if allowSaveAssociation {
+					scope.Err(scope.NewDB().Save(elem).Error)
+				}
 			}
 		}
 	}

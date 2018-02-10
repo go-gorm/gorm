@@ -909,7 +909,7 @@ func TestSkipSaveAssociation(t *testing.T) {
 	company := Company{Name: "skip_save_association"}
 	DB.Save(&company)
 	company.Name = "skip_save_association_modified"
-	user := User{Name: "jinzhu", CompanyID: company.ID, Company: company}
+	user := User{Name: "jinzhu", Company: company}
 	DB.Save(&user)
 
 	if !DB.Where("name = ?", "skip_save_association_modified").First(&Company{}).RecordNotFound() {
