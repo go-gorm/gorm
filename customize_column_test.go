@@ -322,4 +322,25 @@ func TestSelfReferencingMany2ManyColumn(t *testing.T) {
 	if len(newUser.Friends) != 2 {
 		t.Errorf("Should preload created frineds for self reference m2m")
 	}
+
+	DB.Model(&newUser).Association("Friends").Append(&SelfReferencingUser{Name: "friend3_m2m"})
+	if DB.Model(&user).Association("Friends").Count() != 3 {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	DB.Model(&newUser).Association("Friends").Replace(&SelfReferencingUser{Name: "friend4_m2m"})
+	if DB.Model(&user).Association("Friends").Count() != 1 {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	friend := SelfReferencingUser{}
+	DB.Model(&newUser).Association("Friends").Find(&friend)
+	if friend.Name != "friend4_m2m" {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	DB.Model(&newUser).Association("Friends").Delete(friend)
+	if DB.Model(&user).Association("Friends").Count() != 0 {
+		t.Errorf("All friends should be deleted")
+	}
 }
