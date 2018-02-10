@@ -993,18 +993,6 @@ func (scope *Scope) changeableField(field *Field) bool {
 	return true
 }
 
-func (scope *Scope) shouldSaveAssociations() bool {
-	if saveAssociations, ok := scope.Get("gorm:save_associations"); ok {
-		if v, ok := saveAssociations.(bool); ok && !v {
-			return false
-		}
-		if v, ok := saveAssociations.(string); ok && (v != "skip") {
-			return false
-		}
-	}
-	return true && !scope.HasError()
-}
-
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 	toScope := scope.db.NewScope(value)
 	tx := scope.db.Set("gorm:association:source", scope.Value)

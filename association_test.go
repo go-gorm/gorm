@@ -885,7 +885,7 @@ func TestHasManyChildrenWithOneStruct(t *testing.T) {
 	DB.Save(&category)
 }
 
-func TestSkipSaveAssociation(t *testing.T) {
+func TestAutoSaveBelongsToAssociation(t *testing.T) {
 	type Company struct {
 		gorm.Model
 		Name string
@@ -895,13 +895,156 @@ func TestSkipSaveAssociation(t *testing.T) {
 		gorm.Model
 		Name      string
 		CompanyID uint
-		Company   Company `gorm:"save_associations:false"`
+		Company   Company `gorm:"association_autoupdate:false;association_autocreate:false;"`
 	}
+
+	DB.Where("name = ?", "auto_save_association").Delete(&Company{})
 	DB.AutoMigrate(&Company{}, &User{})
 
-	DB.Save(&User{Name: "jinzhu", Company: Company{Name: "skip_save_association"}})
+	DB.Save(&User{Name: "jinzhu", Company: Company{Name: "auto_save_association"}})
 
-	if !DB.Where("name = ?", "skip_save_association").First(&Company{}).RecordNotFound() {
-		t.Errorf("Company skip_save_association should not been saved")
+	if !DB.Where("name = ?", "auto_save_association").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company auto_save_association should not have been saved when autosave is false")
+	}
+
+	// if foreign key is set, this should be saved even if association isn't
+	company := Company{Name: "auto_save_association"}
+	DB.Save(&company)
+
+	company.Name = "auto_save_association_new_name"
+	user := User{Name: "jinzhu", Company: company}
+
+	DB.Save(&user)
+
+	if !DB.Where("name = ?", "auto_save_association_new_name").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should not have been updated")
+	}
+
+	if DB.Where("id = ? AND company_id = ?", user.ID, company.ID).First(&User{}).RecordNotFound() {
+		t.Errorf("User's foreign key should have been saved")
+	}
+
+	user2 := User{Name: "jinzhu_2", Company: Company{Name: "auto_save_association_2"}}
+	DB.Set("gorm:association_autocreate", true).Save(&user2)
+	if DB.Where("name = ?", "auto_save_association_2").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company auto_save_association_2 should been created when autocreate is true")
+	}
+
+	user2.Company.Name = "auto_save_association_2_newname"
+	DB.Set("gorm:association_autoupdate", true).Save(&user2)
+
+	if DB.Where("name = ?", "auto_save_association_2_newname").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should been updated")
+	}
+}
+
+func TestAutoSaveHasOneAssociation(t *testing.T) {
+	type Company struct {
+		gorm.Model
+		UserID uint
+		Name   string
+	}
+
+	type User struct {
+		gorm.Model
+		Name    string
+		Company Company `gorm:"association_autoupdate:false;association_autocreate:false;"`
+	}
+
+	DB.Where("name = ?", "auto_save_has_one_association").Delete(&Company{})
+	DB.AutoMigrate(&Company{}, &User{})
+
+	DB.Save(&User{Name: "jinzhu", Company: Company{Name: "auto_save_has_one_association"}})
+
+	if !DB.Where("name = ?", "auto_save_has_one_association").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company auto_save_has_one_association should not have been saved when autosave is false")
+	}
+
+	company := Company{Name: "auto_save_has_one_association"}
+	DB.Save(&company)
+
+	company.Name = "auto_save_has_one_association_new_name"
+	user := User{Name: "jinzhu", Company: company}
+
+	DB.Save(&user)
+
+	if !DB.Where("name = ?", "auto_save_has_one_association_new_name").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should not have been updated")
+	}
+
+	if !DB.Where("name = ? AND user_id = ?", "auto_save_has_one_association", user.ID).First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should not have been updated")
+	}
+
+	if user.Company.UserID == 0 {
+		t.Errorf("UserID should be assigned")
+	}
+
+	company.Name = "auto_save_has_one_association_2_new_name"
+	DB.Set("gorm:association_autoupdate", true).Save(&user)
+
+	if DB.Where("name = ? AND user_id = ?", "auto_save_has_one_association_new_name", user.ID).First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should been updated")
+	}
+
+	user2 := User{Name: "jinzhu_2", Company: Company{Name: "auto_save_has_one_association_2"}}
+	DB.Set("gorm:association_autocreate", true).Save(&user2)
+	if DB.Where("name = ?", "auto_save_has_one_association_2").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company auto_save_has_one_association_2 should been created when autocreate is true")
+	}
+}
+
+func TestAutoSaveMany2ManyAssociation(t *testing.T) {
+	type Company struct {
+		gorm.Model
+		Name string
+	}
+
+	type User struct {
+		gorm.Model
+		Name      string
+		Companies []Company `gorm:"many2many:user_companies;association_autoupdate:false;association_autocreate:false;"`
+	}
+
+	DB.AutoMigrate(&Company{}, &User{})
+
+	DB.Save(&User{Name: "jinzhu", Companies: []Company{{Name: "auto_save_m2m_association"}}})
+
+	if !DB.Where("name = ?", "auto_save_m2m_association").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company auto_save_m2m_association should not have been saved when autosave is false")
+	}
+
+	company := Company{Name: "auto_save_m2m_association"}
+	DB.Save(&company)
+
+	company.Name = "auto_save_m2m_association_new_name"
+	user := User{Name: "jinzhu", Companies: []Company{company, {Name: "auto_save_m2m_association_new_name_2"}}}
+
+	DB.Save(&user)
+
+	if !DB.Where("name = ?", "auto_save_m2m_association_new_name").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should not have been updated")
+	}
+
+	if !DB.Where("name = ?", "auto_save_m2m_association_new_name_2").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should not been created")
+	}
+
+	if DB.Model(&user).Association("Companies").Count() != 1 {
+		t.Errorf("Relationship should been saved")
+	}
+
+	DB.Set("gorm:association_autoupdate", true).Set("gorm:association_autocreate", true).Save(&user)
+
+	if DB.Where("name = ?", "auto_save_m2m_association_new_name").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should been updated")
+	}
+
+	if DB.Where("name = ?", "auto_save_m2m_association_new_name_2").First(&Company{}).RecordNotFound() {
+		t.Errorf("Company should been created")
+	}
+
+	if DB.Model(&user).Association("Companies").Count() != 2 {
+		t.Errorf("Relationship should been updated")
 	}
 }
