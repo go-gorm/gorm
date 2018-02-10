@@ -39,13 +39,10 @@ func (commonDialect) Quote(key string) string {
 }
 
 func (s *commonDialect) fieldCanAutoIncrement(field *StructField) bool {
-	// add a new tag "NOT_AUTO_INCREMENT"
-	_, not := field.TagSettings["NOT_AUTO_INCREMENT"]
-	if not {
-		return false
+	if value, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+		return value != "FALSE"
 	}
-	_, ok := field.TagSettings["AUTO_INCREMENT"]
-	return ok || field.IsPrimaryKey
+	return field.IsPrimaryKey
 }
 
 func (s *commonDialect) DataTypeOf(field *StructField) string {
