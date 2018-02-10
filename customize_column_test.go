@@ -279,3 +279,68 @@ func TestBelongsToWithPartialCustomizedColumn(t *testing.T) {
 		t.Errorf("should preload discount from coupon")
 	}
 }
+
+type SelfReferencingUser struct {
+	gorm.Model
+	Name    string
+	Friends []*SelfReferencingUser `gorm:"many2many:UserFriends;association_jointable_foreignkey:friend_id"`
+}
+
+func TestSelfReferencingMany2ManyColumn(t *testing.T) {
+	DB.DropTable(&SelfReferencingUser{}, "UserFriends")
+	DB.AutoMigrate(&SelfReferencingUser{})
+
+	friend1 := SelfReferencingUser{Name: "friend1_m2m"}
+	if err := DB.Create(&friend1).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	friend2 := SelfReferencingUser{Name: "friend2_m2m"}
+	if err := DB.Create(&friend2).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	user := SelfReferencingUser{
+		Name:    "self_m2m",
+		Friends: []*SelfReferencingUser{&friend1, &friend2},
+	}
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if DB.Model(&user).Association("Friends").Count() != 2 {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	var newUser = SelfReferencingUser{}
+
+	if err := DB.Preload("Friends").First(&newUser, "id = ?", user.ID).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if len(newUser.Friends) != 2 {
+		t.Errorf("Should preload created frineds for self reference m2m")
+	}
+
+	DB.Model(&newUser).Association("Friends").Append(&SelfReferencingUser{Name: "friend3_m2m"})
+	if DB.Model(&user).Association("Friends").Count() != 3 {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	DB.Model(&newUser).Association("Friends").Replace(&SelfReferencingUser{Name: "friend4_m2m"})
+	if DB.Model(&user).Association("Friends").Count() != 1 {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	friend := SelfReferencingUser{}
+	DB.Model(&newUser).Association("Friends").Find(&friend)
+	if friend.Name != "friend4_m2m" {
+		t.Errorf("Should find created friends correctly")
+	}
+
+	DB.Model(&newUser).Association("Friends").Delete(friend)
+	if DB.Model(&user).Association("Friends").Count() != 0 {
+		t.Errorf("All friends should be deleted")
+	}
+}

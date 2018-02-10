@@ -274,7 +274,7 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 
 // First find first record that match given conditions, order by primary key
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	newScope := s.clone().NewScope(out)
+	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
@@ -282,7 +282,7 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 
 // Last find last record that match given conditions, order by primary key
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	newScope := s.clone().NewScope(out)
+	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
 	return newScope.Set("gorm:order_by_primary_key", "DESC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
@@ -290,12 +290,12 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 
 // Find find records that match given conditions
 func (s *DB) Find(out interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+	return s.NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Scan scan value to a struct
 func (s *DB) Scan(dest interface{}) *DB {
-	return s.clone().NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
+	return s.NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Row return `*sql.Row` with given conditions
@@ -311,8 +311,8 @@ func (s *DB) Rows() (*sql.Rows, error) {
 // ScanRows scan `*sql.Rows` to give struct
 func (s *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 	var (
-		clone        = s.clone()
-		scope        = clone.NewScope(result)
+		scope        = s.NewScope(result)
+		clone        = scope.db
 		columns, err = rows.Columns()
 	)
 
@@ -337,7 +337,7 @@ func (s *DB) Count(value interface{}) *DB {
 
 // Related get related associations
 func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
-	return s.clone().NewScope(s.Value).related(value, foreignKeys...).db
+	return s.NewScope(s.Value).related(value, foreignKeys...).db
 }
 
 // FirstOrInit find first matched record or initialize a new one with given conditions (only works with struct, map conditions)
@@ -377,7 +377,7 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
-	return s.clone().NewScope(s.Value).
+	return s.NewScope(s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
 		InstanceSet("gorm:update_interface", values).
 		callCallbacks(s.parent.callbacks.updates).db
@@ -390,7 +390,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 
 // UpdateColumns update attributes without callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) UpdateColumns(values interface{}) *DB {
-	return s.clone().NewScope(s.Value).
+	return s.NewScope(s.Value).
 		Set("gorm:update_column", true).
 		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
@@ -399,7 +399,7 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 
 // Save update value in database, if the value doesn't have primary key, will insert it
 func (s *DB) Save(value interface{}) *DB {
-	scope := s.clone().NewScope(value)
+	scope := s.NewScope(value)
 	if !scope.PrimaryKeyZero() {
 		newDB := scope.callCallbacks(s.parent.callbacks.updates).db
 		if newDB.Error == nil && newDB.RowsAffected == 0 {
@@ -412,13 +412,13 @@ func (s *DB) Save(value interface{}) *DB {
 
 // Create insert the value into database
 func (s *DB) Create(value interface{}) *DB {
-	scope := s.clone().NewScope(value)
+	scope := s.NewScope(value)
 	return scope.callCallbacks(s.parent.callbacks.creates).db
 }
 
 // Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
-	return s.clone().NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
+	return s.NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
 
 // Raw use raw sql as conditions, won't run it unless invoked by other methods
@@ -429,7 +429,7 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 
 // Exec execute raw sql
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
-	scope := s.clone().NewScope(nil)
+	scope := s.NewScope(nil)
 	generatedSQL := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
 	generatedSQL = strings.TrimSuffix(strings.TrimPrefix(generatedSQL, "("), ")")
 	scope.Raw(generatedSQL)
@@ -495,7 +495,7 @@ func (s *DB) Rollback() *DB {
 
 // NewRecord check if value's primary key is blank
 func (s *DB) NewRecord(value interface{}) bool {
-	return s.clone().NewScope(value).PrimaryKeyZero()
+	return s.NewScope(value).PrimaryKeyZero()
 }
 
 // RecordNotFound check if returning ErrRecordNotFound error
@@ -544,7 +544,7 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 // HasTable check has table or not
 func (s *DB) HasTable(value interface{}) bool {
 	var (
-		scope     = s.clone().NewScope(value)
+		scope     = s.NewScope(value)
 		tableName string
 	)
 
@@ -570,14 +570,14 @@ func (s *DB) AutoMigrate(values ...interface{}) *DB {
 
 // ModifyColumn modify column to type
 func (s *DB) ModifyColumn(column string, typ string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.NewScope(s.Value)
 	scope.modifyColumn(column, typ)
 	return scope.db
 }
 
 // DropColumn drop a column
 func (s *DB) DropColumn(column string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.NewScope(s.Value)
 	scope.dropColumn(column)
 	return scope.db
 }
@@ -598,7 +598,7 @@ func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
 
 // RemoveIndex remove index with name
 func (s *DB) RemoveIndex(indexName string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.NewScope(s.Value)
 	scope.removeIndex(indexName)
 	return scope.db
 }
@@ -606,8 +606,16 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 // AddForeignKey Add foreign key to the given scope, e.g:
 //     db.Model(&User{}).AddForeignKey("city_id", "cities(id)", "RESTRICT", "RESTRICT")
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
+	return scope.db
+}
+
+// RemoveForeignKey Remove foreign key from the given scope, e.g:
+//     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
+func (s *DB) RemoveForeignKey(field string, dest string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.removeForeignKey(field, dest)
 	return scope.db
 }
 
