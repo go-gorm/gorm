@@ -722,7 +722,8 @@ db.Unscoped().Delete(&order)
 
 ## Associations
 
-By default when creating/updating a record, GORM will save its associations, if the association has primary key, GORM will call `Update` to save it, otherwise it will be created.
+By default when creating/updating a record, GORM will save its associations and its reference.
+If the association has a primary key already, GORM will call `Update` to save it, otherwise it will be created.
 
 ```go
 user := User{
@@ -757,13 +758,21 @@ db.Save(&user)
 
 Refer [Associations](associations.html) for more details
 
-### Skip Save Associations when creating/updating
+### Skip Auto Save Associations when creating/updating
 
 By default when saving an record, GORM will save its associations also, you could skip it by set `gorm:save_associations` to `false`
 
 ```go
-db.Set("gorm:save_associations", false).Create(&user)
+// Disable update associations with primary key, will update reference
+db.Set("gorm:association_autoupdate", false).Create(&user)
+db.Set("gorm:association_autoupdate", false).Save(&user)
 
+// Disable create associations w/o primary key, will update reference for records have primary key
+db.Set("gorm:association_autocreate", false).Create(&user)
+db.Set("gorm:association_autocreate", false).Save(&user)
+
+// Disable auto update/create associations, will update reference for records have primary key
+db.Set("gorm:save_associations", false).Create(&user)
 db.Set("gorm:save_associations", false).Save(&user)
 ```
 
@@ -774,13 +783,40 @@ You could use Tag to config your struct to never save an association when creati
 ```go
 type User struct {
   gorm.Model
-  Name      string
-  CompanyID uint
-  Company   Company `gorm:"save_associations:false"`
+  Name       string
+  CompanyID  uint
+  // Disable auto upate/create associations, will update reference for records have primary key
+  Company    Company `gorm:"save_associations:false"`
+  // Disable create associations w/0 primary key, will update reference for records have primary key
+  Company1   Company `gorm:"association_autocreate:false"`
+  // Disable auto creating associations w/o primary key, will update reference for records have primary key
+  Company2   Company `gorm:"association_autoupdate:false"`
+  // Disable autoupdate and autocreate associations, will update reference for records have primary key
+  Company3   Company `gorm:"association_autoupdate:false;association_autocreate:false"`
 }
 
 type Company struct {
   gorm.Model
   Name string
+}
+```
+
+### Skip Save Reference
+
+If you don't even want to save association's reference when updating/saving data, you could use below tricks
+
+```go
+db.Set("gorm:association_save_reference", false).Save(&user)
+db.Set("gorm:association_save_reference", false).Create(&user)
+```
+
+or use tag
+
+```go
+type User struct {
+  gorm.Model
+  Name       string
+  CompanyID  uint
+  Company    Company `gorm:"association_save_reference:false"`
 }
 ```

@@ -1230,7 +1230,8 @@ db.Unscoped().Delete(&amp;order)
 <span class="hljs-comment">//// DELETE FROM orders WHERE id=10;</span>
 </code></pre>
 <h2 id="associations">Associations</h2>
-<p>By default when creating/updating a record, GORM will save its associations, if the association has primary key, GORM will call <code>Update</code> to save it, otherwise it will be created.</p>
+<p>By default when creating/updating a record, GORM will save its associations and its reference.
+If the association has a primary key already, GORM will call <code>Update</code> to save it, otherwise it will be created.</p>
 <pre><code class="lang-go">user := User{
     Name:            <span class="hljs-string">&quot;jinzhu&quot;</span>,
     BillingAddress:  Address{Address1: <span class="hljs-string">&quot;Billing Address - Address 1&quot;</span>},
@@ -1261,24 +1262,52 @@ db.Create(&amp;user)
 db.Save(&amp;user)
 </code></pre>
 <p>Refer <a href="associations.html">Associations</a> for more details</p>
-<h3 id="skip-save-associations-when-creatingupdating">Skip Save Associations when creating/updating</h3>
+<h3 id="skip-auto-save-associations-when-creatingupdating">Skip Auto Save Associations when creating/updating</h3>
 <p>By default when saving an record, GORM will save its associations also, you could skip it by set <code>gorm:save_associations</code> to <code>false</code></p>
-<pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+<pre><code class="lang-go"><span class="hljs-comment">// Disable update associations with primary key, will update reference</span>
+db.Set(<span class="hljs-string">&quot;gorm:association_autoupdate&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+db.Set(<span class="hljs-string">&quot;gorm:association_autoupdate&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
 
+<span class="hljs-comment">// Disable create associations w/o primary key, will update reference for records have primary key</span>
+db.Set(<span class="hljs-string">&quot;gorm:association_autocreate&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+db.Set(<span class="hljs-string">&quot;gorm:association_autocreate&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
+
+<span class="hljs-comment">// Disable auto update/create associations, will update reference for records have primary key</span>
+db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
 db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
 </code></pre>
 <h3 id="skip-save-associations-by-tag">Skip Save Associations by Tag</h3>
 <p>You could use Tag to config your struct to never save an association when creating/updating</p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Name      <span class="hljs-keyword">string</span>
-  CompanyID <span class="hljs-keyword">uint</span>
-  Company   Company <span class="hljs-string">`gorm:&quot;save_associations:false&quot;`</span>
+  Name       <span class="hljs-keyword">string</span>
+  CompanyID  <span class="hljs-keyword">uint</span>
+  <span class="hljs-comment">// Disable auto upate/create associations, will update reference for records have primary key</span>
+  Company    Company <span class="hljs-string">`gorm:&quot;save_associations:false&quot;`</span>
+  <span class="hljs-comment">// Disable create associations w/0 primary key, will update reference for records have primary key</span>
+  Company1   Company <span class="hljs-string">`gorm:&quot;association_autocreate:false&quot;`</span>
+  <span class="hljs-comment">// Disable auto creating associations w/o primary key, will update reference for records have primary key</span>
+  Company2   Company <span class="hljs-string">`gorm:&quot;association_autoupdate:false&quot;`</span>
+  <span class="hljs-comment">// Disable autoupdate and autocreate associations, will update reference for records have primary key</span>
+  Company3   Company <span class="hljs-string">`gorm:&quot;association_autoupdate:false;association_autocreate:false&quot;`</span>
 }
 
 <span class="hljs-keyword">type</span> Company <span class="hljs-keyword">struct</span> {
   gorm.Model
   Name <span class="hljs-keyword">string</span>
+}
+</code></pre>
+<h3 id="skip-save-reference">Skip Save Reference</h3>
+<p>If you don&apos;t even want to save association&apos;s reference when updating/saving data, you could use below tricks</p>
+<pre><code class="lang-go">db.Set(<span class="hljs-string">&quot;gorm:association_save_reference&quot;</span>, <span class="hljs-literal">false</span>).Save(&amp;user)
+db.Set(<span class="hljs-string">&quot;gorm:association_save_reference&quot;</span>, <span class="hljs-literal">false</span>).Create(&amp;user)
+</code></pre>
+<p>or use tag</p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name       <span class="hljs-keyword">string</span>
+  CompanyID  <span class="hljs-keyword">uint</span>
+  Company    Company <span class="hljs-string">`gorm:&quot;association_save_reference:false&quot;`</span>
 }
 </code></pre>
 
@@ -1324,7 +1353,7 @@ db.Set(<span class="hljs-string">&quot;gorm:save_associations&quot;</span>, <spa
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-09T00:16:33.213Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-09T00:19:45.327Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-10T09:59:11.850Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-10T09:59:34.762Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
