@@ -228,16 +228,18 @@ type CustomizeAccount struct {
 }
 ```
 
-### Self referencing many2many relation
+### Self-Referencing Many To Many Relationship
 
-To define a self referencing many2many relationship, you need to change associations's join table foreign key,
+To define a self-referencing many2many relationship, you have to change association's join table foreign key.
 
-make it different with source's foreign key that generated using struct name and its priamry key, for example:
+to make sure make it different with source's foreign key, which is generated using struct's name and its priamry key.
+
+for example:
 
 ```go
 type User struct {
   gorm.Model
-  Friends []*User `gorm:"many2many:user_friends;association_jointable_foreignkey:friend_id"`
+  Friends []*User `gorm:"many2many:friendships;association_jointable_foreignkey:friend_id"`
 }
 ```
 
