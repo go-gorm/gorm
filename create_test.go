@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/jinzhu/now"
 )
 
 func TestCreate(t *testing.T) {
@@ -55,6 +57,34 @@ func TestCreate(t *testing.T) {
 	DB.First(&user, user.Id)
 	if user.CreatedAt.Format(time.RFC3339Nano) != newUser.CreatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("CreatedAt should not be changed after update")
+	}
+}
+
+func TestCreateWithExistingTimestamp(t *testing.T) {
+	user := User{Name: "CreateUserExistingTimestamp"}
+
+	timeA := now.MustParse("2016-01-01")
+	user.CreatedAt = timeA
+	user.UpdatedAt = timeA
+	DB.Save(&user)
+
+	if user.CreatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
+		t.Errorf("CreatedAt should not be changed")
+	}
+
+	if user.UpdatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
+		t.Errorf("UpdatedAt should not be changed")
+	}
+
+	var newUser User
+	DB.First(&newUser, user.Id)
+
+	if newUser.CreatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
+		t.Errorf("CreatedAt should not be changed")
+	}
+
+	if newUser.UpdatedAt.UTC().Format(time.RFC3339) != timeA.UTC().Format(time.RFC3339) {
+		t.Errorf("UpdatedAt should not be changed")
 	}
 }
 
