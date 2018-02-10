@@ -576,6 +576,14 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return scope.db
 }
 
+// RemoveForeignKey Remove foreign key from the given scope, e.g:
+//     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
+func (s *DB) RemoveForeignKey(field string, dest string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.removeForeignKey(field, dest)
+	return scope.db
+}
+
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
