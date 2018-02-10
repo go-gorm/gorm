@@ -107,7 +107,7 @@ func (association *Association) Replace(values ...interface{}) *Association {
 			if sourcePrimaryKeys := scope.getColumnAsArray(sourceForeignFieldNames, scope.Value); len(sourcePrimaryKeys) > 0 {
 				newDB = newDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(sourcePrimaryKeys)), toQueryValues(sourcePrimaryKeys)...)
 
-				association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship))
+				association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB))
 			}
 		} else if relationship.Kind == "has_one" || relationship.Kind == "has_many" {
 			// has_one or has_many relations, set foreign key to be nil (TODO or delete them?)
@@ -173,7 +173,7 @@ func (association *Association) Delete(values ...interface{}) *Association {
 		sql := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(deletingPrimaryKeys))
 		newDB = newDB.Where(sql, toQueryValues(deletingPrimaryKeys)...)
 
-		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB, relationship))
+		association.setErr(relationship.JoinTableHandler.Delete(relationship.JoinTableHandler, newDB))
 	} else {
 		var foreignKeyMap = map[string]interface{}{}
 		for _, foreignKey := range relationship.ForeignDBNames {
