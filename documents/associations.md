@@ -230,11 +230,9 @@ type CustomizeAccount struct {
 
 ### Self-Referencing Many To Many Relationship
 
-To define a self-referencing many2many relationship, you have to change association's join table foreign key.
+To define a self-referencing many2many relationship, you have to change association's foreign key in the join table.
 
-to make sure make it different with source's foreign key, which is generated using struct's name and its priamry key.
-
-for example:
+to make it different with source's foreign key, which is generated using struct's name and its priamry key, for example:
 
 ```go
 type User struct {
@@ -243,7 +241,23 @@ type User struct {
 }
 ```
 
-It will create a join table with foreign key `user_id` and `friend_id`, and use it to save user's self-reference relationship.
+GORM will create a join table with foreign key `user_id` and `friend_id`, and use it to save user's self-reference relationship.
+
+Then you can operate it like normal relations, e.g:
+
+```go
+DB.Preload("Friends").First(&user, "id = ?", 1)
+
+DB.Model(&user).Association("Friends").Append(&User{Name: "friend1"}, &User{Name: "friend2"})
+
+DB.Model(&user).Association("Friends").Delete(&User{Name: "friend2"})
+
+DB.Model(&user).Association("Friends").Replace(&User{Name: "new friend"})
+
+DB.Model(&user).Association("Friends").Clear()
+
+DB.Model(&user).Association("Friends").Count()
+```
 
 ## Polymorphism
 
