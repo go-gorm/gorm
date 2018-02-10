@@ -109,7 +109,24 @@ func (s JoinTableHandler) getSearchMap(db *DB, sources ...interface{}) map[strin
 // Add create relationship in join table for source and destination
 func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source interface{}, destination interface{}) error {
 	scope := db.NewScope("")
-	searchMap := s.getSearchMap(db, source, destination)
+	searchMap := map[string]interface{}{}
+
+	// getSearchMap() cannot be used here since the source and destination
+	// model types may be identical
+
+	sourceScope := db.NewScope(source)
+	for _, foreignKey := range s.Source.ForeignKeys {
+		if field, ok := sourceScope.FieldByName(foreignKey.AssociationDBName); ok {
+			searchMap[foreignKey.DBName] = field.Field.Interface()
+		}
+	}
+
+	destinationScope := db.NewScope(destination)
+	for _, foreignKey := range s.Destination.ForeignKeys {
+		if field, ok := destinationScope.FieldByName(foreignKey.AssociationDBName); ok {
+			searchMap[foreignKey.DBName] = field.Field.Interface()
+		}
+	}
 
 	var assignColumns, binVars, conditions []string
 	var values []interface{}
