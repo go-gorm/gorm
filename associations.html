@@ -699,7 +699,7 @@ db.Model(&amp;user).Related(&amp;profile)
 
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
     gorm.Model
-    Profile      Profile <span class="hljs-string">`gorm:&quot;ForeignKey:ProfileRefer&quot;`</span> <span class="hljs-comment">// use ProfileRefer as foreign key</span>
+    Profile      Profile <span class="hljs-string">`gorm:&quot;foreignkey:ProfileRefer&quot;`</span> <span class="hljs-comment">// use ProfileRefer as foreign key</span>
     ProfileRefer <span class="hljs-keyword">uint</span>
 }
 </code></pre>
@@ -712,7 +712,7 @@ db.Model(&amp;user).Related(&amp;profile)
 
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
     gorm.Model
-    Profile   Profile <span class="hljs-string">`gorm:&quot;ForeignKey:ProfileID;AssociationForeignKey:Refer&quot;`</span>
+    Profile   Profile <span class="hljs-string">`gorm:&quot;foreignkey:ProfileID;association_foreignkey:Refer&quot;`</span>
     ProfileID <span class="hljs-keyword">int</span>
 }
 </code></pre>
@@ -745,7 +745,7 @@ db.Model(&amp;user).Related(&amp;card)
 
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Profile Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
+  Profile Profile <span class="hljs-string">`gorm:&quot;foreignkey:UserRefer&quot;`</span>
 }
 </code></pre>
 <p><em>Specify Foreign Key &amp; Association Key</em></p>
@@ -758,7 +758,7 @@ db.Model(&amp;user).Related(&amp;card)
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
   Refer   <span class="hljs-keyword">uint</span>
-  Profile Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
+  Profile Profile <span class="hljs-string">`gorm:&quot;foreignkey:UserID;association_foreignkey:Refer&quot;`</span>
 }
 </code></pre>
 <h2 id="has-many">Has Many</h2>
@@ -786,7 +786,7 @@ db.Model(&amp;user).Related(&amp;emails)
 
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
-  Profiles []Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserRefer&quot;`</span>
+  Profiles []Profile <span class="hljs-string">`gorm:&quot;foreignkey:UserRefer&quot;`</span>
 }
 </code></pre>
 <p><em>Specify Foreign Key &amp; Association Key</em></p>
@@ -799,7 +799,7 @@ db.Model(&amp;user).Related(&amp;emails)
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
   gorm.Model
   Refer   <span class="hljs-keyword">uint</span>
-  Profiles []Profile <span class="hljs-string">`gorm:&quot;ForeignKey:UserID;AssociationForeignKey:Refer&quot;`</span>
+  Profiles []Profile <span class="hljs-string">`gorm:&quot;foreignkey:UserID;association_foreignkey:Refer&quot;`</span>
 }
 </code></pre>
 <h2 id="many-to-many">Many To Many</h2>
@@ -816,8 +816,10 @@ db.Model(&amp;user).Related(&amp;emails)
 
 db.Model(&amp;user).Related(&amp;languages, <span class="hljs-string">&quot;Languages&quot;</span>)
 <span class="hljs-comment">//// SELECT * FROM &quot;languages&quot; INNER JOIN &quot;user_languages&quot; ON &quot;user_languages&quot;.&quot;language_id&quot; = &quot;languages&quot;.&quot;id&quot; WHERE &quot;user_languages&quot;.&quot;user_id&quot; = 111</span>
+
+db.Preload(<span class="hljs-string">&quot;Languages&quot;</span>).First(&amp;user)
 </code></pre>
-<p>*With back-reference :</p>
+<p><em>With back-reference :</em></p>
 <pre><code class="lang-go"><span class="hljs-comment">// User has and belongs to many languages, use `user_languages` as join table</span>
 <span class="hljs-comment">// Make sure the two models are in different files</span>
 <span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
@@ -837,7 +839,7 @@ db.Model(&amp;language).Related(&amp;users)
 <p><em>Specify Foreign Key &amp; Association Key</em></p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> CustomizePerson <span class="hljs-keyword">struct</span> {
   IdPerson <span class="hljs-keyword">string</span>             <span class="hljs-string">`gorm:&quot;primary_key:true&quot;`</span>
-  Accounts []CustomizeAccount <span class="hljs-string">`gorm:&quot;many2many:PersonAccount;AssociationForeignKey:idAccount;ForeignKey:idPerson&quot;`</span>
+  Accounts []CustomizeAccount <span class="hljs-string">`gorm:&quot;many2many:PersonAccount;association_foreignkey:idAccount;foreignkey:idPerson&quot;`</span>
 }
 
 <span class="hljs-keyword">type</span> CustomizeAccount <span class="hljs-keyword">struct</span> {
@@ -845,6 +847,28 @@ db.Model(&amp;language).Related(&amp;users)
   Name      <span class="hljs-keyword">string</span>
 }
 </code></pre>
+<p>It will create a many2many relationship for those two structs, and their relations will be saved into join table <code>PersonAccount</code> with foreign keys <code>customize_person_id_person</code> AND <code>customize_account_id_account</code></p>
+<p><em>Specify jointable&apos;s foreign key</em></p>
+<p>If you want to change join table&apos;s foreign keys, you could use tag <code>association_jointable_foreignkey</code>, <code>jointable_foreignkey</code></p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> CustomizePerson <span class="hljs-keyword">struct</span> {
+  IdPerson <span class="hljs-keyword">string</span>             <span class="hljs-string">`gorm:&quot;primary_key:true&quot;`</span>
+  Accounts []CustomizeAccount <span class="hljs-string">`gorm:&quot;many2many:PersonAccount;foreignkey:idPerson;association_foreignkey:idAccount;association_jointable_foreignkey:account_id;jointable_foreignkey:person_id;&quot;`</span>
+}
+
+<span class="hljs-keyword">type</span> CustomizeAccount <span class="hljs-keyword">struct</span> {
+  IdAccount <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;primary_key:true&quot;`</span>
+  Name      <span class="hljs-keyword">string</span>
+}
+</code></pre>
+<h3 id="self-referencing-many2many-relation">Self referencing many2many relation</h3>
+<p>To define a self referencing many2many relationship, you need to change associations&apos;s join table foreign key,</p>
+<p>make it different with source&apos;s foreign key that generated using struct name and its priamry key, for example:</p>
+<pre><code class="lang-go"><span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Friends []*User <span class="hljs-string">`gorm:&quot;many2many:user_friends;association_jointable_foreignkey:friend_id&quot;`</span>
+}
+</code></pre>
+<p>It will create a join table with foreign key <code>user_id</code> and <code>friend_id</code>, and use it to save user&apos;s self-reference relationship.</p>
 <h2 id="polymorphism">Polymorphism</h2>
 <p>Supports polymorphic has-many and has-one associations.</p>
 <pre><code class="lang-go">  <span class="hljs-keyword">type</span> Cat <span class="hljs-keyword">struct</span> {
@@ -947,7 +971,7 @@ db.Model(&amp;user).Association(<span class="hljs-string">&quot;Languages&quot;<
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"Associations","level":"1.3.3","depth":2,"next":{"title":"Belongs To","level":"1.3.3.1","depth":3,"anchor":"#belongs-to","path":"associations.md","ref":"associations.md#belongs-to","articles":[]},"previous":{"title":"Conventions & Overriding","level":"1.3.2","depth":2,"anchor":"#conventions","path":"models.md","ref":"models.md#conventions","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"associations.md","mtime":"2018-02-10T09:36:03.479Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-10T09:59:34.762Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"Associations","level":"1.3.3","depth":2,"next":{"title":"Belongs To","level":"1.3.3.1","depth":3,"anchor":"#belongs-to","path":"associations.md","ref":"associations.md#belongs-to","articles":[]},"previous":{"title":"Conventions & Overriding","level":"1.3.2","depth":2,"anchor":"#conventions","path":"models.md","ref":"models.md#conventions","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"associations.md","mtime":"2018-02-10T13:56:41.798Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-10T13:56:48.328Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>

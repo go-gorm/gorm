@@ -31,7 +31,7 @@ type Profile struct {
 
 type User struct {
 	gorm.Model
-	Profile      Profile `gorm:"ForeignKey:ProfileRefer"` // use ProfileRefer as foreign key
+	Profile      Profile `gorm:"foreignkey:ProfileRefer"` // use ProfileRefer as foreign key
 	ProfileRefer uint
 }
 ```
@@ -47,7 +47,7 @@ type Profile struct {
 
 type User struct {
 	gorm.Model
-	Profile   Profile `gorm:"ForeignKey:ProfileID;AssociationForeignKey:Refer"`
+	Profile   Profile `gorm:"foreignkey:ProfileID;association_foreignkey:Refer"`
 	ProfileID int
 }
 ```
@@ -86,7 +86,7 @@ type Profile struct {
 
 type User struct {
   gorm.Model
-  Profile Profile `gorm:"ForeignKey:UserRefer"`
+  Profile Profile `gorm:"foreignkey:UserRefer"`
 }
 ```
 
@@ -102,7 +102,7 @@ type Profile struct {
 type User struct {
   gorm.Model
   Refer   uint
-  Profile Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+  Profile Profile `gorm:"foreignkey:UserID;association_foreignkey:Refer"`
 }
 ```
 
@@ -136,7 +136,7 @@ type Profile struct {
 
 type User struct {
   gorm.Model
-  Profiles []Profile `gorm:"ForeignKey:UserRefer"`
+  Profiles []Profile `gorm:"foreignkey:UserRefer"`
 }
 ```
 
@@ -152,7 +152,7 @@ type Profile struct {
 type User struct {
   gorm.Model
   Refer   uint
-  Profiles []Profile `gorm:"ForeignKey:UserID;AssociationForeignKey:Refer"`
+  Profiles []Profile `gorm:"foreignkey:UserID;association_foreignkey:Refer"`
 }
 ```
 
@@ -172,9 +172,12 @@ type Language struct {
 
 db.Model(&user).Related(&languages, "Languages")
 //// SELECT * FROM "languages" INNER JOIN "user_languages" ON "user_languages"."language_id" = "languages"."id" WHERE "user_languages"."user_id" = 111
+
+db.Preload("Languages").First(&user)
 ```
 
-*With back-reference :
+*With back-reference :*
+
 ```go
 // User has and belongs to many languages, use `user_languages` as join table
 // Make sure the two models are in different files
@@ -198,7 +201,7 @@ db.Model(&language).Related(&users)
 ```go
 type CustomizePerson struct {
   IdPerson string             `gorm:"primary_key:true"`
-  Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;AssociationForeignKey:idAccount;ForeignKey:idPerson"`
+  Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;association_foreignkey:idAccount;foreignkey:idPerson"`
 }
 
 type CustomizeAccount struct {
@@ -206,6 +209,39 @@ type CustomizeAccount struct {
   Name      string
 }
 ```
+
+It will create a many2many relationship for those two structs, and their relations will be saved into join table `PersonAccount` with foreign keys `customize_person_id_person` AND `customize_account_id_account`
+
+*Specify jointable's foreign key*
+
+If you want to change join table's foreign keys, you could use tag `association_jointable_foreignkey`, `jointable_foreignkey`
+
+```go
+type CustomizePerson struct {
+  IdPerson string             `gorm:"primary_key:true"`
+  Accounts []CustomizeAccount `gorm:"many2many:PersonAccount;foreignkey:idPerson;association_foreignkey:idAccount;association_jointable_foreignkey:account_id;jointable_foreignkey:person_id;"`
+}
+
+type CustomizeAccount struct {
+  IdAccount string `gorm:"primary_key:true"`
+  Name      string
+}
+```
+
+### Self referencing many2many relation
+
+To define a self referencing many2many relationship, you need to change associations's join table foreign key,
+
+make it different with source's foreign key that generated using struct name and its priamry key, for example:
+
+```go
+type User struct {
+  gorm.Model
+  Friends []*User `gorm:"many2many:user_friends;association_jointable_foreignkey:friend_id"`
+}
+```
+
+It will create a join table with foreign key `user_id` and `friend_id`, and use it to save user's self-reference relationship.
 
 ## Polymorphism
 
