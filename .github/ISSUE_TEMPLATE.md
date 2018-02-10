@@ -1,10 +1,4 @@
-Before posting a bug report about a problem, please try to verify that it is a bug and that it has not been reported already, please apply corresponding GitHub labels to the issue, for feature requests, please apply `type:feature`.
-
-DON'T post usage related questions, ask in https://gitter.im/jinzhu/gorm or http://stackoverflow.com/questions/tagged/go-gorm,
-
-Please answer these questions before submitting your issue. Thanks!
-
-
+Your issue may already be reported! Please search on the [issue track](https://github.com/jinzhu/gorm/issues) before creating one.
 
 ### What version of Go are you using (`go version`)?
 
@@ -12,9 +6,9 @@ Please answer these questions before submitting your issue. Thanks!
 ### Which database and its version are you using?
 
 
-### What did you do?
+### Please provide a complete runnable program to reproduce your issue. **IMPORTANT**
 
-Please provide a complete runnable program to reproduce your issue.
+Need to runnable with [GORM's docker compose config](https://github.com/jinzhu/gorm/blob/master/docker-compose.yml) or please provides your config.
 
 ```go
 package main
@@ -32,10 +26,9 @@ var db *gorm.DB
 func init() {
 	var err error
 	db, err = gorm.Open("sqlite3", "test.db")
-	// Please use below username, password as your database's account for the script.
-	// db, err = gorm.Open("postgres", "user=gorm dbname=gorm sslmode=disable")
-	// db, err = gorm.Open("mysql", "gorm:gorm@/dbname?charset=utf8&parseTime=True")
-	// db, err = gorm.Open("mssql", "sqlserver://gorm:LoremIpsum86@localhost:1433?database=gorm")
+	// db, err = gorm.Open("postgres", "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable")
+	// db, err = gorm.Open("mysql", "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True")
+	// db, err = gorm.Open("mssql", "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm")
 	if err != nil {
 		panic(err)
 	}
@@ -43,8 +36,6 @@ func init() {
 }
 
 func main() {
-	// your code here
-
 	if /* failure condition */ {
 		fmt.Println("failed")
 	} else {
