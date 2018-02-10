@@ -168,6 +168,15 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
+// QueryExpr returns the query as expr object
+func (s *DB) QueryExpr() *expr {
+	scope := s.NewScope(s.Value)
+	scope.InstanceSet("skip_bindvar", true)
+	scope.prepareQuerySQL()
+
+	return Expr(scope.SQL, scope.SQLVars...)
+}
+
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
@@ -218,7 +227,7 @@ func (s *DB) Group(query string) *DB {
 }
 
 // Having specify HAVING conditions for GROUP BY
-func (s *DB) Having(query string, values ...interface{}) *DB {
+func (s *DB) Having(query interface{}, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
@@ -599,6 +608,14 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.addForeignKey(field, dest, onDelete, onUpdate)
+	return scope.db
+}
+
+// RemoveForeignKey Remove foreign key from the given scope, e.g:
+//     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
+func (s *DB) RemoveForeignKey(field string, dest string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.removeForeignKey(field, dest)
 	return scope.db
 }
 

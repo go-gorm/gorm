@@ -10,6 +10,9 @@ import (
 
 // preloadCallback used to preload associations
 func preloadCallback(scope *Scope) {
+	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
+		return
+	}
 
 	if _, ok := scope.Get("gorm:auto_preload"); ok {
 		autoPreload(scope)
@@ -289,7 +292,12 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	// generate query with join table
 	newScope := scope.New(reflect.New(fieldType).Interface())
-	preloadDB = preloadDB.Table(newScope.TableName()).Model(newScope.Value).Select("*")
+	preloadDB = preloadDB.Table(newScope.TableName()).Model(newScope.Value)
+
+	if len(preloadDB.search.selects) == 0 {
+		preloadDB = preloadDB.Select("*")
+	}
+
 	preloadDB = joinTableHandler.JoinWith(joinTableHandler, preloadDB, scope.Value)
 
 	// preload inline conditions
@@ -318,6 +326,10 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		}
 
 		scope.scan(rows, columns, append(fields, joinTableFields...))
+
+		scope.New(elem.Addr().Interface()).
+			InstanceSet("gorm:skip_query_callback", true).
+			callCallbacks(scope.db.parent.callbacks.queries)
 
 		var foreignKeys = make([]interface{}, len(sourceKeys))
 		// generate hashed forkey keys in join table
