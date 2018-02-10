@@ -290,7 +290,9 @@ func (association *Association) Count() int {
 		)
 	}
 
-	query.Model(fieldValue).Count(&count)
+	if err := query.Model(fieldValue).Count(&count).Error; err != nil {
+		association.Error = err
+	}
 	return count
 }
 

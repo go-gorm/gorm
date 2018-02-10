@@ -71,11 +71,13 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 		dialect:   newDialect(dialect, dbSQL),
 	}
 	db.parent = db
-
-	if err == nil {
-		// Send a ping to make sure the database connection is alive.
-		if err = db.DB().Ping(); err != nil {
-			db.DB().Close()
+	if err != nil {
+		return
+	}
+	// Send a ping to make sure the database connection is alive.
+	if d, ok := dbSQL.(*sql.DB); ok {
+		if err = d.Ping(); err != nil {
+			d.Close()
 		}
 	}
 	return
@@ -166,6 +168,15 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
 }
 
+// QueryExpr returns the query as expr object
+func (s *DB) QueryExpr() *expr {
+	scope := s.NewScope(s.Value)
+	scope.InstanceSet("skip_bindvar", true)
+	scope.prepareQuerySQL()
+
+	return Expr(scope.SQL, scope.SQLVars...)
+}
+
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
@@ -216,7 +227,7 @@ func (s *DB) Group(query string) *DB {
 }
 
 // Having specify HAVING conditions for GROUP BY
-func (s *DB) Having(query string, values ...interface{}) *DB {
+func (s *DB) Having(query interface{}, values ...interface{}) *DB {
 	return s.clone().search.Having(query, values...).db
 }
 
@@ -452,7 +463,7 @@ func (s *DB) Debug() *DB {
 // Begin begin a transaction
 func (s *DB) Begin() *DB {
 	c := s.clone()
-	if db, ok := c.db.(sqlDb); ok {
+	if db, ok := c.db.(sqlDb); ok && db != nil {
 		tx, err := db.Begin()
 		c.db = interface{}(tx).(SQLCommon)
 		c.AddError(err)
@@ -464,7 +475,7 @@ func (s *DB) Begin() *DB {
 
 // Commit commit a transaction
 func (s *DB) Commit() *DB {
-	if db, ok := s.db.(sqlTx); ok {
+	if db, ok := s.db.(sqlTx); ok && db != nil {
 		s.AddError(db.Commit())
 	} else {
 		s.AddError(ErrInvalidTransaction)
@@ -474,7 +485,7 @@ func (s *DB) Commit() *DB {
 
 // Rollback rollback a transaction
 func (s *DB) Rollback() *DB {
-	if db, ok := s.db.(sqlTx); ok {
+	if db, ok := s.db.(sqlTx); ok && db != nil {
 		s.AddError(db.Rollback())
 	} else {
 		s.AddError(ErrInvalidTransaction)
@@ -600,6 +611,14 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return scope.db
 }
 
+// RemoveForeignKey Remove foreign key from the given scope, e.g:
+//     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
+func (s *DB) RemoveForeignKey(field string, dest string) *DB {
+	scope := s.clone().NewScope(s.Value)
+	scope.removeForeignKey(field, dest)
+	return scope.db
+}
+
 // Association start `Association Mode` to handler relations things easir in that mode, refer: https://jinzhu.github.io/gorm/associations.html#association-mode
 func (s *DB) Association(column string) *Association {
 	var err error
@@ -700,7 +719,7 @@ func (s *DB) GetErrors() []error {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (s *DB) clone() *DB {
-	db := DB{
+	db := &DB{
 		db:                s.db,
 		parent:            s.parent,
 		logger:            s.logger,
@@ -721,8 +740,8 @@ func (s *DB) clone() *DB {
 		db.search = s.search.clone()
 	}
 
-	db.search.db = &db
-	return &db
+	db.search.db = db
+	return db
 }
 
 func (s *DB) print(v ...interface{}) {
@@ -737,6 +756,6 @@ func (s *DB) log(v ...interface{}) {
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
 	if s.logMode == 2 {
-		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars)
+		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
 }

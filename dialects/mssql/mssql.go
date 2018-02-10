@@ -50,11 +50,11 @@ func (s *mssql) SetDB(db gorm.SQLCommon) {
 }
 
 func (mssql) BindVar(i int) string {
-	return "$$" // ?
+	return "$$$" // ?
 }
 
 func (mssql) Quote(key string) string {
-	return fmt.Sprintf(`"%s"`, key)
+	return fmt.Sprintf(`[%s]`, key)
 }
 
 func (s *mssql) DataTypeOf(field *gorm.StructField) string {
@@ -65,14 +65,14 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		case reflect.Bool:
 			sqlType = "bit"
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "int IDENTITY(1,1)"
 			} else {
 				sqlType = "int"
 			}
 		case reflect.Int64, reflect.Uint64:
-			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok || field.IsPrimaryKey {
+			if s.fieldCanAutoIncrement(field) {
 				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
 				sqlType = "bigint IDENTITY(1,1)"
 			} else {
@@ -81,21 +81,21 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		case reflect.Float32, reflect.Float64:
 			sqlType = "float"
 		case reflect.String:
-			if size > 0 && size < 65532 {
+			if size > 0 && size < 8000 {
 				sqlType = fmt.Sprintf("nvarchar(%d)", size)
 			} else {
-				sqlType = "text"
+				sqlType = "nvarchar(max)"
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
-				sqlType = "datetime2"
+				sqlType = "datetimeoffset"
 			}
 		default:
-			if _, ok := dataValue.Interface().([]byte); ok {
-				if size > 0 && size < 65532 {
-					sqlType = fmt.Sprintf("varchar(%d)", size)
+			if gorm.IsByteArrayOrSlice(dataValue) {
+				if size > 0 && size < 8000 {
+					sqlType = fmt.Sprintf("varbinary(%d)", size)
 				} else {
-					sqlType = "text"
+					sqlType = "varbinary(max)"
 				}
 			}
 		}
@@ -109,6 +109,13 @@ func (s *mssql) DataTypeOf(field *gorm.StructField) string {
 		return sqlType
 	}
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
+}
+
+func (s mssql) fieldCanAutoIncrement(field *gorm.StructField) bool {
+	if value, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+		return value != "FALSE"
+	}
+	return field.IsPrimaryKey
 }
 
 func (s mssql) HasIndex(tableName string, indexName string) bool {
@@ -128,14 +135,21 @@ func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
 
 func (s mssql) HasTable(tableName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, s.CurrentDatabase()).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
 	return count > 0
 }
 
 func (s mssql) HasColumn(tableName string, columnName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", s.CurrentDatabase(), tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
+}
+
+func (s mssql) ModifyColumn(tableName string, columnName string, typ string) error {
+	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
+	return err
 }
 
 func (s mssql) CurrentDatabase() (name string) {
@@ -145,12 +159,12 @@ func (s mssql) CurrentDatabase() (name string) {
 
 func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
 	if offset != nil {
-		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset > 0 {
+		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
 		}
 	}
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit > 0 {
+		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
 			if sql == "" {
 				// add default zero offset
 				sql += " OFFSET 0 ROWS"
@@ -167,4 +181,12 @@ func (mssql) SelectFromDummyTable() string {
 
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
+}
+
+func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
+	if strings.Contains(tableName, ".") {
+		splitStrings := strings.SplitN(tableName, ".", 2)
+		return splitStrings[0], splitStrings[1]
+	}
+	return dialect.CurrentDatabase(), tableName
 }

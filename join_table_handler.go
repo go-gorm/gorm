@@ -59,6 +59,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	s.TableName = tableName
 
 	s.Source = JoinTableSource{ModelType: source}
+	s.Source.ForeignKeys = []JoinTableForeignKey{}
 	for idx, dbName := range relationship.ForeignFieldNames {
 		s.Source.ForeignKeys = append(s.Source.ForeignKeys, JoinTableForeignKey{
 			DBName:            relationship.ForeignDBNames[idx],
@@ -67,6 +68,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 	}
 
 	s.Destination = JoinTableSource{ModelType: destination}
+	s.Destination.ForeignKeys = []JoinTableForeignKey{}
 	for idx, dbName := range relationship.AssociationForeignFieldNames {
 		s.Destination.ForeignKeys = append(s.Destination.ForeignKeys, JoinTableForeignKey{
 			DBName:            relationship.AssociationForeignDBNames[idx],

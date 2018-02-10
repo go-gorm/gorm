@@ -80,3 +80,38 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should deleted all addresses")
 	}
 }
+
+func TestEmbeddedMany2ManyRelationship(t *testing.T) {
+	type EmbeddedPerson struct {
+		ID        int
+		Name      string
+		Addresses []*Address `gorm:"many2many:person_addresses;"`
+	}
+
+	type NewPerson struct {
+		EmbeddedPerson
+		ExternalID uint
+	}
+	DB.Exec("drop table person_addresses;")
+	DB.AutoMigrate(&NewPerson{})
+
+	address1 := &Address{Address1: "address 1"}
+	address2 := &Address{Address1: "address 2"}
+	person := &NewPerson{ExternalID: 100, EmbeddedPerson: EmbeddedPerson{Name: "person", Addresses: []*Address{address1, address2}}}
+	if err := DB.Save(person).Error; err != nil {
+		t.Errorf("no error should return when save embedded many2many relationship, but got %v", err)
+	}
+
+	if err := DB.Model(person).Association("Addresses").Delete(address1).Error; err != nil {
+		t.Errorf("no error should return when delete embedded many2many relationship, but got %v", err)
+	}
+
+	association := DB.Model(person).Association("Addresses")
+	if count := association.Count(); count != 1 || association.Error != nil {
+		t.Errorf("Should found one address, but got %v, error is %v", count, association.Error)
+	}
+
+	if association.Clear(); association.Count() != 0 {
+		t.Errorf("Should deleted all addresses")
+	}
+}

@@ -96,6 +96,33 @@ func TestPreload(t *testing.T) {
 	}
 }
 
+func TestAutoPreload(t *testing.T) {
+	user1 := getPreloadUser("auto_user1")
+	DB.Save(user1)
+
+	preloadDB := DB.Set("gorm:auto_preload", true).Where("role = ?", "Preload")
+	var user User
+	preloadDB.Find(&user)
+	checkUserHasPreloadData(user, t)
+
+	user2 := getPreloadUser("auto_user2")
+	DB.Save(user2)
+
+	var users []User
+	preloadDB.Find(&users)
+
+	for _, user := range users {
+		checkUserHasPreloadData(user, t)
+	}
+
+	var users2 []*User
+	preloadDB.Find(&users2)
+
+	for _, user := range users2 {
+		checkUserHasPreloadData(*user, t)
+	}
+}
+
 func TestNestedPreload1(t *testing.T) {
 	type (
 		Level1 struct {
@@ -1597,6 +1624,48 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
+	}
+}
+
+func TestPreloadManyToManyCallbacks(t *testing.T) {
+	type (
+		Level2 struct {
+			ID   uint
+			Name string
+		}
+		Level1 struct {
+			ID      uint
+			Name    string
+			Level2s []Level2 `gorm:"many2many:level1_level2s;AssociationForeignKey:ID;ForeignKey:ID"`
+		}
+	)
+
+	DB.DropTableIfExists("level1_level2s")
+	DB.DropTableIfExists(new(Level1))
+	DB.DropTableIfExists(new(Level2))
+
+	if err := DB.AutoMigrate(new(Level1), new(Level2)).Error; err != nil {
+		t.Error(err)
+	}
+
+	lvl := Level1{
+		Name: "l1",
+		Level2s: []Level2{
+			Level2{Name: "l2-1"}, Level2{Name: "l2-2"},
+		},
+	}
+	DB.Save(&lvl)
+
+	called := 0
+
+	DB.Callback().Query().After("gorm:query").Register("TestPreloadManyToManyCallbacks", func(scope *gorm.Scope) {
+		called = called + 1
+	})
+
+	DB.Preload("Level2s").First(&Level1{}, "id = ?", lvl.ID)
+
+	if called != 3 {
+		t.Errorf("Wanted callback to be called 3 times but got %d", called)
 	}
 }
 
