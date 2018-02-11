@@ -99,7 +99,7 @@ func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
 	var address AddressByZipCode
 	DB.First(&address, "00501")
 	if address.ZipCode != "00501" {
-		t.Errorf("Fetch a record from with a string primary key for a numeric value starting with zero should work, but failed")
+		t.Errorf("Fetch a record from with a string primary key for a numeric value starting with zero should work, but failed, zip code is %v", address.ZipCode)
 	}
 }
 

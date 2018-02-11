@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -168,6 +169,8 @@ type Num int64
 func (i *Num) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
+		n, _ := strconv.Atoi(string(s))
+		*i = Num(n)
 	case int64:
 		*i = Num(s)
 	default:

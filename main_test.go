@@ -631,6 +631,47 @@ func TestQueryBuilderSubselectInWhere(t *testing.T) {
 	}
 }
 
+func TestQueryBuilderRawQueryWithSubquery(t *testing.T) {
+	user := User{Name: "subquery_test_user1", Age: 10}
+	DB.Save(&user)
+	user = User{Name: "subquery_test_user2", Age: 11}
+	DB.Save(&user)
+	user = User{Name: "subquery_test_user3", Age: 12}
+	DB.Save(&user)
+
+	var count int
+	err := DB.Raw("select count(*) from (?) tmp",
+		DB.Table("users").
+			Select("name").
+			Where("age >= ? and name in (?)", 10, []string{"subquery_test_user1", "subquery_test_user2"}).
+			Group("name").
+			QueryExpr(),
+	).Count(&count).Error
+
+	if err != nil {
+		t.Errorf("Expected to get no errors, but got %v", err)
+	}
+	if count != 2 {
+		t.Errorf("Row count must be 2, instead got %d", count)
+	}
+
+	err = DB.Raw("select count(*) from (?) tmp",
+		DB.Table("users").
+			Select("name").
+			Where("name LIKE ?", "subquery_test%").
+			Not("age <= ?", 10).Not("name in (?)", []string{"subquery_test_user1", "subquery_test_user2"}).
+			Group("name").
+			QueryExpr(),
+	).Count(&count).Error
+
+	if err != nil {
+		t.Errorf("Expected to get no errors, but got %v", err)
+	}
+	if count != 1 {
+		t.Errorf("Row count must be 1, instead got %d", count)
+	}
+}
+
 func TestQueryBuilderSubselectInHaving(t *testing.T) {
 	user := User{Name: "query_expr_having_ruser1", Email: "root@user1.com", Age: 64}
 	DB.Save(&user)
