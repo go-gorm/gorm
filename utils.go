@@ -130,6 +130,9 @@ func Expr(expression string, args ...interface{}) *expr {
 
 func indirect(reflectValue reflect.Value) reflect.Value {
 	for reflectValue.Kind() == reflect.Ptr {
+		if reflectValue.IsNil() && reflectValue.CanSet() {
+			reflectValue.Set(reflect.New(reflectValue.Type().Elem()))
+		}
 		reflectValue = reflectValue.Elem()
 	}
 	return reflectValue
