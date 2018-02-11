@@ -557,9 +557,13 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
+		var err error
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			if bytes, ok := arg.([]byte); ok {
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			} else if bytes, ok := arg.([]byte); ok {
 				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
 			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
@@ -572,10 +576,13 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 			}
 		default:
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
-				arg, _ = valuer.Value()
+				arg, err = valuer.Value()
 			}
 
 			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 	return
@@ -629,9 +636,13 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
+		var err error
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			if bytes, ok := arg.([]byte); ok {
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			} else if bytes, ok := arg.([]byte); ok {
 				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
 			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
@@ -644,9 +655,12 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 			}
 		default:
 			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
-				arg, _ = scanner.Value()
+				arg, err = scanner.Value()
 			}
 			str = strings.Replace(notEqualSQL, "?", scope.AddToVars(arg), 1)
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 	return
