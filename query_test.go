@@ -430,6 +430,15 @@ func TestCount(t *testing.T) {
 	if count1 != 1 || count2 != 3 {
 		t.Errorf("Multiple count in chain")
 	}
+
+	var count3 int
+	if err := DB.Model(&User{}).Where("name in (?)", []string{user2.Name, user2.Name, user3.Name}).Group("id").Count(&count3).Error; err != nil {
+		t.Errorf("Not error should happen, but got %v", err)
+	}
+
+	if count3 != 2 {
+		t.Errorf("Should get correct count, but got %v", count3)
+	}
 }
 
 func TestNot(t *testing.T) {
