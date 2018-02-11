@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -676,25 +677,37 @@ func TestSelectWithArrayInput(t *testing.T) {
 }
 
 func TestPluckWithSelect(t *testing.T) {
-	DB.Save(&User{Name: "matematik7", Age: 25})
+	var (
+		user              = User{Name: "matematik7_pluck_with_select", Age: 25}
+		combinedName      = fmt.Sprintf("%v%v", user.Name, user.Age)
+		combineUserAgeSQL = fmt.Sprintf("concat(%v, %v)", DB.Dialect().Quote("name"), DB.Dialect().Quote("age"))
+	)
 
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "sqlite" {
+		combineUserAgeSQL = fmt.Sprintf("(%v || %v)", DB.Dialect().Quote("name"), DB.Dialect().Quote("age"))
+	}
+
+	DB.Save(&user)
+
+	selectStr := combineUserAgeSQL + " as user_age"
 	var userAges []string
-	err := DB.Model(&User{}).Where("age = ?", 25).Select("name || ' - ' || age as user_age").Pluck("user_age", &userAges).Error
+	err := DB.Model(&User{}).Where("age = ?", 25).Select(selectStr).Pluck("user_age", &userAges).Error
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(userAges) != 1 || userAges[0] != "matematik7 - 25" {
+	if len(userAges) != 1 || userAges[0] != combinedName {
 		t.Errorf("Should correctly pluck with select, got: %s", userAges)
 	}
 
+	selectStr = combineUserAgeSQL + fmt.Sprintf(" as %v", DB.Dialect().Quote("user_age"))
 	userAges = userAges[:0]
-	err = DB.Model(&User{}).Where("age = ?", 25).Select("name || ' - ' || age as \"user_age\"").Pluck("user_age", &userAges).Error
+	err = DB.Model(&User{}).Where("age = ?", 25).Select(selectStr).Pluck("user_age", &userAges).Error
 	if err != nil {
 		t.Error(err)
 	}
 
-	if len(userAges) != 1 || userAges[0] != "matematik7 - 25" {
+	if len(userAges) != 1 || userAges[0] != combinedName {
 		t.Errorf("Should correctly pluck with select, got: %s", userAges)
 	}
 }

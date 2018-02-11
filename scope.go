@@ -948,7 +948,7 @@ func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
 		return true
 	}
 
-	if strings.HasSuffix(queryStr, "as \""+column+"\"") {
+	if strings.HasSuffix(queryStr, "as "+scope.Quote(column)) {
 		return true
 	}
 
