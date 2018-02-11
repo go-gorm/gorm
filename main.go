@@ -430,7 +430,7 @@ func (s *DB) Raw(sql string, values ...interface{}) *DB {
 // Exec execute raw sql
 func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	scope := s.NewScope(nil)
-	generatedSQL := scope.buildWhereCondition(map[string]interface{}{"query": sql, "args": values})
+	generatedSQL := scope.buildCondition(map[string]interface{}{"query": sql, "args": values}, true)
 	generatedSQL = strings.TrimSuffix(strings.TrimPrefix(generatedSQL, "("), ")")
 	scope.Raw(generatedSQL)
 	return scope.Exec().db
