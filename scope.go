@@ -938,12 +938,32 @@ func (scope *Scope) initialize() *Scope {
 	return scope
 }
 
+func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
+	queryStr := strings.ToLower(fmt.Sprint(query))
+	if queryStr == column {
+		return true
+	}
+
+	if strings.HasSuffix(queryStr, "as "+column) {
+		return true
+	}
+
+	if strings.HasSuffix(queryStr, "as "+scope.Quote(column)) {
+		return true
+	}
+
+	return false
+}
+
 func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
-	scope.Search.Select(column)
 	if dest.Kind() != reflect.Slice {
 		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
 		return scope
+	}
+
+	if query, ok := scope.Search.selects["query"]; !ok || !scope.isQueryForColumn(query, column) {
+		scope.Search.Select(column)
 	}
 
 	rows, err := scope.rows()
