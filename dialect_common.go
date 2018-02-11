@@ -40,7 +40,7 @@ func (commonDialect) Quote(key string) string {
 
 func (s *commonDialect) fieldCanAutoIncrement(field *StructField) bool {
 	if value, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
-		return value != "FALSE"
+		return strings.ToLower(value) != "false"
 	}
 	return field.IsPrimaryKey
 }

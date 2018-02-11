@@ -1,8 +1,12 @@
 package gorm_test
 
 import (
-	"github.com/jinzhu/gorm"
+	"encoding/hex"
+	"math/rand"
+	"strings"
 	"testing"
+
+	"github.com/jinzhu/gorm"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
@@ -39,5 +43,38 @@ func TestScopes(t *testing.T) {
 	DB.Scopes(NameIn([]string{user1.Name, user3.Name})).Find(&users3)
 	if len(users3) != 2 {
 		t.Errorf("Should found two users's name in 1, 3")
+	}
+}
+
+func randName() string {
+	data := make([]byte, 8)
+	rand.Read(data)
+
+	return "n-" + hex.EncodeToString(data)
+}
+
+func TestValuer(t *testing.T) {
+	name := randName()
+
+	origUser := User{Name: name, Age: 1, Password: EncryptedData("pass1"), PasswordHash: []byte("abc")}
+	if err := DB.Save(&origUser).Error; err != nil {
+		t.Errorf("No error should happen when saving user, but got %v", err)
+	}
+
+	var user2 User
+	if err := DB.Where("name = ? AND password = ? AND password_hash = ?", name, EncryptedData("pass1"), []byte("abc")).First(&user2).Error; err != nil {
+		t.Errorf("No error should happen when querying user with valuer, but got %v", err)
+	}
+}
+
+func TestFailedValuer(t *testing.T) {
+	name := randName()
+
+	err := DB.Exec("INSERT INTO users(name, password) VALUES(?, ?)", name, EncryptedData("xpass1")).Error
+
+	if err == nil {
+		t.Errorf("There should be an error should happen when insert data")
+	} else if !strings.HasPrefix(err.Error(), "Should not start with") {
+		t.Errorf("The error should be returned from Valuer, but get %v", err)
 	}
 }

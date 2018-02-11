@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -389,7 +390,7 @@ func TestOffset(t *testing.T) {
 		DB.Save(&User{Name: fmt.Sprintf("OffsetUser%v", i)})
 	}
 	var users1, users2, users3, users4 []User
-	DB.Limit(100).Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
+	DB.Limit(100).Where("name like ?", "OffsetUser%").Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
 
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
 		t.Errorf("Offset should work")
@@ -429,6 +430,15 @@ func TestCount(t *testing.T) {
 	DB.Model(&User{}).Where("name = ?", user1.Name).Count(&count1).Or("name in (?)", []string{user2.Name, user3.Name}).Count(&count2)
 	if count1 != 1 || count2 != 3 {
 		t.Errorf("Multiple count in chain")
+	}
+
+	var count3 int
+	if err := DB.Model(&User{}).Where("name in (?)", []string{user2.Name, user2.Name, user3.Name}).Group("id").Count(&count3).Error; err != nil {
+		t.Errorf("Not error should happen, but got %v", err)
+	}
+
+	if count3 != 2 {
+		t.Errorf("Should get correct count, but got %v", count3)
 	}
 }
 
@@ -663,5 +673,41 @@ func TestSelectWithArrayInput(t *testing.T) {
 
 	if user.Name != "jinzhu" || user.Age != 42 {
 		t.Errorf("Should have selected both age and name")
+	}
+}
+
+func TestPluckWithSelect(t *testing.T) {
+	var (
+		user              = User{Name: "matematik7_pluck_with_select", Age: 25}
+		combinedName      = fmt.Sprintf("%v%v", user.Name, user.Age)
+		combineUserAgeSQL = fmt.Sprintf("concat(%v, %v)", DB.Dialect().Quote("name"), DB.Dialect().Quote("age"))
+	)
+
+	if dialect := os.Getenv("GORM_DIALECT"); dialect == "sqlite" {
+		combineUserAgeSQL = fmt.Sprintf("(%v || %v)", DB.Dialect().Quote("name"), DB.Dialect().Quote("age"))
+	}
+
+	DB.Save(&user)
+
+	selectStr := combineUserAgeSQL + " as user_age"
+	var userAges []string
+	err := DB.Model(&User{}).Where("age = ?", 25).Select(selectStr).Pluck("user_age", &userAges).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(userAges) != 1 || userAges[0] != combinedName {
+		t.Errorf("Should correctly pluck with select, got: %s", userAges)
+	}
+
+	selectStr = combineUserAgeSQL + fmt.Sprintf(" as %v", DB.Dialect().Quote("user_age"))
+	userAges = userAges[:0]
+	err = DB.Model(&User{}).Where("age = ?", 25).Select(selectStr).Pluck("user_age", &userAges).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(userAges) != 1 || userAges[0] != combinedName {
+		t.Errorf("Should correctly pluck with select, got: %s", userAges)
 	}
 }

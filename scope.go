@@ -558,9 +558,13 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 	replacements := []string{}
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
+		var err error
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			if bytes, ok := arg.([]byte); ok {
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				replacements = append(replacements, scope.AddToVars(arg))
+			} else if bytes, ok := arg.([]byte); ok {
 				replacements = append(replacements, scope.AddToVars(bytes))
 			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
@@ -573,10 +577,13 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 			}
 		default:
 			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
-				arg, _ = valuer.Value()
+				arg, err = valuer.Value()
 			}
 
 			replacements = append(replacements, scope.AddToVars(arg))
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 
@@ -644,9 +651,13 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
+		var err error
 		switch reflect.ValueOf(arg).Kind() {
 		case reflect.Slice: // For where("id in (?)", []int64{1,2})
-			if bytes, ok := arg.([]byte); ok {
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			} else if bytes, ok := arg.([]byte); ok {
 				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
 			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
@@ -659,9 +670,12 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 			}
 		default:
 			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
-				arg, _ = scanner.Value()
+				arg, err = scanner.Value()
 			}
 			str = strings.Replace(notEqualSQL, "?", scope.AddToVars(arg), 1)
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 	return
@@ -954,12 +968,32 @@ func (scope *Scope) initialize() *Scope {
 	return scope
 }
 
+func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
+	queryStr := strings.ToLower(fmt.Sprint(query))
+	if queryStr == column {
+		return true
+	}
+
+	if strings.HasSuffix(queryStr, "as "+column) {
+		return true
+	}
+
+	if strings.HasSuffix(queryStr, "as "+scope.Quote(column)) {
+		return true
+	}
+
+	return false
+}
+
 func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
-	scope.Search.Select(column)
 	if dest.Kind() != reflect.Slice {
 		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
 		return scope
+	}
+
+	if query, ok := scope.Search.selects["query"]; !ok || !scope.isQueryForColumn(query, column) {
+		scope.Search.Select(column)
 	}
 
 	rows, err := scope.rows()
@@ -980,7 +1014,12 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 
 func (scope *Scope) count(value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
-		scope.Search.Select("count(*)")
+		if len(scope.Search.group) != 0 {
+			scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
+			scope.Search.group += " ) AS count_table"
+		} else {
+			scope.Search.Select("count(*)")
+		}
 	}
 	scope.Search.ignoreOrderQuery = true
 	scope.Err(scope.row().Scan(value))
@@ -1021,18 +1060,6 @@ func (scope *Scope) changeableField(field *Field) bool {
 	}
 
 	return true
-}
-
-func (scope *Scope) shouldSaveAssociations() bool {
-	if saveAssociations, ok := scope.Get("gorm:save_associations"); ok {
-		if v, ok := saveAssociations.(bool); ok && !v {
-			return false
-		}
-		if v, ok := saveAssociations.(string); ok && (v != "skip") {
-			return false
-		}
-	}
-	return true && !scope.HasError()
 }
 
 func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
