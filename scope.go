@@ -557,32 +557,32 @@ func (scope *Scope) buildWhereCondition(clause map[string]interface{}) (str stri
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		rArg := reflect.ValueOf(arg)
-		rArgType := reflect.TypeOf(arg)
-		vArg, isValuer := arg.(driver.Valuer)
 		var err error
-
-		//non byte slice and non driver.Valuer
-		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
-			if rArg.Len() > 0 {
-				tempMarks := make([]string, 0, rArg.Len())
-				for i := 0; i < rArg.Len(); i++ {
-					tempMarks = append(tempMarks, scope.AddToVars(rArg.Index(i).Interface()))
+		switch reflect.ValueOf(arg).Kind() {
+		case reflect.Slice: // For where("id in (?)", []int64{1,2})
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			} else if bytes, ok := arg.([]byte); ok {
+				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
+			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
+				var tempMarks []string
+				for i := 0; i < values.Len(); i++ {
+					tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 				}
-
 				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 			} else {
 				str = strings.Replace(str, "?", scope.AddToVars(Expr("NULL")), 1)
 			}
-		} else {
-			if isValuer {
-				arg, err = vArg.Value()
-				if err != nil {
-					scope.Err(err)
-				}
+		default:
+			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = valuer.Value()
 			}
 
 			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 	return
@@ -636,32 +636,31 @@ func (scope *Scope) buildNotCondition(clause map[string]interface{}) (str string
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		rArg := reflect.ValueOf(arg)
-		rArgType := reflect.TypeOf(arg)
-		vArg, isValuer := arg.(driver.Valuer)
 		var err error
-
-		//non byte slice and non driver.Valuer
-		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
-			if rArg.Len() > 0 {
-				tempMarks := make([]string, 0, rArg.Len())
-				for i := 0; i < rArg.Len(); i++ {
-					tempMarks = append(tempMarks, scope.AddToVars(rArg.Index(i).Interface()))
+		switch reflect.ValueOf(arg).Kind() {
+		case reflect.Slice: // For where("id in (?)", []int64{1,2})
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
+				str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
+			} else if bytes, ok := arg.([]byte); ok {
+				str = strings.Replace(str, "?", scope.AddToVars(bytes), 1)
+			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
+				var tempMarks []string
+				for i := 0; i < values.Len(); i++ {
+					tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 				}
-
 				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
 			} else {
 				str = strings.Replace(str, "?", scope.AddToVars(Expr("NULL")), 1)
 			}
-		} else {
-			if isValuer {
-				arg, err = vArg.Value()
-				if err != nil {
-					scope.Err(err)
-				}
+		default:
+			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, err = scanner.Value()
 			}
-
 			str = strings.Replace(notEqualSQL, "?", scope.AddToVars(arg), 1)
+		}
+		if err != nil {
+			scope.Err(err)
 		}
 	}
 	return
@@ -677,31 +676,18 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 
 	args := clause["args"].([]interface{})
 	for _, arg := range args {
-		rArg := reflect.ValueOf(arg)
-		rArgType := reflect.TypeOf(arg)
-		vArg, isValuer := arg.(driver.Valuer)
-		var err error
-
-		//non byte slice and non driver.Valuer
-		if arg != nil && rArgType.Kind() == reflect.Slice && rArgType.Elem().Kind() != reflect.Uint8 && !isValuer {
-			if rArg.Len() > 0 {
-				tempMarks := make([]string, 0, rArg.Len())
-				for i := 0; i < rArg.Len(); i++ {
-					tempMarks = append(tempMarks, scope.AddToVars(rArg.Index(i).Interface()))
-				}
-
-				str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
-			} else {
-				str = strings.Replace(str, "?", scope.AddToVars(Expr("NULL")), 1)
+		switch reflect.ValueOf(arg).Kind() {
+		case reflect.Slice:
+			values := reflect.ValueOf(arg)
+			var tempMarks []string
+			for i := 0; i < values.Len(); i++ {
+				tempMarks = append(tempMarks, scope.AddToVars(values.Index(i).Interface()))
 			}
-		} else {
-			if isValuer {
-				arg, err = vArg.Value()
-				if err != nil {
-					scope.Err(err)
-				}
+			str = strings.Replace(str, "?", strings.Join(tempMarks, ","), 1)
+		default:
+			if valuer, ok := interface{}(arg).(driver.Valuer); ok {
+				arg, _ = valuer.Value()
 			}
-
 			str = strings.Replace(str, "?", scope.AddToVars(arg), 1)
 		}
 	}
