@@ -183,6 +183,10 @@ func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }
 
+func (mssql) DefaultValueStr() string {
+	return "DEFAULT VALUES"
+}
+
 func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)

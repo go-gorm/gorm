@@ -62,6 +62,17 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateEmptyStrut(t *testing.T) {
+	type EmptyStruct struct {
+		ID uint
+	}
+	DB.AutoMigrate(&EmptyStruct{})
+
+	if err := DB.Create(&EmptyStruct{}).Error; err != nil {
+		t.Errorf("No error should happen when creating user, but got %v", err)
+	}
+}
+
 func TestCreateWithExistingTimestamp(t *testing.T) {
 	user := User{Name: "CreateUserExistingTimestamp"}
 

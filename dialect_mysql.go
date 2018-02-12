@@ -185,3 +185,7 @@ func (s mysql) BuildKeyName(kind, tableName string, fields ...string) string {
 
 	return fmt.Sprintf("%s%x", string(destRunes), bs)
 }
+
+func (mysql) DefaultValueStr() string {
+	return "VALUES()"
+}

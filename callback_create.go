@@ -97,8 +97,9 @@ func createCallback(scope *Scope) {
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
-				"INSERT INTO %v DEFAULT VALUES%v%v",
+				"INSERT INTO %v %v%v%v",
 				quotedTableName,
+				scope.Dialect().DefaultValueStr(),
 				addExtraSpaceIfExist(extraOption),
 				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
 			))
