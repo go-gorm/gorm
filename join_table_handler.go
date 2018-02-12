@@ -79,7 +79,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 
 // Table return join table's table name
 func (s JoinTableHandler) Table(db *DB) string {
-	return s.TableName
+	return DefaultTableNameHandler(db, s.TableName)
 }
 
 func (s JoinTableHandler) updateConditionMap(conditionMap map[string]interface{}, db *DB, joinTableSources []JoinTableSource, sources ...interface{}) {
