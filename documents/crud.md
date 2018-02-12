@@ -117,14 +117,14 @@ db.Where([]int64{20, 21, 22}).Find(&users)
 //// SELECT * FROM users WHERE id IN (20, 21, 22);
 ```
 
-**NOTE** When query with struct, GORM will only query with those fields has non-default value, that means if your field's value is `0`, `''`, `false` or other default values, it won't be used to build query conditions, for example:
+**NOTE** When query with struct, GORM will only query with those fields has non-zero value, that means if your field's value is `0`, `''`, `false` or other [zero values](https://tour.golang.org/basics/12), it won't be used to build query conditions, for example:
 
 ```go
 db.Where(&User{Name: "jinzhu", Age: 0}).Find(&users)
 //// SELECT * FROM users WHERE name = "jinzhu";
 ```
 
-You could consider to use pointer type or scanner/valuer to avoid this issue.
+You could consider to use pointer type or scanner/valuer to avoid this.
 
 ```go
 // Use pointer value
