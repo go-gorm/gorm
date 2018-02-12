@@ -21,6 +21,18 @@ var (
 // Errors contains all happened errors
 type Errors []error
 
+// IsRecordNotFoundError returns current error has record not found error or not
+func IsRecordNotFoundError(err error) bool {
+	if errs, ok := err.(Errors); ok {
+		for _, err := range errs {
+			if err == ErrRecordNotFound {
+				return true
+			}
+		}
+	}
+	return err == ErrRecordNotFound
+}
+
 // GetErrors gets all happened errors
 func (errs Errors) GetErrors() []error {
 	return errs
