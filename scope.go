@@ -578,12 +578,21 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 	case interface{}:
 		var sqls []string
 		newScope := scope.New(value)
+
+		if len(newScope.Fields()) == 0 {
+			scope.Err(fmt.Errorf("invalid query condition: %v", value))
+			return
+		}
+
 		for _, field := range newScope.Fields() {
 			if !field.IsIgnored && !field.IsBlank {
 				sqls = append(sqls, fmt.Sprintf("(%v.%v %s %v)", quotedTableName, scope.Quote(field.DBName), equalSQL, scope.AddToVars(field.Field.Interface())))
 			}
 		}
 		return strings.Join(sqls, " AND ")
+	default:
+		scope.Err(fmt.Errorf("invalid query condition: %v", value))
+		return
 	}
 
 	replacements := []string{}

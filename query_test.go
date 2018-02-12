@@ -87,6 +87,37 @@ func TestUIntPrimaryKey(t *testing.T) {
 	}
 }
 
+func TestCustomizedTypePrimaryKey(t *testing.T) {
+	type ID uint
+	type CustomizedTypePrimaryKey struct {
+		ID   ID
+		Name string
+	}
+
+	DB.AutoMigrate(&CustomizedTypePrimaryKey{})
+
+	p1 := CustomizedTypePrimaryKey{Name: "p1"}
+	p2 := CustomizedTypePrimaryKey{Name: "p2"}
+	p3 := CustomizedTypePrimaryKey{Name: "p3"}
+	DB.Create(&p1)
+	DB.Create(&p2)
+	DB.Create(&p3)
+
+	var p CustomizedTypePrimaryKey
+
+	if err := DB.First(&p, p2.ID).Error; err == nil {
+		t.Errorf("Should return error for invalid query condition")
+	}
+
+	if err := DB.First(&p, "id = ?", p2.ID).Error; err != nil {
+		t.Errorf("No error should happen when querying with customized type for primary key, got err %v", err)
+	}
+
+	if p.Name != "p2" {
+		t.Errorf("Should find correct value when querying with customized type for primary key")
+	}
+}
+
 func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
 	type AddressByZipCode struct {
 		ZipCode string `gorm:"primary_key"`
