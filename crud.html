@@ -686,18 +686,34 @@ db.Create(&amp;user)
 db.NewRecord(user) <span class="hljs-comment">// =&gt; return `false` after `user` created</span>
 </code></pre>
 <h3 id="default-values">Default Values</h3>
-<p>You could define default value in the <code>gorm</code> tag, then the inserting SQL will ignore these fields that has default value and its value is blank, and after insert the record into database, gorm will load those fields&apos;s value from database.</p>
+<p>You could define field&apos;s default value with tag, for example:</p>
 <pre><code class="lang-go"><span class="hljs-keyword">type</span> Animal <span class="hljs-keyword">struct</span> {
     ID   <span class="hljs-keyword">int64</span>
     Name <span class="hljs-keyword">string</span> <span class="hljs-string">`gorm:&quot;default:&apos;galeone&apos;&quot;`</span>
     Age  <span class="hljs-keyword">int64</span>
 }
-
-<span class="hljs-keyword">var</span> animal = Animal{Age: <span class="hljs-number">99</span>, Name: <span class="hljs-string">&quot;&quot;</span>}
+</code></pre>
+<p>Then the inserting SQL will exclude those fields that don&apos;t have value or having <a href="https://tour.golang.org/basics/12" target="_blank">zero values</a>, after insert the record into database, gorm will load those fields&apos;s value from database.</p>
+<pre><code class="lang-go"><span class="hljs-keyword">var</span> animal = Animal{Age: <span class="hljs-number">99</span>, Name: <span class="hljs-string">&quot;&quot;</span>}
 db.Create(&amp;animal)
 <span class="hljs-comment">// INSERT INTO animals(&quot;age&quot;) values(&apos;99&apos;);</span>
 <span class="hljs-comment">// SELECT name from animals WHERE ID=111; // the returning primary key is 111</span>
 <span class="hljs-comment">// animal.Name =&gt; &apos;galeone&apos;</span>
+</code></pre>
+<p><strong>NOTE</strong> all fields having zero value, like <code>0</code>, <code>&apos;&apos;</code>, <code>false</code> or other <a href="https://tour.golang.org/basics/12" target="_blank">zero values</a> won&apos;t be saved into database but will use its default value, it you want to avoid this, consider to use pointer type or scaner/valuer, eg:</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Use pointer value</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+  Age  *<span class="hljs-keyword">int</span> <span class="hljs-string">`gorm:&quot;default:18&quot;`</span>
+}
+
+<span class="hljs-comment">// Use scanner/valuer</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+  Age  sql.NullInt64 <span class="hljs-string">`gorm:&quot;default:18&quot;`</span>
+}
 </code></pre>
 <h3 id="setting-primary-key-in-callbacks">Setting Primary Key In Callbacks</h3>
 <p>If you want to set primary field&apos;s value in <code>BeforeCreate</code> callback, you could use <code>scope.SetColumn</code>, for example:</p>
@@ -1371,7 +1387,7 @@ db.Set(<span class="hljs-string">&quot;gorm:association_save_reference&quot;</sp
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-12T02:15:43.351Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-12T02:15:52.087Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-12T02:34:03.185Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-12T02:34:24.785Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
