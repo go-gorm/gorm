@@ -103,8 +103,6 @@ db.Where("created_at BETWEEN ? AND ?", lastWeek, today).Find(&users)
 
 ### Query With Where (Struct & Map)
 
-**NOTE** When query with struct, GORM will only query with those fields has value
-
 ```go
 // Struct
 db.Where(&User{Name: "jinzhu", Age: 20}).First(&user)
@@ -117,6 +115,31 @@ db.Where(map[string]interface{}{"name": "jinzhu", "age": 20}).Find(&users)
 // Slice of primary keys
 db.Where([]int64{20, 21, 22}).Find(&users)
 //// SELECT * FROM users WHERE id IN (20, 21, 22);
+```
+
+**NOTE** When query with struct, GORM will only query with those fields has non-default value, that means if your field's value is `0`, `''`, `false` or other default values, it won't be used to build query conditions, for example:
+
+```go
+db.Where(&User{Name: "jinzhu", Age: 0}).Find(&users)
+//// SELECT * FROM users WHERE name = "jinzhu";
+```
+
+You could consider to use pointer type or scanner/valuer to avoid this issue.
+
+```go
+// Use pointer value
+type User struct {
+  gorm.Model
+  Name string
+  Age  *int
+}
+
+// Use scanner/valuer
+type User struct {
+  gorm.Model
+  Name string
+  Age  sql.NullInt64
+}
 ```
 
 ### Query With Not

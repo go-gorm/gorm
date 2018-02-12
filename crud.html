@@ -754,7 +754,6 @@ db.Where(<span class="hljs-string">&quot;updated_at &gt; ?&quot;</span>, lastWee
 db.Where(<span class="hljs-string">&quot;created_at BETWEEN ? AND ?&quot;</span>, lastWeek, today).Find(&amp;users)
 </code></pre>
 <h3 id="query-with-where-struct--map">Query With Where (Struct &amp; Map)</h3>
-<p><strong>NOTE</strong> When query with struct, GORM will only query with those fields has value</p>
 <pre><code class="lang-go"><span class="hljs-comment">// Struct</span>
 db.Where(&amp;User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>, Age: <span class="hljs-number">20</span>}).First(&amp;user)
 <span class="hljs-comment">//// SELECT * FROM users WHERE name = &quot;jinzhu&quot; AND age = 20 LIMIT 1;</span>
@@ -766,6 +765,25 @@ db.Where(<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string
 <span class="hljs-comment">// Slice of primary keys</span>
 db.Where([]<span class="hljs-keyword">int64</span>{<span class="hljs-number">20</span>, <span class="hljs-number">21</span>, <span class="hljs-number">22</span>}).Find(&amp;users)
 <span class="hljs-comment">//// SELECT * FROM users WHERE id IN (20, 21, 22);</span>
+</code></pre>
+<p><strong>NOTE</strong> When query with struct, GORM will only query with those fields has non-default value, that means if your field&apos;s value is <code>0</code>, <code>&apos;&apos;</code>, <code>false</code> or other default values, it won&apos;t be used to build query conditions, for example:</p>
+<pre><code class="lang-go">db.Where(&amp;User{Name: <span class="hljs-string">&quot;jinzhu&quot;</span>, Age: <span class="hljs-number">0</span>}).Find(&amp;users)
+<span class="hljs-comment">//// SELECT * FROM users WHERE name = &quot;jinzhu&quot;;</span>
+</code></pre>
+<p>You could consider to use pointer type or scanner/valuer to avoid this issue.</p>
+<pre><code class="lang-go"><span class="hljs-comment">// Use pointer value</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+  Age  *<span class="hljs-keyword">int</span>
+}
+
+<span class="hljs-comment">// Use scanner/valuer</span>
+<span class="hljs-keyword">type</span> User <span class="hljs-keyword">struct</span> {
+  gorm.Model
+  Name <span class="hljs-keyword">string</span>
+  Age  sql.NullInt64
+}
 </code></pre>
 <h3 id="query-with-not">Query With Not</h3>
 <pre><code class="lang-go">db.Not(<span class="hljs-string">&quot;name&quot;</span>, <span class="hljs-string">&quot;jinzhu&quot;</span>).First(&amp;user)
@@ -1353,7 +1371,7 @@ db.Set(<span class="hljs-string">&quot;gorm:association_save_reference&quot;</sp
     <script>
         var gitbook = gitbook || [];
         gitbook.push(function() {
-            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-10T14:14:55.848Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-10T14:21:19.451Z"},"basePath":".","book":{"language":""}});
+            gitbook.page.hasChanged({"page":{"title":"CRUD: Reading and Writing Data","level":"1.4","depth":1,"next":{"title":"Create","level":"1.4.1","depth":2,"anchor":"#create","path":"crud.md","ref":"crud.md#create","articles":[]},"previous":{"title":"Dialect Specific Data Type","level":"1.3.4","depth":2,"anchor":"#dialect-data-type","path":"dialects.md","ref":"dialects.md#dialect-data-type","articles":[]},"dir":"ltr"},"config":{"plugins":["github","edit-link"],"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"pluginsConfig":{"fontsettings":{"theme":"night","family":"sans","size":2},"github":{"url":"https://github.com/jinzhu/gorm"},"edit-link":{"label":"Edit This Page","base":"https://github.com/jinzhu/gorm/edit/gh-pages/documents/"},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"theme":"default","pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"variables":{},"title":"GORM Guide","gitbook":"*"},"file":{"path":"crud.md","mtime":"2018-02-12T02:10:02.783Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2018-02-12T02:10:38.554Z"},"basePath":".","book":{"language":""}});
         });
     </script>
 </div>
