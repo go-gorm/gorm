@@ -49,6 +49,10 @@ func CreateAnimals(db *gorm.DB) err {
   tx := db.Begin()
   // Note the use of tx as the database handle once you are within a transaction
 
+  if tx.Error != nil {
+    return err
+  }
+
   if err := tx.Create(&Animal{Name: "Giraffe"}).Error; err != nil {
      tx.Rollback()
      return err
@@ -59,8 +63,7 @@ func CreateAnimals(db *gorm.DB) err {
      return err
   }
 
-  tx.Commit()
-  return nil
+  return tx.Commit().Error
 }
 ```
 
