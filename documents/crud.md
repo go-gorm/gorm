@@ -594,6 +594,18 @@ db.Preload("Orders.OrderItems").Find(&users)
 db.Preload("Orders", "state = ?", "paid").Preload("Orders.OrderItems").Find(&users)
 ```
 
+### Auto Preload
+
+Always auto preload associations
+
+```go
+type User struct {
+  gorm.Model
+  Name       string
+  CompanyID  uint
+  Company    Company `gorm:"auto_preload"`
+```
+
 ## Update
 
 ### Update All Fields
