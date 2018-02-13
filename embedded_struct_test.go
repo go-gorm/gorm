@@ -71,3 +71,21 @@ func TestSaveAndQueryEmbeddedStruct(t *testing.T) {
 		}
 	}
 }
+
+func TestEmbeddedPointerTypeStruct(t *testing.T) {
+	type HNPost struct {
+		*BasePost
+		Upvotes int32
+	}
+
+	DB.Create(&HNPost{BasePost: &BasePost{Title: "embedded_pointer_type"}})
+
+	var hnPost HNPost
+	if err := DB.First(&hnPost, "title = ?", "embedded_pointer_type").Error; err != nil {
+		t.Errorf("No error should happen when find embedded pointer type, but got %v", err)
+	}
+
+	if hnPost.Title != "embedded_pointer_type" {
+		t.Errorf("Should find correct value for embedded pointer type")
+	}
+}
