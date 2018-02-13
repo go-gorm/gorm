@@ -9,25 +9,6 @@ import (
 	"time"
 )
 
-// DB contains information for current db connection
-type DB struct {
-	Value        interface{}
-	Error        error
-	RowsAffected int64
-
-	// single db
-	db                SQLCommon
-	blockGlobalUpdate bool
-	search            *search
-	values            map[string]interface{}
-
-	// global db
-	parent        *DB
-	callbacks     *Callback
-	dialect       Dialect
-	singularTable bool
-}
-
 // Open initialize a new db connection, need to import driver first, e.g:
 //
 //     import _ "github.com/go-sql-driver/mysql"
