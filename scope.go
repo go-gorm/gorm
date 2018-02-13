@@ -649,12 +649,12 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 
 	buff := bytes.NewBuffer([]byte{})
 	i := 0
-	for pos := range str {
-		if str[pos] == '?' {
+	for _, s := range str {
+		if s == '?' {
 			buff.WriteString(replacements[i])
 			i++
 		} else {
-			buff.WriteByte(str[pos])
+			buff.WriteRune(s)
 		}
 	}
 
