@@ -606,6 +606,22 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 				replacements = append(replacements, scope.AddToVars(arg))
 			} else if b, ok := arg.([]byte); ok {
 				replacements = append(replacements, scope.AddToVars(b))
+			} else if as, ok := arg.([][]interface{}); ok {
+				var tempMarks []string
+				for _, a := range as {
+					var arrayMarks []string
+					for _, v := range a {
+						arrayMarks = append(arrayMarks, scope.AddToVars(v))
+					}
+
+					if len(arrayMarks) > 0 {
+						tempMarks = append(tempMarks, fmt.Sprintf("(%v)", strings.Join(arrayMarks, ",")))
+					}
+				}
+
+				if len(tempMarks) > 0 {
+					replacements = append(replacements, strings.Join(tempMarks, ","))
+				}
 			} else if values := reflect.ValueOf(arg); values.Len() > 0 {
 				var tempMarks []string
 				for i := 0; i < values.Len(); i++ {
