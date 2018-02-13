@@ -280,6 +280,13 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+// Take return a record that match given conditions, the order will depend on the database implementation
+func (s *DB) Take(out interface{}, where ...interface{}) *DB {
+	newScope := s.NewScope(out)
+	newScope.Search.Limit(1)
+	return newScope.inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+}
+
 // Last find last record that match given conditions, order by primary key
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
