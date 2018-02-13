@@ -436,6 +436,8 @@ db.Table("deleted_users").Count(&count)
 //// SELECT count(*) FROM deleted_users;
 ```
 
+**NOTE** When use `Count` in a query chain, it has to be the last one, as it will overwrite `SELECT` columns
+
 ### Group & Having
 
 ```go
