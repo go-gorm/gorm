@@ -94,14 +94,16 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	}
 
 	// Get scanner's real value
-	var getScannerValue func(reflect.Value)
-	getScannerValue = func(value reflect.Value) {
-		fieldValue = value
-		if _, isScanner := reflect.New(fieldValue.Type()).Interface().(sql.Scanner); isScanner && fieldValue.Kind() == reflect.Struct {
-			getScannerValue(fieldValue.Field(0))
+	if dataType == "" {
+		var getScannerValue func(reflect.Value)
+		getScannerValue = func(value reflect.Value) {
+			fieldValue = value
+			if _, isScanner := reflect.New(fieldValue.Type()).Interface().(sql.Scanner); isScanner && fieldValue.Kind() == reflect.Struct {
+				getScannerValue(fieldValue.Field(0))
+			}
 		}
+		getScannerValue(fieldValue)
 	}
-	getScannerValue(fieldValue)
 
 	// Default Size
 	if num, ok := field.TagSettings["SIZE"]; ok {
