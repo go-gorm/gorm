@@ -135,6 +135,73 @@ func indirect(reflectValue reflect.Value) reflect.Value {
 	return reflectValue
 }
 
+type Method struct {
+	index int
+	name  string
+	ptr   bool
+	valid bool
+}
+
+func (m Method) Index() int {
+	return m.index
+}
+
+func (m Method) Name() string {
+	return m.name
+}
+
+func (m Method) Ptr() bool {
+	return m.ptr
+}
+
+func (m Method) Valid() bool {
+	return m.valid
+}
+
+func (m Method) TypeMethod(typ reflect.Type) reflect.Method {
+	for typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	if m.ptr {
+		typ = reflect.PtrTo(typ)
+	}
+	return typ.Method(m.index)
+}
+
+func (m Method) ObjectMethod(object reflect.Value) reflect.Value {
+	object = indirect(object)
+	if m.ptr {
+		object = object.Addr()
+	}
+	return object.Method(m.index)
+}
+
+func MethodByName(typ reflect.Type, name string) (m Method) {
+	for typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	if typ.Kind() != reflect.Struct {
+		return
+	}
+
+	if method, ok := typ.MethodByName(name); ok {
+		m.index = method.Index
+		m.name = name
+		m.valid = true
+		return
+	}
+
+	if method, ok := reflect.PtrTo(typ).MethodByName(name); ok {
+		m.index = method.Index
+		m.name = name
+		m.ptr = true
+		m.valid = true
+	}
+
+	return
+}
+
 func toQueryMarks(primaryValues [][]interface{}) string {
 	var results []string
 
@@ -282,4 +349,10 @@ func addExtraSpaceIfExist(str string) string {
 		return " " + str
 	}
 	return ""
+}
+
+func checkOrPanic(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

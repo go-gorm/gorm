@@ -14,6 +14,15 @@ type Field struct {
 	Field   reflect.Value
 }
 
+func (field *Field) CallMethodCallbackArgs(name string, object reflect.Value, in []reflect.Value) {
+	field.StructField.CallMethodCallbackArgs(name, object, append([]reflect.Value{reflect.ValueOf(field)}, in...))
+}
+
+// Call the method callback
+func (field *Field) CallMethodCallback(name string, object reflect.Value, in ...reflect.Value) {
+	field.CallMethodCallbackArgs(name, object, in)
+}
+
 // Set set a value to the field
 func (field *Field) Set(value interface{}) (err error) {
 	if !field.Field.IsValid() {

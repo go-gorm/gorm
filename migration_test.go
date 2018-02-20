@@ -253,6 +253,95 @@ func (nt NullTime) Value() (driver.Value, error) {
 	return nt.Time, nil
 }
 
+type AfterScanFieldInterface interface {
+	CalledScopeIsNill() bool
+	CalledFieldIsNill() bool
+	Data() string
+}
+
+type AfterScanFieldPtr struct {
+	data                 string
+	calledScopeNotIsNill bool
+	calledFieldNotIsNill bool
+}
+
+func (s *AfterScanFieldPtr) Data() string {
+	return s.data
+}
+
+func (s AfterScanFieldPtr) CalledScopeIsNill() bool {
+	return !s.calledScopeNotIsNill
+}
+
+func (s AfterScanFieldPtr) CalledFieldIsNill() bool {
+	return !s.calledFieldNotIsNill
+}
+
+func (s *AfterScanFieldPtr) Scan(value interface{}) error {
+	s.data = string(value.([]byte))
+	return nil
+}
+
+func (s AfterScanFieldPtr) Value() (driver.Value, error) {
+	return s.data, nil
+}
+
+func (s *AfterScanFieldPtr) AfterScan(scope *gorm.Scope, field *gorm.Field) {
+	s.calledScopeNotIsNill = scope != nil
+	s.calledFieldNotIsNill = field != nil
+}
+
+type AfterScanField struct {
+	data                 string
+	calledScopeNotIsNill bool
+}
+
+func (s *AfterScanField) Data() string {
+	return s.data
+}
+
+func (s AfterScanField) CalledScopeIsNill() bool {
+	return !s.calledScopeNotIsNill
+}
+
+func (s AfterScanField) CalledFieldIsNill() bool {
+	return false
+}
+
+func (s *AfterScanField) Scan(value interface{}) error {
+	s.data = string(value.([]byte))
+	return nil
+}
+
+func (s AfterScanField) Value() (driver.Value, error) {
+	return s.data, nil
+}
+
+func (s *AfterScanField) AfterScan(scope *gorm.Scope) {
+	s.calledScopeNotIsNill = scope != nil
+}
+
+type WithFieldAfterScanCallback struct {
+	ID    int
+	Name1 *AfterScanFieldPtr
+	Name2 AfterScanFieldPtr
+	Name3 *AfterScanField
+	Name4 AfterScanField
+}
+
+type InvalidAfterScanField struct {
+	AfterScanField
+}
+
+func (s InvalidAfterScanField) AfterScan(invalidArg int) {
+}
+
+type WithFieldAfterScanInvalidCallback struct {
+	ID    int
+	Name InvalidAfterScanField
+}
+
+
 func getPreparedUser(name string, role string) *User {
 	var company Company
 	DB.Where(Company{Name: role}).FirstOrCreate(&company)
@@ -284,7 +373,7 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}}
+	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &WithFieldAfterScanCallback{}, &WithFieldAfterScanInvalidCallback{}}
 	for _, value := range values {
 		DB.DropTable(value)
 	}

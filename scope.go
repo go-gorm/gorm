@@ -238,7 +238,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	return errors.New("could not convert column to field")
 }
 
-// CallMethod call scope value's method, if it is a slice, will call its element's method one by one
+// CallMethod call scope value's Method, if it is a slice, will call its element's Method one by one
 func (scope *Scope) CallMethod(methodName string) {
 	if scope.Value == nil {
 		return
@@ -482,6 +482,8 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		resetFields        = map[int]*Field{}
 	)
 
+	scannerFields := make(map[int]*Field)
+
 	for index, column := range columns {
 		values[index] = &ignored
 
@@ -492,6 +494,8 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 		for fieldIndex, field := range selectFields {
 			if field.DBName == column {
+				scannerFields[index] = field
+
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -512,9 +516,32 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 	scope.Err(rows.Scan(values...))
 
+	disableScanField := make(map[int]bool)
+
 	for index, field := range resetFields {
-		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
-			field.Field.Set(v)
+		reflectValue := reflect.ValueOf(values[index]).Elem().Elem()
+		if reflectValue.IsValid() {
+			field.Field.Set(reflectValue)
+		} else {
+			disableScanField[index] = true
+		}
+	}
+
+	if !scope.HasError() {
+		key := "gorm:disable_after_scan"
+		if v, ok := scope.Get(key); !ok || !v.(bool) {
+			valueType := indirect(reflect.ValueOf(scope.Value)).Type()
+			if v, ok := scope.Get(key + ":" + valueType.PkgPath() + "." + valueType.Name()); !ok || !v.(bool) {
+				scopeValue := reflect.ValueOf(scope)
+				for index, field := range scannerFields {
+					if _, ok := disableScanField[index]; !ok {
+						if field.Field.Kind() == reflect.Struct || (field.Field.Kind() == reflect.Ptr && field.Field.Elem().Kind() == reflect.Struct) {
+							reflectValue := field.Field.Addr()
+							field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
+						}
+					}
+				}
+			}
 		}
 	}
 }
