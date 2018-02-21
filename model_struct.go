@@ -605,6 +605,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					}
 				}
 
+				// register method callbacks now for improve performance
 				field.MethodCallbacks = make(map[string]StructFieldMethodCallback)
 
 				for callbackName, caller := range StructFieldMethodCallbacks.Callbacks {

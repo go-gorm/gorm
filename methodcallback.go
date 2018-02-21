@@ -3,17 +3,124 @@ package gorm
 import (
 	"reflect"
 	"fmt"
+	"sync"
 )
 
-var interfaceType = reflect.TypeOf(func(a interface{}) {}).In(0)
 var methodPtrType = reflect.PtrTo(reflect.TypeOf(Method{}))
 
-type StructFieldMethodCallbacksRegistrator struct {
-	Callbacks map[string]reflect.Value
+type safeEnabledFieldTypes struct {
+	m map[reflect.Type]bool
+	l *sync.RWMutex
 }
 
-func (registrator *StructFieldMethodCallbacksRegistrator) Register(methodName string, caller interface{}) error {
-	value := reflect.ValueOf(caller)
+func newSafeEnabledFieldTypes() safeEnabledFieldTypes {
+	return safeEnabledFieldTypes{make(map[reflect.Type]bool), new(sync.RWMutex)}
+}
+
+func (s *safeEnabledFieldTypes) Set(key interface{}, enabled bool) {
+	switch k := key.(type) {
+	case reflect.Type:
+		k = indirectType(k)
+		s.l.Lock()
+		defer s.l.Unlock()
+		s.m[k] = enabled
+	default:
+		s.Set(reflect.TypeOf(key), enabled)
+	}
+}
+
+func (s *safeEnabledFieldTypes) Get(key interface{}) (enabled bool, ok bool) {
+	switch k := key.(type) {
+	case reflect.Type:
+		k = indirectType(k)
+		s.l.RLock()
+		defer s.l.RUnlock()
+		enabled, ok = s.m[k]
+		return
+	default:
+		return s.Get(reflect.TypeOf(key))
+	}
+}
+
+func (s *safeEnabledFieldTypes) Has(key interface{}) (ok bool) {
+	switch k := key.(type) {
+	case reflect.Type:
+		k = indirectType(k)
+		s.l.RLock()
+		defer s.l.RUnlock()
+		_, ok = s.m[k]
+		return
+	default:
+		return s.Has(reflect.TypeOf(key))
+	}
+}
+
+func (s *safeEnabledFieldTypes) Del(key interface{}) (ok bool) {
+	switch k := key.(type) {
+	case reflect.Type:
+		k = indirectType(k)
+		s.l.Lock()
+		defer s.l.Unlock()
+		_, ok = s.m[k]
+		if ok {
+			delete(s.m, k)
+		}
+		return
+	default:
+		return s.Del(reflect.TypeOf(key))
+	}
+}
+
+type StructFieldMethodCallbacksRegistrator struct {
+	Callbacks  map[string]reflect.Value
+	FieldTypes safeEnabledFieldTypes
+	l          *sync.RWMutex
+}
+
+// Register new field type and enable all available callbacks for here
+func (registrator *StructFieldMethodCallbacksRegistrator) RegisterFieldType(typs ...interface{}) {
+	for _, typ := range typs {
+		if !registrator.FieldTypes.Has(typ) {
+			registrator.FieldTypes.Set(typ, true)
+		}
+	}
+}
+
+// Unregister field type and return if ok
+func (registrator *StructFieldMethodCallbacksRegistrator) UnregisterFieldType(typ interface{}) (ok bool) {
+	return registrator.FieldTypes.Del(typ)
+}
+
+// Enable all callbacks for field type
+func (registrator *StructFieldMethodCallbacksRegistrator) EnableFieldType(typs ...interface{}) {
+	for _, typ := range typs {
+		registrator.FieldTypes.Set(typ, true)
+	}
+}
+
+// Disable all callbacks for field type
+func (registrator *StructFieldMethodCallbacksRegistrator) DisableFieldType(typs ...interface{}) {
+	for _, typ := range typs {
+		registrator.FieldTypes.Set(typ, false)
+	}
+}
+
+// Return if all callbacks for field type is enabled
+func (registrator *StructFieldMethodCallbacksRegistrator) EnabledFieldType(typ interface{}) bool {
+	if enabled, ok := registrator.FieldTypes.Get(typ); ok {
+		return enabled
+	}
+	return false
+}
+
+// Return if field type is registered
+func (registrator *StructFieldMethodCallbacksRegistrator) RegisteredFieldType(typ interface{}) bool {
+	return registrator.FieldTypes.Has(typ)
+}
+
+// Register new callback for fields have method methodName
+func (registrator *StructFieldMethodCallbacksRegistrator) registerCallback(methodName string, caller interface{}) error {
+	value := indirect(reflect.ValueOf(caller))
 
 	if value.Kind() != reflect.Func {
 		return fmt.Errorf("Caller of method %q isn't a function.", methodName)
@@ -28,18 +135,21 @@ func (registrator *StructFieldMethodCallbacksRegistrator) Register(methodName st
 		return fmt.Errorf("First arg of caller %v for method %q isn't a %v type.", value.Type(), methodName, methodPtrType)
 	}
 
-	if value.Type().In(1) != interfaceType {
+	if value.Type().In(1).Kind() != reflect.Interface {
 		return fmt.Errorf("Second arg of caller %v for method %q isn't a interface{} type.", value.Type(), methodName)
 	}
 
+	registrator.l.Lock()
+	defer registrator.l.Unlock()
 	registrator.Callbacks[methodName] = value
 	return nil
 }
 
-func (registrator *StructFieldMethodCallbacksRegistrator) RegisterMany(items ...map[string]interface{}) error {
+// Register many callbacks where key is the methodName and value is a caller function.
+func (registrator *StructFieldMethodCallbacksRegistrator) registerCallbackMany(items ...map[string]interface{}) error {
 	for i, m := range items {
 		for methodName, callback := range m {
-			err := registrator.Register(methodName, callback)
+			err := registrator.registerCallback(methodName, callback)
 			if err != nil {
 				return fmt.Errorf("Register arg[%v][%q] failed: %v", i, methodName, err)
 			}
@@ -49,7 +159,8 @@ func (registrator *StructFieldMethodCallbacksRegistrator) RegisterMany(items ...
 }
 
 func NewStructFieldMethodCallbacksRegistrator() *StructFieldMethodCallbacksRegistrator {
-	return &StructFieldMethodCallbacksRegistrator{make(map[string]reflect.Value)}
+	return &StructFieldMethodCallbacksRegistrator{make(map[string]reflect.Value), newSafeEnabledFieldTypes(),
+		new(sync.RWMutex)}
 }
 
 func AfterScanMethodCallback(methodInfo *Method, method interface{}, field *Field, scope *Scope) {
@@ -86,7 +197,7 @@ func AfterScanMethodCallback(methodInfo *Method, method interface{}, field *Fiel
 var StructFieldMethodCallbacks = NewStructFieldMethodCallbacksRegistrator()
 
 func init() {
-	checkOrPanic(StructFieldMethodCallbacks.RegisterMany(map[string]interface{}{
+	checkOrPanic(StructFieldMethodCallbacks.registerCallbackMany(map[string]interface{}{
 		"AfterScan": AfterScanMethodCallback,
 	}))
 }

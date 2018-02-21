@@ -766,3 +766,61 @@ func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
 		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
 }
+
+// Disable after scan callback. If typs not is empty, disable for typs, other else, disable for all
+func (s *DB) DisableAfterScanCallback(typs ...interface{}) *DB  {
+	key := "gorm:disable_after_scan"
+
+	s = s.clone()
+
+	if len(typs) == 0 {
+		s.values[key] = true
+		return s
+	}
+
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		s.values[key + ":" + rType.PkgPath() + "." + rType.Name()] = true
+	}
+
+	return s
+}
+
+// Enable after scan callback. If typs not is empty, enable for typs, other else, enable for all.
+// The disabled types will not be enabled unless they are specifically informed.
+func (s *DB) EnableAfterScanCallback(typs ...interface{}) *DB  {
+	key := "gorm:disable_after_scan"
+
+	s = s.clone()
+
+	if len(typs) == 0 {
+		s.values[key] = false
+		return s
+	}
+
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		s.values[key + ":" + rType.PkgPath() + "." + rType.Name()] = false
+	}
+
+	return s
+}
+
+// Return if after scan callbacks has be enable. If typs is empty, return default, other else, return for informed
+// typs.
+func (s *DB) EnabledAfterScanCallback(typs ...interface{}) (ok bool) {
+	key := "gorm:disable_after_scan"
+
+	if v, ok := s.values[key]; !ok || v.(bool) {
+		for _, typ := range typs {
+			rType := indirectType(reflect.TypeOf(typ))
+			v, ok = s.values[key + ":" + rType.PkgPath() + "." + rType.Name()]
+			if ok && !v.(bool) {
+				return false
+			}
+		}
+		return true
+	}
+
+	return false
+}

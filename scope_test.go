@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/jinzhu/gorm"
-	"reflect"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
@@ -124,29 +123,80 @@ func TestAfterFieldScanDisableCallback(t *testing.T) {
 		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
 	}
 
-	run := func(key string) {
-		DB := DB.Set(key, true)
+	run := func(typs ... interface{}) {
+		DB := DB.DisableAfterScanCallback(typs...)
 		var model2 WithFieldAfterScanCallback
 		if err := DB.Where("id = ?", model.ID).First(&model2).Error; err != nil {
-			t.Errorf("%q: No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", key, err)
+			t.Errorf("%q: No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", len(typs), err)
 		}
 
 		dotest := func(i int, value string, field AfterScanFieldInterface) {
 			if !field.CalledFieldIsNill() {
-				t.Errorf("%q: Expected Name%v.calledField is not nil", key, i)
+				t.Errorf("%q: Expected Name%v.calledField is not nil", len(typs), i)
 			}
 
 			if !field.CalledScopeIsNill() {
-				t.Errorf("%q: Expected Name%v.calledScope is not nil", key, i)
+				t.Errorf("%q: Expected Name%v.calledScope is not nil", len(typs), i)
 			}
 		}
 
 		dotest(1, model.Name1.data, model2.Name1)
 	}
 
-	run("gorm:disable_after_scan")
-	typ := reflect.ValueOf(model).Type()
-	run("gorm:disable_after_scan:" + typ.PkgPath() + "." + typ.Name())
+	run()
+	run(model)
+}
+
+func TestAfterFieldScanCallbackTypeDisabled(t *testing.T) {
+	model := WithFieldAfterScanCallback{}
+	model.Name1 = &AfterScanFieldPtr{data: randName()}
+	model.Name2 = AfterScanFieldPtr{data: randName()}
+	model.Name3 = &AfterScanField{data: randName()}
+	model.Name4 = AfterScanField{data: randName()}
+
+	if err := DB.Save(&model).Error; err != nil {
+		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
+	}
+
+	enabled := func(i int, field AfterScanFieldInterface) {
+		if field.CalledScopeIsNill() {
+			t.Errorf("Expected Name%v.calledScope, but got nil", i)
+		}
+	}
+
+	disabled := func(i int, field AfterScanFieldInterface) {
+		if !field.CalledScopeIsNill() {
+			t.Errorf("Expected Name%v.calledScope is not nil", i)
+		}
+	}
+
+	gorm.StructFieldMethodCallbacks.DisableFieldType(&AfterScanFieldPtr{}, &AfterScanField{})
+
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	disabled(1, model.Name1)
+	disabled(2, &model.Name2)
+	disabled(3, model.Name3)
+	disabled(4, &model.Name4)
+
+	gorm.StructFieldMethodCallbacks.EnableFieldType(&AfterScanFieldPtr{})
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	enabled(1, model.Name1)
+	enabled(2, &model.Name2)
+	disabled(3, model.Name3)
+	disabled(4, &model.Name4)
+
+	gorm.StructFieldMethodCallbacks.EnableFieldType(&AfterScanField{})
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	enabled(1, model.Name1)
+	enabled(2, &model.Name2)
+	enabled(3, model.Name3)
+	enabled(4, &model.Name4)
 }
 
 func TestAfterFieldScanInvalidCallback(t *testing.T) {

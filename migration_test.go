@@ -14,6 +14,10 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+func init()  {
+	gorm.StructFieldMethodCallbacks.RegisterFieldType(&AfterScanField{}, &AfterScanFieldPtr{}, &InvalidAfterScanField{})
+}
+
 type User struct {
 	Id                int64
 	Age               int64

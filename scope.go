@@ -473,6 +473,25 @@ func (scope *Scope) quoteIfPossible(str string) string {
 	return str
 }
 
+// call after field method callbacks
+func (scope *Scope) afterScanCallback(scannerFields map[int]*Field, disableScanField map[int]bool) {
+	if !scope.HasError() {
+		if scope.DB().EnabledAfterScanCallback(scope.Value) {
+			scopeValue := reflect.ValueOf(scope)
+			for index, field := range scannerFields {
+				// if calbacks enabled for field type
+				if StructFieldMethodCallbacks.EnabledFieldType(field.Field.Type()) {
+					// not disabled on scan
+					if _, ok := disableScanField[index]; !ok {
+						reflectValue := field.Field.Addr()
+						field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
+					}
+				}
+			}
+		}
+	}
+}
+
 func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 	var (
 		ignored            interface{}
@@ -527,23 +546,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 	}
 
-	if !scope.HasError() {
-		key := "gorm:disable_after_scan"
-		if v, ok := scope.Get(key); !ok || !v.(bool) {
-			valueType := indirect(reflect.ValueOf(scope.Value)).Type()
-			if v, ok := scope.Get(key + ":" + valueType.PkgPath() + "." + valueType.Name()); !ok || !v.(bool) {
-				scopeValue := reflect.ValueOf(scope)
-				for index, field := range scannerFields {
-					if _, ok := disableScanField[index]; !ok {
-						if field.Field.Kind() == reflect.Struct || (field.Field.Kind() == reflect.Ptr && field.Field.Elem().Kind() == reflect.Struct) {
-							reflectValue := field.Field.Addr()
-							field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
-						}
-					}
-				}
-			}
-		}
-	}
+	scope.afterScanCallback(scannerFields, disableScanField)
 }
 
 func (scope *Scope) primaryCondition(value interface{}) string {

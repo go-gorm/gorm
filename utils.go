@@ -135,6 +135,18 @@ func indirect(reflectValue reflect.Value) reflect.Value {
 	return reflectValue
 }
 
+func indirectType(reflectType reflect.Type) reflect.Type {
+	for reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+	}
+	return reflectType
+}
+
+func ptrToType(reflectType reflect.Type) reflect.Type {
+	reflectType = indirectType(reflectType)
+	return reflect.PtrTo(reflectType)
+}
+
 type Method struct {
 	index int
 	name  string

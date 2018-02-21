@@ -1,16 +1,59 @@
 package gorm_test
 
-import "fmt"
-
-func ExampleAfterScanMethodCallback() {
-	fmt.Println(`package main
-
 import (
 	"fmt"
+)
+
+func init() {
+
+}
+
+func ExampleStructFieldMethodCallbacksRegistrator_DisableFieldType() {
+	fmt.Println(`
+if registrator.EnabledFieldType(&Media{}) {
+	registrator.DisableFieldType(&Media{})
+}
+`)
+}
+
+func ExampleStructFieldMethodCallbacksRegistrator_EnabledFieldType() {
+	fmt.Println(`
+if !registrator.EnabledFieldType(&Media{}) {
+	println("not enabled")
+}
+`)
+}
+
+func ExampleStructFieldMethodCallbacksRegistrator_EnableFieldType() {
+	fmt.Println(`
+if !registrator.EnabledFieldType(&Media{}) {
+	registrator.EnableFieldType(&Media{})
+}
+`)
+}
+
+func ExampleStructFieldMethodCallbacksRegistrator_RegisteredFieldType() {
+	fmt.Println(`
+if registrator.RegisteredFieldType(&Media{}) {
+	println("not registered")
+}`)
+}
+
+func ExampleStructFieldMethodCallbacksRegistrator_RegisterFieldType() {
+	fmt.Println("registrator.RegisterFieldType(&Media{})")
+}
+
+func ExampleAfterScanMethodCallback() {
+	println(`
+package main
+
+import (
 	"reflect"
 	"github.com/jinzhu/gorm"
 	"database/sql/driver"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"strconv"
+	"strings"
 )
 
 type Media struct {
@@ -45,7 +88,8 @@ func (image *Media) AfterScan(scope *gorm.Scope, field *gorm.Field) {
 }
 
 func (image *Media) URL() string {
-	return fmt.Sprintf("%v/%v/%v/%v/%v", *image.baseUrl, image.modelType.Name(), image.model.GetID(), *image.fieldName, image.Name)
+	return strings.Join([]string{*image.baseUrl, image.modelType.Name(), strconv.Itoa(image.model.GetID()),
+		*image.fieldName, image.Name}, "/")
 }
 
 type User struct {
@@ -58,10 +102,14 @@ func (user *User) GetID() int {
 }
 
 func main() {
+	// register media type
+	gorm.StructFieldMethodCallbacks.RegisterFieldType(&Media{})
+
 	db, err := gorm.Open("sqlite3", "db.db")
 	if err != nil {
 		panic(err)
 	}
+
 	db.AutoMigrate(&User{})
 
 	baseUrl := "http://example.com/media"
@@ -79,6 +127,7 @@ func main() {
 		panic(db_.Error)
 	}
 
-	fmt.Println(model.MainImage.URL())
-}`)
+	println("Media URL:", model.MainImage.URL())
+}
+`)
 }
