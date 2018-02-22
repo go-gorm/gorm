@@ -476,11 +476,11 @@ func (scope *Scope) quoteIfPossible(str string) string {
 // call after field method callbacks
 func (scope *Scope) afterScanCallback(scannerFields map[int]*Field, disableScanField map[int]bool) {
 	if !scope.HasError() && scope.Value != nil {
-		if scope.DB().EnabledAfterScanCallback(scope.Value) {
+		if scope.DB().IsEnabledAfterScanCallback(scope.Value) {
 			scopeValue := reflect.ValueOf(scope)
 			for index, field := range scannerFields {
 				// if not is nill and if calbacks enabled for field type
-				if StructFieldMethodCallbacks.EnabledFieldType(field.Field.Type()) {
+				if StructFieldMethodCallbacks.IsEnabledFieldType(field.Field.Type()) {
 					// not disabled on scan
 					if _, ok := disableScanField[index]; !ok {
 						if !isNil(field.Field) {

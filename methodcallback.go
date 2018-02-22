@@ -106,7 +106,7 @@ func (registrator *StructFieldMethodCallbacksRegistrator) DisableFieldType(typs 
 }
 
 // Return if all callbacks for field type is enabled
-func (registrator *StructFieldMethodCallbacksRegistrator) EnabledFieldType(typ interface{}) bool {
+func (registrator *StructFieldMethodCallbacksRegistrator) IsEnabledFieldType(typ interface{}) bool {
 	if enabled, ok := registrator.FieldTypes.Get(typ); ok {
 		return enabled
 	}

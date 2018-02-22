@@ -808,7 +808,7 @@ func (s *DB) EnableAfterScanCallback(typs ...interface{}) *DB  {
 
 // Return if after scan callbacks has be enable. If typs is empty, return default, other else, return for informed
 // typs.
-func (s *DB) EnabledAfterScanCallback(typs ...interface{}) (ok bool) {
+func (s *DB) IsEnabledAfterScanCallback(typs ...interface{}) (ok bool) {
 	key := "gorm:disable_after_scan"
 
 	if v, ok := s.values[key]; ok {
