@@ -9,27 +9,21 @@ func init() {
 }
 
 func ExampleStructFieldMethodCallbacksRegistrator_DisableFieldType() {
-	fmt.Println(`
-if registrator.IsEnabledFieldType(&Media{}) {
+	fmt.Println(`if registrator.IsEnabledFieldType(&Media{}) {
 	registrator.DisableFieldType(&Media{})
-}
-`)
+}`)
 }
 
 func ExampleStructFieldMethodCallbacksRegistrator_EnabledFieldType() {
-	fmt.Println(`
-if !registrator.IsEnabledFieldType(&Media{}) {
+	fmt.Println(`if !registrator.IsEnabledFieldType(&Media{}) {
 	println("not enabled")
-}
-`)
+}`)
 }
 
 func ExampleStructFieldMethodCallbacksRegistrator_EnableFieldType() {
-	fmt.Println(`
-if !registrator.IsEnabledFieldType(&Media{}) {
+	fmt.Println(`if !registrator.IsEnabledFieldType(&Media{}) {
 	registrator.EnableFieldType(&Media{})
-}
-`)
+}`)
 }
 
 func ExampleStructFieldMethodCallbacksRegistrator_RegisteredFieldType() {
