@@ -127,20 +127,16 @@ func TestAfterFieldScanDisableCallback(t *testing.T) {
 		DB := DB.DisableAfterScanCallback(typs...)
 		var model2 WithFieldAfterScanCallback
 		if err := DB.Where("id = ?", model.ID).First(&model2).Error; err != nil {
-			t.Errorf("%q: No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", len(typs), err)
+			t.Errorf("%v: No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", len(typs), err)
 		}
 
-		dotest := func(i int, value string, field AfterScanFieldInterface) {
+		dotest := func(i int, field AfterScanFieldInterface) {
 			if !field.CalledFieldIsNill() {
-				t.Errorf("%q: Expected Name%v.calledField is not nil", len(typs), i)
-			}
-
-			if !field.CalledScopeIsNill() {
-				t.Errorf("%q: Expected Name%v.calledScope is not nil", len(typs), i)
+				t.Errorf("%v: Expected Name%v.calledField is nil", len(typs), i)
 			}
 		}
 
-		dotest(1, model.Name1.data, model2.Name1)
+		dotest(1, model2.Name1)
 	}
 
 	run()

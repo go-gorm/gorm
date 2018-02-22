@@ -475,16 +475,18 @@ func (scope *Scope) quoteIfPossible(str string) string {
 
 // call after field method callbacks
 func (scope *Scope) afterScanCallback(scannerFields map[int]*Field, disableScanField map[int]bool) {
-	if !scope.HasError() {
+	if !scope.HasError() && scope.Value != nil {
 		if scope.DB().EnabledAfterScanCallback(scope.Value) {
 			scopeValue := reflect.ValueOf(scope)
 			for index, field := range scannerFields {
-				// if calbacks enabled for field type
+				// if not is nill and if calbacks enabled for field type
 				if StructFieldMethodCallbacks.EnabledFieldType(field.Field.Type()) {
 					// not disabled on scan
 					if _, ok := disableScanField[index]; !ok {
-						reflectValue := field.Field.Addr()
-						field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
+						if !isNil(field.Field) {
+							reflectValue := field.Field.Addr()
+							field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
+						}
 					}
 				}
 			}

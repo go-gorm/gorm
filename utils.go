@@ -368,3 +368,14 @@ func checkOrPanic(err error) {
 		panic(err)
 	}
 }
+
+// check if value is nil
+func isNil(value reflect.Value) bool {
+	if value.Kind() != reflect.Ptr {
+		return false
+	}
+	if value.Pointer() == 0 {
+		return true
+	}
+	return false
+}

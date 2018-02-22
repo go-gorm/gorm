@@ -177,15 +177,6 @@ func (s *DB) QueryExpr() *expr {
 	return Expr(scope.SQL, scope.SQLVars...)
 }
 
-// SubQuery returns the query as sub query
-func (s *DB) SubQuery() *expr {
-	scope := s.NewScope(s.Value)
-	scope.InstanceSet("skip_bindvar", true)
-	scope.prepareQuerySQL()
-
-	return Expr(fmt.Sprintf("(%v)", scope.SQL), scope.SQLVars...)
-}
-
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
@@ -820,16 +811,17 @@ func (s *DB) EnableAfterScanCallback(typs ...interface{}) *DB  {
 func (s *DB) EnabledAfterScanCallback(typs ...interface{}) (ok bool) {
 	key := "gorm:disable_after_scan"
 
-	if v, ok := s.values[key]; !ok || v.(bool) {
-		for _, typ := range typs {
-			rType := indirectType(reflect.TypeOf(typ))
-			v, ok = s.values[key + ":" + rType.PkgPath() + "." + rType.Name()]
-			if ok && !v.(bool) {
-				return false
-			}
-		}
-		return true
+	if v, ok := s.values[key]; ok {
+		return !v.(bool)
 	}
 
-	return false
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		v, ok := s.values[key + ":" + rType.PkgPath() + "." + rType.Name()]
+		if ok && v.(bool) {
+			return false
+		}
+	}
+
+	return true
 }
