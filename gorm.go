@@ -1,6 +1,10 @@
 package gorm
 
-import "github.com/jinzhu/gorm/logger"
+import (
+	"time"
+
+	"github.com/jinzhu/gorm/logger"
+)
 
 // Config GORM config
 type Config struct {
@@ -44,4 +48,15 @@ type DB struct {
 	// Result result fields
 	Error        error
 	RowsAffected int64
+}
+
+// Model base model definition, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, which could be embedded in your models
+//    type User struct {
+//      gorm.Model
+//    }
+type Model struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `sql:"index"`
 }
