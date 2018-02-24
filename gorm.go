@@ -3,16 +3,15 @@ package gorm
 import (
 	"time"
 
+	"github.com/jinzhu/gorm/builder"
+	"github.com/jinzhu/gorm/dialects"
 	"github.com/jinzhu/gorm/logger"
 )
 
+var one int64 = 1
+
 // Config GORM config
 type Config struct {
-	// MaxIdleConnections sets the maximum number of connections in the idle connection pool
-	MaxIdleConnections int
-	// MaxOpenConnections sets the maximum number of open connections to the database
-	MaxOpenConnections int
-
 	// SingularTable use singular table name, by default, GORM will pluralize your struct's name as table name
 	// Refer https://github.com/jinzhu/inflection for inflection rules
 	SingularTable bool
@@ -20,37 +19,28 @@ type Config struct {
 	// BlockGlobalUpdate generates an error on update/delete without where clause, this is to prevent eventual error with empty objects updates/deletions
 	BlockGlobalUpdate bool
 
-	// Dialect DB Dialect
-	Dialect Dialect
-
-	// Callbacks defined GORM callbacks
-	Callbacks *Callback
-
 	// Logger
 	Logger  logger.Interface
 	LogMode logger.LogLevel
 
-	// db fresh db connection
-	globalDB SQLCommon
+	// Dialect DB Dialect
+	Dialect dialects.Dialect
 }
 
-// DB contains information for current db connection
+// DB GORM DB definition
 type DB struct {
-	// current instance
-	Value  interface{}
-	tx     SQLCommon
-	search *search
-	values map[string]interface{}
+	TxDialect dialects.Dialect
+	Statement *builder.Statement
 
 	// Global config
-	config *Config
+	Config *Config
 
 	// Result result fields
 	Error        error
 	RowsAffected int64
 }
 
-// Model base model definition, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, which could be embedded in your models
+// Model base model definition, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, which can be embedded in your model
 //    type User struct {
 //      gorm.Model
 //    }

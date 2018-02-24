@@ -16,6 +16,8 @@ var (
 	ErrCantStartTransaction = errors.New("can't start transaction")
 	// ErrUnaddressable unaddressable value
 	ErrUnaddressable = errors.New("using unaddressable value")
+	// ErrUnsupportedSelect unsupported select value
+	ErrUnsupportedSelect = errors.New("using unsupported select")
 )
 
 // Errors contains all happened errors

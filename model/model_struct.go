@@ -1,4 +1,4 @@
-package gorm
+package model
 
 import (
 	"database/sql"
@@ -9,11 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/gorm/builder"
 	"github.com/jinzhu/inflection"
 )
 
 // DefaultTableNameHandler default table name handler
-var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
+var DefaultTableNameHandler = func(db *builder.Statement, defaultTableName string) string {
 	return defaultTableName
 }
 

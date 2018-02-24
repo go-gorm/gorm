@@ -25,7 +25,7 @@ var DefaultLogger = Logger{log.New(os.Stdout, "\r\n", 0)}
 
 const (
 	// Info print SQL, warn messages and errors
-	Info LogLevel = iota - 1
+	Info LogLevel = iota + 1
 	// Warn print warn messages and errors
 	Warn
 	// Error print errors
