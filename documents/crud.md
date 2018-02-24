@@ -326,7 +326,7 @@ db.Where(User{Name: "Jinzhu"}).FirstOrCreate(&user)
 
 #### Attrs
 
-Assgin struct with argument if record haven't been found
+Assign struct with argument if record haven't been found
 
 ```go
 // Unfound
