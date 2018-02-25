@@ -5,8 +5,12 @@ import (
 	"go/ast"
 	"reflect"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 )
+
+var schemaMap = sync.Map{}
 
 // Schema model schema definition
 type Schema struct {
@@ -46,6 +50,10 @@ func Parse(dest interface{}) *Schema {
 
 	if reflectType.Kind() != reflect.Struct {
 		return nil
+	}
+
+	if m, ok := schemaMap.Load(reflectType); ok {
+		return m.(*Schema)
 	}
 
 	schema.ModelType = reflectType
@@ -221,12 +229,16 @@ func Parse(dest interface{}) *Schema {
 	}
 
 	if len(schema.PrimaryFields) == 0 {
-		if field := getSchemaField("id", schema.Fields); field != nil {
-			field.IsPrimaryKey = true
-			schema.PrimaryFields = append(schema.PrimaryFields, field)
+		for _, field := range schema.Fields {
+			if strings.ToUpper(field.Name) == "ID" || field.DBName == "id" {
+				field.IsPrimaryKey = true
+				schema.PrimaryFields = append(schema.PrimaryFields, field)
+				break
+			}
 		}
 	}
 
+	schemaMap.Store(reflectType, &schema)
 	return &schema
 }
 

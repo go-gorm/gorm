@@ -293,5 +293,9 @@ func fieldEqual(got, expected *Field) error {
 	if expected.HasDefaultValue != got.HasDefaultValue {
 		return fmt.Errorf("field HasDefaultValue should be %v, got %v", expected.HasDefaultValue, got.HasDefaultValue)
 	}
+
+	if !reflect.DeepEqual(expected.Relationship, got.Relationship) {
+		return fmt.Errorf("field Relationship should be %#v, got %#v", expected.Relationship, got.Relationship)
+	}
 	return nil
 }
