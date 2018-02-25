@@ -18,7 +18,7 @@ type Relationship struct {
 	AssociationJointableForeignkey []string
 }
 
-func buildToOneRel(field *Field, sourceSchema *Schema) error {
+func buildToOneRel(field *Field, sourceSchema *Schema) {
 	var (
 		// user has one profile, associationType is User, profile use UserID as foreign key
 		// user belongs to profile, associationType is Profile, user use ProfileID as foreign key
@@ -94,7 +94,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) error {
 					associationForeignKeys = []string{getPrimaryPrimaryField(sourceSchema.PrimaryFields).DBName}
 				}
 			} else if len(foreignKeys) != len(associationForeignKeys) {
-				return errors.New("invalid foreign keys, should have same length")
+				sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))
 			}
 		}
 
@@ -114,7 +114,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) error {
 		if len(relationship.ForeignKey) != 0 {
 			relationship.Kind = "has_one"
 			field.Relationship = relationship
-			return nil
+			return
 		}
 	}
 
@@ -154,7 +154,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) error {
 					associationForeignKeys = []string{getPrimaryPrimaryField(destSchema.PrimaryFields).DBName}
 				}
 			} else if len(foreignKeys) != len(associationForeignKeys) {
-				return errors.New("invalid foreign keys, should have same length")
+				sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))
 			}
 		}
 
@@ -177,10 +177,10 @@ func buildToOneRel(field *Field, sourceSchema *Schema) error {
 			field.Relationship = relationship
 		}
 	}
-	return nil
+	return
 }
 
-func buildToManyRel(field *Field, sourceSchema *Schema) error {
+func buildToManyRel(field *Field, sourceSchema *Schema) {
 	var (
 		relationship                        = &Relationship{}
 		elemType                            = field.StructField.Type
@@ -321,7 +321,7 @@ func buildToManyRel(field *Field, sourceSchema *Schema) error {
 						associationForeignKeys = []string{getPrimaryPrimaryField(sourceSchema.PrimaryFields).DBName}
 					}
 				} else if len(foreignKeys) != len(associationForeignKeys) {
-					return errors.New("invalid foreign keys, should have same length")
+					sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))
 				}
 			}
 
@@ -345,5 +345,5 @@ func buildToManyRel(field *Field, sourceSchema *Schema) error {
 	} else {
 		field.IsNormal = true
 	}
-	return nil
+	return
 }
