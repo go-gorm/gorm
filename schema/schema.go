@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"go/ast"
 	"reflect"
+	"sort"
 	"time"
 )
 
@@ -48,6 +49,7 @@ func Parse(dest interface{}) *Schema {
 	}
 
 	schema.ModelType = reflectType
+	onConflictFields := map[string]int{}
 
 	for i := 0; i < reflectType.NumField(); i++ {
 		fieldStruct := reflectType.Field(i)
@@ -148,7 +150,40 @@ func Parse(dest interface{}) *Schema {
 			field.DBName = ToDBName(fieldStruct.Name)
 		}
 
+		if _, ok := field.TagSettings["ON_EMBEDDED_CONFLICT"]; ok {
+			onConflictFields[field.Name] = len(schema.Fields)
+		}
+
 		schema.Fields = append(schema.Fields, field)
+	}
+
+	if len(onConflictFields) > 0 {
+		removeIdx := []int{}
+
+		for _, idx := range onConflictFields {
+			conflictField := schema.Fields[idx]
+
+			for i, field := range schema.Fields {
+				if i != idx && conflictField.Name == field.Name {
+					switch conflictField.TagSettings["ON_EMBEDDED_CONFLICT"] {
+					case "replace":
+						removeIdx = append(removeIdx, i)
+					case "ignore":
+						removeIdx = append(removeIdx, idx)
+					case "update":
+						for key, value := range conflictField.TagSettings {
+							field.TagSettings[key] = value
+						}
+						removeIdx = append(removeIdx, idx)
+					}
+				}
+			}
+		}
+
+		sort.Ints(removeIdx)
+		for i := len(removeIdx) - 1; i >= 0; i-- {
+			schema.Fields = append(schema.Fields[0:removeIdx[i]], schema.Fields[removeIdx[i]+1:]...)
+		}
 	}
 
 	if len(schema.PrimaryFields) == 0 {
