@@ -3,7 +3,7 @@ package utils
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/builder"
-	"github.com/jinzhu/gorm/model"
+	"github.com/jinzhu/gorm/schema"
 )
 
 // DefaultTableNameHandler default table name handler
@@ -12,7 +12,7 @@ var DefaultTableNameHandler = func(stmt *builder.Statement, tableName string) st
 }
 
 // GetCreatingAssignments get creating assignments
-func GetCreatingAssignments(stmt *builder.Statement, errs *gorm.Errors) chan []model.Field {
+func GetCreatingAssignments(stmt *builder.Statement, errs *gorm.Errors) chan []schema.Field {
 	return nil
 }
 

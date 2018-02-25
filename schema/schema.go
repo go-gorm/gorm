@@ -160,6 +160,20 @@ func Parse(dest interface{}) *Schema {
 	if len(onConflictFields) > 0 {
 		removeIdx := []int{}
 
+		updatePrimaryKey := func(field, conflictField *Field) {
+			if field != nil && field.IsPrimaryKey {
+				for i, p := range schema.PrimaryFields {
+					if p == field {
+						schema.PrimaryFields = append(schema.PrimaryFields[0:i], schema.PrimaryFields[i+1:]...)
+					}
+				}
+			}
+
+			if conflictField != nil && conflictField.IsPrimaryKey {
+				schema.PrimaryFields = append(schema.PrimaryFields, conflictField)
+			}
+		}
+
 		for _, idx := range onConflictFields {
 			conflictField := schema.Fields[idx]
 
@@ -167,13 +181,33 @@ func Parse(dest interface{}) *Schema {
 				if i != idx && conflictField.Name == field.Name {
 					switch conflictField.TagSettings["ON_EMBEDDED_CONFLICT"] {
 					case "replace":
+						// if original field is primary key, delete origianl one
+						// add conflicated one if it is primary key
+						if field.IsPrimaryKey {
+							updatePrimaryKey(field, conflictField)
+						}
 						removeIdx = append(removeIdx, i)
 					case "ignore":
+						// skip ignored field
+						updatePrimaryKey(conflictField, nil)
 						removeIdx = append(removeIdx, idx)
 					case "update":
-						for key, value := range conflictField.TagSettings {
-							field.TagSettings[key] = value
+						// if original field is primary key, delete origianl one
+						// add conflicated one if it is primary key
+						if field.IsPrimaryKey {
+							updatePrimaryKey(field, conflictField)
 						}
+						for key, value := range field.TagSettings {
+							if _, ok := conflictField.TagSettings[key]; !ok {
+								conflictField.TagSettings[key] = value
+							}
+						}
+
+						conflictField.BindNames = field.BindNames
+						if column, ok := conflictField.TagSettings["COLUMN"]; ok {
+							conflictField.DBName = column
+						}
+						*field = *conflictField
 						removeIdx = append(removeIdx, idx)
 					}
 				}
