@@ -2,11 +2,6 @@ package schema
 
 import "testing"
 
-type HasOne struct {
-	ID         int
-	MyStructID uint
-}
-
 type HasMany struct {
 	ID         int
 	MyStructID uint
@@ -77,10 +72,10 @@ func TestBelongsToRel(t *testing.T) {
 
 func TestSelfReferenceBelongsToRel(t *testing.T) {
 	type MyStruct struct {
-		ID          int
-		Name        string
-		BelongsToID int
-		BelongsTo   *MyStruct
+		ID         int
+		Name       string
+		MyStructID int
+		MyStruct   *MyStruct `gorm:"rel:belongs_to"`
 	}
 
 	// user1 belongs to user2, when creating, will create user2 first
@@ -88,8 +83,8 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "belongs_to_id", Name: "BelongsToID", BindNames: []string{"BelongsToID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"REL": "belongs_to"}},
 	}, t)
 
 	type MyStruct2 struct {
@@ -107,33 +102,111 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 		{DBName: "belongs_to_key", Name: "BelongsToKey", BindNames: []string{"BelongsToKey"}, IsNormal: true, IsForeignKey: true},
 		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
 	}, t)
+
+	type MyStruct3 struct {
+		ID          int
+		Name        string
+		BelongsToID int
+		BelongsTo   *MyStruct3
+	}
+
+	// user1 belongs to user2, when creating, will create user2 first
+	schema3 := Parse(&MyStruct3{})
+	compareFields(schema3.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "belongs_to_id", Name: "BelongsToID", BindNames: []string{"BelongsToID"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
+	}, t)
 }
 
 func TestHasOneRel(t *testing.T) {
+	type HasOne struct {
+		ID         int
+		Name       string
+		MyStructID uint
+	}
+
 	type MyStruct struct {
 		ID     int
 		Name   string
 		HasOne HasOne
 	}
 
-	Parse(&MyStruct{})
-}
-
-func TestSelfReferenceHasOneRel(t *testing.T) {
-	type MyStruct struct {
-		ID          int
-		Name        string
-		BelongsToID int
-		BelongsTo   *MyStruct
-	}
-
-	// user1 belongs to user2, when creating, will create user2 first
 	schema := Parse(&MyStruct{})
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "belongs_to_id", Name: "BelongsToID", BindNames: []string{"BelongsToID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+	}, t)
+
+	type HasOne2 struct {
+		ID          int
+		Name        string
+		MyStruct2ID uint
+	}
+	type MyStruct2 struct {
+		ID     int `gorm:"column:my_id"`
+		Name   string
+		HasOne HasOne2
+	}
+
+	schema2 := Parse(&MyStruct2{})
+	compareFields(schema2.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct2_id"}, AssociationForeignKey: []string{"my_id"}}},
+	}, t)
+
+	type HasOne3 struct {
+		ID        int `gorm:"column:my_id"`
+		HasOneKey uint
+		Name      string
+	}
+
+	type MyStruct3 struct {
+		ID     int
+		Name   string
+		HasOne HasOne3 `gorm:"foreignkey:HasOneKey"`
+	}
+
+	schema3 := Parse(&MyStruct3{})
+	compareFields(schema3.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
+	}, t)
+}
+
+func TestSelfReferenceHasOneRel(t *testing.T) {
+	type MyStruct struct {
+		ID         int
+		Name       string
+		MyStructID int
+		MyStruct   *MyStruct
+	}
+
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+	}, t)
+
+	type MyStruct2 struct {
+		ID        int `gorm:"column:my_id"`
+		Name      string
+		HasOneKey int
+		HasOne    *MyStruct2 `gorm:"foreignkey:HasOneKey"`
+	}
+
+	schema2 := Parse(&MyStruct2{})
+	compareFields(schema2.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_one_key", Name: "HasOneKey", BindNames: []string{"HasOneKey"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
 	}, t)
 }
 
