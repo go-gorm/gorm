@@ -33,8 +33,8 @@ type Field struct {
 	Relationship    *Relationship
 }
 
-// ParseSchema parse struct and generate schema based on struct and tag definition
-func ParseSchema(dest interface{}) *Schema {
+// Parse parse struct and generate schema based on struct and tag definition
+func Parse(dest interface{}) *Schema {
 	schema := Schema{}
 
 	// Get dest type
@@ -104,7 +104,7 @@ func ParseSchema(dest interface{}) *Schema {
 				field.IsNormal = true
 			} else if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
 				// embedded struct
-				if subSchema := ParseSchema(fieldValue); subSchema != nil {
+				if subSchema := Parse(fieldValue); subSchema != nil {
 					for _, subField := range subSchema.Fields {
 						subField = subField.clone()
 						subField.BindNames = append([]string{fieldStruct.Name}, subField.BindNames...)

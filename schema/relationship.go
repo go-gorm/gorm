@@ -24,7 +24,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 		// user belongs to profile, associationType is Profile, user use ProfileID as foreign key
 		relationship                              = &Relationship{}
 		associationType                           = sourceSchema.ModelType.Name()
-		destSchema                                = ParseSchema(reflect.New(field.StructField.Type).Interface())
+		destSchema                                = Parse(reflect.New(field.StructField.Type).Interface())
 		tagForeignKeys, tagAssociationForeignKeys []string
 	)
 
@@ -184,7 +184,7 @@ func buildToManyRel(field *Field, sourceSchema *Schema) {
 	var (
 		relationship                        = &Relationship{}
 		elemType                            = field.StructField.Type
-		destSchema                          = ParseSchema(reflect.New(elemType).Interface())
+		destSchema                          = Parse(reflect.New(elemType).Interface())
 		foreignKeys, associationForeignKeys []string
 	)
 
