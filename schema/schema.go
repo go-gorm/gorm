@@ -255,6 +255,11 @@ func (schema *Schema) MainPrimaryField() *Field {
 	return nil
 }
 
+// FieldByName get schema's field by name
+func (schema *Schema) FieldByName(name string) *Field {
+	return getSchemaField(name, schema.Fields)
+}
+
 func (schemaField *Field) clone() *Field {
 	clone := *schemaField
 

@@ -12,11 +12,6 @@ import (
 //    }
 var DefaultTableNameHandler func(tx *gorm.DB, tableName string) string
 
-// GetCreatingAssignments get creating assignments
-func GetCreatingAssignments(tx *gorm.DB) chan []schema.Field {
-	return nil
-}
-
 // GetTable get table name for current db operation
 func GetTable(tx *gorm.DB) chan string {
 	tableChan := make(chan string)

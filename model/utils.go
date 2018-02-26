@@ -1,5 +1,7 @@
 package model
 
+import "reflect"
+
 // ToSearchableMap convert attrs to searchable map
 func ToSearchableMap(attrs ...interface{}) (result interface{}) {
 	if len(attrs) > 1 {
@@ -16,4 +18,11 @@ func ToSearchableMap(attrs ...interface{}) (result interface{}) {
 		}
 	}
 	return
+}
+
+func indirect(reflectValue reflect.Value) reflect.Value {
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
+	}
+	return reflectValue
 }
