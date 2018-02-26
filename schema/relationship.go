@@ -105,7 +105,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 					}
 				}
 				if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
-					associationForeignKeys = []string{getPrimaryPrimaryField(sourceSchema.PrimaryFields).DBName}
+					associationForeignKeys = []string{sourceSchema.MainPrimaryField().DBName}
 				}
 			} else if len(foreignKeys) != len(associationForeignKeys) {
 				sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))
@@ -165,7 +165,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 					}
 				}
 				if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
-					associationForeignKeys = []string{getPrimaryPrimaryField(destSchema.PrimaryFields).DBName}
+					associationForeignKeys = []string{destSchema.MainPrimaryField().DBName}
 				}
 			} else if len(foreignKeys) != len(associationForeignKeys) {
 				sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))
@@ -332,7 +332,7 @@ func buildToManyRel(field *Field, sourceSchema *Schema) {
 						}
 					}
 					if len(associationForeignKeys) == 0 && len(foreignKeys) == 1 {
-						associationForeignKeys = []string{getPrimaryPrimaryField(sourceSchema.PrimaryFields).DBName}
+						associationForeignKeys = []string{sourceSchema.MainPrimaryField().DBName}
 					}
 				} else if len(foreignKeys) != len(associationForeignKeys) {
 					sourceSchema.ParseErrors = append(sourceSchema.ParseErrors, errors.New("invalid foreign keys, should have same length"))

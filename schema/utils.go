@@ -74,15 +74,6 @@ func getSchemaField(name string, fields []*Field) *Field {
 	return nil
 }
 
-func getPrimaryPrimaryField(fields []*Field) *Field {
-	for _, field := range fields {
-		if field.DBName == "id" {
-			return field
-		}
-	}
-	return fields[0]
-}
-
 func parseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
 	for _, str := range []string{tags.Get("sql"), tags.Get("gorm")} {

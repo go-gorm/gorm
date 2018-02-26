@@ -242,6 +242,19 @@ func Parse(dest interface{}) *Schema {
 	return &schema
 }
 
+// MainPrimaryField returns main primary field, usually the field with db name "id" or the first primary field
+func (schema *Schema) MainPrimaryField() *Field {
+	for _, field := range schema.PrimaryFields {
+		if field.DBName == "id" {
+			return field
+		}
+	}
+	if len(schema.PrimaryFields) > 0 {
+		return schema.PrimaryFields[0]
+	}
+	return nil
+}
+
 func (schemaField *Field) clone() *Field {
 	clone := *schemaField
 
