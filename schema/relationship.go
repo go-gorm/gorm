@@ -6,9 +6,23 @@ import (
 	"strings"
 )
 
+// RelationshipType relationship type
+type RelationshipType string
+
+const (
+	// HasOneRel has one relationship
+	HasOneRel RelationshipType = "has_one"
+	// HasManyRel has many relationship
+	HasManyRel RelationshipType = "has_many"
+	// BelongsToRel belongs to relationship
+	BelongsToRel RelationshipType = "belongs_to"
+	// Many2ManyRel many to many relationship
+	Many2ManyRel RelationshipType = "many_to_many"
+)
+
 // Relationship described the relationship between models
 type Relationship struct {
-	Kind                           string
+	Type                           RelationshipType
 	PolymorphicType                string
 	PolymorphicDBName              string
 	PolymorphicValue               string
@@ -29,7 +43,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 	)
 
 	if val := field.TagSettings["REL"]; val != "" {
-		relationship.Kind = strings.ToLower(strings.TrimSpace(val))
+		relationship.Type = RelationshipType(strings.ToLower(strings.TrimSpace(val)))
 	}
 
 	if val := field.TagSettings["FOREIGNKEY"]; val != "" {
@@ -58,7 +72,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 	}
 
 	// Has One
-	if (relationship.Kind == "") || (relationship.Kind == "has_one") {
+	if (relationship.Type == "") || (relationship.Type == HasOneRel) {
 		foreignKeys := tagForeignKeys
 		associationForeignKeys := tagAssociationForeignKeys
 
@@ -112,14 +126,14 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 		}
 
 		if len(relationship.ForeignKey) != 0 {
-			relationship.Kind = "has_one"
+			relationship.Type = HasOneRel
 			field.Relationship = relationship
 			return
 		}
 	}
 
 	// Belongs To
-	if (relationship.Kind == "") || (relationship.Kind == "belongs_to") {
+	if (relationship.Type == "") || (relationship.Type == BelongsToRel) {
 		foreignKeys := tagForeignKeys
 		associationForeignKeys := tagAssociationForeignKeys
 
@@ -173,7 +187,7 @@ func buildToOneRel(field *Field, sourceSchema *Schema) {
 		}
 
 		if len(relationship.ForeignKey) != 0 {
-			relationship.Kind = "belongs_to"
+			relationship.Type = BelongsToRel
 			field.Relationship = relationship
 		}
 	}
@@ -202,7 +216,7 @@ func buildToManyRel(field *Field, sourceSchema *Schema) {
 
 	if elemType.Kind() == reflect.Struct {
 		if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
-			relationship.Kind = "many_to_many"
+			relationship.Type = Many2ManyRel
 
 			{ // Foreign Keys for Source
 				joinTableDBNames := []string{}
@@ -270,7 +284,7 @@ func buildToManyRel(field *Field, sourceSchema *Schema) {
 		} else {
 			// User has many comments, associationType is User, comment use UserID as foreign key
 			associationType := sourceSchema.ModelType.Name()
-			relationship.Kind = "has_many"
+			relationship.Type = HasManyRel
 
 			if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
 				// Dog has many toys, tag polymorphic is Owner, then associationType is Owner

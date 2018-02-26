@@ -22,7 +22,7 @@ func TestBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_id", Name: "BelongsToID", BindNames: []string{"BelongsToID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 
 	type MyStruct2 struct {
@@ -37,7 +37,7 @@ func TestBelongsToRel(t *testing.T) {
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_key", Name: "BelongsToKey", BindNames: []string{"BelongsToKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
 	}, t)
 
 	type BelongsTo3 struct {
@@ -57,7 +57,7 @@ func TestBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_key", Name: "BelongsToKey", BindNames: []string{"BelongsToKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
 	}, t)
 }
 
@@ -75,7 +75,7 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"REL": "belongs_to"}},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"REL": "belongs_to"}},
 	}, t)
 
 	type MyStruct2 struct {
@@ -91,7 +91,7 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_key", Name: "BelongsToKey", BindNames: []string{"BelongsToKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey", "REL": "belongs_to"}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey", "REL": "belongs_to"}},
 	}, t)
 
 	type MyStruct3 struct {
@@ -107,7 +107,7 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_id", Name: "BelongsToID", BindNames: []string{"BelongsToID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Type: "belongs_to", ForeignKey: []string{"belongs_to_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 }
 
@@ -128,7 +128,7 @@ func TestHasOneRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Type: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 
 	type HasOne2 struct {
@@ -146,7 +146,7 @@ func TestHasOneRel(t *testing.T) {
 	compareFields(schema2.Fields, []*Field{
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct2_id"}, AssociationForeignKey: []string{"my_id"}}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Type: "has_one", ForeignKey: []string{"my_struct2_id"}, AssociationForeignKey: []string{"my_id"}}},
 	}, t)
 
 	type HasOne3 struct {
@@ -165,7 +165,7 @@ func TestHasOneRel(t *testing.T) {
 	compareFields(schema3.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Type: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
 	}, t)
 }
 
@@ -182,7 +182,7 @@ func TestSelfReferenceHasOneRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Type: "has_one", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 
 	type MyStruct2 struct {
@@ -197,7 +197,7 @@ func TestSelfReferenceHasOneRel(t *testing.T) {
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "has_one_key", Name: "HasOneKey", BindNames: []string{"HasOneKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Type: "has_one", ForeignKey: []string{"has_one_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasOneKey"}},
 	}, t)
 }
 
@@ -219,7 +219,7 @@ func TestPolymorphicHasOneRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Kind: "has_one", PolymorphicType: "OwnerType", PolymorphicDBName: "owner_type", PolymorphicValue: "my_struct", ForeignKey: []string{"owner_id"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"POLYMORPHIC": "Owner"}},
+		{DBName: "has_one", Name: "HasOne", BindNames: []string{"HasOne"}, Relationship: &Relationship{Type: "has_one", PolymorphicType: "OwnerType", PolymorphicDBName: "owner_type", PolymorphicValue: "my_struct", ForeignKey: []string{"owner_id"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"POLYMORPHIC": "Owner"}},
 	}, t)
 }
 
@@ -240,7 +240,7 @@ func TestHasManyRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Type: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 
 	type HasMany2 struct {
@@ -259,7 +259,7 @@ func TestHasManyRel(t *testing.T) {
 	compareFields(schema2.Fields, []*Field{
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Type: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
 	}, t)
 
 	type HasMany3 struct {
@@ -278,7 +278,7 @@ func TestHasManyRel(t *testing.T) {
 	compareFields(schema3.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Type: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
 	}, t)
 }
 
@@ -300,7 +300,7 @@ func TestPolymorphicHasManyRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", PolymorphicType: "OwnerType", PolymorphicDBName: "owner_type", PolymorphicValue: "my_struct", ForeignKey: []string{"owner_id"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"POLYMORPHIC": "Owner"}},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Type: "has_many", PolymorphicType: "OwnerType", PolymorphicDBName: "owner_type", PolymorphicValue: "my_struct", ForeignKey: []string{"owner_id"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"POLYMORPHIC": "Owner"}},
 	}, t)
 }
 
@@ -317,7 +317,7 @@ func TestSelfReferenceHasManyRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Type: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
 	}, t)
 
 	type MyStruct2 struct {
@@ -332,7 +332,7 @@ func TestSelfReferenceHasManyRel(t *testing.T) {
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "has_many_key", Name: "HasManyKey", BindNames: []string{"HasManyKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"has_many_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasManyKey"}},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Type: "has_many", ForeignKey: []string{"has_many_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasManyKey"}},
 	}, t)
 }
 
@@ -352,7 +352,7 @@ func TestManyToManyRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"many2_many_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Type: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"many2_many_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
 	}, t)
 
 	type Many2Many2 struct {
@@ -370,7 +370,7 @@ func TestManyToManyRel(t *testing.T) {
 	compareFields(schema2.Fields, []*Field{
 		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"my_id"}, AssociationForeignKey: []string{"rel_id"}, JointableForeignkey: []string{"my_struct2_my_id"}, AssociationJointableForeignkey: []string{"many2_many2_rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Type: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"my_id"}, AssociationForeignKey: []string{"rel_id"}, JointableForeignkey: []string{"my_struct2_my_id"}, AssociationJointableForeignkey: []string{"many2_many2_rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
 	}, t)
 }
 
@@ -385,6 +385,6 @@ func TestSelfReferenceManyToManyRel(t *testing.T) {
 	compareFields(schema.Fields, []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m", "ASSOCIATION_JOINTABLE_FOREIGNKEY": "rel_id"}},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Type: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m", "ASSOCIATION_JOINTABLE_FOREIGNKEY": "rel_id"}},
 	}, t)
 }
