@@ -184,14 +184,6 @@ func (mssql) DefaultValueStr() string {
 	return "DEFAULT VALUES"
 }
 
-func currentDatabaseAndTable(dialect Dialect, tableName string) (string, string) {
-	if strings.Contains(tableName, ".") {
-		splitStrings := strings.SplitN(tableName, ".", 2)
-		return splitStrings[0], splitStrings[1]
-	}
-	return dialect.CurrentDatabase(), tableName
-}
-
 func (mssql) FormatDate(e *expr, format string) *expr {
 	mapping := map[rune]string{
 		'y': "YYYY",
@@ -206,4 +198,3 @@ func (mssql) FormatDate(e *expr, format string) *expr {
 	e.expr = "(format(" + e.expr + ", '" + parsedFormat + "'))"
 	return e
 }
-
