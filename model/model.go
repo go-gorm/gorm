@@ -2,56 +2,70 @@ package model
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/builder"
 	"github.com/jinzhu/gorm/schema"
+	"github.com/jinzhu/inflection"
 )
 
 // DefaultTableNameHandler default table name handler
-var DefaultTableNameHandler = func(stmt *builder.Statement, tableName string) string {
-	return tableName
-}
+//    DefaultTableNameHandler = func(tx *gorm.DB, tableName string) string {
+//    	return tableName
+//    }
+var DefaultTableNameHandler func(tx *gorm.DB, tableName string) string
 
 // GetCreatingAssignments get creating assignments
-func GetCreatingAssignments(stmt *builder.Statement, errs *gorm.Errors) chan []schema.Field {
+func GetCreatingAssignments(tx *gorm.DB) chan []schema.Field {
 	return nil
 }
 
-// GetTable get table name
-func GetTable(stmt *builder.Statement, errs *gorm.Errors) chan string {
+// GetTable get table name for current db operation
+func GetTable(tx *gorm.DB) chan string {
 	tableChan := make(chan string)
 
 	go func() {
-		if stmt.Table != nil {
-			if table, ok := stmt.Table.(string); ok {
-				tableChan <- DefaultTableNameHandler(stmt, table)
-			} else if tableSchema := schema.Parse(stmt.Table); tableSchema != nil {
-				if tableSchema.TableName != "" {
-					tableChan <- DefaultTableNameHandler(stmt, tableSchema.TableName)
+		var tableName string
+		if name, ok := tx.Statement.Table.(string); ok {
+			tableName = name
+		} else {
+			for _, v := range []interface{}{tx.Statement.Table, tx.Statement.Dest} {
+				if t, ok := v.(tabler); ok {
+					tableName = t.TableName()
+				} else if t, ok := v.(dbTabler); ok {
+					tableName = t.TableName(tx)
+				} else if s := schema.Parse(tx.Statement.Table); s != nil {
+					if s.TableName != "" {
+						tableName = s.TableName
+					} else {
+						tableName = schema.ToDBName(s.ModelType.Name())
+						if !tx.Config.SingularTable {
+							tableName = inflection.Plural(tableName)
+						}
+					}
 				}
-				tableSchema.ModelType.Name
+
+				if tableName != "" {
+					break
+				}
 			}
+		}
+
+		if tableName != "" {
+			if DefaultTableNameHandler != nil {
+				tableChan <- DefaultTableNameHandler(tx, tableName)
+			} else {
+				tableChan <- tableName
+			}
+		} else {
+			tx.AddError(ErrInvalidTable)
 		}
 	}()
 
 	return tableChan
 }
 
-// if scope.Value == nil {
-// 	return &modelStruct
-// }
-// TableName get model's table name
-// func (schema *Schema) TableName(stmt *builder.Statement) string {
-// 	if s.defaultTableName == "" && db != nil && s.ModelType != nil {
-// 		// Set default table name
-// 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
-// 			s.defaultTableName = tabler.TableName()
-// 		} else {
-// 			tableName := ToDBName(s.ModelType.Name())
-// 			if db == nil || !db.parent.singularTable {
-// 				tableName = inflection.Plural(tableName)
-// 			}
-// 			s.defaultTableName = tableName
-// 		}
-// 	}
-// 	return DefaultTableNameHandler(db, s.defaultTableName)
-// }
+type tabler interface {
+	TableName() string
+}
+
+type dbTabler interface {
+	TableName(*gorm.DB) string
+}

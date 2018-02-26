@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/builder"
 	"github.com/jinzhu/gorm/dialects/common/utils"
 
 	// import sqlite3 driver
@@ -16,13 +15,12 @@ type Dialect struct {
 }
 
 // Insert insert
-func (*Dialect) Insert(stmt *builder.Statement) error {
+func (*Dialect) Insert(tx *gorm.DB) error {
 	var (
 		args                []interface{}
 		defaultValueColumns []string
-		errs                = gorm.Errors{}
-		assignmentsChan     = utils.GetCreatingAssignments(stmt, &errs)
-		tableNameChan       = utils.GetTable(stmt, &errs)
+		assignmentsChan     = utils.GetCreatingAssignments(tx)
+		tableNameChan       = utils.GetTable(tx)
 	)
 
 	s := bytes.NewBufferString("INSERT INTO ")
@@ -40,16 +38,16 @@ func (*Dialect) Insert(stmt *builder.Statement) error {
 }
 
 // Query query
-func (*Dialect) Query(*builder.Statement) error {
+func (*Dialect) Query(tx *gorm.DB) error {
 	return nil
 }
 
 // Update update
-func (*Dialect) Update(*builder.Statement) error {
+func (*Dialect) Update(tx *gorm.DB) error {
 	return nil
 }
 
 // Delete delete
-func (*Dialect) Delete(*builder.Statement) error {
+func (*Dialect) Delete(tx *gorm.DB) error {
 	return nil
 }
