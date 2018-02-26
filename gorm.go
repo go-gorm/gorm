@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm/builder"
-	"github.com/jinzhu/gorm/dialects"
 	"github.com/jinzhu/gorm/logger"
 )
 
@@ -24,12 +23,12 @@ type Config struct {
 	LogMode logger.LogLevel
 
 	// Dialect DB Dialect
-	Dialect dialects.Dialect
+	Dialect Dialect
 }
 
 // DB GORM DB definition
 type DB struct {
-	TxDialect dialects.Dialect
+	TxDialect Dialect
 	Statement *builder.Statement
 
 	// Global config

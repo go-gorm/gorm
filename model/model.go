@@ -1,4 +1,4 @@
-package utils
+package model
 
 import (
 	"github.com/jinzhu/gorm"
@@ -18,7 +18,22 @@ func GetCreatingAssignments(stmt *builder.Statement, errs *gorm.Errors) chan []s
 
 // GetTable get table name
 func GetTable(stmt *builder.Statement, errs *gorm.Errors) chan string {
-	return nil
+	tableChan := make(chan string)
+
+	go func() {
+		if stmt.Table != nil {
+			if table, ok := stmt.Table.(string); ok {
+				tableChan <- DefaultTableNameHandler(stmt, table)
+			} else if tableSchema := schema.Parse(stmt.Table); tableSchema != nil {
+				if tableSchema.TableName != "" {
+					tableChan <- DefaultTableNameHandler(stmt, tableSchema.TableName)
+				}
+				tableSchema.ModelType.Name
+			}
+		}
+	}()
+
+	return tableChan
 }
 
 // if scope.Value == nil {
@@ -38,6 +53,5 @@ func GetTable(stmt *builder.Statement, errs *gorm.Errors) chan string {
 // 			s.defaultTableName = tableName
 // 		}
 // 	}
-
 // 	return DefaultTableNameHandler(db, s.defaultTableName)
 // }

@@ -1,4 +1,4 @@
-package utils
+package model
 
 // ToSearchableMap convert attrs to searchable map
 func ToSearchableMap(attrs ...interface{}) (result interface{}) {

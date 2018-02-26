@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"github.com/jinzhu/gorm/builder"
-	"github.com/jinzhu/gorm/dialects"
 )
 
 // Where add condition
@@ -150,12 +149,17 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	stmt := tx.Statement
 	stmt.Dest = out
 
+	// has inline condition
 	if len(where) > 0 {
+		clone := tx.clone()
 		stmt = s.Statement.Clone()
 		stmt.Conditions = append(stmt.Conditions, s.Statement.BuildCondition(where[0], where[1:]...))
+		tx.AddError(clone.Dialect().Query(clone))
+		tx.AddError(clone.Error)
+	} else {
+		tx.AddError(tx.Dialect().Query(tx))
 	}
 
-	tx.AddError(tx.Dialect().Query(stmt))
 	return tx
 }
 
@@ -168,7 +172,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 
 	stmt.Table = stmt.Dest
 	stmt.Dest = dest
-	tx.AddError(tx.Dialect().Query(stmt))
+	tx.AddError(tx.Dialect().Query(tx))
 	return tx
 }
 
@@ -176,7 +180,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 func (s *DB) Create(value interface{}) *DB {
 	tx := s.init()
 	tx.Statement.Dest = value
-	tx.AddError(tx.Dialect().Insert(tx.Statement))
+	tx.AddError(tx.Dialect().Insert(tx))
 	return tx
 }
 
@@ -185,7 +189,7 @@ func (s *DB) Save(value interface{}) *DB {
 	tx := s.init()
 	tx.Statement.Dest = value
 	// FIXME check primary key has value or not
-	tx.AddError(tx.Dialect().Update(tx.Statement))
+	tx.AddError(tx.Dialect().Update(tx))
 	return tx
 }
 
@@ -193,7 +197,7 @@ func (s *DB) Save(value interface{}) *DB {
 func (s *DB) Update(column string, value interface{}) *DB {
 	tx := s.init()
 	tx.Statement.Assignments = append(tx.Statement.Assignments, builder.Assignment{Column: column, Value: value})
-	tx.AddError(tx.Dialect().Update(tx.Statement))
+	tx.AddError(tx.Dialect().Update(tx))
 	return tx
 }
 
@@ -201,7 +205,7 @@ func (s *DB) Update(column string, value interface{}) *DB {
 func (s *DB) Updates(values interface{}) *DB {
 	tx := s.init()
 	tx.Statement.Assignments = append(tx.Statement.Assignments, builder.Assignment{Value: values})
-	tx.AddError(tx.Dialect().Update(tx.Statement))
+	tx.AddError(tx.Dialect().Update(tx))
 	return tx
 }
 
@@ -211,12 +215,17 @@ func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	stmt := tx.Statement
 	stmt.Dest = value
 
+	// has inline condition
 	if len(where) > 0 {
+		clone := tx.clone()
 		stmt = s.Statement.Clone()
 		stmt.Conditions = append(stmt.Conditions, s.Statement.BuildCondition(where[0], where[1:]...))
+		tx.AddError(clone.Dialect().Update(clone))
+		tx.AddError(clone.Error)
+	} else {
+		tx.AddError(tx.Dialect().Update(tx))
 	}
 
-	tx.AddError(tx.Dialect().Update(stmt))
 	return tx
 }
 
@@ -264,7 +273,7 @@ func (s *DB) GetErrors() []error {
 }
 
 // Dialect return DB dialect
-func (s *DB) Dialect() dialects.Dialect {
+func (s *DB) Dialect() Dialect {
 	if s.TxDialect != nil {
 		return s.TxDialect
 	}
@@ -301,4 +310,12 @@ func (s *DB) init() *DB {
 		}
 	}
 	return s
+}
+
+func (s *DB) clone() *DB {
+	return &DB{
+		TxDialect: s.TxDialect,
+		Statement: s.Statement,
+		Config:    s.Config,
+	}
 }
