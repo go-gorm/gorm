@@ -86,9 +86,9 @@ func getPrimaryPrimaryField(fields []*Field) *Field {
 func parseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
 	for _, str := range []string{tags.Get("sql"), tags.Get("gorm")} {
-		if str != "" {
-			tags := strings.Split(str, ";")
-			for _, value := range tags {
+		tags := strings.Split(str, ";")
+		for _, value := range tags {
+			if value != "" {
 				v := strings.Split(value, ":")
 				k := strings.TrimSpace(strings.ToUpper(v[0]))
 				if len(v) >= 2 {

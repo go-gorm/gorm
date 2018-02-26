@@ -44,7 +44,7 @@ func TestCustomizePrimaryKey(t *testing.T) {
 
 	schema := Parse(&MyStruct{})
 	expectedFields := []*Field{
-		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"PRIMARY_KEY": "PRIMARY_KEY"}},
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 	}
 	compareFields(schema.PrimaryFields, expectedFields, t)
 
@@ -77,8 +77,8 @@ func TestEmbeddedStruct(t *testing.T) {
 	expectedFields := []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"EmbedStruct", "Name"}, IsNormal: true},
-		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"COLUMN": "Age"}},
-		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"COLUMN": "Role"}},
+		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"COLUMN": "my_age"}},
+		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"DEFAULT": "guest"}},
 	}
 	compareFields(schema.Fields, expectedFields, t)
 
@@ -90,25 +90,31 @@ func TestEmbeddedStruct(t *testing.T) {
 
 	schema2 := Parse(&MyStruct2{})
 	expectedFields2 := []*Field{
-		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED"}},
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"EmbedStruct", "Name"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED"}},
-		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "COLUMN": "Age"}},
-		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "COLUMN": "Role"}},
+		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "COLUMN": "my_age"}},
+		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "DEFAULT": "guest"}},
 	}
 	compareFields(schema2.Fields, expectedFields2, t)
 
 	// Embedded with prefix
+	type EmbedStruct2 struct {
+		Name string
+		Age  string `gorm:"column:my_age"`
+		Role string `gorm:"default:guest"`
+	}
+
 	type MyStruct3 struct {
-		ID          string
-		EmbedStruct `gorm:"EMBEDDED_PREFIX:my_"`
+		ID           string
+		EmbedStruct2 `gorm:"EMBEDDED_PREFIX:my_"`
 	}
 
 	schema3 := Parse(&MyStruct3{})
 	expectedFields3 := []*Field{
-		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_"}},
-		{DBName: "my_name", Name: "Name", BindNames: []string{"EmbedStruct", "Name"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_"}},
-		{DBName: "my_my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_", "COLUMN": "Age"}},
-		{DBName: "my_role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_", "COLUMN": "Role"}},
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "my_name", Name: "Name", BindNames: []string{"EmbedStruct2", "Name"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_"}},
+		{DBName: "my_my_age", Name: "Age", BindNames: []string{"EmbedStruct2", "Age"}, IsNormal: true, TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_", "COLUMN": "my_age"}},
+		{DBName: "my_role", Name: "Role", BindNames: []string{"EmbedStruct2", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"EMBEDDED_PREFIX": "my_", "DEFAULT": "guest"}},
 	}
 	compareFields(schema3.Fields, expectedFields3, t)
 }
@@ -129,8 +135,8 @@ func TestEmbeddedStructWithPrimaryKey(t *testing.T) {
 	expectedFields := []*Field{
 		{DBName: "id", Name: "ID", BindNames: []string{"EmbedStruct", "ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
-		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"COLUMN": "Age"}},
-		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"COLUMN": "Role"}},
+		{DBName: "my_age", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"COLUMN": "my_age"}},
+		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"DEFAULT": "guest"}},
 	}
 	compareFields(schema.Fields, expectedFields, t)
 }
@@ -155,7 +161,7 @@ func TestOverwriteEmbeddedStructFields(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"EmbedStruct", "Name"}, IsNormal: true},
 		{DBName: "my_age2", Name: "Age", BindNames: []string{"Age"}, IsNormal: true, TagSettings: map[string]string{"ON_EMBEDDED_CONFLICT": "replace", "COLUMN": "my_age2"}},
-		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"COLUMN": "Role"}},
+		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"DEFAULT": "guest"}},
 	}
 	compareFields(schema.Fields, expectedFields, t)
 
@@ -173,7 +179,7 @@ func TestOverwriteEmbeddedStructFields(t *testing.T) {
 		{DBName: "name", Name: "Name", BindNames: []string{"EmbedStruct", "Name"}, IsNormal: true},
 		{DBName: "my_name2", Name: "Name2", BindNames: []string{"Name2"}, IsNormal: true, TagSettings: map[string]string{"ON_EMBEDDED_CONFLICT": "ignore", "COLUMN": "my_name2"}},
 		{DBName: "my_age2", Name: "Age", BindNames: []string{"EmbedStruct", "Age"}, IsNormal: true, TagSettings: map[string]string{"ON_EMBEDDED_CONFLICT": "update", "COLUMN": "my_age2"}},
-		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"COLUMN": "Role"}},
+		{DBName: "role", Name: "Role", BindNames: []string{"EmbedStruct", "Role"}, IsNormal: true, HasDefaultValue: true, DefaultValue: "guest", TagSettings: map[string]string{"DEFAULT": "guest"}},
 	}
 	compareFields(schema2.Fields, expectedFields2, t)
 }
@@ -194,7 +200,7 @@ func TestOverwriteEmbeddedStructPrimaryFields(t *testing.T) {
 
 	schema := Parse(&MyStruct{})
 	expectedFields := []*Field{
-		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"PRIMARY_KEY": "PRIMARY_KEY"}},
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 	}
 	compareFields(schema.PrimaryFields, expectedFields, t)
 
@@ -223,7 +229,7 @@ func TestOverwriteEmbeddedStructPrimaryFields(t *testing.T) {
 
 	schema3 := Parse(&MyStruct3{})
 	expectedFields3 := []*Field{
-		{DBName: "email", Name: "Email", BindNames: []string{"Email"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"PRIMARY_KEY": "PRIMARY_KEY", "ON_EMBEDDED_CONFLICT": "update"}},
+		{DBName: "email", Name: "Email", BindNames: []string{"Email"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"PRIMARY_KEY": "PRIMARY_KEY", "ON_EMBEDDED_CONFLICT": "replace"}},
 	}
 	compareFields(schema3.PrimaryFields, expectedFields3, t)
 }
@@ -266,7 +272,7 @@ func fieldEqual(got, expected *Field) error {
 		return fmt.Errorf("field BindNames should be %#v, got %#v", expected.BindNames, got.BindNames)
 	}
 
-	if (expected.TagSettings == nil && len(got.TagSettings) != 0) && !reflect.DeepEqual(expected.TagSettings, got.TagSettings) {
+	if (expected.TagSettings == nil && len(got.TagSettings) != 0) || (expected.TagSettings != nil && !reflect.DeepEqual(expected.TagSettings, got.TagSettings)) {
 		return fmt.Errorf("field TagSettings should be %#v, got %#v", expected.TagSettings, got.TagSettings)
 	}
 

@@ -1,6 +1,8 @@
 package schema
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBelongsToRel(t *testing.T) {
 	type BelongsTo struct {
@@ -89,7 +91,7 @@ func TestSelfReferenceBelongsToRel(t *testing.T) {
 		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
 		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
 		{DBName: "belongs_to_key", Name: "BelongsToKey", BindNames: []string{"BelongsToKey"}, IsNormal: true, IsForeignKey: true},
-		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey"}},
+		{DBName: "belongs_to", Name: "BelongsTo", BindNames: []string{"BelongsTo"}, Relationship: &Relationship{Kind: "belongs_to", ForeignKey: []string{"belongs_to_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "BelongsToKey", "REL": "belongs_to"}},
 	}, t)
 
 	type MyStruct3 struct {
@@ -341,10 +343,48 @@ func TestManyToManyRel(t *testing.T) {
 	}
 
 	type MyStruct struct {
-		ID        int
-		Name      string
-		Many2Many []Many2Many
+		ID         int
+		Name       string
+		ManyTOMany []Many2Many `gorm:"many2many:m2m"`
 	}
 
-	Parse(&MyStruct{})
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"many2_many_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
+	}, t)
+
+	type Many2Many2 struct {
+		ID   int `gorm:"column:rel_id"`
+		Name string
+	}
+
+	type MyStruct2 struct {
+		ID         int `gorm:"column:my_id"`
+		Name       string
+		ManyTOMany []Many2Many2 `gorm:"many2many:m2m"`
+	}
+
+	schema2 := Parse(&MyStruct2{})
+	compareFields(schema2.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"my_id"}, AssociationForeignKey: []string{"rel_id"}, JointableForeignkey: []string{"my_struct2_my_id"}, AssociationJointableForeignkey: []string{"many2_many2_rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m"}},
+	}, t)
+}
+
+func TestSelfReferenceManyToManyRel(t *testing.T) {
+	type MyStruct struct {
+		ID         int
+		Name       string
+		ManyTOMany []MyStruct `gorm:"many2many:m2m;association_jointable_foreignkey:rel_id"`
+	}
+
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "many_to_many", Name: "ManyTOMany", BindNames: []string{"ManyTOMany"}, Relationship: &Relationship{Kind: "many_to_many", PolymorphicType: "", PolymorphicDBName: "", PolymorphicValue: "", ForeignKey: []string{"id"}, AssociationForeignKey: []string{"id"}, JointableForeignkey: []string{"my_struct_id"}, AssociationJointableForeignkey: []string{"rel_id"}}, TagSettings: map[string]string{"MANY2MANY": "m2m", "ASSOCIATION_JOINTABLE_FOREIGNKEY": "rel_id"}},
+	}, t)
 }
