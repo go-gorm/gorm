@@ -2,17 +2,6 @@ package schema
 
 import "testing"
 
-type HasMany struct {
-	ID         int
-	MyStructID uint
-	Name       string
-}
-
-type Many2Many struct {
-	ID   int
-	Name string
-}
-
 func TestBelongsToRel(t *testing.T) {
 	type BelongsTo struct {
 		ID   int
@@ -233,20 +222,128 @@ func TestPolymorphicHasOneRel(t *testing.T) {
 }
 
 func TestHasManyRel(t *testing.T) {
+	type HasMany struct {
+		ID         int
+		MyStructID uint
+		Name       string
+	}
+
 	type MyStruct struct {
 		ID      int
 		Name    string
 		HasMany []HasMany
 	}
 
-	Parse(&MyStruct{})
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+	}, t)
+
+	type HasMany2 struct {
+		ID          int
+		MyStructKey uint
+		Name        string
+	}
+
+	type MyStruct2 struct {
+		ID      int `gorm:"column:my_id"`
+		Name    string
+		HasMany []HasMany2 `gorm:"foreignkey:MyStructKey"`
+	}
+
+	schema2 := Parse(&MyStruct2{})
+	compareFields(schema2.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
+	}, t)
+
+	type HasMany3 struct {
+		ID          int `gorm:"column:my_id"`
+		MyStructKey uint
+		Name        string
+	}
+
+	type MyStruct3 struct {
+		ID      int
+		Name    string
+		HasMany []HasMany2 `gorm:"foreignkey:MyStructKey"`
+	}
+
+	schema3 := Parse(&MyStruct3{})
+	compareFields(schema3.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_key"}, AssociationForeignKey: []string{"id"}}, TagSettings: map[string]string{"FOREIGNKEY": "MyStructKey"}},
+	}, t)
+}
+
+func TestPolymorphicHasManyRel(t *testing.T) {
+	type HasMany struct {
+		ID        int
+		Name      string
+		OwnerType string
+		OwnerID   string
+	}
+
+	type MyStruct struct {
+		ID      int `gorm:"column:my_id"`
+		Name    string
+		HasMany []HasMany `gorm:"polymorphic:Owner"`
+	}
+
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", PolymorphicType: "OwnerType", PolymorphicDBName: "owner_type", PolymorphicValue: "my_struct", ForeignKey: []string{"owner_id"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"POLYMORPHIC": "Owner"}},
+	}, t)
+}
+
+func TestSelfReferenceHasManyRel(t *testing.T) {
+	type MyStruct struct {
+		ID         int
+		Name       string
+		MyStructID int
+		MyStruct   []*MyStruct
+	}
+
+	schema := Parse(&MyStruct{})
+	compareFields(schema.Fields, []*Field{
+		{DBName: "id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "my_struct_id", Name: "MyStructID", BindNames: []string{"MyStructID"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "my_struct", Name: "MyStruct", BindNames: []string{"MyStruct"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"my_struct_id"}, AssociationForeignKey: []string{"id"}}},
+	}, t)
+
+	type MyStruct2 struct {
+		ID         int `gorm:"column:my_id"`
+		Name       string
+		HasManyKey int
+		HasMany    []*MyStruct2 `gorm:"foreignkey:HasManyKey"`
+	}
+
+	schema2 := Parse(&MyStruct2{})
+	compareFields(schema2.Fields, []*Field{
+		{DBName: "my_id", Name: "ID", BindNames: []string{"ID"}, IsNormal: true, IsPrimaryKey: true, TagSettings: map[string]string{"COLUMN": "my_id"}},
+		{DBName: "name", Name: "Name", BindNames: []string{"Name"}, IsNormal: true},
+		{DBName: "has_many_key", Name: "HasManyKey", BindNames: []string{"HasManyKey"}, IsNormal: true, IsForeignKey: true},
+		{DBName: "has_many", Name: "HasMany", BindNames: []string{"HasMany"}, Relationship: &Relationship{Kind: "has_many", ForeignKey: []string{"has_many_key"}, AssociationForeignKey: []string{"my_id"}}, TagSettings: map[string]string{"FOREIGNKEY": "HasManyKey"}},
+	}, t)
 }
 
 func TestManyToManyRel(t *testing.T) {
+	type Many2Many struct {
+		ID   int
+		Name string
+	}
+
 	type MyStruct struct {
-		ID      int
-		Name    string
-		HasMany []HasMany
+		ID        int
+		Name      string
+		Many2Many []Many2Many
 	}
 
 	Parse(&MyStruct{})
