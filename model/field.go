@@ -2,8 +2,11 @@ package model
 
 import (
 	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/builder"
 	"github.com/jinzhu/gorm/schema"
 )
 
@@ -14,21 +17,21 @@ type Field struct {
 	Value   reflect.Value
 }
 
-// GetCreatingAssignments get creating assignments
-func GetCreatingAssignments(tx *gorm.DB) chan [][]*Field {
+// GetAssignments get assignments
+func GetAssignments(tx *gorm.DB) chan [][]*Field {
 	fieldChan := make(chan [][]*Field)
 
 	go func() {
 		// TODO handle select, omit, protected
 		switch dest := tx.Statement.Dest.(type) {
 		case map[string]interface{}:
-			fieldChan <- [][]*Field{mapToFields(dest, schema.Parse(tx.Statement.Table))}
+			fieldChan <- [][]*Field{mapToFields(dest, tx.Statement, schema.Parse(tx.Statement.Table))}
 		case []map[string]interface{}:
 			fields := [][]*Field{}
 			tableSchema := schema.Parse(tx.Statement.Table)
 
 			for _, v := range dest {
-				fields = append(fields, mapToFields(v, tableSchema))
+				fields = append(fields, mapToFields(v, tx.Statement, tableSchema))
 			}
 			fieldChan <- fields
 		default:
@@ -39,11 +42,11 @@ func GetCreatingAssignments(tx *gorm.DB) chan [][]*Field {
 				case reflect.Slice:
 					fields := [][]*Field{}
 					for i := 0; i < results.Len(); i++ {
-						fields = append(fields, structToField(results.Index(i), s))
+						fields = append(fields, structToField(results.Index(i), tx.Statement, s))
 					}
 					fieldChan <- fields
 				case reflect.Struct:
-					fieldChan <- [][]*Field{structToField(results, s)}
+					fieldChan <- [][]*Field{structToField(results, tx.Statement, s)}
 				}
 			}
 		}
@@ -52,7 +55,9 @@ func GetCreatingAssignments(tx *gorm.DB) chan [][]*Field {
 	return fieldChan
 }
 
-func mapToFields(value map[string]interface{}, s *schema.Schema) (fields []*Field) {
+func mapToFields(value map[string]interface{}, stmt *builder.Statement, s *schema.Schema) (fields []*Field) {
+	// sort
+	// TODO assign those value to dest
 	for k, v := range value {
 		if s != nil {
 			if f := s.FieldByName(k); f != nil {
@@ -63,16 +68,21 @@ func mapToFields(value map[string]interface{}, s *schema.Schema) (fields []*Fiel
 
 		fields = append(fields, &Field{Field: &schema.Field{DBName: k}, Value: reflect.ValueOf(v)})
 	}
+
+	sort.SliceStable(fields, func(i, j int) bool {
+		return strings.Compare(fields[i].Field.DBName, fields[j].Field.DBName) < 0
+	})
 	return
 }
 
-func structToField(value reflect.Value, s *schema.Schema) (fields []*Field) {
+func structToField(value reflect.Value, stmt *builder.Statement, s *schema.Schema) (fields []*Field) {
+	// TODO use Offset to replace FieldByName?
 	for _, sf := range s.Fields {
 		obj := value
 		for _, bn := range sf.BindNames {
 			obj = value.FieldByName(bn)
 		}
-		fields = append(fields, &Field{Field: sf, Value: obj})
+		fields = append(fields, &Field{Field: sf, Value: obj, IsBlank: isBlank(obj)})
 	}
 	return
 }
