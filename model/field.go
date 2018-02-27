@@ -1,6 +1,9 @@
 package model
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -53,6 +56,49 @@ func GetAssignments(tx *gorm.DB) chan [][]*Field {
 	}()
 
 	return fieldChan
+}
+
+// Set set a value to the field
+func (field *Field) Set(value interface{}) (err error) {
+	if !field.Value.IsValid() {
+		return errors.New("field value not valid")
+	}
+
+	if !field.Value.CanAddr() {
+		return ErrUnaddressable
+	}
+
+	reflectValue, ok := value.(reflect.Value)
+	if !ok {
+		reflectValue = reflect.ValueOf(value)
+	}
+
+	fieldValue := field.Value
+	if reflectValue.IsValid() {
+		if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+			fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
+		} else {
+			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(field.StructField.Type.Elem()))
+				}
+				fieldValue = fieldValue.Elem()
+			}
+
+			if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+				fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
+			} else if scanner, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+				err = scanner.Scan(reflectValue.Interface())
+			} else {
+				err = fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), fieldValue.Type())
+			}
+		}
+	} else {
+		field.Value.Set(reflect.Zero(fieldValue.Type()))
+	}
+
+	field.IsBlank = isBlank(field.Value)
+	return err
 }
 
 func mapToFields(value map[string]interface{}, stmt *builder.Statement, s *schema.Schema) (fields []*Field) {
