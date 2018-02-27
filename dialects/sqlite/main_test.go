@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/gorm"
 )
 
@@ -19,12 +20,22 @@ func init() {
 	}
 }
 
-func TestInsert(t *testing.T) {
+func TestBatchInsert(t *testing.T) {
 	type User struct {
 		gorm.Model
 		Name string
 		Age  int
 	}
 
-	DB.Create([]*User{{Name: "name1", Age: 10}, {Name: "name2", Age: 20}})
+	users := []*User{{Name: "name1", Age: 10}, {Name: "name2", Age: 20}, {Name: "name3", Age: 30}}
+
+	DB.Create(users)
+
+	spew.Dump(users)
+
+	for _, user := range users {
+		if user.ID == 0 {
+			t.Errorf("User should have primary key")
+		}
+	}
 }
