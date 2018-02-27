@@ -89,7 +89,7 @@ func GetAssignments(tx *gorm.DB) chan [][]*Field {
 				case reflect.Slice:
 					fields := [][]*Field{}
 					for i := 0; i < results.Len(); i++ {
-						fields = append(fields, structToField(results.Index(i), s, assignableChecker))
+						fields = append(fields, structToField(indirect(results.Index(i)), s, assignableChecker))
 					}
 					fieldChan <- fields
 				case reflect.Struct:

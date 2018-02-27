@@ -22,23 +22,25 @@ func GetTable(tx *gorm.DB) chan string {
 			tableName = name
 		} else {
 			for _, v := range []interface{}{tx.Statement.Table, tx.Statement.Dest} {
-				if t, ok := v.(tabler); ok {
-					tableName = t.TableName()
-				} else if t, ok := v.(dbTabler); ok {
-					tableName = t.TableName(tx)
-				} else if s := schema.Parse(tx.Statement.Table); s != nil {
-					if s.TableName != "" {
-						tableName = s.TableName
-					} else {
-						tableName = schema.ToDBName(s.ModelType.Name())
-						if !tx.Config.SingularTable {
-							tableName = inflection.Plural(tableName)
+				if v != nil {
+					if t, ok := v.(tabler); ok {
+						tableName = t.TableName()
+					} else if t, ok := v.(dbTabler); ok {
+						tableName = t.TableName(tx)
+					} else if s := schema.Parse(v); s != nil {
+						if s.TableName != "" {
+							tableName = s.TableName
+						} else {
+							tableName = schema.ToDBName(s.ModelType.Name())
+							if !tx.Config.SingularTable {
+								tableName = inflection.Plural(tableName)
+							}
 						}
 					}
-				}
 
-				if tableName != "" {
-					break
+					if tableName != "" {
+						break
+					}
 				}
 			}
 		}

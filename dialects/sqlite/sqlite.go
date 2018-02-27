@@ -2,17 +2,16 @@ package sqlite
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/model"
-
-	// import sqlite3 driver
-	_ "github.com/mattn/go-sqlite3"
 )
 
 // Dialect Sqlite3 Dialect for GORM
 type Dialect struct {
+	DB *sql.DB
 }
 
 // Quote quote for value
@@ -29,13 +28,12 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 	)
 
 	s := bytes.NewBufferString("INSERT INTO ")
-	tableName := <-tableNameChan
-	s.WriteString(tableName)
+	s.WriteString(dialect.Quote(<-tableNameChan))
 
 	if assignments := <-assignmentsChan; len(assignments) > 0 {
 		columns := []string{}
 
-		// Write columns (table.column1, table.column2, table.column3)
+		// Write columns (column1, column2, column3)
 		s.WriteString(" (")
 
 		// Write values (v1, v2, v3), (v2-1, v2-2, v2-3)
@@ -43,9 +41,9 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 
 		for idx, fields := range assignments {
 			if idx != 0 {
-				s.WriteString(", ")
+				valueBuffer.WriteString(",")
 			}
-			valueBuffer = bytes.NewBufferString(" (")
+			valueBuffer.WriteString(" (")
 
 			for j, field := range fields {
 				if idx == 0 {
@@ -53,8 +51,6 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 					if j != 0 {
 						s.WriteString(", ")
 					}
-					s.WriteString(dialect.Quote(tableName))
-					s.WriteString(".")
 					s.WriteString(dialect.Quote(field.Field.DBName))
 				}
 
@@ -64,12 +60,16 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 				valueBuffer.WriteString("?")
 
 				if field.IsBlank {
-					args = append(args, field.Field.DefaultValue)
+					if field.Field.HasDefaultValue {
+						args = append(args, field.Field.DefaultValue)
+					} else {
+						args = append(args, nil)
+					}
 				} else {
 					args = append(args, field.Value.Interface())
 				}
 			}
-			valueBuffer = bytes.NewBufferString(") ")
+			valueBuffer.WriteString(")")
 		}
 		s.WriteString(") ")
 
@@ -78,6 +78,13 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 		s.WriteString(" DEFAULT VALUES")
 	}
 
+	fmt.Println(s.String())
+	fmt.Printf("%#v \n", args)
+	if result, err := dialect.DB.Exec(s.String(), args...); err == nil {
+		tx.RowsAffected, _ = result.RowsAffected()
+	} else {
+		fmt.Println(err)
+	}
 	return
 }
 
