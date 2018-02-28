@@ -105,8 +105,8 @@ func (stmt *Statement) AddConditions(conds ...ConditionInterface) {
 
 // Raw raw sql
 type Raw struct {
-	Value string
-	Args  []interface{} // TODO NamedArg
+	SQL  string
+	Args []interface{} // TODO NamedArg
 }
 
 // Eq equal to
@@ -153,7 +153,7 @@ type Lte struct {
 type And []ConditionInterface
 
 // Not TRUE if condition is false
-type Not ConditionInterface
+type Not []ConditionInterface
 
 // Or TRUE if any of the conditions is TRUE
 type Or []ConditionInterface

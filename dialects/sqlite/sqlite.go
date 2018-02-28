@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/dialects/common/destination"
+	"github.com/jinzhu/gorm/dialects/common/sqlbuilder"
+	"github.com/jinzhu/gorm/model"
 )
 
 // Dialect Sqlite3 Dialect for GORM
@@ -23,9 +24,9 @@ func (dialect Dialect) Quote(name string) string {
 func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 	var (
 		args            []interface{}
-		assignmentsChan = destination.GetAssignments(tx)
-		tableNameChan   = destination.GetTable(tx)
-		primaryFields   []*destination.Field
+		assignmentsChan = sqlbuilder.GetAssignmentFields(tx)
+		tableNameChan   = sqlbuilder.GetTable(tx)
+		primaryFields   []*model.Field
 	)
 
 	s := bytes.NewBufferString("INSERT INTO ")
@@ -41,7 +42,7 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 		valueBuffer := bytes.NewBufferString("VALUES ")
 
 		for idx, fields := range assignments {
-			var primaryField *destination.Field
+			var primaryField *model.Field
 			if idx != 0 {
 				valueBuffer.WriteString(",")
 			}

@@ -6,4 +6,6 @@ type Dialect interface {
 	Query(*DB) error
 	Update(*DB) error
 	Delete(*DB) error
+
+	Quote(string) string
 }

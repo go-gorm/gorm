@@ -10,7 +10,7 @@ func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 // Not add NOT condition
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 	tx := s.init()
-	tx.Statement.AddConditions(Not(tx.Statement.BuildCondition(query, args...)))
+	tx.Statement.AddConditions(Not([]ConditionInterface{tx.Statement.BuildCondition(query, args...)}))
 	return tx
 }
 

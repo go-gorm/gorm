@@ -1,63 +1,112 @@
 package sqlbuilder
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/model"
-	"github.com/jinzhu/gorm/schema"
-	"github.com/jinzhu/inflection"
 )
 
-// GetTable get table name for current db operation
-func GetTable(tx *gorm.DB) chan string {
-	tableChan := make(chan string)
+func buildCondition(tx *gorm.DB, c gorm.ConditionInterface, s *bytes.Buffer) []interface{} {
+	args := []interface{}{}
+
+	switch cond := c.(type) {
+	case gorm.And:
+		s.WriteString("(")
+		for i, v := range cond {
+			if i > 0 {
+				s.WriteString(" AND ")
+			}
+			args = append(args, buildCondition(tx, v, s)...)
+		}
+		s.WriteString(")")
+	case gorm.Or:
+		s.WriteString("(")
+		for i, v := range cond {
+			if i > 0 {
+				s.WriteString(" OR ")
+			}
+			args = append(args, buildCondition(tx, v, s)...)
+		}
+		s.WriteString(")")
+	case gorm.Not:
+		s.WriteString("NOT (")
+		for i, v := range cond {
+			if i > 0 {
+				s.WriteString(" AND ")
+			}
+			args = append(args, buildCondition(tx, v, s)...)
+		}
+		s.WriteString(")")
+	case gorm.Raw:
+		s.WriteString(cond.SQL)
+		args = append(args, cond.Args...)
+	case gorm.Eq:
+		if cond.Value == nil {
+			s.WriteString(tx.Dialect().Quote(cond.Column))
+			s.WriteString(" IS NULL")
+		} else {
+			s.WriteString(tx.Dialect().Quote(cond.Column))
+			s.WriteString(" = ?")
+			args = append(args, cond.Value)
+		}
+	case gorm.Neq:
+		if cond.Value == nil {
+			s.WriteString(tx.Dialect().Quote(cond.Column))
+			s.WriteString(" IS NOT NULL")
+		} else {
+			s.WriteString(tx.Dialect().Quote(cond.Column))
+			s.WriteString(" <> ?")
+			args = append(args, cond.Value)
+		}
+	case gorm.Gt:
+		s.WriteString(tx.Dialect().Quote(cond.Column))
+		s.WriteString(" > ?")
+		args = append(args, cond.Value)
+	case gorm.Gte:
+		s.WriteString(tx.Dialect().Quote(cond.Column))
+		s.WriteString(" >= ?")
+		args = append(args, cond.Value)
+	case gorm.Lt:
+		s.WriteString(tx.Dialect().Quote(cond.Column))
+		s.WriteString(" < ?")
+		args = append(args, cond.Value)
+	case gorm.Lte:
+		s.WriteString(tx.Dialect().Quote(cond.Column))
+		s.WriteString(" <= ?")
+		args = append(args, cond.Value)
+	default:
+		if sqlCond, ok := cond.(ConditionInterface); ok {
+			sql, as := sqlCond.ToSQL(tx)
+			s.WriteString(sql)
+			args = append(args, as)
+		} else {
+			tx.AddError(fmt.Errorf("unsupported condition: %#v", cond))
+		}
+	}
+
+	return args
+}
+
+// ConditionInterface condition interface
+type ConditionInterface interface {
+	ToSQL(*gorm.DB) (string, []interface{})
+}
+
+// BuildConditions build conditions
+func BuildConditions(tx *gorm.DB) chan string {
+	queryChan := make(chan string)
 
 	go func() {
-		var tableName string
-		if name, ok := tx.Statement.Table.(string); ok {
-			tableName = name
-		} else {
-			for _, v := range []interface{}{tx.Statement.Table, tx.Statement.Dest} {
-				if v != nil {
-					if t, ok := v.(tabler); ok {
-						tableName = t.TableName()
-					} else if t, ok := v.(dbTabler); ok {
-						tableName = t.TableName(tx)
-					} else if s := schema.Parse(v); s != nil {
-						if s.TableName != "" {
-							tableName = s.TableName
-						} else {
-							tableName = schema.ToDBName(s.ModelType.Name())
-							if !tx.Config.SingularTable {
-								tableName = inflection.Plural(tableName)
-							}
-						}
-					}
+		s := bytes.NewBufferString("")
+		args := []interface{}{}
 
-					if tableName != "" {
-						break
-					}
-				}
+		for i, c := range tx.Statement.Conditions {
+			if i > 0 {
+				s.WriteString(" AND ")
 			}
-		}
-
-		if tableName != "" {
-			if model.DefaultTableNameHandler != nil {
-				tableChan <- model.DefaultTableNameHandler(tx, tableName)
-			} else {
-				tableChan <- tableName
-			}
-		} else {
-			tx.AddError(ErrInvalidTable)
+			args = append(args, buildCondition(tx, c, s)...)
 		}
 	}()
-
-	return tableChan
-}
-
-type tabler interface {
-	TableName() string
-}
-
-type dbTabler interface {
-	TableName(*gorm.DB) string
+	return queryChan
 }
