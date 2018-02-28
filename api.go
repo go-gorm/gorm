@@ -1,9 +1,5 @@
 package gorm
 
-import (
-	"github.com/jinzhu/gorm/builder"
-)
-
 // Where add condition
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	tx := s.init()
@@ -14,21 +10,21 @@ func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 // Not add NOT condition
 func (s *DB) Not(query interface{}, args ...interface{}) *DB {
 	tx := s.init()
-	tx.Statement.AddConditions(builder.Not(tx.Statement.BuildCondition(query, args...)))
+	tx.Statement.AddConditions(Not(tx.Statement.BuildCondition(query, args...)))
 	return tx
 }
 
 // And add AND conditions
-func (s *DB) And(conds ...builder.Condition) *DB {
+func (s *DB) And(conds ...ConditionInterface) *DB {
 	tx := s.init()
-	tx.Statement.AddConditions(builder.And(conds))
+	tx.Statement.AddConditions(And(conds))
 	return tx
 }
 
 // Or add OR conditions
-func (s *DB) Or(conds ...builder.Condition) *DB {
+func (s *DB) Or(conds ...ConditionInterface) *DB {
 	tx := s.init()
-	tx.Statement.AddConditions(builder.Or(conds))
+	tx.Statement.AddConditions(Or(conds))
 	return tx
 }
 
@@ -37,7 +33,7 @@ func (s *DB) Or(conds ...builder.Condition) *DB {
 func (s *DB) Joins(query string, args ...interface{}) *DB {
 	tx := s.init()
 	// FIXME
-	tx.Statement.Joins = append(tx.Statement.Joins, builder.Join{Conditions: []builder.Condition{tx.Statement.BuildCondition(query, args...)}})
+	tx.Statement.Joins = append(tx.Statement.Joins, Join{Conditions: []ConditionInterface{tx.Statement.BuildCondition(query, args...)}})
 	return tx
 }
 
@@ -67,7 +63,7 @@ func (s *DB) Order(value interface{}) *DB {
 // Reorder works like Order, but will overwrite current order information
 func (s *DB) Reorder(value interface{}) *DB {
 	tx := s.init()
-	tx.Statement.OrderBy = []builder.OrderCondition{value}
+	tx.Statement.OrderBy = []OrderCondition{value}
 	return tx
 }
 
@@ -118,7 +114,7 @@ func (s *DB) Omit(columns ...string) *DB {
 
 // First find first record that match given conditions, order by primary key
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
-	conds := []interface{}{builder.Limit{Limit: &one}, builder.Settings{"gorm:order_by_primary_key": "ASC"}}
+	conds := []interface{}{Limit{Limit: &one}, Settings{"gorm:order_by_primary_key": "ASC"}}
 	if len(where) > 0 {
 		conds = append(conds, s.Statement.BuildCondition(where[0], where[1:]...))
 	}
@@ -127,7 +123,7 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 
 // Take return a record that match given conditions, the order will depend on the database implementation
 func (s *DB) Take(out interface{}, where ...interface{}) *DB {
-	conds := []interface{}{builder.Limit{Limit: &one}}
+	conds := []interface{}{Limit{Limit: &one}}
 	if len(where) > 0 {
 		conds = append(conds, s.Statement.BuildCondition(where[0], where[1:]...))
 	}
@@ -136,7 +132,7 @@ func (s *DB) Take(out interface{}, where ...interface{}) *DB {
 
 // Last find last record that match given conditions, order by primary key
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
-	conds := []interface{}{builder.Limit{Limit: &one}, builder.Settings{"gorm:order_by_primary_key": "DESC"}}
+	conds := []interface{}{Limit{Limit: &one}, Settings{"gorm:order_by_primary_key": "DESC"}}
 	if len(where) > 0 {
 		conds = append(conds, s.Statement.BuildCondition(where[0], where[1:]...))
 	}
@@ -196,7 +192,7 @@ func (s *DB) Save(value interface{}) *DB {
 // Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) Update(column string, value interface{}) *DB {
 	tx := s.init()
-	tx.Statement.Assignments = append(tx.Statement.Assignments, builder.Assignment{Column: column, Value: value})
+	tx.Statement.Assignments = append(tx.Statement.Assignments, Assignment{Column: column, Value: value})
 	tx.AddError(tx.Dialect().Update(tx))
 	return tx
 }
@@ -204,7 +200,7 @@ func (s *DB) Update(column string, value interface{}) *DB {
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) Updates(values interface{}) *DB {
 	tx := s.init()
-	tx.Statement.Assignments = append(tx.Statement.Assignments, builder.Assignment{Value: values})
+	tx.Statement.Assignments = append(tx.Statement.Assignments, Assignment{Value: values})
 	tx.AddError(tx.Dialect().Update(tx))
 	return tx
 }
@@ -305,7 +301,7 @@ func (s *DB) init() *DB {
 	if s.Statement == nil {
 		return &DB{
 			TxDialect: s.TxDialect,
-			Statement: &builder.Statement{},
+			Statement: &Statement{},
 			Config:    s.Config,
 		}
 	}

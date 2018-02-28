@@ -3,7 +3,6 @@ package gorm
 import (
 	"time"
 
-	"github.com/jinzhu/gorm/builder"
 	"github.com/jinzhu/gorm/logger"
 )
 
@@ -29,7 +28,7 @@ type Config struct {
 // DB GORM DB definition
 type DB struct {
 	TxDialect Dialect
-	Statement *builder.Statement
+	Statement *Statement
 
 	// Global config
 	Config *Config
