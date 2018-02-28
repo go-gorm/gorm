@@ -1,9 +1,13 @@
 package model
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"reflect"
+
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/schema"
-	"github.com/jinzhu/inflection"
 )
 
 // DefaultTableNameHandler default table name handler
@@ -12,57 +16,52 @@ import (
 //    }
 var DefaultTableNameHandler func(tx *gorm.DB, tableName string) string
 
-// GetTable get table name for current db operation
-func GetTable(tx *gorm.DB) chan string {
-	tableChan := make(chan string)
+// Field GORM model field
+type Field struct {
+	*schema.Field
+	IsBlank bool
+	Value   reflect.Value
+}
 
-	go func() {
-		var tableName string
-		if name, ok := tx.Statement.Table.(string); ok {
-			tableName = name
+// Set set a value to the field
+func (field *Field) Set(value interface{}) (err error) {
+	if !field.Value.IsValid() {
+		return errors.New("field value not valid")
+	}
+
+	if !field.Value.CanAddr() {
+		return gorm.ErrUnaddressable
+	}
+
+	reflectValue, ok := value.(reflect.Value)
+	if !ok {
+		reflectValue = reflect.ValueOf(value)
+	}
+
+	fieldValue := field.Value
+	if reflectValue.IsValid() {
+		if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+			fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
 		} else {
-			for _, v := range []interface{}{tx.Statement.Table, tx.Statement.Dest} {
-				if v != nil {
-					if t, ok := v.(tabler); ok {
-						tableName = t.TableName()
-					} else if t, ok := v.(dbTabler); ok {
-						tableName = t.TableName(tx)
-					} else if s := schema.Parse(v); s != nil {
-						if s.TableName != "" {
-							tableName = s.TableName
-						} else {
-							tableName = schema.ToDBName(s.ModelType.Name())
-							if !tx.Config.SingularTable {
-								tableName = inflection.Plural(tableName)
-							}
-						}
-					}
-
-					if tableName != "" {
-						break
-					}
+			if fieldValue.Kind() == reflect.Ptr {
+				if fieldValue.IsNil() {
+					fieldValue.Set(reflect.New(field.StructField.Type.Elem()))
 				}
+				fieldValue = fieldValue.Elem()
 			}
-		}
 
-		if tableName != "" {
-			if DefaultTableNameHandler != nil {
-				tableChan <- DefaultTableNameHandler(tx, tableName)
+			if reflectValue.Type().ConvertibleTo(fieldValue.Type()) {
+				fieldValue.Set(reflectValue.Convert(fieldValue.Type()))
+			} else if scanner, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
+				err = scanner.Scan(reflectValue.Interface())
 			} else {
-				tableChan <- tableName
+				err = fmt.Errorf("could not convert argument of field %s from %s to %s", field.Name, reflectValue.Type(), fieldValue.Type())
 			}
-		} else {
-			tx.AddError(ErrInvalidTable)
 		}
-	}()
+	} else {
+		field.Value.Set(reflect.Zero(fieldValue.Type()))
+	}
 
-	return tableChan
-}
-
-type tabler interface {
-	TableName() string
-}
-
-type dbTabler interface {
-	TableName(*gorm.DB) string
+	field.IsBlank = IsBlank(field.Value)
+	return err
 }

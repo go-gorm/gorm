@@ -2,32 +2,7 @@ package model
 
 import "reflect"
 
-// ToSearchableMap convert attrs to searchable map
-func ToSearchableMap(attrs ...interface{}) (result interface{}) {
-	if len(attrs) > 1 {
-		if str, ok := attrs[0].(string); ok {
-			result = map[string]interface{}{str: attrs[1]}
-		}
-	} else if len(attrs) == 1 {
-		if attr, ok := attrs[0].(map[string]interface{}); ok {
-			result = attr
-		}
-
-		if attr, ok := attrs[0].(interface{}); ok {
-			result = attr
-		}
-	}
-	return
-}
-
-func indirect(reflectValue reflect.Value) reflect.Value {
-	for reflectValue.Kind() == reflect.Ptr {
-		reflectValue = reflectValue.Elem()
-	}
-	return reflectValue
-}
-
-func isBlank(value reflect.Value) bool {
+func IsBlank(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.String:
 		return value.Len() == 0
