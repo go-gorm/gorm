@@ -66,6 +66,15 @@ func (s *ModelStruct) TableName(db *DB) string {
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
+type StructFieldMethodCallback struct {
+	Method
+	Caller reflect.Value
+}
+
+func (s StructFieldMethodCallback) Call(object reflect.Value, in []reflect.Value) {
+	s.Caller.Call(append([]reflect.Value{reflect.ValueOf(&s.Method), s.ObjectMethod(object)}, in...))
+}
+
 // StructField model field's struct definition
 type StructField struct {
 	DBName          string
@@ -81,6 +90,19 @@ type StructField struct {
 	Struct          reflect.StructField
 	IsForeignKey    bool
 	Relationship    *Relationship
+	MethodCallbacks map[string]StructFieldMethodCallback
+}
+
+// Call the method callback if exists by name.
+func (structField *StructField) CallMethodCallbackArgs(name string, object reflect.Value, in []reflect.Value) {
+	if callback, ok := structField.MethodCallbacks[name]; ok {
+		callback.Call(object, in)
+	}
+}
+
+// Call the method callback if exists by name. the
+func (structField *StructField) CallMethodCallback(name string, object reflect.Value, in ...reflect.Value) {
+	structField.CallMethodCallbackArgs(name, object, in)
 }
 
 func (structField *StructField) clone() *StructField {
@@ -97,6 +119,7 @@ func (structField *StructField) clone() *StructField {
 		TagSettings:     map[string]string{},
 		Struct:          structField.Struct,
 		IsForeignKey:    structField.IsForeignKey,
+		MethodCallbacks: structField.MethodCallbacks,
 	}
 
 	if structField.Relationship != nil {
@@ -579,6 +602,15 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 						}(field)
 					default:
 						field.IsNormal = true
+					}
+				}
+
+				// register method callbacks now for improve performance
+				field.MethodCallbacks = make(map[string]StructFieldMethodCallback)
+
+				for callbackName, caller := range StructFieldMethodCallbacks.Callbacks {
+					if callbackMethod := MethodByName(indirectType, callbackName); callbackMethod.valid {
+						field.MethodCallbacks[callbackName] = StructFieldMethodCallback{callbackMethod, caller}
 					}
 				}
 			}

@@ -238,7 +238,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	return errors.New("could not convert column to field")
 }
 
-// CallMethod call scope value's method, if it is a slice, will call its element's method one by one
+// CallMethod call scope value's Method, if it is a slice, will call its element's Method one by one
 func (scope *Scope) CallMethod(methodName string) {
 	if scope.Value == nil {
 		return
@@ -473,6 +473,27 @@ func (scope *Scope) quoteIfPossible(str string) string {
 	return str
 }
 
+// call after field method callbacks
+func (scope *Scope) afterScanCallback(scannerFields map[int]*Field, disableScanField map[int]bool) {
+	if !scope.HasError() && scope.Value != nil {
+		if scope.DB().IsEnabledAfterScanCallback(scope.Value) {
+			scopeValue := reflect.ValueOf(scope)
+			for index, field := range scannerFields {
+				// if not is nill and if calbacks enabled for field type
+				if StructFieldMethodCallbacks.IsEnabledFieldType(field.Field.Type()) {
+					// not disabled on scan
+					if _, ok := disableScanField[index]; !ok {
+						if !isNil(field.Field) {
+							reflectValue := field.Field.Addr()
+							field.CallMethodCallback("AfterScan", reflectValue, scopeValue)
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 	var (
 		ignored            interface{}
@@ -481,6 +502,8 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		selectedColumnsMap = map[string]int{}
 		resetFields        = map[int]*Field{}
 	)
+
+	scannerFields := make(map[int]*Field)
 
 	for index, column := range columns {
 		values[index] = &ignored
@@ -492,6 +515,8 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 		for fieldIndex, field := range selectFields {
 			if field.DBName == column {
+				scannerFields[index] = field
+
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -512,11 +537,18 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 	scope.Err(rows.Scan(values...))
 
+	disableScanField := make(map[int]bool)
+
 	for index, field := range resetFields {
-		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
-			field.Field.Set(v)
+		reflectValue := reflect.ValueOf(values[index]).Elem().Elem()
+		if reflectValue.IsValid() {
+			field.Field.Set(reflectValue)
+		} else {
+			disableScanField[index] = true
 		}
 	}
+
+	scope.afterScanCallback(scannerFields, disableScanField)
 }
 
 func (scope *Scope) primaryCondition(value interface{}) string {

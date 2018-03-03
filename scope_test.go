@@ -78,3 +78,137 @@ func TestFailedValuer(t *testing.T) {
 		t.Errorf("The error should be returned from Valuer, but get %v", err)
 	}
 }
+
+func TestAfterFieldScanCallback(t *testing.T) {
+	model := WithFieldAfterScanCallback{}
+	model.Name1 = &AfterScanFieldPtr{data: randName()}
+	model.Name2 = AfterScanFieldPtr{data: randName()}
+	model.Name3 = &AfterScanField{data: randName()}
+	model.Name4 = AfterScanField{data: randName()}
+
+	if err := DB.Save(&model).Error; err != nil {
+		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
+	}
+
+	var model2 WithFieldAfterScanCallback
+	if err := DB.Where("id = ?", model.ID).First(&model2).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+
+	dotest := func(i int, value string, field AfterScanFieldInterface) {
+		if field.CalledFieldIsNill() {
+			t.Errorf("Expected Name%v.calledField, but got nil", i)
+		}
+
+		if field.CalledScopeIsNill() {
+			t.Errorf("Expected Name%v.calledScope, but got nil", i)
+		}
+
+		if field.Data() != value {
+			t.Errorf("Expected Name%v.data %q, but got %q", i, value, field.Data())
+		}
+	}
+
+	dotest(1, model.Name1.data, model2.Name1)
+	dotest(2, model.Name2.data, &model2.Name2)
+	dotest(3, model.Name3.data, model2.Name3)
+	dotest(4, model.Name4.data, &model2.Name4)
+}
+
+func TestAfterFieldScanDisableCallback(t *testing.T) {
+	model := WithFieldAfterScanCallback{}
+	model.Name1 = &AfterScanFieldPtr{data: randName()}
+
+	if err := DB.Save(&model).Error; err != nil {
+		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
+	}
+
+	run := func(typs ... interface{}) {
+		DB := DB.DisableAfterScanCallback(typs...)
+		var model2 WithFieldAfterScanCallback
+		if err := DB.Where("id = ?", model.ID).First(&model2).Error; err != nil {
+			t.Errorf("%v: No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", len(typs), err)
+		}
+
+		dotest := func(i int, field AfterScanFieldInterface) {
+			if !field.CalledFieldIsNill() {
+				t.Errorf("%v: Expected Name%v.calledField is nil", len(typs), i)
+			}
+		}
+
+		dotest(1, model2.Name1)
+	}
+
+	run()
+	run(model)
+}
+
+func TestAfterFieldScanCallbackTypeDisabled(t *testing.T) {
+	model := WithFieldAfterScanCallback{}
+	model.Name1 = &AfterScanFieldPtr{data: randName()}
+	model.Name2 = AfterScanFieldPtr{data: randName()}
+	model.Name3 = &AfterScanField{data: randName()}
+	model.Name4 = AfterScanField{data: randName()}
+
+	if err := DB.Save(&model).Error; err != nil {
+		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
+	}
+
+	enabled := func(i int, field AfterScanFieldInterface) {
+		if field.CalledScopeIsNill() {
+			t.Errorf("Expected Name%v.calledScope, but got nil", i)
+		}
+	}
+
+	disabled := func(i int, field AfterScanFieldInterface) {
+		if !field.CalledScopeIsNill() {
+			t.Errorf("Expected Name%v.calledScope is not nil", i)
+		}
+	}
+
+	gorm.StructFieldMethodCallbacks.DisableFieldType(&AfterScanFieldPtr{}, &AfterScanField{})
+
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	disabled(1, model.Name1)
+	disabled(2, &model.Name2)
+	disabled(3, model.Name3)
+	disabled(4, &model.Name4)
+
+	gorm.StructFieldMethodCallbacks.EnableFieldType(&AfterScanFieldPtr{})
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	enabled(1, model.Name1)
+	enabled(2, &model.Name2)
+	disabled(3, model.Name3)
+	disabled(4, &model.Name4)
+
+	gorm.StructFieldMethodCallbacks.EnableFieldType(&AfterScanField{})
+	if err := DB.Where("id = ?", model.ID).First(&model).Error; err != nil {
+		t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+	}
+	enabled(1, model.Name1)
+	enabled(2, &model.Name2)
+	enabled(3, model.Name3)
+	enabled(4, &model.Name4)
+}
+
+func TestAfterFieldScanInvalidCallback(t *testing.T) {
+	model := WithFieldAfterScanInvalidCallback{}
+	model.Name = InvalidAfterScanField{AfterScanField{data: randName()}}
+
+	if err := DB.Save(&model).Error; err != nil {
+		t.Errorf("No error should happen when saving WithFieldAfterScanCallback, but got %v", err)
+	}
+
+	var model2 WithFieldAfterScanInvalidCallback
+	if err := DB.Where("id = ?", model.ID).First(&model2).Error; err != nil {
+		if !strings.Contains(err.Error(), "Invalid AfterScan method callback") {
+			t.Errorf("No error should happen when querying WithFieldAfterScanCallback with valuer, but got %v", err)
+		}
+	} else {
+		t.Errorf("Expected error, but got nil")
+	}
+}

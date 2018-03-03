@@ -177,15 +177,6 @@ func (s *DB) QueryExpr() *expr {
 	return Expr(scope.SQL, scope.SQLVars...)
 }
 
-// SubQuery returns the query as sub query
-func (s *DB) SubQuery() *expr {
-	scope := s.NewScope(s.Value)
-	scope.InstanceSet("skip_bindvar", true)
-	scope.prepareQuerySQL()
-
-	return Expr(fmt.Sprintf("(%v)", scope.SQL), scope.SQLVars...)
-}
-
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db
@@ -774,4 +765,63 @@ func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
 	if s.logMode == 2 {
 		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
+}
+
+// Disable after scan callback. If typs not is empty, disable for typs, other else, disable for all
+func (s *DB) DisableAfterScanCallback(typs ...interface{}) *DB  {
+	key := "gorm:disable_after_scan"
+
+	s = s.clone()
+
+	if len(typs) == 0 {
+		s.values[key] = true
+		return s
+	}
+
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		s.values[key + ":" + rType.PkgPath() + "." + rType.Name()] = true
+	}
+
+	return s
+}
+
+// Enable after scan callback. If typs not is empty, enable for typs, other else, enable for all.
+// The disabled types will not be enabled unless they are specifically informed.
+func (s *DB) EnableAfterScanCallback(typs ...interface{}) *DB  {
+	key := "gorm:disable_after_scan"
+
+	s = s.clone()
+
+	if len(typs) == 0 {
+		s.values[key] = false
+		return s
+	}
+
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		s.values[key + ":" + rType.PkgPath() + "." + rType.Name()] = false
+	}
+
+	return s
+}
+
+// Return if after scan callbacks has be enable. If typs is empty, return default, other else, return for informed
+// typs.
+func (s *DB) IsEnabledAfterScanCallback(typs ...interface{}) (ok bool) {
+	key := "gorm:disable_after_scan"
+
+	if v, ok := s.values[key]; ok {
+		return !v.(bool)
+	}
+
+	for _, typ := range typs {
+		rType := indirectType(reflect.TypeOf(typ))
+		v, ok := s.values[key + ":" + rType.PkgPath() + "." + rType.Name()]
+		if ok && v.(bool) {
+			return false
+		}
+	}
+
+	return true
 }
