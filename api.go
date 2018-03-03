@@ -40,7 +40,7 @@ func (s *DB) Joins(query string, args ...interface{}) *DB {
 // Group specify the group method on the find
 func (s *DB) Group(column string) *DB {
 	tx := s.init()
-	tx.Statement.GroupBy.GroupByColumns = append(tx.Statement.GroupBy.GroupByColumns, column)
+	tx.Statement.GroupBy.Columns = append(tx.Statement.GroupBy.Columns, column)
 	return tx
 }
 

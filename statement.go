@@ -47,8 +47,8 @@ type Join struct {
 
 // GroupBy group by statement
 type GroupBy struct {
-	GroupByColumns []string
-	Having         []ConditionInterface
+	Columns []string
+	Having  []ConditionInterface
 }
 
 // OrderCondition order condition, could be string or sql expr
@@ -84,7 +84,7 @@ func (stmt *Statement) Clone() *Statement {
 // BuildCondition build condition
 func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) ConditionInterface {
 	if sql, ok := query.(string); ok {
-		return Raw{Value: sql, Args: args}
+		return Raw{SQL: sql, Args: args}
 	}
 
 	andConds := And([]ConditionInterface{ConditionInterface(query)})
