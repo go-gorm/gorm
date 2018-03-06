@@ -99,8 +99,8 @@ func updateCallback(scope *Scope) {
 				"UPDATE %v SET %v%v%v",
 				scope.QuotedTableName(),
 				strings.Join(sqls, ", "),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
-				addExtraSpaceIfExist(extraOption),
+				addExtraSpaceBeforeIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceBeforeIfExist(extraOption),
 			)).Exec()
 		}
 	}

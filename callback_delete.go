@@ -41,15 +41,15 @@ func deleteCallback(scope *Scope) {
 				scope.QuotedTableName(),
 				scope.Quote(deletedAtField.DBName),
 				scope.AddToVars(NowFunc()),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
-				addExtraSpaceIfExist(extraOption),
+				addExtraSpaceBeforeIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceBeforeIfExist(extraOption),
 			)).Exec()
 		} else {
 			scope.Raw(fmt.Sprintf(
 				"DELETE FROM %v%v%v",
 				scope.QuotedTableName(),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
-				addExtraSpaceIfExist(extraOption),
+				addExtraSpaceBeforeIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceBeforeIfExist(extraOption),
 			)).Exec()
 		}
 	}

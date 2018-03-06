@@ -100,8 +100,8 @@ func createCallback(scope *Scope) {
 				"INSERT INTO %v %v%v%v",
 				quotedTableName,
 				scope.Dialect().DefaultValueStr(),
-				addExtraSpaceIfExist(extraOption),
-				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
+				addExtraSpaceBeforeIfExist(extraOption),
+				addExtraSpaceBeforeIfExist(lastInsertIDReturningSuffix),
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
@@ -109,8 +109,8 @@ func createCallback(scope *Scope) {
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
 				strings.Join(placeholders, ","),
-				addExtraSpaceIfExist(extraOption),
-				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
+				addExtraSpaceBeforeIfExist(extraOption),
+				addExtraSpaceBeforeIfExist(lastInsertIDReturningSuffix),
 			))
 		}
 

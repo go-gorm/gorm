@@ -56,7 +56,10 @@ func queryCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.db.RowsAffected = 0
 		if str, ok := scope.Get("gorm:query_option"); ok {
-			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
+			scope.SQL += addExtraSpaceBeforeIfExist(fmt.Sprint(str))
+		}
+		if str, ok := scope.Get("gorm:query_prefix"); ok {
+			scope.SQL = addExtraSpaceAfterIfExist(fmt.Sprint(str)) + scope.SQL
 		}
 
 		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
