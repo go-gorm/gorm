@@ -94,7 +94,7 @@ func autoPreload(scope *Scope) {
 			continue
 		}
 
-		if val, ok := field.TagSettings["PRELOAD"]; ok {
+		if val, ok := field.TagSettingsGet("PRELOAD"); ok {
 			if preload, err := strconv.ParseBool(val); err != nil {
 				scope.Err(errors.New("invalid preload option"))
 				return

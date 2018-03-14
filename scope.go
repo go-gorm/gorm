@@ -1113,8 +1113,8 @@ func (scope *Scope) createJoinTable(field *StructField) {
 				if field, ok := scope.FieldByName(fieldName); ok {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
-					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
-					delete(foreignKeyStruct.TagSettings, "AUTO_INCREMENT")
+					foreignKeyStruct.TagSettingsSet("IS_JOINTABLE_FOREIGNKEY", "true")
+					foreignKeyStruct.TagSettingsDelete("AUTO_INCREMENT")
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.ForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.ForeignDBNames[idx]))
 				}
@@ -1124,8 +1124,8 @@ func (scope *Scope) createJoinTable(field *StructField) {
 				if field, ok := toScope.FieldByName(fieldName); ok {
 					foreignKeyStruct := field.clone()
 					foreignKeyStruct.IsPrimaryKey = false
-					foreignKeyStruct.TagSettings["IS_JOINTABLE_FOREIGNKEY"] = "true"
-					delete(foreignKeyStruct.TagSettings, "AUTO_INCREMENT")
+					foreignKeyStruct.TagSettingsSet("IS_JOINTABLE_FOREIGNKEY", "true")
+					foreignKeyStruct.TagSettingsDelete("AUTO_INCREMENT")
 					sqlTypes = append(sqlTypes, scope.Quote(relationship.AssociationForeignDBNames[idx])+" "+scope.Dialect().DataTypeOf(foreignKeyStruct))
 					primaryKeys = append(primaryKeys, scope.Quote(relationship.AssociationForeignDBNames[idx]))
 				}
@@ -1254,7 +1254,7 @@ func (scope *Scope) autoIndex() *Scope {
 	var uniqueIndexes = map[string][]string{}
 
 	for _, field := range scope.GetStructFields() {
-		if name, ok := field.TagSettings["INDEX"]; ok {
+		if name, ok := field.TagSettingsGet("INDEX"); ok {
 			names := strings.Split(name, ",")
 
 			for _, name := range names {
@@ -1265,7 +1265,7 @@ func (scope *Scope) autoIndex() *Scope {
 			}
 		}
 
-		if name, ok := field.TagSettings["UNIQUE_INDEX"]; ok {
+		if name, ok := field.TagSettingsGet("UNIQUE_INDEX"); ok {
 			names := strings.Split(name, ",")
 
 			for _, name := range names {

@@ -685,7 +685,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 	scope := s.NewScope(source)
 	for _, field := range scope.GetModelStruct().StructFields {
 		if field.Name == column || field.DBName == column {
-			if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
+			if many2many, _ := field.TagSettingsGet("MANY2MANY"); many2many != "" {
 				source := (&Scope{Value: source}).GetModelStruct().ModelType
 				destination := (&Scope{Value: reflect.New(field.Struct.Type).Interface()}).GetModelStruct().ModelType
 				handler.Setup(field.Relationship, many2many, source, destination)
