@@ -13,6 +13,7 @@ func BuildGroupCondition(tx *gorm.DB) chan *Builder {
 	go func() {
 		builder := &Builder{}
 		if groupBy := tx.Statement.GroupBy; len(groupBy.Columns) > 0 {
+			builder.SQL.WriteString(" GROUP BY ")
 			builder.SQL.WriteString(strings.Join(tx.Statement.GroupBy.Columns, ", "))
 
 			if len(groupBy.Having) > 0 {

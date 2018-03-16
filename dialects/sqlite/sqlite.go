@@ -100,8 +100,68 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 }
 
 // Query query
-func (*Dialect) Query(tx *gorm.DB) error {
-	return nil
+func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
+	var (
+		args           []interface{}
+		tableNameChan  = sqlbuilder.GetTable(tx)
+		conditionsChan = sqlbuilder.BuildConditions(tx, tx.Statement.Conditions)
+		groupChan      = sqlbuilder.BuildGroupCondition(tx)
+		orderChan      = sqlbuilder.BuildOrderCondition(tx)
+		limitChan      = sqlbuilder.BuildLimitCondition(tx)
+	)
+
+	s := bytes.NewBufferString("SELECT ")
+
+	// FIXME quote, add table
+	columns := tx.Statement.Select.Columns
+	if len(columns) > 0 {
+		args = append(args, tx.Statement.Select.Args...)
+	} else {
+		columns = []string{"*"}
+	}
+
+	for idx, column := range columns {
+		if idx != 0 {
+			s.WriteString(",")
+		}
+		s.WriteString(column)
+	}
+
+	s.WriteString(" FROM ")
+	s.WriteString(dialect.Quote(<-tableNameChan))
+
+	// Join SQL
+	for _, join := range tx.Statement.Joins {
+		if join.Table == "" {
+			builder := <-sqlbuilder.BuildConditions(tx, join.Conditions)
+			_, err = builder.SQL.WriteTo(s)
+			args = append(args, builder.Args...)
+		}
+		// FIXME
+	}
+
+	if len(tx.Statement.Conditions) > 0 {
+		s.WriteString(" WHERE ")
+		builder := <-conditionsChan
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args...)
+	}
+
+	if builder := <-groupChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+
+	if builder := <-orderChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+
+	if builder := <-limitChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+	return
 }
 
 // Update update

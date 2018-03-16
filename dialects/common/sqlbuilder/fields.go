@@ -50,13 +50,35 @@ func GetAssignmentFields(tx *gorm.DB) chan [][]*model.Field {
 	return fieldChan
 }
 
-func mapToFields(value map[string]interface{}, s *schema.Schema, assignableChecker func(*model.Field) bool) (fields []*model.Field) {
+// GetSelectableFields get selectable fields
+func GetSelectableFields(tx *gorm.DB) chan []string {
+	fieldChan := make(chan []string)
+
+	go func() {
+		assignableChecker := generateAssignableChecker(selectAttrs(tx.Statement), omitAttrs(tx.Statement))
+		if s := schema.Parse(tx.Statement.Dest); s != nil {
+			columns := []string{}
+			for _, field := range s.Fields {
+				if assignableChecker(field) {
+					columns = append(columns, field.DBName)
+				}
+			}
+			fieldChan <- columns
+			return
+		}
+		fieldChan <- []string{"*"}
+	}()
+
+	return fieldChan
+}
+
+func mapToFields(value map[string]interface{}, s *schema.Schema, assignableChecker func(*schema.Field) bool) (fields []*model.Field) {
 	// TODO assign those value to dest
 	for k, v := range value {
 		if s != nil {
 			if f := s.FieldByName(k); f != nil {
 				field := &model.Field{Field: f, Value: reflect.ValueOf(v)}
-				if assignableChecker(field) {
+				if assignableChecker(field.Field) {
 					fields = append(fields, field)
 				}
 				continue
@@ -64,7 +86,7 @@ func mapToFields(value map[string]interface{}, s *schema.Schema, assignableCheck
 		}
 
 		field := &model.Field{Field: &schema.Field{DBName: k}, Value: reflect.ValueOf(v)}
-		if assignableChecker(field) {
+		if assignableChecker(field.Field) {
 			fields = append(fields, field)
 		}
 	}
@@ -75,7 +97,7 @@ func mapToFields(value map[string]interface{}, s *schema.Schema, assignableCheck
 	return
 }
 
-func structToField(value reflect.Value, s *schema.Schema, assignableChecker func(*model.Field) bool) (fields []*model.Field) {
+func structToField(value reflect.Value, s *schema.Schema, assignableChecker func(*schema.Field) bool) (fields []*model.Field) {
 	// TODO use Offset to replace FieldByName?
 	for _, sf := range s.Fields {
 		obj := value
@@ -83,7 +105,7 @@ func structToField(value reflect.Value, s *schema.Schema, assignableChecker func
 			obj = value.FieldByName(bn)
 		}
 		field := &model.Field{Field: sf, Value: obj, IsBlank: model.IsBlank(obj)}
-		if assignableChecker(field) {
+		if assignableChecker(field.Field) {
 			fields = append(fields, field)
 		}
 	}
@@ -91,8 +113,8 @@ func structToField(value reflect.Value, s *schema.Schema, assignableChecker func
 }
 
 // generateAssignableChecker generate checker to check if field is assignable or not
-func generateAssignableChecker(selectAttrs []string, omitAttrs []string) func(*model.Field) bool {
-	return func(field *model.Field) bool {
+func generateAssignableChecker(selectAttrs []string, omitAttrs []string) func(*schema.Field) bool {
+	return func(field *schema.Field) bool {
 		if len(selectAttrs) > 0 {
 			for _, attr := range selectAttrs {
 				if field.Name == attr || field.DBName == attr {

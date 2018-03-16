@@ -12,13 +12,13 @@ type ConditionInterface interface {
 }
 
 // BuildConditions build conditions
-func BuildConditions(tx *gorm.DB) chan *Builder {
+func BuildConditions(tx *gorm.DB, conds []gorm.ConditionInterface) chan *Builder {
 	queryChan := make(chan *Builder)
 
 	go func() {
 		builder := &Builder{}
 
-		for i, c := range tx.Statement.Conditions {
+		for i, c := range conds {
 			if i > 0 {
 				builder.SQL.WriteString(" AND ")
 			}
