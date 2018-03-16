@@ -104,7 +104,8 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 	var (
 		args           []interface{}
 		tableNameChan  = sqlbuilder.GetTable(tx)
-		conditionsChan = sqlbuilder.BuildConditions(tx, tx.Statement.Conditions)
+		joinChan       = sqlbuilder.BuildJoinCondition(tx)
+		conditionsChan = sqlbuilder.BuildConditions(tx)
 		groupChan      = sqlbuilder.BuildGroupCondition(tx)
 		orderChan      = sqlbuilder.BuildOrderCondition(tx)
 		limitChan      = sqlbuilder.BuildLimitCondition(tx)
@@ -131,17 +132,12 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 	s.WriteString(dialect.Quote(<-tableNameChan))
 
 	// Join SQL
-	for _, join := range tx.Statement.Joins {
-		if join.Table == "" {
-			builder := <-sqlbuilder.BuildConditions(tx, join.Conditions)
-			_, err = builder.SQL.WriteTo(s)
-			args = append(args, builder.Args...)
-		}
-		// FIXME
+	if builder := <-joinChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
 	}
 
 	if len(tx.Statement.Conditions) > 0 {
-		s.WriteString(" WHERE ")
 		builder := <-conditionsChan
 		_, err = builder.SQL.WriteTo(s)
 		args = append(args, builder.Args...)
@@ -165,11 +161,75 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 }
 
 // Update update
-func (*Dialect) Update(tx *gorm.DB) error {
-	return nil
+func (dialect *Dialect) Update(tx *gorm.DB) (err error) {
+	var (
+		args            []interface{}
+		tableNameChan   = sqlbuilder.GetTable(tx)
+		conditionsChan  = sqlbuilder.BuildConditions(tx)
+		assignmentsChan = sqlbuilder.GetAssignmentFields(tx)
+		orderChan       = sqlbuilder.BuildOrderCondition(tx)
+		limitChan       = sqlbuilder.BuildLimitCondition(tx)
+	)
+
+	s := bytes.NewBufferString("UPDATE ")
+	s.WriteString(dialect.Quote(<-tableNameChan))
+	s.WriteString(" SET ")
+	if assignments := <-assignmentsChan; len(assignments) > 0 {
+		for _, fields := range assignments {
+			for _, field := range fields {
+				s.WriteString(dialect.Quote(field.Field.DBName))
+				s.WriteString(" = ?")
+				args = append(args, field.Value.Interface())
+			}
+			// TODO update with multiple records
+		}
+	}
+
+	if len(tx.Statement.Conditions) > 0 {
+		builder := <-conditionsChan
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args...)
+	}
+
+	if builder := <-orderChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+
+	if builder := <-limitChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+	return err
 }
 
 // Delete delete
-func (*Dialect) Delete(tx *gorm.DB) error {
-	return nil
+func (dialect *Dialect) Delete(tx *gorm.DB) (err error) {
+	var (
+		args           []interface{}
+		tableNameChan  = sqlbuilder.GetTable(tx)
+		conditionsChan = sqlbuilder.BuildConditions(tx)
+		orderChan      = sqlbuilder.BuildOrderCondition(tx)
+		limitChan      = sqlbuilder.BuildLimitCondition(tx)
+	)
+	s := bytes.NewBufferString("DELETE FROM ")
+	s.WriteString(dialect.Quote(<-tableNameChan))
+
+	if len(tx.Statement.Conditions) > 0 {
+		builder := <-conditionsChan
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args...)
+	}
+
+	if builder := <-orderChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+
+	if builder := <-limitChan; builder != nil {
+		_, err = builder.SQL.WriteTo(s)
+		args = append(args, builder.Args)
+	}
+
+	return
 }
