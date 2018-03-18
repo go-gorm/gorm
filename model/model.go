@@ -16,6 +16,37 @@ import (
 //    }
 var DefaultTableNameHandler func(tx *gorm.DB, tableName string) string
 
+// Parse parse model
+func Parse(value interface{}) *Model {
+	return &Model{
+		ReflectValue: reflect.ValueOf(value),
+		Schema:       schema.Parse(value),
+	}
+}
+
+// Model model struct
+type Model struct {
+	ReflectValue reflect.Value
+	Schema       *schema.Schema
+}
+
+// FieldsMap fields map
+func (model *Model) FieldsMap() map[string]*Field {
+	fieldsMap := map[string]*Field{}
+
+	for _, sf := range model.Schema.Fields {
+		obj := model.ReflectValue
+		for _, bn := range sf.BindNames {
+			obj = obj.FieldByName(bn)
+		}
+		field := &Field{Field: sf, Value: obj}
+
+		fieldsMap[sf.DBName] = field
+	}
+
+	return fieldsMap
+}
+
 // Field GORM model field
 type Field struct {
 	*schema.Field

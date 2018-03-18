@@ -2,6 +2,7 @@ package model
 
 import "reflect"
 
+// IsBlank check value is blank or not
 func IsBlank(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.String:

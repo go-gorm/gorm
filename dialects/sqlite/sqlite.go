@@ -3,7 +3,9 @@ package sqlite
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/common/sqlbuilder"
@@ -157,7 +159,88 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 		_, err = builder.SQL.WriteTo(s)
 		args = append(args, builder.Args)
 	}
+
+	rows, err := dialect.DB.Query(s.String(), args)
+
+	if err == nil {
+		err = scanRows(rows, tx.Statement.Dest)
+	}
+
 	return
+}
+
+func scanRows(rows *sql.Rows, values interface{}) (err error) {
+	var (
+		isSlice bool
+		results = indirect(reflect.ValueOf(values))
+	)
+	columns, err := rows.Columns()
+
+	if kind := results.Kind(); kind == reflect.Slice {
+		isSlice = true
+		resultType := results.Type().Elem()
+		results.Set(reflect.MakeSlice(resultType, 0, 0))
+	} else if kind != reflect.Struct || kind != reflect.Map {
+		return errors.New("unsupported destination, should be slice or map or struct")
+	}
+
+	for rows.Next() {
+		elem := results
+		if isSlice {
+			elem = reflect.New(results.Type().Elem()).Elem()
+		}
+
+		dests, err := toScanMap(columns, elem)
+
+		if err == nil {
+			err = rows.Scan(dests...)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		if isSlice {
+			results.Set(reflect.Append(results, elem))
+		}
+	}
+
+	return
+}
+
+func toScanMap(columns []string, elem reflect.Value) (results []interface{}, err error) {
+	results = make([]interface{}, len(columns))
+
+	switch elem.Kind() {
+	case reflect.Map:
+		for idx, column := range columns {
+			var value interface{}
+			elem.SetMapIndex(reflect.ValueOf(column), reflect.ValueOf(value))
+			results[idx] = &value
+		}
+	case reflect.Struct:
+		fieldsMap := model.Parse(elem.Interface()).FieldsMap()
+		for idx, column := range columns {
+			if f, ok := fieldsMap[column]; ok {
+				results[idx] = f.Value.Addr().Interface()
+			}
+		}
+	case reflect.Ptr:
+		if elem.IsNil() {
+			elem.Set(reflect.New(elem.Type().Elem()))
+		}
+		return toScanMap(columns, elem)
+	default:
+		return nil, errors.New("unsupported destination")
+	}
+	return
+}
+
+func indirect(reflectValue reflect.Value) reflect.Value {
+	for reflectValue.Kind() == reflect.Ptr {
+		reflectValue = reflectValue.Elem()
+	}
+	return reflectValue
 }
 
 // Update update
