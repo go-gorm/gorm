@@ -1,6 +1,8 @@
 package gorm
 
-import "sync"
+import (
+	"sync"
+)
 
 // Column column type
 type Column = string

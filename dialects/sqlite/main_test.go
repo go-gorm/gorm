@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/gorm"
 )
 
@@ -31,11 +31,18 @@ func TestBatchInsert(t *testing.T) {
 
 	DB.Create(users)
 
-	spew.Dump(users)
-
 	for _, user := range users {
 		if user.ID == 0 {
 			t.Errorf("User should have primary key")
+		}
+
+		var newUser User
+		if err := DB.Find(&newUser, "id = ?", user.ID).Error; err != nil {
+			t.Error(err)
+		}
+
+		if !reflect.DeepEqual(&newUser, user) {
+			t.Errorf("User should be equal, but got %#v, should be %#v", newUser, user)
 		}
 	}
 }

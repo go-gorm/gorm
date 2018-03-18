@@ -19,7 +19,7 @@ var DefaultTableNameHandler func(tx *gorm.DB, tableName string) string
 // Parse parse model
 func Parse(value interface{}) *Model {
 	return &Model{
-		ReflectValue: reflect.ValueOf(value),
+		ReflectValue: reflect.Indirect(reflect.ValueOf(value)),
 		Schema:       schema.Parse(value),
 	}
 }
@@ -39,9 +39,16 @@ func (model *Model) FieldsMap() map[string]*Field {
 		for _, bn := range sf.BindNames {
 			obj = obj.FieldByName(bn)
 		}
-		field := &Field{Field: sf, Value: obj}
 
-		fieldsMap[sf.DBName] = field
+		if obj.Kind() == reflect.Ptr {
+			if obj.IsNil() {
+				obj.Set(reflect.New(obj.Type().Elem()))
+			}
+			fieldsMap[sf.DBName] = &Field{Field: sf, Value: obj.Addr()}
+		} else {
+			fieldsMap[sf.DBName] = &Field{Field: sf, Value: obj.Addr()}
+		}
+
 	}
 
 	return fieldsMap

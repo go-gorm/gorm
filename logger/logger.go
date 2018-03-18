@@ -9,9 +9,9 @@ import (
 // Interface logger interface
 type Interface interface {
 	SQL(data ...interface{})
-	Info(data ...interface{})
-	Warn(data ...interface{})
-	Error(data ...interface{})
+	Info(msg string, data ...interface{})
+	Warn(msg string, data ...interface{})
+	Error(msg string, data ...interface{})
 }
 
 // LogLevel log level

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/logger"
 	// import sqlite3 driver
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -16,6 +17,7 @@ func Open(dsn string, config Config) (*gorm.DB, error) {
 	dialect, err := New(dsn)
 	config.Dialect = dialect
 	gormConfig := gorm.Config(config)
+	gormConfig.Logger = logger.DefaultLogger
 
 	return &gorm.DB{Config: &gormConfig}, err
 }

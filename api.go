@@ -148,8 +148,9 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	// has inline condition
 	if len(where) > 0 {
 		clone := tx.clone()
-		stmt = s.Statement.Clone()
+		stmt = tx.Statement.Clone()
 		stmt.Conditions = append(stmt.Conditions, s.Statement.BuildCondition(where[0], where[1:]...))
+		clone.Statement = stmt
 		tx.AddError(clone.Dialect().Query(clone))
 		tx.AddError(clone.Error)
 	} else {
@@ -214,8 +215,9 @@ func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	// has inline condition
 	if len(where) > 0 {
 		clone := tx.clone()
-		stmt = s.Statement.Clone()
+		stmt = tx.Statement.Clone()
 		stmt.Conditions = append(stmt.Conditions, s.Statement.BuildCondition(where[0], where[1:]...))
+		clone.Statement = stmt
 		tx.AddError(clone.Dialect().Update(clone))
 		tx.AddError(clone.Error)
 	} else {
@@ -247,7 +249,7 @@ func (s *DB) Table(name string) *DB {
 func (s *DB) AddError(err error) {
 	if err != nil {
 		if err != ErrRecordNotFound {
-			s.Config.Logger.Error(err)
+			s.Config.Logger.Error(err.Error())
 		}
 
 		if errs := s.GetErrors(); len(errs) == 0 {

@@ -68,7 +68,7 @@ func (dialect *Dialect) Insert(tx *gorm.DB) (err error) {
 				}
 				valueBuffer.WriteString("?")
 
-				if field.IsBlank {
+				if (field.Field.IsPrimaryKey || field.HasDefaultValue) && field.IsBlank {
 					args = append(args, nil)
 				} else {
 					args = append(args, field.Value.Interface())
@@ -136,7 +136,7 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 	// Join SQL
 	if builder := <-joinChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
 	if len(tx.Statement.Conditions) > 0 {
@@ -147,20 +147,20 @@ func (dialect *Dialect) Query(tx *gorm.DB) (err error) {
 
 	if builder := <-groupChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
 	if builder := <-orderChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
 	if builder := <-limitChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
-	rows, err := dialect.DB.Query(s.String(), args)
+	rows, err := dialect.DB.Query(s.String(), args...)
 
 	if err == nil {
 		err = scanRows(rows, tx.Statement.Dest)
@@ -178,10 +178,7 @@ func scanRows(rows *sql.Rows, values interface{}) (err error) {
 
 	if kind := results.Kind(); kind == reflect.Slice {
 		isSlice = true
-		resultType := results.Type().Elem()
-		results.Set(reflect.MakeSlice(resultType, 0, 0))
-	} else if kind != reflect.Struct || kind != reflect.Map {
-		return errors.New("unsupported destination, should be slice or map or struct")
+		results.Set(reflect.MakeSlice(results.Type().Elem(), 0, 0))
 	}
 
 	for rows.Next() {
@@ -209,6 +206,7 @@ func scanRows(rows *sql.Rows, values interface{}) (err error) {
 }
 
 func toScanMap(columns []string, elem reflect.Value) (results []interface{}, err error) {
+	var ignored interface{}
 	results = make([]interface{}, len(columns))
 
 	switch elem.Kind() {
@@ -219,10 +217,12 @@ func toScanMap(columns []string, elem reflect.Value) (results []interface{}, err
 			results[idx] = &value
 		}
 	case reflect.Struct:
-		fieldsMap := model.Parse(elem.Interface()).FieldsMap()
+		fieldsMap := model.Parse(elem.Addr().Interface()).FieldsMap()
 		for idx, column := range columns {
 			if f, ok := fieldsMap[column]; ok {
-				results[idx] = f.Value.Addr().Interface()
+				results[idx] = f.Value.Interface()
+			} else {
+				results[idx] = &ignored
 			}
 		}
 	case reflect.Ptr:
@@ -276,13 +276,15 @@ func (dialect *Dialect) Update(tx *gorm.DB) (err error) {
 
 	if builder := <-orderChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
 	if builder := <-limitChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
+
+	_, err = dialect.DB.Exec(s.String(), args...)
 	return err
 }
 
@@ -306,13 +308,14 @@ func (dialect *Dialect) Delete(tx *gorm.DB) (err error) {
 
 	if builder := <-orderChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
 	if builder := <-limitChan; builder != nil {
 		_, err = builder.SQL.WriteTo(s)
-		args = append(args, builder.Args)
+		args = append(args, builder.Args...)
 	}
 
+	_, err = dialect.DB.Exec(s.String(), args...)
 	return
 }
