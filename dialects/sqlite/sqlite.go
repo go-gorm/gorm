@@ -10,7 +10,6 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/dialects/common/sqlbuilder"
 	"github.com/jinzhu/gorm/model"
-	"github.com/jinzhu/gorm/schema"
 )
 
 // Dialect Sqlite3 Dialect for GORM
@@ -319,27 +318,4 @@ func (dialect *Dialect) Delete(tx *gorm.DB) (err error) {
 
 	_, err = dialect.DB.Exec(s.String(), args...)
 	return
-}
-
-// AutoMigrate auto migrate database
-func (dialect *Dialect) AutoMigrate(value interface{}) (err error) {
-	// create table
-
-	// create missed column
-
-	// safe upgrade some fields (like size, change data type)
-
-	// create missed foreign key
-
-	// create missed index
-	return nil
-}
-
-func (dialect *Dialect) HasTable(name string) bool {
-	return false
-}
-
-func (dialect *Dialect) CreateTable(value interface{}) error {
-	s := schema.Parse(value)
-	return nil
 }
