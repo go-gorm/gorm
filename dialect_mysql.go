@@ -101,9 +101,9 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 				}
 
 				if _, ok := field.TagSettings["NOT NULL"]; ok {
-					sqlType = fmt.Sprintf("timestamp%v", precision)
+					sqlType = fmt.Sprintf("DATETIME%v", precision)
 				} else {
-					sqlType = fmt.Sprintf("timestamp%v NULL", precision)
+					sqlType = fmt.Sprintf("DATETIME%v NULL", precision)
 				}
 			}
 		default:
