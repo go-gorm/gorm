@@ -511,19 +511,6 @@ func TestRaw(t *testing.T) {
 	}
 }
 
-func TestRawMap(t *testing.T) {
-	user1 := User{Name: "ExecRawSqlUser1", Age: 1, Birthday: parseTime("2000-1-1")}
-	user2 := User{Name: "ExecRawSqlUser2", Age: 10, Birthday: parseTime("2010-1-1")}
-	user3 := User{Name: "ExecRawSqlUser3", Age: 20, Birthday: parseTime("2020-1-1")}
-	DB.Save(&user1).Save(&user2).Save(&user3)
-
-	datas, err := DB.TestRawMap("SELECT name, age FROM users WHERE name = ? or name = ?", user2.Name, user3.Name)
-	if err != nil {
-		t.Errorf("somethings wrong:%s", err.Error())
-		return
-	}
-	fmt.Println("datas:", datas)
-}
 func TestGroup(t *testing.T) {
 	rows, err := DB.Select("name").Table("users").Group("name").Rows()
 
