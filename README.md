@@ -17,7 +17,7 @@ Then import the validator package into your own code.
 
 示例:
 ```golang
-datas, e := DB.RawMap("select * from users where user_id=?", 123)
+datas, e := db.RawMap("select * from users where user_id=?", 123)
 if e != nil {
 	fmt.Println("err:", e)
 }
