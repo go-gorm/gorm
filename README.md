@@ -24,5 +24,5 @@ if e != nil {
 fmt.Println("datas:", datas)
 ```
 
-更多示例参照: [Au-ORM 测试](https://github.com/Jetereting/gorm/master/gorm_test.go)
+更多示例参照: [Au-ORM 测试](https://github.com/Jetereting/gorm/blob/master/gorm_test.go)
 
