@@ -146,7 +146,7 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 		db := scope.DB().New().Table(scope.TableName()).Select(blankColumnsWithDefaultValue.([]string))
 		for _, field := range scope.Fields() {
 			if field.IsPrimaryKey && !field.IsBlank {
-				db = db.Where(fmt.Sprintf("%v = ?", field.DBName), field.Field.Interface())
+				db = db.Where(fmt.Sprintf("\"%v\" = ?", field.DBName), field.Field.Interface())
 			}
 		}
 		db.Scan(scope.Value)
