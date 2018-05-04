@@ -504,7 +504,8 @@ func (s *DB) Commit() *DB {
 
 // Rollback rollback a transaction
 func (s *DB) Rollback() *DB {
-	if db, ok := s.db.(sqlTx); ok && db != nil {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
 		s.AddError(db.Rollback())
 	} else {
 		s.AddError(ErrInvalidTransaction)
