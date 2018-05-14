@@ -9,6 +9,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 [![Open Collective Sponsor](https://opencollective.com/gorm/tiers/sponsor/badge.svg?label=sponsor&color=brightgreen "Open Collective Sponsor")](https://opencollective.com/gorm)
 [![MIT license](http://img.shields.io/badge/license-MIT-brightgreen.svg)](http://opensource.org/licenses/MIT)
 [![GoDoc](https://godoc.org/github.com/jinzhu/gorm?status.svg)](https://godoc.org/github.com/jinzhu/gorm)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjinzhu%2Fgorm.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjinzhu%2Fgorm?ref=badge_shield)
 
 ## Overview
 
@@ -38,3 +39,6 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 © Jinzhu, 2013~time.Now
 
 Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjinzhu%2Fgorm.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjinzhu%2Fgorm?ref=badge_large)
