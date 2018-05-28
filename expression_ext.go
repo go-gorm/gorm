@@ -196,6 +196,11 @@ func (e *expr) Count() string {
 	return "COUNT(" + e.expr + ")"
 }
 
+func (e *expr) CountExpr() *expr {
+	e.expr = "COUNT(" + e.expr + ")"
+	return e
+}
+
 func (e *expr) Distinct() *expr {
 	e.expr = "DISTINCT " + e.expr
 	return e
