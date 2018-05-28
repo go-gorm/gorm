@@ -118,6 +118,30 @@ func (e *expr) operator(operator string, value interface{}) *expr {
 	return e
 }
 
+// Union will create a statement which unions the statement of e and stmt
+func (e *expr) Union(stmt *expr) *expr {
+	e.expr = e.expr + " UNION " + stmt.expr
+	e.args = append(e.args, stmt.args...)
+	return e
+}
+
+// Union will create a statement which unions all given statements.
+// stmts have to be *gorm.expr variables (but it is interface{}, so it
+// can be used by external packages...)
+func Union(stmts ...interface{}) *expr {
+	var result *expr
+
+	for idx, stmt := range stmts {
+		if idx == 0 {
+			result = stmt.(*expr)
+		} else {
+			result = result.Union(stmt.(*expr))
+		}
+	}
+
+	return result
+}
+
 func (e *expr) Gt(value interface{}) *expr {
 	return e.operator(">", value)
 }
@@ -184,7 +208,8 @@ func (e *expr) DistinctColumn() string {
 func (e *expr) in(operator string, values ...interface{}) *expr {
 	// NOTE: Maybe there is a better way to do this? :)
 	if len(values) == 1 {
-		if s := reflect.ValueOf(values[0]); s.Kind() == reflect.Slice {
+		s := reflect.ValueOf(values[0])
+		if s.Kind() == reflect.Slice {
 			vals := make([]interface{}, s.Len())
 			qm := make([]string, s.Len())
 
@@ -195,6 +220,11 @@ func (e *expr) in(operator string, values ...interface{}) *expr {
 
 			e.expr = "(" + e.expr + operator + " IN (" + strings.Join(qm, ",") + "))"
 			e.args = append(e.args, vals...)
+			return e
+		}
+		if vexpr, ok := values[0].(*expr); ok {
+			e.expr = "(" + e.expr + operator + " IN (" + vexpr.expr + "))"
+			e.args = append(e.args, vexpr.args...)
 			return e
 		}
 	}
@@ -275,3 +305,4 @@ func (db *DB) FormatDate(e *expr, format string) *expr {
 func (db *DB) FormatDateColumn(e *expr, format string) string {
 	return db.FormatDate(e, format).expr
 }
+
