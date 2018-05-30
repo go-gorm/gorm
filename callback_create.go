@@ -65,13 +65,13 @@ func createCallback(scope *Scope) {
 						scope.InstanceSet("gorm:blank_columns_with_default_value", blankColumnsWithDefaultValue)
 					} else if !field.IsPrimaryKey || !field.IsBlank {
 						columns = append(columns, scope.Quote(field.DBName))
-						placeholders = append(placeholders, scope.AddToVars(field.Field.Interface()))
+						placeholders = append(placeholders, scope.WrapPlaceholder(field, scope.AddToVars(field.Field.Interface())))
 					}
 				} else if field.Relationship != nil && field.Relationship.Kind == "belongs_to" {
 					for _, foreignKey := range field.Relationship.ForeignDBNames {
 						if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
 							columns = append(columns, scope.Quote(foreignField.DBName))
-							placeholders = append(placeholders, scope.AddToVars(foreignField.Field.Interface()))
+							placeholders = append(placeholders, scope.WrapPlaceholder(foreignField, scope.AddToVars(foreignField.Field.Interface())))
 						}
 					}
 				}
