@@ -76,12 +76,12 @@ func updateCallback(scope *Scope) {
 			for _, field := range scope.Fields() {
 				if scope.changeableField(field) {
 					if !field.IsPrimaryKey && field.IsNormal {
-						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+						sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.WrapPlaceholder(field, scope.AddToVars(field.Field.Interface()))))
 					} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {
 						for _, foreignKey := range relationship.ForeignDBNames {
 							if foreignField, ok := scope.FieldByName(foreignKey); ok && !scope.changeableField(foreignField) {
 								sqls = append(sqls,
-									fmt.Sprintf("%v = %v", scope.Quote(foreignField.DBName), scope.AddToVars(foreignField.Field.Interface())))
+									fmt.Sprintf("%v = %v", scope.Quote(foreignField.DBName), scope.WrapPlaceholder(foreignField, scope.AddToVars(foreignField.Field.Interface()))))
 							}
 						}
 					}
