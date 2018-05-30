@@ -279,12 +279,12 @@ func (scope *Scope) AddToVars(value interface{}) string {
 
 // WrapPlaceholder returns a field's value placeholder wrapped into wrapper function
 func (scope *Scope) WrapPlaceholder(field *Field, placeholder string) string {
-	if wr, exists := field.TagSettings["WRAPPER"]; !exists || len(wr) == 0 {
-		return placeholder
-	} else {
+	if wr, exists := field.TagSettings["WRAPPER"]; exists || len(wr) > 0 {
 		// Wrap a placeholder into wrapper
 		return strings.Replace(wr, "?", placeholder, 1)
 	}
+	// Nothing to do
+	return placeholder
 }
 
 // SelectAttrs return selected attributes
