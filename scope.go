@@ -283,7 +283,7 @@ func (scope *Scope) WrapPlaceholder(field *Field, placeholder string) string {
 		return placeholder
 	} else {
 		// Wrap a placeholder into wrapper
-		return strings.Replace(wr, "?", placeholder, 1)
+		return strings.Replace(wr, "?", placeholder, -1)
 	}
 }
 
