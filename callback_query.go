@@ -19,6 +19,10 @@ func queryCallback(scope *Scope) {
 		return
 	}
 
+	if _, skip := scope.InstanceGet("gorm:only_preload"); skip {
+		return
+	}
+
 	defer scope.trace(NowFunc())
 
 	var (
