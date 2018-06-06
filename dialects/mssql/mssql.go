@@ -1,6 +1,9 @@
 package mssql
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -200,4 +203,26 @@ func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, st
 		return splitStrings[0], splitStrings[1]
 	}
 	return dialect.CurrentDatabase(), tableName
+}
+
+type Json struct {
+	json.RawMessage
+}
+
+// Value get value of Jsonb
+func (j Json) Value() (driver.Value, error) {
+	if len(j.RawMessage) == 0 {
+		return nil, nil
+	}
+	return j.MarshalJSON()
+}
+
+// Scan scan value into Json
+func (j *Json) Scan(value interface{}) error {
+	str, ok := value.(string)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value (strcast):", value))
+	}
+	bytes := []byte(str)
+	return json.Unmarshal(bytes, j)
 }
