@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	// Importing mssql driver package only in dialect file, otherwide not needed
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
 )
@@ -205,20 +206,22 @@ func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, st
 	return dialect.CurrentDatabase(), tableName
 }
 
-type Json struct {
+// JSON type to support easy handling of JSON data in character table fields
+// using golang json.RawMessage for deferred decoding/encoding
+type JSON struct {
 	json.RawMessage
 }
 
-// Value get value of Jsonb
-func (j Json) Value() (driver.Value, error) {
+// Value get value of JSON
+func (j JSON) Value() (driver.Value, error) {
 	if len(j.RawMessage) == 0 {
 		return nil, nil
 	}
 	return j.MarshalJSON()
 }
 
-// Scan scan value into Json
-func (j *Json) Scan(value interface{}) error {
+// Scan scan value into JSON
+func (j *JSON) Scan(value interface{}) error {
 	str, ok := value.(string)
 	if !ok {
 		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value (strcast):", value))
