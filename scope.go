@@ -63,7 +63,7 @@ func (scope *Scope) SQLDB() SQLCommon {
 
 // Dialect get dialect
 func (scope *Scope) Dialect() Dialect {
-	return scope.db.parent.dialect
+	return scope.db.dialect
 }
 
 // Quote used to quote string to escape them for database
