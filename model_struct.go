@@ -17,6 +17,8 @@ var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
 
+var mutex sync.Mutex
+
 type safeModelStructsMap struct {
 	m map[reflect.Type]*ModelStruct
 	l *sync.RWMutex
@@ -50,6 +52,9 @@ type ModelStruct struct {
 
 // TableName get model's table name
 func (s *ModelStruct) TableName(db *DB) string {
+	mutex.Lock()
+	defer mutex.Unlock()
+	
 	if s.defaultTableName == "" && db != nil && s.ModelType != nil {
 		// Set default table name
 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
