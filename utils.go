@@ -78,16 +78,18 @@ func ToDBName(name string) string {
 	}
 
 	var (
-		value                        = commonInitialismsReplacer.Replace(name)
-		buf                          = bytes.NewBufferString("")
-		lastCase, currCase, nextCase strCase
+		value                                    = commonInitialismsReplacer.Replace(name)
+		buf                                      = bytes.NewBufferString("")
+		lastCase, currCase, nextCase, nextNumber strCase
 	)
 
 	for i, v := range value[:len(value)-1] {
 		nextCase = strCase(value[i+1] >= 'A' && value[i+1] <= 'Z')
+		nextNumber = strCase(value[i+1] >= '0' && value[i+1] <= '9')
+
 		if i > 0 {
 			if currCase == upper {
-				if lastCase == upper && nextCase == upper {
+				if lastCase == upper && (nextCase == upper || nextNumber == upper) {
 					buf.WriteRune(v)
 				} else {
 					if value[i-1] != '_' && value[i+1] != '_' {
@@ -97,7 +99,7 @@ func ToDBName(name string) string {
 				}
 			} else {
 				buf.WriteRune(v)
-				if i == len(value)-2 && nextCase == upper {
+				if i == len(value)-2 && (nextCase == upper && nextNumber == lower) {
 					buf.WriteRune('_')
 				}
 			}
