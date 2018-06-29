@@ -46,10 +46,15 @@ type ModelStruct struct {
 	StructFields     []*StructField
 	ModelType        reflect.Type
 	defaultTableName string
+
+	l sync.Mutex
 }
 
 // TableName get model's table name
 func (s *ModelStruct) TableName(db *DB) string {
+	s.l.Lock()
+	defer s.l.Unlock()
+
 	if s.defaultTableName == "" && db != nil && s.ModelType != nil {
 		// Set default table name
 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
