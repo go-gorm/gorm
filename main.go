@@ -48,6 +48,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 	}
 	var source string
 	var dbSQL SQLCommon
+	var ownDbSQL bool
 
 	switch value := args[0].(type) {
 	case string:
@@ -59,8 +60,10 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 			source = args[1].(string)
 		}
 		dbSQL, err = sql.Open(driver, source)
+		ownDbSQL = true
 	case SQLCommon:
 		dbSQL = value
+		ownDbSQL = false
 	default:
 		return nil, fmt.Errorf("invalid database source: %v is not a valid type", value)
 	}
@@ -78,7 +81,7 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 	}
 	// Send a ping to make sure the database connection is alive.
 	if d, ok := dbSQL.(*sql.DB); ok {
-		if err = d.Ping(); err != nil {
+		if err = d.Ping(); err != nil && ownDbSQL {
 			d.Close()
 		}
 	}
