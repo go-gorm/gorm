@@ -1216,11 +1216,17 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 
 func (scope *Scope) removeForeignKey(field string, dest string) {
 	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
-
 	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	var query = `ALTER TABLE %s DROP CONSTRAINT %s;`
+	var mysql mysql
+	var query string
+	if scope.Dialect().GetName() == mysql.GetName() {
+		query = `ALTER TABLE %s DROP FOREIGN KEY %s;`
+	} else {
+		query = `ALTER TABLE %s DROP CONSTRAINT %s;`
+	}
+
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName))).Exec()
 }
 
