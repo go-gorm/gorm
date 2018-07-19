@@ -354,8 +354,8 @@ func (s *DB) Count(value interface{}) *DB {
 }
 
 // Related get related associations
-func (s *DB) Related(value interface{}, foreignKeys ...string) *DB {
-	return s.NewScope(s.Value).related(value, foreignKeys...).db
+func (s *DB) Related(value interface{}, options ...interface{}) *DB {
+	return s.NewScope(s.Value).related(value, options...).db
 }
 
 // FirstOrInit find first matched record or initialize a new one with given conditions (only works with struct, map conditions)
