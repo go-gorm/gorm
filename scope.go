@@ -24,6 +24,7 @@ type Scope struct {
 	skipLeft        bool
 	fields          *[]*Field
 	selectAttrs     *[]string
+	Trace           interface{}
 }
 
 // IndirectValue return scope's reflect value's indirect value
