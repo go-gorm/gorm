@@ -15,8 +15,9 @@ type Association struct {
 }
 
 // Find find out all related associations
-func (association *Association) Find(value interface{}) *Association {
-	association.scope.related(value, association.column)
+func (association *Association) Find(value interface{}, options ...interface{}) *Association {
+	options = append(options, association.column)
+	association.scope.related(value, options...)
 	return association.setErr(association.scope.db.Error)
 }
 
@@ -258,7 +259,7 @@ func (association *Association) Clear() *Association {
 }
 
 // Count return the count of current associations
-func (association *Association) Count() int {
+func (association *Association) Count(funcs ...func(*DB) *DB) int {
 	var (
 		count        = 0
 		relationship = association.field.Relationship
@@ -290,7 +291,7 @@ func (association *Association) Count() int {
 		)
 	}
 
-	if err := query.Model(fieldValue).Count(&count).Error; err != nil {
+	if err := query.Model(fieldValue).Scopes(funcs...).Count(&count).Error; err != nil {
 		association.Error = err
 	}
 	return count
