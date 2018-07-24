@@ -78,6 +78,30 @@ func GetDialect(name string) (dialect Dialect, ok bool) {
 	return
 }
 
+// GetAllDialects returns a map of registered dialects keyed by their names
+func GetAllDialects() (dialects map[string]Dialect) {
+	// Copy dialectsMap to protect it from being accidentally modified by clients
+	dialects = make(map[string]Dialect)
+	for k, v := range dialectsMap {
+		dialects[k] = v
+	}
+	return dialects
+}
+
+// UnregisterDialect removes a registered dialect, if present
+func UnregisterDialect(name string) {
+	delete(dialectsMap, name)
+}
+
+// GetAllDialectNames returns a list of registered dialect names
+func GetAllDialectNames() []string {
+	names := []string{}
+	for n := range dialectsMap {
+		names = append(names, n)
+	}
+	return names
+}
+
 // ParseFieldStructForDialect get field's sql data type
 var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fieldValue reflect.Value, sqlType string, size int, additionalType string) {
 	// Get redirected field type
