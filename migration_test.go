@@ -398,6 +398,53 @@ func TestAutoMigration(t *testing.T) {
 	}
 }
 
+func TestCreateAndAutomigrateTransaction(t *testing.T) {
+	tx := DB.Begin()
+
+	func() {
+		type Bar struct {
+			ID uint
+		}
+		DB.DropTableIfExists(&Bar{})
+
+		if ok := DB.HasTable("bars"); ok {
+			t.Errorf("Table should not exist, but does")
+		}
+
+		if ok := tx.HasTable("bars"); ok {
+			t.Errorf("Table should not exist, but does")
+		}
+	}()
+
+	func() {
+		type Bar struct {
+			Name string
+		}
+		err := tx.CreateTable(&Bar{}).Error
+
+		if err != nil {
+			t.Errorf("Should have been able to create the table, but couldn't: %s", err)
+		}
+
+		if ok := tx.HasTable(&Bar{}); !ok {
+			t.Errorf("The transaction should be able to see the table")
+		}
+	}()
+
+	func() {
+		type Bar struct {
+			Stuff string
+		}
+
+		err := tx.AutoMigrate(&Bar{}).Error
+		if err != nil {
+			t.Errorf("Should have been able to alter the table, but couldn't")
+		}
+	}()
+
+	tx.Rollback()
+}
+
 type MultipleIndexes struct {
 	ID     int64
 	UserID int64  `sql:"unique_index:uix_multipleindexes_user_name,uix_multipleindexes_user_email;index:idx_multipleindexes_user_other"`
