@@ -267,7 +267,7 @@ func getValueFromFields(value reflect.Value, fieldNames []string) (results []int
 	// as FieldByName could panic
 	if indirectValue := reflect.Indirect(value); indirectValue.IsValid() {
 		for _, fieldName := range fieldNames {
-			if fieldValue := indirectValue.FieldByName(fieldName); fieldValue.IsValid() {
+			if fieldValue := reflect.Indirect(indirectValue.FieldByName(fieldName)); fieldValue.IsValid() {
 				result := fieldValue.Interface()
 				if r, ok := result.(driver.Valuer); ok {
 					result, _ = r.Value()
