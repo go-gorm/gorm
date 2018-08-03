@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -162,7 +163,7 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = newModelStructsMap()
+	modelStructsMap = sync.Map{}
 	s.parent.singularTable = enable
 }
 

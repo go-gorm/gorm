@@ -17,9 +17,7 @@ var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
 
-func newModelStructsMap() sync.Map { return sync.Map{} }
-
-var modelStructsMap = newModelStructsMap()
+var modelStructsMap sync.Map
 
 // ModelStruct model definition
 type ModelStruct struct {
