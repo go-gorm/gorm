@@ -27,7 +27,7 @@ type ModelStruct struct {
 	defaultTableName string
 }
 
-// TableName get model's table name
+// TableName returns model's table name
 func (s *ModelStruct) TableName(db *DB) string {
 	if s.defaultTableName == "" && db != nil && s.ModelType != nil {
 		// Set default table name
