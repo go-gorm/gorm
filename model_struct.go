@@ -55,7 +55,7 @@ func (s *ModelStruct) TableName(db *DB) string {
 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
 			s.defaultTableName = tabler.TableName()
 		} else {
-			tableName := ToDBName(s.ModelType.Name())
+			tableName := ToTableName(s.ModelType.Name())
 			if db == nil || !db.parent.singularTable {
 				tableName = inflection.Plural(tableName)
 			}
@@ -126,7 +126,7 @@ type Relationship struct {
 
 func getForeignField(column string, fields []*StructField) *StructField {
 	for _, field := range fields {
-		if field.Name == column || field.DBName == column || field.DBName == ToDBName(column) {
+		if field.Name == column || field.DBName == column || field.DBName == ToColumnName(column) {
 			return field
 		}
 	}
@@ -290,7 +290,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 													// if defined join table's foreign key
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, joinTableDBNames[idx])
 												} else {
-													defaultJointableForeignKey := ToDBName(reflectType.Name()) + "_" + foreignField.DBName
+													defaultJointableForeignKey := ToColumnName(reflectType.Name()) + "_" + foreignField.DBName
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, defaultJointableForeignKey)
 												}
 											}
@@ -321,7 +321,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 													relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, associationJoinTableDBNames[idx])
 												} else {
 													// join table foreign keys for association
-													joinTableDBName := ToDBName(elemType.Name()) + "_" + field.DBName
+													joinTableDBName := ToColumnName(elemType.Name()) + "_" + field.DBName
 													relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, joinTableDBName)
 												}
 											}
@@ -329,7 +329,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 
 									joinTableHandler := JoinTableHandler{}
-									joinTableHandler.Setup(relationship, many2many, reflectType, elemType)
+									joinTableHandler.Setup(relationship, ToTableName(many2many), reflectType, elemType)
 									relationship.JoinTableHandler = &joinTableHandler
 									field.Relationship = relationship
 								} else {
@@ -587,7 +587,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if value, ok := field.TagSettings["COLUMN"]; ok {
 				field.DBName = value
 			} else {
-				field.DBName = ToDBName(fieldStruct.Name)
+				field.DBName = ToColumnName(fieldStruct.Name)
 			}
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
