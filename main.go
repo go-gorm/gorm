@@ -22,7 +22,7 @@ type DB struct {
 	logMode           int
 	logger            logger
 	search            *search
-	values sync.Map
+	values            sync.Map
 
 	// global db
 	parent        *DB
