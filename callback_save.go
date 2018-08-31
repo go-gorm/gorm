@@ -21,9 +21,7 @@ func saveAssociationCheck(scope *Scope, field *Field) (autoUpdate bool, autoCrea
 
 		if v, ok := value.(string); ok {
 			v = strings.ToLower(v)
-			if v == "false" || v != "skip" {
-				return false
-			}
+			return v == "true"
 		}
 
 		return true
@@ -36,9 +34,11 @@ func saveAssociationCheck(scope *Scope, field *Field) (autoUpdate bool, autoCrea
 			if value, ok := scope.Get("gorm:save_associations"); ok {
 				autoUpdate = checkTruth(value)
 				autoCreate = autoUpdate
+				saveReference = autoUpdate
 			} else if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; ok {
 				autoUpdate = checkTruth(value)
 				autoCreate = autoUpdate
+				saveReference = autoUpdate
 			}
 
 			if value, ok := scope.Get("gorm:association_autoupdate"); ok {

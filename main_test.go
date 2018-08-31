@@ -879,6 +879,94 @@ func TestOpenWithOneParameter(t *testing.T) {
 	}
 }
 
+func TestSaveAssociations(t *testing.T) {
+	db := DB.New()
+	deltaAddressCount := 0
+	if err := db.Model(&Address{}).Count(&deltaAddressCount).Error; err != nil {
+		t.Errorf("failed to fetch address count")
+		t.FailNow()
+	}
+
+	placeAddress := &Address{
+		Address1: "somewhere on earth",
+	}
+	ownerAddress1 := &Address{
+		Address1: "near place address",
+	}
+	ownerAddress2 := &Address{
+		Address1: "address2",
+	}
+	db.Create(placeAddress)
+
+	addressCountShouldBe := func(t *testing.T, expectedCount int) {
+		countFromDB := 0
+		t.Helper()
+		err := db.Model(&Address{}).Count(&countFromDB).Error
+		if err != nil {
+			t.Error("failed to fetch address count")
+		}
+		if countFromDB != expectedCount {
+			t.Errorf("address count mismatch: %d", countFromDB)
+		}
+	}
+	addressCountShouldBe(t, deltaAddressCount+1)
+
+	// owner address should be created, place address should be reused
+	place1 := &Place{
+		PlaceAddressId: placeAddress.ID,
+		PlaceAddress:   placeAddress,
+		OwnerAddress:   ownerAddress1,
+	}
+	err := db.Create(place1).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+2)
+
+	// owner address should be created again, place address should be reused
+	place2 := &Place{
+		PlaceAddressId: placeAddress.ID,
+		PlaceAddress: &Address{
+			ID:       777,
+			Address1: "address1",
+		},
+		OwnerAddress:   ownerAddress2,
+		OwnerAddressId: 778,
+	}
+	err = db.Create(place2).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+3)
+
+	count := 0
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressId: placeAddress.ID,
+		OwnerAddressId: ownerAddress1.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress1.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressId: placeAddress.ID,
+		OwnerAddressId: ownerAddress2.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress2.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressId: placeAddress.ID,
+	}).Count(&count)
+	if count != 2 {
+		t.Errorf("two instances of (%d) should be available, found: %d",
+			placeAddress.ID, count)
+	}
+}
+
 func TestBlockGlobalUpdate(t *testing.T) {
 	db := DB.New()
 	db.Create(&Toy{Name: "Stuffed Animal", OwnerType: "Nobody"})
