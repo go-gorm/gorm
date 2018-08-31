@@ -913,7 +913,7 @@ func TestSaveAssociations(t *testing.T) {
 
 	// owner address should be created, place address should be reused
 	place1 := &Place{
-		PlaceAddressId: placeAddress.ID,
+		PlaceAddressID: placeAddress.ID,
 		PlaceAddress:   placeAddress,
 		OwnerAddress:   ownerAddress1,
 	}
@@ -925,13 +925,13 @@ func TestSaveAssociations(t *testing.T) {
 
 	// owner address should be created again, place address should be reused
 	place2 := &Place{
-		PlaceAddressId: placeAddress.ID,
+		PlaceAddressID: placeAddress.ID,
 		PlaceAddress: &Address{
 			ID:       777,
 			Address1: "address1",
 		},
 		OwnerAddress:   ownerAddress2,
-		OwnerAddressId: 778,
+		OwnerAddressID: 778,
 	}
 	err = db.Create(place2).Error
 	if err != nil {
@@ -941,8 +941,8 @@ func TestSaveAssociations(t *testing.T) {
 
 	count := 0
 	db.Model(&Place{}).Where(&Place{
-		PlaceAddressId: placeAddress.ID,
-		OwnerAddressId: ownerAddress1.ID,
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress1.ID,
 	}).Count(&count)
 	if count != 1 {
 		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
@@ -950,8 +950,8 @@ func TestSaveAssociations(t *testing.T) {
 	}
 
 	db.Model(&Place{}).Where(&Place{
-		PlaceAddressId: placeAddress.ID,
-		OwnerAddressId: ownerAddress2.ID,
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress2.ID,
 	}).Count(&count)
 	if count != 1 {
 		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
@@ -959,7 +959,7 @@ func TestSaveAssociations(t *testing.T) {
 	}
 
 	db.Model(&Place{}).Where(&Place{
-		PlaceAddressId: placeAddress.ID,
+		PlaceAddressID: placeAddress.ID,
 	}).Count(&count)
 	if count != 2 {
 		t.Errorf("two instances of (%d) should be available, found: %d",

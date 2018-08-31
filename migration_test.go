@@ -120,9 +120,9 @@ type Company struct {
 
 type Place struct {
 	Id             int64
-	PlaceAddressId int
+	PlaceAddressID int
 	PlaceAddress   *Address `gorm:"save_associations:false"`
-	OwnerAddressId int
+	OwnerAddressID int
 	OwnerAddress   *Address `gorm:"save_associations:true"`
 }
 
