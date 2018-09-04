@@ -581,6 +581,60 @@ func TestJoins(t *testing.T) {
 	}
 }
 
+type JoinedIds struct {
+	UserID           int64 `gorm:"column:id"`
+	BillingAddressID int64 `gorm:"column:id"`
+	EmailID          int64 `gorm:"column:id"`
+}
+
+func TestScanIdenticalColumnNames(t *testing.T) {
+	var user = User{
+		Name:  "joinsIds",
+		Email: "joinIds@example.com",
+		BillingAddress: Address{
+			Address1: "One Park Place",
+		},
+		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+	}
+	DB.Save(&user)
+
+	var users []JoinedIds
+	DB.Select("users.id, addresses.id, emails.id").Table("users").
+		Joins("left join addresses on users.billing_address_id = addresses.id").
+		Joins("left join emails on emails.user_id = users.id").
+		Where("name = ?", "joinsIds").Scan(&users)
+
+	if len(users) != 2 {
+		t.Fatal("should find two rows using left join")
+	}
+
+	if user.Id != users[0].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[0].UserID)
+	}
+	if user.Id != users[1].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[1].UserID)
+	}
+
+	if user.BillingAddressID.Int64 != users[0].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+	if user.BillingAddressID.Int64 != users[1].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+
+	if users[0].EmailID == users[1].EmailID {
+		t.Errorf("Email ids should be unique. Got %d and %d", users[0].EmailID, users[1].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[0].EmailID && int64(user.Emails[1].Id) != users[0].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[0].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[1].EmailID && int64(user.Emails[1].Id) != users[1].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[1].EmailID)
+	}
+}
+
 func TestJoinsWithSelect(t *testing.T) {
 	type result struct {
 		Name  string
