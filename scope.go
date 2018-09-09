@@ -486,8 +486,10 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		values[index] = &ignored
 
 		selectFields = fields
+		offset := 0
 		if idx, ok := selectedColumnsMap[column]; ok {
-			selectFields = selectFields[idx+1:]
+			offset = idx + 1
+			selectFields = selectFields[offset:]
 		}
 
 		for fieldIndex, field := range selectFields {
@@ -501,7 +503,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 					resetFields[index] = field
 				}
 
-				selectedColumnsMap[column] = fieldIndex
+				selectedColumnsMap[column] = offset + fieldIndex
 
 				if field.IsNormal {
 					break
