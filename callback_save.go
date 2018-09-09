@@ -35,7 +35,7 @@ func saveAssociationCheck(scope *Scope, field *Field) (autoUpdate bool, autoCrea
 				autoUpdate = checkTruth(value)
 				autoCreate = autoUpdate
 				saveReference = autoUpdate
-			} else if value, ok := field.TagSettings["SAVE_ASSOCIATIONS"]; ok {
+			} else if value, ok := field.TagSettingsGet("SAVE_ASSOCIATIONS"); ok {
 				autoUpdate = checkTruth(value)
 				autoCreate = autoUpdate
 				saveReference = autoUpdate
@@ -43,19 +43,19 @@ func saveAssociationCheck(scope *Scope, field *Field) (autoUpdate bool, autoCrea
 
 			if value, ok := scope.Get("gorm:association_autoupdate"); ok {
 				autoUpdate = checkTruth(value)
-			} else if value, ok := field.TagSettings["ASSOCIATION_AUTOUPDATE"]; ok {
+			} else if value, ok := field.TagSettingsGet("ASSOCIATION_AUTOUPDATE"); ok {
 				autoUpdate = checkTruth(value)
 			}
 
 			if value, ok := scope.Get("gorm:association_autocreate"); ok {
 				autoCreate = checkTruth(value)
-			} else if value, ok := field.TagSettings["ASSOCIATION_AUTOCREATE"]; ok {
+			} else if value, ok := field.TagSettingsGet("ASSOCIATION_AUTOCREATE"); ok {
 				autoCreate = checkTruth(value)
 			}
 
 			if value, ok := scope.Get("gorm:association_save_reference"); ok {
 				saveReference = checkTruth(value)
-			} else if value, ok := field.TagSettings["ASSOCIATION_SAVE_REFERENCE"]; ok {
+			} else if value, ok := field.TagSettingsGet("ASSOCIATION_SAVE_REFERENCE"); ok {
 				saveReference = checkTruth(value)
 			}
 		}
