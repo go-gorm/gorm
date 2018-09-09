@@ -112,6 +112,9 @@ func (scope *Scope) Fields() []*Field {
 		)
 
 		for _, structField := range scope.GetModelStruct().StructFields {
+			if structField.IsIgnored {
+				continue
+			}
 			if isStruct {
 				fieldValue := indirectScopeValue
 				for _, name := range structField.Names {
