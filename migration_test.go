@@ -118,6 +118,14 @@ type Company struct {
 	Owner *User `sql:"-"`
 }
 
+type Place struct {
+	Id             int64
+	PlaceAddressID int
+	PlaceAddress   *Address `gorm:"save_associations:false"`
+	OwnerAddressID int
+	OwnerAddress   *Address `gorm:"save_associations:true"`
+}
+
 type EncryptedData []byte
 
 func (data *EncryptedData) Scan(value interface{}) error {
@@ -284,7 +292,7 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}}
+	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &Place{}}
 	for _, value := range values {
 		DB.DropTable(value)
 	}
