@@ -17,28 +17,7 @@ var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
 
-type safeModelStructsMap struct {
-	m map[reflect.Type]*ModelStruct
-	l *sync.RWMutex
-}
-
-func (s *safeModelStructsMap) Set(key reflect.Type, value *ModelStruct) {
-	s.l.Lock()
-	defer s.l.Unlock()
-	s.m[key] = value
-}
-
-func (s *safeModelStructsMap) Get(key reflect.Type) *ModelStruct {
-	s.l.RLock()
-	defer s.l.RUnlock()
-	return s.m[key]
-}
-
-func newModelStructsMap() *safeModelStructsMap {
-	return &safeModelStructsMap{l: new(sync.RWMutex), m: make(map[reflect.Type]*ModelStruct)}
-}
-
-var modelStructsMap = newModelStructsMap()
+var modelStructsMap sync.Map
 
 // ModelStruct model definition
 type ModelStruct struct {
@@ -48,14 +27,14 @@ type ModelStruct struct {
 	defaultTableName string
 }
 
-// TableName get model's table name
+// TableName returns model's table name
 func (s *ModelStruct) TableName(db *DB) string {
 	if s.defaultTableName == "" && db != nil && s.ModelType != nil {
 		// Set default table name
 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
 			s.defaultTableName = tabler.TableName()
 		} else {
-			tableName := ToDBName(s.ModelType.Name())
+			tableName := ToTableName(s.ModelType.Name())
 			if db == nil || !db.parent.singularTable {
 				tableName = inflection.Plural(tableName)
 			}
@@ -153,7 +132,7 @@ type Relationship struct {
 
 func getForeignField(column string, fields []*StructField) *StructField {
 	for _, field := range fields {
-		if field.Name == column || field.DBName == column || field.DBName == ToDBName(column) {
+		if field.Name == column || field.DBName == column || field.DBName == ToColumnName(column) {
 			return field
 		}
 	}
@@ -179,8 +158,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Get Cached model struct
-	if value := modelStructsMap.Get(reflectType); value != nil {
-		return value
+	if value, ok := modelStructsMap.Load(reflectType); ok && value != nil {
+		return value.(*ModelStruct)
 	}
 
 	modelStruct.ModelType = reflectType
@@ -317,7 +296,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 													// if defined join table's foreign key
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, joinTableDBNames[idx])
 												} else {
-													defaultJointableForeignKey := ToDBName(reflectType.Name()) + "_" + foreignField.DBName
+													defaultJointableForeignKey := ToColumnName(reflectType.Name()) + "_" + foreignField.DBName
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, defaultJointableForeignKey)
 												}
 											}
@@ -348,7 +327,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 													relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, associationJoinTableDBNames[idx])
 												} else {
 													// join table foreign keys for association
-													joinTableDBName := ToDBName(elemType.Name()) + "_" + field.DBName
+													joinTableDBName := ToColumnName(elemType.Name()) + "_" + field.DBName
 													relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, joinTableDBName)
 												}
 											}
@@ -356,7 +335,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 
 									joinTableHandler := JoinTableHandler{}
-									joinTableHandler.Setup(relationship, many2many, reflectType, elemType)
+									joinTableHandler.Setup(relationship, ToTableName(many2many), reflectType, elemType)
 									relationship.JoinTableHandler = &joinTableHandler
 									field.Relationship = relationship
 								} else {
@@ -614,7 +593,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			if value, ok := field.TagSettingsGet("COLUMN"); ok {
 				field.DBName = value
 			} else {
-				field.DBName = ToDBName(fieldStruct.Name)
+				field.DBName = ToColumnName(fieldStruct.Name)
 			}
 
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
@@ -628,7 +607,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	modelStructsMap.Set(reflectType, &modelStruct)
+	modelStructsMap.Store(reflectType, &modelStruct)
 
 	return &modelStruct
 }

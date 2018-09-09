@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -77,6 +78,22 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	db.DB().SetMaxIdleConns(10)
 
 	return
+}
+
+func TestOpen_ReturnsError_WithBadArgs(t *testing.T) {
+	stringRef := "foo"
+	testCases := []interface{}{42, time.Now(), &stringRef}
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("%v", tc), func(t *testing.T) {
+			_, err := gorm.Open("postgresql", tc)
+			if err == nil {
+				t.Error("Should got error with invalid database source")
+			}
+			if !strings.HasPrefix(err.Error(), "invalid database source:") {
+				t.Errorf("Should got error starting with \"invalid database source:\", but got %q", err.Error())
+			}
+		})
+	}
 }
 
 func TestStringPrimaryKey(t *testing.T) {
@@ -564,6 +581,60 @@ func TestJoins(t *testing.T) {
 	}
 }
 
+type JoinedIds struct {
+	UserID           int64 `gorm:"column:id"`
+	BillingAddressID int64 `gorm:"column:id"`
+	EmailID          int64 `gorm:"column:id"`
+}
+
+func TestScanIdenticalColumnNames(t *testing.T) {
+	var user = User{
+		Name:  "joinsIds",
+		Email: "joinIds@example.com",
+		BillingAddress: Address{
+			Address1: "One Park Place",
+		},
+		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+	}
+	DB.Save(&user)
+
+	var users []JoinedIds
+	DB.Select("users.id, addresses.id, emails.id").Table("users").
+		Joins("left join addresses on users.billing_address_id = addresses.id").
+		Joins("left join emails on emails.user_id = users.id").
+		Where("name = ?", "joinsIds").Scan(&users)
+
+	if len(users) != 2 {
+		t.Fatal("should find two rows using left join")
+	}
+
+	if user.Id != users[0].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[0].UserID)
+	}
+	if user.Id != users[1].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[1].UserID)
+	}
+
+	if user.BillingAddressID.Int64 != users[0].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+	if user.BillingAddressID.Int64 != users[1].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+
+	if users[0].EmailID == users[1].EmailID {
+		t.Errorf("Email ids should be unique. Got %d and %d", users[0].EmailID, users[1].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[0].EmailID && int64(user.Emails[1].Id) != users[0].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[0].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[1].EmailID && int64(user.Emails[1].Id) != users[1].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[1].EmailID)
+	}
+}
+
 func TestJoinsWithSelect(t *testing.T) {
 	type result struct {
 		Name  string
@@ -859,6 +930,94 @@ func TestOpenWithOneParameter(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("Open with one parameter returned err as nil")
+	}
+}
+
+func TestSaveAssociations(t *testing.T) {
+	db := DB.New()
+	deltaAddressCount := 0
+	if err := db.Model(&Address{}).Count(&deltaAddressCount).Error; err != nil {
+		t.Errorf("failed to fetch address count")
+		t.FailNow()
+	}
+
+	placeAddress := &Address{
+		Address1: "somewhere on earth",
+	}
+	ownerAddress1 := &Address{
+		Address1: "near place address",
+	}
+	ownerAddress2 := &Address{
+		Address1: "address2",
+	}
+	db.Create(placeAddress)
+
+	addressCountShouldBe := func(t *testing.T, expectedCount int) {
+		countFromDB := 0
+		t.Helper()
+		err := db.Model(&Address{}).Count(&countFromDB).Error
+		if err != nil {
+			t.Error("failed to fetch address count")
+		}
+		if countFromDB != expectedCount {
+			t.Errorf("address count mismatch: %d", countFromDB)
+		}
+	}
+	addressCountShouldBe(t, deltaAddressCount+1)
+
+	// owner address should be created, place address should be reused
+	place1 := &Place{
+		PlaceAddressID: placeAddress.ID,
+		PlaceAddress:   placeAddress,
+		OwnerAddress:   ownerAddress1,
+	}
+	err := db.Create(place1).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+2)
+
+	// owner address should be created again, place address should be reused
+	place2 := &Place{
+		PlaceAddressID: placeAddress.ID,
+		PlaceAddress: &Address{
+			ID:       777,
+			Address1: "address1",
+		},
+		OwnerAddress:   ownerAddress2,
+		OwnerAddressID: 778,
+	}
+	err = db.Create(place2).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+3)
+
+	count := 0
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress1.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress1.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress2.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress2.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+	}).Count(&count)
+	if count != 2 {
+		t.Errorf("two instances of (%d) should be available, found: %d",
+			placeAddress.ID, count)
 	}
 }
 

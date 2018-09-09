@@ -1,12 +1,16 @@
 package mssql
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	// Importing mssql driver package only in dialect file, otherwide not needed
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
 )
@@ -130,7 +134,14 @@ func (s mssql) RemoveIndex(tableName string, indexName string) error {
 }
 
 func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
-	return false
+	var count int
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	s.db.QueryRow(`SELECT count(*) 
+	FROM sys.foreign_keys as F inner join sys.tables as T on F.parent_object_id=T.object_id 
+		inner join information_schema.tables as I on I.TABLE_NAME = T.name 
+	WHERE F.name = ? 
+		AND T.Name = ? AND I.TABLE_CATALOG = ?;`, foreignKeyName, tableName, currentDatabase).Scan(&count)
+	return count > 0
 }
 
 func (s mssql) HasTable(tableName string) bool {
@@ -193,4 +204,28 @@ func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, st
 		return splitStrings[0], splitStrings[1]
 	}
 	return dialect.CurrentDatabase(), tableName
+}
+
+// JSON type to support easy handling of JSON data in character table fields
+// using golang json.RawMessage for deferred decoding/encoding
+type JSON struct {
+	json.RawMessage
+}
+
+// Value get value of JSON
+func (j JSON) Value() (driver.Value, error) {
+	if len(j.RawMessage) == 0 {
+		return nil, nil
+	}
+	return j.MarshalJSON()
+}
+
+// Scan scan value into JSON
+func (j *JSON) Scan(value interface{}) error {
+	str, ok := value.(string)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value (strcast):", value))
+	}
+	bytes := []byte(str)
+	return json.Unmarshal(bytes, j)
 }
