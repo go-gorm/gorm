@@ -134,7 +134,7 @@ func (scope *Scope) Fields() []*Field {
 // FieldByName find `gorm.Field` with field name or db name
 func (scope *Scope) FieldByName(name string) (field *Field, ok bool) {
 	var (
-		dbName           = ToDBName(name)
+		dbName           = ToColumnName(name)
 		mostMatchedField *Field
 	)
 
@@ -880,7 +880,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 		switch reflectValue.Kind() {
 		case reflect.Map:
 			for _, key := range reflectValue.MapKeys() {
-				attrs[ToDBName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
+				attrs[ToColumnName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
 			}
 		default:
 			for _, field := range (&Scope{Value: values}).Fields() {
