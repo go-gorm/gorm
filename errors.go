@@ -7,15 +7,15 @@ import (
 
 var (
 	// ErrRecordNotFound record not found error, happens when only haven't find any matched data when looking up with a struct, finding a slice won't return this error
-	ErrRecordNotFound = errors.New("record not found")
+	ErrRecordNotFound = errors.New("[GORM]record not found")
 	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
-	ErrInvalidSQL = errors.New("invalid SQL")
+	ErrInvalidSQL = errors.New("[GORM]invalid SQL")
 	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = errors.New("no valid transaction")
+	ErrInvalidTransaction = errors.New("[GORM]no valid transaction")
 	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = errors.New("can't start transaction")
+	ErrCantStartTransaction = errors.New("[GORM]can't start transaction")
 	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = errors.New("using unaddressable value")
+	ErrUnaddressable = errors.New("[GORM]using unaddressable value")
 )
 
 // Errors contains all happened errors
