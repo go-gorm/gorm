@@ -22,7 +22,7 @@ type DB struct {
 	logMode           int
 	logger            logger
 	search            *search
-	values            map[string]interface{}
+	values            sync.Map
 
 	// global db
 	parent        *DB
@@ -72,7 +72,6 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 	db = &DB{
 		db:        dbSQL,
 		logger:    defaultLogger,
-		values:    map[string]interface{}{},
 		callbacks: DefaultCallback,
 		dialect:   newDialect(dialect, dbSQL),
 	}
@@ -680,13 +679,13 @@ func (s *DB) Set(name string, value interface{}) *DB {
 
 // InstantSet instant set setting, will affect current db
 func (s *DB) InstantSet(name string, value interface{}) *DB {
-	s.values[name] = value
+	s.values.Store(name, value)
 	return s
 }
 
 // Get get setting by name
 func (s *DB) Get(name string) (value interface{}, ok bool) {
-	value, ok = s.values[name]
+	value, ok = s.values.Load(name)
 	return
 }
 
@@ -750,16 +749,16 @@ func (s *DB) clone() *DB {
 		parent:            s.parent,
 		logger:            s.logger,
 		logMode:           s.logMode,
-		values:            map[string]interface{}{},
 		Value:             s.Value,
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,
 		dialect:           newDialect(s.dialect.GetName(), s.db),
 	}
 
-	for key, value := range s.values {
-		db.values[key] = value
-	}
+	s.values.Range(func(k, v interface{}) bool {
+		db.values.Store(k, v)
+		return true
+	})
 
 	if s.search == nil {
 		db.search = &search{limit: -1, offset: -1}
