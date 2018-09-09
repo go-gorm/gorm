@@ -314,6 +314,11 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.NewScope(out).inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
+//Preloads preloads relations, don`t touch out
+func (s *DB) Preloads(out interface{}) *DB {
+	return s.NewScope(out).InstanceSet("gorm:only_preload", 1).callCallbacks(s.parent.callbacks.queries).db
+}
+
 // Scan scan value to a struct
 func (s *DB) Scan(dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(s.parent.callbacks.queries).db
