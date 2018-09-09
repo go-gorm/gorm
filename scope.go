@@ -907,7 +907,7 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 				results[field.DBName] = value
 			} else {
 				err := field.Set(value)
-				if field.IsNormal {
+				if field.IsNormal && !field.IsIgnored {
 					hasUpdate = true
 					if err == ErrUnaddressable {
 						results[field.DBName] = value
