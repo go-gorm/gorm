@@ -855,6 +855,14 @@ func (scope *Scope) inlineCondition(values ...interface{}) *Scope {
 }
 
 func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
+	defer func() {
+		if err := recover(); err != nil {
+			if db, ok := scope.db.db.(sqlTx); ok {
+				db.Rollback()
+			}
+			panic(err)
+		}
+	}()
 	for _, f := range funcs {
 		(*f)(scope)
 		if scope.skipLeft {
