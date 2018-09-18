@@ -45,8 +45,8 @@ func (errs Errors) Add(newErrors ...error) Errors {
 			continue
 		}
 
-		if errors, ok := err.(Errors); ok {
-			errs = errs.Add(errors...)
+		if errList, ok := err.(Errors); ok {
+			errs = errs.Add(errList...)
 		} else {
 			ok = true
 			for _, e := range errs {
@@ -64,9 +64,9 @@ func (errs Errors) Add(newErrors ...error) Errors {
 
 // Error format happened errors
 func (errs Errors) Error() string {
-	var errors = []string{}
+	var errList = []string{}
 	for _, e := range errs {
-		errors = append(errors, e.Error())
+		errList = append(errList, e.Error())
 	}
-	return strings.Join(errors, "; ")
+	return strings.Join(errList, "; ")
 }

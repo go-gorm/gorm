@@ -716,32 +716,32 @@ func (scope *Scope) whereSQL() (sql string) {
 	)
 
 	if !scope.Search.Unscoped && hasDeletedAtField {
-		sql := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
-		primaryConditions = append(primaryConditions, sql)
+		query := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
+		primaryConditions = append(primaryConditions, query)
 	}
 
 	if !scope.PrimaryKeyZero() {
 		for _, field := range scope.PrimaryFields() {
-			sql := fmt.Sprintf("%v.%v = %v", quotedTableName, scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface()))
-			primaryConditions = append(primaryConditions, sql)
+			query := fmt.Sprintf("%v.%v = %v", quotedTableName, scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface()))
+			primaryConditions = append(primaryConditions, query)
 		}
 	}
 
 	for _, clause := range scope.Search.whereConditions {
-		if sql := scope.buildCondition(clause, true); sql != "" {
-			andConditions = append(andConditions, sql)
+		if query := scope.buildCondition(clause, true); sql != "" {
+			andConditions = append(andConditions, query)
 		}
 	}
 
 	for _, clause := range scope.Search.orConditions {
-		if sql := scope.buildCondition(clause, true); sql != "" {
-			orConditions = append(orConditions, sql)
+		if query := scope.buildCondition(clause, true); sql != "" {
+			orConditions = append(orConditions, query)
 		}
 	}
 
 	for _, clause := range scope.Search.notConditions {
-		if sql := scope.buildCondition(clause, false); sql != "" {
-			andConditions = append(andConditions, sql)
+		if query := scope.buildCondition(clause, false); sql != "" {
+			andConditions = append(andConditions, query)
 		}
 	}
 
@@ -814,8 +814,8 @@ func (scope *Scope) havingSQL() string {
 
 	var andConditions []string
 	for _, clause := range scope.Search.havingConditions {
-		if sql := scope.buildCondition(clause, true); sql != "" {
-			andConditions = append(andConditions, sql)
+		if query := scope.buildCondition(clause, true); query != "" {
+			andConditions = append(andConditions, query)
 		}
 	}
 
@@ -830,8 +830,8 @@ func (scope *Scope) havingSQL() string {
 func (scope *Scope) joinsSQL() string {
 	var joinConditions []string
 	for _, clause := range scope.Search.joinConditions {
-		if sql := scope.buildCondition(clause, true); sql != "" {
-			joinConditions = append(joinConditions, strings.TrimSuffix(strings.TrimPrefix(sql, "("), ")"))
+		if query := scope.buildCondition(clause, true); query != "" {
+			joinConditions = append(joinConditions, strings.TrimSuffix(strings.TrimPrefix(query, "("), ")"))
 		}
 	}
 
@@ -1087,13 +1087,13 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					scope.Err(tx.Find(value).Error)
 				}
 			} else {
-				sql := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
-				scope.Err(tx.Where(sql, fromField.Field.Interface()).Find(value).Error)
+				query := fmt.Sprintf("%v = ?", scope.Quote(toScope.PrimaryKey()))
+				scope.Err(tx.Where(query, fromField.Field.Interface()).Find(value).Error)
 			}
 			return scope
 		} else if toField != nil {
-			sql := fmt.Sprintf("%v = ?", scope.Quote(toField.DBName))
-			scope.Err(tx.Where(sql, scope.PrimaryKeyValue()).Find(value).Error)
+			query := fmt.Sprintf("%v = ?", scope.Quote(toField.DBName))
+			scope.Err(tx.Where(query, scope.PrimaryKeyValue()).Find(value).Error)
 			return scope
 		}
 	}
