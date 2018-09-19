@@ -56,7 +56,7 @@ type CreditCard struct {
 
 ### `gorm.Model` struct
 
-Base model definition `gorm.Model`, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, you could embed it in your model, or only write those fields you want
+Base model definition `gorm.Model` includes fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`. You can embed it in your model or only write those fields you want.
 
 ```go
 // Base Model's definition
