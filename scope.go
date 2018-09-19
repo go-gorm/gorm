@@ -238,6 +238,43 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 	return errors.New("could not convert column to field")
 }
 
+// GetColumn to get the column's value, column could be field or dbname
+func (scope *Scope) GetColumn(column interface{}) (interface{}, error) {
+
+	return scope.getColumn(column, false)
+}
+
+// GetColumnByModelName to get column's value,column should be filed's name
+func (scope *Scope) GetColumnByModelName(column string) (interface{}, error) {
+
+	return scope.getColumn(column, true)
+}
+
+// getColumn to get the column's value, column could be field or field's name/dbname
+func (scope *Scope) getColumn(column interface{}, isModelName bool) (v interface{}, e error) {
+
+	if field, ok := column.(*Field); ok {
+
+		v = field.Field.Interface()
+		return
+	}
+
+	for _, field := range *scope.fields {
+
+		if isModelName && field.Name == column.(string) {
+			v = field.Field.Interface()
+			return
+		}
+		if !isModelName && field.DBName == column.(string) {
+			v = field.Field.Interface()
+			return
+		}
+	}
+
+	e = errors.New("the field is not exist")
+	return
+}
+
 // CallMethod call scope value's method, if it is a slice, will call its element's method one by one
 func (scope *Scope) CallMethod(methodName string) {
 	if scope.Value == nil {
