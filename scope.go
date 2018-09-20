@@ -259,7 +259,7 @@ func (scope *Scope) getColumn(column interface{}, isModelName bool) (v interface
 		return
 	}
 
-	for _, field := range *scope.fields {
+	for _, field := range scope.Fields() {
 
 		if isModelName && field.Name == column.(string) {
 			v = field.Field.Interface()
