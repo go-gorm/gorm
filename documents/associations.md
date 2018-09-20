@@ -232,7 +232,7 @@ type CustomizeAccount struct {
 
 To define a self-referencing many2many relationship, you have to change association's foreign key in the join table.
 
-to make it different with source's foreign key, which is generated using struct's name and its priamry key, for example:
+to make it different with source's foreign key, which is generated using struct's name and its primary key, for example:
 
 ```go
 type User struct {
