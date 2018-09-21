@@ -872,7 +872,7 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 	return scope
 }
 
-func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string]interface{} {
+func convertInterfaceToMap(values interface{}, withIgnoredField bool, db *DB) map[string]interface{} {
 	var attrs = map[string]interface{}{}
 
 	switch value := values.(type) {
@@ -880,7 +880,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 		return value
 	case []interface{}:
 		for _, v := range value {
-			for key, value := range convertInterfaceToMap(v, withIgnoredField) {
+			for key, value := range convertInterfaceToMap(v, withIgnoredField, db) {
 				attrs[key] = value
 			}
 		}
@@ -893,7 +893,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 				attrs[ToColumnName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
 			}
 		default:
-			for _, field := range (&Scope{Value: values}).Fields() {
+			for _, field := range (&Scope{Value: values, db: db}).Fields() {
 				if !field.IsBlank && (withIgnoredField || !field.IsIgnored) {
 					attrs[field.DBName] = field.Field.Interface()
 				}
@@ -905,12 +905,12 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 
 func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[string]interface{}, hasUpdate bool) {
 	if scope.IndirectValue().Kind() != reflect.Struct {
-		return convertInterfaceToMap(value, false), true
+		return convertInterfaceToMap(value, false, scope.db), true
 	}
 
 	results = map[string]interface{}{}
 
-	for key, value := range convertInterfaceToMap(value, true) {
+	for key, value := range convertInterfaceToMap(value, true, scope.db) {
 		if field, ok := scope.FieldByName(key); ok && scope.changeableField(field) {
 			if _, ok := value.(*expr); ok {
 				hasUpdate = true
