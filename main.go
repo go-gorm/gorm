@@ -537,13 +537,14 @@ func (s *DB) RecordNotFound() bool {
 			return false
 		}
 		return !rows.Next()
-	} else {
-		for _, err := range s.GetErrors() {
-			if err == ErrRecordNotFound {
-				return true
-			}
+	}
+
+	for _, err := range s.GetErrors() {
+		if err == ErrRecordNotFound {
+			return true
 		}
 	}
+
 	return false
 }
 
