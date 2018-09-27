@@ -530,11 +530,21 @@ func (s *DB) NewRecord(value interface{}) bool {
 
 // RecordNotFound check if returning ErrRecordNotFound error
 func (s *DB) RecordNotFound() bool {
+	if s.search.raw {
+		rows, err := s.Rows()
+		defer rows.Close()
+		if err != nil {
+			return false
+		}
+		return !rows.Next()
+	}
+
 	for _, err := range s.GetErrors() {
 		if err == ErrRecordNotFound {
 			return true
 		}
 	}
+
 	return false
 }
 
