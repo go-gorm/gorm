@@ -115,6 +115,17 @@ func (s *DB) DB() *sql.DB {
 	return db
 }
 
+// SetMaxIdleConns sets the maximum number of connections in the idle
+// connection pool
+func (s *DB) SetMaxIdleConns(count int) {
+	s.db.(*sql.DB).SetMaxIdleConns(count)
+}
+
+// SetMaxOpenConns sets the maximum number of open connections to the database.
+func (s *DB) SetMaxOpenConns(count int) {
+	s.db.(*sql.DB).SetMaxOpenConns(count)
+}
+
 // CommonDB return the underlying `*sql.DB` or `*sql.Tx` instance, mainly intended to allow coexistence with legacy non-GORM code.
 func (s *DB) CommonDB() SQLCommon {
 	return s.db
