@@ -191,6 +191,11 @@ func (s *DB) SubQuery() *expr {
 	return Expr(fmt.Sprintf("(%v)", scope.SQL), scope.SQLVars...)
 }
 
+// UseIndex use a specified index when query
+func (s *DB) UseIndex(index string) *DB {
+	return s.clone().search.UseIndex(index).db
+}
+
 // Where return a new relation, filter records with given conditions, accepts `map`, `struct` or `string` as conditions, refer http://jinzhu.github.io/gorm/crud.html#query
 func (s *DB) Where(query interface{}, args ...interface{}) *DB {
 	return s.clone().search.Where(query, args...).db

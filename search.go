@@ -21,6 +21,7 @@ type search struct {
 	limit            interface{}
 	group            string
 	tableName        string
+	useIndex         string
 	raw              bool
 	Unscoped         bool
 	ignoreOrderQuery bool
@@ -34,6 +35,15 @@ type searchPreload struct {
 func (s *search) clone() *search {
 	clone := *s
 	return &clone
+}
+
+// UseIndex makes SQL use the specified index
+//
+// SELECT * FROM trades USE INDEX(index_trades_on_market_uuid) WHERE market_uuid="test market" ORDER BY id DESC;
+//
+func (s *search) UseIndex(index string) *search {
+	s.useIndex = index
+	return s
 }
 
 func (s *search) Where(query interface{}, values ...interface{}) *search {

@@ -10,7 +10,7 @@ import (
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
-	return d.Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"})
+	return d.UseIndex("PRIMARY").Where("name in (?)", []string{"ScopeUser1", "ScopeUser2"})
 }
 
 func NameIn2And3(d *gorm.DB) *gorm.DB {

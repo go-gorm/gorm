@@ -708,6 +708,10 @@ func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string)
 	return
 }
 
+func (scope *Scope) useIndexSQL() string {
+	return fmt.Sprintf("USE INDEX(%s)", scope.Search.useIndex)
+}
+
 func (scope *Scope) whereSQL() (sql string) {
 	var (
 		quotedTableName                                = scope.QuotedTableName()
