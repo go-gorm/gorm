@@ -118,6 +118,14 @@ type Company struct {
 	Owner *User `sql:"-"`
 }
 
+type Place struct {
+	Id             int64
+	PlaceAddressID int
+	PlaceAddress   *Address `gorm:"save_associations:false"`
+	OwnerAddressID int
+	OwnerAddress   *Address `gorm:"save_associations:true"`
+}
+
 type EncryptedData []byte
 
 func (data *EncryptedData) Scan(value interface{}) error {
@@ -284,7 +292,7 @@ func runMigration() {
 		DB.Exec(fmt.Sprintf("drop table %v;", table))
 	}
 
-	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}}
+	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &Place{}}
 	for _, value := range values {
 		DB.DropTable(value)
 	}
@@ -396,6 +404,53 @@ func TestAutoMigration(t *testing.T) {
 	if bigemail.Email != "jinzhu@example.org" || bigemail.UserAgent != "pc" || bigemail.RegisteredAt.IsZero() {
 		t.Error("Big Emails should be saved and fetched correctly")
 	}
+}
+
+func TestCreateAndAutomigrateTransaction(t *testing.T) {
+	tx := DB.Begin()
+
+	func() {
+		type Bar struct {
+			ID uint
+		}
+		DB.DropTableIfExists(&Bar{})
+
+		if ok := DB.HasTable("bars"); ok {
+			t.Errorf("Table should not exist, but does")
+		}
+
+		if ok := tx.HasTable("bars"); ok {
+			t.Errorf("Table should not exist, but does")
+		}
+	}()
+
+	func() {
+		type Bar struct {
+			Name string
+		}
+		err := tx.CreateTable(&Bar{}).Error
+
+		if err != nil {
+			t.Errorf("Should have been able to create the table, but couldn't: %s", err)
+		}
+
+		if ok := tx.HasTable(&Bar{}); !ok {
+			t.Errorf("The transaction should be able to see the table")
+		}
+	}()
+
+	func() {
+		type Bar struct {
+			Stuff string
+		}
+
+		err := tx.AutoMigrate(&Bar{}).Error
+		if err != nil {
+			t.Errorf("Should have been able to alter the table, but couldn't")
+		}
+	}()
+
+	tx.Rollback()
 }
 
 type MultipleIndexes struct {
