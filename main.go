@@ -523,6 +523,23 @@ func (s *DB) Rollback() *DB {
 	return s
 }
 
+// RollbackUnlessCommitted rollback a transaction if it has not yet been
+// committed.
+func (s *DB) RollbackUnlessCommitted() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		err := db.Rollback()
+		// Ignore the error indicating that the transaction has already
+		// been committed.
+		if err != sql.ErrTxDone {
+			s.AddError(err)
+		}
+	} else {
+		s.AddError(ErrInvalidTransaction)
+	}
+	return s
+}
+
 // NewRecord check if value's primary key is blank
 func (s *DB) NewRecord(value interface{}) bool {
 	return s.NewScope(value).PrimaryKeyZero()
