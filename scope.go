@@ -905,7 +905,14 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 
 func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[string]interface{}, hasUpdate bool) {
 	if scope.IndirectValue().Kind() != reflect.Struct {
-		return convertInterfaceToMap(value, false), true
+		results = convertInterfaceToMap(value, false)
+		for key, _ := range results {
+			if !scope.changeableFieldName(key) {
+				delete(results, key)
+			}
+		}
+
+		return results, true
 	}
 
 	results = map[string]interface{}{}
@@ -1047,6 +1054,25 @@ func (scope *Scope) changeableField(field *Field) bool {
 
 	for _, attr := range scope.OmitAttrs() {
 		if field.Name == attr || field.DBName == attr {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (scope *Scope) changeableFieldName(name string) bool {
+	if selectAttrs := scope.SelectAttrs(); len(selectAttrs) > 0 {
+		for _, attr := range selectAttrs {
+			if name == attr {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, attr := range scope.OmitAttrs() {
+		if name == attr {
 			return false
 		}
 	}
