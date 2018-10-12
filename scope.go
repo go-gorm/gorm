@@ -906,7 +906,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[string]interface{}, hasUpdate bool) {
 	if scope.IndirectValue().Kind() != reflect.Struct {
 		results = convertInterfaceToMap(value, false)
-		for key, _ := range results {
+		for key := range results {
 			if !scope.changeableFieldName(key) {
 				delete(results, key)
 			}
