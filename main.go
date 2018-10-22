@@ -29,6 +29,9 @@ type DB struct {
 	callbacks     *Callback
 	dialect       Dialect
 	singularTable bool
+
+	// function to be used to override the creating of a new timestamp
+	nowFuncOverride func() time.Time
 }
 
 // Open initialize a new db connection, need to import driver first, e.g:
@@ -146,6 +149,22 @@ func (s *DB) LogMode(enable bool) *DB {
 		s.logMode = 1
 	}
 	return s
+}
+
+// SetNowFuncOverride set the function to be used when creating a new timestamp
+func (s *DB) SetNowFuncOverride(nowFuncOverride func() time.Time) *DB {
+	s.nowFuncOverride = nowFuncOverride
+	return s
+}
+
+// Get a new timestamp, using the provided nowFuncOverride on the DB instance if set,
+// otherwise defaults to the global NowFunc()
+func (s *DB) nowFunc() time.Time {
+	if s.nowFuncOverride != nil {
+		return s.nowFuncOverride()
+	}
+
+	return NowFunc()
 }
 
 // BlockGlobalUpdate if true, generates an error on update/delete without where clause.
@@ -758,6 +777,7 @@ func (s *DB) clone() *DB {
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,
 		dialect:           newDialect(s.dialect.GetName(), s.db),
+		nowFuncOverride:   s.nowFuncOverride,
 	}
 
 	s.values.Range(func(k, v interface{}) bool {

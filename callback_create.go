@@ -31,7 +31,7 @@ func beforeCreateCallback(scope *Scope) {
 // updateTimeStampForCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
 func updateTimeStampForCreateCallback(scope *Scope) {
 	if !scope.HasError() {
-		now := NowFunc()
+		now := scope.db.nowFunc()
 
 		if createdAtField, ok := scope.FieldByName("CreatedAt"); ok {
 			if createdAtField.IsBlank {
@@ -50,7 +50,7 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 // createCallback the callback used to insert data into database
 func createCallback(scope *Scope) {
 	if !scope.HasError() {
-		defer scope.trace(NowFunc())
+		defer scope.trace(scope.db.nowFunc())
 
 		var (
 			columns, placeholders        []string
