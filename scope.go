@@ -937,7 +937,7 @@ func (scope *Scope) row() *sql.Row {
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
-
+	scope.db.RowsAffected = 1
 	return result.Row
 }
 
