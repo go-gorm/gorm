@@ -29,6 +29,26 @@ type DB struct {
 	callbacks     *Callback
 	dialect       Dialect
 	singularTable bool
+
+	// Arguments you can add to a db
+	arg interface{}
+}
+
+// SetArg allows you to set an application defined argument to
+// a DB object.
+func (db *DB) SetArg(i interface{}) {
+	db.arg = i
+}
+// Arg returns the application defined argument for the DB 
+// object.
+func (db *DB) Arg() interface{} {
+	if nil!=db.arg {
+		return db.arg
+	}
+	if nil!=db.parent && db.parent!=db {
+		return db.parent.Arg()
+	}
+	return nil
 }
 
 // Open initialize a new db connection, need to import driver first, e.g:
@@ -750,6 +770,7 @@ func (s *DB) GetErrors() []error {
 
 func (s *DB) clone() *DB {
 	db := &DB{
+		arg: 			   s.arg,
 		db:                s.db,
 		parent:            s.parent,
 		logger:            s.logger,
