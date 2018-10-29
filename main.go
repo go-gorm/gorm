@@ -30,17 +30,56 @@ type DB struct {
 	dialect       Dialect
 	singularTable bool
 
-	// Arguments you can add to a db
+	// Argument you can add to a db
 	arg interface{}
 }
 
 // SetArg allows you to set an application defined argument to
-// a DB object.
+// a DB object. You can then access this argument in the
+// various callback functions.
 func (db *DB) SetArg(i interface{}) {
 	db.arg = i
 }
+
 // Arg returns the application defined argument for the DB 
-// object.
+// object. This is useful in the callback functions where you
+// might want transaction or database-specific values passed
+// through, or in situations where you want to extend the 
+// DB class.
+// For example, assume you want to create an 'extended' DB class
+// called TX:
+//
+//     package my
+//
+//     import ("github.com/jinzhu/gorm")
+//
+//     type TX struct {
+//         *gorm.DB
+//     }
+//
+//     func NewTX(db *gorm.DB) *TX {
+//         return &TX{db}
+//      }
+//
+// You might extend the TX class with various methods, or even
+// additional fields - for instance, I prefer to use transactions and
+// have transaction-scoped caches associated with the transaction.
+// However, when I reach a database callback, such as `AfterFind(db *gorm.DB)`,
+// I need to be able to find my way back to the TX structure.
+// I accomplish that like this:
+//
+//      func NewTX(db *gorm.DB) *TX {
+//          tx := &TX{db}
+//          db.SetArg(tx)
+//      }
+//
+//      func GetTX(db *gorm.DB) *TX {
+//          return db.Arg().(*TX)
+//      }
+//
+//  Now any extensions I make to the TX class can be access in the
+// various callback methods, by finding my way back to the `*TX` from the 
+// `*gorm.DB`.
 func (db *DB) Arg() interface{} {
 	if nil!=db.arg {
 		return db.arg
