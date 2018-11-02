@@ -43,7 +43,6 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 			// duration
 			messages = append(messages, fmt.Sprintf(" \033[36;1m[%.2fms]\033[0m ", float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0))
 			// sql
-
 			for _, value := range values[4].([]interface{}) {
 				indirectValue := reflect.Indirect(reflect.ValueOf(value))
 				if indirectValue.IsValid() {
@@ -101,6 +100,7 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 
 type logger interface {
 	Print(v ...interface{})
+	CtxPrint(s *DB,v ...interface{})
 }
 
 // LogWriter log writer interface
@@ -116,4 +116,16 @@ type Logger struct {
 // Print format & print log
 func (logger Logger) Print(values ...interface{}) {
 	logger.Println(LogFormatter(values...)...)
+}
+
+// Print format & print log
+func (logger Logger) CtxPrint(s *DB,values ...interface{}) {
+	ctx,ok:=s.GetCtx()
+	if ok{
+		logMessage:=[]interface{}{}
+		logMessage=append(LogFormatter(values...), ctx)
+		logger.Println(logMessage...)
+	}else{
+		logger.Println(LogFormatter(values...)...)
+	}
 }

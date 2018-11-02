@@ -20,6 +20,7 @@ type DB struct {
 	db                SQLCommon
 	blockGlobalUpdate bool
 	logMode           int
+	logCtx            int
 	logger            logger
 	search            *search
 	values            sync.Map
@@ -146,6 +147,30 @@ func (s *DB) LogMode(enable bool) *DB {
 		s.logMode = 1
 	}
 	return s
+}
+
+// LogMode set log ctx, `true` for get context when printing logs, `false` for no context, default, false
+func (s *DB) LogCtx(enable bool) *DB {
+	s.logCtx = 2
+	return s
+	fmt.Println(enable)
+	if enable {
+		s.logCtx = 2
+	} else {
+		s.logCtx = 1
+	}
+	return s
+}
+
+// Set query context
+func (s *DB) SetCtx(v interface{}) *DB {
+	s=s.Set("trace_context",v)
+	return s
+}
+
+// Get query context
+func (s *DB) GetCtx() (value interface{}, ok bool)  {
+	return s.Get("trace_context")
 }
 
 // BlockGlobalUpdate if true, generates an error on update/delete without where clause.
@@ -776,7 +801,11 @@ func (s *DB) clone() *DB {
 }
 
 func (s *DB) print(v ...interface{}) {
-	s.logger.Print(v...)
+	if s.logCtx == 2{
+		s.logger.CtxPrint(s, v...)
+	}else{
+		s.logger.Print(v...)
+	}
 }
 
 func (s *DB) log(v ...interface{}) {
