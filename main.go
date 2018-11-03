@@ -149,11 +149,8 @@ func (s *DB) LogMode(enable bool) *DB {
 	return s
 }
 
-// LogMode set log ctx, `true` for get context when printing logs, `false` for no context, default, false
+// LogCtx set log ctx, `true` for get context when printing logs, `false` for no context, default, false
 func (s *DB) LogCtx(enable bool) *DB {
-	s.logCtx = 2
-	return s
-	fmt.Println(enable)
 	if enable {
 		s.logCtx = 2
 	} else {
@@ -162,13 +159,13 @@ func (s *DB) LogCtx(enable bool) *DB {
 	return s
 }
 
-// Set query context
+// SetCtx set query context
 func (s *DB) SetCtx(v interface{}) *DB {
 	s=s.Set("trace_context",v)
 	return s
 }
 
-// Get query context
+// GetCtx Get query context
 func (s *DB) GetCtx() (value interface{}, ok bool)  {
 	return s.Get("trace_context")
 }

@@ -30,8 +30,8 @@ func TestLoggerCtx(t *testing.T) {
 
 		//Generating context information
 		unixTime := fmt.Sprint(time.Now().Unix())
-		traceId := fmt.Sprintf("%x", md5.Sum([]byte(unixTime)))
-		ctxInfo:= "\n[context] trace_id="+traceId
+		traceID := fmt.Sprintf("%x", md5.Sum([]byte(unixTime)))
+		ctxInfo:= "\n[context] trace_id="+traceID
 		builder := DB.SetCtx(ctxInfo)
 		if i > 5 {
 			builder = builder.Where("Age = ?", i)

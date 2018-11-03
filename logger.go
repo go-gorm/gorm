@@ -118,7 +118,7 @@ func (logger Logger) Print(values ...interface{}) {
 	logger.Println(LogFormatter(values...)...)
 }
 
-// Print format & print log
+// CtxPrint format & print log
 func (logger Logger) CtxPrint(s *DB,values ...interface{}) {
 	ctx,ok:=s.GetCtx()
 	if ok{
