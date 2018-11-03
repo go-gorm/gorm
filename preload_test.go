@@ -123,6 +123,31 @@ func TestAutoPreload(t *testing.T) {
 	}
 }
 
+func TestAutoPreloadFalseDoesntPreload(t *testing.T) {
+	user1 := getPreloadUser("auto_user1")
+	DB.Save(user1)
+
+	preloadDB := DB.Set("gorm:auto_preload", false).Where("role = ?", "Preload")
+	var user User
+	preloadDB.Find(&user)
+
+	if user.BillingAddress.Address1 != "" {
+		t.Error("AutoPreload was set to fasle, but still fetched data")
+	}
+
+	user2 := getPreloadUser("auto_user2")
+	DB.Save(user2)
+
+	var users []User
+	preloadDB.Find(&users)
+
+	for _, user := range users {
+		if user.BillingAddress.Address1 != "" {
+			t.Error("AutoPreload was set to fasle, but still fetched data")
+		}
+	}
+}
+
 func TestNestedPreload1(t *testing.T) {
 	type (
 		Level1 struct {

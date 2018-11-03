@@ -181,17 +181,17 @@ func TestSearchWithPlainSQL(t *testing.T) {
 
 	scopedb.Where("birthday > ?", parseTime("2000-1-1")).Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should found 2 users's birthday > 2000-1-1, but got %v", len(users))
+		t.Errorf("Should found 2 users' birthday > 2000-1-1, but got %v", len(users))
 	}
 
 	scopedb.Where("birthday > ?", "2002-10-10").Find(&users)
 	if len(users) != 2 {
-		t.Errorf("Should found 2 users's birthday >= 2002-10-10, but got %v", len(users))
+		t.Errorf("Should found 2 users' birthday >= 2002-10-10, but got %v", len(users))
 	}
 
 	scopedb.Where("birthday >= ?", "2010-1-1").Where("birthday < ?", "2020-1-1").Find(&users)
 	if len(users) != 1 {
-		t.Errorf("Should found 1 users's birthday < 2020-1-1 and >= 2010-1-1, but got %v", len(users))
+		t.Errorf("Should found 1 users' birthday < 2020-1-1 and >= 2010-1-1, but got %v", len(users))
 	}
 
 	DB.Where("name in (?)", []string{user1.Name, user2.Name}).Find(&users)
@@ -532,28 +532,28 @@ func TestNot(t *testing.T) {
 	DB.Table("users").Where("name = ?", "user3").Count(&name3Count)
 	DB.Not("name", "user3").Find(&users4)
 	if len(users1)-len(users4) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	DB.Not("name = ?", "user3").Find(&users4)
 	if len(users1)-len(users4) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	DB.Not("name <> ?", "user3").Find(&users4)
 	if len(users4) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	DB.Not(User{Name: "user3"}).Find(&users5)
 
 	if len(users1)-len(users5) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	DB.Not(map[string]interface{}{"name": "user3"}).Find(&users6)
 	if len(users1)-len(users6) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	DB.Not(map[string]interface{}{"name": "user3", "company_id": nil}).Find(&users7)
@@ -563,14 +563,14 @@ func TestNot(t *testing.T) {
 
 	DB.Not("name", []string{"user3"}).Find(&users8)
 	if len(users1)-len(users8) != int(name3Count) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 
 	var name2Count int64
 	DB.Table("users").Where("name = ?", "user2").Count(&name2Count)
 	DB.Not("name", []string{"user3", "user2"}).Find(&users9)
 	if len(users1)-len(users9) != (int(name3Count) + int(name2Count)) {
-		t.Errorf("Should find all users's name not equal 3")
+		t.Errorf("Should find all users' name not equal 3")
 	}
 }
 

@@ -33,9 +33,9 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 
 	// MySQL allows only one auto increment column per table, and it must
 	// be a KEY column.
-	if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
-		if _, ok = field.TagSettings["INDEX"]; !ok && !field.IsPrimaryKey {
-			delete(field.TagSettings, "AUTO_INCREMENT")
+	if _, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok {
+		if _, ok = field.TagSettingsGet("INDEX"); !ok && !field.IsPrimaryKey {
+			field.TagSettingsDelete("AUTO_INCREMENT")
 		}
 	}
 
@@ -45,42 +45,42 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 			sqlType = "boolean"
 		case reflect.Int8:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "tinyint AUTO_INCREMENT"
 			} else {
 				sqlType = "tinyint"
 			}
 		case reflect.Int, reflect.Int16, reflect.Int32:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "int AUTO_INCREMENT"
 			} else {
 				sqlType = "int"
 			}
 		case reflect.Uint8:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "tinyint unsigned AUTO_INCREMENT"
 			} else {
 				sqlType = "tinyint unsigned"
 			}
 		case reflect.Uint, reflect.Uint16, reflect.Uint32, reflect.Uintptr:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "int unsigned AUTO_INCREMENT"
 			} else {
 				sqlType = "int unsigned"
 			}
 		case reflect.Int64:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "bigint AUTO_INCREMENT"
 			} else {
 				sqlType = "bigint"
 			}
 		case reflect.Uint64:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "bigint unsigned AUTO_INCREMENT"
 			} else {
 				sqlType = "bigint unsigned"
@@ -96,11 +96,11 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
 				precision := ""
-				if p, ok := field.TagSettings["PRECISION"]; ok {
+				if p, ok := field.TagSettingsGet("PRECISION"); ok {
 					precision = fmt.Sprintf("(%s)", p)
 				}
 
-				if _, ok := field.TagSettings["NOT NULL"]; ok {
+				if _, ok := field.TagSettingsGet("NOT NULL"); ok {
 					sqlType = fmt.Sprintf("timestamp%v", precision)
 				} else {
 					sqlType = fmt.Sprintf("timestamp%v NULL", precision)
