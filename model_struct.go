@@ -21,12 +21,12 @@ var modelStructsMap sync.Map
 
 // ModelStruct model definition
 type ModelStruct struct {
-	PrimaryFields    []*StructField
-	StructFields     []*StructField
-	ModelType        reflect.Type
+	PrimaryFields []*StructField
+	StructFields  []*StructField
+	ModelType     reflect.Type
 
 	defaultTableName string
-	l sync.Mutex
+	l                sync.Mutex
 }
 
 // TableName returns model's table name
@@ -91,31 +91,31 @@ func (s *StructField) TagSettingsDelete(key string) {
 	delete(s.TagSettings, key)
 }
 
-func (structField *StructField) clone() *StructField {
+func (s *StructField) clone() *StructField {
 	clone := &StructField{
-		DBName:          structField.DBName,
-		Name:            structField.Name,
-		Names:           structField.Names,
-		IsPrimaryKey:    structField.IsPrimaryKey,
-		IsNormal:        structField.IsNormal,
-		IsIgnored:       structField.IsIgnored,
-		IsScanner:       structField.IsScanner,
-		HasDefaultValue: structField.HasDefaultValue,
-		Tag:             structField.Tag,
+		DBName:          s.DBName,
+		Name:            s.Name,
+		Names:           s.Names,
+		IsPrimaryKey:    s.IsPrimaryKey,
+		IsNormal:        s.IsNormal,
+		IsIgnored:       s.IsIgnored,
+		IsScanner:       s.IsScanner,
+		HasDefaultValue: s.HasDefaultValue,
+		Tag:             s.Tag,
 		TagSettings:     map[string]string{},
-		Struct:          structField.Struct,
-		IsForeignKey:    structField.IsForeignKey,
+		Struct:          s.Struct,
+		IsForeignKey:    s.IsForeignKey,
 	}
 
-	if structField.Relationship != nil {
-		relationship := *structField.Relationship
+	if s.Relationship != nil {
+		relationship := *s.Relationship
 		clone.Relationship = &relationship
 	}
 
 	// copy the struct field tagSettings, they should be read-locked while they are copied
-	structField.tagSettingsLock.Lock()
-	defer structField.tagSettingsLock.Unlock()
-	for key, value := range structField.TagSettings {
+	s.tagSettingsLock.Lock()
+	defer s.tagSettingsLock.Unlock()
+	for key, value := range s.TagSettings {
 		clone.TagSettings[key] = value
 	}
 
