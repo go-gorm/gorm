@@ -1060,26 +1060,14 @@ func TestBlockGlobalUpdate(t *testing.T) {
 }
 
 func TestDB_DataSource(t *testing.T) {
-	source := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=%s password=%s",
-		"localhost", "postgres", "test", "disable", "123")
-	db, er := gorm.Open("postgres", source)
-	if er != nil {
-		t.Fatal(er.Error())
-	}
-
-	if db.DataSource() != source {
-		t.Fatal(fmt.Sprintf("want '%s', but got '%s'", source, db.DataSource()))
+	source := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
+	if DB.DataSource() != source {
+		t.Fatal(fmt.Sprintf("want '%s', but got '%s'", source, DB.DataSource()))
 	}
 
 }
 func TestDB_CopyIn(t *testing.T) {
-	source := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=%s password=%s",
-		"localhost", "postgres", "test", "disable", "123")
-	db, er := gorm.Open("postgres", source)
-	if er != nil {
-		t.Fatal(er.Error())
-	}
-	db.Exec("create table if not exists example(name varchar, age integer)")
+	DB.Exec("create table if not exists example(name varchar, age integer)")
 	var args = make([][]interface{}, 0)
 	args = append(args, []interface{}{
 		"tom", 9,
@@ -1088,7 +1076,7 @@ func TestDB_CopyIn(t *testing.T) {
 	}, []interface{}{
 		"jim", 11,
 	})
-	e := db.CopyIn(true, "example", args, "name", "age")
+	e := DB.CopyIn(true, "example", args, "name", "age")
 	if e != nil {
 		t.Fatal(e.Error())
 	}
@@ -1097,7 +1085,7 @@ func TestDB_CopyIn(t *testing.T) {
 		Age int
 	}
 	var examples = make([]Example,0)
-	e=db.Raw("select * from example").Find(&examples).Error
+	e=DB.Raw("select * from example").Find(&examples).Error
 	if e!=nil {
 		t.Fatal(e.Error())
 	}
