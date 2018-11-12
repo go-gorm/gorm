@@ -1080,21 +1080,20 @@ func TestDB_CopyIn(t *testing.T) {
 	if e != nil {
 		t.Fatal(e.Error())
 	}
-	type Example struct{
+	type Example struct {
 		Name string
-		Age int
+		Age  int
 	}
-	var examples = make([]Example,0)
-	e=DB.Raw("select * from example").Find(&examples).Error
-	if e!=nil {
+	var examples = make([]Example, 0)
+	e = DB.Raw("select * from example").Find(&examples).Error
+	if e != nil {
 		t.Fatal(e.Error())
 	}
-	if len(examples) ==0 {
+	if len(examples) == 0 {
 		t.Fatal("examples length wants more than 3, but got 0")
 	}
 	fmt.Println(examples)
 }
-
 
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
