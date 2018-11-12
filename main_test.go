@@ -1072,6 +1072,9 @@ func (e Example) TableName() string {
 	return "example"
 }
 func TestDB_CopyIn(t *testing.T) {
+	if DB.Dialect().GetName()!="postgres"{
+		return
+	}
 	if !DB.HasTable(&Example{}) {
 		if e := DB.CreateTable(&Example{}).Error; e != nil {
 			t.Fatal(e.Error())
