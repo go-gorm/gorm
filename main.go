@@ -114,7 +114,7 @@ func (s *DB) CopyDB() (*sql.DB, error) {
 	if s.copyDB != nil {
 		return s.copyDB, nil
 	}
-		return sql.Open(s.Dialect().GetName(), s.DataSource())
+	return sql.Open(s.Dialect().GetName(), s.DataSource())
 }
 
 type closer interface {

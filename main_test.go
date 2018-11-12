@@ -1061,8 +1061,8 @@ func TestBlockGlobalUpdate(t *testing.T) {
 
 func TestDB_DataSource(t *testing.T) {
 	source := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
-	db,er := gorm.Open("postgres", source)
-	if er!=nil {
+	db, er := gorm.Open("postgres", source)
+	if er != nil {
 		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", er))
 	}
 	if db.DataSource() != source {
@@ -1072,12 +1072,12 @@ func TestDB_DataSource(t *testing.T) {
 }
 func TestDB_CopyIn(t *testing.T) {
 	source := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
-	db,er := gorm.Open("postgres", source)
-	if er!=nil {
+	db, er := gorm.Open("postgres", source)
+	if er != nil {
 		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", er))
 	}
-	e:=db.Exec("create table if not exists example(name varchar, age integer)").Error
-	defer func(){
+	e := db.Exec("create table if not exists example(name varchar, age integer)").Error
+	defer func() {
 		er := db.Exec("drop table if exists example").Error
 		if er != nil {
 			t.Fatal(e.Error())
