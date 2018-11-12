@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/lib/pq"
 	"reflect"
 	"strings"
 	"sync"
@@ -15,6 +16,10 @@ type DB struct {
 	Value        interface{}
 	Error        error
 	RowsAffected int64
+
+	// for copyIn
+	dataSource string
+	copyDB     *sql.DB
 
 	// single db
 	db                SQLCommon
@@ -70,10 +75,11 @@ func Open(dialect string, args ...interface{}) (db *DB, err error) {
 	}
 
 	db = &DB{
-		db:        dbSQL,
-		logger:    defaultLogger,
-		callbacks: DefaultCallback,
-		dialect:   newDialect(dialect, dbSQL),
+		db:         dbSQL,
+		logger:     defaultLogger,
+		callbacks:  DefaultCallback,
+		dialect:    newDialect(dialect, dbSQL),
+		dataSource: source,
 	}
 	db.parent = db
 	if err != nil {
@@ -94,6 +100,21 @@ func (s *DB) New() *DB {
 	clone.search = nil
 	clone.Value = nil
 	return clone
+}
+
+// DataSource returns its opened dataSource:
+//    gorm.Open("postgres", "host=localhost user=root dbname=test sslmode=disable password=123")
+// Then dataSource = "host=localhost user=root dbname=test sslmode=disable password=123"
+func (s *DB) DataSource() string {
+	return s.dataSource
+}
+
+// CopyDB returns its origin db engine whose driver is github.com/lib/pq
+func (s *DB) CopyDB() (*sql.DB, error) {
+	if s.copyDB != nil {
+		return s.copyDB, nil
+	}
+	return sql.Open(s.Dialect().GetName(), s.DataSource())
 }
 
 type closer interface {
@@ -460,6 +481,71 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	generatedSQL = strings.TrimSuffix(strings.TrimPrefix(generatedSQL, "("), ")")
 	scope.Raw(generatedSQL)
 	return scope.Exec().db
+}
+
+// CopyIn execute a big amount of insertions
+//   closeAfterUsed: After finished or stopped by accident, the copyDB close itself  if 'closeAfterUsed' has been set true
+//   table: which table you want to operate
+//   args: what you want to insert
+//   columns: what column you want to operate
+// For instance:
+//   	args = append(args, []interface{}{
+//			"tom", 9,
+//		}, []interface{}{
+//			"sara", 10,
+//		}, []interface{}{
+//			"jim", 11,
+//		})
+//     db.CopyIn(false, "user", args, "name","age")
+// This stands for 'insert into user(name,age) values('tom', 9),('sara',10),('jim',19)'
+// 				or 'COPY 'user' ('name','age') FROM STDIN`'
+func (s *DB) CopyIn(closeAfterUsed bool, table string, args [][]interface{}, columns ...string) error {
+	if s.Dialect().GetName() != "postgres" {
+		return errors.New("CopyIn only supports postgres")
+	}
+
+	pdb, err := s.CopyDB()
+	if closeAfterUsed {
+		defer pdb.Close()
+	}
+
+	if err != nil {
+		return err
+	}
+	txn, err := pdb.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := txn.Prepare(pq.CopyIn(table, columns...))
+	if err != nil {
+		return err
+	}
+	for _, v := range args {
+		_, err = stmt.Exec(v...)
+		if err != nil {
+			txn.Rollback()
+			return err
+		}
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	err = stmt.Close()
+	if err != nil {
+		txn.Rollback()
+		return err
+	}
+	err = txn.Commit()
+	if err != nil {
+		txn.Rollback()
+		return err
+	}
+	return nil
 }
 
 // Model specify the model you would like to run db operations
