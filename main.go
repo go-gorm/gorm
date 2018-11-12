@@ -113,9 +113,8 @@ func (s *DB) DataSource() string {
 func (s *DB) CopyDB() (*sql.DB, error) {
 	if s.copyDB != nil {
 		return s.copyDB, nil
-	} else {
-		return sql.Open(s.Dialect().GetName(), s.DataSource())
 	}
+		return sql.Open(s.Dialect().GetName(), s.DataSource())
 }
 
 type closer interface {
