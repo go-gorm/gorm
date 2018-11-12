@@ -1061,32 +1061,32 @@ func TestBlockGlobalUpdate(t *testing.T) {
 
 func TestDB_DataSource(t *testing.T) {
 	source := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
-	db, er := gorm.Open("postgres", source)
-	if er != nil {
-		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", er))
-	}
-	if db.DataSource() != source {
-		t.Fatal(fmt.Sprintf("want '%s', but got '%s'", source, db.DataSource()))
+	if DB.DataSource() != source {
+		t.Fatal(fmt.Sprintf("want '%s', but got '%s'", source, DB.DataSource()))
 	}
 
 }
+
+type Example struct{
+	Name string
+	Age int
+}
+func (e Example) TableName()string{
+	return "example"
+}
 func TestDB_CopyIn(t *testing.T) {
-	source := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
-	db, er := gorm.Open("postgres", source)
-	if er != nil {
-		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", er))
-	}
-	e := db.Exec("create table if not exists example(name varchar, age integer)").Error
-	defer func() {
-		er := db.Exec("drop table if exists example").Error
-		if er != nil {
+	if !DB.HasTable(&Example{}) {
+		if e:=DB.Create(&Example{}).Error;e!=nil {
 			t.Fatal(e.Error())
 		}
-	}()
-	if e != nil {
-		t.Fatal(e.Error())
 	}
-	defer db.Exec("drop table")
+	defer func() {
+		if DB.HasTable(&Example{}) {
+			if e:=DB.DropTable(&Example{}).Error;e!=nil{
+				t.Fatal(e.Error())
+			}
+		}
+	}()
 	var args = make([][]interface{}, 0)
 	args = append(args, []interface{}{
 		"tom", 9,
@@ -1095,7 +1095,7 @@ func TestDB_CopyIn(t *testing.T) {
 	}, []interface{}{
 		"jim", 11,
 	})
-	e = db.CopyIn(true, "example", args, "name", "age")
+	e := DB.CopyIn(true, "example", args, "name", "age")
 	if e != nil {
 		t.Fatal(e.Error())
 	}
@@ -1104,7 +1104,7 @@ func TestDB_CopyIn(t *testing.T) {
 		Age  int
 	}
 	var examples = make([]Example, 0)
-	e = db.Raw("select * from example").Find(&examples).Error
+	e = DB.Model(&Example{}).Find(&examples).Error
 	if e != nil {
 		t.Fatal(e.Error())
 	}
