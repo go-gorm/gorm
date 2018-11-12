@@ -188,11 +188,11 @@ func (i *Num) Scan(src interface{}) error {
 }
 
 type Animal struct {
-	Counter    uint64    `gorm:"primary_key:yes"`
-	Name       string    `sql:"DEFAULT:'galeone'"`
-	From       string    //test reserved sql keyword as field name
+	Counter    uint64 `gorm:"primary_key:yes"`
+	Name       string `sql:"DEFAULT:'galeone'"`
+	From       string //test reserved sql keyword as field name
 	Age        time.Time `sql:"DEFAULT:current_timestamp"`
-	unexported string    // unexported value
+	unexported string // unexported value
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -294,7 +294,7 @@ func runMigration() {
 
 	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &Place{}}
 	for _, value := range values {
-		if DB.HasTable(value){
+		if DB.HasTable(value) {
 			DB.DropTable(value)
 		}
 	}
