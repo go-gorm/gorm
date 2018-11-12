@@ -491,7 +491,14 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 //   args: what you want to insert
 //   columns: what column you want to operate
 // For instance:
-//   db.CopyIn(false, "user", [][]string{["tom", 9],["sara", 10],["jim", 19]}, "name","age")
+//   	args = append(args, []interface{}{
+//			"tom", 9,
+//		}, []interface{}{
+//			"sara", 10,
+//		}, []interface{}{
+//			"jim", 11,
+//		})
+//     db.CopyIn(false, "user", args, "name","age")
 // This stands for 'insert into user(name,age) values('tom', 9),('sara',10),('jim',19)'
 // 				or 'COPY 'user' ('name','age') FROM STDIN`'
 func (s *DB) CopyIn(closeAfterUsed bool,table string, args [][]interface{}, columns ...string) error {
