@@ -13,9 +13,7 @@ import (
 )
 
 // DefaultTableNameHandler default table name handler
-var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
-	return defaultTableName
-}
+var DefaultTableNameHandler = func(db *DB, defaultTableName string) string
 
 var modelStructsMap sync.Map
 
@@ -46,7 +44,9 @@ func (s *ModelStruct) TableName(db *DB) string {
 			s.defaultTableName = tableName
 		}
 	}
-
+	if nil == DefaultTableNameHandler {
+		return s.defaultTableName
+	}
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
