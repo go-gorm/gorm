@@ -29,6 +29,9 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 * GORM Guides [http://gorm.io](http://gorm.io)
 
+## Users
+- [ginbro](https://github.com/dejavuzhou/ginbro):A scaffold powered by GORM to easily generate a RESTful APIs app from a MySQL database's schema.
+
 ## Contributing
 
 [You can help to deliver a better GORM, check out things you can do](http://gorm.io/contribute.html)
