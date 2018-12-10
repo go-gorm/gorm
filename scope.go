@@ -10,6 +10,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/kr/pretty"
 )
 
 // Scope contain current operation's information when you perform any operation on the database
@@ -473,18 +475,23 @@ func (scope *Scope) quoteIfPossible(str string) string {
 	return str
 }
 
-func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
+func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field, elem ...interface{}) {
 	var (
 		ignored            interface{}
 		values             = make([]interface{}, len(columns))
 		selectFields       []*Field
 		selectedColumnsMap = map[string]int{}
 		resetFields        = map[int]*Field{}
+		interfaceFields    = map[string]interface{}{}
+		rootElem           interface{}
 	)
+
+	if len(elem) > 0 {
+		rootElem = elem[0]
+	}
 
 	for index, column := range columns {
 		values[index] = &ignored
-
 		selectFields = fields
 		offset := 0
 		if idx, ok := selectedColumnsMap[column]; ok {
@@ -494,7 +501,17 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 
 		for fieldIndex, field := range selectFields {
 			if field.DBName == column {
-				if field.Field.Kind() == reflect.Ptr {
+				if field.IsInterface {
+					pretty.Log(column)
+					if i, ok := rootElem.(interface {
+						ScanType(field string) reflect.Type
+					}); ok {
+						t := i.ScanType(field.DBName)
+						val := reflect.New(t).Interface()
+						values[index] = val
+						interfaceFields[field.DBName] = values[index]
+					}
+				} else if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
 					reflectValue := reflect.New(reflect.PtrTo(field.Struct.Type))
@@ -513,6 +530,20 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 	}
 
 	scope.Err(rows.Scan(values...))
+
+	for k, v := range interfaceFields {
+		if i, ok := elem[0].(interface {
+			ScanField(field string, data interface{}) error
+		}); ok {
+			val := reflect.ValueOf(v)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			if err := i.ScanField(k, val.Interface()); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
 
 	for index, field := range resetFields {
 		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
