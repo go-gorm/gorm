@@ -16,7 +16,7 @@ type (
 	WidgetUser struct {
 		User
 		WidgetType string
-		Widget     Widget `gorm:"use_encoder;column:widget;type:jsonb"`
+		Widget     Widget `gorm:"use_encoder;column:widget;type:text"`
 	}
 
 	SimpleWidget struct {
