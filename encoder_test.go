@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
-
-	"github.com/kr/pretty"
 )
 
 type (
@@ -110,5 +108,4 @@ func TestEncoder(t *testing.T) {
 			t.Errorf("user widget is not valid")
 		}
 	}
-	pretty.Log(user1.Widget)
 }
