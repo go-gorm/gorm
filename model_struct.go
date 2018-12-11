@@ -606,16 +606,16 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					}
 				}
 			}
-
-			// Even it is ignored, also possible to decode db value into the field
-			if value, ok := field.TagSettingsGet("COLUMN"); ok {
-				field.DBName = value
-			} else {
-				field.DBName = ToColumnName(fieldStruct.Name)
-			}
-
-			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
+
+		// Even it is ignored, also possible to decode db value into the field
+		if value, ok := field.TagSettingsGet("COLUMN"); ok {
+			field.DBName = value
+		} else {
+			field.DBName = ToColumnName(fieldStruct.Name)
+		}
+
+		modelStruct.StructFields = append(modelStruct.StructFields, field)
 	}
 
 	if len(modelStruct.PrimaryFields) == 0 {

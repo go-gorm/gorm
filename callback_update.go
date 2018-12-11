@@ -75,18 +75,16 @@ func updateCallback(scope *Scope) {
 		} else {
 			for _, field := range scope.Fields() {
 				if scope.changeableField(field) {
-					if !field.IsPrimaryKey {
-						if field.IsNormal {
-							if !field.IsForeignKey || !field.IsBlank || !field.HasDefaultValue {
-								sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
-							}
-						} else if field.UseEncoder {
-							if enc, ok := scope.Value.(Encoder); ok {
-								if val, err := enc.EncodeField(field.DBName); err == nil {
-									sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(val)))
-								} else {
-									scope.Err(err)
-								}
+					if !field.IsPrimaryKey && field.IsNormal {
+						if !field.IsForeignKey || !field.IsBlank || !field.HasDefaultValue {
+							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
+						}
+					} else if field.UseEncoder {
+						if enc, ok := scope.Value.(Encoder); ok {
+							if val, err := enc.EncodeField(field.DBName); err == nil {
+								sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(val)))
+							} else {
+								scope.Err(err)
 							}
 						}
 					} else if relationship := field.Relationship; relationship != nil && relationship.Kind == "belongs_to" {

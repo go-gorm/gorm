@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+
+	"github.com/kr/pretty"
 )
 
 type (
@@ -78,8 +80,6 @@ func (m *WidgetUser) DecodeField(column string, value interface{}) error {
 }
 
 func TestEncoder(t *testing.T) {
-	DB.AutoMigrate(&WidgetUser{})
-
 	user := &WidgetUser{
 		User: User{
 			Id:   1,
@@ -110,4 +110,5 @@ func TestEncoder(t *testing.T) {
 			t.Errorf("user widget is not valid")
 		}
 	}
+	pretty.Log(user1.Widget)
 }
