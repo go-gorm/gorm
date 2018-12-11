@@ -82,7 +82,7 @@ func updateCallback(scope *Scope) {
 							}
 						} else if field.UseEncoder {
 							if enc, ok := scope.Value.(Encoder); ok {
-								if val, err := enc.EncodeField(scope, field.DBName); err == nil {
+								if val, err := enc.EncodeField(field.DBName); err == nil {
 									sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(val)))
 								} else {
 									scope.Err(err)

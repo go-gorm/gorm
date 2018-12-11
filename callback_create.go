@@ -76,7 +76,7 @@ func createCallback(scope *Scope) {
 					}
 				} else if field.UseEncoder {
 					if enc, ok := scope.Value.(Encoder); ok {
-						if val, err := enc.EncodeField(scope, field.DBName); err == nil {
+						if val, err := enc.EncodeField(field.DBName); err == nil {
 							columns = append(columns, scope.Quote(field.DBName))
 							placeholders = append(placeholders, scope.AddToVars(val))
 						} else {
