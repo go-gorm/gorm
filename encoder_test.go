@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
-
-	"github.com/jinzhu/gorm"
 )
 
 type (
@@ -39,7 +37,7 @@ func (m *ComplexWidget) GetType() string {
 	return "complex"
 }
 
-func (m *WidgetUser) EncodeField(scope *gorm.Scope, column string) (interface{}, error) {
+func (m *WidgetUser) EncodeField(column string) (interface{}, error) {
 	switch column {
 	case "widget":
 		val, err := json.Marshal(m.Widget)
@@ -52,7 +50,7 @@ func (m *WidgetUser) EncodeField(scope *gorm.Scope, column string) (interface{},
 	return nil, nil
 }
 
-func (m *WidgetUser) DecodeField(scope *gorm.Scope, column string, value interface{}) error {
+func (m *WidgetUser) DecodeField(column string, value interface{}) error {
 	switch column {
 	case "widget":
 		b, ok := value.([]byte)
