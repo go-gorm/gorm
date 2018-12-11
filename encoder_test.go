@@ -53,20 +53,26 @@ func (m *WidgetUser) EncodeField(column string) (interface{}, error) {
 func (m *WidgetUser) DecodeField(column string, value interface{}) error {
 	switch column {
 	case "widget":
-		b, ok := value.([]byte)
-		if !ok {
+		var src []byte
+		switch data := value.(type) {
+		case string:
+			src = []byte(data)
+		case []byte:
+			src = data
+		default:
 			return errors.New("Invalid type for Widget")
 		}
+
 		switch m.WidgetType {
 		case "simple":
 			var result SimpleWidget
-			if err := json.Unmarshal(b, &result); err != nil {
+			if err := json.Unmarshal(src, &result); err != nil {
 				return err
 			}
 			m.Widget = &result
 		case "complex":
 			var result ComplexWidget
-			if err := json.Unmarshal(b, &result); err != nil {
+			if err := json.Unmarshal(src, &result); err != nil {
 				return err
 			}
 			m.Widget = &result
