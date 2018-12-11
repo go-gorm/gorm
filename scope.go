@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/kr/pretty"
 )
 
 // Scope contain current operation's information when you perform any operation on the database
@@ -482,12 +480,12 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field, elem
 		selectFields       []*Field
 		selectedColumnsMap = map[string]int{}
 		resetFields        = map[int]*Field{}
-		interfaceFields    = map[string]interface{}{}
-		rootElem           interface{}
+		encodedFields      = make([]*decoder, 0)
+		elemScope          = scope
 	)
 
 	if len(elem) > 0 {
-		rootElem = elem[0]
+		elemScope = scope.New(elem[0])
 	}
 
 	for index, column := range columns {
@@ -501,15 +499,11 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field, elem
 
 		for fieldIndex, field := range selectFields {
 			if field.DBName == column {
-				if field.IsInterface {
-					pretty.Log(column)
-					if i, ok := rootElem.(interface {
-						ScanType(field string) reflect.Type
-					}); ok {
-						t := i.ScanType(field.DBName)
-						val := reflect.New(t).Interface()
-						values[index] = val
-						interfaceFields[field.DBName] = values[index]
+				if field.UseEncoder {
+					if enc, ok := elemScope.Value.(Encoder); ok {
+						dec := newDecoder(enc, elemScope, field.DBName)
+						values[index] = dec
+						encodedFields = append(encodedFields, dec)
 					}
 				} else if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
@@ -531,23 +525,16 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field, elem
 
 	scope.Err(rows.Scan(values...))
 
-	for k, v := range interfaceFields {
-		if i, ok := elem[0].(interface {
-			ScanField(field string, data interface{}) error
-		}); ok {
-			val := reflect.ValueOf(v)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
-			}
-			if err := i.ScanField(k, val.Interface()); err != nil {
-				fmt.Println(err)
-			}
-		}
-	}
-
 	for index, field := range resetFields {
 		if v := reflect.ValueOf(values[index]).Elem().Elem(); v.IsValid() {
 			field.Field.Set(v)
+		}
+	}
+
+	// process the decoders
+	for _, d := range encodedFields {
+		if err := d.Decode(); err != nil {
+			scope.Err(err)
 		}
 	}
 }
@@ -1183,7 +1170,7 @@ func (scope *Scope) createTable() *Scope {
 	var primaryKeys []string
 	var primaryKeyInColumnType = false
 	for _, field := range scope.GetModelStruct().StructFields {
-		if field.IsNormal {
+		if field.IsNormal || field.UseEncoder {
 			sqlTag := scope.Dialect().DataTypeOf(field)
 
 			// Check if the primary key constraint was specified as
@@ -1284,7 +1271,7 @@ func (scope *Scope) autoMigrate() *Scope {
 	} else {
 		for _, field := range scope.GetModelStruct().StructFields {
 			if !scope.Dialect().HasColumn(tableName, field.DBName) {
-				if field.IsNormal {
+				if field.IsNormal || field.UseEncoder {
 					sqlTag := scope.Dialect().DataTypeOf(field)
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()
 				}

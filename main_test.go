@@ -28,7 +28,6 @@ var (
 
 func init() {
 	var err error
-
 	if DB, err = OpenTestConnection(); err != nil {
 		panic(fmt.Sprintf("No error should happen when connecting to test database, but got err=%+v", err))
 	}
@@ -64,7 +63,10 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		db, err = gorm.Open("mssql", dbDSN)
 	default:
 		fmt.Println("testing sqlite3...")
-		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
+		if dbDSN == "" {
+			dbDSN = filepath.Join(os.TempDir(), "gorm.db")
+		}
+		db, err = gorm.Open("sqlite3", dbDSN)
 	}
 
 	// db.SetLogger(Logger{log.New(os.Stdout, "\r\n", 0)})

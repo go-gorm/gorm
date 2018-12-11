@@ -74,6 +74,15 @@ func createCallback(scope *Scope) {
 							placeholders = append(placeholders, scope.AddToVars(foreignField.Field.Interface()))
 						}
 					}
+				} else if field.UseEncoder {
+					if enc, ok := scope.Value.(Encoder); ok {
+						if val, err := enc.EncodeField(scope, field.DBName); err == nil {
+							columns = append(columns, scope.Quote(field.DBName))
+							placeholders = append(placeholders, scope.AddToVars(val))
+						} else {
+							scope.Err(err)
+						}
+					}
 				}
 			}
 		}

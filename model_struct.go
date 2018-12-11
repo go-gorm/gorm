@@ -59,7 +59,7 @@ type StructField struct {
 	IsNormal        bool
 	IsIgnored       bool
 	IsScanner       bool
-	IsInterface     bool
+	UseEncoder      bool
 	HasDefaultValue bool
 	Tag             reflect.StructTag
 	TagSettings     map[string]string
@@ -101,7 +101,7 @@ func (structField *StructField) clone() *StructField {
 		IsNormal:        structField.IsNormal,
 		IsIgnored:       structField.IsIgnored,
 		IsScanner:       structField.IsScanner,
-		IsInterface:     structField.IsInterface,
+		UseEncoder:      structField.UseEncoder,
 		HasDefaultValue: structField.HasDefaultValue,
 		Tag:             structField.Tag,
 		TagSettings:     map[string]string{},
@@ -183,18 +183,19 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			TagSettings: parseTagSetting(fieldStruct.Tag),
 		}
 
-		if !ast.IsExported(fieldStruct.Name) {
-			if _, ok := field.TagSettingsGet("INTERFACE"); ok {
-				field.IsInterface = true
-			} else {
-				continue
-			}
-		}
-
 		// is ignored field
 		if _, ok := field.TagSettingsGet("-"); ok {
 			field.IsIgnored = true
 		} else {
+			if _, ok := field.TagSettingsGet("USE_ENCODER"); ok {
+				field.UseEncoder = true
+			}
+
+			// private interface fields can be exported explicitly
+			if !ast.IsExported(fieldStruct.Name) && !field.UseEncoder {
+				continue
+			}
+
 			if _, ok := field.TagSettingsGet("PRIMARY_KEY"); ok {
 				field.IsPrimaryKey = true
 				modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
@@ -599,10 +600,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 							}
 						}
 					}(field)
-				case reflect.Interface:
-					field.IsInterface = true
 				default:
-					field.IsNormal = true
+					if !field.UseEncoder {
+						field.IsNormal = true
+					}
 				}
 			}
 

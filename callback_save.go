@@ -141,7 +141,6 @@ func saveAfterAssociationsCallback(scope *Scope) {
 			default:
 				elem := value.Addr().Interface()
 				newScope := scope.New(elem)
-
 				if saveReference {
 					if len(relationship.ForeignFieldNames) != 0 {
 						for idx, fieldName := range relationship.ForeignFieldNames {
