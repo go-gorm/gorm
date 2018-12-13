@@ -19,7 +19,7 @@ type DB struct {
 	// single db
 	db                SQLCommon
 	blockGlobalUpdate bool
-	logMode           int
+	logMode           logModeValue
 	logger            logger
 	search            *search
 	values            sync.Map
@@ -30,6 +30,14 @@ type DB struct {
 	dialect       Dialect
 	singularTable bool
 }
+
+type logModeValue int
+
+const (
+	defaultLogMode logModeValue = iota
+	noLogMode
+	detailedLogMode
+)
 
 // Open initialize a new db connection, need to import driver first, e.g:
 //
@@ -141,9 +149,9 @@ func (s *DB) SetLogger(log logger) {
 // LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
 func (s *DB) LogMode(enable bool) *DB {
 	if enable {
-		s.logMode = 2
+		s.logMode = detailedLogMode
 	} else {
-		s.logMode = 1
+		s.logMode = noLogMode
 	}
 	return s
 }
@@ -716,7 +724,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {
-			if s.logMode == 0 {
+			if s.logMode == defaultLogMode {
 				go s.print(fileWithLineNum(), err)
 			} else {
 				s.log(err)
@@ -780,13 +788,13 @@ func (s *DB) print(v ...interface{}) {
 }
 
 func (s *DB) log(v ...interface{}) {
-	if s != nil && s.logMode == 2 {
+	if s != nil && s.logMode == detailedLogMode {
 		s.print(append([]interface{}{"log", fileWithLineNum()}, v...)...)
 	}
 }
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
-	if s.logMode == 2 {
+	if s.logMode == detailedLogMode {
 		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
 }
