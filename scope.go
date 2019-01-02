@@ -68,7 +68,7 @@ func (scope *Scope) Dialect() Dialect {
 
 // Quote used to quote string to escape them for database
 func (scope *Scope) Quote(str string) string {
-	if strings.Index(str, ".") != -1 {
+	if strings.Contains(str, ".") {
 		newStrs := []string{}
 		for _, str := range strings.Split(str, ".") {
 			newStrs = append(newStrs, scope.Dialect().Quote(str))
@@ -330,7 +330,7 @@ func (scope *Scope) TableName() string {
 // QuotedTableName return quoted table name
 func (scope *Scope) QuotedTableName() (name string) {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		if strings.Index(scope.Search.tableName, " ") != -1 {
+		if strings.Contains(scope.Search.tableName, " ") {
 			return scope.Search.tableName
 		}
 		return scope.Quote(scope.Search.tableName)
@@ -1309,6 +1309,7 @@ func (scope *Scope) autoIndex() *Scope {
 }
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
+	resultMap := make(map[string][]interface{})
 	for _, value := range values {
 		indirectValue := indirect(reflect.ValueOf(value))
 
@@ -1327,7 +1328,10 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 				}
 
 				if hasValue {
-					results = append(results, result)
+					h := fmt.Sprint(result...)
+					if _, exist := resultMap[h]; !exist {
+						resultMap[h] = result
+					}
 				}
 			}
 		case reflect.Struct:
@@ -1342,11 +1346,16 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 			}
 
 			if hasValue {
-				results = append(results, result)
+				h := fmt.Sprint(result...)
+				if _, exist := resultMap[h]; !exist {
+					resultMap[h] = result
+				}
 			}
 		}
 	}
-
+	for _, v := range resultMap {
+		results = append(results, v)
+	}
 	return
 }
 
