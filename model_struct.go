@@ -40,7 +40,7 @@ func (s *ModelStruct) TableName(db *DB) string {
 			s.defaultTableName = tabler.TableName()
 		} else {
 			tableName := ToTableName(s.ModelType.Name())
-			if db == nil || !db.parent.singularTable {
+			if db == nil || (db.parent != nil && !db.parent.singularTable) {
 				tableName = inflection.Plural(tableName)
 			}
 			s.defaultTableName = tableName
