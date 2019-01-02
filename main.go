@@ -178,7 +178,7 @@ func (s *DB) SingularTable(enable bool) {
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
+	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
 }
 
 // QueryExpr returns the query as expr object
