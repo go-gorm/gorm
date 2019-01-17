@@ -39,10 +39,10 @@ type JoinTableSource struct {
 
 // JoinTableHandler default join table handler
 type JoinTableHandler struct {
-	TableName   string          `sql:"-"`
-	Source      JoinTableSource `sql:"-"`
-	Destination JoinTableSource `sql:"-"`
-	ArbitraryJoinConditions []string `sql:"-"`
+	TableName               string          `sql:"-"`
+	Source                  JoinTableSource `sql:"-"`
+	Destination             JoinTableSource `sql:"-"`
+	ArbitraryJoinConditions []string        `sql:"-"`
 }
 
 // SourceForeignKeys return source foreign keys
@@ -67,7 +67,7 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 			AssociationDBName: dbName,
 		})
 	}
-	
+
 	s.Destination = JoinTableSource{ModelType: destination}
 	s.Destination.ForeignKeys = []JoinTableForeignKey{}
 	for idx, dbName := range relationship.AssociationForeignFieldNames {
