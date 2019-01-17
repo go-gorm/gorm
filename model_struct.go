@@ -133,6 +133,7 @@ type Relationship struct {
 	AssociationForeignFieldNames []string
 	AssociationForeignDBNames    []string
 	JoinTableHandler             JoinTableHandlerInterface
+	ArbitraryJoinConditions      []string
 }
 
 func getForeignField(column string, fields []*StructField) *StructField {
@@ -338,6 +339,13 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											}
 										}
 									}
+
+									// Check for arbitrary join conditions supplied in the tag
+
+									if arbitraryConditions,_ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
+										relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
+									}
+
 
 									joinTableHandler := JoinTableHandler{}
 									joinTableHandler.Setup(relationship, ToTableName(many2many), reflectType, elemType)
