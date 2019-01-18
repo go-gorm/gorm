@@ -274,6 +274,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								elemType = elemType.Elem()
 							}
 
+							if arbitraryConditions, _ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
+								relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
+							}
+
+
 							if elemType.Kind() == reflect.Struct {
 								if many2many, _ := field.TagSettingsGet("MANY2MANY"); many2many != "" {
 									relationship.Kind = "many_to_many"
@@ -342,10 +347,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 
 									// Check for arbitrary join conditions supplied in the tag
 
-									if arbitraryConditions, _ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
-										relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
-									}
-
 									joinTableHandler := JoinTableHandler{}
 									joinTableHandler.Setup(relationship, ToTableName(many2many), reflectType, elemType)
 									relationship.JoinTableHandler = &joinTableHandler
@@ -373,9 +374,6 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 										}
 									}
 	
-									if arbitraryConditions, _ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
-										relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
-									}
 
 									// if no foreign keys defined with tag
 									if len(foreignKeys) == 0 {
@@ -475,6 +473,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 									polymorphicType.IsForeignKey = true
 								}
+							}
+							
+							if arbitraryConditions, _ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
+								relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
 							}
 
 							// Has One
