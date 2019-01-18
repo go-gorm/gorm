@@ -1084,6 +1084,11 @@ func (scope *Scope) related(value interface{}, foreignKeys ...string) *Scope {
 					if relationship.PolymorphicType != "" {
 						tx = tx.Where(fmt.Sprintf("%v = ?", scope.Quote(relationship.PolymorphicDBName)), relationship.PolymorphicValue)
 					}
+		
+					for _, condition := range relationship.ArbitraryJoinConditions {
+						tx = tx.Where(condition)
+					}
+
 					scope.Err(tx.Find(value).Error)
 				}
 			} else {
