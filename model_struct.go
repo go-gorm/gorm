@@ -372,6 +372,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 											polymorphicType.IsForeignKey = true
 										}
 									}
+	
+									if arbitraryConditions, _ := field.TagSettingsGet("ARBITRARY_JOIN_CONDITIONS"); arbitraryConditions != "" {
+										relationship.ArbitraryJoinConditions = strings.Split(arbitraryConditions, ",")
+									}
 
 									// if no foreign keys defined with tag
 									if len(foreignKeys) == 0 {
