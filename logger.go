@@ -64,7 +64,7 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 						}
 					} else {
 						switch value.(type) {
-						case int, int16, int32, int64, int8, float32, float64:
+						case int8, int, int16, int32, int64, float32, float64, bool:
 							formattedValues = append(formattedValues, fmt.Sprintf("%v", value))
 							break
 						default:
