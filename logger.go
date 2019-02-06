@@ -27,6 +27,21 @@ func isPrintable(s string) bool {
 	return true
 }
 
+func isNumber(v interface{}) bool {
+	switch v.(type) {
+	case int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64, uintptr,
+		float32, float64:
+		return true
+	}
+	return false
+}
+
+func isBool(v interface{}) bool {
+	_, ok := v.(bool)
+	return ok
+}
+
 var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 	if len(values) > 1 {
 		var (
@@ -56,6 +71,8 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 						} else {
 							formattedValues = append(formattedValues, "'<binary>'")
 						}
+					} else if isNumber(value) || isBool(value) {
+						formattedValues = append(formattedValues, fmt.Sprint(value))
 					} else if r, ok := value.(driver.Valuer); ok {
 						if value, err := r.Value(); err == nil && value != nil {
 							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", value))
