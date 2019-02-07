@@ -1309,6 +1309,7 @@ func (scope *Scope) autoIndex() *Scope {
 }
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
+	resultMap := make(map[string][]interface{})
 	for _, value := range values {
 		indirectValue := indirect(reflect.ValueOf(value))
 
@@ -1327,7 +1328,10 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 				}
 
 				if hasValue {
-					results = append(results, result)
+					h := fmt.Sprint(result...)
+					if _, exist := resultMap[h]; !exist {
+						resultMap[h] = result
+					}
 				}
 			}
 		case reflect.Struct:
@@ -1342,11 +1346,16 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 			}
 
 			if hasValue {
-				results = append(results, result)
+				h := fmt.Sprint(result...)
+				if _, exist := resultMap[h]; !exist {
+					resultMap[h] = result
+				}
 			}
 		}
 	}
-
+	for _, v := range resultMap {
+		results = append(results, v)
+	}
 	return
 }
 
