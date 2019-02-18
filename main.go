@@ -725,7 +725,7 @@ func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {
 			if s.logMode == defaultLogMode {
-				go s.print(fileWithLineNum(), err)
+				go s.print("error", fileWithLineNum(), err)
 			} else {
 				s.log(err)
 			}
