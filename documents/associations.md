@@ -47,8 +47,8 @@ type Profile struct {
 
 type User struct {
 	gorm.Model
-	Profile   Profile `gorm:"foreignkey:ProfileID;association_foreignkey:Refer"`
-	ProfileID int
+	Profile   Profile `gorm:"foreignkey:ProfileRefer;association_foreignkey:Refer"`
+	ProfileRefer int
 }
 ```
 
