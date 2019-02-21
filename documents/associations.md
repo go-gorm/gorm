@@ -6,15 +6,15 @@
 
 ```go
 // `User` belongs to `Profile`, `ProfileID` is the foreign key
+type Profile struct {
+  gorm.Model
+  Name string
+}
+
 type User struct {
   gorm.Model
   Profile   Profile
   ProfileID int
-}
-
-type Profile struct {
-  gorm.Model
-  Name string
 }
 
 db.Model(&user).Related(&profile)
