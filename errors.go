@@ -6,11 +6,11 @@ import (
 )
 
 var (
-	// ErrRecordNotFound record not found error, happens when only haven't find any matched data when looking up with a struct, finding a slice won't return this error
+	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error
 	ErrRecordNotFound = errors.New("record not found")
-	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
+	// ErrInvalidSQL occurs when you attempt a query with invalid SQL
 	ErrInvalidSQL = errors.New("invalid SQL")
-	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
+	// ErrInvalidTransaction occurs when you are trying to `Commit` or `Rollback`
 	ErrInvalidTransaction = errors.New("no valid transaction")
 	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
 	ErrCantStartTransaction = errors.New("can't start transaction")
@@ -21,7 +21,7 @@ var (
 // Errors contains all happened errors
 type Errors []error
 
-// IsRecordNotFoundError returns current error has record not found error or not
+// IsRecordNotFoundError returns true if error contains a RecordNotFound error
 func IsRecordNotFoundError(err error) bool {
 	if errs, ok := err.(Errors); ok {
 		for _, err := range errs {
@@ -33,12 +33,12 @@ func IsRecordNotFoundError(err error) bool {
 	return err == ErrRecordNotFound
 }
 
-// GetErrors gets all happened errors
+// GetErrors gets all errors that have occurred and returns a slice of errors (Error type)
 func (errs Errors) GetErrors() []error {
 	return errs
 }
 
-// Add adds an error
+// Add adds an error to a given slice of errors
 func (errs Errors) Add(newErrors ...error) Errors {
 	for _, err := range newErrors {
 		if err == nil {
@@ -62,7 +62,7 @@ func (errs Errors) Add(newErrors ...error) Errors {
 	return errs
 }
 
-// Error format happened errors
+// Error takes a slice of all errors that have occurred and returns it as a formatted string
 func (errs Errors) Error() string {
 	var errors = []string{}
 	for _, e := range errs {
