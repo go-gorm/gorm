@@ -178,7 +178,13 @@ func (s *DB) SingularTable(enable bool) {
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search, Value: value}
+	scope := &Scope{db: dbClone, Value: value}
+	if s.search != nil {
+		scope.Search = s.search.clone()
+	} else {
+		scope.Search = &search{}
+	}
+	return scope
 }
 
 // QueryExpr returns the query as expr object
@@ -298,6 +304,7 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
+
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
