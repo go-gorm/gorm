@@ -1007,8 +1007,15 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 func (scope *Scope) count(value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
 		if len(scope.Search.group) != 0 {
-			scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
-			scope.Search.group += " ) AS count_table"
+			if len(scope.Search.havingConditions) != 0 {
+				scope.prepareQuerySQL()
+				scope.Search = &search{}
+				scope.Search.Select("count(*)")
+				scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
+			} else {
+				scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
+				scope.Search.group += " ) AS count_table"
+			}
 		} else {
 			scope.Search.Select("count(*)")
 		}
