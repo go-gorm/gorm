@@ -142,6 +142,49 @@ func Union(stmts ...interface{}) *expr {
 	return result
 }
 
+// And will create a statement which "ands" all given statements.
+// stmts have to be *gorm.expr variables (but it is interface{}, so it
+// can be used by external packages...)
+func And(stmts ...interface{}) *expr {
+	var result *expr
+
+	for idx, stmt := range stmts {
+		if idx == 0 {
+			result = stmt.(*expr)
+		} else {
+			result = result.And(stmt.(*expr))
+		}
+	}
+
+	return result
+}
+
+// Or will create a statement which "ors" all given statements.
+// stmts have to be *gorm.expr variables (but it is interface{}, so it
+// can be used by external packages...)
+func Or(stmts ...interface{}) *expr {
+	var result *expr
+
+	for idx, stmt := range stmts {
+		if idx == 0 {
+			result = stmt.(*expr)
+		} else {
+			result = result.Or(stmt.(*expr))
+		}
+	}
+
+	return result
+}
+
+// Not negates the given statement by surrounding its expression with "NOT (expr)"
+// stmt has to be a *gorm.expr (but it is interface{}, so it
+// can be used by external packages...)
+func Not(stmt interface{}) *expr {
+	e := stmt.(*expr)
+	e.expr = "NOT (" + e.expr + ")"
+	return e
+}
+
 func (e *expr) Gt(value interface{}) *expr {
 	return e.operator(">", value)
 }
@@ -168,6 +211,10 @@ func (e *expr) BOr(value interface{}) *expr {
 
 func (e *expr) Like(value interface{}) *expr {
 	return e.operator("LIKE", value)
+}
+
+func (e *expr) NotLike(value interface{}) *expr {
+	return e.operator("NOT LIKE", value)
 }
 
 func (e *expr) Eq(value interface{}) *expr {
