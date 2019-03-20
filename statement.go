@@ -79,8 +79,8 @@ type Assignment struct {
 
 // Clone clone current statement
 func (stmt *Statement) Clone() *Statement {
-	newStatement := *stmt
-	return &newStatement
+	// newStatement := *stmt
+	return &*stmt
 }
 
 // BuildCondition build condition
