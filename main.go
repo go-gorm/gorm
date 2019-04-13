@@ -444,7 +444,7 @@ func (s *DB) Save(value interface{}) *DB {
 	if !scope.PrimaryKeyZero() {
 		newDB := scope.callCallbacks(s.parent.callbacks.updates).db
 		if newDB.Error == nil && newDB.RowsAffected == 0 {
-			return s.New().FirstOrCreate(value)
+			return s.FirstOrCreate(value)
 		}
 		return newDB
 	}
