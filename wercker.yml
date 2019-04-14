@@ -83,7 +83,7 @@ build:
                 code: |
                     cd $WERCKER_SOURCE_DIR
                     go version
-                    go get -t ./...
+                    go get -t -v ./...
 
         # Build the project
         - script:
