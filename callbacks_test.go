@@ -2,11 +2,14 @@ package gorm_test
 
 import (
 	"errors"
+	"io/ioutil"
+	"os"
+	"path"
+	"reflect"
+	"sync"
+	"testing"
 
 	"github.com/jinzhu/gorm"
-
-	"reflect"
-	"testing"
 )
 
 func (s *Product) BeforeCreate() (err error) {
@@ -173,5 +176,57 @@ func TestCallbacksWithErrors(t *testing.T) {
 	DB.Delete(&p5)
 	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
 		t.Errorf("Record shouldn't be deleted because of an error happened in after delete callback")
+	}
+}
+
+func worker() error {
+	tempdir, err := ioutil.TempDir("", "testdb")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempdir)
+
+	gdb, err := gorm.Open("sqlite3", path.Join(tempdir, "gorm.db"))
+	if err != nil {
+		return err
+	}
+	defer gdb.Close()
+
+	gdb.Callback().Create().Before("gorm:create").Register("dummy:create_before", func(s *gorm.Scope) {})
+	return nil
+}
+
+func TestWorker(t *testing.T) {
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if err := worker(); err != nil {
+				t.Fail()
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkWorker(b *testing.B) {
+	b.ReportAllocs()
+	var wg sync.WaitGroup
+	for i := 0; i < b.N; i++ {
+		for i := 0; i < 100; i++ {
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				if err := worker(); err != nil {
+					b.Fail()
+				}
+			}()
+		}
+		wg.Wait()
+
 	}
 }

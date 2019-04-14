@@ -1,6 +1,9 @@
 package gorm
 
-import "log"
+import (
+	"log"
+	"sync"
+)
 
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
@@ -13,6 +16,7 @@ var DefaultCallback = &Callback{}
 //   Field `rowQueries` contains callbacks will be call when querying object with Row, Rows...
 //   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
+	sync.Mutex
 	creates    []*func(scope *Scope)
 	updates    []*func(scope *Scope)
 	deletes    []*func(scope *Scope)
@@ -23,6 +27,7 @@ type Callback struct {
 
 // CallbackProcessor contains callback informations
 type CallbackProcessor struct {
+	sync.RWMutex
 	name      string              // current callback's name
 	before    string              // register current callback before a callback
 	after     string              // register current callback after a callback
@@ -100,8 +105,15 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 
 	cp.name = callbackName
 	cp.processor = &callback
-	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.Lock()
+	cp.Lock()
+	processors := make([]*CallbackProcessor, 0)
+	copy(processors, cp.parent.processors)
+	processors = append(processors, cp)
+	cp.parent.processors = processors
+	cp.Unlock()
 	cp.parent.reorder()
+	cp.parent.Unlock()
 }
 
 // Remove a registered callback
@@ -200,7 +212,9 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 	}
 
 	for _, cp := range cps {
+		cp.Lock()
 		sortCallbackProcessor(cp)
+		cp.Unlock()
 	}
 
 	var sortedFuncs []*func(scope *Scope)
@@ -218,6 +232,7 @@ func (c *Callback) reorder() {
 	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
 	for _, processor := range c.processors {
+		processor.RLock()
 		if processor.name != "" {
 			switch processor.kind {
 			case "create":
@@ -232,6 +247,7 @@ func (c *Callback) reorder() {
 				rowQueries = append(rowQueries, processor)
 			}
 		}
+		processor.RUnlock()
 	}
 
 	c.creates = sortProcessors(creates)
