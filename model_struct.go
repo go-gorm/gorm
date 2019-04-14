@@ -40,9 +40,11 @@ func (s *ModelStruct) TableName(db *DB) string {
 			s.defaultTableName = tabler.TableName()
 		} else {
 			tableName := ToTableName(s.ModelType.Name())
+			db.parent.Lock()
 			if db == nil || (db.parent != nil && !db.parent.singularTable) {
 				tableName = inflection.Plural(tableName)
 			}
+			db.parent.Unlock()
 			s.defaultTableName = tableName
 		}
 	}
@@ -163,7 +165,18 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Get Cached model struct
-	if value, ok := modelStructsMap.Load(reflectType); ok && value != nil {
+	isSingularTable := false
+	if scope.db != nil && scope.db.parent != nil {
+		scope.db.parent.Lock()
+		isSingularTable = scope.db.parent.singularTable
+		scope.db.parent.Unlock()
+	}
+
+	hashKey := struct {
+		singularTable bool
+		reflectType   reflect.Type
+	}{isSingularTable, reflectType}
+	if value, ok := modelStructsMap.Load(hashKey); ok && value != nil {
 		return value.(*ModelStruct)
 	}
 
@@ -612,7 +625,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	modelStructsMap.Store(reflectType, &modelStruct)
+	modelStructsMap.Store(hashKey, &modelStruct)
 
 	return &modelStruct
 }

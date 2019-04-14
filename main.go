@@ -12,6 +12,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
+	sync.Mutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
@@ -170,7 +171,8 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = sync.Map{}
+	s.parent.Lock()
+	defer s.parent.Unlock()
 	s.parent.singularTable = enable
 }
 
