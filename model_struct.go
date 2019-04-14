@@ -40,11 +40,11 @@ func (s *ModelStruct) TableName(db *DB) string {
 			s.defaultTableName = tabler.TableName()
 		} else {
 			tableName := ToTableName(s.ModelType.Name())
-			db.parent.Lock()
+			db.parent.RLock()
 			if db == nil || (db.parent != nil && !db.parent.singularTable) {
 				tableName = inflection.Plural(tableName)
 			}
-			db.parent.Unlock()
+			db.parent.RUnlock()
 			s.defaultTableName = tableName
 		}
 	}
@@ -167,9 +167,9 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	// Get Cached model struct
 	isSingularTable := false
 	if scope.db != nil && scope.db.parent != nil {
-		scope.db.parent.Lock()
+		scope.db.parent.RLock()
 		isSingularTable = scope.db.parent.singularTable
-		scope.db.parent.Unlock()
+		scope.db.parent.RUnlock()
 	}
 
 	hashKey := struct {

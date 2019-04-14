@@ -12,7 +12,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
-	sync.Mutex
+	sync.RWMutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
