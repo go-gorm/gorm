@@ -771,6 +771,7 @@ func TestNestedPreload11(t *testing.T) {
 	levelB3 := &LevelB3{
 		Value:     "bar",
 		LevelB1ID: sql.NullInt64{Valid: true, Int64: int64(levelB1.ID)},
+		LevelB2s:  []*LevelB2{},
 	}
 	if err := DB.Create(levelB3).Error; err != nil {
 		t.Error(err)
