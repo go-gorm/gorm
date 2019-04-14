@@ -95,7 +95,7 @@ build:
         - script:
                 name: test sqlite
                 code: |
-                    go test ./...
+                    go test -race -v ./...
 
         - script:
                 name: test mariadb
