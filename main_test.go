@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -274,6 +275,30 @@ func TestTableName(t *testing.T) {
 	if DB.NewScope([]Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("[]Cart's singular table name should be shopping_cart")
 	}
+	DB.SingularTable(false)
+}
+
+func TestTableNameConcurrently(t *testing.T) {
+	DB := DB.Model("")
+	if DB.NewScope(Order{}).TableName() != "orders" {
+		t.Errorf("Order's table name should be orders")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+
+	for i := 1; i <= 10; i++ {
+		go func(db *gorm.DB) {
+			DB.SingularTable(true)
+			wg.Done()
+		}(DB)
+	}
+	wg.Wait()
+
+	if DB.NewScope(Order{}).TableName() != "order" {
+		t.Errorf("Order's singular table name should be order")
+	}
+
 	DB.SingularTable(false)
 }
 
@@ -1056,6 +1081,32 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	err = db.Where(&Toy{OwnerType: "Martian"}).Delete(&Toy{}).Error
 	if err != nil {
 		t.Error("Unexpected error on conditional delete")
+	}
+}
+
+func TestCountWithHaving(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(getPreparedUser("user1", "pluck_user"))
+	DB.Create(getPreparedUser("user2", "pluck_user"))
+	user3 := getPreparedUser("user3", "pluck_user")
+	user3.Languages = []Language{}
+	DB.Create(user3)
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Joins("LEFT JOIN user_languages ON user_languages.user_id = users.id").
+		Joins("LEFT JOIN languages ON user_languages.language_id = languages.id").
+		Group("users.id").Having("COUNT(languages.id) > 1").Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with having")
+	}
+
+	if count != 2 {
+		t.Error("Unexpected result on query count with having")
 	}
 }
 
