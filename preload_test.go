@@ -1677,7 +1677,7 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 	lvl := Level1{
 		Name: "l1",
 		Level2s: []Level2{
-			Level2{Name: "l2-1"}, Level2{Name: "l2-2"},
+			{Name: "l2-1"}, {Name: "l2-2"},
 		},
 	}
 	DB.Save(&lvl)
