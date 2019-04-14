@@ -1059,6 +1059,32 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	}
 }
 
+func TestCountWithHaving(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(getPreparedUser("user1", "pluck_user"))
+	DB.Create(getPreparedUser("user2", "pluck_user"))
+	user3:=getPreparedUser("user3", "pluck_user")
+	user3.Languages=[]Language{}
+	DB.Create(user3)
+
+	var count int
+	err:=db.Model(User{}).Select("users.id").
+		Joins("LEFT JOIN user_languages ON user_languages.user_id = users.id").
+		Joins("LEFT JOIN languages ON user_languages.language_id = languages.id").
+		Group("users.id").Having("COUNT(languages.id) > 1").Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with having")
+	}
+
+	if count!=2{
+		t.Error("Unexpected result on query count with having")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
