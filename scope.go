@@ -777,7 +777,7 @@ func (scope *Scope) selectSQL() string {
 }
 
 func (scope *Scope) orderSQL() string {
-	if len(scope.Search.orders) == 0 || scope.Search.ignoreOrderQuery {
+	if len(scope.Search.orders) == 0 || scope.Search.ignoreProcessingResult {
 		return ""
 	}
 
@@ -797,6 +797,9 @@ func (scope *Scope) orderSQL() string {
 }
 
 func (scope *Scope) limitAndOffsetSQL() string {
+	if scope.Search.ignoreProcessingResult {
+		return ""
+	}
 	return scope.Dialect().LimitAndOffsetSQL(scope.Search.limit, scope.Search.offset)
 }
 
@@ -1020,7 +1023,7 @@ func (scope *Scope) count(value interface{}) *Scope {
 			scope.Search.Select("count(*)")
 		}
 	}
-	scope.Search.ignoreOrderQuery = true
+	scope.Search.ignoreProcessingResult = true
 	scope.Err(scope.row().Scan(value))
 	return scope
 }
