@@ -239,6 +239,10 @@ func (e *expr) Sum() string {
 	return "SUM(" + e.expr + ")"
 }
 
+func (e *expr) Max() string {
+	return "MAX(" + e.expr + ")"
+}
+
 func (e *expr) Count() string {
 	return "COUNT(" + e.expr + ")"
 }
@@ -357,4 +361,3 @@ func (db *DB) FormatDate(e *expr, format string) *expr {
 func (db *DB) FormatDateColumn(e *expr, format string) string {
 	return db.FormatDate(e, format).expr
 }
-
