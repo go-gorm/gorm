@@ -984,6 +984,10 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 		return scope
 	}
 
+	if dest.Len() > 0 {
+		dest.Set(reflect.Zero(dest.Type()))
+	}
+
 	if query, ok := scope.Search.selects["query"]; !ok || !scope.isQueryForColumn(query, column) {
 		scope.Search.Select(column)
 	}
