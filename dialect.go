@@ -126,6 +126,13 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 		additionalType = additionalType + " DEFAULT " + value
 	}
 
+	// add mysql column comment
+	if dialect.GetName() == "mysql" {
+		if value, ok := field.TagSettingsGet("COMMENT"); ok {
+			additionalType = additionalType + " COMMENT " + value
+		}
+	}
+
 	if value, ok := field.TagSettingsGet("COMMENT"); ok {
 		additionalType = additionalType + " COMMENT " + value
 	}
