@@ -1288,7 +1288,8 @@ func (scope *Scope) autoIndex() *Scope {
 				if name == "INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("idx", scope.TableName(), field.DBName)
 				}
-				indexes[name] = append(indexes[name], field.DBName)
+				name, column := scope.Dialect().NormalizeIndexAndColumn(name, field.DBName)
+				indexes[name] = append(indexes[name], column)
 			}
 		}
 
@@ -1299,7 +1300,8 @@ func (scope *Scope) autoIndex() *Scope {
 				if name == "UNIQUE_INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("uix", scope.TableName(), field.DBName)
 				}
-				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
+				name, column := scope.Dialect().NormalizeIndexAndColumn(name, field.DBName)
+				uniqueIndexes[name] = append(uniqueIndexes[name], column)
 			}
 		}
 	}

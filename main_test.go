@@ -1141,6 +1141,29 @@ func TestPluck(t *testing.T) {
 	}
 }
 
+func TestCountWithQueryOption(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Name: "user1"})
+	DB.Create(&User{Name: "user2"})
+	DB.Create(&User{Name: "user3"})
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Set("gorm:query_option", "WHERE users.name='user2'").
+		Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with query_option")
+	}
+
+	if count != 1 {
+		t.Error("Unexpected result on query count with query_option")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
