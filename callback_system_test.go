@@ -23,7 +23,7 @@ func afterCreate1(s *Scope)  {}
 func afterCreate2(s *Scope)  {}
 
 func TestRegisterCallback(t *testing.T) {
-	var callback = &Callback{}
+	var callback = &Callback{logger: defaultLogger}
 
 	callback.Create().Register("before_create1", beforeCreate1)
 	callback.Create().Register("before_create2", beforeCreate2)
@@ -37,7 +37,7 @@ func TestRegisterCallback(t *testing.T) {
 }
 
 func TestRegisterCallbackWithOrder(t *testing.T) {
-	var callback1 = &Callback{}
+	var callback1 = &Callback{logger: defaultLogger}
 	callback1.Create().Register("before_create1", beforeCreate1)
 	callback1.Create().Register("create", create)
 	callback1.Create().Register("after_create1", afterCreate1)
@@ -46,7 +46,7 @@ func TestRegisterCallbackWithOrder(t *testing.T) {
 		t.Errorf("register callback with order")
 	}
 
-	var callback2 = &Callback{}
+	var callback2 = &Callback{logger: defaultLogger}
 
 	callback2.Update().Register("create", create)
 	callback2.Update().Before("create").Register("before_create1", beforeCreate1)
@@ -60,7 +60,7 @@ func TestRegisterCallbackWithOrder(t *testing.T) {
 }
 
 func TestRegisterCallbackWithComplexOrder(t *testing.T) {
-	var callback1 = &Callback{}
+	var callback1 = &Callback{logger: defaultLogger}
 
 	callback1.Query().Before("after_create1").After("before_create1").Register("create", create)
 	callback1.Query().Register("before_create1", beforeCreate1)
@@ -70,7 +70,7 @@ func TestRegisterCallbackWithComplexOrder(t *testing.T) {
 		t.Errorf("register callback with order")
 	}
 
-	var callback2 = &Callback{}
+	var callback2 = &Callback{logger: defaultLogger}
 
 	callback2.Delete().Before("after_create1").After("before_create1").Register("create", create)
 	callback2.Delete().Before("create").Register("before_create1", beforeCreate1)
@@ -86,7 +86,7 @@ func TestRegisterCallbackWithComplexOrder(t *testing.T) {
 func replaceCreate(s *Scope) {}
 
 func TestReplaceCallback(t *testing.T) {
-	var callback = &Callback{}
+	var callback = &Callback{logger: defaultLogger}
 
 	callback.Create().Before("after_create1").After("before_create1").Register("create", create)
 	callback.Create().Register("before_create1", beforeCreate1)
@@ -99,7 +99,7 @@ func TestReplaceCallback(t *testing.T) {
 }
 
 func TestRemoveCallback(t *testing.T) {
-	var callback = &Callback{}
+	var callback = &Callback{logger: defaultLogger}
 
 	callback.Create().Before("after_create1").After("before_create1").Register("create", create)
 	callback.Create().Register("before_create1", beforeCreate1)
