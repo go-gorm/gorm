@@ -421,6 +421,22 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
+func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Commit should not raise error")
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Errorf("Rollback should not raise error")
+	}
+}
+
 func TestRow(t *testing.T) {
 	user1 := User{Name: "RowUser1", Age: 1, Birthday: parseTime("2000-1-1")}
 	user2 := User{Name: "RowUser2", Age: 10, Birthday: parseTime("2010-1-1")}
