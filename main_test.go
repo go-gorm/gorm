@@ -1164,6 +1164,20 @@ func TestCountWithQueryOption(t *testing.T) {
 	}
 }
 
+func TestFloatColumnPrecision(t *testing.T) {
+	type FloatTest struct {
+		ID         string  `gorm:"primary_key"`
+		FloatValue float64 `gorm:"column:float_value" sql:"type:float(255,5);"`
+	}
+	DB.DropTable(&FloatTest{})
+	DB.AutoMigrate(&FloatTest{})
+
+	data := FloatTest{ID: "uuid", FloatValue: 112.57315}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.FloatValue != 112.57315 {
+		t.Errorf("Float value should not lose precision")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
