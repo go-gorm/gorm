@@ -1110,6 +1110,37 @@ func TestCountWithHaving(t *testing.T) {
 	}
 }
 
+func TestPluck(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Id: 1, Name: "user1"})
+	DB.Create(&User{Id: 2, Name: "user2"})
+	DB.Create(&User{Id: 3, Name: "user3"})
+
+	var ids []int64
+	err := db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck")
+	}
+
+	err = db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck again")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck again")
+	}
+}
+
 func TestCountWithQueryOption(t *testing.T) {
 	db := DB.New()
 	db.Delete(User{})
