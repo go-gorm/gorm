@@ -538,3 +538,42 @@ func TestModifyColumnType(t *testing.T) {
 		t.Errorf("No error should happen when ModifyColumn, but got %v", err)
 	}
 }
+
+func TestIndexWithPrefixLength(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" {
+		t.Skip("Skipping this because only mysql support setting an index prefix length")
+	}
+
+	type IndexWithPrefix struct {
+		gorm.Model
+		Name        string
+		Description string `gorm:"type:text;index:idx_index_with_prefixes_length(100)"`
+	}
+	type IndexesWithPrefix struct {
+		gorm.Model
+		Name         string
+		Description1 string `gorm:"type:text;index:idx_index_with_prefixes_length(100)"`
+		Description2 string `gorm:"type:text;index:idx_index_with_prefixes_length(100)"`
+	}
+	type IndexesWithPrefixAndWithoutPrefix struct {
+		gorm.Model
+		Name        string `gorm:"index:idx_index_with_prefixes_length"`
+		Description string `gorm:"type:text;index:idx_index_with_prefixes_length(100)"`
+	}
+	tables := []interface{}{&IndexWithPrefix{}, &IndexesWithPrefix{}, &IndexesWithPrefixAndWithoutPrefix{}}
+	for _, table := range tables {
+		scope := DB.NewScope(table)
+		tableName := scope.TableName()
+		t.Run(fmt.Sprintf("Create index with prefix length: %s", tableName), func(t *testing.T) {
+			if err := DB.DropTableIfExists(table).Error; err != nil {
+				t.Errorf("Failed to drop %s table: %v", tableName, err)
+			}
+			if err := DB.CreateTable(table).Error; err != nil {
+				t.Errorf("Failed to create %s table: %v", tableName, err)
+			}
+			if !scope.Dialect().HasIndex(tableName, "idx_index_with_prefixes_length") {
+				t.Errorf("Failed to create %s table index:", tableName)
+			}
+		})
+	}
+}
