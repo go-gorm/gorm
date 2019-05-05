@@ -1165,6 +1165,10 @@ func TestCountWithQueryOption(t *testing.T) {
 }
 
 func TestFloatColumnPrecision(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" && dialect != "sqlite" {
+		t.Skip()
+	}
+
 	type FloatTest struct {
 		ID         string  `gorm:"primary_key"`
 		FloatValue float64 `gorm:"column:float_value" sql:"type:float(255,5);"`
