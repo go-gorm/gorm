@@ -1182,6 +1182,27 @@ func TestFloatColumnPrecision(t *testing.T) {
 	}
 }
 
+func TestWhereUpdates(t *testing.T) {
+	type OwnerEntity struct {
+		gorm.Model
+		OwnerID   uint
+		OwnerType string
+	}
+
+	type SomeEntity struct {
+		gorm.Model
+		Name        string
+		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
+	}
+
+	db := DB.Debug()
+	db.DropTable(&SomeEntity{})
+	db.AutoMigrate(&SomeEntity{})
+
+	a := SomeEntity{Name: "test"}
+	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {
