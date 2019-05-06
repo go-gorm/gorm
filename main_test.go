@@ -1203,6 +1203,45 @@ func TestWhereUpdates(t *testing.T) {
 	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
+func TestJoinUpdateColumn(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect == "" { // sqlite doesn't support 'UPDATE ... JOIN ...' syntax
+		t.Skip()
+	}
+
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Name: "user1"})
+	DB.Create(&User{Name: "user3"})
+
+	var err error
+	if dialect == "mysql" || dialect == "mssql" {
+		err = db.Table("users").Joins("JOIN users AS users2 ON users2.id = users.id").
+			Where("users.name='user1'").UpdateColumn("users.name", "user2").Error
+	} else if dialect == "postgres" {
+		err = db.Table("users").Joins("users AS users2").
+			Where("users2.id = users.id").
+			Where("users.name='user1'").UpdateColumn("name", "user2").Error
+	}
+
+	if err != nil {
+		t.Error("Unexpected error on update with join")
+	}
+
+	var names []string
+	err = db.Model(User{}).Order("name").Pluck("name", &names).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck")
+	}
+
+	if len(names) != 2 || names[0] != "user2" || names[1] != "user3" {
+		t.Error("Unexpected result on pluck after updating")
+	}
+}
+
 func BenchmarkGorm(b *testing.B) {
 	b.N = 2000
 	for x := 0; x < b.N; x++ {

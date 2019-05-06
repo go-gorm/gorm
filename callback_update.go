@@ -97,11 +97,31 @@ func updateCallback(scope *Scope) {
 		}
 
 		if len(sqls) > 0 {
+			joinSQLFirst := strings.TrimSpace(scope.joinsSQL())
+			var joinSQLSecond string
+			quotedTableName := scope.QuotedTableName()
+			var postgres postgres
+			var mysql mysql
+			if joinSQLFirst != "" {
+				switch scope.Dialect().GetName() {
+				case mysql.GetName():
+				case postgres.GetName():
+					joinSQLSecond = "FROM " + joinSQLFirst
+					joinSQLFirst = ""
+				default:
+					joinSQLSecond = "FROM " + quotedTableName + addExtraSpaceIfExist(joinSQLFirst)
+					joinSQLFirst = ""
+				}
+			}
+			whereSQL := scope.whereSQL()
+
 			scope.Raw(fmt.Sprintf(
-				"UPDATE %v SET %v%v%v",
-				scope.QuotedTableName(),
+				"UPDATE %v%v SET %v%v%v%v",
+				quotedTableName,
+				addExtraSpaceIfExist(joinSQLFirst),
 				strings.Join(sqls, ", "),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(joinSQLSecond),
+				addExtraSpaceIfExist(whereSQL+scope.orderSQL()+scope.limitAndOffsetSQL()),
 				addExtraSpaceIfExist(extraOption),
 			)).Exec()
 		}
