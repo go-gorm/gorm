@@ -1,9 +1,6 @@
 package gorm
 
-import (
-	"fmt"
-	"log"
-)
+import "fmt"
 
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
