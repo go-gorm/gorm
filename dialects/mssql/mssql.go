@@ -198,6 +198,11 @@ func (mssql) DefaultValueStr() string {
 	return "DEFAULT VALUES"
 }
 
+// NormalizeIndexAndColumn returns argument's index name and column name without doing anything
+func (mssql) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
+	return indexName, columnName
+}
+
 func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)

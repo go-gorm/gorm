@@ -1,6 +1,6 @@
 package gorm
 
-import "log"
+import "fmt"
 
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{}
@@ -13,6 +13,7 @@ var DefaultCallback = &Callback{}
 //   Field `rowQueries` contains callbacks will be call when querying object with Row, Rows...
 //   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
+	logger     logger
 	creates    []*func(scope *Scope)
 	updates    []*func(scope *Scope)
 	deletes    []*func(scope *Scope)
@@ -23,6 +24,7 @@ type Callback struct {
 
 // CallbackProcessor contains callback informations
 type CallbackProcessor struct {
+	logger    logger
 	name      string              // current callback's name
 	before    string              // register current callback before a callback
 	after     string              // register current callback after a callback
@@ -33,8 +35,9 @@ type CallbackProcessor struct {
 	parent    *Callback
 }
 
-func (c *Callback) clone() *Callback {
+func (c *Callback) clone(logger logger) *Callback {
 	return &Callback{
+		logger:     logger,
 		creates:    c.creates,
 		updates:    c.updates,
 		deletes:    c.deletes,
@@ -53,28 +56,28 @@ func (c *Callback) clone() *Callback {
 //       scope.Err(errors.New("error"))
 //     })
 func (c *Callback) Create() *CallbackProcessor {
-	return &CallbackProcessor{kind: "create", parent: c}
+	return &CallbackProcessor{logger: c.logger, kind: "create", parent: c}
 }
 
 // Update could be used to register callbacks for updating object, refer `Create` for usage
 func (c *Callback) Update() *CallbackProcessor {
-	return &CallbackProcessor{kind: "update", parent: c}
+	return &CallbackProcessor{logger: c.logger, kind: "update", parent: c}
 }
 
 // Delete could be used to register callbacks for deleting object, refer `Create` for usage
 func (c *Callback) Delete() *CallbackProcessor {
-	return &CallbackProcessor{kind: "delete", parent: c}
+	return &CallbackProcessor{logger: c.logger, kind: "delete", parent: c}
 }
 
 // Query could be used to register callbacks for querying objects with query methods like `Find`, `First`, `Related`, `Association`...
 // Refer `Create` for usage
 func (c *Callback) Query() *CallbackProcessor {
-	return &CallbackProcessor{kind: "query", parent: c}
+	return &CallbackProcessor{logger: c.logger, kind: "query", parent: c}
 }
 
 // RowQuery could be used to register callbacks for querying objects with `Row`, `Rows`, refer `Create` for usage
 func (c *Callback) RowQuery() *CallbackProcessor {
-	return &CallbackProcessor{kind: "row_query", parent: c}
+	return &CallbackProcessor{logger: c.logger, kind: "row_query", parent: c}
 }
 
 // After insert a new callback after callback `callbackName`, refer `Callbacks.Create`
@@ -93,7 +96,7 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
 	if cp.kind == "row_query" {
 		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
-			log.Printf("Registing RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...\n", callbackName)
+			cp.logger.Print(fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...\n", callbackName))
 			cp.before = "gorm:row_query"
 		}
 	}
@@ -107,7 +110,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 // Remove a registered callback
 //     db.Callback().Create().Remove("gorm:update_time_stamp_when_create")
 func (cp *CallbackProcessor) Remove(callbackName string) {
-	log.Printf("[info] removing callback `%v` from %v\n", callbackName, fileWithLineNum())
+	cp.logger.Print(fmt.Sprintf("[info] removing callback `%v` from %v\n", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.remove = true
 	cp.parent.processors = append(cp.parent.processors, cp)
@@ -120,7 +123,7 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 //		   scope.SetColumn("Updated", now)
 //     })
 func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
-	log.Printf("[info] replacing callback `%v` from %v\n", callbackName, fileWithLineNum())
+	cp.logger.Print(fmt.Sprintf("[info] replacing callback `%v` from %v\n", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.replace = true
@@ -159,7 +162,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 	for _, cp := range cps {
 		// show warning message the callback name already exists
 		if index := getRIndex(allNames, cp.name); index > -1 && !cp.replace && !cp.remove {
-			log.Printf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum())
+			cp.logger.Print(fmt.Sprintf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum()))
 		}
 		allNames = append(allNames, cp.name)
 	}
