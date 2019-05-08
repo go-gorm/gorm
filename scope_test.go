@@ -78,3 +78,16 @@ func TestFailedValuer(t *testing.T) {
 		t.Errorf("The error should be returned from Valuer, but get %v", err)
 	}
 }
+
+func TestDropTableWithTableOptions(t *testing.T) {
+	type UserWithOptions struct {
+		gorm.Model
+	}
+	DB.AutoMigrate(&UserWithOptions{})
+
+	DB = DB.Set("gorm:table_options", "CHARSET=utf8")
+	err := DB.DropTable(&UserWithOptions{}).Error
+	if err != nil {
+		t.Errorf("Table must be dropped, got error %s", err)
+	}
+}
