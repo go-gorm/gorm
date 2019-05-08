@@ -48,6 +48,9 @@ type Dialect interface {
 	// BuildKeyName returns a valid key name (foreign key, index key) for the given table, field and reference
 	BuildKeyName(kind, tableName string, fields ...string) string
 
+	// NormalizeIndexAndColumn returns valid index name and column name depending on each dialect
+	NormalizeIndexAndColumn(indexName, columnName string) (string, string)
+
 	// CurrentDatabase return current database name
 	CurrentDatabase() string
 }
@@ -124,6 +127,10 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	additionalType = notNull + " " + unique
 	if value, ok := field.TagSettingsGet("DEFAULT"); ok {
 		additionalType = additionalType + " DEFAULT " + value
+	}
+
+	if value, ok := field.TagSettingsGet("COMMENT"); ok {
+		additionalType = additionalType + " COMMENT " + value
 	}
 
 	return fieldValue, dataType, size, strings.TrimSpace(additionalType)

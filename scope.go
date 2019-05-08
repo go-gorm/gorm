@@ -68,7 +68,7 @@ func (scope *Scope) Dialect() Dialect {
 
 // Quote used to quote string to escape them for database
 func (scope *Scope) Quote(str string) string {
-	if strings.Index(str, ".") != -1 {
+	if strings.Contains(str, ".") {
 		newStrs := []string{}
 		for _, str := range strings.Split(str, ".") {
 			newStrs = append(newStrs, scope.Dialect().Quote(str))
@@ -330,7 +330,7 @@ func (scope *Scope) TableName() string {
 // QuotedTableName return quoted table name
 func (scope *Scope) QuotedTableName() (name string) {
 	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		if strings.Index(scope.Search.tableName, " ") != -1 {
+		if strings.Contains(scope.Search.tableName, " ") {
 			return scope.Search.tableName
 		}
 		return scope.Quote(scope.Search.tableName)
@@ -876,7 +876,7 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 	return scope
 }
 
-func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string]interface{} {
+func convertInterfaceToMap(values interface{}, withIgnoredField bool, db *DB) map[string]interface{} {
 	var attrs = map[string]interface{}{}
 
 	switch value := values.(type) {
@@ -884,7 +884,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 		return value
 	case []interface{}:
 		for _, v := range value {
-			for key, value := range convertInterfaceToMap(v, withIgnoredField) {
+			for key, value := range convertInterfaceToMap(v, withIgnoredField, db) {
 				attrs[key] = value
 			}
 		}
@@ -897,7 +897,7 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 				attrs[ToColumnName(key.Interface().(string))] = reflectValue.MapIndex(key).Interface()
 			}
 		default:
-			for _, field := range (&Scope{Value: values}).Fields() {
+			for _, field := range (&Scope{Value: values, db: db}).Fields() {
 				if !field.IsBlank && (withIgnoredField || !field.IsIgnored) {
 					attrs[field.DBName] = field.Field.Interface()
 				}
@@ -909,12 +909,12 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool) map[string
 
 func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[string]interface{}, hasUpdate bool) {
 	if scope.IndirectValue().Kind() != reflect.Struct {
-		return convertInterfaceToMap(value, false), true
+		return convertInterfaceToMap(value, false, scope.db), true
 	}
 
 	results = map[string]interface{}{}
 
-	for key, value := range convertInterfaceToMap(value, true) {
+	for key, value := range convertInterfaceToMap(value, true, scope.db) {
 		if field, ok := scope.FieldByName(key); ok && scope.changeableField(field) {
 			if _, ok := value.(*expr); ok {
 				hasUpdate = true
@@ -988,6 +988,10 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 		return scope
 	}
 
+	if dest.Len() > 0 {
+		dest.Set(reflect.Zero(dest.Type()))
+	}
+
 	if query, ok := scope.Search.selects["query"]; !ok || !scope.isQueryForColumn(query, column) {
 		scope.Search.Select(column)
 	}
@@ -1011,8 +1015,15 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 func (scope *Scope) count(value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
 		if len(scope.Search.group) != 0 {
-			scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
-			scope.Search.group += " ) AS count_table"
+			if len(scope.Search.havingConditions) != 0 {
+				scope.prepareQuerySQL()
+				scope.Search = &search{}
+				scope.Search.Select("count(*)")
+				scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
+			} else {
+				scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
+				scope.Search.group += " ) AS count_table"
+			}
 		} else {
 			scope.Search.Select("count(*)")
 		}
@@ -1187,7 +1198,7 @@ func (scope *Scope) createTable() *Scope {
 }
 
 func (scope *Scope) dropTable() *Scope {
-	scope.Raw(fmt.Sprintf("DROP TABLE %v%s", scope.QuotedTableName(), scope.getTableOptions())).Exec()
+	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.QuotedTableName())).Exec()
 	return scope
 }
 
@@ -1281,7 +1292,8 @@ func (scope *Scope) autoIndex() *Scope {
 				if name == "INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("idx", scope.TableName(), field.DBName)
 				}
-				indexes[name] = append(indexes[name], field.DBName)
+				name, column := scope.Dialect().NormalizeIndexAndColumn(name, field.DBName)
+				indexes[name] = append(indexes[name], column)
 			}
 		}
 
@@ -1292,7 +1304,8 @@ func (scope *Scope) autoIndex() *Scope {
 				if name == "UNIQUE_INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("uix", scope.TableName(), field.DBName)
 				}
-				uniqueIndexes[name] = append(uniqueIndexes[name], field.DBName)
+				name, column := scope.Dialect().NormalizeIndexAndColumn(name, field.DBName)
+				uniqueIndexes[name] = append(uniqueIndexes[name], column)
 			}
 		}
 	}
@@ -1313,6 +1326,7 @@ func (scope *Scope) autoIndex() *Scope {
 }
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
+	resultMap := make(map[string][]interface{})
 	for _, value := range values {
 		indirectValue := indirect(reflect.ValueOf(value))
 
@@ -1331,7 +1345,10 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 				}
 
 				if hasValue {
-					results = append(results, result)
+					h := fmt.Sprint(result...)
+					if _, exist := resultMap[h]; !exist {
+						resultMap[h] = result
+					}
 				}
 			}
 		case reflect.Struct:
@@ -1346,11 +1363,16 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 			}
 
 			if hasValue {
-				results = append(results, result)
+				h := fmt.Sprint(result...)
+				if _, exist := resultMap[h]; !exist {
+					resultMap[h] = result
+				}
 			}
 		}
 	}
-
+	for _, v := range resultMap {
+		results = append(results, v)
+	}
 	return
 }
 

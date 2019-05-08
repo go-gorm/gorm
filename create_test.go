@@ -229,3 +229,20 @@ func TestOmitWithCreate(t *testing.T) {
 		t.Errorf("Should not create omitted relationships")
 	}
 }
+
+func TestCreateIgnore(t *testing.T) {
+	float := 35.03554004971999
+	now := time.Now()
+	user := User{Name: "CreateUser", Age: 18, Birthday: &now, UserNum: Num(111), PasswordHash: []byte{'f', 'a', 'k', '4'}, Latitude: float}
+
+	if !DB.NewRecord(user) || !DB.NewRecord(&user) {
+		t.Error("User should be new record before create")
+	}
+
+	if count := DB.Create(&user).RowsAffected; count != 1 {
+		t.Error("There should be one record be affected when create record")
+	}
+	if DB.Dialect().GetName() == "mysql" && DB.Set("gorm:insert_modifier", "IGNORE").Create(&user).Error != nil {
+		t.Error("Should ignore duplicate user insert by insert modifier:IGNORE ")
+	}
+}
