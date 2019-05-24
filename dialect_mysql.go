@@ -11,6 +11,8 @@ import (
 	"unicode/utf8"
 )
 
+var mysqlIndexRegex = regexp.MustCompile(`^(.+)\((\d+)\)$`)
+
 type mysql struct {
 	commonDialect
 }
@@ -100,7 +102,7 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 					precision = fmt.Sprintf("(%s)", p)
 				}
 
-				if _, ok := field.TagSettingsGet("NOT NULL"); ok {
+				if _, ok := field.TagSettingsGet("NOT NULL"); ok || field.IsPrimaryKey {
 					sqlType = fmt.Sprintf("timestamp%v", precision)
 				} else {
 					sqlType = fmt.Sprintf("timestamp%v NULL", precision)
@@ -178,12 +180,23 @@ func (s mysql) BuildKeyName(kind, tableName string, fields ...string) string {
 	bs := h.Sum(nil)
 
 	// sha1 is 40 characters, keep first 24 characters of destination
-	destRunes := []rune(regexp.MustCompile("[^a-zA-Z0-9]+").ReplaceAllString(fields[0], "_"))
+	destRunes := []rune(keyNameRegex.ReplaceAllString(fields[0], "_"))
 	if len(destRunes) > 24 {
 		destRunes = destRunes[:24]
 	}
 
 	return fmt.Sprintf("%s%x", string(destRunes), bs)
+}
+
+// NormalizeIndexAndColumn returns index name and column name for specify an index prefix length if needed
+func (mysql) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
+	submatch := mysqlIndexRegex.FindStringSubmatch(indexName)
+	if len(submatch) != 3 {
+		return indexName, columnName
+	}
+	indexName = submatch[1]
+	columnName = fmt.Sprintf("%s(%s)", columnName, submatch[2])
+	return indexName, columnName
 }
 
 func (mysql) DefaultValueStr() string {
