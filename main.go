@@ -12,6 +12,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
+	sync.RWMutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
@@ -137,7 +138,7 @@ func (s *DB) Dialect() Dialect {
 //     db.Callback().Create().Register("update_created_at", updateCreated)
 // Refer https://jinzhu.github.io/gorm/development.html#callbacks
 func (s *DB) Callback() *Callback {
-	s.parent.callbacks = s.parent.callbacks.clone()
+	s.parent.callbacks = s.parent.callbacks.clone(s.logger)
 	return s.parent.callbacks
 }
 
@@ -170,7 +171,8 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = sync.Map{}
+	s.parent.Lock()
+	defer s.parent.Unlock()
 	s.parent.singularTable = enable
 }
 
@@ -531,7 +533,9 @@ func (s *DB) Commit() *DB {
 func (s *DB) Rollback() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		s.AddError(db.Rollback())
+		if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
+			s.AddError(err)
+		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
