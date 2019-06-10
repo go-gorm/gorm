@@ -368,6 +368,7 @@ func (association *Association) saveAssociations(values ...interface{}) *Associa
 	return association
 }
 
+// setErr set error when the error is not nil. And return Association.
 func (association *Association) setErr(err error) *Association {
 	if err != nil {
 		association.Error = err
