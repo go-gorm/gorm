@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -469,6 +470,40 @@ func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
 	if err := tx.Rollback().Error; err != nil {
 		t.Errorf("Rollback should not raise error")
 	}
+}
+
+func TestTransactionReadonly(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect == "" {
+		dialect = "sqlite"
+	}
+	switch dialect {
+	case "mssql", "sqlite":
+		t.Skipf("%s does not support readonly transactions\n", dialect)
+	}
+
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+	tx.Commit()
+
+	tx = DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	if sqlTx, ok := tx.CommonDB().(*sql.Tx); !ok || sqlTx == nil {
+		t.Errorf("Should return the underlying sql.Tx")
+	}
+
+	u = User{Name: "transcation-2"}
+	if err := tx.Save(&u).Error; err == nil {
+		t.Errorf("Error should have been raised in a readonly transaction")
+	}
+
+	tx.Rollback()
 }
 
 func TestRow(t *testing.T) {
