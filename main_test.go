@@ -421,6 +421,22 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
+func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Commit should not raise error")
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Errorf("Rollback should not raise error")
+	}
+}
+
 func TestRow(t *testing.T) {
 	user1 := User{Name: "RowUser1", Age: 1, Birthday: parseTime("2000-1-1")}
 	user2 := User{Name: "RowUser2", Age: 10, Birthday: parseTime("2010-1-1")}
@@ -1108,6 +1124,99 @@ func TestCountWithHaving(t *testing.T) {
 	if count != 2 {
 		t.Error("Unexpected result on query count with having")
 	}
+}
+
+func TestPluck(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Id: 1, Name: "user1"})
+	DB.Create(&User{Id: 2, Name: "user2"})
+	DB.Create(&User{Id: 3, Name: "user3"})
+
+	var ids []int64
+	err := db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck")
+	}
+
+	err = db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck again")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck again")
+	}
+}
+
+func TestCountWithQueryOption(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Name: "user1"})
+	DB.Create(&User{Name: "user2"})
+	DB.Create(&User{Name: "user3"})
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Set("gorm:query_option", "WHERE users.name='user2'").
+		Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with query_option")
+	}
+
+	if count != 1 {
+		t.Error("Unexpected result on query count with query_option")
+	}
+}
+
+func TestFloatColumnPrecision(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" && dialect != "sqlite" {
+		t.Skip()
+	}
+
+	type FloatTest struct {
+		ID         string  `gorm:"primary_key"`
+		FloatValue float64 `gorm:"column:float_value" sql:"type:float(255,5);"`
+	}
+	DB.DropTable(&FloatTest{})
+	DB.AutoMigrate(&FloatTest{})
+
+	data := FloatTest{ID: "uuid", FloatValue: 112.57315}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.FloatValue != 112.57315 {
+		t.Errorf("Float value should not lose precision")
+	}
+}
+
+func TestWhereUpdates(t *testing.T) {
+	type OwnerEntity struct {
+		gorm.Model
+		OwnerID   uint
+		OwnerType string
+	}
+
+	type SomeEntity struct {
+		gorm.Model
+		Name        string
+		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
+	}
+
+	db := DB.Debug()
+	db.DropTable(&SomeEntity{})
+	db.AutoMigrate(&SomeEntity{})
+
+	a := SomeEntity{Name: "test"}
+	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
 func BenchmarkGorm(b *testing.B) {
