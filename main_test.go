@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -277,6 +279,30 @@ func TestTableName(t *testing.T) {
 	DB.SingularTable(false)
 }
 
+func TestTableNameConcurrently(t *testing.T) {
+	DB := DB.Model("")
+	if DB.NewScope(Order{}).TableName() != "orders" {
+		t.Errorf("Order's table name should be orders")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+
+	for i := 1; i <= 10; i++ {
+		go func(db *gorm.DB) {
+			DB.SingularTable(true)
+			wg.Done()
+		}(DB)
+	}
+	wg.Wait()
+
+	if DB.NewScope(Order{}).TableName() != "order" {
+		t.Errorf("Order's singular table name should be order")
+	}
+
+	DB.SingularTable(false)
+}
+
 func TestNullValues(t *testing.T) {
 	DB.DropTable(&NullValue{})
 	DB.AutoMigrate(&NullValue{})
@@ -394,6 +420,90 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
+
+	tx3 := DB.Begin()
+	u3 := User{Name: "transcation-3"}
+	if err := tx3.Save(&u3).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx3.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx3.RollbackUnlessCommitted()
+
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	tx4 := DB.Begin()
+	u4 := User{Name: "transcation-4"}
+	if err := tx4.Save(&u4).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx4.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx4.Commit()
+
+	tx4.RollbackUnlessCommitted()
+
+	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+}
+
+func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Commit should not raise error")
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Errorf("Rollback should not raise error")
+	}
+}
+
+func TestTransactionReadonly(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect == "" {
+		dialect = "sqlite"
+	}
+	switch dialect {
+	case "mssql", "sqlite":
+		t.Skipf("%s does not support readonly transactions\n", dialect)
+	}
+
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+	tx.Commit()
+
+	tx = DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	if sqlTx, ok := tx.CommonDB().(*sql.Tx); !ok || sqlTx == nil {
+		t.Errorf("Should return the underlying sql.Tx")
+	}
+
+	u = User{Name: "transcation-2"}
+	if err := tx.Save(&u).Error; err == nil {
+		t.Errorf("Error should have been raised in a readonly transaction")
+	}
+
+	tx.Rollback()
 }
 
 func TestRow(t *testing.T) {
@@ -1057,6 +1167,125 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	if err != nil {
 		t.Error("Unexpected error on conditional delete")
 	}
+}
+
+func TestCountWithHaving(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(getPreparedUser("user1", "pluck_user"))
+	DB.Create(getPreparedUser("user2", "pluck_user"))
+	user3 := getPreparedUser("user3", "pluck_user")
+	user3.Languages = []Language{}
+	DB.Create(user3)
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Joins("LEFT JOIN user_languages ON user_languages.user_id = users.id").
+		Joins("LEFT JOIN languages ON user_languages.language_id = languages.id").
+		Group("users.id").Having("COUNT(languages.id) > 1").Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with having")
+	}
+
+	if count != 2 {
+		t.Error("Unexpected result on query count with having")
+	}
+}
+
+func TestPluck(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Id: 1, Name: "user1"})
+	DB.Create(&User{Id: 2, Name: "user2"})
+	DB.Create(&User{Id: 3, Name: "user3"})
+
+	var ids []int64
+	err := db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck")
+	}
+
+	err = db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck again")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck again")
+	}
+}
+
+func TestCountWithQueryOption(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Name: "user1"})
+	DB.Create(&User{Name: "user2"})
+	DB.Create(&User{Name: "user3"})
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Set("gorm:query_option", "WHERE users.name='user2'").
+		Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with query_option")
+	}
+
+	if count != 1 {
+		t.Error("Unexpected result on query count with query_option")
+	}
+}
+
+func TestFloatColumnPrecision(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" && dialect != "sqlite" {
+		t.Skip()
+	}
+
+	type FloatTest struct {
+		ID         string  `gorm:"primary_key"`
+		FloatValue float64 `gorm:"column:float_value" sql:"type:float(255,5);"`
+	}
+	DB.DropTable(&FloatTest{})
+	DB.AutoMigrate(&FloatTest{})
+
+	data := FloatTest{ID: "uuid", FloatValue: 112.57315}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.FloatValue != 112.57315 {
+		t.Errorf("Float value should not lose precision")
+	}
+}
+
+func TestWhereUpdates(t *testing.T) {
+	type OwnerEntity struct {
+		gorm.Model
+		OwnerID   uint
+		OwnerType string
+	}
+
+	type SomeEntity struct {
+		gorm.Model
+		Name        string
+		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
+	}
+
+	db := DB.Debug()
+	db.DropTable(&SomeEntity{})
+	db.AutoMigrate(&SomeEntity{})
+
+	a := SomeEntity{Name: "test"}
+	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
 func BenchmarkGorm(b *testing.B) {

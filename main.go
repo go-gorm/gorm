@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
+	sync.RWMutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
@@ -19,7 +21,7 @@ type DB struct {
 	// single db
 	db                SQLCommon
 	blockGlobalUpdate bool
-	logMode           int
+	logMode           logModeValue
 	logger            logger
 	search            *search
 	values            sync.Map
@@ -33,6 +35,14 @@ type DB struct {
 	// function to be used to override the creating of a new timestamp
 	nowFuncOverride func() time.Time
 }
+
+type logModeValue int
+
+const (
+	defaultLogMode logModeValue = iota
+	noLogMode
+	detailedLogMode
+)
 
 // Open initialize a new db connection, need to import driver first, e.g:
 //
@@ -132,7 +142,7 @@ func (s *DB) Dialect() Dialect {
 //     db.Callback().Create().Register("update_created_at", updateCreated)
 // Refer https://jinzhu.github.io/gorm/development.html#callbacks
 func (s *DB) Callback() *Callback {
-	s.parent.callbacks = s.parent.callbacks.clone()
+	s.parent.callbacks = s.parent.callbacks.clone(s.logger)
 	return s.parent.callbacks
 }
 
@@ -144,9 +154,9 @@ func (s *DB) SetLogger(log logger) {
 // LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
 func (s *DB) LogMode(enable bool) *DB {
 	if enable {
-		s.logMode = 2
+		s.logMode = detailedLogMode
 	} else {
-		s.logMode = 1
+		s.logMode = noLogMode
 	}
 	return s
 }
@@ -181,7 +191,8 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = sync.Map{}
+	s.parent.Lock()
+	defer s.parent.Unlock()
 	s.parent.singularTable = enable
 }
 
@@ -189,7 +200,13 @@ func (s *DB) SingularTable(enable bool) {
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
+	scope := &Scope{db: dbClone, Value: value}
+	if s.search != nil {
+		scope.Search = s.search.clone()
+	} else {
+		scope.Search = &search{}
+	}
+	return scope
 }
 
 // QueryExpr returns the query as expr object
@@ -309,6 +326,7 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
+
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
@@ -505,11 +523,16 @@ func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
 }
 
-// Begin begin a transaction
+// Begin begins a transaction
 func (s *DB) Begin() *DB {
+	return s.BeginTx(context.Background(), &sql.TxOptions{})
+}
+
+// BeginTX begins a transaction with options
+func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok && db != nil {
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, opts)
 		c.db = interface{}(tx).(SQLCommon)
 
 		c.dialect.SetDB(c.db)
@@ -535,7 +558,26 @@ func (s *DB) Commit() *DB {
 func (s *DB) Rollback() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		s.AddError(db.Rollback())
+		if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
+			s.AddError(err)
+		}
+	} else {
+		s.AddError(ErrInvalidTransaction)
+	}
+	return s
+}
+
+// RollbackUnlessCommitted rollback a transaction if it has not yet been
+// committed.
+func (s *DB) RollbackUnlessCommitted() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		err := db.Rollback()
+		// Ignore the error indicating that the transaction has already
+		// been committed.
+		if err != sql.ErrTxDone {
+			s.AddError(err)
+		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
@@ -735,8 +777,8 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {
-			if s.logMode == 0 {
-				go s.print(fileWithLineNum(), err)
+			if s.logMode == defaultLogMode {
+				go s.print("error", fileWithLineNum(), err)
 			} else {
 				s.log(err)
 			}
@@ -800,13 +842,13 @@ func (s *DB) print(v ...interface{}) {
 }
 
 func (s *DB) log(v ...interface{}) {
-	if s != nil && s.logMode == 2 {
+	if s != nil && s.logMode == detailedLogMode {
 		s.print(append([]interface{}{"log", fileWithLineNum()}, v...)...)
 	}
 }
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
-	if s.logMode == 2 {
+	if s.logMode == detailedLogMode {
 		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
 }
