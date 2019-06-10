@@ -419,6 +419,40 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
+
+	tx3 := DB.Begin()
+	u3 := User{Name: "transcation-3"}
+	if err := tx3.Save(&u3).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx3.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx3.RollbackUnlessCommitted()
+
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	tx4 := DB.Begin()
+	u4 := User{Name: "transcation-4"}
+	if err := tx4.Save(&u4).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx4.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx4.Commit()
+
+	tx4.RollbackUnlessCommitted()
+
+	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
 }
 
 func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
