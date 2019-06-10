@@ -13,6 +13,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
+	sync.RWMutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
@@ -138,7 +139,7 @@ func (s *DB) Dialect() Dialect {
 //     db.Callback().Create().Register("update_created_at", updateCreated)
 // Refer https://jinzhu.github.io/gorm/development.html#callbacks
 func (s *DB) Callback() *Callback {
-	s.parent.callbacks = s.parent.callbacks.clone()
+	s.parent.callbacks = s.parent.callbacks.clone(s.logger)
 	return s.parent.callbacks
 }
 
@@ -171,7 +172,8 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = sync.Map{}
+	s.parent.Lock()
+	defer s.parent.Unlock()
 	s.parent.singularTable = enable
 }
 
@@ -179,7 +181,13 @@ func (s *DB) SingularTable(enable bool) {
 func (s *DB) NewScope(value interface{}) *Scope {
 	dbClone := s.clone()
 	dbClone.Value = value
-	return &Scope{db: dbClone, Search: dbClone.search.clone(), Value: value}
+	scope := &Scope{db: dbClone, Value: value}
+	if s.search != nil {
+		scope.Search = s.search.clone()
+	} else {
+		scope.Search = &search{}
+	}
+	return scope
 }
 
 // QueryExpr returns the query as expr object
@@ -299,6 +307,7 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
+
 	return newScope.Set("gorm:order_by_primary_key", "ASC").
 		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
@@ -530,7 +539,26 @@ func (s *DB) Commit() *DB {
 func (s *DB) Rollback() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		s.AddError(db.Rollback())
+		if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
+			s.AddError(err)
+		}
+	} else {
+		s.AddError(ErrInvalidTransaction)
+	}
+	return s
+}
+
+// RollbackUnlessCommitted rollback a transaction if it has not yet been
+// committed.
+func (s *DB) RollbackUnlessCommitted() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		err := db.Rollback()
+		// Ignore the error indicating that the transaction has already
+		// been committed.
+		if err != sql.ErrTxDone {
+			s.AddError(err)
+		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
@@ -731,7 +759,7 @@ func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {
 			if s.logMode == defaultLogMode {
-				go s.print(fileWithLineNum(), err)
+				go s.print("error", fileWithLineNum(), err)
 			} else {
 				s.log(err)
 			}
