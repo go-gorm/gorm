@@ -1,6 +1,9 @@
 package gorm
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+)
 
 // SQLCommon is the minimal database connection functionality gorm requires.  Implemented by *sql.DB.
 type SQLCommon interface {
@@ -12,6 +15,7 @@ type SQLCommon interface {
 
 type sqlDb interface {
 	Begin() (*sql.Tx, error)
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
 type sqlTx interface {
