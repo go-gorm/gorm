@@ -44,13 +44,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mysql":
 		fmt.Println("testing mysql...")
 		if dbDSN == "" {
-			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
+			dbDSN = "gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True"
 		}
 		db, err = gorm.Open("mysql", dbDSN)
 	case "postgres":
 		fmt.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
+			dbDSN = "user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable"
 		}
 		db, err = gorm.Open("postgres", dbDSN)
 	case "mssql":
@@ -61,7 +61,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// sp_changedbowner 'gorm';
 		fmt.Println("testing mssql...")
 		if dbDSN == "" {
-			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:1433?database=gorm"
 		}
 		db, err = gorm.Open("mssql", dbDSN)
 	default:
@@ -176,6 +176,15 @@ func TestSetTable(t *testing.T) {
 	DB.Table("deleted_users").Find(&deletedUsers)
 	if len(deletedUsers) != 1 {
 		t.Errorf("Query from specified table")
+	}
+
+	var user User
+	DB.Table("deleted_users").First(&user, "name = ?", "DeletedUser")
+
+	user.Age = 20
+	DB.Table("deleted_users").Save(&user)
+	if DB.Table("deleted_users").First(&user, "name = ? AND age = ?", "DeletedUser", 20).RecordNotFound() {
+		t.Errorf("Failed to found updated user")
 	}
 
 	DB.Save(getPreparedUser("normal_user", "reset_table"))
