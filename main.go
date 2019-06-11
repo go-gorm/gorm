@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 
 // DB contains information for current db connection
 type DB struct {
+	sync.RWMutex
 	Value        interface{}
 	Error        error
 	RowsAffected int64
@@ -29,6 +31,9 @@ type DB struct {
 	callbacks     *Callback
 	dialect       Dialect
 	singularTable bool
+
+	// function to be used to override the creating of a new timestamp
+	nowFuncOverride func() time.Time
 }
 
 type logModeValue int
@@ -137,7 +142,7 @@ func (s *DB) Dialect() Dialect {
 //     db.Callback().Create().Register("update_created_at", updateCreated)
 // Refer https://jinzhu.github.io/gorm/development.html#callbacks
 func (s *DB) Callback() *Callback {
-	s.parent.callbacks = s.parent.callbacks.clone()
+	s.parent.callbacks = s.parent.callbacks.clone(s.logger)
 	return s.parent.callbacks
 }
 
@@ -156,6 +161,22 @@ func (s *DB) LogMode(enable bool) *DB {
 	return s
 }
 
+// SetNowFuncOverride set the function to be used when creating a new timestamp
+func (s *DB) SetNowFuncOverride(nowFuncOverride func() time.Time) *DB {
+	s.nowFuncOverride = nowFuncOverride
+	return s
+}
+
+// Get a new timestamp, using the provided nowFuncOverride on the DB instance if set,
+// otherwise defaults to the global NowFunc()
+func (s *DB) nowFunc() time.Time {
+	if s.nowFuncOverride != nil {
+		return s.nowFuncOverride()
+	}
+
+	return NowFunc()
+}
+
 // BlockGlobalUpdate if true, generates an error on update/delete without where clause.
 // This is to prevent eventual error with empty objects updates/deletions
 func (s *DB) BlockGlobalUpdate(enable bool) *DB {
@@ -170,7 +191,8 @@ func (s *DB) HasBlockGlobalUpdate() bool {
 
 // SingularTable use singular table by default
 func (s *DB) SingularTable(enable bool) {
-	modelStructsMap = sync.Map{}
+	s.parent.Lock()
+	defer s.parent.Unlock()
 	s.parent.singularTable = enable
 }
 
@@ -444,7 +466,7 @@ func (s *DB) Save(value interface{}) *DB {
 	if !scope.PrimaryKeyZero() {
 		newDB := scope.callCallbacks(s.parent.callbacks.updates).db
 		if newDB.Error == nil && newDB.RowsAffected == 0 {
-			return s.New().FirstOrCreate(value)
+			return s.New().Table(scope.TableName()).FirstOrCreate(value)
 		}
 		return newDB
 	}
@@ -501,11 +523,16 @@ func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
 }
 
-// Begin begin a transaction
+// Begin begins a transaction
 func (s *DB) Begin() *DB {
+	return s.BeginTx(context.Background(), &sql.TxOptions{})
+}
+
+// BeginTX begins a transaction with options
+func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok && db != nil {
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, opts)
 		c.db = interface{}(tx).(SQLCommon)
 
 		c.dialect.SetDB(c.db)
@@ -531,7 +558,26 @@ func (s *DB) Commit() *DB {
 func (s *DB) Rollback() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		s.AddError(db.Rollback())
+		if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
+			s.AddError(err)
+		}
+	} else {
+		s.AddError(ErrInvalidTransaction)
+	}
+	return s
+}
+
+// RollbackUnlessCommitted rollback a transaction if it has not yet been
+// committed.
+func (s *DB) RollbackUnlessCommitted() *DB {
+	var emptySQLTx *sql.Tx
+	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
+		err := db.Rollback()
+		// Ignore the error indicating that the transaction has already
+		// been committed.
+		if err != sql.ErrTxDone {
+			s.AddError(err)
+		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
@@ -773,6 +819,7 @@ func (s *DB) clone() *DB {
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,
 		dialect:           newDialect(s.dialect.GetName(), s.db),
+		nowFuncOverride:   s.nowFuncOverride,
 	}
 
 	s.values.Range(func(k, v interface{}) bool {
