@@ -289,6 +289,9 @@ type SelfReferencingUser struct {
 func TestSelfReferencingMany2ManyColumn(t *testing.T) {
 	DB.DropTable(&SelfReferencingUser{}, "UserFriends")
 	DB.AutoMigrate(&SelfReferencingUser{})
+	if !DB.HasTable("UserFriends") {
+		t.Errorf("auto migrate error, table UserFriends should be created")
+	}
 
 	friend1 := SelfReferencingUser{Name: "friend1_m2m"}
 	if err := DB.Create(&friend1).Error; err != nil {
@@ -311,6 +314,14 @@ func TestSelfReferencingMany2ManyColumn(t *testing.T) {
 
 	if DB.Model(&user).Association("Friends").Count() != 2 {
 		t.Errorf("Should find created friends correctly")
+	}
+
+	var count int
+	if err := DB.Table("UserFriends").Count(&count).Error; err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+	if count == 0 {
+		t.Errorf("table UserFriends should have records")
 	}
 
 	var newUser = SelfReferencingUser{}

@@ -40,9 +40,11 @@ func (s *ModelStruct) TableName(db *DB) string {
 			s.defaultTableName = tabler.TableName()
 		} else {
 			tableName := ToTableName(s.ModelType.Name())
+			db.parent.RLock()
 			if db == nil || (db.parent != nil && !db.parent.singularTable) {
 				tableName = inflection.Plural(tableName)
 			}
+			db.parent.RUnlock()
 			s.defaultTableName = tableName
 		}
 	}
@@ -163,7 +165,18 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	}
 
 	// Get Cached model struct
-	if value, ok := modelStructsMap.Load(reflectType); ok && value != nil {
+	isSingularTable := false
+	if scope.db != nil && scope.db.parent != nil {
+		scope.db.parent.RLock()
+		isSingularTable = scope.db.parent.singularTable
+		scope.db.parent.RUnlock()
+	}
+
+	hashKey := struct {
+		singularTable bool
+		reflectType   reflect.Type
+	}{isSingularTable, reflectType}
+	if value, ok := modelStructsMap.Load(hashKey); ok && value != nil {
 		return value.(*ModelStruct)
 	}
 
@@ -189,7 +202,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 					modelStruct.PrimaryFields = append(modelStruct.PrimaryFields, field)
 				}
 
-				if _, ok := field.TagSettingsGet("DEFAULT"); ok {
+				if _, ok := field.TagSettingsGet("DEFAULT"); ok && !field.IsPrimaryKey {
 					field.HasDefaultValue = true
 				}
 
@@ -340,7 +353,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									}
 
 									joinTableHandler := JoinTableHandler{}
-									joinTableHandler.Setup(relationship, ToTableName(many2many), reflectType, elemType)
+									joinTableHandler.Setup(relationship, many2many, reflectType, elemType)
 									relationship.JoinTableHandler = &joinTableHandler
 									field.Relationship = relationship
 								} else {
@@ -612,7 +625,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
-	modelStructsMap.Store(reflectType, &modelStruct)
+	modelStructsMap.Store(hashKey, &modelStruct)
 
 	return &modelStruct
 }
@@ -625,6 +638,9 @@ func (scope *Scope) GetStructFields() (fields []*StructField) {
 func parseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
 	for _, str := range []string{tags.Get("sql"), tags.Get("gorm")} {
+		if str == "" {
+			continue
+		}
 		tags := strings.Split(str, ";")
 		for _, value := range tags {
 			v := strings.Split(value, ":")
