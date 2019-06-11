@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -43,13 +44,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mysql":
 		fmt.Println("testing mysql...")
 		if dbDSN == "" {
-			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
+			dbDSN = "gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True"
 		}
 		db, err = gorm.Open("mysql", dbDSN)
 	case "postgres":
 		fmt.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
+			dbDSN = "user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable"
 		}
 		db, err = gorm.Open("postgres", dbDSN)
 	case "mssql":
@@ -60,7 +61,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// sp_changedbowner 'gorm';
 		fmt.Println("testing mssql...")
 		if dbDSN == "" {
-			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:1433?database=gorm"
 		}
 		db, err = gorm.Open("mssql", dbDSN)
 	default:
@@ -175,6 +176,15 @@ func TestSetTable(t *testing.T) {
 	DB.Table("deleted_users").Find(&deletedUsers)
 	if len(deletedUsers) != 1 {
 		t.Errorf("Query from specified table")
+	}
+
+	var user User
+	DB.Table("deleted_users").First(&user, "name = ?", "DeletedUser")
+
+	user.Age = 20
+	DB.Table("deleted_users").Save(&user)
+	if DB.Table("deleted_users").First(&user, "name = ? AND age = ?", "DeletedUser", 20).RecordNotFound() {
+		t.Errorf("Failed to found updated user")
 	}
 
 	DB.Save(getPreparedUser("normal_user", "reset_table"))
@@ -419,6 +429,90 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
+
+	tx3 := DB.Begin()
+	u3 := User{Name: "transcation-3"}
+	if err := tx3.Save(&u3).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx3.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx3.RollbackUnlessCommitted()
+
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	tx4 := DB.Begin()
+	u4 := User{Name: "transcation-4"}
+	if err := tx4.Save(&u4).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx4.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx4.Commit()
+
+	tx4.RollbackUnlessCommitted()
+
+	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+}
+
+func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Commit should not raise error")
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Errorf("Rollback should not raise error")
+	}
+}
+
+func TestTransactionReadonly(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect == "" {
+		dialect = "sqlite"
+	}
+	switch dialect {
+	case "mssql", "sqlite":
+		t.Skipf("%s does not support readonly transactions\n", dialect)
+	}
+
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+	tx.Commit()
+
+	tx = DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	if sqlTx, ok := tx.CommonDB().(*sql.Tx); !ok || sqlTx == nil {
+		t.Errorf("Should return the underlying sql.Tx")
+	}
+
+	u = User{Name: "transcation-2"}
+	if err := tx.Save(&u).Error; err == nil {
+		t.Errorf("Error should have been raised in a readonly transaction")
+	}
+
+	tx.Rollback()
 }
 
 func TestRow(t *testing.T) {
