@@ -1293,12 +1293,11 @@ func TestWhereUpdates(t *testing.T) {
 		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
 	}
 
-	db := DB.Debug()
-	db.DropTable(&SomeEntity{})
-	db.AutoMigrate(&SomeEntity{})
+	DB.DropTable(&SomeEntity{})
+	DB.AutoMigrate(&SomeEntity{})
 
 	a := SomeEntity{Name: "test"}
-	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
+	DB.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
 func BenchmarkGorm(b *testing.B) {
