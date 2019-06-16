@@ -149,12 +149,24 @@ func getForeignField(column string, fields []*StructField) *StructField {
 // GetModelStruct get value's model struct, relationships based on struct and tag definition
 func (scope *Scope) GetModelStruct() *ModelStruct {
 	var modelStruct ModelStruct
+	var reflectType reflect.Type
 	// Scope value can't be nil
 	if scope.Value == nil {
 		return &modelStruct
 	}
 
-	reflectType := reflect.ValueOf(scope.Value).Type()
+	if reflect.ValueOf(scope.Value).Kind() != reflect.Ptr {
+		panic("results argument must be a ptr or slice")
+	}
+
+	if reflect.ValueOf(scope.Value).Elem().Kind() == reflect.Interface {
+		// for reflect params
+		reflectType = reflect.ValueOf(scope.Value).Elem().Elem().Type()
+	} else {
+		// for struct params
+		reflectType = reflect.ValueOf(scope.Value).Type()
+	}
+
 	for reflectType.Kind() == reflect.Slice || reflectType.Kind() == reflect.Ptr {
 		reflectType = reflectType.Elem()
 	}
