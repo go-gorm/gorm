@@ -155,15 +155,11 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		return &modelStruct
 	}
 
-	if reflect.ValueOf(scope.Value).Kind() != reflect.Ptr {
-		panic("results argument must be a ptr or slice")
-	}
-
-	if reflect.ValueOf(scope.Value).Elem().Kind() == reflect.Interface {
-		// for reflect params
+	if reflect.ValueOf(scope.Value).Kind() == reflect.Ptr && reflect.ValueOf(scope.Value).Elem().Kind() == reflect.Interface {
+		// For reflect params
 		reflectType = reflect.ValueOf(scope.Value).Elem().Elem().Type()
 	} else {
-		// for struct params
+		// For struct params
 		reflectType = reflect.ValueOf(scope.Value).Type()
 	}
 
