@@ -25,6 +25,7 @@ type DB struct {
 	logger            logger
 	search            *search
 	values            sync.Map
+	savepoint         string
 
 	// global db
 	parent        *DB
@@ -538,7 +539,8 @@ func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
 		c.dialect.SetDB(c.db)
 		c.AddError(err)
 	} else {
-		c.AddError(ErrCantStartTransaction)
+		c.savepoint = randName()
+		c.AddError(c.Exec(sqlSavepoint(c.Dialect().GetName(), c.savepoint)).Error)
 	}
 	return c
 }
@@ -547,7 +549,11 @@ func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
 func (s *DB) Commit() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		s.AddError(db.Commit())
+		if savepoint := s.savepoint; savepoint == "" {
+			s.AddError(db.Commit())
+		} else {
+			s.savepoint = ""
+		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
@@ -558,8 +564,13 @@ func (s *DB) Commit() *DB {
 func (s *DB) Rollback() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
-			s.AddError(err)
+		if savepoint := s.savepoint; savepoint == "" {
+			if err := db.Rollback(); err != nil && err != sql.ErrTxDone {
+				s.AddError(err)
+			}
+		} else {
+			s.savepoint = ""
+			s.AddError(s.Exec(sqlRollback(s.Dialect().GetName(), savepoint)).Error)
 		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
@@ -572,11 +583,15 @@ func (s *DB) Rollback() *DB {
 func (s *DB) RollbackUnlessCommitted() *DB {
 	var emptySQLTx *sql.Tx
 	if db, ok := s.db.(sqlTx); ok && db != nil && db != emptySQLTx {
-		err := db.Rollback()
-		// Ignore the error indicating that the transaction has already
-		// been committed.
-		if err != sql.ErrTxDone {
-			s.AddError(err)
+		if savepoint := s.savepoint; savepoint == "" {
+			err := db.Rollback()
+			// Ignore the error indicating that the transaction has already
+			// been committed.
+			if err != sql.ErrTxDone {
+				s.AddError(err)
+			}
+		} else {
+			s.Exec(sqlRollback(s.Dialect().GetName(), savepoint))
 		}
 	} else {
 		s.AddError(ErrInvalidTransaction)
@@ -815,6 +830,7 @@ func (s *DB) clone() *DB {
 		parent:            s.parent,
 		logger:            s.logger,
 		logMode:           s.logMode,
+		savepoint:         s.savepoint,
 		Value:             s.Value,
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,

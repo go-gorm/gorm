@@ -2,7 +2,9 @@ package gorm
 
 import (
 	"database/sql/driver"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -34,6 +36,7 @@ func init() {
 		commonInitialismsForReplacer = append(commonInitialismsForReplacer, initialism, strings.Title(strings.ToLower(initialism)))
 	}
 	commonInitialismsReplacer = strings.NewReplacer(commonInitialismsForReplacer...)
+	rand.Seed(time.Now().UnixNano())
 }
 
 type safeMap struct {
@@ -223,4 +226,25 @@ func addExtraSpaceIfExist(str string) string {
 		return " " + str
 	}
 	return ""
+}
+
+func randName() string {
+	data := make([]byte, 7)
+	rand.Read(data)
+
+	return "n" + hex.EncodeToString(data)
+}
+
+func sqlSavepoint(dialect string, savepoint string) string {
+	if dialect == "mssql" {
+		return fmt.Sprintf("SAVE TRAN %s;", savepoint)
+	}
+	return fmt.Sprintf("SAVEPOINT %s;", savepoint)
+}
+
+func sqlRollback(dialect string, savepoint string) string {
+	if dialect == "mssql" {
+		return fmt.Sprintf("ROLLBACK TRAN %s;", savepoint)
+	}
+	return fmt.Sprintf("ROLLBACK TO SAVEPOINT %s;", savepoint)
 }

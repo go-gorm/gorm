@@ -519,6 +519,110 @@ func TestTransactionReadonly(t *testing.T) {
 	tx.Rollback()
 }
 
+func TestTransactionNestedCallback(t *testing.T) {
+	name := "TestTransactionNestedCallback"
+	type TransactionNestedCallback struct {
+		Id   int64
+		Age  int64
+		Name string `sql:"size:255"`
+	}
+	DB.AutoMigrate(&TransactionNestedCallback{})
+	defer func() {
+		DB.Error = nil
+		DB.DropTable(&TransactionNestedCallback{})
+	}()
+	tx := DB.Begin()
+	if tx.Error != nil {
+		t.Fatal(tx.Error)
+	}
+	u := &TransactionNestedCallback{Name: name, Age: 1}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Fatal("No error should raise")
+	}
+	id := u.Id
+	if id == 0 {
+		t.Fatal()
+	}
+	tx = tx.Begin()
+	if tx.Error != nil {
+		t.Fatal(tx.Error)
+	}
+	u.Age = 2
+	if err := tx.Save(u).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := tx.First(&TransactionNestedCallback{Id: id}, "name = ? and age = ?", name, 2).Error; err != nil {
+		t.Fatal("Should find saved record")
+	}
+	tx = tx.Rollback()
+	if err := tx.First(&TransactionNestedCallback{Id: id}, "name = ? and age = ?", name, 2).Error; err == nil {
+		t.Fatal("Should not find rollbacked record")
+	}
+	if err := tx.First(&TransactionNestedCallback{Id: id}, "name = ? and age = ?", name, 1).Error; err != nil {
+		t.Fatal("Should find saved record")
+	}
+	tx = tx.Rollback()
+	if err := tx.First(&TransactionNestedCallback{Id: id}, "name = ? and age = ?", name, 1).Error; err == nil {
+		t.Fatal("Should not find rollbacked record")
+	}
+	// Test rollback outside transaction error
+	if err := DB.Rollback().Error; err == nil {
+		t.Fatal("Rollback outside transaction should report error")
+	}
+}
+
+func TestTransactionNestedCommit(t *testing.T) {
+	type TransactionNestedCommit struct {
+		Id   int64
+		Age  int64
+		Name string `sql:"size:255"`
+	}
+	DB.AutoMigrate(&TransactionNestedCommit{})
+	name := "TestTransactionNestedCommit"
+	defer func() {
+		DB.Error = nil
+		DB.DropTable(&TransactionNestedCommit{})
+	}()
+	tx := DB.Begin()
+	if tx.Error != nil {
+		t.Fatal(tx.Error)
+	}
+	u := TransactionNestedCommit{Name: name, Age: 1}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Fatal("No error should raise")
+	}
+	id := u.Id
+	if id == 0 {
+		t.Fatal()
+	}
+	tx = tx.Begin()
+	if tx.Error != nil {
+		t.Fatal(tx.Error)
+	}
+	u.Age = 2
+	if err := tx.Save(u).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := tx.First(&TransactionNestedCommit{Id: id}, "name = ? and age = ?", name, 2).Error; err != nil {
+		t.Fatal("Should find saved record")
+	}
+	tx = tx.Commit()
+	if err := tx.First(&TransactionNestedCommit{Id: id}, "name = ? and age = ?", name, 2).Error; err != nil {
+		t.Fatal("Should find the commited record")
+	}
+
+	tx = tx.Commit()
+	if err := tx.First(&TransactionNestedCommit{Id: id}, "name = ? and age = ?", name, 2).Error; err == nil {
+		t.Fatal("Should find the commited record")
+	}
+	// Test commit outside transaction error
+	if err := DB.Commit().Error; err == nil {
+		t.Fatal("Commit outside transaction should report error")
+	}
+}
+
 func TestRow(t *testing.T) {
 	user1 := User{Name: "RowUser1", Age: 1, Birthday: parseTime("2000-1-1")}
 	user2 := User{Name: "RowUser2", Age: 10, Birthday: parseTime("2010-1-1")}
