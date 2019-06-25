@@ -528,7 +528,7 @@ func (s *DB) Begin() *DB {
 	return s.BeginTx(context.Background(), &sql.TxOptions{})
 }
 
-// BeginTX begins a transaction with options
+// BeginTx begins a transaction with options
 func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok && db != nil {
