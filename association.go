@@ -276,18 +276,17 @@ func (association *Association) Count() int {
 			fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.ForeignDBNames), toQueryMarks(primaryKeys)),
 			toQueryValues(primaryKeys)...,
 		)
+		if relationship.PolymorphicType != "" {
+			query = query.Where(
+				fmt.Sprintf("%v.%v = ?", scope.New(fieldValue).QuotedTableName(), scope.Quote(relationship.PolymorphicDBName)),
+				relationship.PolymorphicValue,
+			)
+		}
 	case "belongs_to":
 		primaryKeys := scope.getColumnAsArray(relationship.ForeignFieldNames, scope.Value)
 		query = query.Where(
 			fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relationship.AssociationForeignDBNames), toQueryMarks(primaryKeys)),
 			toQueryValues(primaryKeys)...,
-		)
-	}
-
-	if relationship.PolymorphicType != "" {
-		query = query.Where(
-			fmt.Sprintf("%v.%v = ?", scope.New(fieldValue).QuotedTableName(), scope.Quote(relationship.PolymorphicDBName)),
-			relationship.PolymorphicValue,
 		)
 	}
 
