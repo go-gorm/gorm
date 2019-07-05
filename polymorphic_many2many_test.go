@@ -24,19 +24,19 @@ import (
 //     taggable_type - string
 
 type SimplePost struct {
-	Id   int
+	ID   int
 	Name string
 	Tags []*SimpleTag `gorm:"many2many:taggables;polymorphic:taggable;"`
 }
 
 type SimpleVideo struct {
-	Id   int
+	ID   int
 	Name string
 	Tags []*SimpleTag `gorm:"many2many:taggables;polymorphic:taggable;polymorphic_value:video"`
 }
 
 type SimpleTag struct {
-	Id   int
+	ID   int
 	Name string
 }
 
