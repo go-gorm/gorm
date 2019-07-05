@@ -42,6 +42,10 @@ type JoinTableHandler struct {
 	TableName   string          `sql:"-"`
 	Source      JoinTableSource `sql:"-"`
 	Destination JoinTableSource `sql:"-"`
+	// polymorphic
+	polymorphicType   string
+	polymorphicDBName string
+	polymorphicValue  string
 }
 
 // SourceForeignKeys return source foreign keys
@@ -75,6 +79,11 @@ func (s *JoinTableHandler) Setup(relationship *Relationship, tableName string, s
 			AssociationDBName: dbName,
 		})
 	}
+
+	// polymorphic
+	s.polymorphicType = relationship.PolymorphicType
+	s.polymorphicDBName = relationship.PolymorphicDBName
+	s.polymorphicValue = relationship.PolymorphicValue
 }
 
 // Table return join table's table name
@@ -120,6 +129,14 @@ func (s JoinTableHandler) Add(handler JoinTableHandlerInterface, db *DB, source 
 		binVars = append(binVars, `?`)
 		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(key)))
 		values = append(values, value)
+	}
+
+	// polymorphic type field
+	if s.polymorphicType != "" {
+		assignColumns = append(assignColumns, scope.Quote(s.polymorphicDBName))
+		binVars = append(binVars, `?`)
+		conditions = append(conditions, fmt.Sprintf("%v = ?", scope.Quote(s.polymorphicDBName)))
+		values = append(values, s.polymorphicValue)
 	}
 
 	for _, value := range values {
@@ -188,18 +205,34 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 		foreignFieldValues := scope.getColumnAsArray(foreignFieldNames, scope.Value)
 
 		var condString string
-		if len(foreignFieldValues) > 0 {
+		// polymorphic
+		if s.polymorphicType != "" {
+			var idDBName = ToColumnName(strings.TrimSuffix(s.polymorphicType, "Type") + "ID")
 			var quotedForeignDBNames []string
-			for _, dbName := range foreignDBNames {
-				quotedForeignDBNames = append(quotedForeignDBNames, tableName+"."+dbName)
+			for index := 0; index < len(foreignDBNames); index++ {
+				quotedForeignDBNames = append(quotedForeignDBNames, tableName+"."+idDBName)
 			}
 
 			condString = fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, quotedForeignDBNames), toQueryMarks(foreignFieldValues))
 
-			keys := scope.getColumnAsArray(foreignFieldNames, scope.Value)
-			values = append(values, toQueryValues(keys))
+			condString = fmt.Sprintf("%v AND %v", condString, fmt.Sprintf("%v=%v", toQueryCondition(scope, []string{tableName + "." + s.polymorphicDBName}), "?"))
+			interfaceSlice := make([]interface{}, 1)
+			interfaceSlice[0] = s.polymorphicValue
+			foreignFieldValues = append(foreignFieldValues, interfaceSlice)
 		} else {
-			condString = fmt.Sprintf("1 <> 1")
+			if len(foreignFieldValues) > 0 {
+				var quotedForeignDBNames []string
+				for _, dbName := range foreignDBNames {
+					quotedForeignDBNames = append(quotedForeignDBNames, tableName+"."+dbName)
+				}
+
+				condString = fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, quotedForeignDBNames), toQueryMarks(foreignFieldValues))
+
+				keys := scope.getColumnAsArray(foreignFieldNames, scope.Value)
+				values = append(values, toQueryValues(keys))
+			} else {
+				condString = fmt.Sprintf("1 <> 1")
+			}
 		}
 
 		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTableName, strings.Join(joinConditions, " AND "))).

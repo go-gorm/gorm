@@ -291,6 +291,22 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									relationship.Kind = "many_to_many"
 
 									{ // Foreign Keys for Source
+										// Deal with POLYMORPHIC tag
+										var associationType = reflectType.Name()
+										if polymorphic, _ := field.TagSettingsGet("POLYMORPHIC"); polymorphic != "" {
+											// Post has many tags, Video has many tags too, tag polymorphic is Owner, then associationType is Owner
+											// Toy use OwnerID, OwnerType ('posts') as foreign key
+											associationType = polymorphic
+											relationship.PolymorphicType = polymorphic + "Type"
+											relationship.PolymorphicDBName = ToColumnName(polymorphic + "Type")
+											// if Post has multiple set of tags set name of the set (instead of default 'posts')
+											if value, ok := field.TagSettingsGet("POLYMORPHIC_VALUE"); ok {
+												relationship.PolymorphicValue = value
+											} else {
+												relationship.PolymorphicValue = scope.TableName()
+											}
+										}
+
 										joinTableDBNames := []string{}
 
 										if foreignKey, _ := field.TagSettingsGet("JOINTABLE_FOREIGNKEY"); foreignKey != "" {
@@ -314,7 +330,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 													// if defined join table's foreign key
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, joinTableDBNames[idx])
 												} else {
-													defaultJointableForeignKey := ToColumnName(reflectType.Name()) + "_" + foreignField.DBName
+													defaultJointableForeignKey := ToColumnName(associationType) + "_" + foreignField.DBName
 													relationship.ForeignDBNames = append(relationship.ForeignDBNames, defaultJointableForeignKey)
 												}
 											}

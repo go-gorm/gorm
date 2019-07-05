@@ -120,7 +120,9 @@ func saveAfterAssociationsCallback(scope *Scope) {
 						}
 
 						if relationship.PolymorphicType != "" {
-							scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
+							if relationship.Kind != "many_to_many" {
+								scope.Err(newScope.SetColumn(relationship.PolymorphicType, relationship.PolymorphicValue))
+							}
 						}
 					}
 
