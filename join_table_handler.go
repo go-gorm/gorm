@@ -175,6 +175,12 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTableName, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 
+		deletedAtField, hasDeletedAtField := scope.FieldByName("DeletedAt")
+		if !scope.Search.Unscoped && hasDeletedAtField {
+			sql := fmt.Sprintf("%v.%v IS NULL", quotedTableName, scope.Quote(deletedAtField.DBName))
+			joinConditions = append(joinConditions, sql)
+		}
+
 		var foreignDBNames []string
 		var foreignFieldNames []string
 
