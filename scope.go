@@ -277,6 +277,23 @@ func (scope *Scope) AddToVars(value interface{}) string {
 	return scope.Dialect().BindVar(len(scope.SQLVars))
 }
 
+// IsCompleteParentheses check if the string has complete parentheses to prevent SQL injection
+func (scope *Scope) IsCompleteParentheses(value string) bool {
+	count := 0
+	for i, _ := range value {
+		if value[i] == 40 { // (
+			count++
+		} else if value[i] == 41 { // )
+			count--
+		}
+		if count < 0 {
+			break
+		}
+		i++
+	}
+	return count == 0
+}
+
 // SelectAttrs return selected attributes
 func (scope *Scope) SelectAttrs() []string {
 	if scope.selectAttrs == nil {
@@ -358,7 +375,7 @@ func (scope *Scope) Raw(sql string) *Scope {
 
 // Exec perform generated SQL
 func (scope *Scope) Exec() *Scope {
-	defer scope.trace(NowFunc())
+	defer scope.trace(scope.db.nowFunc())
 
 	if !scope.HasError() {
 		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
@@ -402,7 +419,7 @@ func (scope *Scope) InstanceGet(name string) (interface{}, bool) {
 // Begin start a transaction
 func (scope *Scope) Begin() *Scope {
 	if db, ok := scope.SQLDB().(sqlDb); ok {
-		if tx, err := db.Begin(); err == nil {
+		if tx, err := db.Begin(); scope.Err(err) == nil {
 			scope.db.db = interface{}(tx).(SQLCommon)
 			scope.InstanceSet("gorm:started_transaction", true)
 		}
@@ -556,6 +573,10 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 		}
 
 		if value != "" {
+			if !scope.IsCompleteParentheses(value) {
+				scope.Err(fmt.Errorf("incomplete parentheses found: %v", value))
+				return
+			}
 			if !include {
 				if comparisonRegexp.MatchString(value) {
 					str = fmt.Sprintf("NOT (%v)", value)
@@ -932,7 +953,7 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 }
 
 func (scope *Scope) row() *sql.Row {
-	defer scope.trace(NowFunc())
+	defer scope.trace(scope.db.nowFunc())
 
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
@@ -942,7 +963,7 @@ func (scope *Scope) row() *sql.Row {
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
-	defer scope.trace(NowFunc())
+	defer scope.trace(scope.db.nowFunc())
 
 	result := &RowsQueryResult{}
 	scope.InstanceSet("row_query_result", result)
