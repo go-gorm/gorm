@@ -85,11 +85,19 @@ func updateCallback(scope *Scope) {
 		}
 
 		if len(sqls) > 0 {
+			joinSQL := scope.joinsSQL()
+			whereSQL := scope.whereSQL()
+			if scope.Search.raw {
+				whereSQL = strings.TrimSuffix(strings.TrimPrefix(whereSQL, "WHERE ("), ")")
+			}
+			combinedSql := whereSQL + scope.groupSQL() +
+				scope.havingSQL() + scope.orderSQL() + scope.limitAndOffsetSQL()
 			scope.Raw(fmt.Sprintf(
-				"UPDATE %v SET %v%v%v",
+				"UPDATE %v %v SET %v%v%v",
 				scope.QuotedTableName(),
+				addExtraSpaceIfExist(joinSQL),
 				strings.Join(sqls, ", "),
-				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(combinedSql),
 				addExtraSpaceIfExist(extraOption),
 			)).Exec()
 		}
