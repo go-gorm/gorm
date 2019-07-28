@@ -1262,6 +1262,17 @@ func TestCountWithQueryOption(t *testing.T) {
 	}
 }
 
+func TestQueryHint(t *testing.T) {
+	db := DB.New()
+	var count int
+
+	err := db.Set("gorm:query_hint", "/*master*/").Raw("select ?", "1").Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query_hint")
+	}
+}
+
 func TestFloatColumnPrecision(t *testing.T) {
 	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" && dialect != "sqlite" {
 		t.Skip()
