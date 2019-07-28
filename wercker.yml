@@ -9,6 +9,13 @@ services:
           MYSQL_USER: gorm
           MYSQL_PASSWORD: gorm
           MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    - name: mysql
+      id: mysql:latest
+      env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
     - name: mysql57
       id: mysql:5.7
       env:
@@ -18,13 +25,6 @@ services:
           MYSQL_RANDOM_ROOT_PASSWORD: "yes"
     - name: mysql56
       id: mysql:5.6
-      env:
-          MYSQL_DATABASE: gorm
-          MYSQL_USER: gorm
-          MYSQL_PASSWORD: gorm
-          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-    - name: mysql55
-      id: mysql:5.5
       env:
           MYSQL_DATABASE: gorm
           MYSQL_USER: gorm
@@ -103,6 +103,11 @@ build:
                     GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mariadb:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
 
         - script:
+                name: test mysql
+                code: |
+                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
+
+        - script:
                 name: test mysql5.7
                 code: |
                     GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql57:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
@@ -111,11 +116,6 @@ build:
                 name: test mysql5.6
                 code: |
                     GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql56:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
-
-        - script:
-                name: test mysql5.5
-                code: |
-                    GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(mysql55:3306)/gorm?charset=utf8&parseTime=True" go test -race ./...
 
         - script:
                 name: test postgres
