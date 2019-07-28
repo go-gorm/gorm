@@ -1262,24 +1262,27 @@ func TestCountWithQueryOption(t *testing.T) {
 	}
 }
 
-func TestQueryHint(t *testing.T) {
+func TestQueryHint1(t *testing.T) {
 	db := DB.New()
-	db.Delete(User{})
-	defer db.Delete(User{})
 
-	DB.Create(&User{Name: "user1"})
-
-	var count int
-	err := db.Model(User{}).Select("users.id").
-		Set("gorm:query_hint", "/*master*/").
-		Count(&count).Error
+	_, err := db.Model(User{}).Raw("select 1").Rows()
 
 	if err != nil {
 		t.Error("Unexpected error on query count with query_option")
 	}
+}
 
-	if count != 1 {
-		t.Error("Unexpected result on query count with query_option")
+func TestQueryHint2(t *testing.T) {
+	type TestStruct struct {
+		ID   string `gorm:"primary_key"`
+		Name string
+	}
+	DB.DropTable(&TestStruct{})
+	DB.AutoMigrate(&TestStruct{})
+
+	data := TestStruct{ID: "uuid", Name: "hello"}
+	if err := DB.Set("gorm:query_hint", "/*master*/").Save(&data).Error; err != nil {
+		t.Error("Unexpected error on query count with query_option")
 	}
 }
 
