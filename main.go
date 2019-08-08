@@ -209,8 +209,8 @@ func (s *DB) NewScope(value interface{}) *Scope {
 	return scope
 }
 
-// QueryExpr returns the query as expr object
-func (s *DB) QueryExpr() *expr {
+// QueryExpr returns the query as SqlExpr object
+func (s *DB) QueryExpr() *SqlExpr {
 	scope := s.NewScope(s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
@@ -219,7 +219,7 @@ func (s *DB) QueryExpr() *expr {
 }
 
 // SubQuery returns the query as sub query
-func (s *DB) SubQuery() *expr {
+func (s *DB) SubQuery() *SqlExpr {
 	scope := s.NewScope(s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
