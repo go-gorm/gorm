@@ -178,7 +178,7 @@ func (s JoinTableHandler) JoinWith(handler JoinTableHandlerInterface, db *DB, so
 			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTableName, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
 		}
 		joinConditions = append(joinConditions, s.ArbitraryJoinConditions...)
-
+		fmt.Println(joinConditions)
 		var foreignDBNames []string
 		var foreignFieldNames []string
 
