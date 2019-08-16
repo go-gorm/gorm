@@ -128,6 +128,8 @@ func createCallback(scope *Scope) {
 			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
+				// set lastInsertId
+				scope.db.LastInsertId, _ = result.LastInsertId()
 
 				// set primary value to primary field
 				if primaryField != nil && primaryField.IsBlank {

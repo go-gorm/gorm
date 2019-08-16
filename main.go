@@ -17,6 +17,7 @@ type DB struct {
 	Value        interface{}
 	Error        error
 	RowsAffected int64
+	LastInsertId int64
 
 	// single db
 	db                SQLCommon
