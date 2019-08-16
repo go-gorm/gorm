@@ -1,5 +1,9 @@
 package gorm_test
 
+// Run tests
+// $ docker-compose up
+// $ ./test_all.sh
+
 import (
 	"context"
 	"database/sql"
@@ -44,13 +48,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mysql":
 		fmt.Println("testing mysql...")
 		if dbDSN == "" {
-			dbDSN = "gorm:gorm@tcp(localhost:3306)/gorm?charset=utf8&parseTime=True"
+			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
 		}
 		db, err = gorm.Open("mysql", dbDSN)
 	case "postgres":
 		fmt.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable"
+			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
 		}
 		db, err = gorm.Open("postgres", dbDSN)
 	case "mssql":
@@ -61,7 +65,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// sp_changedbowner 'gorm';
 		fmt.Println("testing mssql...")
 		if dbDSN == "" {
-			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:1433?database=gorm"
+			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 		}
 		db, err = gorm.Open("mssql", dbDSN)
 	default:
@@ -1289,12 +1293,11 @@ func TestWhereUpdates(t *testing.T) {
 		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
 	}
 
-	db := DB.Debug()
-	db.DropTable(&SomeEntity{})
-	db.AutoMigrate(&SomeEntity{})
+	DB.DropTable(&SomeEntity{})
+	DB.AutoMigrate(&SomeEntity{})
 
 	a := SomeEntity{Name: "test"}
-	db.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
+	DB.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
 func BenchmarkGorm(b *testing.B) {
