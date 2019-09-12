@@ -135,11 +135,15 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 //    db.Callback().Create().Get("gorm:create")
 func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
 	for _, p := range cp.parent.processors {
-		if p.name == callbackName && p.kind == cp.kind && !cp.remove {
-			return *p.processor
+		if p.name == callbackName && p.kind == cp.kind {
+			if p.remove {
+				callback = nil
+			} else {
+				callback = *p.processor
+			}
 		}
 	}
-	return nil
+	return
 }
 
 // getRIndex get right index from string slice
