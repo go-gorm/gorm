@@ -329,8 +329,12 @@ type dbTabler interface {
 
 // TableName return table name
 func (scope *Scope) TableName() string {
-	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		return scope.Search.tableName
+	if scope.Search != nil && scope.Search.tableName != nil {
+		if str, ok := scope.Search.tableName.(string); ok {
+			return str
+		} else if exp, ok := scope.Search.tableName.(*expr); ok {
+			return exp.expr
+		}
 	}
 
 	if tabler, ok := scope.Value.(tabler); ok {
@@ -346,11 +350,18 @@ func (scope *Scope) TableName() string {
 
 // QuotedTableName return quoted table name
 func (scope *Scope) QuotedTableName() (name string) {
-	if scope.Search != nil && len(scope.Search.tableName) > 0 {
-		if strings.Contains(scope.Search.tableName, " ") {
-			return scope.Search.tableName
+	if scope.Search != nil && scope.Search.tableName != nil {
+		var tableName string
+		if str, ok := scope.Search.tableName.(string); ok {
+			tableName = str
+		} else if exp, ok := scope.Search.tableName.(*expr); ok {
+			tableName = exp.expr
 		}
-		return scope.Quote(scope.Search.tableName)
+
+		if strings.Contains(tableName, " ") {
+			return tableName
+		}
+		return scope.Quote(tableName)
 	}
 
 	return scope.Quote(scope.TableName())
@@ -859,11 +870,25 @@ func (scope *Scope) joinsSQL() string {
 	return strings.Join(joinConditions, " ") + " "
 }
 
+func (scope *Scope) tableSQL() string {
+	if str, ok := scope.Search.tableName.(string); ok {
+		return str
+	} else if expr, ok := scope.Search.tableName.(*expr); ok {
+		exp := expr.expr
+		for _, arg := range expr.args {
+			exp = strings.Replace(exp, "?", scope.AddToVars(arg), 1)
+		}
+		return exp
+	} else {
+		return scope.QuotedTableName()
+	}
+}
+
 func (scope *Scope) prepareQuerySQL() {
 	if scope.Search.raw {
 		scope.Raw(scope.CombinedConditionSql())
 	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSQL(), scope.QuotedTableName(), scope.CombinedConditionSql()))
+		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSQL(), scope.tableSQL(), scope.CombinedConditionSql()))
 	}
 	return
 }

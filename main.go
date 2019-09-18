@@ -518,6 +518,11 @@ func (s *DB) Table(name string) *DB {
 	return clone
 }
 
+// Table specify the table you would like to run db operations
+func (s *DB) ParameterisedTable(query string, args ...interface{}) *DB {
+	return s.clone().search.ParameterisedTable(query, args...).db
+}
+
 // Debug start debug mode
 func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)

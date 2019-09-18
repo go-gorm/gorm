@@ -20,7 +20,7 @@ type search struct {
 	offset           interface{}
 	limit            interface{}
 	group            string
-	tableName        string
+	tableName        interface{}
 	raw              bool
 	Unscoped         bool
 	ignoreOrderQuery bool
@@ -130,6 +130,19 @@ func (s *search) Raw(b bool) *search {
 
 func (s *search) unscoped() *search {
 	s.Unscoped = true
+	return s
+}
+
+//func (s *search) Table(name string) *search {
+//	s.tableName = name
+//	return s
+//}
+
+func (s *search) ParameterisedTable(query string, values ...interface{}) *search {
+	s.tableName = &expr{
+		expr: query,
+		args: values,
+	}
 	return s
 }
 
