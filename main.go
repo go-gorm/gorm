@@ -460,6 +460,14 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 		callCallbacks(s.parent.callbacks.updates).db
 }
 
+func (s *DB) UpdateModel(value interface{}) *DB {
+	scope := s.NewScope(value).
+		Set("gorm:update_column", true).
+		Set("gorm:save_associations", false).
+		InstanceSet("gorm:update_interface", value)
+	return scope.callCallbacks(s.parent.callbacks.updates).db
+}
+
 // Save update value in database, if the value doesn't have primary key, will insert it
 func (s *DB) Save(value interface{}) *DB {
 	scope := s.NewScope(value)
