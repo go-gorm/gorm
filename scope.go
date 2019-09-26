@@ -493,6 +493,9 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
+			if field.IsIgnored {
+				continue
+			}
 			if field.DBName == column {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
