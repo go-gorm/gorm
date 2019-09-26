@@ -419,6 +419,60 @@ func TestUpdatesWithBlankValues(t *testing.T) {
 	}
 }
 
+type NewAddress struct {
+	ID int
+	HouseNumber int
+	LineOne string
+}
+
+type NewPerson struct {
+	ID int
+	Name string
+	NewAddress NewAddress
+
+	NewAddressID int
+}
+
+func TestAssociatedBlankValues(t *testing.T) {
+	DB.LogMode(true)
+
+	person1 := NewPerson{
+		ID:   1,
+		Name: "Person",
+		NewAddress: NewAddress{
+			ID:          1,
+			HouseNumber: 1,
+			LineOne:     "Street One",
+		},
+	}
+
+	DB.Save(&person1)
+
+	person1Update := NewPerson{
+		ID: 1,
+		NewAddress: NewAddress{
+			ID:          1,
+			HouseNumber: 2,
+		},
+	}
+	DB.Model(&person1Update).Update(person1Update)
+
+	var personGet NewPerson
+	DB.Preload("NewAddress").Find(&personGet)
+
+	if personGet.NewAddress.LineOne != "Street One" {
+		t.Errorf("line one should be 'Street One' as it was updated with a blank value. Value is %s", personGet.NewAddress.LineOne)
+	}
+
+	if personGet.NewAddress.HouseNumber != 2 {
+		t.Errorf("house number should be 2 following the update. Value is %d", personGet.NewAddress.HouseNumber)
+	}
+
+	if personGet.Name != "Person" {
+		t.Errorf("name should be 'Person' as it was updated with a blank value. Value is %s", personGet.Name)
+	}
+}
+
 type ElementWithIgnoredField struct {
 	Id           int64
 	Value        string
