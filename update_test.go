@@ -434,8 +434,7 @@ type NewPerson struct {
 }
 
 func TestAssociatedBlankValues(t *testing.T) {
-	DB.LogMode(true)
-
+	// Create person
 	person1 := NewPerson{
 		ID:   1,
 		Name: "Person",
@@ -448,6 +447,7 @@ func TestAssociatedBlankValues(t *testing.T) {
 
 	DB.Save(&person1)
 
+	// Update person only updating house number
 	person1Update := NewPerson{
 		ID: 1,
 		NewAddress: NewAddress{
@@ -457,17 +457,21 @@ func TestAssociatedBlankValues(t *testing.T) {
 	}
 	DB.Model(&person1Update).Update(person1Update)
 
+	// Get person back from database
 	var personGet NewPerson
 	DB.Preload("NewAddress").Find(&personGet)
 
+	// Check that LineOne hasn't changed
 	if personGet.NewAddress.LineOne != "Street One" {
 		t.Errorf("line one should be 'Street One' as it was updated with a blank value. Value is %s", personGet.NewAddress.LineOne)
 	}
 
+	// Ensure house number has updated
 	if personGet.NewAddress.HouseNumber != 2 {
 		t.Errorf("house number should be 2 following the update. Value is %d", personGet.NewAddress.HouseNumber)
 	}
 
+	// Check that Person is still the original value
 	if personGet.Name != "Person" {
 		t.Errorf("name should be 'Person' as it was updated with a blank value. Value is %s", personGet.Name)
 	}
