@@ -191,7 +191,7 @@ func (mssql) SelectFromDummyTable() string {
 }
 
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
-	return ""
+	return "SELECT id = convert(bigint, SCOPE_IDENTITY())"
 }
 
 func (mssql) DefaultValueStr() string {
