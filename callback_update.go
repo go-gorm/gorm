@@ -69,8 +69,13 @@ func updateCallback(scope *Scope) {
 			sort.Strings(columns)
 
 			for _, column := range columns {
-				value := updateMap[column]
-				sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(column), scope.AddToVars(value)))
+				// Get the field data
+				field, _ := scope.FieldByName(column)
+
+				if !field.IsPrimaryKey {
+					value := updateMap[column]
+					sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(column), scope.AddToVars(value)))
+				}
 			}
 		} else {
 			for _, field := range scope.Fields() {
