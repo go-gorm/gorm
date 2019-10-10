@@ -470,7 +470,7 @@ func (s *DB) Save(value interface{}) *DB {
 		}
 		return newDB
 	}
-	return scope.callCallbacks(s.parent.callbacks.creates).db
+	return s.Create(value)
 }
 
 // Create insert the value into database
