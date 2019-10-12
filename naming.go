@@ -66,7 +66,7 @@ func ToColumnName(name string) string {
 	return TheNamingStrategy.ColumnName(name)
 }
 
-var smap = newSafeMap()
+var Smap = newSafeMap()
 
 func defaultNamer(name string) string {
 	const (
@@ -74,7 +74,7 @@ func defaultNamer(name string) string {
 		upper = true
 	)
 
-	if v := smap.Get(name); v != "" {
+	if v := Smap.Get(name); v != "" {
 		return v
 	}
 
@@ -119,6 +119,6 @@ func defaultNamer(name string) string {
 	buf.WriteByte(value[len(value)-1])
 
 	s := strings.ToLower(buf.String())
-	smap.Set(name, s)
+	Smap.Set(name, s)
 	return s
 }
