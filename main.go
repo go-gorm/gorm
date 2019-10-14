@@ -124,7 +124,10 @@ func (s *DB) Close() error {
 // DB get `*sql.DB` from current connection
 // If the underlying database connection is not a *sql.DB, returns nil
 func (s *DB) DB() *sql.DB {
-	db, _ := s.db.(*sql.DB)
+	db, ok := s.db.(*sql.DB)
+	if !ok {
+		panic("can't support full GORM on currently status, maybe this is a TX instance.")
+	}
 	return db
 }
 
