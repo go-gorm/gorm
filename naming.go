@@ -66,6 +66,7 @@ func ToColumnName(name string) string {
 	return TheNamingStrategy.ColumnName(name)
 }
 
+// mapping cache map
 var Smap = newSafeMap()
 
 func defaultNamer(name string) string {
