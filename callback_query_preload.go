@@ -100,7 +100,7 @@ func autoPreload(scope *Scope) {
 			continue
 		}
 
-		if val, ok := field.TagSettings["PRELOAD"]; ok {
+		if val, ok := field.TagSettingsGet("PRELOAD"); ok {
 			if preload, err := strconv.ParseBool(val); err != nil {
 				scope.Err(errors.New("invalid preload option"))
 				return
@@ -161,14 +161,17 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 	)
 
 	if indirectScopeValue.Kind() == reflect.Slice {
+		foreignValuesToResults := make(map[string]reflect.Value)
+		for i := 0; i < resultsValue.Len(); i++ {
+			result := resultsValue.Index(i)
+			foreignValues := toString(getValueFromFields(result, relation.ForeignFieldNames))
+			foreignValuesToResults[foreignValues] = result
+		}
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			for i := 0; i < resultsValue.Len(); i++ {
-				result := resultsValue.Index(i)
-				foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
-				if indirectValue := indirect(indirectScopeValue.Index(j)); equalAsString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames), foreignValues) {
-					indirectValue.FieldByName(field.Name).Set(result)
-					break
-				}
+			indirectValue := indirect(indirectScopeValue.Index(j))
+			valueString := toString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames))
+			if result, found := foreignValuesToResults[valueString]; found {
+				indirectValue.FieldByName(field.Name).Set(result)
 			}
 		}
 	} else {
@@ -255,13 +258,21 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 		indirectScopeValue = scope.IndirectValue()
 	)
 
+	foreignFieldToObjects := make(map[string][]*reflect.Value)
+	if indirectScopeValue.Kind() == reflect.Slice {
+		for j := 0; j < indirectScopeValue.Len(); j++ {
+			object := indirect(indirectScopeValue.Index(j))
+			valueString := toString(getValueFromFields(object, relation.ForeignFieldNames))
+			foreignFieldToObjects[valueString] = append(foreignFieldToObjects[valueString], &object)
+		}
+	}
+
 	for i := 0; i < resultsValue.Len(); i++ {
 		result := resultsValue.Index(i)
 		if indirectScopeValue.Kind() == reflect.Slice {
-			value := getValueFromFields(result, relation.AssociationForeignFieldNames)
-			for j := 0; j < indirectScopeValue.Len(); j++ {
-				object := indirect(indirectScopeValue.Index(j))
-				if equalAsString(getValueFromFields(object, relation.ForeignFieldNames), value) {
+			valueString := toString(getValueFromFields(result, relation.AssociationForeignFieldNames))
+			if objects, found := foreignFieldToObjects[valueString]; found {
+				for _, object := range objects {
 					object.FieldByName(field.Name).Set(result)
 				}
 			}
@@ -380,14 +391,20 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		key := toString(getValueFromFields(indirectScopeValue, foreignFieldNames))
 		fieldsSourceMap[key] = append(fieldsSourceMap[key], indirectScopeValue.FieldByName(field.Name))
 	}
-	for source, link := range linkHash {
-		for i, field := range fieldsSourceMap[source] {
+
+	for source, fields := range fieldsSourceMap {
+		for _, f := range fields {
 			//If not 0 this means Value is a pointer and we already added preloaded models to it
-			if fieldsSourceMap[source][i].Len() != 0 {
+			if f.Len() != 0 {
 				continue
 			}
-			field.Set(reflect.Append(fieldsSourceMap[source][i], link...))
-		}
 
+			v := reflect.MakeSlice(f.Type(), 0, 0)
+			if len(linkHash[source]) > 0 {
+				v = reflect.Append(f, linkHash[source]...)
+			}
+
+			f.Set(v)
+		}
 	}
 }

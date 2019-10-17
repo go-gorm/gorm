@@ -1,6 +1,11 @@
 package gorm_test
 
+// Run tests
+// $ docker-compose up
+// $ ./test_all.sh
+
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
@@ -9,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -176,6 +182,15 @@ func TestSetTable(t *testing.T) {
 		t.Errorf("Query from specified table")
 	}
 
+	var user User
+	DB.Table("deleted_users").First(&user, "name = ?", "DeletedUser")
+
+	user.Age = 20
+	DB.Table("deleted_users").Save(&user)
+	if DB.Table("deleted_users").First(&user, "name = ? AND age = ?", "DeletedUser", 20).RecordNotFound() {
+		t.Errorf("Failed to found updated user")
+	}
+
 	DB.Save(getPreparedUser("normal_user", "reset_table"))
 	DB.Table("deleted_users").Save(getPreparedUser("deleted_user", "reset_table"))
 	var user1, user2, user3 User
@@ -274,6 +289,30 @@ func TestTableName(t *testing.T) {
 	if DB.NewScope([]Cart{}).TableName() != "shopping_cart" {
 		t.Errorf("[]Cart's singular table name should be shopping_cart")
 	}
+	DB.SingularTable(false)
+}
+
+func TestTableNameConcurrently(t *testing.T) {
+	DB := DB.Model("")
+	if DB.NewScope(Order{}).TableName() != "orders" {
+		t.Errorf("Order's table name should be orders")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(10)
+
+	for i := 1; i <= 10; i++ {
+		go func(db *gorm.DB) {
+			DB.SingularTable(true)
+			wg.Done()
+		}(DB)
+	}
+	wg.Wait()
+
+	if DB.NewScope(Order{}).TableName() != "order" {
+		t.Errorf("Order's singular table name should be order")
+	}
+
 	DB.SingularTable(false)
 }
 
@@ -394,6 +433,90 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
+
+	tx3 := DB.Begin()
+	u3 := User{Name: "transcation-3"}
+	if err := tx3.Save(&u3).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx3.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx3.RollbackUnlessCommitted()
+
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	tx4 := DB.Begin()
+	u4 := User{Name: "transcation-4"}
+	if err := tx4.Save(&u4).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx4.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	tx4.Commit()
+
+	tx4.RollbackUnlessCommitted()
+
+	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+}
+
+func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Commit should not raise error")
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Errorf("Rollback should not raise error")
+	}
+}
+
+func TestTransactionReadonly(t *testing.T) {
+	dialect := os.Getenv("GORM_DIALECT")
+	if dialect == "" {
+		dialect = "sqlite"
+	}
+	switch dialect {
+	case "mssql", "sqlite":
+		t.Skipf("%s does not support readonly transactions\n", dialect)
+	}
+
+	tx := DB.Begin()
+	u := User{Name: "transcation"}
+	if err := tx.Save(&u).Error; err != nil {
+		t.Errorf("No error should raise")
+	}
+	tx.Commit()
+
+	tx = DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		t.Errorf("Should find saved record")
+	}
+
+	if sqlTx, ok := tx.CommonDB().(*sql.Tx); !ok || sqlTx == nil {
+		t.Errorf("Should return the underlying sql.Tx")
+	}
+
+	u = User{Name: "transcation-2"}
+	if err := tx.Save(&u).Error; err == nil {
+		t.Errorf("Error should have been raised in a readonly transaction")
+	}
+
+	tx.Rollback()
 }
 
 func TestRow(t *testing.T) {
@@ -578,6 +701,60 @@ func TestJoins(t *testing.T) {
 	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
 	if db5.Error != nil {
 		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
+	}
+}
+
+type JoinedIds struct {
+	UserID           int64 `gorm:"column:id"`
+	BillingAddressID int64 `gorm:"column:id"`
+	EmailID          int64 `gorm:"column:id"`
+}
+
+func TestScanIdenticalColumnNames(t *testing.T) {
+	var user = User{
+		Name:  "joinsIds",
+		Email: "joinIds@example.com",
+		BillingAddress: Address{
+			Address1: "One Park Place",
+		},
+		Emails: []Email{{Email: "join1@example.com"}, {Email: "join2@example.com"}},
+	}
+	DB.Save(&user)
+
+	var users []JoinedIds
+	DB.Select("users.id, addresses.id, emails.id").Table("users").
+		Joins("left join addresses on users.billing_address_id = addresses.id").
+		Joins("left join emails on emails.user_id = users.id").
+		Where("name = ?", "joinsIds").Scan(&users)
+
+	if len(users) != 2 {
+		t.Fatal("should find two rows using left join")
+	}
+
+	if user.Id != users[0].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[0].UserID)
+	}
+	if user.Id != users[1].UserID {
+		t.Errorf("Expected result row to contain UserID %d, but got %d", user.Id, users[1].UserID)
+	}
+
+	if user.BillingAddressID.Int64 != users[0].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+	if user.BillingAddressID.Int64 != users[1].BillingAddressID {
+		t.Errorf("Expected result row to contain BillingAddressID %d, but got %d", user.BillingAddressID.Int64, users[0].BillingAddressID)
+	}
+
+	if users[0].EmailID == users[1].EmailID {
+		t.Errorf("Email ids should be unique. Got %d and %d", users[0].EmailID, users[1].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[0].EmailID && int64(user.Emails[1].Id) != users[0].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[0].EmailID)
+	}
+
+	if int64(user.Emails[0].Id) != users[1].EmailID && int64(user.Emails[1].Id) != users[1].EmailID {
+		t.Errorf("Expected result row ID to be either %d or %d, but was %d", user.Emails[0].Id, user.Emails[1].Id, users[1].EmailID)
 	}
 }
 
@@ -879,6 +1056,94 @@ func TestOpenWithOneParameter(t *testing.T) {
 	}
 }
 
+func TestSaveAssociations(t *testing.T) {
+	db := DB.New()
+	deltaAddressCount := 0
+	if err := db.Model(&Address{}).Count(&deltaAddressCount).Error; err != nil {
+		t.Errorf("failed to fetch address count")
+		t.FailNow()
+	}
+
+	placeAddress := &Address{
+		Address1: "somewhere on earth",
+	}
+	ownerAddress1 := &Address{
+		Address1: "near place address",
+	}
+	ownerAddress2 := &Address{
+		Address1: "address2",
+	}
+	db.Create(placeAddress)
+
+	addressCountShouldBe := func(t *testing.T, expectedCount int) {
+		countFromDB := 0
+		t.Helper()
+		err := db.Model(&Address{}).Count(&countFromDB).Error
+		if err != nil {
+			t.Error("failed to fetch address count")
+		}
+		if countFromDB != expectedCount {
+			t.Errorf("address count mismatch: %d", countFromDB)
+		}
+	}
+	addressCountShouldBe(t, deltaAddressCount+1)
+
+	// owner address should be created, place address should be reused
+	place1 := &Place{
+		PlaceAddressID: placeAddress.ID,
+		PlaceAddress:   placeAddress,
+		OwnerAddress:   ownerAddress1,
+	}
+	err := db.Create(place1).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+2)
+
+	// owner address should be created again, place address should be reused
+	place2 := &Place{
+		PlaceAddressID: placeAddress.ID,
+		PlaceAddress: &Address{
+			ID:       777,
+			Address1: "address1",
+		},
+		OwnerAddress:   ownerAddress2,
+		OwnerAddressID: 778,
+	}
+	err = db.Create(place2).Error
+	if err != nil {
+		t.Errorf("failed to store place: %s", err.Error())
+	}
+	addressCountShouldBe(t, deltaAddressCount+3)
+
+	count := 0
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress1.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress1.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+		OwnerAddressID: ownerAddress2.ID,
+	}).Count(&count)
+	if count != 1 {
+		t.Errorf("only one instance of (%d, %d) should be available, found: %d",
+			placeAddress.ID, ownerAddress2.ID, count)
+	}
+
+	db.Model(&Place{}).Where(&Place{
+		PlaceAddressID: placeAddress.ID,
+	}).Count(&count)
+	if count != 2 {
+		t.Errorf("two instances of (%d) should be available, found: %d",
+			placeAddress.ID, count)
+	}
+}
+
 func TestBlockGlobalUpdate(t *testing.T) {
 	db := DB.New()
 	db.Create(&Toy{Name: "Stuffed Animal", OwnerType: "Nobody"})
@@ -915,6 +1180,124 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	if err != nil {
 		t.Error("Unexpected error on conditional delete")
 	}
+}
+
+func TestCountWithHaving(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(getPreparedUser("user1", "pluck_user"))
+	DB.Create(getPreparedUser("user2", "pluck_user"))
+	user3 := getPreparedUser("user3", "pluck_user")
+	user3.Languages = []Language{}
+	DB.Create(user3)
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Joins("LEFT JOIN user_languages ON user_languages.user_id = users.id").
+		Joins("LEFT JOIN languages ON user_languages.language_id = languages.id").
+		Group("users.id").Having("COUNT(languages.id) > 1").Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with having")
+	}
+
+	if count != 2 {
+		t.Error("Unexpected result on query count with having")
+	}
+}
+
+func TestPluck(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Id: 1, Name: "user1"})
+	DB.Create(&User{Id: 2, Name: "user2"})
+	DB.Create(&User{Id: 3, Name: "user3"})
+
+	var ids []int64
+	err := db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck")
+	}
+
+	err = db.Model(User{}).Order("id").Pluck("id", &ids).Error
+
+	if err != nil {
+		t.Error("Unexpected error on pluck again")
+	}
+
+	if len(ids) != 3 || ids[0] != 1 || ids[1] != 2 || ids[2] != 3 {
+		t.Error("Unexpected result on pluck again")
+	}
+}
+
+func TestCountWithQueryOption(t *testing.T) {
+	db := DB.New()
+	db.Delete(User{})
+	defer db.Delete(User{})
+
+	DB.Create(&User{Name: "user1"})
+	DB.Create(&User{Name: "user2"})
+	DB.Create(&User{Name: "user3"})
+
+	var count int
+	err := db.Model(User{}).Select("users.id").
+		Set("gorm:query_option", "WHERE users.name='user2'").
+		Count(&count).Error
+
+	if err != nil {
+		t.Error("Unexpected error on query count with query_option")
+	}
+
+	if count != 1 {
+		t.Error("Unexpected result on query count with query_option")
+	}
+}
+
+func TestFloatColumnPrecision(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "mysql" && dialect != "sqlite" {
+		t.Skip()
+	}
+
+	type FloatTest struct {
+		ID         string  `gorm:"primary_key"`
+		FloatValue float64 `gorm:"column:float_value" sql:"type:float(255,5);"`
+	}
+	DB.DropTable(&FloatTest{})
+	DB.AutoMigrate(&FloatTest{})
+
+	data := FloatTest{ID: "uuid", FloatValue: 112.57315}
+	if err := DB.Save(&data).Error; err != nil || data.ID != "uuid" || data.FloatValue != 112.57315 {
+		t.Errorf("Float value should not lose precision")
+	}
+}
+
+func TestWhereUpdates(t *testing.T) {
+	type OwnerEntity struct {
+		gorm.Model
+		OwnerID   uint
+		OwnerType string
+	}
+
+	type SomeEntity struct {
+		gorm.Model
+		Name        string
+		OwnerEntity OwnerEntity `gorm:"polymorphic:Owner"`
+	}
+
+	DB.DropTable(&SomeEntity{})
+	DB.AutoMigrate(&SomeEntity{})
+
+	a := SomeEntity{Name: "test"}
+	DB.Model(&a).Where(a).Updates(SomeEntity{Name: "test2"})
 }
 
 func BenchmarkGorm(b *testing.B) {

@@ -17,7 +17,7 @@ func init() {
 // beforeDeleteCallback will invoke `BeforeDelete` method before deleting
 func beforeDeleteCallback(scope *Scope) {
 	if scope.DB().HasBlockGlobalUpdate() && !scope.hasConditions() {
-		scope.Err(errors.New("Missing WHERE clause while deleting"))
+		scope.Err(errors.New("missing WHERE clause while deleting"))
 		return
 	}
 	if !scope.HasError() {
@@ -40,7 +40,7 @@ func deleteCallback(scope *Scope) {
 				"UPDATE %v SET %v=%v%v%v",
 				scope.QuotedTableName(),
 				scope.Quote(deletedAtField.DBName),
-				scope.AddToVars(NowFunc()),
+				scope.AddToVars(scope.db.nowFunc()),
 				addExtraSpaceIfExist(scope.CombinedConditionSql()),
 				addExtraSpaceIfExist(extraOption),
 			)).Exec()

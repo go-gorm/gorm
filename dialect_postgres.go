@@ -34,14 +34,14 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			sqlType = "boolean"
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uintptr:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "serial"
 			} else {
 				sqlType = "integer"
 			}
 		case reflect.Int64, reflect.Uint32, reflect.Uint64:
 			if s.fieldCanAutoIncrement(field) {
-				field.TagSettings["AUTO_INCREMENT"] = "AUTO_INCREMENT"
+				field.TagSettingsSet("AUTO_INCREMENT", "AUTO_INCREMENT")
 				sqlType = "bigserial"
 			} else {
 				sqlType = "bigint"
@@ -49,7 +49,7 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 		case reflect.Float32, reflect.Float64:
 			sqlType = "numeric"
 		case reflect.String:
-			if _, ok := field.TagSettings["SIZE"]; !ok {
+			if _, ok := field.TagSettingsGet("SIZE"); !ok {
 				size = 0 // if SIZE haven't been set, use `text` as the default type, as there are no performance different
 			}
 
@@ -118,6 +118,10 @@ func (s postgres) HasColumn(tableName string, columnName string) bool {
 func (s postgres) CurrentDatabase() (name string) {
 	s.db.QueryRow("SELECT CURRENT_DATABASE()").Scan(&name)
 	return
+}
+
+func (s postgres) LastInsertIDOutputInterstitial(tableName, key string, columns []string) string {
+	return ""
 }
 
 func (s postgres) LastInsertIDReturningSuffix(tableName, key string) string {

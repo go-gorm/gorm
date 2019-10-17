@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var keyNameRegex = regexp.MustCompile("[^a-zA-Z0-9]+")
+
 // DefaultForeignKeyNamer contains the default foreign key name generator method
 type DefaultForeignKeyNamer struct {
 }
@@ -39,7 +41,7 @@ func (commonDialect) Quote(key string) string {
 }
 
 func (s *commonDialect) fieldCanAutoIncrement(field *StructField) bool {
-	if value, ok := field.TagSettings["AUTO_INCREMENT"]; ok {
+	if value, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok {
 		return strings.ToLower(value) != "false"
 	}
 	return field.IsPrimaryKey
@@ -155,6 +157,10 @@ func (commonDialect) SelectFromDummyTable() string {
 	return ""
 }
 
+func (commonDialect) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+	return ""
+}
+
 func (commonDialect) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }
@@ -166,8 +172,13 @@ func (commonDialect) DefaultValueStr() string {
 // BuildKeyName returns a valid key name (foreign key, index key) for the given table, field and reference
 func (DefaultForeignKeyNamer) BuildKeyName(kind, tableName string, fields ...string) string {
 	keyName := fmt.Sprintf("%s_%s_%s", kind, tableName, strings.Join(fields, "_"))
-	keyName = regexp.MustCompile("[^a-zA-Z0-9]+").ReplaceAllString(keyName, "_")
+	keyName = keyNameRegex.ReplaceAllString(keyName, "_")
 	return keyName
+}
+
+// NormalizeIndexAndColumn returns argument's index name and column name without doing anything
+func (commonDialect) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
+	return indexName, columnName
 }
 
 // IsByteArrayOrSlice returns true of the reflected value is an array or slice

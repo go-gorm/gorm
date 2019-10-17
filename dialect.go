@@ -40,6 +40,8 @@ type Dialect interface {
 	LimitAndOffsetSQL(limit, offset interface{}) string
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
+	// LastInsertIDOutputInterstitial most dbs support LastInsertId, but mssql needs to use `OUTPUT`
+	LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string
 	// LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
 	LastInsertIDReturningSuffix(tableName, columnName string) string
 	// DefaultValueStr
@@ -47,6 +49,9 @@ type Dialect interface {
 
 	// BuildKeyName returns a valid key name (foreign key, index key) for the given table, field and reference
 	BuildKeyName(kind, tableName string, fields ...string) string
+
+	// NormalizeIndexAndColumn returns valid index name and column name depending on each dialect
+	NormalizeIndexAndColumn(indexName, columnName string) (string, string)
 
 	// CurrentDatabase return current database name
 	CurrentDatabase() string
@@ -83,7 +88,7 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	// Get redirected field type
 	var (
 		reflectType = field.Struct.Type
-		dataType    = field.TagSettings["TYPE"]
+		dataType, _ = field.TagSettingsGet("TYPE")
 	)
 
 	for reflectType.Kind() == reflect.Ptr {
@@ -112,16 +117,22 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 	}
 
 	// Default Size
-	if num, ok := field.TagSettings["SIZE"]; ok {
+	if num, ok := field.TagSettingsGet("SIZE"); ok {
 		size, _ = strconv.Atoi(num)
 	} else {
 		size = 255
 	}
 
 	// Default type from tag setting
-	additionalType = field.TagSettings["NOT NULL"] + " " + field.TagSettings["UNIQUE"]
-	if value, ok := field.TagSettings["DEFAULT"]; ok {
+	notNull, _ := field.TagSettingsGet("NOT NULL")
+	unique, _ := field.TagSettingsGet("UNIQUE")
+	additionalType = notNull + " " + unique
+	if value, ok := field.TagSettingsGet("DEFAULT"); ok {
 		additionalType = additionalType + " DEFAULT " + value
+	}
+
+	if value, ok := field.TagSettingsGet("COMMENT"); ok {
+		additionalType = additionalType + " COMMENT " + value
 	}
 
 	return fieldValue, dataType, size, strings.TrimSpace(additionalType)
