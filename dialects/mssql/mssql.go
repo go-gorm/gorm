@@ -190,6 +190,14 @@ func (mssql) SelectFromDummyTable() string {
 	return ""
 }
 
+func (mssql) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+	if len(columns) == 0 {
+		// No OUTPUT to query
+		return ""
+	}
+	return fmt.Sprintf("OUTPUT Inserted.%v", columnName)
+}
+
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }
