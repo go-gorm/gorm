@@ -49,7 +49,11 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 				if indirectValue.IsValid() {
 					value = indirectValue.Interface()
 					if t, ok := value.(time.Time); ok {
-						formattedValues = append(formattedValues, fmt.Sprintf("'%v'", t.Format("2006-01-02 15:04:05")))
+						if t.IsZero() {
+							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", "0000-00-00 00:00:00"))
+						} else {
+							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", t.Format("2006-01-02 15:04:05")))
+						}
 					} else if b, ok := value.([]byte); ok {
 						if str := string(b); isPrintable(str) {
 							formattedValues = append(formattedValues, fmt.Sprintf("'%v'", str))
