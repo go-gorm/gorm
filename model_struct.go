@@ -633,6 +633,28 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 		}
 	}
 
+	// look for field which has tag COLUMN assigned, if found any, set other fields which has the same DBName, while have no COLUMN tag assigned, to IsIgnored = true
+	for _, v := range modelStruct.StructFields {
+		if column, ok := v.TagSettingsGet("COLUMN"); ok {
+			for k, field := range modelStruct.StructFields {
+				if _, ok := field.TagSettingsGet("COLUMN"); ok {
+					continue
+				}
+				if field.DBName == column {
+					ignoredField := &StructField{
+						Struct:      field.Struct,
+						Name:        field.Name,
+						Names:       field.Names,
+						Tag:         field.Tag,
+						TagSettings: field.TagSettings,
+						IsIgnored:   true,
+					}
+					modelStruct.StructFields[k] = ignoredField
+				}
+			}
+		}
+	}
+
 	if len(modelStruct.PrimaryFields) == 0 {
 		if field := getForeignField("id", modelStruct.StructFields); field != nil {
 			field.IsPrimaryKey = true

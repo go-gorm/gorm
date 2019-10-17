@@ -91,3 +91,23 @@ func TestModelStructRaceDifferentModel(t *testing.T) {
 
 	done.Wait()
 }
+
+type ModelSameColumnName struct {
+	gorm.Model
+	ID string `gorm:"column:id"`
+}
+
+func TestModelStructIgnoreNoTagSameDBNameColumn(t *testing.T) {
+	sf := DB.NewScope(&ModelSameColumnName{}).GetStructFields()
+
+	columnIDcount := 0
+	for _, v := range sf {
+		if v.DBName == "id" {
+			columnIDcount++
+		}
+	}
+
+	if columnIDcount > 1 {
+		t.Fatal("fields have same name while contains no column tag not being ignored")
+	}
+}
