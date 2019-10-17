@@ -58,15 +58,15 @@ func newSafeMap() *safeMap {
 }
 
 // SQL expression
-type expr struct {
+type SqlExpr struct {
 	expr string
 	args []interface{}
 }
 
 // Expr generate raw SQL expression, for example:
 //     DB.Model(&product).Update("price", gorm.Expr("price * ? + ?", 2, 100))
-func Expr(expression string, args ...interface{}) *expr {
-	return &expr{expr: expression, args: args}
+func Expr(expression string, args ...interface{}) *SqlExpr {
+	return &SqlExpr{expr: expression, args: args}
 }
 
 func indirect(reflectValue reflect.Value) reflect.Value {
