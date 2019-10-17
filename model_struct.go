@@ -617,6 +617,20 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 			modelStruct.StructFields = append(modelStruct.StructFields, field)
 		}
 	}
+	
+	// look for field which has tag COLUMN assigned, if found any, set other fields which has the same DBName to IsIgnored = true
+	for _, v := range modelStruct.StructFields {
+		if column, ok := v.TagSettingsGet("COLUMN"); ok {
+			for _, field := range modelStruct.StructFields {
+				if field == v {
+					continue
+				}
+				if field.DBName == column {
+					field.IsIgnored = true
+				}
+			}
+		}
+	}
 
 	if len(modelStruct.PrimaryFields) == 0 {
 		if field := getForeignField("id", modelStruct.StructFields); field != nil {
