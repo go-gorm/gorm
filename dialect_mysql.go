@@ -120,7 +120,7 @@ func (s *mysql) DataTypeOf(field *StructField) string {
 	}
 
 	if sqlType == "" {
-		panic(fmt.Sprintf("invalid sql type %s (%s) for mysql", dataValue.Type().Name(), dataValue.Kind().String()))
+		panic(fmt.Sprintf("invalid sql type %s (%s) in field %s for mysql", dataValue.Type().Name(), dataValue.Kind().String(), field.Name))
 	}
 
 	if strings.TrimSpace(additionalType) == "" {
