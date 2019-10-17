@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"crypto/sha1"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -159,6 +160,39 @@ func (s mysql) HasForeignKey(tableName string, foreignKeyName string) bool {
 	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
 	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=? AND TABLE_NAME=? AND CONSTRAINT_NAME=? AND CONSTRAINT_TYPE='FOREIGN KEY'", currentDatabase, tableName, foreignKeyName).Scan(&count)
 	return count > 0
+}
+
+func (s mysql) HasTable(tableName string) bool {
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	var name string
+	if err := s.db.QueryRow(fmt.Sprintf("SHOW TABLES FROM %s WHERE Tables_in_%s = ?", currentDatabase, currentDatabase), tableName).Scan(&name); err != nil {
+		if err == sql.ErrNoRows {
+			return false
+		}
+		panic(err)
+	} else {
+		return true
+	}
+}
+
+func (s mysql) HasIndex(tableName string, indexName string) bool {
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	if rows, err := s.db.Query(fmt.Sprintf("SHOW INDEXES FROM `%s` FROM `%s` WHERE Key_name = ?", tableName, currentDatabase), indexName); err != nil {
+		panic(err)
+	} else {
+		defer rows.Close()
+		return rows.Next()
+	}
+}
+
+func (s mysql) HasColumn(tableName string, columnName string) bool {
+	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
+	if rows, err := s.db.Query(fmt.Sprintf("SHOW COLUMNS FROM `%s` FROM `%s` WHERE Field = ?", tableName, currentDatabase), columnName); err != nil {
+		panic(err)
+	} else {
+		defer rows.Close()
+		return rows.Next()
+	}
 }
 
 func (s mysql) CurrentDatabase() (name string) {
