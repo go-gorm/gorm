@@ -119,8 +119,8 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 
 // Replace a registered callback with new callback
 //     db.Callback().Create().Replace("gorm:update_time_stamp_when_create", func(*Scope) {
-//		   scope.SetColumn("Created", now)
-//		   scope.SetColumn("Updated", now)
+//		   scope.SetColumn("CreatedAt", now)
+//		   scope.SetColumn("UpdatedAt", now)
 //     })
 func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
 	cp.logger.Print(fmt.Sprintf("[info] replacing callback `%v` from %v\n", callbackName, fileWithLineNum()))
