@@ -225,7 +225,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 				updateAttrs[field.DBName] = value
 				return field.Set(value)
 			}
-			if (field.DBName == dbName) || (field.Name == name && mostMatchedField == nil) {
+			if !field.IsIgnored && ((field.DBName == dbName) || (field.Name == name && mostMatchedField == nil)) {
 				mostMatchedField = field
 			}
 		}
