@@ -627,6 +627,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 				if field.DBName == column {
 					field.IsIgnored = true
+					field.IsNormal = false
 				}
 			}
 		}
