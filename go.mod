@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20190515213511-eb9f6a1743f3
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5
+	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/jinzhu/inflection v1.0.0
 	github.com/jinzhu/now v1.0.1

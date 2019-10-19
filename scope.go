@@ -24,6 +24,7 @@ type Scope struct {
 	skipLeft        bool
 	fields          *[]*Field
 	selectAttrs     *[]string
+	cacheStore      *cache
 }
 
 // IndirectValue return scope's reflect value's indirect value
@@ -43,6 +44,11 @@ func (scope *Scope) New(value interface{}) *Scope {
 // DB return scope's DB connection
 func (scope *Scope) DB() *DB {
 	return scope.db
+}
+
+// CacheStore returns scope's cache store
+func (scope *Scope) CacheStore() *cache {
+	return scope.cacheStore
 }
 
 // NewDB create a new DB without search information
@@ -323,8 +329,22 @@ type tabler interface {
 	TableName() string
 }
 
+type cacher interface {
+	Cache() *int64
+}
+
 type dbTabler interface {
 	TableName(*DB) string
+}
+
+func (scope *Scope) Cache() *int64 {
+	if scope.cacheStore.enabled {
+		if cacher, ok := scope.Value.(cacher); ok {
+			return cacher.Cache()
+		}
+	}
+
+	return nil
 }
 
 // TableName return table name

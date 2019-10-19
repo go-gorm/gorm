@@ -64,34 +64,67 @@ func queryCallback(scope *Scope) {
 			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
 
-		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
-			defer rows.Close()
+		// Work out if we can return a result from cache
+		cacheOperation := scope.Cache()
 
-			columns, _ := rows.Columns()
-			for rows.Next() {
-				scope.db.RowsAffected++
+		writeToCache := false
+		readFromDB := true
 
-				elem := results
-				if isSlice {
-					elem = reflect.New(resultType).Elem()
+		key := fmt.Sprint(scope.SQL, scope.SQLVars)
+
+		if cacheOperation != nil {
+			// If the time is > 0, simply provide the cached results
+			if *cacheOperation > 0 || *cacheOperation == -1 {
+				cacheResults := scope.CacheStore().GetItem(key, *cacheOperation)
+				if cacheResults != nil {
+					results.Set(reflect.ValueOf(cacheResults))
+					readFromDB = false
+				} else {
+					readFromDB = true
+					writeToCache = true
 				}
+			} else {
+				readFromDB = true
+				writeToCache = true
+			}
+		}
 
-				scope.scan(rows, columns, scope.New(elem.Addr().Interface()).Fields())
+		if readFromDB {
+			if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+				defer rows.Close()
 
-				if isSlice {
-					if isPtr {
-						results.Set(reflect.Append(results, elem.Addr()))
-					} else {
-						results.Set(reflect.Append(results, elem))
+				columns, _ := rows.Columns()
+				for rows.Next() {
+					scope.db.RowsAffected++
+
+					elem := results
+					if isSlice {
+						elem = reflect.New(resultType).Elem()
+					}
+
+					scope.scan(rows, columns, scope.New(elem.Addr().Interface()).Fields())
+
+					if isSlice {
+						if isPtr {
+							results.Set(reflect.Append(results, elem.Addr()))
+						} else {
+							results.Set(reflect.Append(results, elem))
+						}
 					}
 				}
-			}
 
-			if err := rows.Err(); err != nil {
-				scope.Err(err)
-			} else if scope.db.RowsAffected == 0 && !isSlice {
-				scope.Err(ErrRecordNotFound)
+				if err := rows.Err(); err != nil {
+					scope.Err(err)
+				} else if scope.db.RowsAffected == 0 && !isSlice {
+					scope.Err(ErrRecordNotFound)
+				}
+
+				// If we're allowed, write the results to the cache
 			}
+		}
+
+		if writeToCache {
+			scope.CacheStore().StoreItem(key, results.Interface())
 		}
 	}
 }
