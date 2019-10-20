@@ -25,12 +25,12 @@ type Errors []error
 func IsRecordNotFoundError(err error) bool {
 	if errs, ok := err.(Errors); ok {
 		for _, err := range errs {
-			if err == ErrRecordNotFound {
+			if isError(err, ErrRecordNotFound) {
 				return true
 			}
 		}
 	}
-	return err == ErrRecordNotFound
+	return isError(err, ErrRecordNotFound)
 }
 
 // GetErrors gets all errors that have occurred and returns a slice of errors (Error type)
