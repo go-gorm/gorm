@@ -771,3 +771,33 @@ func TestPluckWithSelect(t *testing.T) {
 		t.Errorf("Should correctly pluck with select, got: %s", userAges)
 	}
 }
+
+func TestNamedParameters(t *testing.T) {
+	DB.Save(&User{Name: "kanoonsantikul", Age: 35})
+	DB.Save(&User{Name: "kanoongorm", Age: 30})
+
+	var user1, user2, user3 User
+
+	err := DB.Model(&User{}).Where("name LIKE ?UserName AND age <= ?MaxAge", map[string]interface{}{
+		"MaxAge":   30,
+		"UserName": "%kanoon%"}).First(&user1).Error
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = DB.Model(&User{}).Where("name LIKE ?firstName AND name LIKE ?lastName",
+		map[string]interface{}{"firstName": "kanoon%"},
+		map[string]interface{}{"lastName": "%santikul"}).First(&user2).Error
+	if err != nil {
+		t.Error(err)
+	}
+	if user2.Age != 35 {
+		t.Error("Should merge Map parameters as one argument")
+	}
+
+	err = DB.Model(&User{}).Where("age in (?ages)",
+		map[string]interface{}{"ages": []int64{21, 22, 23, 24, 25}}).First(&user3).Error
+	if err != nil {
+		t.Error(err)
+	}
+}
