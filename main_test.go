@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -648,6 +649,31 @@ func TestRaw(t *testing.T) {
 	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
 	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.ErrRecordNotFound {
 		t.Error("Raw sql to update records")
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	var user User
+	err := DB.Where("name = ?", "not found").First(&user).Error
+	if err != gorm.ErrRecordNotFound {
+		t.Error("should not found")
+	}
+	err = fmt.Errorf("get user fail: %w", err)
+
+	gover := strings.TrimPrefix(runtime.Version(), "go")
+	govers := strings.Split(gover, ".")
+	majorVer, err1 := strconv.Atoi(govers[0])
+	minorVer, err2 := strconv.Atoi(govers[1])
+	if err1 != nil || err2 != nil {
+		t.Errorf("invalid go version %s", gover)
+	}
+	if majorVer >= 1 && minorVer >= 13 {
+		if !gorm.IsRecordNotFoundError(err) {
+			t.Errorf("%s should IsRecordNotFoundError", err)
+		}
+		t.Logf("err is %s, >=1.13, test IsRecordNotFoundError success", err)
+	} else {
+		t.Logf("err is %s, <1.13, skip test", err)
 	}
 }
 
