@@ -621,13 +621,20 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 	// look for field which has tag COLUMN assigned, if found any, set other fields which has the same DBName to IsIgnored = true
 	for _, v := range modelStruct.StructFields {
 		if column, ok := v.TagSettingsGet("COLUMN"); ok {
-			for _, field := range modelStruct.StructFields {
+			for k, field := range modelStruct.StructFields {
 				if field == v {
 					continue
 				}
 				if field.DBName == column {
-					field.IsIgnored = true
-					field.IsNormal = false
+					ignoredField := &StructField{
+						Struct:      field.Struct,
+						Name:        field.Name,
+						Names:       field.Names,
+						Tag:         field.Tag,
+						TagSettings: field.TagSettings,
+						IsIgnored:   true,
+					}
+					modelStruct.StructFields[k] = ignoredField
 				}
 			}
 		}
