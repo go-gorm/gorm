@@ -25,7 +25,7 @@ type Errors []error
 func IsRecordNotFoundError(err error) bool {
 	if errs, ok := err.(Errors); ok {
 		for _, err := range errs {
-			if isError(err, ErrRecordNotFound) {
+			if IsRecordNotFoundError(err) {
 				return true
 			}
 		}
@@ -69,4 +69,22 @@ func (errs Errors) Error() string {
 		errors = append(errors, e.Error())
 	}
 	return strings.Join(errors, "; ")
+}
+
+func (errs Errors) Is(target error) bool {
+	if target == nil {
+		return errs == nil
+	}
+
+	for _, err := range errs {
+		if errs, ok := err.(Errors); ok {
+			if errs.Is(target) {
+				return true
+			}
+			continue
+		}
+		return errors.Is(err, target)
+	}
+
+	return false
 }

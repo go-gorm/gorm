@@ -19,11 +19,16 @@ func TestNotFound(t *testing.T) {
 		gorm.Errors{gorm.ErrRecordNotFound, fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)},
 		gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)},
 		gorm.Errors{gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), gorm.ErrRecordNotFound}, gorm.ErrRecordNotFound},
+
+		fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound}),
+		fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound, fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)}),
+		fmt.Errorf("get user fail: %w", gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), gorm.ErrRecordNotFound}),
+		fmt.Errorf("get user fail: %w", gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)}),
 	}
 
-	for _, err := range errs {
+	for idx, err := range errs {
 		if !gorm.IsRecordNotFoundError(err) {
-			t.Errorf("%s should be ErrRecordNotFound", err)
+			t.Errorf("%s(%d) should be ErrRecordNotFound", err, idx)
 		}
 	}
 
@@ -34,9 +39,9 @@ func TestNotFound(t *testing.T) {
 		fmt.Errorf("get user fail: %+v", gorm.ErrRecordNotFound),
 	}
 
-	for _, err := range errs {
+	for idx, err := range errs {
 		if gorm.IsRecordNotFoundError(err) {
-			t.Errorf("%s should not be ErrRecordNotFound", err)
+			t.Errorf("%s(%d) should not be ErrRecordNotFound", err, idx)
 		}
 	}
 }
