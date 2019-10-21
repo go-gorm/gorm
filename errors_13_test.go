@@ -11,37 +11,43 @@ import (
 )
 
 func TestNotFound(t *testing.T) {
-	var errs = []error{
-		gorm.ErrRecordNotFound,
-		fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound),
-		gorm.Errors{gorm.ErrRecordNotFound, gorm.ErrRecordNotFound},
-		gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), gorm.ErrRecordNotFound},
-		gorm.Errors{gorm.ErrRecordNotFound, fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)},
-		gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)},
-		gorm.Errors{gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), gorm.ErrRecordNotFound}, gorm.ErrRecordNotFound},
-
-		fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound}),
-		fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound, fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)}),
-		fmt.Errorf("get user fail: %w", gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), gorm.ErrRecordNotFound}),
-		fmt.Errorf("get user fail: %w", gorm.Errors{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)}),
+	type testcase struct {
+		err                 error
+		isErrRecordNotFound bool
 	}
+	var wrapErrRecordNotFound = fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound)
+	var cases = []testcase{
+		{gorm.ErrRecordNotFound, true},
+		{gorm.Errors{gorm.ErrRecordNotFound}, true},
+		{gorm.Errors{gorm.ErrRecordNotFound, gorm.ErrRecordNotFound}, true},
 
-	for idx, err := range errs {
-		if !gorm.IsRecordNotFoundError(err) {
-			t.Errorf("%s(%d) should be ErrRecordNotFound", err, idx)
-		}
+		{wrapErrRecordNotFound, true},
+		{gorm.Errors{wrapErrRecordNotFound}, true},
+		{gorm.Errors{gorm.ErrRecordNotFound, wrapErrRecordNotFound}, true},
+		{gorm.Errors{wrapErrRecordNotFound, gorm.ErrRecordNotFound}, true},
+		{gorm.Errors{wrapErrRecordNotFound, wrapErrRecordNotFound}, true},
+
+		{fmt.Errorf("get user fail: %w", gorm.ErrRecordNotFound), true},
+		{fmt.Errorf("get user fail: %w", wrapErrRecordNotFound), true},
+		{fmt.Errorf("get user fail: %w", fmt.Errorf("get user fail: %w", wrapErrRecordNotFound)), true},
+
+		{fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", gorm.Errors{wrapErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound, gorm.ErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", gorm.Errors{wrapErrRecordNotFound, wrapErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", gorm.Errors{wrapErrRecordNotFound, gorm.ErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound, wrapErrRecordNotFound}), true},
+		{fmt.Errorf("get user fail: %w", fmt.Errorf("get user fail: %w", gorm.Errors{gorm.ErrRecordNotFound, wrapErrRecordNotFound})), true},
+
+		{errors.New("err"), false},
+		{fmt.Errorf("get user fail: %s", gorm.ErrRecordNotFound), false},
+		{fmt.Errorf("get user fail: %v", gorm.ErrRecordNotFound), false},
+		{fmt.Errorf("get user fail: %+v", gorm.ErrRecordNotFound), false},
 	}
-
-	errs = []error{
-		errors.New("err"),
-		fmt.Errorf("get user fail: %s", gorm.ErrRecordNotFound),
-		fmt.Errorf("get user fail: %v", gorm.ErrRecordNotFound),
-		fmt.Errorf("get user fail: %+v", gorm.ErrRecordNotFound),
-	}
-
-	for idx, err := range errs {
-		if gorm.IsRecordNotFoundError(err) {
-			t.Errorf("%s(%d) should not be ErrRecordNotFound", err, idx)
+	for idx, err := range cases {
+		isRecordNotFoundError := gorm.IsRecordNotFoundError(err.err)
+		if isRecordNotFoundError != err.isErrRecordNotFound {
+			t.Errorf("err: %s(%d) should be ErrRecordNotFound: %v, but got: %v", err.err, idx, err.isErrRecordNotFound, isRecordNotFoundError)
 		}
 	}
 }
