@@ -83,7 +83,9 @@ func (errs Errors) Is(target error) bool {
 			}
 			continue
 		}
-		return errors.Is(err, target)
+		if errors.Is(err, target) {
+			return true
+		}
 	}
 
 	return false
