@@ -165,7 +165,7 @@ func (s mysql) HasForeignKey(tableName string, foreignKeyName string) bool {
 func (s mysql) HasTable(tableName string) bool {
 	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
 	var name string
-	if err := s.db.QueryRow(fmt.Sprintf("SHOW TABLES FROM %s WHERE Tables_in_%s = ?", currentDatabase, currentDatabase), tableName).Scan(&name); err != nil {
+	if err := s.db.QueryRow(fmt.Sprintf("SHOW TABLES FROM `%s` WHERE `Tables_in_%s` = ?", currentDatabase, currentDatabase), tableName).Scan(&name); err != nil {
 		if err == sql.ErrNoRows {
 			return false
 		}
