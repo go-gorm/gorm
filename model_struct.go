@@ -52,6 +52,18 @@ func (s *ModelStruct) TableName(db *DB) string {
 	return DefaultTableNameHandler(db, s.defaultTableName)
 }
 
+// TableName returns model's table name
+func (s *ModelStruct) Cache(db *DB) *int64 {
+	if db != nil && s.ModelType != nil {
+		// Set default table name
+		if cache, ok := reflect.New(s.ModelType).Interface().(cacher); ok {
+			return cache.Cache()
+		}
+	}
+
+	return nil
+}
+
 // StructField model field's struct definition
 type StructField struct {
 	DBName          string

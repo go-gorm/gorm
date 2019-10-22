@@ -24,6 +24,7 @@ type DB struct {
 	logMode           logModeValue
 	logger            logger
 	search            *search
+	cache             *cache
 	values            sync.Map
 
 	// global db
@@ -158,6 +159,21 @@ func (s *DB) LogMode(enable bool) *DB {
 	} else {
 		s.logMode = noLogMode
 	}
+	return s
+}
+
+// EnableCache turns on query caching
+func (s *DB) EnableCache() *DB {
+	fmt.Println("Enabling caching...")
+	s.cache = new(cache)
+	s.cache.Enable()
+
+	return s
+}
+
+// FlushCacheItem takes a model with its ID field set and searches the caches for it. If found, that cache item is deleted
+func (s *DB) FlushCacheItem(model, id string) *DB {
+	s.cache.Expireitem(model, id)
 	return s
 }
 

@@ -78,15 +78,19 @@ func queryCallback(scope *Scope) {
 				cacheResults := scope.CacheStore().GetItem(key, *cacheOperation)
 				if cacheResults != nil {
 					results.Set(reflect.ValueOf(cacheResults))
+					fmt.Println("Cache HIT")
 					readFromDB = false
 				} else {
 					readFromDB = true
+					fmt.Println()
 					writeToCache = true
 				}
 			} else {
 				readFromDB = true
 				writeToCache = true
 			}
+		} else {
+			fmt.Println("Cache NOT")
 		}
 
 		if readFromDB {
