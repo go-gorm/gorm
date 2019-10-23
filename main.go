@@ -433,7 +433,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	return c
 }
 
-// Update update attributes with callbacks. refer: https://jinzhu.github.io/gorm/crud.html#update
+// Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 // WARNING when update with struct, GORM will not update fields that with zero value
 func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.Updates(toSearchableMap(attrs...), true)
