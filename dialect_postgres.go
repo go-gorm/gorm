@@ -21,6 +21,10 @@ func (postgres) GetName() string {
 	return "postgres"
 }
 
+func (postgres) HasTop(limit interface{}) string {
+	return ""
+}
+
 func (postgres) BindVar(i int) string {
 	return fmt.Sprintf("$%v", i)
 }

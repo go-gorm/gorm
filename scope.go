@@ -905,11 +905,15 @@ func (scope *Scope) tableSQL() string {
 	}
 }
 
+func (scope *Scope) needTop() string {
+	return scope.Dialect().HasTop(scope.Search.limit)
+}
+
 func (scope *Scope) prepareQuerySQL() {
 	if scope.Search.raw {
 		scope.Raw(scope.CombinedConditionSql())
 	} else {
-		scope.Raw(fmt.Sprintf("SELECT %v FROM %v %v", scope.selectSQL(), scope.tableSQL(), scope.CombinedConditionSql()))
+		scope.Raw(fmt.Sprintf("SELECT %v %v FROM %v %v", scope.needTop(), scope.selectSQL(), scope.tableSQL(), scope.CombinedConditionSql()))
 	}
 	return
 }

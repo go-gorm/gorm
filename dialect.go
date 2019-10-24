@@ -36,6 +36,8 @@ type Dialect interface {
 	// ModifyColumn modify column's type
 	ModifyColumn(tableName string, columnName string, typ string) error
 
+	HasTop(limit interface{}) string
+
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset interface{}) string
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
@@ -79,6 +81,10 @@ func RegisterDialect(name string, dialect Dialect) {
 func GetDialect(name string) (dialect Dialect, ok bool) {
 	dialect, ok = dialectsMap[name]
 	return
+}
+
+func HasTop(limit interface{}) string {
+	return ""
 }
 
 // ParseFieldStructForDialect get field's sql data type

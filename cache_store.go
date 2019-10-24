@@ -13,6 +13,7 @@ import (
 type cacheItem struct {
 	dataMutex   sync.RWMutex
 	data        interface{}
+	err         error
 	created     int64
 	accessMutex sync.RWMutex
 	accessCount int64
@@ -97,7 +98,7 @@ func (c cache) Empty() {
 	}
 }
 
-func (c cache) GetItem(key string, offset int64) interface{} {
+func (c cache) GetItem(key string, offset int64) (interface{}, error) {
 	fmt.Print("Getting item " + key + " ... ")
 
 	c.mutex.RLock()
@@ -112,7 +113,7 @@ func (c cache) GetItem(key string, offset int64) interface{} {
 		if (item.created+offset > time.Now().Unix()) || offset == -1 {
 			fmt.Print("Found \n")
 			c.mutex.RUnlock()
-			return item.data
+			return item.data, item.err
 		}
 
 		fmt.Print("Expired \n")
@@ -121,7 +122,7 @@ func (c cache) GetItem(key string, offset int64) interface{} {
 	}
 
 	c.mutex.RUnlock()
-	return nil
+	return nil, nil
 }
 
 type modelId struct {
@@ -129,7 +130,7 @@ type modelId struct {
 	id    string
 }
 
-func (c *cache) StoreItem(key string, data interface{}) {
+func (c *cache) StoreItem(key string, data interface{}, errors error) {
 	fmt.Println("Storing item " + key)
 
 	// Affected IDs
@@ -158,12 +159,14 @@ func (c *cache) StoreItem(key string, data interface{}) {
 			created:     time.Now().UnixNano(),
 			accessCount: 1,
 			data:        data,
+			err:         errors,
 		}
 		c.mutex.Unlock()
 	} else {
 		c.mutex.RLock()
 		c.database[key].dataMutex.Lock()
 		c.database[key].data = data
+		c.database[key].err = errors
 		c.database[key].created = time.Now().UnixNano()
 		c.database[key].dataMutex.Unlock()
 		c.mutex.RUnlock()

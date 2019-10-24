@@ -25,6 +25,10 @@ func (mysql) GetName() string {
 	return "mysql"
 }
 
+func (mysql) HasTop(limit interface{}) string {
+	return ""
+}
+
 func (mysql) Quote(key string) string {
 	return fmt.Sprintf("`%s`", key)
 }

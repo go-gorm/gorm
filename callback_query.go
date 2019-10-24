@@ -75,17 +75,19 @@ func queryCallback(scope *Scope) {
 		if cacheOperation != nil {
 			// If the time is > 0, simply provide the cached results
 			if *cacheOperation > 0 || *cacheOperation == -1 {
-				cacheResults := scope.CacheStore().GetItem(key, *cacheOperation)
+				cacheResults, err := scope.CacheStore().GetItem(key, *cacheOperation)
 				if cacheResults != nil {
+					scope.Err(err) // Add any error if exists
 					results.Set(reflect.ValueOf(cacheResults))
 					fmt.Println("Cache HIT")
 					readFromDB = false
 				} else {
 					readFromDB = true
-					fmt.Println()
+					fmt.Println("Cache MISS")
 					writeToCache = true
 				}
 			} else {
+				fmt.Println("Cache REFRESH")
 				readFromDB = true
 				writeToCache = true
 			}
@@ -128,7 +130,7 @@ func queryCallback(scope *Scope) {
 		}
 
 		if writeToCache {
-			scope.CacheStore().StoreItem(key, results.Interface())
+			scope.CacheStore().StoreItem(key, results.Interface(), scope.db.Error)
 		}
 	}
 }

@@ -40,6 +40,10 @@ func (commonDialect) Quote(key string) string {
 	return fmt.Sprintf(`"%s"`, key)
 }
 
+func (commonDialect) HasTop(limit interface{}) string {
+	return ""
+}
+
 func (s *commonDialect) fieldCanAutoIncrement(field *StructField) bool {
 	if value, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok {
 		return strings.ToLower(value) != "false"
