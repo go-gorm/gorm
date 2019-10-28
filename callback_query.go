@@ -79,6 +79,14 @@ func queryCallback(scope *Scope) {
 				if cacheResults != nil {
 					scope.Err(err) // Add any error if exists
 					results.Set(reflect.ValueOf(cacheResults))
+
+					switch reflect.ValueOf(cacheResults).Type().Kind() {
+					case reflect.Struct:
+						scope.db.RowsAffected = 1
+					case reflect.Slice:
+						scope.db.RowsAffected = int64(reflect.ValueOf(cacheResults).Len())
+					}
+
 					fmt.Println("Cache HIT")
 					readFromDB = false
 				} else {

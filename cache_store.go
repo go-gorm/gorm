@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -110,7 +111,7 @@ func (c cache) GetItem(key string, offset int64) (interface{}, error) {
 		item.dataMutex.RLock()
 		defer item.dataMutex.RUnlock()
 
-		if (item.created+offset > time.Now().Unix()) || offset == -1 {
+		if (item.created+(offset*1000000000) > time.Now().UnixNano()) || offset == -1 {
 			fmt.Print("Found \n")
 			c.mutex.RUnlock()
 			return item.data, item.err
@@ -208,5 +209,24 @@ func getID(data interface{}) string {
 	d := reflect.ValueOf(data)
 	idField := d.FieldByName("ID")
 
-	return fmt.Sprint(idField.Interface())
+	if idField.IsValid() {
+		return fmt.Sprint(idField.Interface())
+	}
+
+	// We haven't found an id the easy way so instead go through all of the primary key fields
+	// From those fields, get the value and concat using / as a seperator
+	idParts := []string{}
+	intType := reflect.TypeOf(data)
+	for i := 0; i < intType.NumField(); i++ {
+		tag := intType.Field(i).Tag
+		if strings.Contains(tag.Get("gorm"), "primary_key") {
+			idParts = append(idParts, d.Field(i).String())
+		}
+	}
+
+	if len(idParts) > 0 {
+		return strings.Join(idParts, "/")
+	}
+
+	return ""
 }
