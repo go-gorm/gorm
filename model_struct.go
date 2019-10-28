@@ -17,6 +17,10 @@ var DefaultTableNameHandler = func(db *DB, defaultTableName string) string {
 	return defaultTableName
 }
 
+// lock for mutating global cached model metadata
+var structsLock sync.Mutex
+
+// global cache of model metadata
 var modelStructsMap sync.Map
 
 // ModelStruct model definition
@@ -419,8 +423,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 									for idx, foreignKey := range foreignKeys {
 										if foreignField := getForeignField(foreignKey, toFields); foreignField != nil {
 											if associationField := getForeignField(associationForeignKeys[idx], modelStruct.StructFields); associationField != nil {
-												// source foreign keys
+												// mark field as foreignkey, use global lock to avoid race
+												structsLock.Lock()
 												foreignField.IsForeignKey = true
+												structsLock.Unlock()
+
+												// association foreign keys
 												relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, associationField.Name)
 												relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, associationField.DBName)
 
@@ -523,8 +531,12 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								for idx, foreignKey := range foreignKeys {
 									if foreignField := getForeignField(foreignKey, toFields); foreignField != nil {
 										if scopeField := getForeignField(associationForeignKeys[idx], modelStruct.StructFields); scopeField != nil {
+											// mark field as foreignkey, use global lock to avoid race
+											structsLock.Lock()
 											foreignField.IsForeignKey = true
-											// source foreign keys
+											structsLock.Unlock()
+
+											// association foreign keys
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, scopeField.Name)
 											relationship.AssociationForeignDBNames = append(relationship.AssociationForeignDBNames, scopeField.DBName)
 
@@ -582,7 +594,10 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 								for idx, foreignKey := range foreignKeys {
 									if foreignField := getForeignField(foreignKey, modelStruct.StructFields); foreignField != nil {
 										if associationField := getForeignField(associationForeignKeys[idx], toFields); associationField != nil {
+											// mark field as foreignkey, use global lock to avoid race
+											structsLock.Lock()
 											foreignField.IsForeignKey = true
+											structsLock.Unlock()
 
 											// association foreign keys
 											relationship.AssociationForeignFieldNames = append(relationship.AssociationForeignFieldNames, associationField.Name)
