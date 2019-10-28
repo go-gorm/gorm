@@ -101,6 +101,12 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 		}
 	}
 
+	if cp.logger != nil {
+		// note cp.logger will be nil during the default gorm callback registrations
+		// as they occur within init() blocks. However, any user-registered callbacks
+		// will happen after cp.logger exists (as the default logger or user-specified).
+		cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
+	}
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.parent.processors = append(cp.parent.processors, cp)
