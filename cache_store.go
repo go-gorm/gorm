@@ -25,7 +25,7 @@ type cache struct {
 	highWaterMark int
 	enabled       bool
 	idMapMutex    sync.RWMutex
-	idMapping     map[modelId][]string
+	idMapping     map[string]map[string][]string
 	database      map[string]*cacheItem
 	mutex         sync.RWMutex
 }
@@ -49,7 +49,7 @@ func (c *cache) Enable() {
 	fmt.Println("Cache Size: ", c.size)
 
 	c.database = make(map[string]*cacheItem, c.size*2) // Size is larger to allow for temporary bursting
-	c.idMapping = make(map[modelId][]string, 100)
+	c.idMapping = make(map[string]map[string][]string, 100)
 
 	ticker := time.NewTicker(5 * time.Second)
 
@@ -126,11 +126,6 @@ func (c cache) GetItem(key string, offset int64) (interface{}, error) {
 	return nil, nil
 }
 
-type modelId struct {
-	model string
-	id    string
-}
-
 func (c *cache) StoreItem(key string, data interface{}, errors error) {
 	fmt.Println("Storing item " + key)
 
@@ -175,32 +170,51 @@ func (c *cache) StoreItem(key string, data interface{}, errors error) {
 
 	// Store the query selector agains the relevent IDs
 	c.idMapMutex.Lock()
-	for _, id := range affectedIDs {
-		sel := modelId{model: model, id: id}
+	if _, ok := c.idMapping[model]; !ok {
+		c.idMapping[model] = make(map[string][]string, 100)
+	}
 
-		if _, ok := c.idMapping[sel]; !ok {
+	for _, id := range affectedIDs {
+		if _, ok := c.idMapping[model][id]; !ok {
 			// We need to create the array
-			c.idMapping[sel] = []string{key}
+			c.idMapping[model][id] = []string{key}
 		} else {
-			c.idMapping[sel] = append(c.idMapping[sel], key)
+			c.idMapping[model][id] = append(c.idMapping[model][id], key)
 		}
 	}
 	c.idMapMutex.Unlock()
 }
 
+type modelId struct {
+	model string
+	id    string
+	refs  []string
+}
+
 func (c *cache) Expireitem(model, id string) {
-	// Get the relevent cache items
-	sel := modelId{model: model, id: id}
 	c.idMapMutex.Lock()
-	items := c.idMapping[sel]
-	delete(c.idMapping, sel)
+	var items []modelId
+
+	if id != "" {
+		items = []modelId{{model, id, c.idMapping[model][id]}}
+		delete(c.idMapping[model], id)
+	} else {
+		for id, ids := range c.idMapping[model] {
+			items = append(items, modelId{model, id, ids})
+		}
+
+		delete(c.idMapping, model)
+	}
+
 	c.idMapMutex.Unlock()
 
 	// Delete the items from the cache
 	c.mutex.Lock()
-	for _, key := range items {
-		fmt.Println("Expiring item " + key + "(based on " + model + "/" + id)
-		delete(c.database, key)
+	for _, modelID := range items {
+		for _, ref := range modelID.refs {
+			fmt.Println("Expiring item " + ref + "(based on " + modelID.model + "/" + modelID.id)
+			delete(c.database, ref)
+		}
 	}
 	c.mutex.Unlock()
 }
