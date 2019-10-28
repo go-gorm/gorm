@@ -434,6 +434,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 }
 
 // Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
+// WARNING when update with struct, GORM will not update fields that with zero value
 func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.Updates(toSearchableMap(attrs...), true)
 }
@@ -480,6 +481,7 @@ func (s *DB) Create(value interface{}) *DB {
 }
 
 // Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
+// WARNING If model has DeletedAt field, GORM will only set field DeletedAt's value to current time
 func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	return s.NewScope(value).inlineCondition(where...).callCallbacks(s.parent.callbacks.deletes).db
 }
