@@ -83,6 +83,12 @@ func preloadCallback(scope *Scope) {
 				}
 			}
 
+			// copy error to original scope if needed
+			// this fixes https://github.com/jinzhu/gorm/issues/2122
+			if currentScope.db != scope.db && currentScope.db.Error != nil {
+				scope.db.AddError(currentScope.db.Error)
+			}
+
 			// preload next level
 			if idx < len(preloadFields)-1 {
 				currentScope = currentScope.getColumnAsScope(preloadField)

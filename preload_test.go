@@ -192,6 +192,43 @@ func TestNestedPreload1(t *testing.T) {
 	}
 }
 
+func TestNestedPreload1Error(t *testing.T) {
+	type (
+		Level1 struct {
+			ID       uint
+			Value    string
+			Level2ID uint
+		}
+		Level2 struct {
+			ID       uint
+			Level1   Level1
+			Level3ID uint
+		}
+		Level3 struct {
+			ID     uint
+			Name   string
+			Level2 Level2
+		}
+	)
+	DB.DropTableIfExists(&Level3{})
+	DB.DropTableIfExists(&Level2{})
+	DB.DropTableIfExists(&Level1{})
+	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}).Error; err != nil {
+		t.Error(err)
+	}
+
+	want := Level3{Level2: Level2{Level1: Level1{Value: "value"}}}
+	if err := DB.Create(&want).Error; err != nil {
+		t.Error(err)
+	}
+
+	var got Level3
+	if err := DB.Preload("Level2").Preload("Level2.Level1", "unknown_column=10").Find(&got).Error; err == nil {
+		t.Error("Expected error but got nil")
+	}
+
+}
+
 func TestNestedPreload2(t *testing.T) {
 	type (
 		Level1 struct {
