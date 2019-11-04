@@ -3,6 +3,7 @@ package gorm_test
 import (
 	"encoding/hex"
 	"math/rand"
+	"os"
 	"strings"
 	"testing"
 
@@ -89,5 +90,59 @@ func TestDropTableWithTableOptions(t *testing.T) {
 	err := DB.DropTable(&UserWithOptions{}).Error
 	if err != nil {
 		t.Errorf("Table must be dropped, got error %s", err)
+	}
+}
+
+func TestBytesValueAsArray(t *testing.T) {
+	if dialect := os.Getenv("GORM_DIALECT"); dialect != "postgres" && dialect != "mysql" {
+		t.Skip("Skipping this because only postgres and mysql support bytes as string")
+	}
+
+	users := []*User{
+		&User{Name: "bytesValueAsArray1", Age: 1},
+		&User{Name: "bytesValueAsArray2", Age: 2},
+	}
+
+	for _, user := range users {
+		if err := DB.Save(user).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+	defer func() {
+		for _, user := range users {
+			if err := DB.Delete(user).Error; err != nil {
+				t.Fatal(err)
+			}
+		}
+	}()
+
+	var user User
+	db := DB.New()
+	if err := db.Where("name = ?", []byte(users[0].Name)).First(&user).Error; err != nil {
+		t.Error(err)
+	}
+	if user.Id != users[0].Id {
+		t.Errorf("user.Id expected %d, but got %d", users[0].Id, user.Id)
+	}
+
+	var ids []int64
+	db = DB.New()
+	if err := db.Model(&User{}).
+		Set("gorm:bytes_value_as_array", true).
+		Where("name LIKE ?", "bytesValueAsArray%").
+		Where("age IN (?)", []byte{byte(users[0].Age), byte(users[1].Age)}).
+		Order("age").
+		Pluck("id", &ids).
+		Error; err != nil {
+		t.Error(err)
+	}
+	if len(ids) != 2 {
+		t.Errorf("ids length expected 2, but got %d", len(ids))
+	}
+	if ids[0] != users[0].Id {
+		t.Errorf("ids[0] expected %d, but got %d", users[0].Id, ids[0])
+	}
+	if ids[1] != users[1].Id {
+		t.Errorf("ids[1] expected %d, but got %d", users[0].Id, ids[0])
 	}
 }

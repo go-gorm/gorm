@@ -602,6 +602,14 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 
 	replacements := []string{}
 	args := clause["args"].([]interface{})
+
+	var bytesValueAsArray bool
+	if v, ok := scope.Get("gorm:bytes_value_as_array"); ok {
+		if b, ok := v.(bool); ok {
+			bytesValueAsArray = b
+		}
+	}
+
 	for _, arg := range args {
 		var err error
 		switch reflect.ValueOf(arg).Kind() {
@@ -609,7 +617,7 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 			if scanner, ok := interface{}(arg).(driver.Valuer); ok {
 				arg, err = scanner.Value()
 				replacements = append(replacements, scope.AddToVars(arg))
-			} else if b, ok := arg.([]byte); ok {
+			} else if b, ok := arg.([]byte); ok && !bytesValueAsArray {
 				replacements = append(replacements, scope.AddToVars(b))
 			} else if as, ok := arg.([][]interface{}); ok {
 				var tempMarks []string
