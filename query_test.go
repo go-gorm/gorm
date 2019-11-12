@@ -133,23 +133,6 @@ func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
 		t.Errorf("Fetch a record from with a string primary key for a numeric value starting with zero should work, but failed, zip code is %v", address.ZipCode)
 	}
 }
-func TestStringAgainstIncompleteParentheses(t *testing.T) {
-	type AddressByZipCode struct {
-		ZipCode string `gorm:"primary_key"`
-		Address string
-	}
-
-	DB.AutoMigrate(&AddressByZipCode{})
-	DB.Create(&AddressByZipCode{ZipCode: "00502", Address: "Holtsville"})
-
-	var address AddressByZipCode
-	var addresses []AddressByZipCode
-	_ = DB.First(&address, "address_by_zip_codes=00502)) UNION ALL SELECT NULL,version(),current_database(),NULL,NULL,NULL,NULL,NULL--").Find(&addresses).GetErrors()
-	if len(addresses) > 0 {
-		t.Errorf("Fetch a record from with a string that has incomplete parentheses should be fail, zip code is %v", address.ZipCode)
-	}
-
-}
 
 func TestFindAsSliceOfPointers(t *testing.T) {
 	DB.Save(&User{Name: "user"})
