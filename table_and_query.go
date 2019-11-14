@@ -6,8 +6,7 @@ import (
 )
 
 // TableAndQuery returns the table name and the query already formatted as a string
-func (s *DB) TableAndQuery() (string, string) {
-	scope := s.NewScope(s.Value)
+func (scope *Scope) TableAndQuery() (string, string) {
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
 
