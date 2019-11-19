@@ -526,7 +526,7 @@ func (s *DB) Debug() *DB {
 }
 
 // Transaction start a transaction as a block,
-// return error will rollback, otherwise to commit
+// return error will rollback, otherwise to commit.
 func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
 	tx := s.Begin()
 	defer func() {
@@ -539,10 +539,13 @@ func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
 
 	err = fc(tx)
 
+	if err == nil {
+		err = tx.Commit().Error
+	}
+
+	// Makesure rollback when Block error or Commit error
 	if err != nil {
 		tx.Rollback()
-	} else {
-		err = tx.Commit().Error
 	}
 	return
 }
