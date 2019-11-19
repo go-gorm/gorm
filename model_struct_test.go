@@ -108,6 +108,6 @@ func TestModelStructIgnoreNoTagSameDBNameColumn(t *testing.T) {
 	}
 
 	if columnIDcount > 1 {
-		t.Fatal("fields have same name while contains no column tag not being ignored")
+		t.Fatal("fields that have same DBName, while containing no column tag are not being ignored")
 	}
 }
