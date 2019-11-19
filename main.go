@@ -525,6 +525,31 @@ func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
 }
 
+// Transaction start a transaction as a block,
+// return error will rollback, otherwise to commit.
+func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
+	tx := s.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%s", r)
+			tx.Rollback()
+			return
+		}
+	}()
+
+	err = fc(tx)
+
+	if err == nil {
+		err = tx.Commit().Error
+	}
+
+	// Makesure rollback when Block error or Commit error
+	if err != nil {
+		tx.Rollback()
+	}
+	return
+}
+
 // Begin begins a transaction
 func (s *DB) Begin() *DB {
 	return s.BeginTx(context.Background(), &sql.TxOptions{})
