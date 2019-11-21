@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -466,6 +467,65 @@ func TestTransaction(t *testing.T) {
 
 	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
+	}
+}
+
+func TestTransactionWithBlock(t *testing.T) {
+	// rollback
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		u := User{Name: "transcation"}
+		if err := tx.Save(&u).Error; err != nil {
+			t.Errorf("No error should raise")
+		}
+
+		if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+			t.Errorf("Should find saved record")
+		}
+
+		return errors.New("the error message")
+	})
+
+	if err.Error() != "the error message" {
+		t.Errorf("Transaction return error will equal the block returns error")
+	}
+
+	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after rollback")
+	}
+
+	// commit
+	DB.Transaction(func(tx *gorm.DB) error {
+		u2 := User{Name: "transcation-2"}
+		if err := tx.Save(&u2).Error; err != nil {
+			t.Errorf("No error should raise")
+		}
+
+		if err := tx.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+			t.Errorf("Should find saved record")
+		}
+		return nil
+	})
+
+	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		t.Errorf("Should be able to find committed record")
+	}
+
+	// panic will rollback
+	DB.Transaction(func(tx *gorm.DB) error {
+		u3 := User{Name: "transcation-3"}
+		if err := tx.Save(&u3).Error; err != nil {
+			t.Errorf("No error should raise")
+		}
+
+		if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+			t.Errorf("Should find saved record")
+		}
+
+		panic("force panic")
+	})
+
+	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+		t.Errorf("Should not find record after panic rollback")
 	}
 }
 
