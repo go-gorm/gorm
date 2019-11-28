@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
 )
@@ -65,7 +66,8 @@ func createCallback(scope *Scope) {
 						scope.InstanceSet("gorm:blank_columns_with_default_value", blankColumnsWithDefaultValue)
 					} else if !field.IsPrimaryKey || !field.IsBlank {
 						columns = append(columns, scope.Quote(field.DBName))
-						placeholders = append(placeholders, scope.AddToVars(field.Field.Interface()))
+						arg := sql.NamedArg{Name: field.StructField.DBName, Value: field.Field.Interface()}
+						placeholders = append(placeholders, scope.AddToVars(arg))
 					}
 				} else if field.Relationship != nil && field.Relationship.Kind == "belongs_to" {
 					for _, foreignKey := range field.Relationship.ForeignDBNames {

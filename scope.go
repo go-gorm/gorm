@@ -269,7 +269,11 @@ func (scope *Scope) AddToVars(value interface{}) string {
 		return exp
 	}
 
-	scope.SQLVars = append(scope.SQLVars, value)
+	if val, ok := value.(sql.NamedArg); ok {
+		scope.SQLVars = append(scope.SQLVars, val.Value)
+	} else {
+		scope.SQLVars = append(scope.SQLVars, value)
+	}
 
 	if skipBindVar {
 		return "?"
@@ -580,6 +584,14 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 			}
 		}
 		return strings.Join(sqls, " AND ")
+	case []sql.NamedArg:
+		var sqls []string
+		for _, val := range value {
+			if len(val.Name) != 0 {
+				sqls = append(sqls, fmt.Sprintf("(%v.%v %s %v)", quotedTableName, scope.Quote(val.Name), equalSQL, scope.AddToVars(val)))
+			}
+		}
+		return strings.Join(sqls, " AND ")
 	case interface{}:
 		var sqls []string
 		newScope := scope.New(value)
@@ -878,6 +890,14 @@ func convertInterfaceToMap(values interface{}, withIgnoredField bool, db *DB) ma
 	switch value := values.(type) {
 	case map[string]interface{}:
 		return value
+	case []sql.NamedArg:
+		for _, v := range value {
+			for key, value := range convertInterfaceToMap(v, withIgnoredField, db) {
+				attrs[key] = value
+			}
+		}
+	case sql.NamedArg:
+		attrs[value.Name] = value.Value
 	case []interface{}:
 		for _, v := range value {
 			for key, value := range convertInterfaceToMap(v, withIgnoredField, db) {
