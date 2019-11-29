@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 
@@ -345,6 +346,53 @@ func TestSearchWithMap(t *testing.T) {
 	}
 }
 
+func TestSearchWithSqlNameArgs(t *testing.T) {
+	companyID := 1
+	user1 := User{Name: "NamedArgSearchUser1", Age: 1, Birthday: parseTime("2000-1-1")}
+	user2 := User{Name: "NamedArgSearchUser2", Age: 10, Birthday: parseTime("2010-1-1")}
+	user3 := User{Name: "NamedArgSearchUser3", Age: 20, Birthday: parseTime("2020-1-1")}
+	user4 := User{Name: "NamedArgSearchUser4", Age: 30, Birthday: parseTime("2020-1-1"), CompanyID: &companyID}
+	DB.Save(&user1).Save(&user2).Save(&user3).Save(&user4)
+
+	var user User
+	DB.First(&user, []sql.NamedArg{{Name: "name", Value: user1.Name}})
+	if user.Id == 0 || user.Name != user1.Name {
+		t.Errorf("Search first record with sql.NamedArg")
+	}
+
+	user = User{}
+	DB.Where([]sql.NamedArg{{Name: "name", Value: user2.Name}}).First(&user)
+	if user.Id == 0 || user.Name != user2.Name {
+		t.Errorf("Search first record with where sql.NamedArg")
+	}
+
+	var users []User
+	DB.Where([]sql.NamedArg{{Name: "name", Value: user3.Name}}).Find(&users)
+	if len(users) != 1 {
+		t.Errorf("Search all records with sql.NamedArg")
+	}
+
+	DB.Find(&users, []sql.NamedArg{{Name: "name", Value: user3.Name}})
+	if len(users) != 1 {
+		t.Errorf("Search all records with sql.NamedArg")
+	}
+
+	DB.Find(&users, []sql.NamedArg{{Name: "name", Value: user4.Name}, {Name: "company_id", Value: nil}})
+	if len(users) != 0 {
+		t.Errorf("Search all records with sql.NamedArg containing null value finding 0 records")
+	}
+
+	DB.Find(&users, []sql.NamedArg{{Name: "name", Value: user1.Name}, {Name: "company_id", Value: nil}})
+	if len(users) != 1 {
+		t.Errorf("Search all records with []sql.NamedArg containing null value finding 1 record")
+	}
+
+	DB.Find(&users, []sql.NamedArg{{Name: "name", Value: user4.Name}, {Name: "company_id", Value: companyID}})
+	if len(users) != 1 {
+		t.Errorf("Search all records with []sql.NamedArg")
+	}
+}
+
 func TestSearchWithEmptyChain(t *testing.T) {
 	user1 := User{Name: "ChainSearchUser1", Age: 1, Birthday: parseTime("2000-1-1")}
 	user2 := User{Name: "ChainearchUser2", Age: 10, Birthday: parseTime("2010-1-1")}
@@ -561,6 +609,11 @@ func TestNot(t *testing.T) {
 		t.Errorf("Should find all user's name not equal to 3 who do not have company id")
 	}
 
+	DB.Not([]sql.NamedArg{{Name: "name", Value: "user3"}, {Name: "company_id"}}).Find(&users7)
+	if len(users1)-len(users7) != 2 { // not user3 or user4
+		t.Errorf("Should find all user's name not equal to 3 who do not have company id")
+	}
+
 	DB.Not("name", []string{"user3"}).Find(&users8)
 	if len(users1)-len(users8) != int(name3Count) {
 		t.Errorf("Should find all users' name not equal 3")
@@ -637,7 +690,7 @@ func TestFindOrInitialize(t *testing.T) {
 }
 
 func TestFindOrCreate(t *testing.T) {
-	var user1, user2, user3, user4, user5, user6, user7, user8 User
+	var user1, user2, user3, user4, user5, user6, user7, user8, user9 User
 	DB.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1)
 	if user1.Name != "find or create" || user1.Id == 0 || user1.Age != 33 {
 		t.Errorf("user should be created with search value")
@@ -686,6 +739,17 @@ func TestFindOrCreate(t *testing.T) {
 
 	DB.Where(&User{Name: "find or create embedded struct"}).Assign(User{Age: 44, CreditCard: CreditCard{Number: "1231231231"}, Emails: []Email{{Email: "jinzhu@assign_embedded_struct.com"}, {Email: "jinzhu-2@assign_embedded_struct.com"}}}).FirstOrCreate(&user8)
 	if DB.Where("email = ?", "jinzhu-2@assign_embedded_struct.com").First(&Email{}).RecordNotFound() {
+		t.Errorf("embedded struct email should be saved")
+	}
+
+	DB.Where([]sql.NamedArg{{Name: "name", Value: "find or create embedded struct"}}).
+		Assign(
+			[]sql.NamedArg{
+				{Name: "age", Value: 26},
+				{Name: "credit_card", Value: CreditCard{Number: "4344387492301351"}},
+				{Name: "emails", Value: []Email{{Email: "Nikita@Koryabk.in"}}},
+			}).FirstOrCreate(&user9)
+	if DB.Where("email = ?", "Nikita@Koryabk.in").First(&Email{}).RecordNotFound() {
 		t.Errorf("embedded struct email should be saved")
 	}
 

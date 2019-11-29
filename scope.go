@@ -587,8 +587,14 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 	case []sql.NamedArg:
 		var sqls []string
 		for _, val := range value {
-			if len(val.Name) != 0 {
+			if val.Value != nil {
 				sqls = append(sqls, fmt.Sprintf("(%v.%v %s %v)", quotedTableName, scope.Quote(val.Name), equalSQL, scope.AddToVars(val)))
+			} else {
+				if !include {
+					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NOT NULL)", quotedTableName, scope.Quote(val.Name)))
+				} else {
+					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NULL)", quotedTableName, scope.Quote(val.Name)))
+				}
 			}
 		}
 		return strings.Join(sqls, " AND ")
