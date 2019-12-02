@@ -139,6 +139,11 @@ func isBlank(value reflect.Value) bool {
 		return value.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return value.IsNil()
+	case reflect.Struct://time zero check;
+		v,ok:= value.Interface().(time.Time)
+		if ok {
+			return !v.IsZero()
+		}
 	}
 
 	return reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface())
