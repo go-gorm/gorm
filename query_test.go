@@ -747,9 +747,9 @@ func TestFindOrCreate(t *testing.T) {
 			[]sql.NamedArg{
 				{Name: "age", Value: 26},
 				{Name: "credit_card", Value: CreditCard{Number: "4344387492301351"}},
-				{Name: "emails", Value: []Email{{Email: "Nikita@Koryabk.in"}}},
+				{Name: "emails", Value: []Email{{Email: "test@example.com"}}},
 			}).FirstOrCreate(&user9)
-	if DB.Where("email = ?", "Nikita@Koryabk.in").First(&Email{}).RecordNotFound() {
+	if DB.Where("email = ?", "test@example.com").First(&Email{}).RecordNotFound() {
 		t.Errorf("embedded struct email should be saved")
 	}
 
