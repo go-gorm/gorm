@@ -573,29 +573,13 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 	case map[string]interface{}:
 		var sqls []string
 		for key, value := range value {
-			if value != nil {
-				sqls = append(sqls, fmt.Sprintf("(%v.%v %s %v)", quotedTableName, scope.Quote(key), equalSQL, scope.AddToVars(value)))
-			} else {
-				if !include {
-					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NOT NULL)", quotedTableName, scope.Quote(key)))
-				} else {
-					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NULL)", quotedTableName, scope.Quote(key)))
-				}
-			}
+			sqls = append(sqls, scope.formatValue(quotedTableName, key, equalSQL, value, include))
 		}
 		return strings.Join(sqls, " AND ")
 	case []sql.NamedArg:
 		var sqls []string
 		for _, val := range value {
-			if val.Value != nil {
-				sqls = append(sqls, fmt.Sprintf("(%v.%v %s %v)", quotedTableName, scope.Quote(val.Name), equalSQL, scope.AddToVars(val)))
-			} else {
-				if !include {
-					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NOT NULL)", quotedTableName, scope.Quote(val.Name)))
-				} else {
-					sqls = append(sqls, fmt.Sprintf("(%v.%v IS NULL)", quotedTableName, scope.Quote(val.Name)))
-				}
-			}
+			sqls = append(sqls, scope.formatValue(quotedTableName, val.Name, equalSQL, val.Value, include))
 		}
 		return strings.Join(sqls, " AND ")
 	case interface{}:
@@ -681,6 +665,16 @@ func (scope *Scope) buildCondition(clause map[string]interface{}, include bool) 
 	str = buff.String()
 
 	return
+}
+
+func (scope *Scope) formatValue(qtm, key, equalSQL string, value interface{}, include bool) string {
+	if value != nil {
+		return fmt.Sprintf("(%v.%v %s %v)", qtm, scope.Quote(key), equalSQL, scope.AddToVars(value))
+	}
+	if include {
+		return fmt.Sprintf("(%v.%v IS NULL)", qtm, scope.Quote(key))
+	}
+	return fmt.Sprintf("(%v.%v IS NOT NULL)", qtm, scope.Quote(key))
 }
 
 func (scope *Scope) buildSelectQuery(clause map[string]interface{}) (str string) {
