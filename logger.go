@@ -135,3 +135,7 @@ type Logger struct {
 func (logger Logger) Print(values ...interface{}) {
 	logger.Println(LogFormatter(values...)...)
 }
+
+type nopLogger struct{}
+
+func (nopLogger) Print(values ...interface{}) {}
