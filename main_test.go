@@ -470,6 +470,15 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
+func assertPanic(t *testing.T, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	f()
+}
+
 func TestTransactionWithBlock(t *testing.T) {
 	// rollback
 	err := DB.Transaction(func(tx *gorm.DB) error {
@@ -511,17 +520,19 @@ func TestTransactionWithBlock(t *testing.T) {
 	}
 
 	// panic will rollback
-	DB.Transaction(func(tx *gorm.DB) error {
-		u3 := User{Name: "transcation-3"}
-		if err := tx.Save(&u3).Error; err != nil {
-			t.Errorf("No error should raise")
-		}
+	assertPanic(t, func() {
+		DB.Transaction(func(tx *gorm.DB) error {
+			u3 := User{Name: "transcation-3"}
+			if err := tx.Save(&u3).Error; err != nil {
+				t.Errorf("No error should raise")
+			}
 
-		if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
-			t.Errorf("Should find saved record")
-		}
+			if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+				t.Errorf("Should find saved record")
+			}
 
-		panic("force panic")
+			panic("force panic")
+		})
 	})
 
 	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
