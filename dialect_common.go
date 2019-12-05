@@ -142,20 +142,16 @@ func (s commonDialect) CurrentDatabase() (name string) {
 // LimitAndOffsetSQL return generated SQL with Limit and Offset
 func (s commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
-		parsedLimit, err := s.parseInt(limit)
-		if err != nil {
+		if parsedLimit, err := s.parseInt(limit); err != nil {
 			return "", err
-		}
-		if parsedLimit >= 0 {
+		} else if parsedLimit >= 0 {
 			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
 		}
 	}
 	if offset != nil {
-		parsedOffset, err := s.parseInt(offset)
-		if err != nil {
+		if parsedOffset, err := s.parseInt(offset); err != nil {
 			return "", err
-		}
-		if parsedOffset >= 0 {
+		} else if parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
 		}
 	}

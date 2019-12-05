@@ -168,25 +168,22 @@ func (s mssql) CurrentDatabase() (name string) {
 	return
 }
 
+func parseInt(value interface{}) (int64, error) {
+	return strconv.ParseInt(fmt.Sprint(value), 0, 0)
+}
+
 func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
-	parseInt := func(value interface{}) (int64, error) {
-		return strconv.ParseInt(fmt.Sprint(value), 0, 0)
-	}
 	if offset != nil {
-		parsedOffset, err := parseInt(offset)
-		if err != nil {
+		if parsedOffset, err := parseInt(offset); err != nil {
 			return "", err
-		}
-		if parsedOffset >= 0 {
+		} else if parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
 		}
 	}
 	if limit != nil {
-		parsedLimit, err := parseInt(limit)
-		if err != nil {
+		if parsedLimit, err := parseInt(limit); err != nil {
 			return "", err
-		}
-		if parsedLimit >= 0 {
+		} else if parsedLimit >= 0 {
 			if sql == "" {
 				// add default zero offset
 				sql += " OFFSET 0 ROWS"
