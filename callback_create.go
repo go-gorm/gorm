@@ -100,8 +100,11 @@ func createCallback(scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIDReturningSuffix := scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
 		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(quotedTableName, returningColumn, columns)
+		var lastInsertIDReturningSuffix string
+		if lastInsertIDOutputInterstitial == "" {
+			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+		}
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
