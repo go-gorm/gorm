@@ -207,7 +207,8 @@ func (mssql) LastInsertIDOutputInterstitial(tableName, columnName string, column
 }
 
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
-	return ""
+	// https://stackoverflow.com/questions/5228780/how-to-get-last-inserted-id
+	return "; SELECT SCOPE_IDENTITY()"
 }
 
 func (mssql) DefaultValueStr() string {
