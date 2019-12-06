@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -140,13 +139,21 @@ func (s mysql) ModifyColumn(tableName string, columnName string, typ string) err
 	return err
 }
 
-func (s mysql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+func (s mysql) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
+		parsedLimit, err := s.parseInt(limit)
+		if err != nil {
+			return "", err
+		}
+		if parsedLimit >= 0 {
 			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
 
 			if offset != nil {
-				if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
+				parsedOffset, err := s.parseInt(offset)
+				if err != nil {
+					return "", err
+				}
+				if parsedOffset >= 0 {
 					sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
 				}
 			}
