@@ -358,7 +358,7 @@ func (scope *Scope) Raw(sql string) *Scope {
 
 // Exec perform generated SQL
 func (scope *Scope) Exec() *Scope {
-	defer scope.trace(NowFunc())
+	defer scope.trace(NowFunc(), true)
 
 	if !scope.HasError() {
 		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
@@ -934,8 +934,6 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 }
 
 func (scope *Scope) row() *sql.Row {
-	defer scope.trace(NowFunc())
-
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
@@ -944,8 +942,6 @@ func (scope *Scope) row() *sql.Row {
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
-	defer scope.trace(NowFunc())
-
 	result := &RowsQueryResult{}
 	scope.InstanceSet("row_query_result", result)
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
@@ -980,6 +976,8 @@ func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
 }
 
 func (scope *Scope) pluck(column string, value interface{}) *Scope {
+	defer scope.trace(NowFunc(), true)
+
 	dest := reflect.Indirect(reflect.ValueOf(value))
 	if dest.Kind() != reflect.Slice {
 		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
@@ -998,6 +996,8 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	if scope.Err(err) == nil {
 		defer rows.Close()
 		for rows.Next() {
+			scope.db.RowsAffected++
+
 			elem := reflect.New(dest.Type().Elem()).Interface()
 			scope.Err(rows.Scan(elem))
 			dest.Set(reflect.Append(dest, reflect.ValueOf(elem).Elem()))
@@ -1011,6 +1011,8 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 }
 
 func (scope *Scope) count(value interface{}) *Scope {
+	defer scope.trace(NowFunc(), false)
+
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
 		if len(scope.Search.group) != 0 {
 			if len(scope.Search.havingConditions) != 0 {
@@ -1042,9 +1044,9 @@ func (scope *Scope) typeName() string {
 }
 
 // trace print sql log
-func (scope *Scope) trace(t time.Time) {
+func (scope *Scope) trace(t time.Time, showRowsAffected bool) {
 	if len(scope.SQL) > 0 {
-		scope.db.slog(scope.SQL, t, scope.SQLVars...)
+		scope.db.slog(scope.SQL, t, showRowsAffected, scope.SQLVars...)
 	}
 }
 

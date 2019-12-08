@@ -366,12 +366,16 @@ func (s *DB) Scan(dest interface{}) *DB {
 
 // Row return `*sql.Row` with given conditions
 func (s *DB) Row() *sql.Row {
-	return s.NewScope(s.Value).row()
+	scope := s.NewScope(s.Value)
+	defer scope.trace(NowFunc(), false)
+	return scope.row()
 }
 
 // Rows return `*sql.Rows` with given conditions
 func (s *DB) Rows() (*sql.Rows, error) {
-	return s.NewScope(s.Value).rows()
+	scope := s.NewScope(s.Value)
+	defer scope.trace(NowFunc(), false)
+	return scope.rows()
 }
 
 // ScanRows scan `*sql.Rows` to give struct
@@ -874,8 +878,12 @@ func (s *DB) log(v ...interface{}) {
 	}
 }
 
-func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
+func (s *DB) slog(sql string, t time.Time, showRowsAffected bool, vars ...interface{}) {
 	if s.logMode == detailedLogMode {
-		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
+		if showRowsAffected {
+			s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
+		} else {
+			s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars)
+		}
 	}
 }
