@@ -2,11 +2,13 @@ package gorm_test
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
@@ -89,5 +91,49 @@ func TestDropTableWithTableOptions(t *testing.T) {
 	err := DB.DropTable(&UserWithOptions{}).Error
 	if err != nil {
 		t.Errorf("Table must be dropped, got error %s", err)
+	}
+}
+
+func TestOrderIndexColumns(t *testing.T) {
+	testcases := []struct {
+		indexName string
+		columns   []string
+		expected  []string
+	}{
+		{
+			indexName: "idx_c1_c2_c3",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c1", "c2", "c3"},
+		},
+		{
+			indexName: "c1_c2_c3_idx",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c1", "c2", "c3"},
+		},
+		{
+			indexName: "repositories_c1_c2_c3_idx",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c1", "c2", "c3"},
+		},
+		{
+			indexName: "repositories_c3_c2_c1_idx",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c3", "c2", "c1"},
+		},
+		{
+			indexName: "idxc3_c2_c1",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c2", "c1", "c3"},
+		},
+		{
+			indexName: "idx",
+			columns:   []string{"c1", "c2", "c3"},
+			expected:  []string{"c1", "c2", "c3"},
+		},
+	}
+	for _, test := range testcases {
+		t.Run(fmt.Sprintf("index: %s", test.indexName), func(t *testing.T) {
+			assert.Equal(t, test.expected, gorm.OrderIndexColumns(test.indexName, test.columns), "Column output ordering does not match expected result.")
+		})
 	}
 }

@@ -1278,6 +1278,38 @@ func (scope *Scope) autoMigrate() *Scope {
 	return scope
 }
 
+// OrderIndexColumns takes in an index name (name) and list of column names (columns)
+// and returns a column ordering from the passed in name in the order the column name appears in the index name,
+// delimited by an underscore (_) .
+func OrderIndexColumns(name string, columns []string) []string {
+	names := strings.Split(name, "_")
+	numColumns := len(columns)
+	outputColumns := make([]string, numColumns)
+	columnMap := make(map[string]struct{}, numColumns)
+	for _, column := range columns {
+		columnMap[column] = struct{}{}
+	}
+	i := 0
+	for _, name := range names {
+		if _, exists := columnMap[name]; exists {
+			outputColumns[i] = name
+			delete(columnMap, name)
+			i++
+		}
+		if i == numColumns {
+			return outputColumns
+		}
+	}
+	// Any remaining columns (improper naming) need to be added
+	for _, column := range columns {
+		if _, exists := columnMap[column]; exists {
+			outputColumns[i] = column
+			i++
+		}
+	}
+	return outputColumns
+}
+
 func (scope *Scope) autoIndex() *Scope {
 	var indexes = map[string][]string{}
 	var uniqueIndexes = map[string][]string{}
@@ -1285,7 +1317,6 @@ func (scope *Scope) autoIndex() *Scope {
 	for _, field := range scope.GetStructFields() {
 		if name, ok := field.TagSettingsGet("INDEX"); ok {
 			names := strings.Split(name, ",")
-
 			for _, name := range names {
 				if name == "INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("idx", scope.TableName(), field.DBName)
@@ -1297,7 +1328,6 @@ func (scope *Scope) autoIndex() *Scope {
 
 		if name, ok := field.TagSettingsGet("UNIQUE_INDEX"); ok {
 			names := strings.Split(name, ",")
-
 			for _, name := range names {
 				if name == "UNIQUE_INDEX" || name == "" {
 					name = scope.Dialect().BuildKeyName("uix", scope.TableName(), field.DBName)
@@ -1309,13 +1339,15 @@ func (scope *Scope) autoIndex() *Scope {
 	}
 
 	for name, columns := range indexes {
-		if db := scope.NewDB().Table(scope.TableName()).Model(scope.Value).AddIndex(name, columns...); db.Error != nil {
+		orderedColumns := OrderIndexColumns(name, columns)
+		if db := scope.NewDB().Table(scope.TableName()).Model(scope.Value).AddIndex(name, orderedColumns...); db.Error != nil {
 			scope.db.AddError(db.Error)
 		}
 	}
 
 	for name, columns := range uniqueIndexes {
-		if db := scope.NewDB().Table(scope.TableName()).Model(scope.Value).AddUniqueIndex(name, columns...); db.Error != nil {
+		orderedColumns := OrderIndexColumns(name, columns)
+		if db := scope.NewDB().Table(scope.TableName()).Model(scope.Value).AddUniqueIndex(name, orderedColumns...); db.Error != nil {
 			scope.db.AddError(db.Error)
 		}
 	}
