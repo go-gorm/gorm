@@ -3,7 +3,7 @@ package gorm
 import "fmt"
 
 // DefaultCallback default callbacks defined by gorm
-var DefaultCallback = &Callback{}
+var DefaultCallback = &Callback{logger: nopLogger{}}
 
 // Callback is a struct that contains all CRUD callbacks
 //   Field `creates` contains callbacks will be call when creating object
@@ -101,6 +101,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 		}
 	}
 
+	cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.parent.processors = append(cp.parent.processors, cp)

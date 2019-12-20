@@ -50,7 +50,7 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 // createCallback the callback used to insert data into database
 func createCallback(scope *Scope) {
 	if !scope.HasError() {
-		defer scope.trace(scope.db.nowFunc())
+		defer scope.trace(NowFunc())
 
 		var (
 			columns, placeholders        []string
@@ -100,8 +100,11 @@ func createCallback(scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIDReturningSuffix := scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
 		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(quotedTableName, returningColumn, columns)
+		var lastInsertIDReturningSuffix string
+		if lastInsertIDOutputInterstitial == "" {
+			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+		}
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
