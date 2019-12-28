@@ -124,7 +124,10 @@ func (s *DB) Close() error {
 // DB get `*sql.DB` from current connection
 // If the underlying database connection is not a *sql.DB, returns nil
 func (s *DB) DB() *sql.DB {
-	db, _ := s.db.(*sql.DB)
+	db, ok := s.db.(*sql.DB)
+	if !ok {
+		panic("can't support full GORM on currently status, maybe this is a TX instance.")
+	}
 	return db
 }
 
@@ -528,12 +531,12 @@ func (s *DB) Debug() *DB {
 // Transaction start a transaction as a block,
 // return error will rollback, otherwise to commit.
 func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
+	panicked := true
 	tx := s.Begin()
 	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("%s", r)
+		// Make sure to rollback when panic, Block error or Commit error
+		if panicked || err != nil {
 			tx.Rollback()
-			return
 		}
 	}()
 
@@ -543,10 +546,7 @@ func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
 		err = tx.Commit().Error
 	}
 
-	// Makesure rollback when Block error or Commit error
-	if err != nil {
-		tx.Rollback()
-	}
+	panicked = false
 	return
 }
 
