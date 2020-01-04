@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -21,7 +22,7 @@ func init() {
 }
 
 // assignUpdatingAttributesCallback assign updating attributes to model
-func assignUpdatingAttributesCallback(scope *Scope) {
+func assignUpdatingAttributesCallback(_ctx context.Context, scope *Scope) {
 	if attrs, ok := scope.InstanceGet("gorm:update_interface"); ok {
 		if updateMaps, hasUpdate := scope.updatedAttrsWithValues(attrs); hasUpdate {
 			scope.InstanceSet("gorm:update_attrs", updateMaps)
@@ -32,7 +33,7 @@ func assignUpdatingAttributesCallback(scope *Scope) {
 }
 
 // beforeUpdateCallback will invoke `BeforeSave`, `BeforeUpdate` method before updating
-func beforeUpdateCallback(scope *Scope) {
+func beforeUpdateCallback(_ctx context.Context, scope *Scope) {
 	if scope.DB().HasBlockGlobalUpdate() && !scope.hasConditions() {
 		scope.Err(errors.New("missing WHERE clause while updating"))
 		return
@@ -48,14 +49,14 @@ func beforeUpdateCallback(scope *Scope) {
 }
 
 // updateTimeStampForUpdateCallback will set `UpdatedAt` when updating
-func updateTimeStampForUpdateCallback(scope *Scope) {
+func updateTimeStampForUpdateCallback(_ctx context.Context, scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		scope.SetColumn("UpdatedAt", scope.db.nowFunc())
 	}
 }
 
 // updateCallback the callback used to update data to database
-func updateCallback(scope *Scope) {
+func updateCallback(ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		var sqls []string
 
@@ -103,13 +104,13 @@ func updateCallback(scope *Scope) {
 				strings.Join(sqls, ", "),
 				addExtraSpaceIfExist(scope.CombinedConditionSql()),
 				addExtraSpaceIfExist(extraOption),
-			)).Exec()
+			)).Exec(ctx)
 		}
 	}
 }
 
 // afterUpdateCallback will invoke `AfterUpdate`, `AfterSave` method after updating
-func afterUpdateCallback(scope *Scope) {
+func afterUpdateCallback(_ctx context.Context, scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
 		if !scope.HasError() {
 			scope.CallMethod("AfterUpdate")

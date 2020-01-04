@@ -1,6 +1,7 @@
 package mssql
 
 import (
+	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -15,7 +16,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func setIdentityInsert(scope *gorm.Scope) {
+func setIdentityInsert(ctx context.Context, scope *gorm.Scope) {
 	if scope.Dialect().GetName() == "mssql" {
 		for _, field := range scope.PrimaryFields() {
 			if _, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok && !field.IsBlank {
@@ -26,7 +27,7 @@ func setIdentityInsert(scope *gorm.Scope) {
 	}
 }
 
-func turnOffIdentityInsert(scope *gorm.Scope) {
+func turnOffIdentityInsert(ctx context.Context, scope *gorm.Scope) {
 	if scope.Dialect().GetName() == "mssql" {
 		if _, ok := scope.InstanceGet("mssql:identity_insert_on"); ok {
 			scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v OFF", scope.TableName()))
@@ -122,49 +123,49 @@ func (s mssql) fieldCanAutoIncrement(field *gorm.StructField) bool {
 	return field.IsPrimaryKey
 }
 
-func (s mssql) HasIndex(tableName string, indexName string) bool {
+func (s mssql) HasIndex(ctx context.Context, tableName string, indexName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM sys.indexes WHERE name=? AND object_id=OBJECT_ID(?)", indexName, tableName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) RemoveIndex(tableName string, indexName string) error {
-	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
+func (s mssql) RemoveIndex(ctx context.Context, tableName string, indexName string) error {
+	_, err := s.db.ExecContext(ctx, fmt.Sprintf("DROP INDEX %v ON %v", indexName, s.Quote(tableName)))
 	return err
 }
 
-func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
+func (s mssql) HasForeignKey(ctx context.Context, tableName string, foreignKeyName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow(`SELECT count(*) 
-	FROM sys.foreign_keys as F inner join sys.tables as T on F.parent_object_id=T.object_id 
-		inner join information_schema.tables as I on I.TABLE_NAME = T.name 
-	WHERE F.name = ? 
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, `SELECT count(*)
+	FROM sys.foreign_keys as F inner join sys.tables as T on F.parent_object_id=T.object_id
+		inner join information_schema.tables as I on I.TABLE_NAME = T.name
+	WHERE F.name = ?
 		AND T.Name = ? AND I.TABLE_CATALOG = ?;`, foreignKeyName, tableName, currentDatabase).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) HasTable(tableName string) bool {
+func (s mssql) HasTable(ctx context.Context, tableName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?", tableName, currentDatabase).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) HasColumn(tableName string, columnName string) bool {
+func (s mssql) HasColumn(ctx context.Context, tableName string, columnName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM information_schema.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s mssql) ModifyColumn(tableName string, columnName string, typ string) error {
-	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
+func (s mssql) ModifyColumn(ctx context.Context, tableName string, columnName string, typ string) error {
+	_, err := s.db.ExecContext(ctx, fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v %v", tableName, columnName, typ))
 	return err
 }
 
-func (s mssql) CurrentDatabase() (name string) {
-	s.db.QueryRow("SELECT DB_NAME() AS [Current Database]").Scan(&name)
+func (s mssql) CurrentDatabase(ctx context.Context) (name string) {
+	s.db.QueryRowContext(ctx, "SELECT DB_NAME() AS [Current Database]").Scan(&name)
 	return
 }
 
@@ -198,7 +199,7 @@ func (mssql) SelectFromDummyTable() string {
 	return ""
 }
 
-func (mssql) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+func (mssql) LastInsertIDOutputInterstitial(_ctx context.Context, tableName, columnName string, columns []string) string {
 	if len(columns) == 0 {
 		// No OUTPUT to query
 		return ""
@@ -206,7 +207,7 @@ func (mssql) LastInsertIDOutputInterstitial(tableName, columnName string, column
 	return fmt.Sprintf("OUTPUT Inserted.%v", columnName)
 }
 
-func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
+func (mssql) LastInsertIDReturningSuffix(_ctx context.Context, tableName, columnName string) string {
 	// https://stackoverflow.com/questions/5228780/how-to-get-last-inserted-id
 	return "; SELECT SCOPE_IDENTITY()"
 }
@@ -220,12 +221,12 @@ func (mssql) NormalizeIndexAndColumn(indexName, columnName string) (string, stri
 	return indexName, columnName
 }
 
-func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, string) {
+func currentDatabaseAndTable(ctx context.Context, dialect gorm.Dialect, tableName string) (string, string) {
 	if strings.Contains(tableName, ".") {
 		splitStrings := strings.SplitN(tableName, ".", 2)
 		return splitStrings[0], splitStrings[1]
 	}
-	return dialect.CurrentDatabase(), tableName
+	return dialect.CurrentDatabase(ctx), tableName
 }
 
 // JSON type to support easy handling of JSON data in character table fields

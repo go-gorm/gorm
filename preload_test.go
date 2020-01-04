@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"os"
@@ -1684,7 +1685,7 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 
 	called := 0
 
-	DB.Callback().Query().After("gorm:query").Register("TestPreloadManyToManyCallbacks", func(scope *gorm.Scope) {
+	DB.Callback().Query().After("gorm:query").Register("TestPreloadManyToManyCallbacks", func(ctx context.Context, scope *gorm.Scope) {
 		called = called + 1
 	})
 

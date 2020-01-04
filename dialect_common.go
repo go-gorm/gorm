@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -99,43 +100,43 @@ func (s *commonDialect) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s commonDialect) HasIndex(tableName string, indexName string) bool {
+func (s commonDialect) HasIndex(ctx context.Context, tableName string, indexName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", currentDatabase, tableName, indexName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE table_schema = ? AND table_name = ? AND index_name = ?", currentDatabase, tableName, indexName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) RemoveIndex(tableName string, indexName string) error {
-	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v", indexName))
+func (s commonDialect) RemoveIndex(ctx context.Context, tableName string, indexName string) error {
+	_, err := s.db.ExecContext(ctx, fmt.Sprintf("DROP INDEX %v", indexName))
 	return err
 }
 
-func (s commonDialect) HasForeignKey(tableName string, foreignKeyName string) bool {
+func (s commonDialect) HasForeignKey(_ctx context.Context, tableName string, foreignKeyName string) bool {
 	return false
 }
 
-func (s commonDialect) HasTable(tableName string) bool {
+func (s commonDialect) HasTable(ctx context.Context, tableName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", currentDatabase, tableName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE table_schema = ? AND table_name = ?", currentDatabase, tableName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) HasColumn(tableName string, columnName string) bool {
+func (s commonDialect) HasColumn(ctx context.Context, tableName string, columnName string) bool {
 	var count int
-	currentDatabase, tableName := currentDatabaseAndTable(&s, tableName)
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
+	currentDatabase, tableName := currentDatabaseAndTable(ctx, &s, tableName)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE table_schema = ? AND table_name = ? AND column_name = ?", currentDatabase, tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s commonDialect) ModifyColumn(tableName string, columnName string, typ string) error {
-	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", tableName, columnName, typ))
+func (s commonDialect) ModifyColumn(ctx context.Context, tableName string, columnName string, typ string) error {
+	_, err := s.db.ExecContext(ctx, fmt.Sprintf("ALTER TABLE %v ALTER COLUMN %v TYPE %v", tableName, columnName, typ))
 	return err
 }
 
-func (s commonDialect) CurrentDatabase() (name string) {
-	s.db.QueryRow("SELECT DATABASE()").Scan(&name)
+func (s commonDialect) CurrentDatabase(ctx context.Context) (name string) {
+	s.db.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&name)
 	return
 }
 
@@ -162,11 +163,11 @@ func (commonDialect) SelectFromDummyTable() string {
 	return ""
 }
 
-func (commonDialect) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+func (commonDialect) LastInsertIDOutputInterstitial(_ctx context.Context, tableName, columnName string, columns []string) string {
 	return ""
 }
 
-func (commonDialect) LastInsertIDReturningSuffix(tableName, columnName string) string {
+func (commonDialect) LastInsertIDReturningSuffix(_ctx context.Context, tableName, columnName string) string {
 	return ""
 }
 

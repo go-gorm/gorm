@@ -1,15 +1,16 @@
 package gorm
 
 import (
+	"context"
 	"reflect"
 	"strings"
 )
 
-func beginTransactionCallback(scope *Scope) {
+func beginTransactionCallback(_ctx context.Context, scope *Scope) {
 	scope.Begin()
 }
 
-func commitOrRollbackTransactionCallback(scope *Scope) {
+func commitOrRollbackTransactionCallback(_ctx context.Context, scope *Scope) {
 	scope.CommitOrRollback()
 }
 
@@ -64,7 +65,7 @@ func saveAssociationCheck(scope *Scope, field *Field) (autoUpdate bool, autoCrea
 	return
 }
 
-func saveBeforeAssociationsCallback(scope *Scope) {
+func saveBeforeAssociationsCallback(_ctx context.Context, scope *Scope) {
 	for _, field := range scope.Fields() {
 		autoUpdate, autoCreate, saveReference, relationship := saveAssociationCheck(scope, field)
 
@@ -95,7 +96,7 @@ func saveBeforeAssociationsCallback(scope *Scope) {
 	}
 }
 
-func saveAfterAssociationsCallback(scope *Scope) {
+func saveAfterAssociationsCallback(_ctx context.Context, scope *Scope) {
 	for _, field := range scope.Fields() {
 		autoUpdate, autoCreate, saveReference, relationship := saveAssociationCheck(scope, field)
 

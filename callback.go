@@ -1,6 +1,9 @@
 package gorm
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // DefaultCallback default callbacks defined by gorm
 var DefaultCallback = &Callback{logger: nopLogger{}}
@@ -14,24 +17,24 @@ var DefaultCallback = &Callback{logger: nopLogger{}}
 //   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
 	logger     logger
-	creates    []*func(scope *Scope)
-	updates    []*func(scope *Scope)
-	deletes    []*func(scope *Scope)
-	queries    []*func(scope *Scope)
-	rowQueries []*func(scope *Scope)
+	creates    []*func(ctx context.Context, scope *Scope)
+	updates    []*func(ctx context.Context, scope *Scope)
+	deletes    []*func(ctx context.Context, scope *Scope)
+	queries    []*func(ctx context.Context, scope *Scope)
+	rowQueries []*func(ctx context.Context, scope *Scope)
 	processors []*CallbackProcessor
 }
 
 // CallbackProcessor contains callback informations
 type CallbackProcessor struct {
 	logger    logger
-	name      string              // current callback's name
-	before    string              // register current callback before a callback
-	after     string              // register current callback after a callback
-	replace   bool                // replace callbacks with same name
-	remove    bool                // delete callbacks with same name
-	kind      string              // callback type: create, update, delete, query, row_query
-	processor *func(scope *Scope) // callback handler
+	name      string                                   // current callback's name
+	before    string                                   // register current callback before a callback
+	after     string                                   // register current callback after a callback
+	replace   bool                                     // replace callbacks with same name
+	remove    bool                                     // delete callbacks with same name
+	kind      string                                   // callback type: create, update, delete, query, row_query
+	processor *func(ctx context.Context, scope *Scope) // callback handler
 	parent    *Callback
 }
 
@@ -93,7 +96,7 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 }
 
 // Register a new callback, refer `Callbacks.Create`
-func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
+func (cp *CallbackProcessor) Register(callbackName string, callback func(ctx context.Context, scope *Scope)) {
 	if cp.kind == "row_query" {
 		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
 			cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
@@ -123,7 +126,7 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 //		   scope.SetColumn("CreatedAt", now)
 //		   scope.SetColumn("UpdatedAt", now)
 //     })
-func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
+func (cp *CallbackProcessor) Replace(callbackName string, callback func(ctx context.Context, scope *Scope)) {
 	cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
@@ -134,7 +137,7 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 
 // Get registered callback
 //    db.Callback().Create().Get("gorm:create")
-func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
+func (cp *CallbackProcessor) Get(callbackName string) (callback func(ctx context.Context, scope *Scope)) {
 	for _, p := range cp.parent.processors {
 		if p.name == callbackName && p.kind == cp.kind {
 			if p.remove {
@@ -158,7 +161,7 @@ func getRIndex(strs []string, str string) int {
 }
 
 // sortProcessors sort callback processors based on its before, after, remove, replace
-func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
+func sortProcessors(cps []*CallbackProcessor) []*func(ctx context.Context, scope *Scope) {
 	var (
 		allNames, sortedNames []string
 		sortCallbackProcessor func(c *CallbackProcessor)
@@ -211,7 +214,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 		sortCallbackProcessor(cp)
 	}
 
-	var sortedFuncs []*func(scope *Scope)
+	var sortedFuncs []*func(ctx context.Context, scope *Scope)
 	for _, name := range sortedNames {
 		if index := getRIndex(allNames, name); !cps[index].remove {
 			sortedFuncs = append(sortedFuncs, cps[index].processor)

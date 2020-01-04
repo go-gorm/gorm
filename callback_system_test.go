@@ -1,13 +1,14 @@
 package gorm
 
 import (
+	"context"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 )
 
-func equalFuncs(funcs []*func(s *Scope), fnames []string) bool {
+func equalFuncs(funcs []*func(ctx context.Context, s *Scope), fnames []string) bool {
 	var names []string
 	for _, f := range funcs {
 		fnames := strings.Split(runtime.FuncForPC(reflect.ValueOf(*f).Pointer()).Name(), ".")
@@ -16,11 +17,11 @@ func equalFuncs(funcs []*func(s *Scope), fnames []string) bool {
 	return reflect.DeepEqual(names, fnames)
 }
 
-func create(s *Scope)        {}
-func beforeCreate1(s *Scope) {}
-func beforeCreate2(s *Scope) {}
-func afterCreate1(s *Scope)  {}
-func afterCreate2(s *Scope)  {}
+func create(ctx context.Context, s *Scope)        {}
+func beforeCreate1(ctx context.Context, s *Scope) {}
+func beforeCreate2(ctx context.Context, s *Scope) {}
+func afterCreate1(ctx context.Context, s *Scope)  {}
+func afterCreate2(ctx context.Context, s *Scope)  {}
 
 func TestRegisterCallback(t *testing.T) {
 	var callback = &Callback{logger: defaultLogger}
@@ -83,7 +84,7 @@ func TestRegisterCallbackWithComplexOrder(t *testing.T) {
 	}
 }
 
-func replaceCreate(s *Scope) {}
+func replaceCreate(ctx context.Context, s *Scope) {}
 
 func TestReplaceCallback(t *testing.T) {
 	var callback = &Callback{logger: defaultLogger}

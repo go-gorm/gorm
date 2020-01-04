@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -91,40 +92,40 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-func (s postgres) HasIndex(tableName string, indexName string) bool {
+func (s postgres) HasIndex(ctx context.Context, tableName string, indexName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM pg_indexes WHERE tablename = $1 AND indexname = $2 AND schemaname = CURRENT_SCHEMA()", tableName, indexName).Scan(&count)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM pg_indexes WHERE tablename = $1 AND indexname = $2 AND schemaname = CURRENT_SCHEMA()", tableName, indexName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) HasForeignKey(tableName string, foreignKeyName string) bool {
+func (s postgres) HasForeignKey(ctx context.Context, tableName string, foreignKeyName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(con.conname) FROM pg_constraint con WHERE $1::regclass::oid = con.conrelid AND con.conname = $2 AND con.contype='f'", tableName, foreignKeyName).Scan(&count)
+	s.db.QueryRowContext(ctx, "SELECT count(con.conname) FROM pg_constraint con WHERE $1::regclass::oid = con.conrelid AND con.conname = $2 AND con.contype='f'", tableName, foreignKeyName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) HasTable(tableName string) bool {
+func (s postgres) HasTable(ctx context.Context, tableName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = $1 AND table_type = 'BASE TABLE' AND table_schema = CURRENT_SCHEMA()", tableName).Scan(&count)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = $1 AND table_type = 'BASE TABLE' AND table_schema = CURRENT_SCHEMA()", tableName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) HasColumn(tableName string, columnName string) bool {
+func (s postgres) HasColumn(ctx context.Context, tableName string, columnName string) bool {
 	var count int
-	s.db.QueryRow("SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = $1 AND column_name = $2 AND table_schema = CURRENT_SCHEMA()", tableName, columnName).Scan(&count)
+	s.db.QueryRowContext(ctx, "SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_name = $1 AND column_name = $2 AND table_schema = CURRENT_SCHEMA()", tableName, columnName).Scan(&count)
 	return count > 0
 }
 
-func (s postgres) CurrentDatabase() (name string) {
-	s.db.QueryRow("SELECT CURRENT_DATABASE()").Scan(&name)
+func (s postgres) CurrentDatabase(ctx context.Context) (name string) {
+	s.db.QueryRowContext(ctx, "SELECT CURRENT_DATABASE()").Scan(&name)
 	return
 }
 
-func (s postgres) LastInsertIDOutputInterstitial(tableName, key string, columns []string) string {
+func (s postgres) LastInsertIDOutputInterstitial(_ctx context.Context, tableName, key string, columns []string) string {
 	return ""
 }
 
-func (s postgres) LastInsertIDReturningSuffix(tableName, key string) string {
+func (s postgres) LastInsertIDReturningSuffix(_ctx context.Context, tableName, key string) string {
 	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }
 

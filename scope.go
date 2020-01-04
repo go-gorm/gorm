@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"errors"
@@ -357,11 +358,11 @@ func (scope *Scope) Raw(sql string) *Scope {
 }
 
 // Exec perform generated SQL
-func (scope *Scope) Exec() *Scope {
+func (scope *Scope) Exec(ctx context.Context) *Scope {
 	defer scope.trace(NowFunc())
 
 	if !scope.HasError() {
-		if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		if result, err := scope.SQLDB().ExecContext(ctx, scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 			if count, err := result.RowsAffected(); scope.Err(err) == nil {
 				scope.db.RowsAffected = count
 			}
@@ -856,7 +857,7 @@ func (scope *Scope) inlineCondition(values ...interface{}) *Scope {
 	return scope
 }
 
-func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
+func (scope *Scope) callCallbacks(ctx context.Context, funcs []*func(ctx context.Context, s *Scope)) *Scope {
 	defer func() {
 		if err := recover(); err != nil {
 			if db, ok := scope.db.db.(sqlTx); ok {
@@ -866,7 +867,7 @@ func (scope *Scope) callCallbacks(funcs []*func(s *Scope)) *Scope {
 		}
 	}()
 	for _, f := range funcs {
-		(*f)(scope)
+		(*f)(ctx, scope)
 		if scope.skipLeft {
 			break
 		}
@@ -933,22 +934,22 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 	return
 }
 
-func (scope *Scope) row() *sql.Row {
+func (scope *Scope) row(ctx context.Context) *sql.Row {
 	defer scope.trace(NowFunc())
 
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
-	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
+	scope.callCallbacks(ctx, scope.db.parent.callbacks.rowQueries)
 
 	return result.Row
 }
 
-func (scope *Scope) rows() (*sql.Rows, error) {
+func (scope *Scope) rows(ctx context.Context) (*sql.Rows, error) {
 	defer scope.trace(NowFunc())
 
 	result := &RowsQueryResult{}
 	scope.InstanceSet("row_query_result", result)
-	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
+	scope.callCallbacks(ctx, scope.db.parent.callbacks.rowQueries)
 
 	return result.Rows, result.Error
 }
@@ -979,7 +980,7 @@ func (scope *Scope) isQueryForColumn(query interface{}, column string) bool {
 	return false
 }
 
-func (scope *Scope) pluck(column string, value interface{}) *Scope {
+func (scope *Scope) pluck(ctx context.Context, column string, value interface{}) *Scope {
 	dest := reflect.Indirect(reflect.ValueOf(value))
 	if dest.Kind() != reflect.Slice {
 		scope.Err(fmt.Errorf("results should be a slice, not %s", dest.Kind()))
@@ -994,7 +995,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 		scope.Search.Select(column)
 	}
 
-	rows, err := scope.rows()
+	rows, err := scope.rows(ctx)
 	if scope.Err(err) == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -1010,7 +1011,7 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 	return scope
 }
 
-func (scope *Scope) count(value interface{}) *Scope {
+func (scope *Scope) count(ctx context.Context, value interface{}) *Scope {
 	if query, ok := scope.Search.selects["query"]; !ok || !countingQueryRegexp.MatchString(fmt.Sprint(query)) {
 		if len(scope.Search.group) != 0 {
 			if len(scope.Search.havingConditions) != 0 {
@@ -1027,7 +1028,7 @@ func (scope *Scope) count(value interface{}) *Scope {
 		}
 	}
 	scope.Search.ignoreOrderQuery = true
-	scope.Err(scope.row().Scan(value))
+	scope.Err(scope.row(ctx).Scan(value))
 	return scope
 }
 
@@ -1124,11 +1125,11 @@ func (scope *Scope) getTableOptions() string {
 	return " " + tableOptions.(string)
 }
 
-func (scope *Scope) createJoinTable(field *StructField) {
+func (scope *Scope) createJoinTable(ctx context.Context, field *StructField) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
 		joinTableHandler := relationship.JoinTableHandler
 		joinTable := joinTableHandler.Table(scope.db)
-		if !scope.Dialect().HasTable(joinTable) {
+		if !scope.Dialect().HasTable(ctx, joinTable) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
 			var sqlTypes, primaryKeys []string
@@ -1156,11 +1157,11 @@ func (scope *Scope) createJoinTable(field *StructField) {
 
 			scope.Err(scope.NewDB().Exec(fmt.Sprintf("CREATE TABLE %v (%v, PRIMARY KEY (%v))%s", scope.Quote(joinTable), strings.Join(sqlTypes, ","), strings.Join(primaryKeys, ","), scope.getTableOptions())).Error)
 		}
-		scope.NewDB().Table(joinTable).AutoMigrate(joinTableHandler)
+		scope.NewDB().Table(joinTable).AutoMigrateContext(ctx, joinTableHandler)
 	}
 }
 
-func (scope *Scope) createTable() *Scope {
+func (scope *Scope) createTable(ctx context.Context) *Scope {
 	var tags []string
 	var primaryKeys []string
 	var primaryKeyInColumnType = false
@@ -1181,7 +1182,7 @@ func (scope *Scope) createTable() *Scope {
 		if field.IsPrimaryKey {
 			primaryKeys = append(primaryKeys, scope.Quote(field.DBName))
 		}
-		scope.createJoinTable(field)
+		scope.createJoinTable(ctx, field)
 	}
 
 	var primaryKeyStr string
@@ -1189,27 +1190,27 @@ func (scope *Scope) createTable() *Scope {
 		primaryKeyStr = fmt.Sprintf(", PRIMARY KEY (%v)", strings.Join(primaryKeys, ","))
 	}
 
-	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)%s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
+	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)%s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec(ctx)
 
 	scope.autoIndex()
 	return scope
 }
 
-func (scope *Scope) dropTable() *Scope {
-	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.QuotedTableName())).Exec()
+func (scope *Scope) dropTable(ctx context.Context) *Scope {
+	scope.Raw(fmt.Sprintf("DROP TABLE %v", scope.QuotedTableName())).Exec(ctx)
 	return scope
 }
 
-func (scope *Scope) modifyColumn(column string, typ string) {
-	scope.db.AddError(scope.Dialect().ModifyColumn(scope.QuotedTableName(), scope.Quote(column), typ))
+func (scope *Scope) modifyColumn(ctx context.Context, column string, typ string) {
+	scope.db.AddError(scope.Dialect().ModifyColumn(ctx, scope.QuotedTableName(), scope.Quote(column), typ))
 }
 
-func (scope *Scope) dropColumn(column string) {
-	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.QuotedTableName(), scope.Quote(column))).Exec()
+func (scope *Scope) dropColumn(ctx context.Context, column string) {
+	scope.Raw(fmt.Sprintf("ALTER TABLE %v DROP COLUMN %v", scope.QuotedTableName(), scope.Quote(column))).Exec(ctx)
 }
 
-func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
-	if scope.Dialect().HasIndex(scope.TableName(), indexName) {
+func (scope *Scope) addIndex(ctx context.Context, unique bool, indexName string, column ...string) {
+	if scope.Dialect().HasIndex(ctx, scope.TableName(), indexName) {
 		return
 	}
 
@@ -1223,23 +1224,23 @@ func (scope *Scope) addIndex(unique bool, indexName string, column ...string) {
 		sqlCreate = "CREATE UNIQUE INDEX"
 	}
 
-	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSQL())).Exec()
+	scope.Raw(fmt.Sprintf("%s %v ON %v(%v) %v", sqlCreate, indexName, scope.QuotedTableName(), strings.Join(columns, ", "), scope.whereSQL())).Exec(ctx)
 }
 
-func (scope *Scope) addForeignKey(field string, dest string, onDelete string, onUpdate string) {
+func (scope *Scope) addForeignKey(ctx context.Context, field string, dest string, onDelete string, onUpdate string) {
 	// Compatible with old generated key
 	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
 
-	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
+	if scope.Dialect().HasForeignKey(ctx, scope.TableName(), keyName) {
 		return
 	}
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec(ctx)
 }
 
-func (scope *Scope) removeForeignKey(field string, dest string) {
+func (scope *Scope) removeForeignKey(ctx context.Context, field string, dest string) {
 	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
-	if !scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
+	if !scope.Dialect().HasForeignKey(ctx, scope.TableName(), keyName) {
 		return
 	}
 	var mysql mysql
@@ -1250,28 +1251,28 @@ func (scope *Scope) removeForeignKey(field string, dest string) {
 		query = `ALTER TABLE %s DROP CONSTRAINT %s;`
 	}
 
-	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName))).Exec()
+	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName))).Exec(ctx)
 }
 
-func (scope *Scope) removeIndex(indexName string) {
-	scope.Dialect().RemoveIndex(scope.TableName(), indexName)
+func (scope *Scope) removeIndex(ctx context.Context, indexName string) {
+	scope.Dialect().RemoveIndex(ctx, scope.TableName(), indexName)
 }
 
-func (scope *Scope) autoMigrate() *Scope {
+func (scope *Scope) autoMigrate(ctx context.Context) *Scope {
 	tableName := scope.TableName()
 	quotedTableName := scope.QuotedTableName()
 
-	if !scope.Dialect().HasTable(tableName) {
-		scope.createTable()
+	if !scope.Dialect().HasTable(ctx, tableName) {
+		scope.createTable(ctx)
 	} else {
 		for _, field := range scope.GetModelStruct().StructFields {
-			if !scope.Dialect().HasColumn(tableName, field.DBName) {
+			if !scope.Dialect().HasColumn(ctx, tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.Dialect().DataTypeOf(field)
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec(ctx)
 				}
 			}
-			scope.createJoinTable(field)
+			scope.createJoinTable(ctx, field)
 		}
 		scope.autoIndex()
 	}

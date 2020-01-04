@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 )
@@ -20,7 +21,7 @@ type RowsQueryResult struct {
 }
 
 // queryCallback used to query data from database
-func rowQueryCallback(scope *Scope) {
+func rowQueryCallback(ctx context.Context, scope *Scope) {
 	if result, ok := scope.InstanceGet("row_query_result"); ok {
 		scope.prepareQuerySQL()
 
@@ -33,9 +34,9 @@ func rowQueryCallback(scope *Scope) {
 		}
 
 		if rowResult, ok := result.(*RowQueryResult); ok {
-			rowResult.Row = scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...)
+			rowResult.Row = scope.SQLDB().QueryRowContext(ctx, scope.SQL, scope.SQLVars...)
 		} else if rowsResult, ok := result.(*RowsQueryResult); ok {
-			rowsResult.Rows, rowsResult.Error = scope.SQLDB().Query(scope.SQL, scope.SQLVars...)
+			rowsResult.Rows, rowsResult.Error = scope.SQLDB().QueryContext(ctx, scope.SQL, scope.SQLVars...)
 		}
 	}
 }

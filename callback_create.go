@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -19,7 +20,7 @@ func init() {
 }
 
 // beforeCreateCallback will invoke `BeforeSave`, `BeforeCreate` method before creating
-func beforeCreateCallback(scope *Scope) {
+func beforeCreateCallback(_ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("BeforeSave")
 	}
@@ -29,7 +30,7 @@ func beforeCreateCallback(scope *Scope) {
 }
 
 // updateTimeStampForCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
-func updateTimeStampForCreateCallback(scope *Scope) {
+func updateTimeStampForCreateCallback(_ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		now := scope.db.nowFunc()
 
@@ -48,7 +49,7 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 }
 
 // createCallback the callback used to insert data into database
-func createCallback(scope *Scope) {
+func createCallback(ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		defer scope.trace(NowFunc())
 
@@ -100,10 +101,10 @@ func createCallback(scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(quotedTableName, returningColumn, columns)
+		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(ctx, quotedTableName, returningColumn, columns)
 		var lastInsertIDReturningSuffix string
 		if lastInsertIDOutputInterstitial == "" {
-			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(ctx, quotedTableName, returningColumn)
 		}
 
 		if len(columns) == 0 {
@@ -130,7 +131,7 @@ func createCallback(scope *Scope) {
 
 		// execute create sql: no primaryField
 		if primaryField == nil {
-			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			if result, err := scope.SQLDB().ExecContext(ctx, scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
 
@@ -146,7 +147,7 @@ func createCallback(scope *Scope) {
 
 		// execute create sql: lastInsertID implemention for majority of dialects
 		if lastInsertIDReturningSuffix == "" && lastInsertIDOutputInterstitial == "" {
-			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+			if result, err := scope.SQLDB().ExecContext(ctx, scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
 
@@ -162,7 +163,7 @@ func createCallback(scope *Scope) {
 
 		// execute create sql: dialects with additional lastInsertID requirements (currently postgres & mssql)
 		if primaryField.Field.CanAddr() {
-			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+			if err := scope.SQLDB().QueryRowContext(ctx, scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
 				primaryField.IsBlank = false
 				scope.db.RowsAffected = 1
 			}
@@ -174,7 +175,7 @@ func createCallback(scope *Scope) {
 }
 
 // forceReloadAfterCreateCallback will reload columns that having default value, and set it back to current object
-func forceReloadAfterCreateCallback(scope *Scope) {
+func forceReloadAfterCreateCallback(_ctx context.Context, scope *Scope) {
 	if blankColumnsWithDefaultValue, ok := scope.InstanceGet("gorm:blank_columns_with_default_value"); ok {
 		db := scope.DB().New().Table(scope.TableName()).Select(blankColumnsWithDefaultValue.([]string))
 		for _, field := range scope.Fields() {
@@ -187,7 +188,7 @@ func forceReloadAfterCreateCallback(scope *Scope) {
 }
 
 // afterCreateCallback will invoke `AfterCreate`, `AfterSave` method after creating
-func afterCreateCallback(scope *Scope) {
+func afterCreateCallback(_ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterCreate")
 	}

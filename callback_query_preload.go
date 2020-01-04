@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -9,7 +10,7 @@ import (
 )
 
 // preloadCallback used to preload associations
-func preloadCallback(scope *Scope) {
+func preloadCallback(ctx context.Context, scope *Scope) {
 	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
 		return
 	}
@@ -18,9 +19,9 @@ func preloadCallback(scope *Scope) {
 		// If gorm:auto_preload IS NOT a bool then auto preload.
 		// Else if it IS a bool, use the value
 		if apb, ok := ap.(bool); !ok {
-			autoPreload(scope)
+			autoPreload(ctx, scope)
 		} else if apb {
-			autoPreload(scope)
+			autoPreload(ctx, scope)
 		}
 	}
 
@@ -62,13 +63,13 @@ func preloadCallback(scope *Scope) {
 
 					switch field.Relationship.Kind {
 					case "has_one":
-						currentScope.handleHasOnePreload(field, currentPreloadConditions)
+						currentScope.handleHasOnePreload(ctx, field, currentPreloadConditions)
 					case "has_many":
-						currentScope.handleHasManyPreload(field, currentPreloadConditions)
+						currentScope.handleHasManyPreload(ctx, field, currentPreloadConditions)
 					case "belongs_to":
-						currentScope.handleBelongsToPreload(field, currentPreloadConditions)
+						currentScope.handleBelongsToPreload(ctx, field, currentPreloadConditions)
 					case "many_to_many":
-						currentScope.handleManyToManyPreload(field, currentPreloadConditions)
+						currentScope.handleManyToManyPreload(ctx, field, currentPreloadConditions)
 					default:
 						scope.Err(errors.New("unsupported relation"))
 					}
@@ -94,7 +95,7 @@ func preloadCallback(scope *Scope) {
 	}
 }
 
-func autoPreload(scope *Scope) {
+func autoPreload(_ctx context.Context, scope *Scope) {
 	for _, field := range scope.Fields() {
 		if field.Relationship == nil {
 			continue
@@ -131,7 +132,7 @@ func (scope *Scope) generatePreloadDBWithConditions(conditions []interface{}) (*
 }
 
 // handleHasOnePreload used to preload has one associations
-func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleHasOnePreload(_ctx context.Context, field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
 	// get relations's primary keys
@@ -183,7 +184,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 }
 
 // handleHasManyPreload used to preload has many associations
-func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleHasManyPreload(_ctx context.Context, field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
 	// get relations's primary keys
@@ -236,7 +237,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 }
 
 // handleBelongsToPreload used to preload belongs to associations
-func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleBelongsToPreload(_ctx context.Context, field *Field, conditions []interface{}) {
 	relation := field.Relationship
 
 	// preload conditions
@@ -283,7 +284,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 }
 
 // handleManyToManyPreload used to preload many to many associations
-func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface{}) {
+func (scope *Scope) handleManyToManyPreload(ctx context.Context, field *Field, conditions []interface{}) {
 	var (
 		relation         = field.Relationship
 		joinTableHandler = relation.JoinTableHandler
@@ -346,7 +347,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 		scope.New(elem.Addr().Interface()).
 			InstanceSet("gorm:skip_query_callback", true).
-			callCallbacks(scope.db.parent.callbacks.queries)
+			callCallbacks(ctx, scope.db.parent.callbacks.queries)
 
 		var foreignKeys = make([]interface{}, len(sourceKeys))
 		// generate hashed forkey keys in join table

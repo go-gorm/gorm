@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -14,7 +15,7 @@ func init() {
 }
 
 // queryCallback used to query data from database
-func queryCallback(scope *Scope) {
+func queryCallback(ctx context.Context, scope *Scope) {
 	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
 		return
 	}
@@ -69,7 +70,7 @@ func queryCallback(scope *Scope) {
 			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
 
-		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		if rows, err := scope.SQLDB().QueryContext(ctx, scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 			defer rows.Close()
 
 			columns, _ := rows.Columns()
@@ -102,7 +103,7 @@ func queryCallback(scope *Scope) {
 }
 
 // afterQueryCallback will invoke `AfterFind` method after querying
-func afterQueryCallback(scope *Scope) {
+func afterQueryCallback(_ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterFind")
 	}

@@ -1,6 +1,7 @@
 package gorm_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -21,12 +22,13 @@ type CustomColumnAndIgnoredFieldClash struct {
 }
 
 func TestCustomizeColumn(t *testing.T) {
+	ctx := context.Background()
 	col := "mapped_name"
 	DB.DropTable(&CustomizeColumn{})
 	DB.AutoMigrate(&CustomizeColumn{})
 
 	scope := DB.NewScope(&CustomizeColumn{})
-	if !scope.Dialect().HasColumn(scope.TableName(), col) {
+	if !scope.Dialect().HasColumn(ctx, scope.TableName(), col) {
 		t.Errorf("CustomizeColumn should have column %s", col)
 	}
 

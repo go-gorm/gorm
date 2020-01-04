@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -15,7 +16,7 @@ func init() {
 }
 
 // beforeDeleteCallback will invoke `BeforeDelete` method before deleting
-func beforeDeleteCallback(scope *Scope) {
+func beforeDeleteCallback(_ctx context.Context, scope *Scope) {
 	if scope.DB().HasBlockGlobalUpdate() && !scope.hasConditions() {
 		scope.Err(errors.New("missing WHERE clause while deleting"))
 		return
@@ -26,7 +27,7 @@ func beforeDeleteCallback(scope *Scope) {
 }
 
 // deleteCallback used to delete data from database or set deleted_at to current time (when using with soft delete)
-func deleteCallback(scope *Scope) {
+func deleteCallback(ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		var extraOption string
 		if str, ok := scope.Get("gorm:delete_option"); ok {
@@ -43,20 +44,20 @@ func deleteCallback(scope *Scope) {
 				scope.AddToVars(scope.db.nowFunc()),
 				addExtraSpaceIfExist(scope.CombinedConditionSql()),
 				addExtraSpaceIfExist(extraOption),
-			)).Exec()
+			)).Exec(ctx)
 		} else {
 			scope.Raw(fmt.Sprintf(
 				"DELETE FROM %v%v%v",
 				scope.QuotedTableName(),
 				addExtraSpaceIfExist(scope.CombinedConditionSql()),
 				addExtraSpaceIfExist(extraOption),
-			)).Exec()
+			)).Exec(ctx)
 		}
 	}
 }
 
 // afterDeleteCallback will invoke `AfterDelete` method after deleting
-func afterDeleteCallback(scope *Scope) {
+func afterDeleteCallback(_ctx context.Context, scope *Scope) {
 	if !scope.HasError() {
 		scope.CallMethod("AfterDelete")
 	}
