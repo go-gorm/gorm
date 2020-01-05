@@ -13,13 +13,18 @@ import (
 )
 
 const (
+	// RESET is the shell code to disable output color
 	RESET = "\033[0m"
-
-	CYAN    = "\033[36;1m"
+	// CYAN is the shell code for CYAN output color
+	CYAN = "\033[36;1m"
+	// MAGENTA is the shell code for MAGENTA output color
 	MAGENTA = "\033[35m"
-	RED     = "\033[36;31m"
+	// RED is the shell code for RED output color
+	RED = "\033[36;31m"
+	// REDBOLD is the shell code for REDBOLD output color
 	REDBOLD = "\033[31;1m"
-	YELLOW  = "\033[33m"
+	// YELLOW is the shell code for YELLOW output color
+	YELLOW = "\033[33m"
 )
 
 var (
@@ -43,6 +48,7 @@ func isPrintable(s string) bool {
 	return true
 }
 
+// NoColor checks for environment if color should be enabled
 func NoColor() bool {
 	// https://no-color.org/
 	return os.Getenv("NO_COLOR") != ""
