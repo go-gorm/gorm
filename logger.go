@@ -18,6 +18,16 @@ var (
 	numericPlaceHolderRegexp = regexp.MustCompile(`\$\d+`)
 )
 
+var (
+	reset = "\033[0m"
+
+	cyan    = "\033[36;1m"
+	magenta = "\033[35m"
+	red     = "\033[36;31m"
+	redBold = "\033[31;1m"
+	yellow  = "\033[33m"
+)
+
 func isPrintable(s string) bool {
 	for _, r := range s {
 		if !unicode.IsPrint(r) {
@@ -27,14 +37,29 @@ func isPrintable(s string) bool {
 	return true
 }
 
+func noColor() bool {
+	// https://no-color.org/
+	return os.Getenv("NO_COLOR") != ""
+}
+
+// LogFormatter is a default logger with timestamps, sql error handling, loglevel and NO_COLOR support
 var LogFormatter = func(values ...interface{}) (messages []interface{}) {
+	suppressColor := noColor()
+	if suppressColor {
+		reset = ""
+		redBold = ""
+		yellow = ""
+		magenta = ""
+		cyan = ""
+		red = ""
+	}
 	if len(values) > 1 {
 		var (
 			sql             string
 			formattedValues []string
 			level           = values[0]
-			currentTime     = "\n\033[33m[" + NowFunc().Format("2006-01-02 15:04:05") + "]\033[0m"
-			source          = fmt.Sprintf("\033[35m(%v)\033[0m", values[1])
+			currentTime     = fmt.Sprintf("\n%s[%s]%s", yellow, NowFunc().Format("2006-01-02 15:04:05"), reset)
+			source          = fmt.Sprintf("%s(%v)%s", magenta, values[1], reset)
 		)
 
 		messages = []interface{}{source, currentTime}
@@ -43,14 +68,14 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 			//remove the line break
 			currentTime = currentTime[1:]
 			//remove the brackets
-			source = fmt.Sprintf("\033[35m%v\033[0m", values[1])
+			source = fmt.Sprintf("%s%v%s", magenta, values[1], reset)
 
 			messages = []interface{}{currentTime, source}
 		}
 
 		if level == "sql" {
 			// duration
-			messages = append(messages, fmt.Sprintf(" \033[36;1m[%.2fms]\033[0m ", float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0))
+			messages = append(messages, fmt.Sprintf(" %s[%.2fms]%s ", cyan, float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0, reset))
 			// sql
 
 			for _, value := range values[4].([]interface{}) {
@@ -106,11 +131,11 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 			}
 
 			messages = append(messages, sql)
-			messages = append(messages, fmt.Sprintf(" \n\033[36;31m[%v]\033[0m ", strconv.FormatInt(values[5].(int64), 10)+" rows affected or returned "))
+			messages = append(messages, fmt.Sprintf(" \n%s[%s rows affected or returned]%s ", red, strconv.FormatInt(values[5].(int64), 10), reset))
 		} else {
-			messages = append(messages, "\033[31;1m")
+			messages = append(messages, redBold)
 			messages = append(messages, values[2:]...)
-			messages = append(messages, "\033[0m")
+			messages = append(messages, reset)
 		}
 	}
 
