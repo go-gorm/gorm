@@ -12,20 +12,26 @@ import (
 	"unicode"
 )
 
+const (
+	RESET = "\033[0m"
+
+	CYAN    = "\033[36;1m"
+	MAGENTA = "\033[35m"
+	RED     = "\033[36;31m"
+	REDBOLD = "\033[31;1m"
+	YELLOW  = "\033[33m"
+)
+
 var (
 	defaultLogger            = Logger{log.New(os.Stdout, "\r\n", 0)}
 	sqlRegexp                = regexp.MustCompile(`\?`)
 	numericPlaceHolderRegexp = regexp.MustCompile(`\$\d+`)
-)
-
-var (
-	reset = "\033[0m"
-
-	cyan    = "\033[36;1m"
-	magenta = "\033[35m"
-	red     = "\033[36;31m"
-	redBold = "\033[31;1m"
-	yellow  = "\033[33m"
+	reset                    = ""
+	cyan                     = ""
+	magenta                  = ""
+	red                      = ""
+	redBold                  = ""
+	yellow                   = ""
 )
 
 func isPrintable(s string) bool {
@@ -37,21 +43,30 @@ func isPrintable(s string) bool {
 	return true
 }
 
-func noColor() bool {
+func NoColor() bool {
 	// https://no-color.org/
 	return os.Getenv("NO_COLOR") != ""
 }
 
 // LogFormatter is a default logger with timestamps, sql error handling, loglevel and NO_COLOR support
 var LogFormatter = func(values ...interface{}) (messages []interface{}) {
-	suppressColor := noColor()
+	suppressColor := NoColor()
 	if suppressColor {
-		reset = ""
-		redBold = ""
-		yellow = ""
-		magenta = ""
-		cyan = ""
+		// To avoid string templates with _and_ without colors, just overwrite color values
+		// when no color will print out.
 		red = ""
+		cyan = ""
+		reset = ""
+		yellow = ""
+		redBold = ""
+		magenta = ""
+	} else {
+		red = RED
+		cyan = CYAN
+		reset = RESET
+		yellow = YELLOW
+		redBold = REDBOLD
+		magenta = MAGENTA
 	}
 	if len(values) > 1 {
 		var (
@@ -76,8 +91,8 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 		if level == "sql" {
 			// duration
 			messages = append(messages, fmt.Sprintf(" %s[%.2fms]%s ", cyan, float64(values[2].(time.Duration).Nanoseconds()/1e4)/100.0, reset))
-			// sql
 
+			// sql
 			for _, value := range values[4].([]interface{}) {
 				indirectValue := reflect.Indirect(reflect.ValueOf(value))
 				if indirectValue.IsValid() {
