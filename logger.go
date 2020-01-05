@@ -31,12 +31,12 @@ var (
 	defaultLogger            = Logger{log.New(os.Stdout, "\r\n", 0)}
 	sqlRegexp                = regexp.MustCompile(`\?`)
 	numericPlaceHolderRegexp = regexp.MustCompile(`\$\d+`)
-	reset                    = ""
-	cyan                     = ""
-	magenta                  = ""
-	red                      = ""
-	redBold                  = ""
-	yellow                   = ""
+	reset                    = RESET
+	cyan                     = CYAN
+	magenta                  = MAGENTA
+	red                      = RED
+	redBold                  = REDBOLD
+	yellow                   = YELLOW
 )
 
 func isPrintable(s string) bool {
@@ -54,6 +54,16 @@ func NoColor() bool {
 	return os.Getenv("NO_COLOR") != ""
 }
 
+// ResetColors reads consts colors for test cases
+func ResetColors() {
+	red = RED
+	cyan = CYAN
+	reset = RESET
+	yellow = YELLOW
+	redBold = REDBOLD
+	magenta = MAGENTA
+}
+
 // LogFormatter is a default logger with timestamps, sql error handling, loglevel and NO_COLOR support
 var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 	suppressColor := NoColor()
@@ -66,13 +76,6 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 		yellow = ""
 		redBold = ""
 		magenta = ""
-	} else {
-		red = RED
-		cyan = CYAN
-		reset = RESET
-		yellow = YELLOW
-		redBold = REDBOLD
-		magenta = MAGENTA
 	}
 	if len(values) > 1 {
 		var (

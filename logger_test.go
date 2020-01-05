@@ -15,7 +15,7 @@ func TestNoColor(t *testing.T) {
 	l := gorm.Logger{log.New(os.Stdout, "\r\n", 0)}
 	l.Print("info", "[info] NO_COLOR log test")
 	os.Setenv("NO_COLOR", "")
-	gorm.NoColor()
+	gorm.ResetColors()
 }
 
 func TestSQLLog(t *testing.T) {
