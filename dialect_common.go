@@ -139,14 +139,19 @@ func (s commonDialect) CurrentDatabase() (name string) {
 	return
 }
 
-func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+// LimitAndOffsetSQL return generated SQL with Limit and Offset
+func (s commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
+		if parsedLimit, err := s.parseInt(limit); err != nil {
+			return "", err
+		} else if parsedLimit >= 0 {
 			sql += fmt.Sprintf(" LIMIT %d", parsedLimit)
 		}
 	}
 	if offset != nil {
-		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
+		if parsedOffset, err := s.parseInt(offset); err != nil {
+			return "", err
+		} else if parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d", parsedOffset)
 		}
 	}
@@ -154,6 +159,10 @@ func (commonDialect) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
 }
 
 func (commonDialect) SelectFromDummyTable() string {
+	return ""
+}
+
+func (commonDialect) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
 	return ""
 }
 
@@ -175,6 +184,10 @@ func (DefaultForeignKeyNamer) BuildKeyName(kind, tableName string, fields ...str
 // NormalizeIndexAndColumn returns argument's index name and column name without doing anything
 func (commonDialect) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
 	return indexName, columnName
+}
+
+func (commonDialect) parseInt(value interface{}) (int64, error) {
+	return strconv.ParseInt(fmt.Sprint(value), 0, 0)
 }
 
 // IsByteArrayOrSlice returns true of the reflected value is an array or slice

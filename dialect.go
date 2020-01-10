@@ -37,9 +37,11 @@ type Dialect interface {
 	ModifyColumn(tableName string, columnName string, typ string) error
 
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
-	LimitAndOffsetSQL(limit, offset interface{}) string
+	LimitAndOffsetSQL(limit, offset interface{}) (string, error)
 	// SelectFromDummyTable return select values, for most dbs, `SELECT values` just works, mysql needs `SELECT value FROM DUAL`
 	SelectFromDummyTable() string
+	// LastInsertIDOutputInterstitial most dbs support LastInsertId, but mssql needs to use `OUTPUT`
+	LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string
 	// LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
 	LastInsertIDReturningSuffix(tableName, columnName string) string
 	// DefaultValueStr

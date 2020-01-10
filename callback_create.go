@@ -50,7 +50,7 @@ func updateTimeStampForCreateCallback(scope *Scope) {
 // createCallback the callback used to insert data into database
 func createCallback(scope *Scope) {
 	if !scope.HasError() {
-		defer scope.trace(scope.db.nowFunc())
+		defer scope.trace(NowFunc())
 
 		var (
 			columns, placeholders        []string
@@ -100,11 +100,15 @@ func createCallback(scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIDReturningSuffix := scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(quotedTableName, returningColumn, columns)
+		var lastInsertIDReturningSuffix string
+		if lastInsertIDOutputInterstitial == "" {
+			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+		}
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
-				"INSERT %v INTO %v %v%v%v",
+				"INSERT%v INTO %v %v%v%v",
 				addExtraSpaceIfExist(insertModifier),
 				quotedTableName,
 				scope.Dialect().DefaultValueStr(),
@@ -113,18 +117,19 @@ func createCallback(scope *Scope) {
 			))
 		} else {
 			scope.Raw(fmt.Sprintf(
-				"INSERT %v INTO %v (%v) VALUES (%v)%v%v",
+				"INSERT%v INTO %v (%v)%v VALUES (%v)%v%v",
 				addExtraSpaceIfExist(insertModifier),
 				scope.QuotedTableName(),
 				strings.Join(columns, ","),
+				addExtraSpaceIfExist(lastInsertIDOutputInterstitial),
 				strings.Join(placeholders, ","),
 				addExtraSpaceIfExist(extraOption),
 				addExtraSpaceIfExist(lastInsertIDReturningSuffix),
 			))
 		}
 
-		// execute create sql
-		if lastInsertIDReturningSuffix == "" || primaryField == nil {
+		// execute create sql: no primaryField
+		if primaryField == nil {
 			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				// set rows affected count
 				scope.db.RowsAffected, _ = result.RowsAffected()
@@ -136,16 +141,35 @@ func createCallback(scope *Scope) {
 					}
 				}
 			}
-		} else {
-			if primaryField.Field.CanAddr() {
-				if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
-					primaryField.IsBlank = false
-					scope.db.RowsAffected = 1
-				}
-			} else {
-				scope.Err(ErrUnaddressable)
-			}
+			return
 		}
+
+		// execute create sql: lastInsertID implemention for majority of dialects
+		if lastInsertIDReturningSuffix == "" && lastInsertIDOutputInterstitial == "" {
+			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+				// set rows affected count
+				scope.db.RowsAffected, _ = result.RowsAffected()
+
+				// set primary value to primary field
+				if primaryField != nil && primaryField.IsBlank {
+					if primaryValue, err := result.LastInsertId(); scope.Err(err) == nil {
+						scope.Err(primaryField.Set(primaryValue))
+					}
+				}
+			}
+			return
+		}
+
+		// execute create sql: dialects with additional lastInsertID requirements (currently postgres & mssql)
+		if primaryField.Field.CanAddr() {
+			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+				primaryField.IsBlank = false
+				scope.db.RowsAffected = 1
+			}
+		} else {
+			scope.Err(ErrUnaddressable)
+		}
+		return
 	}
 }
 

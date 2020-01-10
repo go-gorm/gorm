@@ -3,7 +3,7 @@ package gorm
 import "fmt"
 
 // DefaultCallback default callbacks defined by gorm
-var DefaultCallback = &Callback{}
+var DefaultCallback = &Callback{logger: nopLogger{}}
 
 // Callback is a struct that contains all CRUD callbacks
 //   Field `creates` contains callbacks will be call when creating object
@@ -96,11 +96,12 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
 	if cp.kind == "row_query" {
 		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
-			cp.logger.Print(fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...\n", callbackName))
+			cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
 			cp.before = "gorm:row_query"
 		}
 	}
 
+	cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.parent.processors = append(cp.parent.processors, cp)
@@ -110,7 +111,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 // Remove a registered callback
 //     db.Callback().Create().Remove("gorm:update_time_stamp_when_create")
 func (cp *CallbackProcessor) Remove(callbackName string) {
-	cp.logger.Print(fmt.Sprintf("[info] removing callback `%v` from %v\n", callbackName, fileWithLineNum()))
+	cp.logger.Print("info", fmt.Sprintf("[info] removing callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.remove = true
 	cp.parent.processors = append(cp.parent.processors, cp)
@@ -119,11 +120,11 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 
 // Replace a registered callback with new callback
 //     db.Callback().Create().Replace("gorm:update_time_stamp_when_create", func(*Scope) {
-//		   scope.SetColumn("Created", now)
-//		   scope.SetColumn("Updated", now)
+//		   scope.SetColumn("CreatedAt", now)
+//		   scope.SetColumn("UpdatedAt", now)
 //     })
 func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
-	cp.logger.Print(fmt.Sprintf("[info] replacing callback `%v` from %v\n", callbackName, fileWithLineNum()))
+	cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.replace = true
@@ -135,11 +136,15 @@ func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *S
 //    db.Callback().Create().Get("gorm:create")
 func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
 	for _, p := range cp.parent.processors {
-		if p.name == callbackName && p.kind == cp.kind && !cp.remove {
-			return *p.processor
+		if p.name == callbackName && p.kind == cp.kind {
+			if p.remove {
+				callback = nil
+			} else {
+				callback = *p.processor
+			}
 		}
 	}
-	return nil
+	return
 }
 
 // getRIndex get right index from string slice
@@ -162,7 +167,7 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 	for _, cp := range cps {
 		// show warning message the callback name already exists
 		if index := getRIndex(allNames, cp.name); index > -1 && !cp.replace && !cp.remove {
-			cp.logger.Print(fmt.Sprintf("[warning] duplicated callback `%v` from %v\n", cp.name, fileWithLineNum()))
+			cp.logger.Print("warning", fmt.Sprintf("[warning] duplicated callback `%v` from %v", cp.name, fileWithLineNum()))
 		}
 		allNames = append(allNames, cp.name)
 	}

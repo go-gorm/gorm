@@ -120,6 +120,10 @@ func (s postgres) CurrentDatabase() (name string) {
 	return
 }
 
+func (s postgres) LastInsertIDOutputInterstitial(tableName, key string, columns []string) string {
+	return ""
+}
+
 func (s postgres) LastInsertIDReturningSuffix(tableName, key string) string {
 	return fmt.Sprintf("RETURNING %v.%v", tableName, key)
 }

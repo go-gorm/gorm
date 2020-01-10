@@ -24,7 +24,7 @@ func queryCallback(scope *Scope) {
 		return
 	}
 
-	defer scope.trace(scope.db.nowFunc())
+	defer scope.trace(NowFunc())
 
 	var (
 		isSlice, isPtr bool
@@ -60,6 +60,11 @@ func queryCallback(scope *Scope) {
 
 	if !scope.HasError() {
 		scope.db.RowsAffected = 0
+
+		if str, ok := scope.Get("gorm:query_hint"); ok {
+			scope.SQL = fmt.Sprint(str) + scope.SQL
+		}
+
 		if str, ok := scope.Get("gorm:query_option"); ok {
 			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}

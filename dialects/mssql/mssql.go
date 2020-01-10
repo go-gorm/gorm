@@ -168,14 +168,22 @@ func (s mssql) CurrentDatabase() (name string) {
 	return
 }
 
-func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string) {
+func parseInt(value interface{}) (int64, error) {
+	return strconv.ParseInt(fmt.Sprint(value), 0, 0)
+}
+
+func (mssql) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if offset != nil {
-		if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
+		if parsedOffset, err := parseInt(offset); err != nil {
+			return "", err
+		} else if parsedOffset >= 0 {
 			sql += fmt.Sprintf(" OFFSET %d ROWS", parsedOffset)
 		}
 	}
 	if limit != nil {
-		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
+		if parsedLimit, err := parseInt(limit); err != nil {
+			return "", err
+		} else if parsedLimit >= 0 {
 			if sql == "" {
 				// add default zero offset
 				sql += " OFFSET 0 ROWS"
@@ -190,8 +198,17 @@ func (mssql) SelectFromDummyTable() string {
 	return ""
 }
 
+func (mssql) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+	if len(columns) == 0 {
+		// No OUTPUT to query
+		return ""
+	}
+	return fmt.Sprintf("OUTPUT Inserted.%v", columnName)
+}
+
 func (mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
-	return ""
+	// https://stackoverflow.com/questions/5228780/how-to-get-last-inserted-id
+	return "; SELECT SCOPE_IDENTITY()"
 }
 
 func (mssql) DefaultValueStr() string {

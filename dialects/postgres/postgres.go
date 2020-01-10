@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	_ "github.com/lib/pq"
 	"github.com/lib/pq/hstore"
 )

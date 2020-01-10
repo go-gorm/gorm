@@ -2,11 +2,10 @@ package gorm_test
 
 import (
 	"errors"
-
-	"github.com/jinzhu/gorm"
-
 	"reflect"
 	"testing"
+
+	"github.com/jinzhu/gorm"
 )
 
 func (s *Product) BeforeCreate() (err error) {
@@ -173,5 +172,78 @@ func TestCallbacksWithErrors(t *testing.T) {
 	DB.Delete(&p5)
 	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
 		t.Errorf("Record shouldn't be deleted because of an error happened in after delete callback")
+	}
+}
+
+func TestGetCallback(t *testing.T) {
+	scope := DB.NewScope(nil)
+
+	if DB.Callback().Create().Get("gorm:test_callback") != nil {
+		t.Errorf("`gorm:test_callback` should be nil")
+	}
+
+	DB.Callback().Create().Register("gorm:test_callback", func(scope *gorm.Scope) { scope.Set("gorm:test_callback_value", 1) })
+	callback := DB.Callback().Create().Get("gorm:test_callback")
+	if callback == nil {
+		t.Errorf("`gorm:test_callback` should be non-nil")
+	}
+	callback(scope)
+	if v, ok := scope.Get("gorm:test_callback_value"); !ok || v != 1 {
+		t.Errorf("`gorm:test_callback_value` should be `1, true` but `%v, %v`", v, ok)
+	}
+
+	DB.Callback().Create().Replace("gorm:test_callback", func(scope *gorm.Scope) { scope.Set("gorm:test_callback_value", 2) })
+	callback = DB.Callback().Create().Get("gorm:test_callback")
+	if callback == nil {
+		t.Errorf("`gorm:test_callback` should be non-nil")
+	}
+	callback(scope)
+	if v, ok := scope.Get("gorm:test_callback_value"); !ok || v != 2 {
+		t.Errorf("`gorm:test_callback_value` should be `2, true` but `%v, %v`", v, ok)
+	}
+
+	DB.Callback().Create().Remove("gorm:test_callback")
+	if DB.Callback().Create().Get("gorm:test_callback") != nil {
+		t.Errorf("`gorm:test_callback` should be nil")
+	}
+
+	DB.Callback().Create().Register("gorm:test_callback", func(scope *gorm.Scope) { scope.Set("gorm:test_callback_value", 3) })
+	callback = DB.Callback().Create().Get("gorm:test_callback")
+	if callback == nil {
+		t.Errorf("`gorm:test_callback` should be non-nil")
+	}
+	callback(scope)
+	if v, ok := scope.Get("gorm:test_callback_value"); !ok || v != 3 {
+		t.Errorf("`gorm:test_callback_value` should be `3, true` but `%v, %v`", v, ok)
+	}
+}
+
+func TestUseDefaultCallback(t *testing.T) {
+	createCallbackName := "gorm:test_use_default_callback_for_create"
+	gorm.DefaultCallback.Create().Register(createCallbackName, func(*gorm.Scope) {
+		// nop
+	})
+	if gorm.DefaultCallback.Create().Get(createCallbackName) == nil {
+		t.Errorf("`%s` expected non-nil, but got nil", createCallbackName)
+	}
+	gorm.DefaultCallback.Create().Remove(createCallbackName)
+	if gorm.DefaultCallback.Create().Get(createCallbackName) != nil {
+		t.Errorf("`%s` expected nil, but got non-nil", createCallbackName)
+	}
+
+	updateCallbackName := "gorm:test_use_default_callback_for_update"
+	scopeValueName := "gorm:test_use_default_callback_for_update_value"
+	gorm.DefaultCallback.Update().Register(updateCallbackName, func(scope *gorm.Scope) {
+		scope.Set(scopeValueName, 1)
+	})
+	gorm.DefaultCallback.Update().Replace(updateCallbackName, func(scope *gorm.Scope) {
+		scope.Set(scopeValueName, 2)
+	})
+
+	scope := DB.NewScope(nil)
+	callback := gorm.DefaultCallback.Update().Get(updateCallbackName)
+	callback(scope)
+	if v, ok := scope.Get(scopeValueName); !ok || v != 2 {
+		t.Errorf("`%s` should be `2, true` but `%v, %v`", scopeValueName, v, ok)
 	}
 }
