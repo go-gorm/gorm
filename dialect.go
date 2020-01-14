@@ -131,7 +131,7 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 		additionalType = additionalType + " DEFAULT " + value
 	}
 
-	if value, ok := field.TagSettingsGet("COMMENT"); ok {
+	if value, ok := field.TagSettingsGet("COMMENT"); ok && dialect.GetName() != "sqlite3" {
 		additionalType = additionalType + " COMMENT " + value
 	}
 
