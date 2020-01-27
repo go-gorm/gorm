@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -12,10 +11,8 @@ func (scope *Scope) TableAndQuery() (string, string) {
 	//t, q := scope.TableName(), qs[3].(string)
 
 	if scope.SQL == "" {
-		fmt.Println("### HIT ###")
 		scope.prepareQuerySQL()
 	}
-	fmt.Println("#####", scope.SQL)
 	t, q := scope.TableName(), scope.SQL
 	if t == "" {
 		qsplit := strings.Fields(strings.ToLower(q))
