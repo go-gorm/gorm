@@ -7,10 +7,12 @@ import (
 // TableAndQuery returns the table name and the query already formatted as a string
 func (scope Scope) TableAndQuery() (string, string) {
 	scope.InstanceSet("skip_bindvar", true)
-	scope.prepareQuerySQL()
-
 	//qs := LogFormatter("sql", "q", time.Duration(1), scope.SQL, scope.SQLVars, int64(1))
 	//t, q := scope.TableName(), qs[3].(string)
+
+	if scope.SQL == "" {
+		scope.prepareQuerySQL()
+	}
 	t, q := scope.TableName(), scope.SQL
 	if t == "" {
 		qsplit := strings.Fields(strings.ToLower(q))
