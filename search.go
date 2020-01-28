@@ -2,6 +2,11 @@ package gorm
 
 import (
 	"fmt"
+	"strconv"
+)
+
+const (
+	defaultPerPage = 20
 )
 
 type search struct {
@@ -19,6 +24,9 @@ type search struct {
 	preload          []searchPreload
 	offset           interface{}
 	limit            interface{}
+	page             interface{}
+	perPage          interface{}
+	maxPerPage       int
 	group            string
 	tableName        string
 	raw              bool
@@ -89,6 +97,52 @@ func (s *search) Limit(limit interface{}) *search {
 
 func (s *search) Offset(offset interface{}) *search {
 	s.offset = offset
+	return s
+}
+
+func (s *search) Per(perPage interface{}) *search {
+	s.perPage = perPage
+	s.pageToOffsetLimit()
+	return s
+}
+
+func (s *search) Page(page interface{}) *search {
+	s.page = page
+	s.pageToOffsetLimit()
+	return s
+}
+
+func (s *search) MaxPerPage(maxPerPage int) *search {
+	s.maxPerPage = maxPerPage
+	s.pageToOffsetLimit()
+	return s
+}
+
+func (s *search) pageToOffsetLimit() *search {
+	page, err := strconv.Atoi(fmt.Sprintf("%v", s.page))
+	if err != nil || page <= 0 {
+		page = 1
+	}
+
+	perPage, err := strconv.Atoi(fmt.Sprintf("%v", s.perPage))
+	if err != nil || perPage <= 0 {
+		perPage = defaultPerPage
+	}
+
+	if perPage > s.maxPerPage && s.maxPerPage > 0 {
+		perPage = s.maxPerPage
+	}
+
+	offset := (page - 1) * perPage
+	if offset < 0 {
+		offset = 0
+	}
+
+	s.page = page
+	s.perPage = perPage
+	s.offset = offset
+	s.limit = perPage
+
 	return s
 }
 
