@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// CompatibilityWarning adds a way to remove the default warning about when running in compatibility mode.
+// As default, it is true, when someone puts it to false, it disables the warning.
 var CompatibilityWarning = true
 
 // DB contains information for current db connection
