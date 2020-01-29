@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var CompatibilityWarning = true
+
 // DB contains information for current db connection
 type DB struct {
 	sync.RWMutex
