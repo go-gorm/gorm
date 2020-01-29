@@ -1,8 +1,10 @@
 package gorm
 
 import (
+	"context"
 	"time"
 
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/logger"
 )
 
@@ -38,9 +40,69 @@ type Model struct {
 // Dialector GORM database dialector
 type Dialector interface {
 	Migrator() Migrator
+	BindVar(stmt Statement, v interface{}) string
+}
+
+// Result
+type Result struct {
+	Error        error
+	RowsAffected int64
+	Statement    *Statement
 }
 
 // DB GORM DB definition
 type DB struct {
 	*Config
+	Dialector
+	Result
+	Context context.Context
+}
+
+// WithContext change current instance db's context to ctx
+func (db *DB) WithContext(ctx context.Context) *DB {
+	tx := db.getInstance()
+	tx.Context = ctx
+	return tx
+}
+
+// Set store value with key into current db instance's context
+func (db *DB) Set(key string, value interface{}) *DB {
+	tx := db.getInstance()
+	tx.Statement.Settings.Store(key, value)
+	return tx
+}
+
+// Get get value with key from current db instance's context
+func (db *DB) Get(key string) (interface{}, bool) {
+	if db.Statement != nil {
+		return db.Statement.Settings.Load(key)
+	}
+	return nil, false
+}
+
+func (db *DB) Close() *DB {
+	// TODO
+	return db
+}
+
+func (db *DB) getInstance() *DB {
+	// db.Result.Statement == nil means root DB
+	if db.Result.Statement == nil {
+		return &DB{
+			Config:    db.Config,
+			Dialector: db.Dialector,
+			Context:   context.Background(),
+			Result: Result{
+				Statement: &Statement{DB: db, Clauses: map[string][]clause.Interface{}},
+			},
+		}
+	}
+
+	return db
+}
+
+// Debug start debug mode
+func (db *DB) Debug() (tx *DB) {
+	tx = db.getInstance()
+	return
 }
