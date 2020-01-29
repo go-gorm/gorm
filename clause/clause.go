@@ -11,6 +11,11 @@ type BuilderInterface interface {
 // Interface clause interface
 type Interface interface {
 	Name() string
+	Builder
+}
+
+// Builder condition builder
+type Builder interface {
 	Build(builder BuilderInterface)
 }
 

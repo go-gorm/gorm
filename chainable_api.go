@@ -7,12 +7,14 @@ package gorm
 //    db.Model(&user).Update("name", "hello")
 func (db *DB) Model(value interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Model = value
 	return
 }
 
 // Table specify the table you would like to run db operations
 func (db *DB) Table(name string) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Table = name
 	return
 }
 

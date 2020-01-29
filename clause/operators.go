@@ -2,7 +2,8 @@ package clause
 
 import "strings"
 
-type AddConditions []Interface
+type Condition Builder
+type AddConditions []Condition
 
 func (cs AddConditions) Build(builder BuilderInterface) {
 	for idx, c := range cs {
@@ -13,7 +14,7 @@ func (cs AddConditions) Build(builder BuilderInterface) {
 	}
 }
 
-type ORConditions []Interface
+type ORConditions []Condition
 
 func (cs ORConditions) Build(builder BuilderInterface) {
 	for idx, c := range cs {
@@ -24,7 +25,7 @@ func (cs ORConditions) Build(builder BuilderInterface) {
 	}
 }
 
-type NotConditions []Interface
+type NotConditions []Condition
 
 func (cs NotConditions) Build(builder BuilderInterface) {
 	for idx, c := range cs {
@@ -64,16 +65,22 @@ type IN struct {
 func (in IN) Build(builder BuilderInterface) {
 	builder.WriteQuoted(in.Column)
 
-	if len(in.Values) == 0 {
+	switch len(in.Values) {
+	case 0:
 		builder.Write(" IN (NULL)")
-	} else {
+	case 1:
+		builder.Write(" = ", builder.AddVar(in.Values...))
+	default:
 		builder.Write(" IN (", builder.AddVar(in.Values...), ")")
 	}
 }
 
 func (in IN) NegationBuild(builder BuilderInterface) {
-	if len(in.Values) != 0 {
-		builder.WriteQuoted(in.Column)
+	switch len(in.Values) {
+	case 0:
+	case 1:
+		builder.Write(" <> ", builder.AddVar(in.Values...))
+	default:
 		builder.Write(" NOT IN (", builder.AddVar(in.Values...), ")")
 	}
 }
@@ -192,4 +199,49 @@ func (like Like) Build(builder BuilderInterface) {
 func (like Like) NegationBuild(builder BuilderInterface) {
 	builder.WriteQuoted(like.Column)
 	builder.Write(" NOT LIKE ", builder.AddVar(like.Value))
+}
+
+// Map
+type Map map[interface{}]interface{}
+
+func (m Map) Build(builder BuilderInterface) {
+	// TODO
+}
+
+func (m Map) NegationBuild(builder BuilderInterface) {
+	// TODO
+}
+
+// Attrs
+type Attrs struct {
+	Value  interface{}
+	Select []string
+	Omit   []string
+}
+
+func (attrs Attrs) Build(builder BuilderInterface) {
+	// TODO
+	// builder.WriteQuoted(like.Column)
+	// builder.Write(" LIKE ", builder.AddVar(like.Value))
+}
+
+func (attrs Attrs) NegationBuild(builder BuilderInterface) {
+	// TODO
+}
+
+// ID
+type ID struct {
+	Value []interface{}
+}
+
+func (id ID) Build(builder BuilderInterface) {
+	if len(id.Value) == 1 {
+	}
+	// TODO
+	// builder.WriteQuoted(like.Column)
+	// builder.Write(" LIKE ", builder.AddVar(like.Value))
+}
+
+func (id ID) NegationBuild(builder BuilderInterface) {
+	// TODO
 }

@@ -93,7 +93,7 @@ func (db *DB) getInstance() *DB {
 			Dialector: db.Dialector,
 			Context:   context.Background(),
 			Result: Result{
-				Statement: &Statement{DB: db, Clauses: map[string][]clause.Interface{}},
+				Statement: &Statement{DB: db, Clauses: map[string][]clause.Condition{}},
 			},
 		}
 	}
@@ -103,6 +103,12 @@ func (db *DB) getInstance() *DB {
 
 // Debug start debug mode
 func (db *DB) Debug() (tx *DB) {
+	tx = db.getInstance()
+	return
+}
+
+// Session start session mode
+func (db *DB) Session() (tx *DB) {
 	tx = db.getInstance()
 	return
 }
