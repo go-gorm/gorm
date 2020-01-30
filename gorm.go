@@ -25,44 +25,72 @@ type Config struct {
 	NowFunc func() time.Time
 }
 
-// Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt
-// It may be embeded into your model or you may build your own model without it
-//    type User struct {
-//      gorm.Model
-//    }
-type Model struct {
-	ID        uint `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time `gorm:"index"`
-}
-
 // Dialector GORM database dialector
 type Dialector interface {
 	Migrator() Migrator
 	BindVar(stmt Statement, v interface{}) string
 }
 
-// Result
-type Result struct {
-	Error        error
-	RowsAffected int64
-	Statement    *Statement
-}
-
 // DB GORM DB definition
 type DB struct {
 	*Config
 	Dialector
-	Result
+	Instance
+	clone bool
+}
+
+// Session session config when create new session
+type Session struct {
 	Context context.Context
+	Logger  logger.Interface
+	NowFunc func() time.Time
+}
+
+// Open initialize db session based on dialector
+func Open(dialector Dialector, config *Config) (db *DB, err error) {
+	return &DB{
+		Config:    config,
+		Dialector: dialector,
+		clone:     true,
+	}, nil
+}
+
+// Session create new db session
+func (db *DB) Session(config *Session) *DB {
+	var (
+		tx       = db.getInstance()
+		txConfig = *tx.Config
+	)
+
+	if config.Context != nil {
+		tx.Context = config.Context
+	}
+
+	if config.Logger != nil {
+		txConfig.Logger = config.Logger
+	}
+
+	if config.NowFunc != nil {
+		txConfig.NowFunc = config.NowFunc
+	}
+
+	tx.Config = &txConfig
+	tx.clone = true
+	return tx
 }
 
 // WithContext change current instance db's context to ctx
 func (db *DB) WithContext(ctx context.Context) *DB {
-	tx := db.getInstance()
-	tx.Context = ctx
-	return tx
+	return db.Session(&Session{Context: ctx})
+}
+
+// Debug start debug mode
+func (db *DB) Debug() (tx *DB) {
+	return db.Session(&Session{Logger: db.Logger.LogMode(logger.Info)})
+}
+
+func (db *DB) Close() error {
+	return nil
 }
 
 // Set store value with key into current db instance's context
@@ -80,35 +108,22 @@ func (db *DB) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (db *DB) Close() *DB {
-	// TODO
-	return db
-}
-
 func (db *DB) getInstance() *DB {
-	// db.Result.Statement == nil means root DB
-	if db.Result.Statement == nil {
+	if db.clone {
+		ctx := db.Instance.Context
+		if ctx == nil {
+			ctx = context.Background()
+		}
+
 		return &DB{
 			Config:    db.Config,
 			Dialector: db.Dialector,
-			Context:   context.Background(),
-			Result: Result{
-				Statement: &Statement{DB: db, Clauses: map[string][]clause.Condition{}},
+			Instance: Instance{
+				Context:   ctx,
+				Statement: &Statement{DB: db, Clauses: map[string]clause.Clause{}},
 			},
 		}
 	}
 
 	return db
-}
-
-// Debug start debug mode
-func (db *DB) Debug() (tx *DB) {
-	tx = db.getInstance()
-	return
-}
-
-// Session start session mode
-func (db *DB) Session() (tx *DB) {
-	tx = db.getInstance()
-	return
 }

@@ -1,5 +1,7 @@
 package gorm
 
+import "github.com/jinzhu/gorm/clause"
+
 // Model specify the model you would like to run db operations
 //    // update all users's name to `hello`
 //    db.Model(&User{}).Update("name", "hello")
@@ -8,6 +10,27 @@ package gorm
 func (db *DB) Model(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Model = value
+	return
+}
+
+// Clauses Add clauses
+func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
+	tx = db.getInstance()
+	var whereConds []interface{}
+
+	for _, cond := range conds {
+		if c, ok := cond.(clause.Interface); ok {
+			tx.Statement.AddClause(c)
+		} else {
+			whereConds = append(whereConds, cond)
+		}
+	}
+
+	if len(whereConds) > 0 {
+		tx.Statement.AddClause(clause.Where{
+			AndConditions: tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...),
+		})
+	}
 	return
 }
 
@@ -32,18 +55,25 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.Where{AndConditions: tx.Statement.BuildCondtion(query, args...)})
 	return
 }
 
 // Not add NOT condition
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.Where{
+		AndConditions: []clause.Expression{clause.NotConditions(tx.Statement.BuildCondtion(query, args...))},
+	})
 	return
 }
 
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.Where{
+		ORConditions: []clause.ORConditions{tx.Statement.BuildCondtion(query, args...)},
+	})
 	return
 }
 
@@ -98,18 +128,11 @@ func (db *DB) Offset(offset int64) (tx *DB) {
 //     }
 //
 //     db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
-// Refer https://jinzhu.github.io/gorm/crud.html#scopes
-func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
+func (db *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 	for _, f := range funcs {
 		db = f(db)
 	}
 	return db
-}
-
-//Preloads only preloads relations, don`t touch out
-func (db *DB) Preloads(out interface{}) (tx *DB) {
-	tx = db.getInstance()
-	return
 }
 
 // Preload preload associations with given conditions

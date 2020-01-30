@@ -2,10 +2,13 @@ package clause
 
 import "strings"
 
-type Condition Builder
-type AddConditions []Condition
+////////////////////////////////////////////////////////////////////////////////
+// Query Expressions
+////////////////////////////////////////////////////////////////////////////////
 
-func (cs AddConditions) Build(builder BuilderInterface) {
+type AddConditions []Expression
+
+func (cs AddConditions) Build(builder Builder) {
 	for idx, c := range cs {
 		if idx > 0 {
 			builder.Write(" AND ")
@@ -14,9 +17,9 @@ func (cs AddConditions) Build(builder BuilderInterface) {
 	}
 }
 
-type ORConditions []Condition
+type ORConditions []Expression
 
-func (cs ORConditions) Build(builder BuilderInterface) {
+func (cs ORConditions) Build(builder Builder) {
 	for idx, c := range cs {
 		if idx > 0 {
 			builder.Write(" OR ")
@@ -25,15 +28,15 @@ func (cs ORConditions) Build(builder BuilderInterface) {
 	}
 }
 
-type NotConditions []Condition
+type NotConditions []Expression
 
-func (cs NotConditions) Build(builder BuilderInterface) {
+func (cs NotConditions) Build(builder Builder) {
 	for idx, c := range cs {
 		if idx > 0 {
 			builder.Write(" AND ")
 		}
 
-		if negationBuilder, ok := c.(NegationBuilder); ok {
+		if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
 			negationBuilder.NegationBuild(builder)
 		} else {
 			builder.Write(" NOT ")
@@ -42,15 +45,15 @@ func (cs NotConditions) Build(builder BuilderInterface) {
 	}
 }
 
-// Raw raw sql for where
-type Raw struct {
+// String raw sql for where
+type String struct {
 	SQL    string
 	Values []interface{}
 }
 
-func (raw Raw) Build(builder BuilderInterface) {
-	sql := raw.SQL
-	for _, v := range raw.Values {
+func (str String) Build(builder Builder) {
+	sql := str.SQL
+	for _, v := range str.Values {
 		sql = strings.Replace(sql, " ? ", " "+builder.AddVar(v)+" ", 1)
 	}
 	builder.Write(sql)
@@ -62,7 +65,7 @@ type IN struct {
 	Values []interface{}
 }
 
-func (in IN) Build(builder BuilderInterface) {
+func (in IN) Build(builder Builder) {
 	builder.WriteQuoted(in.Column)
 
 	switch len(in.Values) {
@@ -75,7 +78,7 @@ func (in IN) Build(builder BuilderInterface) {
 	}
 }
 
-func (in IN) NegationBuild(builder BuilderInterface) {
+func (in IN) NegationBuild(builder Builder) {
 	switch len(in.Values) {
 	case 0:
 	case 1:
@@ -91,7 +94,7 @@ type Eq struct {
 	Value  interface{}
 }
 
-func (eq Eq) Build(builder BuilderInterface) {
+func (eq Eq) Build(builder Builder) {
 	builder.WriteQuoted(eq.Column)
 
 	if eq.Value == nil {
@@ -101,7 +104,7 @@ func (eq Eq) Build(builder BuilderInterface) {
 	}
 }
 
-func (eq Eq) NegationBuild(builder BuilderInterface) {
+func (eq Eq) NegationBuild(builder Builder) {
 	Neq{eq.Column, eq.Value}.Build(builder)
 }
 
@@ -111,7 +114,7 @@ type Neq struct {
 	Value  interface{}
 }
 
-func (neq Neq) Build(builder BuilderInterface) {
+func (neq Neq) Build(builder Builder) {
 	builder.WriteQuoted(neq.Column)
 
 	if neq.Value == nil {
@@ -121,7 +124,7 @@ func (neq Neq) Build(builder BuilderInterface) {
 	}
 }
 
-func (neq Neq) NegationBuild(builder BuilderInterface) {
+func (neq Neq) NegationBuild(builder Builder) {
 	Eq{neq.Column, neq.Value}.Build(builder)
 }
 
@@ -131,12 +134,12 @@ type Gt struct {
 	Value  interface{}
 }
 
-func (gt Gt) Build(builder BuilderInterface) {
+func (gt Gt) Build(builder Builder) {
 	builder.WriteQuoted(gt.Column)
 	builder.Write(" > ", builder.AddVar(gt.Value))
 }
 
-func (gt Gt) NegationBuild(builder BuilderInterface) {
+func (gt Gt) NegationBuild(builder Builder) {
 	Lte{gt.Column, gt.Value}.Build(builder)
 }
 
@@ -146,12 +149,12 @@ type Gte struct {
 	Value  interface{}
 }
 
-func (gte Gte) Build(builder BuilderInterface) {
+func (gte Gte) Build(builder Builder) {
 	builder.WriteQuoted(gte.Column)
 	builder.Write(" >= ", builder.AddVar(gte.Value))
 }
 
-func (gte Gte) NegationBuild(builder BuilderInterface) {
+func (gte Gte) NegationBuild(builder Builder) {
 	Lt{gte.Column, gte.Value}.Build(builder)
 }
 
@@ -161,12 +164,12 @@ type Lt struct {
 	Value  interface{}
 }
 
-func (lt Lt) Build(builder BuilderInterface) {
+func (lt Lt) Build(builder Builder) {
 	builder.WriteQuoted(lt.Column)
 	builder.Write(" < ", builder.AddVar(lt.Value))
 }
 
-func (lt Lt) NegationBuild(builder BuilderInterface) {
+func (lt Lt) NegationBuild(builder Builder) {
 	Gte{lt.Column, lt.Value}.Build(builder)
 }
 
@@ -176,12 +179,12 @@ type Lte struct {
 	Value  interface{}
 }
 
-func (lte Lte) Build(builder BuilderInterface) {
+func (lte Lte) Build(builder Builder) {
 	builder.WriteQuoted(lte.Column)
 	builder.Write(" <= ", builder.AddVar(lte.Value))
 }
 
-func (lte Lte) NegationBuild(builder BuilderInterface) {
+func (lte Lte) NegationBuild(builder Builder) {
 	Gt{lte.Column, lte.Value}.Build(builder)
 }
 
@@ -191,12 +194,12 @@ type Like struct {
 	Value  interface{}
 }
 
-func (like Like) Build(builder BuilderInterface) {
+func (like Like) Build(builder Builder) {
 	builder.WriteQuoted(like.Column)
 	builder.Write(" LIKE ", builder.AddVar(like.Value))
 }
 
-func (like Like) NegationBuild(builder BuilderInterface) {
+func (like Like) NegationBuild(builder Builder) {
 	builder.WriteQuoted(like.Column)
 	builder.Write(" NOT LIKE ", builder.AddVar(like.Value))
 }
@@ -204,11 +207,11 @@ func (like Like) NegationBuild(builder BuilderInterface) {
 // Map
 type Map map[interface{}]interface{}
 
-func (m Map) Build(builder BuilderInterface) {
+func (m Map) Build(builder Builder) {
 	// TODO
 }
 
-func (m Map) NegationBuild(builder BuilderInterface) {
+func (m Map) NegationBuild(builder Builder) {
 	// TODO
 }
 
@@ -219,13 +222,13 @@ type Attrs struct {
 	Omit   []string
 }
 
-func (attrs Attrs) Build(builder BuilderInterface) {
+func (attrs Attrs) Build(builder Builder) {
 	// TODO
 	// builder.WriteQuoted(like.Column)
 	// builder.Write(" LIKE ", builder.AddVar(like.Value))
 }
 
-func (attrs Attrs) NegationBuild(builder BuilderInterface) {
+func (attrs Attrs) NegationBuild(builder Builder) {
 	// TODO
 }
 
@@ -234,7 +237,7 @@ type ID struct {
 	Value []interface{}
 }
 
-func (id ID) Build(builder BuilderInterface) {
+func (id ID) Build(builder Builder) {
 	if len(id.Value) == 1 {
 	}
 	// TODO
@@ -242,6 +245,6 @@ func (id ID) Build(builder BuilderInterface) {
 	// builder.Write(" LIKE ", builder.AddVar(like.Value))
 }
 
-func (id ID) NegationBuild(builder BuilderInterface) {
+func (id ID) NegationBuild(builder Builder) {
 	// TODO
 }

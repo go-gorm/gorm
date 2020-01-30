@@ -33,8 +33,6 @@ func (db *DB) Find(out interface{}, where ...interface{}) (tx *DB) {
 	return
 }
 
-// Scan scan value to a struct
-
 func (db *DB) Row() *sql.Row {
 	// TODO
 	return nil
@@ -45,6 +43,7 @@ func (db *DB) Rows() (*sql.Rows, error) {
 	return nil, nil
 }
 
+// Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
@@ -88,12 +87,12 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) FirstOrInit(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) FirstOrInit(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
@@ -107,6 +106,16 @@ func (db *DB) Delete(value interface{}, where ...interface{}) (tx *DB) {
 func (db *DB) Related(value interface{}, foreignKeys ...string) (tx *DB) {
 	tx = db.getInstance()
 	return
+}
+
+//Preloads only preloads relations, don`t touch out
+func (db *DB) Preloads(out interface{}) (tx *DB) {
+	tx = db.getInstance()
+	return
+}
+
+func (db *DB) Association(column string) *Association {
+	return nil
 }
 
 func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error) {
@@ -147,8 +156,4 @@ func (db *DB) Rollback() (tx *DB) {
 func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
-}
-
-func (db *DB) Association(column string) *Association {
-	return nil
 }

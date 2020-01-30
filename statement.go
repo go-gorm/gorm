@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -13,23 +12,41 @@ import (
 	"github.com/jinzhu/gorm/clause"
 )
 
-// Statement statement
-type Statement struct {
-	Model    interface{}
-	Dest     interface{}
-	Table    string
-	Clauses  map[string][]clause.Condition
-	Settings sync.Map
-	Context  context.Context
-	DB       *DB
-	StatementBuilder
+// Instance db instance
+type Instance struct {
+	Error        error
+	RowsAffected int64
+	Context      context.Context
+	Statement    *Statement
 }
 
-// StatementBuilder statement builder
-type StatementBuilder struct {
-	SQL       bytes.Buffer
+// AddError add error to instance
+func (inst Instance) AddError(err error) {
+	if inst.Error == nil {
+		inst.Error = err
+	} else {
+		inst.Error = fmt.Errorf("%v; %w", inst.Error, err)
+	}
+}
+
+// Statement statement
+type Statement struct {
+	Table    string
+	Model    interface{}
+	Dest     interface{}
+	Clauses  map[string]clause.Clause
+	Settings sync.Map
+	DB       *DB
+
+	// SQL Builder
+	SQL       strings.Builder
 	Vars      []interface{}
 	NamedVars []sql.NamedArg
+}
+
+// StatementOptimizer statement optimizer interface
+type StatementOptimizer interface {
+	OptimizeStatement(Statement)
 }
 
 // Write write string
@@ -40,10 +57,21 @@ func (stmt Statement) Write(sql ...string) (err error) {
 	return
 }
 
+// Write write string
+func (stmt Statement) WriteByte(c byte) (err error) {
+	return stmt.SQL.WriteByte(c)
+}
+
 // WriteQuoted write quoted field
 func (stmt Statement) WriteQuoted(field interface{}) (err error) {
 	_, err = stmt.SQL.WriteString(stmt.Quote(field))
 	return
+}
+
+// Quote returns quoted value
+func (stmt Statement) Quote(field interface{}) (str string) {
+	// FIXME
+	return fmt.Sprint(field)
 }
 
 // Write write string
@@ -73,23 +101,34 @@ func (stmt Statement) AddVar(vars ...interface{}) string {
 	return placeholders.String()
 }
 
-// Quote returns quoted value
-func (stmt Statement) Quote(field interface{}) (str string) {
-	return fmt.Sprint(field)
-}
-
 // AddClause add clause
-func (s Statement) AddClause(clause clause.Interface) {
-	s.Clauses[clause.Name()] = append(s.Clauses[clause.Name()], clause)
+func (stmt Statement) AddClause(v clause.Interface) {
+	if optimizer, ok := v.(StatementOptimizer); ok {
+		optimizer.OptimizeStatement(stmt)
+	}
+
+	c, _ := stmt.Clauses[v.Name()]
+	if namer, ok := v.(clause.OverrideNameInterface); ok {
+		c.Name = namer.OverrideName()
+	} else {
+		c.Name = v.Name()
+	}
+
+	if c.Expression != nil {
+		v.MergeExpression(c.Expression)
+	}
+
+	c.Expression = v
+	stmt.Clauses[v.Name()] = c
 }
 
-// BuildCondtions build conditions
-func (s Statement) BuildCondtions(query interface{}, args ...interface{}) (conditions []clause.Condition) {
+// BuildCondtion build condition
+func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conditions []clause.Expression) {
 	if sql, ok := query.(string); ok {
 		if i, err := strconv.Atoi(sql); err != nil {
 			query = i
 		} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
-			return []clause.Condition{clause.Raw{SQL: sql, Values: args}}
+			return []clause.Expression{clause.String{SQL: sql, Values: args}}
 		}
 	}
 
@@ -100,12 +139,12 @@ func (s Statement) BuildCondtions(query interface{}, args ...interface{}) (condi
 		}
 
 		switch v := arg.(type) {
-		case clause.Builder:
+		case clause.Expression:
 			conditions = append(conditions, v)
 		case *DB:
 			if v.Statement == nil {
 				if cs, ok := v.Statement.Clauses["WHERE"]; ok {
-					conditions = append(conditions, cs...)
+					conditions = append(conditions, cs.Expression)
 				}
 			}
 		case map[interface{}]interface{}:
@@ -135,8 +174,22 @@ func (s Statement) BuildCondtions(query interface{}, args ...interface{}) (condi
 	if len(conditions) == 0 {
 		conditions = append(conditions, clause.ID{Value: args})
 	}
+
 	return conditions
 }
 
-func (s Statement) AddError(err error) {
+// Build build sql with clauses names
+func (stmt Statement) Build(clauses ...string) {
+	var includeSpace bool
+
+	for _, name := range clauses {
+		if c, ok := stmt.Clauses[name]; ok {
+			if includeSpace {
+				stmt.WriteByte(' ')
+			}
+
+			includeSpace = true
+			c.Build(stmt)
+		}
+	}
 }
