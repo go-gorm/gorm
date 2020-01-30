@@ -1,6 +1,9 @@
 package gorm
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	// ErrRecordNotFound record not found error
@@ -13,10 +16,14 @@ var (
 	ErrUnaddressable = errors.New("using unaddressable value")
 )
 
-type Error struct {
-	Err error
-}
-
-func (e Error) Unwrap() error {
-	return e.Err
+// Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt
+// It may be embeded into your model or you may build your own model without it
+//    type User struct {
+//      gorm.Model
+//    }
+type Model struct {
+	ID        uint `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `gorm:"index"`
 }
