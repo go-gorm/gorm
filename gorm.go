@@ -6,17 +6,17 @@ import (
 
 	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/logger"
+	"github.com/jinzhu/gorm/schema"
 )
 
 // Config GORM config
 type Config struct {
-	// Set true to use singular table name, by default, GORM will pluralize your struct's name as table name
-	// Refer https://github.com/jinzhu/inflection for inflection rules
-	SingularTable bool
-
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
 	// You can cancel it by setting `SkipDefaultTransaction` to true
 	SkipDefaultTransaction bool
+
+	// NamingStrategy tables, columns naming strategy
+	NamingStrategy schema.Namer
 
 	// Logger
 	Logger logger.Interface
@@ -48,6 +48,10 @@ type Session struct {
 
 // Open initialize db session based on dialector
 func Open(dialector Dialector, config *Config) (db *DB, err error) {
+	if config.NamingStrategy == nil {
+		config.NamingStrategy = schema.NamingStrategy{}
+	}
+
 	return &DB{
 		Config:    config,
 		Dialector: dialector,
