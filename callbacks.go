@@ -2,26 +2,36 @@ package gorm
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/utils"
 )
 
-// Callbacks gorm callbacks manager
-type Callbacks struct {
-	creates    []func(*DB)
-	queries    []func(*DB)
-	updates    []func(*DB)
-	deletes    []func(*DB)
-	row        []func(*DB)
-	raw        []func(*DB)
-	db         *DB
-	processors []*processor
+func InitializeCallbacks() *callbacks {
+	return &callbacks{
+		processors: map[string]*processor{
+			"create": &processor{},
+			"query":  &processor{},
+			"update": &processor{},
+			"delete": &processor{},
+			"row":    &processor{},
+			"raw":    &processor{},
+		},
+	}
+}
+
+// callbacks gorm callbacks manager
+type callbacks struct {
+	processors map[string]*processor
 }
 
 type processor struct {
-	kind      string
+	db        *DB
+	fns       []func(*DB)
+	callbacks []*callback
+}
+
+type callback struct {
 	name      string
 	before    string
 	after     string
@@ -29,79 +39,111 @@ type processor struct {
 	replace   bool
 	match     func(*DB) bool
 	handler   func(*DB)
-	callbacks *Callbacks
+	processor *processor
 }
 
-func (cs *Callbacks) Create() *processor {
-	return &processor{callbacks: cs, kind: "create"}
+func (cs *callbacks) Create() *processor {
+	return cs.processors["create"]
 }
 
-func (cs *Callbacks) Query() *processor {
-	return &processor{callbacks: cs, kind: "query"}
+func (cs *callbacks) Query() *processor {
+	return cs.processors["query"]
 }
 
-func (cs *Callbacks) Update() *processor {
-	return &processor{callbacks: cs, kind: "update"}
+func (cs *callbacks) Update() *processor {
+	return cs.processors["update"]
 }
 
-func (cs *Callbacks) Delete() *processor {
-	return &processor{callbacks: cs, kind: "delete"}
+func (cs *callbacks) Delete() *processor {
+	return cs.processors["delete"]
 }
 
-func (cs *Callbacks) Row() *processor {
-	return &processor{callbacks: cs, kind: "row"}
+func (cs *callbacks) Row() *processor {
+	return cs.processors["row"]
 }
 
-func (cs *Callbacks) Raw() *processor {
-	return &processor{callbacks: cs, kind: "raw"}
+func (cs *callbacks) Raw() *processor {
+	return cs.processors["raw"]
 }
 
-func (p *processor) Before(name string) *processor {
-	p.before = name
-	return p
-}
-
-func (p *processor) After(name string) *processor {
-	p.after = name
-	return p
-}
-
-func (p *processor) Match(fc func(*DB) bool) *processor {
-	p.match = fc
-	return p
+func (p *processor) Execute(db *DB) {
+	for _, f := range p.fns {
+		f(db)
+	}
 }
 
 func (p *processor) Get(name string) func(*DB) {
-	for i := len(p.callbacks.processors) - 1; i >= 0; i-- {
-		if v := p.callbacks.processors[i]; v.name == name && v.kind == v.kind && !v.remove {
+	for i := len(p.callbacks) - 1; i >= 0; i-- {
+		if v := p.callbacks[i]; v.name == name && !v.remove {
 			return v.handler
 		}
 	}
 	return nil
 }
 
-func (p *processor) Register(name string, fn func(*DB)) {
-	p.name = name
-	p.handler = fn
-	p.callbacks.processors = append(p.callbacks.processors, p)
-	p.callbacks.compile(p.callbacks.db)
+func (p *processor) Before(name string) *callback {
+	return &callback{before: name, processor: p}
 }
 
-func (p *processor) Remove(name string) {
-	logger.Default.Info("removing callback `%v` from %v\n", name, utils.FileWithLineNum())
-	p.name = name
-	p.remove = true
-	p.callbacks.processors = append(p.callbacks.processors, p)
-	p.callbacks.compile(p.callbacks.db)
+func (p *processor) After(name string) *callback {
+	return &callback{after: name, processor: p}
 }
 
-func (p *processor) Replace(name string, fn func(*DB)) {
-	logger.Default.Info("[info] replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
-	p.name = name
-	p.handler = fn
-	p.replace = true
-	p.callbacks.processors = append(p.callbacks.processors, p)
-	p.callbacks.compile(p.callbacks.db)
+func (p *processor) Match(fc func(*DB) bool) *callback {
+	return &callback{match: fc, processor: p}
+}
+
+func (p *processor) Register(name string, fn func(*DB)) error {
+	return (&callback{processor: p}).Register(name, fn)
+}
+
+func (p *processor) Remove(name string) error {
+	return (&callback{processor: p}).Remove(name)
+}
+
+func (p *processor) Replace(name string, fn func(*DB)) error {
+	return (&callback{processor: p}).Replace(name, fn)
+}
+
+func (p *processor) compile(db *DB) (err error) {
+	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
+		logger.Default.Error("Got error when compile callbacks, got %v", err)
+	}
+	return
+}
+
+func (c *callback) Before(name string) *callback {
+	c.before = name
+	return c
+}
+
+func (c *callback) After(name string) *callback {
+	c.after = name
+	return c
+}
+
+func (c *callback) Register(name string, fn func(*DB)) error {
+	c.name = name
+	c.handler = fn
+	c.processor.callbacks = append(c.processor.callbacks, c)
+	return c.processor.compile(c.processor.db)
+}
+
+func (c *callback) Remove(name string) error {
+	logger.Default.Warn("removing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.name = name
+	c.remove = true
+	c.processor.callbacks = append(c.processor.callbacks, c)
+	return c.processor.compile(c.processor.db)
+}
+
+func (c *callback) Replace(name string, fn func(*DB)) error {
+	logger.Default.Info("replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.name = name
+	c.handler = fn
+	c.replace = true
+	c.processor.callbacks = append(c.processor.callbacks, c)
+	return c.processor.compile(c.processor.db)
 }
 
 // getRIndex get right index from string slice
@@ -114,98 +156,81 @@ func getRIndex(strs []string, str string) int {
 	return -1
 }
 
-func sortProcessors(ps []*processor) []func(*DB) {
+func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 	var (
-		allNames, sortedNames []string
-		sortProcessor         func(*processor) error
+		names, sorted []string
+		sortCallback  func(*callback) error
 	)
 
-	for _, p := range ps {
+	for _, c := range cs {
 		// show warning message the callback name already exists
-		if idx := getRIndex(allNames, p.name); idx > -1 && !p.replace && !p.remove && !ps[idx].remove {
-			log.Printf("[warning] duplicated callback `%v` from %v\n", p.name, utils.FileWithLineNum())
+		if idx := getRIndex(names, c.name); idx > -1 && !c.replace && !c.remove && !cs[idx].remove {
+			logger.Default.Warn("duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
 		}
-		allNames = append(allNames, p.name)
+		names = append(names, c.name)
 	}
 
-	sortProcessor = func(p *processor) error {
-		if getRIndex(sortedNames, p.name) == -1 { // if not sorted
-			if p.before != "" { // if defined before callback
-				if sortedIdx := getRIndex(sortedNames, p.before); sortedIdx != -1 {
-					if curIdx := getRIndex(sortedNames, p.name); curIdx != -1 || true {
-						// if before callback already sorted, append current callback just after it
-						sortedNames = append(sortedNames[:sortedIdx], append([]string{p.name}, sortedNames[sortedIdx:]...)...)
-					} else if curIdx > sortedIdx {
-						return fmt.Errorf("conflicting callback %v with before %v", p.name, p.before)
-					}
-				} else if idx := getRIndex(allNames, p.before); idx != -1 {
-					// if before callback exists
-					ps[idx].after = p.name
+	sortCallback = func(c *callback) error {
+		if c.before != "" { // if defined before callback
+			if sortedIdx := getRIndex(sorted, c.before); sortedIdx != -1 {
+				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
+					// if before callback already sorted, append current callback just after it
+					sorted = append(sorted[:sortedIdx], append([]string{c.name}, sorted[sortedIdx:]...)...)
+				} else if curIdx > sortedIdx {
+					return fmt.Errorf("conflicting callback %v with before %v", c.name, c.before)
 				}
+			} else if idx := getRIndex(names, c.before); idx != -1 {
+				// if before callback exists
+				cs[idx].after = c.name
 			}
+		}
 
-			if p.after != "" { // if defined after callback
-				if sortedIdx := getRIndex(sortedNames, p.after); sortedIdx != -1 {
+		if c.after != "" { // if defined after callback
+			if sortedIdx := getRIndex(sorted, c.after); sortedIdx != -1 {
+				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
 					// if after callback sorted, append current callback to last
-					sortedNames = append(sortedNames, p.name)
-				} else if idx := getRIndex(allNames, p.after); idx != -1 {
-					// if after callback exists but haven't sorted
-					// set after callback's before callback to current callback
-					if after := ps[idx]; after.before == "" {
-						after.before = p.name
-						sortProcessor(after)
-					}
+					sorted = append(sorted, c.name)
+				} else if curIdx < sortedIdx {
+					return fmt.Errorf("conflicting callback %v with before %v", c.name, c.after)
+				}
+			} else if idx := getRIndex(names, c.after); idx != -1 {
+				// if after callback exists but haven't sorted
+				// set after callback's before callback to current callback
+				after := cs[idx]
+
+				if after.before == "" {
+					after.before = c.name
+				}
+
+				if err := sortCallback(after); err != nil {
+					return err
+				}
+
+				if err := sortCallback(c); err != nil {
+					return err
 				}
 			}
+		}
 
-			// if current callback haven't been sorted, append it to last
-			if getRIndex(sortedNames, p.name) == -1 {
-				sortedNames = append(sortedNames, p.name)
-			}
+		// if current callback haven't been sorted, append it to last
+		if getRIndex(sorted, c.name) == -1 {
+			sorted = append(sorted, c.name)
 		}
 
 		return nil
 	}
 
-	for _, p := range ps {
-		sortProcessor(p)
-	}
-
-	var fns []func(*DB)
-	for _, name := range sortedNames {
-		if idx := getRIndex(allNames, name); !ps[idx].remove {
-			fns = append(fns, ps[idx].handler)
+	for _, c := range cs {
+		if err = sortCallback(c); err != nil {
+			return
 		}
 	}
 
-	return fns
-}
-
-// compile processors
-func (cs *Callbacks) compile(db *DB) {
-	processors := map[string][]*processor{}
-	for _, p := range cs.processors {
-		if p.name != "" {
-			if p.match == nil || p.match(db) {
-				processors[p.kind] = append(processors[p.kind], p)
-			}
+	for _, name := range sorted {
+		if idx := getRIndex(names, name); !cs[idx].remove {
+			fns = append(fns, cs[idx].handler)
 		}
 	}
 
-	for name, ps := range processors {
-		switch name {
-		case "create":
-			cs.creates = sortProcessors(ps)
-		case "query":
-			cs.queries = sortProcessors(ps)
-		case "update":
-			cs.updates = sortProcessors(ps)
-		case "delete":
-			cs.deletes = sortProcessors(ps)
-		case "row":
-			cs.row = sortProcessors(ps)
-		case "raw":
-			cs.raw = sortProcessors(ps)
-		}
-	}
+	return
 }
