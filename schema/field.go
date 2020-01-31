@@ -177,7 +177,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-		field.EmbeddedbSchema = Parse(fieldValue, sync.Map{})
+		field.EmbeddedbSchema = Parse(fieldValue, sync.Map{}, schema.namer)
 		for _, ef := range field.EmbeddedbSchema.Fields {
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 
