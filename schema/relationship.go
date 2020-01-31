@@ -1,4 +1,4 @@
-package model
+package schema
 
 // RelationshipType relationship type
 type RelationshipType string
@@ -34,4 +34,10 @@ type JoinTable struct {
 	Table                  string
 	ForeignKeys            []*RelationField
 	AssociationForeignKeys []*RelationField
+}
+
+func (schema *Schema) buildToOneRel(field *Field) {
+}
+
+func (schema *Schema) buildToManyRel(field *Field) {
 }
