@@ -176,7 +176,12 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-		field.EmbeddedSchema, schema.err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer)
+		var err error
+		field.Creatable = false
+		field.Updatable = false
+		if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
+			schema.err = err
+		}
 		for _, ef := range field.EmbeddedSchema.Fields {
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/jinzhu/gorm/logger"
@@ -26,7 +25,7 @@ type Schema struct {
 }
 
 func (schema Schema) String() string {
-	return schema.ModelType.PkgPath()
+	return fmt.Sprintf("%v.%v", schema.ModelType.PkgPath(), schema.ModelType.Name())
 }
 
 func (schema Schema) LookUpField(name string) *Field {
@@ -63,6 +62,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		Table:          namer.TableName(modelType.Name()),
 		FieldsByName:   map[string]*Field{},
 		FieldsByDBName: map[string]*Field{},
+		Relationships:  Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:     cacheStore,
 		namer:          namer,
 	}
@@ -76,10 +76,10 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	for i := 0; i < modelType.NumField(); i++ {
 		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
-			field := schema.ParseField(fieldStruct)
-			schema.Fields = append(schema.Fields, field)
-			if field.EmbeddedSchema != nil {
+			if field := schema.ParseField(fieldStruct); field.EmbeddedSchema != nil {
 				schema.Fields = append(schema.Fields, field.EmbeddedSchema.Fields...)
+			} else {
+				schema.Fields = append(schema.Fields, field)
 			}
 		}
 	}
@@ -94,6 +94,27 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || (field.Creatable && len(field.BindNames) < len(v.BindNames)) {
 				schema.FieldsByDBName[field.DBName] = field
 				schema.FieldsByName[field.Name] = field
+
+				if v != nil && v.PrimaryKey {
+					if schema.PrioritizedPrimaryField == v {
+						schema.PrioritizedPrimaryField = nil
+					}
+
+					for idx, f := range schema.PrimaryFields {
+						if f == v {
+							schema.PrimaryFields = append(schema.PrimaryFields[0:idx], schema.PrimaryFields[idx+1:]...)
+						} else if schema.PrioritizedPrimaryField == nil {
+							schema.PrioritizedPrimaryField = f
+						}
+					}
+				}
+
+				if field.PrimaryKey {
+					if schema.PrioritizedPrimaryField == nil {
+						schema.PrioritizedPrimaryField = field
+					}
+					schema.PrimaryFields = append(schema.PrimaryFields, field)
+				}
 			}
 		}
 
@@ -102,23 +123,26 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	for db, field := range schema.FieldsByDBName {
-		if strings.ToLower(db) == "id" {
-			schema.PrioritizedPrimaryField = field
-		}
-
-		if field.PrimaryKey {
-			if schema.PrioritizedPrimaryField == nil {
-				schema.PrioritizedPrimaryField = field
-			}
-			schema.PrimaryFields = append(schema.PrimaryFields, field)
-		}
-
-		if field.DataType == "" {
-			defer schema.parseRelation(field)
+	if f := schema.LookUpField("id"); f != nil {
+		if f.PrimaryKey {
+			schema.PrioritizedPrimaryField = f
+		} else if len(schema.PrimaryFields) == 0 {
+			f.PrimaryKey = true
+			schema.PrioritizedPrimaryField = f
+			schema.PrimaryFields = append(schema.PrimaryFields, f)
 		}
 	}
 
 	cacheStore.Store(modelType, schema)
+
+	// parse relations for unidentified fields
+	for _, field := range schema.Fields {
+		if field.DataType == "" && field.Creatable {
+			if schema.parseRelation(field); schema.err != nil {
+				return schema, schema.err
+			}
+		}
+	}
+
 	return schema, schema.err
 }

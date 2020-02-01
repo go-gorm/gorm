@@ -33,7 +33,7 @@ type Relationship struct {
 	Schema                   *Schema
 	FieldSchema              *Schema
 	JoinTable                *Schema
-	ForeignKeys, PrimaryKeys []string
+	foreignKeys, primaryKeys []string
 }
 
 type Polymorphic struct {
@@ -51,17 +51,19 @@ type Reference struct {
 
 func (schema *Schema) parseRelation(field *Field) {
 	var (
+		err        error
 		fieldValue = reflect.New(field.FieldType).Interface()
 		relation   = &Relationship{
 			Name:        field.Name,
 			Field:       field,
 			Schema:      schema,
-			ForeignKeys: toColumns(field.TagSettings["FOREIGNKEY"]),
-			PrimaryKeys: toColumns(field.TagSettings["REFERENCES"]),
+			foreignKeys: toColumns(field.TagSettings["FOREIGNKEY"]),
+			primaryKeys: toColumns(field.TagSettings["REFERENCES"]),
 		}
 	)
 
-	if relation.FieldSchema, schema.err = Parse(fieldValue, schema.cacheStore, schema.namer); schema.err != nil {
+	if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
+		schema.err = err
 		return
 	}
 
@@ -84,6 +86,20 @@ func (schema *Schema) parseRelation(field *Field) {
 			relation.Type = HasOne
 		case reflect.Slice:
 			relation.Type = HasMany
+		}
+	}
+
+	if schema.err == nil {
+		schema.Relationships.Relations[relation.Name] = relation
+		switch relation.Type {
+		case HasOne:
+			schema.Relationships.HasOne = append(schema.Relationships.HasOne, relation)
+		case HasMany:
+			schema.Relationships.HasMany = append(schema.Relationships.HasMany, relation)
+		case BelongsTo:
+			schema.Relationships.BelongsTo = append(schema.Relationships.BelongsTo, relation)
+		case Many2Many:
+			schema.Relationships.Many2Many = append(schema.Relationships.Many2Many, relation)
 		}
 	}
 }
@@ -125,9 +141,9 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 		})
 
 		primaryKeyField := schema.PrioritizedPrimaryField
-		if len(relation.ForeignKeys) > 0 {
-			if primaryKeyField = schema.LookUpField(relation.ForeignKeys[0]); primaryKeyField == nil || len(relation.ForeignKeys) > 1 {
-				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.ForeignKeys, schema, field.Name)
+		if len(relation.foreignKeys) > 0 {
+			if primaryKeyField = schema.LookUpField(relation.foreignKeys[0]); primaryKeyField == nil || len(relation.foreignKeys) > 1 {
+				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.foreignKeys, schema, field.Name)
 			}
 		}
 		relation.References = append(relation.References, Reference{
@@ -144,6 +160,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	relation.Type = Many2Many
 
 	var (
+		err             error
 		joinTableFields []reflect.StructField
 		fieldsMap       = map[string]*Field{}
 	)
@@ -169,7 +186,9 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		}
 	}
 
-	relation.JoinTable, schema.err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer)
+	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer); err != nil {
+		schema.err = err
+	}
 	relation.JoinTable.Name = many2many
 	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
 
@@ -202,18 +221,23 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 		}
 	}
 
-	if len(relation.ForeignKeys) > 0 {
-		for _, foreignKey := range relation.ForeignKeys {
+	if len(relation.foreignKeys) > 0 {
+		for _, foreignKey := range relation.foreignKeys {
 			if f := foreignSchema.LookUpField(foreignKey); f != nil {
 				foreignFields = append(foreignFields, f)
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with foreign keys %v", relation.FieldSchema, schema, field.Name, relation.ForeignKeys)
+				reguessOrErr("unsupported relations %v for %v on field %v with foreign keys %v", relation.FieldSchema, schema, field.Name, relation.foreignKeys)
 				return
 			}
 		}
 	} else {
 		for _, primaryField := range primarySchema.PrimaryFields {
-			if f := foreignSchema.LookUpField(field.Name + primaryField.Name); f != nil {
+			lookUpName := schema.Name + primaryField.Name
+			if !guessHas {
+				lookUpName = field.Name + primaryField.Name
+			}
+
+			if f := foreignSchema.LookUpField(lookUpName); f != nil {
 				foreignFields = append(foreignFields, f)
 				primaryFields = append(primaryFields, primaryField)
 			}
@@ -221,19 +245,19 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	}
 
 	if len(foreignFields) == 0 {
-		reguessOrErr("failed to guess %v's relations with %v's field %v", relation.FieldSchema, schema, field.Name)
+		reguessOrErr("failed to guess %v's relations with %v's field %v 1 g %v", relation.FieldSchema, schema, field.Name, guessHas)
 		return
-	} else if len(relation.PrimaryKeys) > 0 {
-		for idx, primaryKey := range relation.PrimaryKeys {
+	} else if len(relation.primaryKeys) > 0 {
+		for idx, primaryKey := range relation.primaryKeys {
 			if f := primarySchema.LookUpField(primaryKey); f != nil {
 				if len(primaryFields) < idx+1 {
 					primaryFields = append(primaryFields, f)
 				} else if f != primaryFields[idx] {
-					reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.PrimaryKeys)
+					reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
 					return
 				}
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.PrimaryKeys)
+				reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
 				return
 			}
 		}
