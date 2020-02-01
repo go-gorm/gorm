@@ -394,8 +394,8 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	for source, fields := range fieldsSourceMap {
 		for _, f := range fields {
-			//If not 0 this means Value is a pointer and we already added preloaded models to it
-			if f.Len() != 0 {
+			//If kind is Ptr this means Value is a pointer and we already added preloaded models to it
+			if f.Kind() == reflect.Ptr {
 				continue
 			}
 
