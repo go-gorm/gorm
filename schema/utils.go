@@ -29,3 +29,12 @@ func checkTruth(val string) bool {
 	}
 	return true
 }
+
+func toColumns(val string) (results []string) {
+	if val != "" {
+		for _, v := range strings.Split(val, ",") {
+			results = append(results, strings.TrimSpace(v))
+		}
+	}
+	return
+}

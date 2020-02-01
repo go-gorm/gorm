@@ -8,23 +8,23 @@ import (
 	"time"
 )
 
-type FieldType string
+type DataType string
 
 const (
-	Bool   FieldType = "bool"
-	Int              = "int"
-	Uint             = "uint"
-	Float            = "float"
-	String           = "string"
-	Time             = "time"
-	Bytes            = "bytes"
+	Bool   DataType = "bool"
+	Int             = "int"
+	Uint            = "uint"
+	Float           = "float"
+	String          = "string"
+	Time            = "time"
+	Bytes           = "bytes"
 )
 
 type Field struct {
 	Name            string
 	DBName          string
 	BindNames       []string
-	DataType        FieldType
+	DataType        DataType
 	DBDataType      string
 	PrimaryKey      bool
 	AutoIncrement   bool
@@ -42,8 +42,7 @@ type Field struct {
 	Tag             reflect.StructTag
 	TagSettings     map[string]string
 	Schema          *Schema
-	EmbeddedbSchema *Schema
-	Relationship    string
+	EmbeddedSchema  *Schema
 }
 
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
@@ -177,8 +176,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-		field.EmbeddedbSchema = Parse(fieldValue, sync.Map{}, schema.namer)
-		for _, ef := range field.EmbeddedbSchema.Fields {
+		field.EmbeddedSchema, schema.err = Parse(fieldValue, sync.Map{}, schema.namer)
+		for _, ef := range field.EmbeddedSchema.Fields {
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 
 			if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
@@ -188,13 +187,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			for k, v := range field.TagSettings {
 				ef.TagSettings[k] = v
 			}
-		}
-	} else {
-		switch fieldValue.Kind() {
-		case reflect.Struct:
-			field.Relationship = "one"
-		case reflect.Slice:
-			field.Relationship = "many"
 		}
 	}
 

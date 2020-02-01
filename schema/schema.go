@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"go/ast"
 	"reflect"
 	"strings"
@@ -8,6 +9,7 @@ import (
 )
 
 type Schema struct {
+	Name                    string
 	ModelType               reflect.Type
 	Table                   string
 	PrioritizedPrimaryField *Field
@@ -16,42 +18,64 @@ type Schema struct {
 	FieldsByName            map[string]*Field
 	FieldsByDBName          map[string]*Field
 	Relationships           Relationships
+	err                     error
 	namer                   Namer
+	cacheStore              sync.Map
+}
+
+func (schema Schema) String() string {
+	return schema.ModelType.PkgPath()
+}
+
+func (schema Schema) LookUpField(name string) *Field {
+	if field, ok := schema.FieldsByDBName[name]; ok {
+		return field
+	}
+	if field, ok := schema.FieldsByName[name]; ok {
+		return field
+	}
+	return nil
 }
 
 // get data type from dialector
-func Parse(dest interface{}, cacheStore sync.Map, namer Namer) *Schema {
+func Parse(dest interface{}, cacheStore sync.Map, namer Namer) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
 	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
 
 	if modelType.Kind() != reflect.Struct {
-		return nil
+		if modelType.PkgPath() == "" {
+			return nil, fmt.Errorf("unsupported data %+v when parsing model", dest)
+		}
+		return nil, fmt.Errorf("unsupported data type %v when parsing model", modelType.PkgPath())
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
-		return v.(*Schema)
+		return v.(*Schema), nil
 	}
 
 	schema := &Schema{
+		Name:           modelType.Name(),
 		ModelType:      modelType,
 		Table:          namer.TableName(modelType.Name()),
 		FieldsByName:   map[string]*Field{},
 		FieldsByDBName: map[string]*Field{},
+		cacheStore:     cacheStore,
 	}
 
-	for i := 0; i < modelType.NumField(); i++ {
-		fieldStruct := modelType.Field(i)
-		if !ast.IsExported(fieldStruct.Name) {
-			continue
+	defer func() {
+		if schema.err != nil {
+			cacheStore.Delete(modelType)
 		}
+	}()
 
-		field := schema.ParseField(fieldStruct)
-		schema.Fields = append(schema.Fields, field)
-		if field.EmbeddedbSchema != nil {
-			for _, f := range field.EmbeddedbSchema.Fields {
-				schema.Fields = append(schema.Fields, f)
+	for i := 0; i < modelType.NumField(); i++ {
+		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
+			field := schema.ParseField(fieldStruct)
+			schema.Fields = append(schema.Fields, field)
+			if field.EmbeddedSchema != nil {
+				schema.Fields = append(schema.Fields, field.EmbeddedSchema.Fields...)
 			}
 		}
 	}
@@ -85,7 +109,12 @@ func Parse(dest interface{}, cacheStore sync.Map, namer Namer) *Schema {
 			}
 			schema.PrimaryFields = append(schema.PrimaryFields, field)
 		}
+
+		if field.DataType == "" {
+			defer schema.parseRelation(field)
+		}
 	}
 
-	return schema
+	cacheStore.Store(modelType, schema)
+	return schema, schema.err
 }

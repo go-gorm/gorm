@@ -59,7 +59,7 @@ type OverrideNameInterface interface {
 type Where struct {
 	AndConditions AddConditions
 	ORConditions  []ORConditions
-	Builders      []Expression
+	builders      []Expression
 }
 
 func (where Where) Name() string {
@@ -74,8 +74,8 @@ func (where Where) Build(builder Builder) {
 		where.AndConditions.Build(builder)
 	}
 
-	if len(where.Builders) > 0 {
-		for _, b := range where.Builders {
+	if len(where.builders) > 0 {
+		for _, b := range where.builders {
 			if withConditions {
 				builder.Write(" AND ")
 			}
@@ -122,9 +122,9 @@ func (where Where) MergeExpression(expr Expression) {
 	if w, ok := expr.(Where); ok {
 		where.AndConditions = append(where.AndConditions, w.AndConditions...)
 		where.ORConditions = append(where.ORConditions, w.ORConditions...)
-		where.Builders = append(where.Builders, w.Builders...)
+		where.builders = append(where.builders, w.builders...)
 	} else {
-		where.Builders = append(where.Builders, expr)
+		where.builders = append(where.builders, expr)
 	}
 }
 
@@ -135,6 +135,22 @@ type Select struct {
 
 // Join join clause
 type Join struct {
+	Table    string
+	Type     string // left join books on
+	ON       []Expression
+	builders []Expression
+}
+
+func (join Join) Build(builder Builder) {
+	// TODO
+}
+
+func (join Join) MergeExpression(expr Expression) {
+	if j, ok := expr.(Join); ok {
+		join.builders = append(join.builders, j.builders...)
+	} else {
+		join.builders = append(join.builders, expr)
+	}
 }
 
 // GroupBy group by clause
