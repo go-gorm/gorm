@@ -13,7 +13,6 @@ type Namer interface {
 	TableName(table string) string
 	ColumnName(column string) string
 	JoinTableName(table string) string
-	JoinTableColumnName(table, column string) string
 }
 
 // NamingStrategy tables, columns naming strategy
@@ -38,11 +37,6 @@ func (ns NamingStrategy) ColumnName(str string) string {
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
 	return ns.TablePrefix + toDBName(str)
-}
-
-// JoinTableColumnName convert string to join table column name
-func (ns NamingStrategy) JoinTableColumnName(referenceTable, referenceColumn string) string {
-	return inflection.Singular(toDBName(referenceTable)) + toDBName(referenceColumn)
 }
 
 var (

@@ -57,7 +57,7 @@ func (schema *Schema) parseRelation(field *Field) {
 			Field:       field,
 			Schema:      schema,
 			ForeignKeys: toColumns(field.TagSettings["FOREIGNKEY"]),
-			PrimaryKeys: toColumns(field.TagSettings["PRIMARYKEY"]),
+			PrimaryKeys: toColumns(field.TagSettings["REFERENCES"]),
 		}
 	)
 
@@ -65,63 +65,13 @@ func (schema *Schema) parseRelation(field *Field) {
 		return
 	}
 
-	// Parse Polymorphic relations
-	//
-	// User has many Toys, its `Polymorphic` is `Owner`, Pet has one Toy, its `Polymorphic` is `Owner`
-	//     type User struct {
-	//       Toys []Toy `gorm:"polymorphic:Owner;"`
-	//     }
-	//     type Pet struct {
-	//       Toy Toy `gorm:"polymorphic:Owner;"`
-	//     }
-	//     type Toy struct {
-	//       OwnerID   int
-	//       OwnerType string
-	//     }
 	if polymorphic, _ := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
-		relation.Polymorphic = &Polymorphic{
-			Value:           schema.Table,
-			PolymorphicType: relation.FieldSchema.FieldsByName[polymorphic+"Type"],
-			PolymorphicID:   relation.FieldSchema.FieldsByName[polymorphic+"ID"],
-		}
-
-		if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
-			relation.Polymorphic.Value = strings.TrimSpace(value)
-		}
-
-		if relation.Polymorphic.PolymorphicType == nil {
-			schema.err = fmt.Errorf("invalid polymorphic type %v for %v on field %v, missing field %v", relation.FieldSchema, schema, field.Name, polymorphic+"Type")
-		}
-
-		if relation.Polymorphic.PolymorphicID == nil {
-			schema.err = fmt.Errorf("invalid polymorphic type %v for %v on field %v, missing field %v", relation.FieldSchema, schema, field.Name, polymorphic+"ID")
-		}
-
-		if schema.err == nil {
-			relation.References = append(relation.References, Reference{
-				PriamryValue: relation.Polymorphic.Value,
-				ForeignKey:   relation.Polymorphic.PolymorphicType,
-			})
-
-			primaryKeyField := schema.PrioritizedPrimaryField
-			if len(relation.ForeignKeys) > 0 {
-				if primaryKeyField = schema.LookUpField(relation.ForeignKeys[0]); primaryKeyField == nil || len(relation.ForeignKeys) > 1 {
-					schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.ForeignKeys, schema, field.Name)
-				}
-			}
-			relation.References = append(relation.References, Reference{
-				PriamryKey:    primaryKeyField,
-				ForeignKey:    relation.Polymorphic.PolymorphicType,
-				OwnPriamryKey: true,
-			})
-		}
-
-		relation.Type = "has"
+		schema.buildPolymorphicRelation(relation, field, polymorphic)
+	} else if many2many, _ := field.TagSettings["MANY2MANY"]; many2many != "" {
+		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
 		switch field.FieldType.Kind() {
-		case reflect.Struct:
-			schema.guessRelation(relation, field, true)
-		case reflect.Slice:
+		case reflect.Struct, reflect.Slice:
 			schema.guessRelation(relation, field, true)
 		default:
 			schema.err = fmt.Errorf("unsupported data type %v for %v on field %v", relation.FieldSchema, schema, field.Name)
@@ -136,6 +86,102 @@ func (schema *Schema) parseRelation(field *Field) {
 			relation.Type = HasMany
 		}
 	}
+}
+
+// User has many Toys, its `Polymorphic` is `Owner`, Pet has one Toy, its `Polymorphic` is `Owner`
+//     type User struct {
+//       Toys []Toy `gorm:"polymorphic:Owner;"`
+//     }
+//     type Pet struct {
+//       Toy Toy `gorm:"polymorphic:Owner;"`
+//     }
+//     type Toy struct {
+//       OwnerID   int
+//       OwnerType string
+//     }
+func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Field, polymorphic string) {
+	relation.Polymorphic = &Polymorphic{
+		Value:           schema.Table,
+		PolymorphicType: relation.FieldSchema.FieldsByName[polymorphic+"Type"],
+		PolymorphicID:   relation.FieldSchema.FieldsByName[polymorphic+"ID"],
+	}
+
+	if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
+		relation.Polymorphic.Value = strings.TrimSpace(value)
+	}
+
+	if relation.Polymorphic.PolymorphicType == nil {
+		schema.err = fmt.Errorf("invalid polymorphic type %v for %v on field %v, missing field %v", relation.FieldSchema, schema, field.Name, polymorphic+"Type")
+	}
+
+	if relation.Polymorphic.PolymorphicID == nil {
+		schema.err = fmt.Errorf("invalid polymorphic type %v for %v on field %v, missing field %v", relation.FieldSchema, schema, field.Name, polymorphic+"ID")
+	}
+
+	if schema.err == nil {
+		relation.References = append(relation.References, Reference{
+			PriamryValue: relation.Polymorphic.Value,
+			ForeignKey:   relation.Polymorphic.PolymorphicType,
+		})
+
+		primaryKeyField := schema.PrioritizedPrimaryField
+		if len(relation.ForeignKeys) > 0 {
+			if primaryKeyField = schema.LookUpField(relation.ForeignKeys[0]); primaryKeyField == nil || len(relation.ForeignKeys) > 1 {
+				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.ForeignKeys, schema, field.Name)
+			}
+		}
+		relation.References = append(relation.References, Reference{
+			PriamryKey:    primaryKeyField,
+			ForeignKey:    relation.Polymorphic.PolymorphicType,
+			OwnPriamryKey: true,
+		})
+	}
+
+	relation.Type = "has"
+}
+
+func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Field, many2many string) {
+	relation.Type = Many2Many
+
+	var (
+		joinTableFields []reflect.StructField
+		fieldsMap       = map[string]*Field{}
+	)
+
+	for _, s := range []*Schema{schema, relation.Schema} {
+		for _, primaryField := range s.PrimaryFields {
+			fieldName := s.Name + primaryField.Name
+			if _, ok := fieldsMap[fieldName]; ok {
+				if field.Name != s.Name {
+					fieldName = field.Name + primaryField.Name
+				} else {
+					fieldName = s.Name + primaryField.Name + "Reference"
+				}
+			}
+
+			fieldsMap[fieldName] = primaryField
+			joinTableFields = append(joinTableFields, reflect.StructField{
+				Name:    fieldName,
+				PkgPath: primaryField.StructField.PkgPath,
+				Type:    primaryField.StructField.Type,
+				Tag:     removeSettingFromTag(primaryField.StructField.Tag, "column"),
+			})
+		}
+	}
+
+	relation.JoinTable, schema.err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer)
+	relation.JoinTable.Name = many2many
+	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
+
+	// build references
+	for _, f := range relation.JoinTable.Fields {
+		relation.References = append(relation.References, Reference{
+			PriamryKey:    fieldsMap[f.Name],
+			ForeignKey:    f,
+			OwnPriamryKey: schema == fieldsMap[f.Name].Schema,
+		})
+	}
+	return
 }
 
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessHas bool) {
@@ -214,10 +260,6 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	if guessHas {
 		relation.Type = "has"
 	} else {
-		relation.Type = "belongs_to"
+		relation.Type = BelongsTo
 	}
-}
-
-func (schema *Schema) parseMany2ManyRelation(relation *Relationship, field *Field) error {
-	return nil
 }

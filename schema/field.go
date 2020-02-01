@@ -103,11 +103,11 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DBName = dbName
 	}
 
-	if val, ok := field.TagSettings["PRIMARY_KEY"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["PRIMARYKEY"]; ok && checkTruth(val) {
 		field.PrimaryKey = true
 	}
 
-	if val, ok := field.TagSettings["AUTO_INCREMENT"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["AUTOINCREMENT"]; ok && checkTruth(val) {
 		field.AutoIncrement = true
 		field.HasDefaultValue = true
 	}
@@ -180,7 +180,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		for _, ef := range field.EmbeddedSchema.Fields {
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 
-			if prefix, ok := field.TagSettings["EMBEDDED_PREFIX"]; ok {
+			if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
 				ef.DBName = prefix + ef.DBName
 			}
 

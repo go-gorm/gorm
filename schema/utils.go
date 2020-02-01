@@ -2,6 +2,7 @@ package schema
 
 import (
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -37,4 +38,8 @@ func toColumns(val string) (results []string) {
 		}
 	}
 	return
+}
+
+func removeSettingFromTag(tag reflect.StructTag, name string) reflect.StructTag {
+	return reflect.StructTag(regexp.MustCompile(`(?i)(gorm:.*?)(`+name+`:.*?)(;|("))`).ReplaceAllString(string(tag), "${1}${4}"))
 }
