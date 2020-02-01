@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func parseTagSetting(tags reflect.StructTag) map[string]string {
+func ParseTagSetting(tags reflect.StructTag) map[string]string {
 	setting := map[string]string{}
 
 	for _, value := range strings.Split(tags.Get("gorm"), ";") {

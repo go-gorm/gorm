@@ -54,7 +54,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Creatable:   true,
 		Updatable:   true,
 		Tag:         fieldStruct.Tag,
-		TagSettings: parseTagSetting(fieldStruct.Tag),
+		TagSettings: ParseTagSetting(fieldStruct.Tag),
 	}
 
 	for field.FieldType.Kind() == reflect.Ptr {
@@ -84,7 +84,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				}
 
 				// copy tag settings from valuer
-				for key, value := range parseTagSetting(field.FieldType.Field(i).Tag) {
+				for key, value := range ParseTagSetting(field.FieldType.Field(i).Tag) {
 					if _, ok := field.TagSettings[key]; !ok {
 						field.TagSettings[key] = value
 					}
@@ -141,7 +141,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DBDataType = val
 	}
 
-	switch fieldValue.Kind() {
+	switch fieldValue.Elem().Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -153,7 +153,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.String:
 		field.DataType = String
 	case reflect.Struct:
-		if _, ok := fieldValue.Interface().(time.Time); ok {
+		if _, ok := fieldValue.Interface().(*time.Time); ok {
 			field.DataType = Time
 		}
 	case reflect.Array, reflect.Slice:
@@ -176,7 +176,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
-		field.EmbeddedSchema, schema.err = Parse(fieldValue, sync.Map{}, schema.namer)
+		field.EmbeddedSchema, schema.err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer)
 		for _, ef := range field.EmbeddedSchema.Fields {
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 

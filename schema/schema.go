@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/jinzhu/gorm/logger"
 )
 
 type Schema struct {
@@ -20,7 +22,7 @@ type Schema struct {
 	Relationships           Relationships
 	err                     error
 	namer                   Namer
-	cacheStore              sync.Map
+	cacheStore              *sync.Map
 }
 
 func (schema Schema) String() string {
@@ -38,7 +40,7 @@ func (schema Schema) LookUpField(name string) *Field {
 }
 
 // get data type from dialector
-func Parse(dest interface{}, cacheStore sync.Map, namer Namer) (*Schema, error) {
+func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
 	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
@@ -62,10 +64,12 @@ func Parse(dest interface{}, cacheStore sync.Map, namer Namer) (*Schema, error) 
 		FieldsByName:   map[string]*Field{},
 		FieldsByDBName: map[string]*Field{},
 		cacheStore:     cacheStore,
+		namer:          namer,
 	}
 
 	defer func() {
 		if schema.err != nil {
+			logger.Default.Error(schema.err.Error())
 			cacheStore.Delete(modelType)
 		}
 	}()
