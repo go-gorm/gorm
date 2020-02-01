@@ -1,7 +1,9 @@
 package schema_test
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm/schema"
@@ -90,14 +92,25 @@ func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*
 }
 
 type Relation struct {
-	Name            string
-	Type            schema.RelationshipType
-	Polymorphic     schema.Polymorphic
-	Schema          string
-	FieldSchema     string
-	JoinTable       string
-	JoinTableFields []schema.Field
-	References      []Reference
+	Name        string
+	Type        schema.RelationshipType
+	Schema      string
+	FieldSchema string
+	Polymorphic Polymorphic
+	JoinTable   JoinTable
+	References  []Reference
+}
+
+type Polymorphic struct {
+	ID    string
+	Type  string
+	Value string
+}
+
+type JoinTable struct {
+	Name   string
+	Table  string
+	Fields []schema.Field
 }
 
 type Reference struct {
@@ -105,17 +118,82 @@ type Reference struct {
 	PrimarySchema string
 	ForeignKey    string
 	ForeignSchema string
-	OwnPriamryKey bool
+	PrimaryValue  string
+	OwnPrimaryKey bool
 }
 
 func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 	if r, ok := s.Relationships.Relations[relation.Name]; ok {
 		if r.Name != relation.Name {
-			t.Errorf("schema %v relation name expects %v, but got %v", s, relation.Name, r.Name)
+			t.Errorf("schema %v relation name expects %v, but got %v", s, r.Name, relation.Name)
 		}
 
 		if r.Type != relation.Type {
-			t.Errorf("schema %v relation name expects %v, but got %v", s, relation.Type, r.Type)
+			t.Errorf("schema %v relation name expects %v, but got %v", s, r.Type, relation.Type)
+		}
+
+		if r.Schema.Name != relation.Schema {
+			t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
+		}
+
+		if r.FieldSchema.Name != relation.FieldSchema {
+			t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
+		}
+
+		if r.Polymorphic != nil {
+			if r.Polymorphic.PolymorphicID.Name != relation.Polymorphic.ID {
+				t.Errorf("schema %v relation's polymorphic id field expects %v, but got %v", s, relation.Polymorphic.ID, r.Polymorphic.PolymorphicID.Name)
+			}
+
+			if r.Polymorphic.PolymorphicType.Name != relation.Polymorphic.Type {
+				t.Errorf("schema %v relation's polymorphic type field expects %v, but got %v", s, relation.Polymorphic.Type, r.Polymorphic.PolymorphicType.Name)
+			}
+
+			if r.Polymorphic.Value != relation.Polymorphic.Value {
+				t.Errorf("schema %v relation's polymorphic value expects %v, but got %v", s, relation.Polymorphic.Value, r.Polymorphic.Value)
+			}
+		}
+
+		if r.JoinTable != nil {
+			if r.JoinTable.Name != relation.JoinTable.Name {
+				t.Errorf("schema %v relation's join table name expects %v, but got %v", s, relation.JoinTable.Name, r.JoinTable.Name)
+			}
+
+			if r.JoinTable.Table != relation.JoinTable.Table {
+				t.Errorf("schema %v relation's join table tablename expects %v, but got %v", s, relation.JoinTable.Table, r.JoinTable.Table)
+			}
+
+			for _, f := range relation.JoinTable.Fields {
+				checkSchemaField(t, r.JoinTable, &f, nil)
+			}
+		}
+
+		if len(relation.References) != len(r.References) {
+			t.Errorf("schema %v relation's reference's count doesn't match, expects %v, but got %v", s, len(relation.References), len(r.References))
+		}
+
+		for _, ref := range relation.References {
+			var found bool
+			for _, rf := range r.References {
+				if (rf.PrimaryKey == nil || (rf.PrimaryKey.Name == ref.PrimaryKey && rf.PrimaryKey.Schema.Name == ref.PrimarySchema)) && (rf.PrimaryValue == ref.PrimaryValue) && (rf.ForeignKey.Name == ref.ForeignKey && rf.ForeignKey.Schema.Name == ref.ForeignSchema) && (rf.OwnPrimaryKey == ref.OwnPrimaryKey) {
+					found = true
+				}
+			}
+
+			if !found {
+				var refs []string
+				for _, rf := range r.References {
+					var primaryKey, primaryKeySchema string
+					if rf.PrimaryKey != nil {
+						primaryKey, primaryKeySchema = rf.PrimaryKey.Name, rf.PrimaryKey.Schema.Name
+					}
+					refs = append(refs, fmt.Sprintf(
+						"{PrimaryKey: %v PrimaryKeySchame: %v ForeignKey: %v ForeignKeySchema: %v PrimaryValue: %v OwnPrimaryKey: %v}",
+						primaryKey, primaryKeySchema, rf.ForeignKey.Name, rf.ForeignKey.Schema.Name, rf.PrimaryValue, rf.OwnPrimaryKey,
+					))
+				}
+				t.Errorf("schema %v relation %v failed to found reference %+v, has %v", s, relation.Name, ref, strings.Join(refs, ", "))
+			}
 		}
 	} else {
 		t.Errorf("schema %v failed to find relations by name %v", s, relation.Name)

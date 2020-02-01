@@ -24,8 +24,8 @@ type User struct {
 	ManagerID uint
 	Manager   *User
 	Team      []User     `gorm:"foreignkey:ManagerID"`
+	Languages []Language `gorm:"many2many:UserSpeak"`
 	Friends   []*User    `gorm:"many2many:user_friends"`
-	Languages []Language `gorm:"many2many:user_speaks"`
 }
 
 type Account struct {
@@ -53,6 +53,6 @@ type Company struct {
 }
 
 type Language struct {
-	Code string `gorm:primarykey`
+	Code string `gorm:"primarykey"`
 	Name string
 }

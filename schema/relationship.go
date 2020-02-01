@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/jinzhu/inflection"
 )
 
 // RelationshipType relationship type
@@ -43,10 +45,10 @@ type Polymorphic struct {
 }
 
 type Reference struct {
-	PriamryKey    *Field
-	PriamryValue  string
+	PrimaryKey    *Field
+	PrimaryValue  string
 	ForeignKey    *Field
-	OwnPriamryKey bool
+	OwnPrimaryKey bool
 }
 
 func (schema *Schema) parseRelation(field *Field) {
@@ -136,7 +138,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 
 	if schema.err == nil {
 		relation.References = append(relation.References, Reference{
-			PriamryValue: relation.Polymorphic.Value,
+			PrimaryValue: relation.Polymorphic.Value,
 			ForeignKey:   relation.Polymorphic.PolymorphicType,
 		})
 
@@ -147,9 +149,9 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 			}
 		}
 		relation.References = append(relation.References, Reference{
-			PriamryKey:    primaryKeyField,
-			ForeignKey:    relation.Polymorphic.PolymorphicType,
-			OwnPriamryKey: true,
+			PrimaryKey:    primaryKeyField,
+			ForeignKey:    relation.Polymorphic.PolymorphicID,
+			OwnPrimaryKey: true,
 		})
 	}
 
@@ -163,17 +165,20 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		err             error
 		joinTableFields []reflect.StructField
 		fieldsMap       = map[string]*Field{}
+		ownFieldsMap    = map[string]bool{} // fix self join many2many
 	)
 
-	for _, s := range []*Schema{schema, relation.Schema} {
+	for _, s := range []*Schema{schema, relation.FieldSchema} {
 		for _, primaryField := range s.PrimaryFields {
 			fieldName := s.Name + primaryField.Name
 			if _, ok := fieldsMap[fieldName]; ok {
 				if field.Name != s.Name {
-					fieldName = field.Name + primaryField.Name
+					fieldName = inflection.Singular(field.Name) + primaryField.Name
 				} else {
 					fieldName = s.Name + primaryField.Name + "Reference"
 				}
+			} else {
+				ownFieldsMap[fieldName] = true
 			}
 
 			fieldsMap[fieldName] = primaryField
@@ -195,9 +200,9 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	// build references
 	for _, f := range relation.JoinTable.Fields {
 		relation.References = append(relation.References, Reference{
-			PriamryKey:    fieldsMap[f.Name],
+			PrimaryKey:    fieldsMap[f.Name],
 			ForeignKey:    f,
-			OwnPriamryKey: schema == fieldsMap[f.Name].Schema,
+			OwnPrimaryKey: schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name],
 		})
 	}
 	return
@@ -275,9 +280,9 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	// build references
 	for idx, foreignField := range foreignFields {
 		relation.References = append(relation.References, Reference{
-			PriamryKey:    primaryFields[idx],
+			PrimaryKey:    primaryFields[idx],
 			ForeignKey:    foreignField,
-			OwnPriamryKey: schema == primarySchema,
+			OwnPrimaryKey: schema == primarySchema && guessHas,
 		})
 	}
 

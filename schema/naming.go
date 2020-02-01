@@ -11,7 +11,7 @@ import (
 // Namer namer interface
 type Namer interface {
 	TableName(table string) string
-	ColumnName(column string) string
+	ColumnName(table, column string) string
 	JoinTableName(table string) string
 }
 
@@ -30,13 +30,13 @@ func (ns NamingStrategy) TableName(str string) string {
 }
 
 // ColumnName convert string to column name
-func (ns NamingStrategy) ColumnName(str string) string {
+func (ns NamingStrategy) ColumnName(table, str string) string {
 	return toDBName(str)
 }
 
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
-	return ns.TablePrefix + toDBName(str)
+	return ns.TablePrefix + inflection.Plural(toDBName(str))
 }
 
 var (

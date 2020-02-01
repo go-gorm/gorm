@@ -55,6 +55,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Updatable:   true,
 		Tag:         fieldStruct.Tag,
 		TagSettings: ParseTagSetting(fieldStruct.Tag),
+		Schema:      schema,
 	}
 
 	for field.FieldType.Kind() == reflect.Ptr {
@@ -183,6 +184,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			schema.err = err
 		}
 		for _, ef := range field.EmbeddedSchema.Fields {
+			ef.Schema = schema
 			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 
 			if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {

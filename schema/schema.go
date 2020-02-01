@@ -25,6 +25,9 @@ type Schema struct {
 }
 
 func (schema Schema) String() string {
+	if schema.ModelType.Name() == "" {
+		return fmt.Sprintf("%v(%v)", schema.Name, schema.Table)
+	}
 	return fmt.Sprintf("%v.%v", schema.ModelType.PkgPath(), schema.ModelType.Name())
 }
 
@@ -86,7 +89,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	for _, field := range schema.Fields {
 		if field.DBName == "" {
-			field.DBName = namer.ColumnName(field.Name)
+			field.DBName = namer.ColumnName(schema.Table, field.Name)
 		}
 
 		if field.DBName != "" {

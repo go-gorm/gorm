@@ -41,8 +41,61 @@ func TestParseSchema(t *testing.T) {
 
 	// check relations
 	relations := []Relation{
-		{Name: "Pets", Type: schema.HasMany, Schema: "User", FieldSchema: "Pet", References: []Reference{{"ID", "User", "UserID", "Pet", true}}},
+		{
+			Name: "Account", Type: schema.HasOne, Schema: "User", FieldSchema: "Account",
+			References: []Reference{{"ID", "User", "UserID", "Account", "", true}},
+		},
+		{
+			Name: "Pets", Type: schema.HasMany, Schema: "User", FieldSchema: "Pet",
+			References: []Reference{{"ID", "User", "UserID", "Pet", "", true}},
+		},
+		{
+			Name: "Toys", Type: schema.HasMany, Schema: "User", FieldSchema: "Toy",
+			Polymorphic: Polymorphic{ID: "OwnerID", Type: "OwnerType", Value: "users"},
+			References:  []Reference{{"ID", "User", "OwnerID", "Toy", "", true}, {"", "", "OwnerType", "Toy", "users", false}},
+		},
+		{
+			Name: "Company", Type: schema.BelongsTo, Schema: "User", FieldSchema: "Company",
+			References: []Reference{{"ID", "Company", "CompanyID", "User", "", false}},
+		},
+		{
+			Name: "Manager", Type: schema.BelongsTo, Schema: "User", FieldSchema: "User",
+			References: []Reference{{"ID", "User", "ManagerID", "User", "", false}},
+		},
+		{
+			Name: "Team", Type: schema.HasMany, Schema: "User", FieldSchema: "User",
+			References: []Reference{{"ID", "User", "ManagerID", "User", "", true}},
+		},
+		{
+			Name: "Languages", Type: schema.Many2Many, Schema: "User", FieldSchema: "Language",
+			JoinTable: JoinTable{Name: "UserSpeak", Table: "user_speaks", Fields: []schema.Field{
+				{
+					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+				},
+				{
+					Name: "LanguageCode", DBName: "language_code", BindNames: []string{"LanguageCode"}, DataType: schema.String,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+				},
+			}},
+			References: []Reference{{"ID", "User", "UserID", "UserSpeak", "", true}, {"Code", "Language", "LanguageCode", "UserSpeak", "", false}},
+		},
+		{
+			Name: "Friends", Type: schema.Many2Many, Schema: "User", FieldSchema: "User",
+			JoinTable: JoinTable{Name: "user_friends", Table: "user_friends", Fields: []schema.Field{
+				{
+					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+				},
+				{
+					Name: "FriendID", DBName: "friend_id", BindNames: []string{"FriendID"}, DataType: schema.Uint,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+				},
+			}},
+			References: []Reference{{"ID", "User", "UserID", "user_friends", "", true}, {"ID", "User", "FriendID", "user_friends", "", false}},
+		},
 	}
+
 	for _, relation := range relations {
 		checkSchemaRelation(t, user, relation)
 	}
