@@ -12,6 +12,7 @@ func (db *DB) Count(sql string, values ...interface{}) (tx *DB) {
 // First find first record that match given conditions, order by primary key
 func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.callbacks.Create().Execute(tx.Limit(1).Order("id"))
 	return
 }
 

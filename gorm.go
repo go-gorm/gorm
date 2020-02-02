@@ -13,7 +13,7 @@ import (
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
 	// You can cancel it by setting `SkipDefaultTransaction` to true
-	SkipDefaultTransaction bool
+	SkipDefaultTransaction bool // TODO
 
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
@@ -27,6 +27,7 @@ type Config struct {
 
 // Dialector GORM database dialector
 type Dialector interface {
+	Initialize(*DB) error
 	Migrator() Migrator
 	BindVar(stmt Statement, v interface{}) string
 }
@@ -36,7 +37,8 @@ type DB struct {
 	*Config
 	Dialector
 	Instance
-	clone bool
+	clone     bool
+	callbacks *callbacks
 }
 
 // Session session config when create new session
@@ -48,15 +50,33 @@ type Session struct {
 
 // Open initialize db session based on dialector
 func Open(dialector Dialector, config *Config) (db *DB, err error) {
+	if config == nil {
+		config = &Config{}
+	}
+
 	if config.NamingStrategy == nil {
 		config.NamingStrategy = schema.NamingStrategy{}
 	}
 
-	return &DB{
+	if config.Logger == nil {
+		config.Logger = logger.Default
+	}
+
+	if config.NowFunc == nil {
+		config.NowFunc = func() time.Time { return time.Now().Local() }
+	}
+
+	db = &DB{
 		Config:    config,
 		Dialector: dialector,
 		clone:     true,
-	}, nil
+		callbacks: InitializeCallbacks(),
+	}
+
+	if dialector != nil {
+		err = dialector.Initialize(db)
+	}
+	return
 }
 
 // Session create new db session
@@ -110,6 +130,11 @@ func (db *DB) Get(key string) (interface{}, bool) {
 		return db.Statement.Settings.Load(key)
 	}
 	return nil, false
+}
+
+// Callback returns callback manager
+func (db *DB) Callback() *callbacks {
+	return db.callbacks
 }
 
 func (db *DB) getInstance() *DB {

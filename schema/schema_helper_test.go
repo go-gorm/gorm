@@ -10,85 +10,89 @@ import (
 )
 
 func checkSchema(t *testing.T, s *schema.Schema, v schema.Schema, primaryFields []string) {
-	equalFieldNames := []string{"Name", "Table"}
-
-	for _, name := range equalFieldNames {
-		got := reflect.ValueOf(s).Elem().FieldByName(name).Interface()
-		expects := reflect.ValueOf(v).FieldByName(name).Interface()
-		if !reflect.DeepEqual(got, expects) {
-			t.Errorf("schema %v %v is not equal, expects: %v, got %v", s, name, expects, got)
-		}
-	}
-
-	for idx, field := range primaryFields {
-		var found bool
-		for _, f := range s.PrimaryFields {
-			if f.Name == field {
-				found = true
-			}
-		}
-
-		if idx == 0 {
-			if field != s.PrioritizedPrimaryField.Name {
-				t.Errorf("schema %v prioritized primary field should be %v, but got %v", s, field, s.PrioritizedPrimaryField.Name)
-			}
-		}
-
-		if !found {
-			t.Errorf("schema %v failed to found priamry key: %v", s, field)
-		}
-	}
-}
-
-func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*schema.Field)) {
-	if fc != nil {
-		fc(f)
-	}
-
-	if f.TagSettings == nil {
-		if f.Tag != "" {
-			f.TagSettings = schema.ParseTagSetting(f.Tag)
-		} else {
-			f.TagSettings = map[string]string{}
-		}
-	}
-
-	if parsedField, ok := s.FieldsByName[f.Name]; !ok {
-		t.Errorf("schema %v failed to look up field with name %v", s, f.Name)
-	} else {
-		equalFieldNames := []string{"Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings"}
+	t.Run("CheckSchema/"+s.Name, func(t *testing.T) {
+		equalFieldNames := []string{"Name", "Table"}
 
 		for _, name := range equalFieldNames {
-			got := reflect.ValueOf(parsedField).Elem().FieldByName(name).Interface()
-			expects := reflect.ValueOf(f).Elem().FieldByName(name).Interface()
+			got := reflect.ValueOf(s).Elem().FieldByName(name).Interface()
+			expects := reflect.ValueOf(v).FieldByName(name).Interface()
 			if !reflect.DeepEqual(got, expects) {
-				t.Errorf("%v is not equal, expects: %v, got %v", name, expects, got)
+				t.Errorf("schema %v %v is not equal, expects: %v, got %v", s, name, expects, got)
 			}
 		}
 
-		if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
-			t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
-		}
-
-		for _, name := range []string{f.DBName, f.Name} {
-			if field := s.LookUpField(name); field == nil || parsedField != field {
-				t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
-			}
-		}
-
-		if f.PrimaryKey {
+		for idx, field := range primaryFields {
 			var found bool
-			for _, primaryField := range s.PrimaryFields {
-				if primaryField == parsedField {
+			for _, f := range s.PrimaryFields {
+				if f.Name == field {
 					found = true
 				}
 			}
 
+			if idx == 0 {
+				if field != s.PrioritizedPrimaryField.Name {
+					t.Errorf("schema %v prioritized primary field should be %v, but got %v", s, field, s.PrioritizedPrimaryField.Name)
+				}
+			}
+
 			if !found {
-				t.Errorf("schema %v doesn't include field %v", s, f.Name)
+				t.Errorf("schema %v failed to found priamry key: %v", s, field)
 			}
 		}
-	}
+	})
+}
+
+func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*schema.Field)) {
+	t.Run("CheckField/"+f.Name, func(t *testing.T) {
+		if fc != nil {
+			fc(f)
+		}
+
+		if f.TagSettings == nil {
+			if f.Tag != "" {
+				f.TagSettings = schema.ParseTagSetting(f.Tag)
+			} else {
+				f.TagSettings = map[string]string{}
+			}
+		}
+
+		if parsedField, ok := s.FieldsByName[f.Name]; !ok {
+			t.Errorf("schema %v failed to look up field with name %v", s, f.Name)
+		} else {
+			equalFieldNames := []string{"Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings"}
+
+			for _, name := range equalFieldNames {
+				got := reflect.ValueOf(parsedField).Elem().FieldByName(name).Interface()
+				expects := reflect.ValueOf(f).Elem().FieldByName(name).Interface()
+				if !reflect.DeepEqual(got, expects) {
+					t.Errorf("%v is not equal, expects: %v, got %v", name, expects, got)
+				}
+			}
+
+			if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
+				t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+			}
+
+			for _, name := range []string{f.DBName, f.Name} {
+				if field := s.LookUpField(name); field == nil || parsedField != field {
+					t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+				}
+			}
+
+			if f.PrimaryKey {
+				var found bool
+				for _, primaryField := range s.PrimaryFields {
+					if primaryField == parsedField {
+						found = true
+					}
+				}
+
+				if !found {
+					t.Errorf("schema %v doesn't include field %v", s, f.Name)
+				}
+			}
+		}
+	})
 }
 
 type Relation struct {
@@ -123,79 +127,81 @@ type Reference struct {
 }
 
 func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
-	if r, ok := s.Relationships.Relations[relation.Name]; ok {
-		if r.Name != relation.Name {
-			t.Errorf("schema %v relation name expects %v, but got %v", s, r.Name, relation.Name)
-		}
-
-		if r.Type != relation.Type {
-			t.Errorf("schema %v relation name expects %v, but got %v", s, r.Type, relation.Type)
-		}
-
-		if r.Schema.Name != relation.Schema {
-			t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
-		}
-
-		if r.FieldSchema.Name != relation.FieldSchema {
-			t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
-		}
-
-		if r.Polymorphic != nil {
-			if r.Polymorphic.PolymorphicID.Name != relation.Polymorphic.ID {
-				t.Errorf("schema %v relation's polymorphic id field expects %v, but got %v", s, relation.Polymorphic.ID, r.Polymorphic.PolymorphicID.Name)
+	t.Run("CheckRelation/"+relation.Name, func(t *testing.T) {
+		if r, ok := s.Relationships.Relations[relation.Name]; ok {
+			if r.Name != relation.Name {
+				t.Errorf("schema %v relation name expects %v, but got %v", s, r.Name, relation.Name)
 			}
 
-			if r.Polymorphic.PolymorphicType.Name != relation.Polymorphic.Type {
-				t.Errorf("schema %v relation's polymorphic type field expects %v, but got %v", s, relation.Polymorphic.Type, r.Polymorphic.PolymorphicType.Name)
+			if r.Type != relation.Type {
+				t.Errorf("schema %v relation name expects %v, but got %v", s, r.Type, relation.Type)
 			}
 
-			if r.Polymorphic.Value != relation.Polymorphic.Value {
-				t.Errorf("schema %v relation's polymorphic value expects %v, but got %v", s, relation.Polymorphic.Value, r.Polymorphic.Value)
-			}
-		}
-
-		if r.JoinTable != nil {
-			if r.JoinTable.Name != relation.JoinTable.Name {
-				t.Errorf("schema %v relation's join table name expects %v, but got %v", s, relation.JoinTable.Name, r.JoinTable.Name)
+			if r.Schema.Name != relation.Schema {
+				t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
 			}
 
-			if r.JoinTable.Table != relation.JoinTable.Table {
-				t.Errorf("schema %v relation's join table tablename expects %v, but got %v", s, relation.JoinTable.Table, r.JoinTable.Table)
+			if r.FieldSchema.Name != relation.FieldSchema {
+				t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
 			}
 
-			for _, f := range relation.JoinTable.Fields {
-				checkSchemaField(t, r.JoinTable, &f, nil)
-			}
-		}
+			if r.Polymorphic != nil {
+				if r.Polymorphic.PolymorphicID.Name != relation.Polymorphic.ID {
+					t.Errorf("schema %v relation's polymorphic id field expects %v, but got %v", s, relation.Polymorphic.ID, r.Polymorphic.PolymorphicID.Name)
+				}
 
-		if len(relation.References) != len(r.References) {
-			t.Errorf("schema %v relation's reference's count doesn't match, expects %v, but got %v", s, len(relation.References), len(r.References))
-		}
+				if r.Polymorphic.PolymorphicType.Name != relation.Polymorphic.Type {
+					t.Errorf("schema %v relation's polymorphic type field expects %v, but got %v", s, relation.Polymorphic.Type, r.Polymorphic.PolymorphicType.Name)
+				}
 
-		for _, ref := range relation.References {
-			var found bool
-			for _, rf := range r.References {
-				if (rf.PrimaryKey == nil || (rf.PrimaryKey.Name == ref.PrimaryKey && rf.PrimaryKey.Schema.Name == ref.PrimarySchema)) && (rf.PrimaryValue == ref.PrimaryValue) && (rf.ForeignKey.Name == ref.ForeignKey && rf.ForeignKey.Schema.Name == ref.ForeignSchema) && (rf.OwnPrimaryKey == ref.OwnPrimaryKey) {
-					found = true
+				if r.Polymorphic.Value != relation.Polymorphic.Value {
+					t.Errorf("schema %v relation's polymorphic value expects %v, but got %v", s, relation.Polymorphic.Value, r.Polymorphic.Value)
 				}
 			}
 
-			if !found {
-				var refs []string
+			if r.JoinTable != nil {
+				if r.JoinTable.Name != relation.JoinTable.Name {
+					t.Errorf("schema %v relation's join table name expects %v, but got %v", s, relation.JoinTable.Name, r.JoinTable.Name)
+				}
+
+				if r.JoinTable.Table != relation.JoinTable.Table {
+					t.Errorf("schema %v relation's join table tablename expects %v, but got %v", s, relation.JoinTable.Table, r.JoinTable.Table)
+				}
+
+				for _, f := range relation.JoinTable.Fields {
+					checkSchemaField(t, r.JoinTable, &f, nil)
+				}
+			}
+
+			if len(relation.References) != len(r.References) {
+				t.Errorf("schema %v relation's reference's count doesn't match, expects %v, but got %v", s, len(relation.References), len(r.References))
+			}
+
+			for _, ref := range relation.References {
+				var found bool
 				for _, rf := range r.References {
-					var primaryKey, primaryKeySchema string
-					if rf.PrimaryKey != nil {
-						primaryKey, primaryKeySchema = rf.PrimaryKey.Name, rf.PrimaryKey.Schema.Name
+					if (rf.PrimaryKey == nil || (rf.PrimaryKey.Name == ref.PrimaryKey && rf.PrimaryKey.Schema.Name == ref.PrimarySchema)) && (rf.PrimaryValue == ref.PrimaryValue) && (rf.ForeignKey.Name == ref.ForeignKey && rf.ForeignKey.Schema.Name == ref.ForeignSchema) && (rf.OwnPrimaryKey == ref.OwnPrimaryKey) {
+						found = true
 					}
-					refs = append(refs, fmt.Sprintf(
-						"{PrimaryKey: %v PrimaryKeySchame: %v ForeignKey: %v ForeignKeySchema: %v PrimaryValue: %v OwnPrimaryKey: %v}",
-						primaryKey, primaryKeySchema, rf.ForeignKey.Name, rf.ForeignKey.Schema.Name, rf.PrimaryValue, rf.OwnPrimaryKey,
-					))
 				}
-				t.Errorf("schema %v relation %v failed to found reference %+v, has %v", s, relation.Name, ref, strings.Join(refs, ", "))
+
+				if !found {
+					var refs []string
+					for _, rf := range r.References {
+						var primaryKey, primaryKeySchema string
+						if rf.PrimaryKey != nil {
+							primaryKey, primaryKeySchema = rf.PrimaryKey.Name, rf.PrimaryKey.Schema.Name
+						}
+						refs = append(refs, fmt.Sprintf(
+							"{PrimaryKey: %v PrimaryKeySchame: %v ForeignKey: %v ForeignKeySchema: %v PrimaryValue: %v OwnPrimaryKey: %v}",
+							primaryKey, primaryKeySchema, rf.ForeignKey.Name, rf.ForeignKey.Schema.Name, rf.PrimaryValue, rf.OwnPrimaryKey,
+						))
+					}
+					t.Errorf("schema %v relation %v failed to found reference %+v, has %v", s, relation.Name, ref, strings.Join(refs, ", "))
+				}
 			}
+		} else {
+			t.Errorf("schema %v failed to find relations by name %v", s, relation.Name)
 		}
-	} else {
-		t.Errorf("schema %v failed to find relations by name %v", s, relation.Name)
-	}
+	})
 }
