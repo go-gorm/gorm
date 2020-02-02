@@ -63,9 +63,10 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		Config:     config,
 		Dialector:  dialector,
 		clone:      true,
-		callbacks:  InitializeCallbacks(),
 		cacheStore: &sync.Map{},
 	}
+
+	db.callbacks = initializeCallbacks(db)
 
 	if dialector != nil {
 		err = dialector.Initialize(db)

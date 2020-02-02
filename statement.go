@@ -21,6 +21,13 @@ type Instance struct {
 	Statement    *Statement
 }
 
+func (instance Instance) ToSQL(clauses ...string) (string, []interface{}) {
+	if len(clauses) > 0 {
+		instance.Statement.Build(clauses...)
+	}
+	return instance.Statement.SQL.String(), instance.Statement.Vars
+}
+
 // AddError add error to instance
 func (inst Instance) AddError(err error) {
 	if inst.Error == nil {
@@ -205,16 +212,17 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 
 // Build build sql with clauses names
 func (stmt Statement) Build(clauses ...string) {
-	var includeSpace bool
+	var firstClauseWritten bool
 
 	for _, name := range clauses {
 		if c, ok := stmt.Clauses[name]; ok {
-			if includeSpace {
+			if firstClauseWritten {
 				stmt.WriteByte(' ')
 			}
 
-			includeSpace = true
+			firstClauseWritten = true
 			c.Build(stmt)
 		}
 	}
+	// TODO handle named vars
 }

@@ -99,8 +99,8 @@ func TestCallbacks(t *testing.T) {
 	}
 
 	for idx, data := range datas {
-		var err error
-		callbacks := gorm.InitializeCallbacks()
+		db, err := gorm.Open(nil, nil)
+		callbacks := db.Callback()
 
 		for _, c := range data.callbacks {
 			var v interface{} = callbacks.Create()

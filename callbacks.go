@@ -9,15 +9,15 @@ import (
 	"github.com/jinzhu/gorm/utils"
 )
 
-func InitializeCallbacks() *callbacks {
+func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
-			"create": &processor{},
-			"query":  &processor{},
-			"update": &processor{},
-			"delete": &processor{},
-			"row":    &processor{},
-			"raw":    &processor{},
+			"create": &processor{db: db},
+			"query":  &processor{db: db},
+			"update": &processor{db: db},
+			"delete": &processor{db: db},
+			"row":    &processor{db: db},
+			"raw":    &processor{db: db},
 		},
 	}
 }
@@ -118,7 +118,14 @@ func (p *processor) Replace(name string, fn func(*DB)) error {
 	return (&callback{processor: p}).Replace(name, fn)
 }
 
-func (p *processor) compile(db *DB) (err error) {
+func (p *processor) compile() (err error) {
+	var callbacks []*callback
+	for _, callback := range p.callbacks {
+		if callback.match == nil || callback.match(p.db) {
+			callbacks = append(callbacks, callback)
+		}
+	}
+
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
 		logger.Default.Error("Got error when compile callbacks, got %v", err)
 	}
@@ -139,7 +146,7 @@ func (c *callback) Register(name string, fn func(*DB)) error {
 	c.name = name
 	c.handler = fn
 	c.processor.callbacks = append(c.processor.callbacks, c)
-	return c.processor.compile(c.processor.db)
+	return c.processor.compile()
 }
 
 func (c *callback) Remove(name string) error {
@@ -147,7 +154,7 @@ func (c *callback) Remove(name string) error {
 	c.name = name
 	c.remove = true
 	c.processor.callbacks = append(c.processor.callbacks, c)
-	return c.processor.compile(c.processor.db)
+	return c.processor.compile()
 }
 
 func (c *callback) Replace(name string, fn func(*DB)) error {
@@ -156,7 +163,7 @@ func (c *callback) Replace(name string, fn func(*DB)) error {
 	c.handler = fn
 	c.replace = true
 	c.processor.callbacks = append(c.processor.callbacks, c)
-	return c.processor.compile(c.processor.db)
+	return c.processor.compile()
 }
 
 // getRIndex get right index from string slice
