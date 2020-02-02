@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 // Instance db instance
@@ -37,6 +38,7 @@ type Statement struct {
 	Clauses  map[string]clause.Clause
 	Settings sync.Map
 	DB       *DB
+	Schema   *schema.Schema
 
 	// SQL Builder
 	SQL       strings.Builder
@@ -69,9 +71,32 @@ func (stmt Statement) WriteQuoted(field interface{}) (err error) {
 }
 
 // Quote returns quoted value
-func (stmt Statement) Quote(field interface{}) (str string) {
-	// FIXME
-	return fmt.Sprint(field)
+func (stmt Statement) Quote(field interface{}) string {
+	var str strings.Builder
+
+	switch v := field.(type) {
+	case clause.Table:
+		str.WriteString(v.Table)
+		if v.Alias != "" {
+			str.WriteString(" AS ")
+			str.WriteString(v.Alias)
+		}
+	case clause.Column:
+		if v.Table != "" {
+			str.WriteString(v.Table)
+			str.WriteByte('.')
+		}
+
+		str.WriteString(v.Name)
+		if v.Alias != "" {
+			str.WriteString(" AS ")
+			str.WriteString(v.Alias)
+		}
+	default:
+		fmt.Sprint(field)
+	}
+
+	return str.String()
 }
 
 // Write write string

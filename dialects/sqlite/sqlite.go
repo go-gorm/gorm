@@ -1,6 +1,7 @@
 package sqlite
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
 	_ "github.com/mattn/go-sqlite3"
 )

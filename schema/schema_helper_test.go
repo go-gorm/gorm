@@ -2,24 +2,16 @@ package schema_test
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm/schema"
+	"github.com/jinzhu/gorm/tests"
 )
 
 func checkSchema(t *testing.T, s *schema.Schema, v schema.Schema, primaryFields []string) {
 	t.Run("CheckSchema/"+s.Name, func(t *testing.T) {
-		equalFieldNames := []string{"Name", "Table"}
-
-		for _, name := range equalFieldNames {
-			got := reflect.ValueOf(s).Elem().FieldByName(name).Interface()
-			expects := reflect.ValueOf(v).FieldByName(name).Interface()
-			if !reflect.DeepEqual(got, expects) {
-				t.Errorf("schema %v %v is not equal, expects: %v, got %v", s, name, expects, got)
-			}
-		}
+		tests.AssertEqual(t, s, v, "Name", "Table")
 
 		for idx, field := range primaryFields {
 			var found bool
@@ -59,15 +51,7 @@ func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*
 		if parsedField, ok := s.FieldsByName[f.Name]; !ok {
 			t.Errorf("schema %v failed to look up field with name %v", s, f.Name)
 		} else {
-			equalFieldNames := []string{"Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings"}
-
-			for _, name := range equalFieldNames {
-				got := reflect.ValueOf(parsedField).Elem().FieldByName(name).Interface()
-				expects := reflect.ValueOf(f).Elem().FieldByName(name).Interface()
-				if !reflect.DeepEqual(got, expects) {
-					t.Errorf("%v is not equal, expects: %v, got %v", name, expects, got)
-				}
-			}
+			tests.AssertEqual(t, parsedField, f, "Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings")
 
 			if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
 				t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)

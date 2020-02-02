@@ -51,124 +51,21 @@ type OverrideNameInterface interface {
 	OverrideName() string
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Predefined Clauses
-////////////////////////////////////////////////////////////////////////////////
-
-// Where where clause
-type Where struct {
-	AndConditions AddConditions
-	ORConditions  []ORConditions
-	builders      []Expression
+// Column quote with name
+type Column struct {
+	Table string
+	Name  string
+	Alias string
+	Raw   bool
 }
 
-func (where Where) Name() string {
-	return "WHERE"
+func ToColumns(value ...interface{}) []Column {
+	return nil
 }
 
-func (where Where) Build(builder Builder) {
-	var withConditions bool
-
-	if len(where.AndConditions) > 0 {
-		withConditions = true
-		where.AndConditions.Build(builder)
-	}
-
-	if len(where.builders) > 0 {
-		for _, b := range where.builders {
-			if withConditions {
-				builder.Write(" AND ")
-			}
-			withConditions = true
-			b.Build(builder)
-		}
-	}
-
-	var singleOrConditions []ORConditions
-	for _, or := range where.ORConditions {
-		if len(or) == 1 {
-			if withConditions {
-				builder.Write(" OR ")
-				or.Build(builder)
-			} else {
-				singleOrConditions = append(singleOrConditions, or)
-			}
-		} else {
-			withConditions = true
-			builder.Write(" AND (")
-			or.Build(builder)
-			builder.WriteByte(')')
-		}
-	}
-
-	for _, or := range singleOrConditions {
-		if withConditions {
-			builder.Write(" AND ")
-			or.Build(builder)
-		} else {
-			withConditions = true
-			or.Build(builder)
-		}
-	}
-
-	if !withConditions {
-		builder.Write(" FALSE")
-	}
-
-	return
-}
-
-func (where Where) MergeExpression(expr Expression) {
-	if w, ok := expr.(Where); ok {
-		where.AndConditions = append(where.AndConditions, w.AndConditions...)
-		where.ORConditions = append(where.ORConditions, w.ORConditions...)
-		where.builders = append(where.builders, w.builders...)
-	} else {
-		where.builders = append(where.builders, expr)
-	}
-}
-
-// Select select attrs when querying, updating, creating
-type Select struct {
-	Omit bool
-}
-
-// Join join clause
-type Join struct {
-	Table    string
-	Type     string // left join books on
-	ON       []Expression
-	builders []Expression
-}
-
-func (join Join) Build(builder Builder) {
-	// TODO
-}
-
-func (join Join) MergeExpression(expr Expression) {
-	if j, ok := expr.(Join); ok {
-		join.builders = append(join.builders, j.builders...)
-	} else {
-		join.builders = append(join.builders, expr)
-	}
-}
-
-// GroupBy group by clause
-type GroupBy struct {
-}
-
-// Having having clause
-type Having struct {
-}
-
-// Order order clause
-type Order struct {
-}
-
-// Limit limit clause
-type Limit struct {
-}
-
-// Offset offset clause
-type Offset struct {
+// Table quote with name
+type Table struct {
+	Table string
+	Alias string
+	Raw   bool
 }

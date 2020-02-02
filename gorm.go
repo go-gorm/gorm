@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/jinzhu/gorm/clause"
@@ -12,24 +13,14 @@ import (
 // Config GORM config
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
-	// You can cancel it by setting `SkipDefaultTransaction` to true
-	SkipDefaultTransaction bool // TODO
-
+	// You can disable it by setting `SkipDefaultTransaction` to true
+	SkipDefaultTransaction bool
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
-
 	// Logger
 	Logger logger.Interface
-
 	// NowFunc the function to be used when creating a new timestamp
 	NowFunc func() time.Time
-}
-
-// Dialector GORM database dialector
-type Dialector interface {
-	Initialize(*DB) error
-	Migrator() Migrator
-	BindVar(stmt Statement, v interface{}) string
 }
 
 // DB GORM DB definition
@@ -37,11 +28,13 @@ type DB struct {
 	*Config
 	Dialector
 	Instance
-	clone     bool
-	callbacks *callbacks
+	DB         CommonDB
+	clone      bool
+	callbacks  *callbacks
+	cacheStore *sync.Map
 }
 
-// Session session config when create new session
+// Session session config when create session with Session() method
 type Session struct {
 	Context context.Context
 	Logger  logger.Interface
@@ -67,10 +60,11 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	}
 
 	db = &DB{
-		Config:    config,
-		Dialector: dialector,
-		clone:     true,
-		callbacks: InitializeCallbacks(),
+		Config:     config,
+		Dialector:  dialector,
+		clone:      true,
+		callbacks:  InitializeCallbacks(),
+		cacheStore: &sync.Map{},
 	}
 
 	if dialector != nil {
@@ -113,10 +107,6 @@ func (db *DB) Debug() (tx *DB) {
 	return db.Session(&Session{Logger: db.Logger.LogMode(logger.Info)})
 }
 
-func (db *DB) Close() error {
-	return nil
-}
-
 // Set store value with key into current db instance's context
 func (db *DB) Set(key string, value interface{}) *DB {
 	tx := db.getInstance()
@@ -145,12 +135,15 @@ func (db *DB) getInstance() *DB {
 		}
 
 		return &DB{
-			Config:    db.Config,
-			Dialector: db.Dialector,
 			Instance: Instance{
 				Context:   ctx,
 				Statement: &Statement{DB: db, Clauses: map[string]clause.Clause{}},
 			},
+			Config:     db.Config,
+			Dialector:  db.Dialector,
+			DB:         db.DB,
+			callbacks:  db.callbacks,
+			cacheStore: db.cacheStore,
 		}
 	}
 

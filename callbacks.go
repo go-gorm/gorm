@@ -1,9 +1,11 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jinzhu/gorm/logger"
+	"github.com/jinzhu/gorm/schema"
 	"github.com/jinzhu/gorm/utils"
 )
 
@@ -67,6 +69,17 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
+	if stmt := db.Statement; stmt != nil && stmt.Dest != nil {
+		var err error
+		stmt.Schema, err = schema.Parse(stmt.Dest, db.cacheStore, db.NamingStrategy)
+
+		if err != nil && !errors.Is(err, schema.ErrUnsupportedDataType) {
+			db.AddError(err)
+		} else if stmt.Table == "" && stmt.Schema != nil {
+			stmt.Table = stmt.Schema.Table
+		}
+	}
+
 	for _, f := range p.fns {
 		f(db)
 	}

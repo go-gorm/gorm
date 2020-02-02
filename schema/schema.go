@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"reflect"
@@ -8,6 +9,9 @@ import (
 
 	"github.com/jinzhu/gorm/logger"
 )
+
+// ErrUnsupportedDataType unsupported data type
+var ErrUnsupportedDataType = errors.New("unsupported data type")
 
 type Schema struct {
 	Name                    string
@@ -50,9 +54,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	if modelType.Kind() != reflect.Struct {
 		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("unsupported data %+v when parsing model", dest)
+			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 		}
-		return nil, fmt.Errorf("unsupported data type %v when parsing model", modelType.PkgPath())
+		return nil, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
@@ -88,7 +92,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	for _, field := range schema.Fields {
-		if field.DBName == "" {
+		if field.DBName == "" && field.DataType != "" {
 			field.DBName = namer.ColumnName(schema.Table, field.Name)
 		}
 
