@@ -28,10 +28,11 @@ type DB struct {
 	*Config
 	Dialector
 	Instance
-	DB         CommonDB
-	clone      bool
-	callbacks  *callbacks
-	cacheStore *sync.Map
+	DB             CommonDB
+	ClauseBuilders map[string]clause.ClauseBuilder
+	clone          bool
+	callbacks      *callbacks
+	cacheStore     *sync.Map
 }
 
 // Session session config when create session with Session() method
@@ -140,11 +141,12 @@ func (db *DB) getInstance() *DB {
 				Context:   ctx,
 				Statement: &Statement{DB: db, Clauses: map[string]clause.Clause{}},
 			},
-			Config:     db.Config,
-			Dialector:  db.Dialector,
-			DB:         db.DB,
-			callbacks:  db.callbacks,
-			cacheStore: db.cacheStore,
+			Config:         db.Config,
+			Dialector:      db.Dialector,
+			ClauseBuilders: db.ClauseBuilders,
+			DB:             db.DB,
+			callbacks:      db.callbacks,
+			cacheStore:     db.cacheStore,
 		}
 	}
 

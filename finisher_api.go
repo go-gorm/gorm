@@ -4,7 +4,16 @@ import (
 	"database/sql"
 )
 
-func (db *DB) Count(sql string, values ...interface{}) (tx *DB) {
+// Create insert the value into database
+func (db *DB) Create(value interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.Dest = value
+	tx.callbacks.Create().Execute(tx)
+	return
+}
+
+// Save update value in database, if the value doesn't have primary key, will insert it
+func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
@@ -36,32 +45,12 @@ func (db *DB) Find(out interface{}, where ...interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) Row() *sql.Row {
-	return nil
-}
-
-func (db *DB) Rows() (*sql.Rows, error) {
-	return nil, nil
-}
-
-// Scan scan value to a struct
-func (db *DB) Scan(dest interface{}) (tx *DB) {
+func (db *DB) FirstOrInit(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) ScanRows(rows *sql.Rows, result interface{}) error {
-	return nil
-}
-
-// Create insert the value into database
-func (db *DB) Create(value interface{}) (tx *DB) {
-	tx = db.getInstance()
-	return
-}
-
-// Save update value in database, if the value doesn't have primary key, will insert it
-func (db *DB) Save(value interface{}) (tx *DB) {
+func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
@@ -78,22 +67,12 @@ func (db *DB) Updates(values interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) UpdateColumn(attrs ...interface{}) (tx *DB) {
+func (db *DB) UpdateColumn(column string, value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
 
 func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
-	tx = db.getInstance()
-	return
-}
-
-func (db *DB) FirstOrInit(out interface{}, where ...interface{}) (tx *DB) {
-	tx = db.getInstance()
-	return
-}
-
-func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
@@ -116,6 +95,29 @@ func (db *DB) Preloads(out interface{}) (tx *DB) {
 }
 
 func (db *DB) Association(column string) *Association {
+	return nil
+}
+
+func (db *DB) Count(value interface{}) (tx *DB) {
+	tx = db.getInstance()
+	return
+}
+
+func (db *DB) Row() *sql.Row {
+	return nil
+}
+
+func (db *DB) Rows() (*sql.Rows, error) {
+	return nil, nil
+}
+
+// Scan scan value to a struct
+func (db *DB) Scan(dest interface{}) (tx *DB) {
+	tx = db.getInstance()
+	return
+}
+
+func (db *DB) ScanRows(rows *sql.Rows, result interface{}) error {
 	return nil
 }
 

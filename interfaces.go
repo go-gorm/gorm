@@ -9,7 +9,7 @@ import (
 type Dialector interface {
 	Initialize(*DB) error
 	Migrator() Migrator
-	BindVar(stmt Statement, v interface{}) string
+	BindVar(stmt *Statement, v interface{}) string
 }
 
 // CommonDB common db interface

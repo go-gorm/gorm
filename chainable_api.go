@@ -55,7 +55,9 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{AndConditions: tx.Statement.BuildCondtion(query, args...)})
+	tx.Statement.AddClause(clause.Where{
+		AndConditions: tx.Statement.BuildCondtion(query, args...),
+	})
 	return
 }
 
@@ -63,7 +65,9 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{
-		AndConditions: []clause.Expression{clause.NotConditions(tx.Statement.BuildCondtion(query, args...))},
+		AndConditions: []clause.Expression{
+			clause.NotConditions(tx.Statement.BuildCondtion(query, args...)),
+		},
 	})
 	return
 }
@@ -72,7 +76,9 @@ func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{
-		ORConditions: []clause.ORConditions{tx.Statement.BuildCondtion(query, args...)},
+		ORConditions: []clause.ORConditions{
+			tx.Statement.BuildCondtion(query, args...),
+		},
 	})
 	return
 }

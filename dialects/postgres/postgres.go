@@ -1,11 +1,11 @@
-package sqlite
+package postgres
 
 import (
 	"database/sql"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 type Dialector struct {
@@ -20,7 +20,7 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db)
 
-	db.DB, err = sql.Open("sqlite3", dialector.DSN)
+	db.DB, err = sql.Open("postgres", dialector.DSN)
 	return
 }
 

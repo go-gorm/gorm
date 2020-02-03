@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,7 +22,7 @@ type Instance struct {
 	Statement    *Statement
 }
 
-func (instance Instance) ToSQL(clauses ...string) (string, []interface{}) {
+func (instance *Instance) ToSQL(clauses ...string) (string, []interface{}) {
 	if len(clauses) > 0 {
 		instance.Statement.Build(clauses...)
 	}
@@ -29,7 +30,7 @@ func (instance Instance) ToSQL(clauses ...string) (string, []interface{}) {
 }
 
 // AddError add error to instance
-func (inst Instance) AddError(err error) {
+func (inst *Instance) AddError(err error) {
 	if inst.Error == nil {
 		inst.Error = err
 	} else {
@@ -55,11 +56,11 @@ type Statement struct {
 
 // StatementOptimizer statement optimizer interface
 type StatementOptimizer interface {
-	OptimizeStatement(Statement)
+	OptimizeStatement(*Statement)
 }
 
 // Write write string
-func (stmt Statement) Write(sql ...string) (err error) {
+func (stmt *Statement) Write(sql ...string) (err error) {
 	for _, s := range sql {
 		_, err = stmt.SQL.WriteString(s)
 	}
@@ -67,12 +68,12 @@ func (stmt Statement) Write(sql ...string) (err error) {
 }
 
 // Write write string
-func (stmt Statement) WriteByte(c byte) (err error) {
+func (stmt *Statement) WriteByte(c byte) (err error) {
 	return stmt.SQL.WriteByte(c)
 }
 
 // WriteQuoted write quoted field
-func (stmt Statement) WriteQuoted(field interface{}) (err error) {
+func (stmt *Statement) WriteQuoted(field interface{}) (err error) {
 	_, err = stmt.SQL.WriteString(stmt.Quote(field))
 	return
 }
@@ -107,7 +108,7 @@ func (stmt Statement) Quote(field interface{}) string {
 }
 
 // Write write string
-func (stmt Statement) AddVar(vars ...interface{}) string {
+func (stmt *Statement) AddVar(vars ...interface{}) string {
 	var placeholders strings.Builder
 	for idx, v := range vars {
 		if idx > 0 {
@@ -134,7 +135,7 @@ func (stmt Statement) AddVar(vars ...interface{}) string {
 }
 
 // AddClause add clause
-func (stmt Statement) AddClause(v clause.Interface) {
+func (stmt *Statement) AddClause(v clause.Interface) {
 	if optimizer, ok := v.(StatementOptimizer); ok {
 		optimizer.OptimizeStatement(stmt)
 	}
@@ -152,6 +153,30 @@ func (stmt Statement) AddClause(v clause.Interface) {
 
 	c.Expression = v
 	stmt.Clauses[v.Name()] = c
+}
+
+// AddClauseIfNotExists add clause if not exists
+func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
+	if optimizer, ok := v.(StatementOptimizer); ok {
+		optimizer.OptimizeStatement(stmt)
+	}
+
+	log.Println(v.Name())
+	if c, ok := stmt.Clauses[v.Name()]; !ok {
+		if namer, ok := v.(clause.OverrideNameInterface); ok {
+			c.Name = namer.OverrideName()
+		} else {
+			c.Name = v.Name()
+		}
+
+		if c.Expression != nil {
+			v.MergeExpression(c.Expression)
+		}
+
+		c.Expression = v
+		stmt.Clauses[v.Name()] = c
+		log.Println(stmt.Clauses[v.Name()])
+	}
 }
 
 // BuildCondtion build condition
@@ -211,7 +236,7 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 }
 
 // Build build sql with clauses names
-func (stmt Statement) Build(clauses ...string) {
+func (stmt *Statement) Build(clauses ...string) {
 	var firstClauseWritten bool
 
 	for _, name := range clauses {
@@ -221,7 +246,11 @@ func (stmt Statement) Build(clauses ...string) {
 			}
 
 			firstClauseWritten = true
-			c.Build(stmt)
+			if b, ok := stmt.DB.ClauseBuilders[name]; ok {
+				b.Build(c, stmt)
+			} else {
+				c.Build(stmt)
+			}
 		}
 	}
 	// TODO handle named vars

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 )
 
 func BeforeCreate(db *gorm.DB) {
@@ -17,8 +18,14 @@ func SaveBeforeAssociations(db *gorm.DB) {
 }
 
 func Create(db *gorm.DB) {
-	db.Statement.Build("WITH", "INSERT", "VALUES", "ON_CONFLICT", "RETURNING")
-	db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	db.Statement.AddClauseIfNotExists(clause.Insert{
+		Table: clause.Table{Table: db.Statement.Table},
+	})
+
+	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT", "RETURNING")
+	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	fmt.Println(err)
+	fmt.Println(result)
 	fmt.Println(db.Statement.SQL.String(), db.Statement.Vars)
 }
 
