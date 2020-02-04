@@ -10,14 +10,20 @@ func (From) Name() string {
 	return "FROM"
 }
 
+var currentTable = Table{Table: CurrentTable}
+
 // Build build from clause
 func (from From) Build(builder Builder) {
-	for idx, table := range from.Tables {
-		if idx > 0 {
-			builder.WriteByte(',')
-		}
+	if len(from.Tables) > 0 {
+		for idx, table := range from.Tables {
+			if idx > 0 {
+				builder.WriteByte(',')
+			}
 
-		builder.WriteQuoted(table)
+			builder.WriteQuoted(table)
+		}
+	} else {
+		builder.WriteQuoted(currentTable)
 	}
 }
 

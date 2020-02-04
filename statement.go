@@ -84,6 +84,11 @@ func (stmt Statement) Quote(field interface{}) string {
 
 	switch v := field.(type) {
 	case clause.Table:
+		if v.Table == clause.CurrentTable {
+			str.WriteString(stmt.Table)
+		} else {
+			str.WriteString(v.Table)
+		}
 
 		if v.Alias != "" {
 			str.WriteString(" AS ")
