@@ -1,5 +1,10 @@
 package clause
 
+const (
+	PrimaryKey   string = "@@@priamry_key@@@"
+	CurrentTable string = "@@@table@@@"
+)
+
 // Expression expression interface
 type Expression interface {
 	Build(builder Builder)
@@ -10,13 +15,19 @@ type NegationExpressionBuilder interface {
 	NegationBuild(builder Builder)
 }
 
-// Builder builder interface
-type Builder interface {
-	WriteByte(byte) error
-	Write(sql ...string) error
-	WriteQuoted(field interface{}) error
-	AddVar(vars ...interface{}) string
-	Quote(field interface{}) string
+// Column quote with name
+type Column struct {
+	Table string
+	Name  string
+	Alias string
+	Raw   bool
+}
+
+// Table quote with name
+type Table struct {
+	Table string
+	Alias string
+	Raw   bool
 }
 
 // Expr raw expression

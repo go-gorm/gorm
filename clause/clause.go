@@ -11,11 +11,6 @@ type Clause struct {
 	Builder              ClauseBuilder
 }
 
-// ClauseBuilder clause builder, allows to custmize how to build clause
-type ClauseBuilder interface {
-	Build(Clause, Builder)
-}
-
 // Build build clause
 func (c Clause) Build(builder Builder) {
 	if c.Builder != nil {
@@ -47,25 +42,21 @@ type Interface interface {
 	MergeExpression(Expression)
 }
 
+// OverrideNameInterface override name interface
 type OverrideNameInterface interface {
 	OverrideName() string
 }
 
-// Column quote with name
-type Column struct {
-	Table string
-	Name  string
-	Alias string
-	Raw   bool
+// ClauseBuilder clause builder, allows to custmize how to build clause
+type ClauseBuilder interface {
+	Build(Clause, Builder)
 }
 
-func ToColumns(value ...interface{}) []Column {
-	return nil
-}
-
-// Table quote with name
-type Table struct {
-	Table string
-	Alias string
-	Raw   bool
+// Builder builder interface
+type Builder interface {
+	WriteByte(byte) error
+	Write(sql ...string) error
+	WriteQuoted(field interface{}) error
+	AddVar(vars ...interface{}) string
+	Quote(field interface{}) string
 }

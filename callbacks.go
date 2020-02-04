@@ -69,14 +69,20 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
-	if stmt := db.Statement; stmt != nil && stmt.Dest != nil {
-		var err error
-		stmt.Schema, err = schema.Parse(stmt.Dest, db.cacheStore, db.NamingStrategy)
+	if stmt := db.Statement; stmt != nil {
+		if stmt.Model == nil {
+			stmt.Model = stmt.Dest
+		}
 
-		if err != nil && !errors.Is(err, schema.ErrUnsupportedDataType) {
-			db.AddError(err)
-		} else if stmt.Table == "" && stmt.Schema != nil {
-			stmt.Table = stmt.Schema.Table
+		if stmt.Model != nil {
+			var err error
+			stmt.Schema, err = schema.Parse(stmt.Model, db.cacheStore, db.NamingStrategy)
+
+			if err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table == "") {
+				db.AddError(err)
+			} else if stmt.Table == "" && stmt.Schema != nil {
+				stmt.Table = stmt.Schema.Table
+			}
 		}
 	}
 

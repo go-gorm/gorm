@@ -1,6 +1,10 @@
 package gorm
 
-import "github.com/jinzhu/gorm/clause"
+import (
+	"fmt"
+
+	"github.com/jinzhu/gorm/clause"
+)
 
 // Model specify the model you would like to run db operations
 //    // update all users's name to `hello`
@@ -107,6 +111,19 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 //     db.Order(gorm.Expr("name = ? DESC", "first")) // sql expression
 func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
+
+	switch v := value.(type) {
+	case clause.OrderBy:
+		db.Statement.AddClause(clause.OrderByClause{
+			Columns: []clause.OrderBy{v},
+		})
+	default:
+		db.Statement.AddClause(clause.OrderByClause{
+			Columns: []clause.OrderBy{{
+				Column: clause.Column{Name: fmt.Sprint(value), Raw: true},
+			}},
+		})
+	}
 	return
 }
 

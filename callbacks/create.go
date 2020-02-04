@@ -22,7 +22,7 @@ func Create(db *gorm.DB) {
 		Table: clause.Table{Table: db.Statement.Table},
 	})
 
-	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT", "RETURNING")
+	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
 	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 	fmt.Println(err)
 	fmt.Println(result)

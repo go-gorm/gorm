@@ -1,6 +1,8 @@
 package callbacks
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/jinzhu/gorm"
+)
 
 func RegisterDefaultCallbacks(db *gorm.DB) {
 	enableTransaction := func(db *gorm.DB) bool {
@@ -17,7 +19,7 @@ func RegisterDefaultCallbacks(db *gorm.DB) {
 	createCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 
 	queryCallback := db.Callback().Query()
-	queryCallback.Register("gorm:query", BeforeCreate)
+	queryCallback.Register("gorm:query", Query)
 	queryCallback.Register("gorm:preload", Preload)
 	queryCallback.Register("gorm:after_query", AfterQuery)
 

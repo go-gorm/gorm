@@ -84,18 +84,28 @@ func (stmt Statement) Quote(field interface{}) string {
 
 	switch v := field.(type) {
 	case clause.Table:
-		str.WriteString(v.Table)
+
 		if v.Alias != "" {
 			str.WriteString(" AS ")
 			str.WriteString(v.Alias)
 		}
 	case clause.Column:
 		if v.Table != "" {
-			str.WriteString(v.Table)
+			if v.Table == clause.CurrentTable {
+				str.WriteString(stmt.Table)
+			} else {
+				str.WriteString(v.Table)
+			}
 			str.WriteByte('.')
 		}
 
-		str.WriteString(v.Name)
+		if v.Name == clause.PrimaryKey {
+			if stmt.Schema != nil && stmt.Schema.PrioritizedPrimaryField != nil {
+				str.WriteString(stmt.Schema.PrioritizedPrimaryField.DBName)
+			}
+		} else {
+			str.WriteString(v.Name)
+		}
 		if v.Alias != "" {
 			str.WriteString(" AS ")
 			str.WriteString(v.Alias)

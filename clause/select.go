@@ -1,15 +1,19 @@
 package clause
 
+// SelectInterface select clause interface
+type SelectInterface interface {
+	Selects() []Column
+	Omits() []Column
+}
+
 // Select select attrs when querying, updating, creating
 type Select struct {
 	SelectColumns []Column
 	OmitColumns   []Column
 }
 
-// SelectInterface select clause interface
-type SelectInterface interface {
-	Selects() []Column
-	Omits() []Column
+func (s Select) Name() string {
+	return "SELECT"
 }
 
 func (s Select) Selects() []Column {

@@ -20,3 +20,10 @@ func (from From) Build(builder Builder) {
 		builder.WriteQuoted(table)
 	}
 }
+
+// MergeExpression merge order by clauses
+func (from From) MergeExpression(expr Expression) {
+	if v, ok := expr.(From); ok {
+		from.Tables = append(v.Tables, from.Tables...)
+	}
+}

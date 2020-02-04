@@ -2,6 +2,8 @@ package gorm
 
 import (
 	"database/sql"
+
+	"github.com/jinzhu/gorm/clause"
 )
 
 // Create insert the value into database
@@ -20,9 +22,11 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 // First find first record that match given conditions, order by primary key
 func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
-	tx = db.getInstance()
+	tx = db.getInstance().Limit(1).Order(clause.OrderBy{
+		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Desc:   true,
+	})
 	tx.Statement.Dest = out
-	tx.Limit(1)
 	tx.callbacks.Query().Execute(tx)
 	return
 }
