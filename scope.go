@@ -221,7 +221,7 @@ func (scope *Scope) SetColumn(column interface{}, value interface{}) error {
 			mostMatchedField *Field
 		)
 		for _, field := range scope.Fields() {
-			if field.DBName == value {
+			if field.DBName == dbName {
 				updateAttrs[field.DBName] = value
 				return field.Set(value)
 			}
