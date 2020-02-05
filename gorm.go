@@ -23,16 +23,21 @@ type Config struct {
 	NowFunc func() time.Time
 }
 
+type shared struct {
+	callbacks  *callbacks
+	cacheStore *sync.Map
+	quoteChars [2]byte
+}
+
 // DB GORM DB definition
 type DB struct {
 	*Config
 	Dialector
 	Instance
-	DB             CommonDB
 	ClauseBuilders map[string]clause.ClauseBuilder
+	DB             CommonDB
 	clone          bool
-	callbacks      *callbacks
-	cacheStore     *sync.Map
+	*shared
 }
 
 // Session session config when create session with Session() method
@@ -65,13 +70,16 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		Dialector:      dialector,
 		ClauseBuilders: map[string]clause.ClauseBuilder{},
 		clone:          true,
-		cacheStore:     &sync.Map{},
+		shared: &shared{
+			cacheStore: &sync.Map{},
+		},
 	}
 
 	db.callbacks = initializeCallbacks(db)
 
 	if dialector != nil {
 		err = dialector.Initialize(db)
+		db.quoteChars = dialector.QuoteChars()
 	}
 	return
 }
@@ -146,8 +154,7 @@ func (db *DB) getInstance() *DB {
 			Dialector:      db.Dialector,
 			ClauseBuilders: db.ClauseBuilders,
 			DB:             db.DB,
-			callbacks:      db.callbacks,
-			cacheStore:     db.cacheStore,
+			shared:         db.shared,
 		}
 	}
 

@@ -12,17 +12,19 @@ import (
 	"github.com/jinzhu/gorm/tests"
 )
 
-func TestClause(t *testing.T) {
+func TestClauses(t *testing.T) {
 	var (
-		db, _   = gorm.Open(nil, nil)
+		db, _   = gorm.Open(tests.DummyDialector{}, nil)
 		results = []struct {
 			Clauses []clause.Interface
 			Result  string
 			Vars    []interface{}
-		}{{
-			[]clause.Interface{clause.Select{}, clause.From{}},
-			"SELECT * FROM users", []interface{}{},
-		}}
+		}{
+			{
+				[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{AndConditions: []clause.Expression{clause.Eq{Column: clause.PrimaryColumn, Value: "1"}}}},
+				"SELECT * FROM `users` WHERE `users`.`id` = ?", []interface{}{"1"},
+			},
+		}
 	)
 
 	for idx, result := range results {

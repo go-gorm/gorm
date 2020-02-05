@@ -81,6 +81,7 @@ func (stmt *Statement) WriteQuoted(field interface{}) (err error) {
 // Quote returns quoted value
 func (stmt Statement) Quote(field interface{}) string {
 	var str strings.Builder
+	str.WriteByte(stmt.DB.quoteChars[0])
 
 	switch v := field.(type) {
 	case clause.Table:
@@ -91,8 +92,11 @@ func (stmt Statement) Quote(field interface{}) string {
 		}
 
 		if v.Alias != "" {
+			str.WriteByte(stmt.DB.quoteChars[1])
 			str.WriteString(" AS ")
+			str.WriteByte(stmt.DB.quoteChars[0])
 			str.WriteString(v.Alias)
+			str.WriteByte(stmt.DB.quoteChars[1])
 		}
 	case clause.Column:
 		if v.Table != "" {
@@ -101,7 +105,9 @@ func (stmt Statement) Quote(field interface{}) string {
 			} else {
 				str.WriteString(v.Table)
 			}
+			str.WriteByte(stmt.DB.quoteChars[1])
 			str.WriteByte('.')
+			str.WriteByte(stmt.DB.quoteChars[0])
 		}
 
 		if v.Name == clause.PrimaryKey {
@@ -111,14 +117,19 @@ func (stmt Statement) Quote(field interface{}) string {
 		} else {
 			str.WriteString(v.Name)
 		}
+
 		if v.Alias != "" {
+			str.WriteByte(stmt.DB.quoteChars[1])
 			str.WriteString(" AS ")
+			str.WriteByte(stmt.DB.quoteChars[0])
 			str.WriteString(v.Alias)
+			str.WriteByte(stmt.DB.quoteChars[1])
 		}
 	default:
 		fmt.Sprint(field)
 	}
 
+	str.WriteByte(stmt.DB.quoteChars[1])
 	return str.String()
 }
 

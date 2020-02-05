@@ -5,6 +5,11 @@ const (
 	CurrentTable string = "@@@table@@@"
 )
 
+var PrimaryColumn = Column{
+	Table: CurrentTable,
+	Name:  PrimaryKey,
+}
+
 // Expression expression interface
 type Expression interface {
 	Build(builder Builder)

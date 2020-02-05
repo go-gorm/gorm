@@ -3,7 +3,7 @@ package clause
 // Where where clause
 type Where struct {
 	AndConditions AddConditions
-	ORConditions  []ORConditions
+	OrConditions  []OrConditions
 	builders      []Expression
 }
 
@@ -31,8 +31,8 @@ func (where Where) Build(builder Builder) {
 		}
 	}
 
-	var singleOrConditions []ORConditions
-	for _, or := range where.ORConditions {
+	var singleOrConditions []OrConditions
+	for _, or := range where.OrConditions {
 		if len(or) == 1 {
 			if withConditions {
 				builder.Write(" OR ")
@@ -69,7 +69,7 @@ func (where Where) Build(builder Builder) {
 func (where Where) MergeExpression(expr Expression) {
 	if w, ok := expr.(Where); ok {
 		where.AndConditions = append(where.AndConditions, w.AndConditions...)
-		where.ORConditions = append(where.ORConditions, w.ORConditions...)
+		where.OrConditions = append(where.OrConditions, w.OrConditions...)
 		where.builders = append(where.builders, w.builders...)
 	} else {
 		where.builders = append(where.builders, expr)

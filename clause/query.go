@@ -6,6 +6,14 @@ import "strings"
 // Query Expressions
 ////////////////////////////////////////////////////////////////////////////////
 
+func Add(exprs ...Expression) AddConditions {
+	return AddConditions(exprs)
+}
+
+func Or(exprs ...Expression) OrConditions {
+	return OrConditions(exprs)
+}
+
 type AddConditions []Expression
 
 func (cs AddConditions) Build(builder Builder) {
@@ -17,9 +25,9 @@ func (cs AddConditions) Build(builder Builder) {
 	}
 }
 
-type ORConditions []Expression
+type OrConditions []Expression
 
-func (cs ORConditions) Build(builder Builder) {
+func (cs OrConditions) Build(builder Builder) {
 	for idx, c := range cs {
 		if idx > 0 {
 			builder.Write(" OR ")

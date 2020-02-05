@@ -10,6 +10,7 @@ type Dialector interface {
 	Initialize(*DB) error
 	Migrator() Migrator
 	BindVar(stmt *Statement, v interface{}) string
+	QuoteChars() [2]byte
 }
 
 // CommonDB common db interface

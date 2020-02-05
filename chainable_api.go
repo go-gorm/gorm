@@ -80,7 +80,7 @@ func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{
-		ORConditions: []clause.ORConditions{
+		OrConditions: []clause.OrConditions{
 			tx.Statement.BuildCondtion(query, args...),
 		},
 	})

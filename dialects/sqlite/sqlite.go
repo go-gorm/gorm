@@ -31,3 +31,7 @@ func (Dialector) Migrator() gorm.Migrator {
 func (Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "?"
 }
+
+func (Dialector) QuoteChars() [2]byte {
+	return [2]byte{'`', '`'} // `name`
+}
