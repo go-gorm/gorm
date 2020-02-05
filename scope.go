@@ -280,16 +280,23 @@ func (scope *Scope) AddToVars(value interface{}) string {
 // IsCompleteParentheses check if the string has complete parentheses to prevent SQL injection
 func (scope *Scope) IsCompleteParentheses(value string) bool {
 	count := 0
-	for i, _ := range value {
-		if value[i] == 40 { // (
-			count++
-		} else if value[i] == 41 { // )
-			count--
+	unquoted := true
+	for _, ch := range value {
+		switch ch {
+		case '(':
+			if unquoted {
+				count++
+			}
+		case ')':
+			if unquoted {
+				count--
+			}
+		case '\'':
+			unquoted = unquoted != true
 		}
 		if count < 0 {
 			break
 		}
-		i++
 	}
 	return count == 0
 }

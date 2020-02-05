@@ -133,6 +133,7 @@ func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
 		t.Errorf("Fetch a record from with a string primary key for a numeric value starting with zero should work, but failed, zip code is %v", address.ZipCode)
 	}
 }
+
 func TestStringAgainstIncompleteParentheses(t *testing.T) {
 	type AddressByZipCode struct {
 		ZipCode string `gorm:"primary_key"`
@@ -149,6 +150,17 @@ func TestStringAgainstIncompleteParentheses(t *testing.T) {
 		t.Errorf("Fetch a record from with a string that has incomplete parentheses should be fail, zip code is %v", address.ZipCode)
 	}
 
+}
+
+func TestStringAgainstIncompleteParenthesesQuoted(t *testing.T) {
+	DB.Save(&User{Name: "name-)-surname"})
+
+	var user User
+	res := DB.Raw("select * from users WHERE name = 'name-)-surname'").First(&user)
+
+	if res.Error != nil {
+		t.Errorf("Can't execute valid query because error : %s", res.Error.Error())
+	}
 }
 
 func TestFindAsSliceOfPointers(t *testing.T) {
