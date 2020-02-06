@@ -96,7 +96,7 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
 	if cp.kind == "row_query" {
 		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
-			cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
+			//cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
 			cp.before = "gorm:row_query"
 		}
 	}
@@ -105,7 +105,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 		// note cp.logger will be nil during the default gorm callback registrations
 		// as they occur within init() blocks. However, any user-registered callbacks
 		// will happen after cp.logger exists (as the default logger or user-specified).
-		cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
+		//cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
 	}
 	cp.name = callbackName
 	cp.processor = &callback
@@ -116,7 +116,7 @@ func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *
 // Remove a registered callback
 //     db.Callback().Create().Remove("gorm:update_time_stamp_when_create")
 func (cp *CallbackProcessor) Remove(callbackName string) {
-	cp.logger.Print("info", fmt.Sprintf("[info] removing callback `%v` from %v", callbackName, fileWithLineNum()))
+	//cp.logger.Print("info", fmt.Sprintf("[info] removing callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.remove = true
 	cp.parent.processors = append(cp.parent.processors, cp)
@@ -129,7 +129,7 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 //		   scope.SetColumn("UpdatedAt", now)
 //     })
 func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
-	cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
+	//cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
 	cp.name = callbackName
 	cp.processor = &callback
 	cp.replace = true
