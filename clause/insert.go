@@ -2,7 +2,7 @@ package clause
 
 type Insert struct {
 	Table    Table
-	Priority string
+	Modifier string
 }
 
 // Name insert clause name
@@ -12,23 +12,28 @@ func (insert Insert) Name() string {
 
 // Build build insert clause
 func (insert Insert) Build(builder Builder) {
-	if insert.Priority != "" {
-		builder.Write(insert.Priority)
+	if insert.Modifier != "" {
+		builder.Write(insert.Modifier)
 		builder.WriteByte(' ')
 	}
 
 	builder.Write("INTO ")
-	builder.WriteQuoted(insert.Table)
+	if insert.Table.Name == "" {
+		builder.WriteQuoted(currentTable)
+	} else {
+		builder.WriteQuoted(insert.Table)
+	}
 }
 
-// MergeExpression merge insert clauses
-func (insert Insert) MergeExpression(expr Expression) {
-	if v, ok := expr.(Insert); ok {
-		if insert.Priority == "" {
-			insert.Priority = v.Priority
+// MergeClause merge insert clause
+func (insert Insert) MergeClause(clause *Clause) {
+	if v, ok := clause.Expression.(Insert); ok {
+		if insert.Modifier == "" {
+			insert.Modifier = v.Modifier
 		}
-		if insert.Table.Table == "" {
+		if insert.Table.Name == "" {
 			insert.Table = v.Table
 		}
 	}
+	clause.Expression = insert
 }

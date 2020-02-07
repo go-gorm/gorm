@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -26,7 +25,7 @@ func (instance *Instance) ToSQL(clauses ...string) (string, []interface{}) {
 	if len(clauses) > 0 {
 		instance.Statement.Build(clauses...)
 	}
-	return instance.Statement.SQL.String(), instance.Statement.Vars
+	return strings.TrimSpace(instance.Statement.SQL.String()), instance.Statement.Vars
 }
 
 // AddError add error to instance
@@ -85,10 +84,10 @@ func (stmt Statement) Quote(field interface{}) string {
 
 	switch v := field.(type) {
 	case clause.Table:
-		if v.Table == clause.CurrentTable {
+		if v.Name == clause.CurrentTable {
 			str.WriteString(stmt.Table)
 		} else {
-			str.WriteString(v.Table)
+			str.WriteString(v.Name)
 		}
 
 		if v.Alias != "" {
@@ -126,7 +125,7 @@ func (stmt Statement) Quote(field interface{}) string {
 			str.WriteByte(stmt.DB.quoteChars[1])
 		}
 	default:
-		fmt.Sprint(field)
+		str.WriteString(fmt.Sprint(field))
 	}
 
 	str.WriteByte(stmt.DB.quoteChars[1])
@@ -141,19 +140,28 @@ func (stmt *Statement) AddVar(vars ...interface{}) string {
 			placeholders.WriteByte(',')
 		}
 
-		if namedArg, ok := v.(sql.NamedArg); ok && len(namedArg.Name) > 0 {
-			stmt.NamedVars = append(stmt.NamedVars, namedArg)
-			placeholders.WriteByte('@')
-			placeholders.WriteString(namedArg.Name)
-		} else if arrs, ok := v.([]interface{}); ok {
+		switch v := v.(type) {
+		case sql.NamedArg:
+			if len(v.Name) > 0 {
+				stmt.NamedVars = append(stmt.NamedVars, v)
+				placeholders.WriteByte('@')
+				placeholders.WriteString(v.Name)
+			} else {
+				stmt.Vars = append(stmt.Vars, v.Value)
+				placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
+			}
+		case clause.Column:
+			placeholders.WriteString(stmt.Quote(v))
+		case []interface{}:
 			placeholders.WriteByte('(')
-			if len(arrs) > 0 {
-				placeholders.WriteString(stmt.AddVar(arrs...))
+			if len(v) > 0 {
+				placeholders.WriteString(stmt.AddVar(v...))
 			} else {
 				placeholders.WriteString("NULL")
 			}
 			placeholders.WriteByte(')')
-		} else {
+		default:
+			stmt.Vars = append(stmt.Vars, v)
 			placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
 		}
 	}
@@ -166,42 +174,18 @@ func (stmt *Statement) AddClause(v clause.Interface) {
 		optimizer.OptimizeStatement(stmt)
 	}
 
-	c, _ := stmt.Clauses[v.Name()]
-	if namer, ok := v.(clause.OverrideNameInterface); ok {
-		c.Name = namer.OverrideName()
-	} else {
+	c, ok := stmt.Clauses[v.Name()]
+	if !ok {
 		c.Name = v.Name()
 	}
-
-	if c.Expression != nil {
-		v.MergeExpression(c.Expression)
-	}
-
-	c.Expression = v
+	v.MergeClause(&c)
 	stmt.Clauses[v.Name()] = c
 }
 
 // AddClauseIfNotExists add clause if not exists
 func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
-	if optimizer, ok := v.(StatementOptimizer); ok {
-		optimizer.OptimizeStatement(stmt)
-	}
-
-	log.Println(v.Name())
-	if c, ok := stmt.Clauses[v.Name()]; !ok {
-		if namer, ok := v.(clause.OverrideNameInterface); ok {
-			c.Name = namer.OverrideName()
-		} else {
-			c.Name = v.Name()
-		}
-
-		if c.Expression != nil {
-			v.MergeExpression(c.Expression)
-		}
-
-		c.Expression = v
-		stmt.Clauses[v.Name()] = c
-		log.Println(stmt.Clauses[v.Name()])
+	if _, ok := stmt.Clauses[v.Name()]; !ok {
+		stmt.AddClause(v)
 	}
 }
 
@@ -211,7 +195,7 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 		if i, err := strconv.Atoi(sql); err != nil {
 			query = i
 		} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
-			return []clause.Expression{clause.String{SQL: sql, Values: args}}
+			return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
 		}
 	}
 
@@ -255,7 +239,7 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 	}
 
 	if len(conditions) == 0 {
-		conditions = append(conditions, clause.ID{Value: args})
+		conditions = append(conditions, clause.IN{Column: clause.PrimaryColumn, Values: args})
 	}
 
 	return conditions

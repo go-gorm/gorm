@@ -25,15 +25,23 @@ func (values Values) Build(builder Builder) {
 		builder.Write(" VALUES ")
 
 		for idx, value := range values.Values {
-			builder.WriteByte('(')
 			if idx > 0 {
 				builder.WriteByte(',')
 			}
 
+			builder.WriteByte('(')
 			builder.Write(builder.AddVar(value...))
 			builder.WriteByte(')')
 		}
 	} else {
 		builder.Write("DEFAULT VALUES")
 	}
+}
+
+// MergeClause merge values clauses
+func (values Values) MergeClause(clause *Clause) {
+	if v, ok := clause.Expression.(Values); ok {
+		values.Values = append(v.Values, values.Values...)
+	}
+	clause.Expression = values
 }

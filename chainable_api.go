@@ -31,8 +31,8 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	}
 
 	if len(whereConds) > 0 {
-		tx.Statement.AddClause(clause.Where{
-			AndConditions: tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...),
+		tx.Statement.AddClause(&clause.Where{
+			tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...),
 		})
 	}
 	return
@@ -59,8 +59,8 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{
-		AndConditions: tx.Statement.BuildCondtion(query, args...),
+	tx.Statement.AddClause(&clause.Where{
+		tx.Statement.BuildCondtion(query, args...),
 	})
 	return
 }
@@ -68,10 +68,8 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 // Not add NOT condition
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{
-		AndConditions: []clause.Expression{
-			clause.NotConditions(tx.Statement.BuildCondtion(query, args...)),
-		},
+	tx.Statement.AddClause(&clause.Where{
+		[]clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)},
 	})
 	return
 }
@@ -79,10 +77,8 @@ func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{
-		OrConditions: []clause.OrConditions{
-			tx.Statement.BuildCondtion(query, args...),
-		},
+	tx.Statement.AddClause(&clause.Where{
+		[]clause.Expression{clause.Or(tx.Statement.BuildCondtion(query, args...)...)},
 	})
 	return
 }
@@ -113,13 +109,13 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 
 	switch v := value.(type) {
-	case clause.OrderBy:
-		db.Statement.AddClause(clause.OrderByClause{
-			Columns: []clause.OrderBy{v},
+	case clause.OrderByColumn:
+		db.Statement.AddClause(clause.OrderBy{
+			Columns: []clause.OrderByColumn{v},
 		})
 	default:
-		db.Statement.AddClause(clause.OrderByClause{
-			Columns: []clause.OrderBy{{
+		db.Statement.AddClause(clause.OrderBy{
+			Columns: []clause.OrderByColumn{{
 				Column: clause.Column{Name: fmt.Sprint(value), Raw: true},
 			}},
 		})

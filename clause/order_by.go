@@ -1,38 +1,47 @@
 package clause
 
-type OrderBy struct {
+type OrderByColumn struct {
 	Column  Column
 	Desc    bool
 	Reorder bool
 }
 
-type OrderByClause struct {
-	Columns []OrderBy
+type OrderBy struct {
+	Columns []OrderByColumn
 }
 
 // Name where clause name
-func (orderBy OrderByClause) Name() string {
+func (orderBy OrderBy) Name() string {
 	return "ORDER BY"
 }
 
 // Build build where clause
-func (orderBy OrderByClause) Build(builder Builder) {
-	for i := len(orderBy.Columns) - 1; i >= 0; i-- {
-		builder.WriteQuoted(orderBy.Columns[i].Column)
-
-		if orderBy.Columns[i].Desc {
-			builder.Write(" DESC")
+func (orderBy OrderBy) Build(builder Builder) {
+	for idx, column := range orderBy.Columns {
+		if idx > 0 {
+			builder.WriteByte(',')
 		}
 
-		if orderBy.Columns[i].Reorder {
-			break
+		builder.WriteQuoted(column.Column)
+		if column.Desc {
+			builder.Write(" DESC")
 		}
 	}
 }
 
-// MergeExpression merge order by clauses
-func (orderBy OrderByClause) MergeExpression(expr Expression) {
-	if v, ok := expr.(OrderByClause); ok {
+// MergeClause merge order by clauses
+func (orderBy OrderBy) MergeClause(clause *Clause) {
+	if v, ok := clause.Expression.(OrderBy); ok {
+		for i := len(orderBy.Columns) - 1; i >= 0; i-- {
+			if orderBy.Columns[i].Reorder {
+				orderBy.Columns = orderBy.Columns[i:]
+				clause.Expression = orderBy
+				return
+			}
+		}
+
 		orderBy.Columns = append(v.Columns, orderBy.Columns...)
 	}
+
+	clause.Expression = orderBy
 }

@@ -1,5 +1,26 @@
 package clause
 
+// Interface clause interface
+type Interface interface {
+	Name() string
+	Build(Builder)
+	MergeClause(*Clause)
+}
+
+// ClauseBuilder clause builder, allows to custmize how to build clause
+type ClauseBuilder interface {
+	Build(Clause, Builder)
+}
+
+// Builder builder interface
+type Builder interface {
+	WriteByte(byte) error
+	Write(sql ...string) error
+	WriteQuoted(field interface{}) error
+	AddVar(vars ...interface{}) string
+	Quote(field interface{}) string
+}
+
 // Clause
 type Clause struct {
 	Name                 string // WHERE
@@ -18,7 +39,7 @@ func (c Clause) Build(builder Builder) {
 	} else {
 		builders := c.BeforeExpressions
 		if c.Name != "" {
-			builders = append(builders, Expr{c.Name})
+			builders = append(builders, Expr{SQL: c.Name})
 		}
 
 		builders = append(builders, c.AfterNameExpressions...)
@@ -35,28 +56,27 @@ func (c Clause) Build(builder Builder) {
 	}
 }
 
-// Interface clause interface
-type Interface interface {
-	Name() string
-	Build(Builder)
-	MergeExpression(Expression)
+const (
+	PrimaryKey   string = "@@@priamry_key@@@"
+	CurrentTable string = "@@@table@@@"
+)
+
+var (
+	currentTable  = Table{Name: CurrentTable}
+	PrimaryColumn = Column{Table: CurrentTable, Name: PrimaryKey}
+)
+
+// Column quote with name
+type Column struct {
+	Table string
+	Name  string
+	Alias string
+	Raw   bool
 }
 
-// OverrideNameInterface override name interface
-type OverrideNameInterface interface {
-	OverrideName() string
-}
-
-// ClauseBuilder clause builder, allows to custmize how to build clause
-type ClauseBuilder interface {
-	Build(Clause, Builder)
-}
-
-// Builder builder interface
-type Builder interface {
-	WriteByte(byte) error
-	Write(sql ...string) error
-	WriteQuoted(field interface{}) error
-	AddVar(vars ...interface{}) string
-	Quote(field interface{}) string
+// Table quote with name
+type Table struct {
+	Name  string
+	Alias string
+	Raw   bool
 }
