@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 )
@@ -1426,10 +1425,5 @@ func (scope *Scope) hasConditions() bool {
 }
 
 func (scope *Scope) IsOracle() bool {
-	oraModules := []string{"godror", "oci8", "ora"} // must be an asc sorted slice
-	insertAt := sort.SearchStrings(oraModules, scope.Dialect().GetName())
-	if insertAt < len(oraModules) && oraModules[insertAt] == scope.Dialect().GetName() {
-		return true
-	}
-	return false
+	return scope.Dialect().GetName() == "oci8"
 }
