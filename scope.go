@@ -494,8 +494,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
-			// case insensitive match on field which is required for oracle
-			if strings.EqualFold(field.DBName, column) {
+			if field.DBName == column || (scope.IsOracle() && strings.EqualFold(field.DBName, column)) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
