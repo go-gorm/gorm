@@ -71,21 +71,18 @@ func (s oracle) HasColumn(tableName string, columnName string) bool {
 }
 
 func (s oracle) HasForeignKey(tableName string, foreignKeyName string) bool {
+	fmt.Println(foreignKeyName)
+
 	var count int
-	_, tableName = currentDatabaseAndTable(&s, tableName)
 	tableName = strings.ToUpper(tableName)
-	if err := s.db.QueryRow(`SELECT count(*)
-  FROM all_cons_columns a
-  JOIN all_constraints c ON a.owner = c.owner
-                        AND a.constraint_name = c.constraint_name
-                        AND a.constraint_name = :1
-  JOIN all_constraints c_pk ON c.r_owner = c_pk.owner
-                           AND c.r_constraint_name = c_pk.constraint_name
- WHERE c.constraint_type = 'R'
-   AND a.table_name = :2 ;`, foreignKeyName, tableName).Scan(&count); err == nil {
+	foreignKeyName = strings.ToUpper(foreignKeyName)
+
+	if err := s.db.QueryRow(`SELECT count(*) FROM USER_CONSTRAINTS WHERE CONSTRAINT_NAME = :1 AND constraint_type = 'R' AND table_name = :2`, foreignKeyName, tableName).Scan(&count); err == nil {
 	   return count > 0
-   }
-	return false
+   } else {
+   	fmt.Println(err)
+   }	
+   return false
 }
 
 func (s oracle) HasIndex(tableName string, indexName string) bool {
@@ -143,6 +140,9 @@ func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, st
 }
 
 func (s *oracle) DataTypeOf(field *gorm.StructField) string {
+	if _, found := field.TagSettingsGet("RESTRICT"); found {
+		field.TagSettingsDelete("RESTRICT")
+	}
 	var dataValue, sqlType, size, additionalType = gorm.ParseFieldStructForDialect(field, s)
 
 	if sqlType == "" {
