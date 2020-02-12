@@ -64,24 +64,18 @@ func (s oracle) HasColumn(tableName string, columnName string) bool {
 	columnName = strings.ToUpper(columnName)
 	if err := s.db.QueryRow("SELECT count(*) FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = :1 AND COLUMN_NAME = :2", tableName, columnName).Scan(&count); err == nil {
 		return count > 0
-	} else {
-		fmt.Println(err)
 	}
 	return false
 }
 
 func (s oracle) HasForeignKey(tableName string, foreignKeyName string) bool {
-	fmt.Println(foreignKeyName)
-
 	var count int
 	tableName = strings.ToUpper(tableName)
 	foreignKeyName = strings.ToUpper(foreignKeyName)
 
 	if err := s.db.QueryRow(`SELECT count(*) FROM USER_CONSTRAINTS WHERE CONSTRAINT_NAME = :1 AND constraint_type = 'R' AND table_name = :2`, foreignKeyName, tableName).Scan(&count); err == nil {
 	   return count > 0
-   } else {
-   	fmt.Println(err)
-   }	
+   } 
    return false
 }
 
@@ -209,7 +203,6 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 func (s oracle) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
-	fmt.Println("Entering LimitAndOffsetSQL function...")
 	if limit != nil {
 		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
 			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
@@ -221,7 +214,6 @@ func (s oracle) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err er
 			}
 		}
 	}
-	fmt.Println("LimitAndOffsetSQL: " + sql)
 	return
 }
 

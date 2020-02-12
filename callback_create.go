@@ -146,8 +146,6 @@ func createCallback(scope *Scope) {
 			return
 		}
 
-		fmt.Println(scope.Dialect().GetName())
-
 		// deal with oracle special case handling of last insert id
 		oraModules := []string{"godror", "oci8", "ora"} // must be an asc sorted slice
 		insertAt := sort.SearchStrings(oraModules, scope.Dialect().GetName())
