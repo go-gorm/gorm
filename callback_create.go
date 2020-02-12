@@ -3,7 +3,6 @@ package gorm
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 	"strings"
 )
 
@@ -146,10 +145,7 @@ func createCallback(scope *Scope) {
 			return
 		}
 
-		// deal with oracle special case handling of last insert id
-		oraModules := []string{"godror", "oci8", "ora"} // must be an asc sorted slice
-		insertAt := sort.SearchStrings(oraModules, scope.Dialect().GetName())
-		if insertAt < len(oraModules) && oraModules[insertAt] == scope.Dialect().GetName() {
+		if scope.IsOracle() {
 			var id uint32
 			scope.SQLVars = append(scope.SQLVars, sql.Out{Dest: &id})
 			scope.SQL = fmt.Sprintf("%s returning id into :%d", scope.SQL, len(scope.SQLVars))
