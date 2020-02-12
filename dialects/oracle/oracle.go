@@ -1,5 +1,5 @@
-//Oracle dialect for GORM
-package gorm
+//Oracle oracle implements a gorm dialect
+package oracle
 
 import (
 	"fmt"
@@ -7,15 +7,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	_ "github.com/godror/godror"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-oci8"
-	_ "gopkg.in/rana/ora.v4"
 )
 
-//const dialectName = "godror"
-// const dialectName = "ora"
 const dialectName = "oci8"
 
 type oracle struct {
@@ -25,7 +20,6 @@ type oracle struct {
 
 func init() {
 	gorm.RegisterDialect(dialectName, &oracle{})
-
 }
 
 func (s *oracle) fieldCanAutoIncrement(field *gorm.StructField) bool {
@@ -157,7 +151,7 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 			case size > 0 && size < 4000:
 				sqlType = fmt.Sprintf("VARCHAR2(%d)", size)
 			case size == 0:
-				sqlType = "VARCHAR2 (4000)"
+				sqlType = "VARCHAR2 (4000)" // no size specified, so default to something that can be indexed
 			default:
 				sqlType = "CLOB"
 			}
@@ -172,7 +166,14 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 			}
 		default:
 			if gorm.IsByteArrayOrSlice(dataValue) {
-				sqlType = "VARCHAR2 (4000)"
+				switch {
+				case size > 0 && size < 4000:
+					sqlType = fmt.Sprintf("VARCHAR2(%d)", size)
+				case size == 0:
+					sqlType = "VARCHAR2 (4000)" // no size specified, so default to something that can be indexed
+				default:
+					sqlType = "BLOB"
+				}
 			}
 		}
 	}
@@ -194,7 +195,6 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 	additionalType = notNull + " " + unique
 	if value, ok := field.TagSettingsGet("DEFAULT"); ok {
 		additionalType = fmt.Sprintf("%s %s %s", "DEFAULT", value, additionalType)
-		// additionalType = additionalType + " DEFAULT " + value
 	}
 
 	if value, ok := field.TagSettingsGet("COMMENT"); ok {
