@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -1234,7 +1235,11 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
+	if scope.IsOracle() {
+		scope.Raw(fmt.Sprintf(`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s`, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)).Exec()
+		return
+	}
+	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s`
 	scope.Raw(fmt.Sprintf(query, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest, onDelete, onUpdate)).Exec()
 }
 
@@ -1419,4 +1424,13 @@ func (scope *Scope) hasConditions() bool {
 		len(scope.Search.whereConditions) > 0 ||
 		len(scope.Search.orConditions) > 0 ||
 		len(scope.Search.notConditions) > 0
+}
+
+func (scope *Scope) IsOracle() bool {
+	oraModules := []string{"godror", "oci8", "ora"} // must be an asc sorted slice
+	insertAt := sort.SearchStrings(oraModules, scope.Dialect().GetName())
+	if insertAt < len(oraModules) && oraModules[insertAt] == scope.Dialect().GetName() {
+		return true
+	}
+	return false
 }
