@@ -49,11 +49,18 @@ func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB
 
 func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db *gorm.DB, source interface{}) *gorm.DB {
 	table := pa.Table(db)
-	return db.Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= '0001-01-02'", table, table))
+	where := fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= ", table, table)
+	if db.Dialect().GetName() == "oci8" {
+		where = where + "DATE '0001-01-02'"
+	} else {
+		where = where + "'0001-01-02'"
+
+	}
+	return db.Joins("INNER JOIN person_addresses ON person_addresses.address_id = addresses.id").Where(where)
 }
 
 func TestJoinTable(t *testing.T) {
-	DB.Exec("drop table person_addresses;")
+	DB.Exec("drop table person_addresses")
 	DB.AutoMigrate(&Person{})
 	DB.SetJoinTableHandler(&Person{}, "Addresses", &PersonAddress{})
 
@@ -68,7 +75,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should found one address")
 	}
 
-	if DB.Model(person).Association("Addresses").Count() != 1 {
+	if DB.Debug().Model(person).Association("Addresses").Count() != 1 {
 		t.Errorf("Should found one address")
 	}
 
