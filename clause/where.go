@@ -61,7 +61,7 @@ type AndConditions struct {
 
 func (and AndConditions) Build(builder Builder) {
 	if len(and.Exprs) > 1 {
-		builder.Write("(")
+		builder.WriteByte('(')
 	}
 	for idx, c := range and.Exprs {
 		if idx > 0 {
@@ -70,7 +70,7 @@ func (and AndConditions) Build(builder Builder) {
 		c.Build(builder)
 	}
 	if len(and.Exprs) > 1 {
-		builder.Write(")")
+		builder.WriteByte(')')
 	}
 }
 
@@ -87,7 +87,7 @@ type OrConditions struct {
 
 func (or OrConditions) Build(builder Builder) {
 	if len(or.Exprs) > 1 {
-		builder.Write("(")
+		builder.WriteByte('(')
 	}
 	for idx, c := range or.Exprs {
 		if idx > 0 {
@@ -96,7 +96,7 @@ func (or OrConditions) Build(builder Builder) {
 		c.Build(builder)
 	}
 	if len(or.Exprs) > 1 {
-		builder.Write(")")
+		builder.WriteByte(')')
 	}
 }
 
@@ -113,7 +113,7 @@ type NotConditions struct {
 
 func (not NotConditions) Build(builder Builder) {
 	if len(not.Exprs) > 1 {
-		builder.Write("(")
+		builder.WriteByte('(')
 	}
 	for idx, c := range not.Exprs {
 		if idx > 0 {
@@ -128,6 +128,6 @@ func (not NotConditions) Build(builder Builder) {
 		}
 	}
 	if len(not.Exprs) > 1 {
-		builder.Write(")")
+		builder.WriteByte(')')
 	}
 }

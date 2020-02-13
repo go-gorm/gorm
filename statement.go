@@ -153,13 +153,13 @@ func (stmt *Statement) AddVar(vars ...interface{}) string {
 		case clause.Column:
 			placeholders.WriteString(stmt.Quote(v))
 		case []interface{}:
-			placeholders.WriteByte('(')
 			if len(v) > 0 {
+				placeholders.WriteByte('(')
 				placeholders.WriteString(stmt.AddVar(v...))
+				placeholders.WriteByte(')')
 			} else {
-				placeholders.WriteString("NULL")
+				placeholders.WriteString("(NULL)")
 			}
-			placeholders.WriteByte(')')
 		default:
 			stmt.Vars = append(stmt.Vars, v)
 			placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
