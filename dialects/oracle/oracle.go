@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-oci8"
 )
@@ -38,6 +39,9 @@ func (oracle) BindVar(i int) string {
 }
 
 func (oracle) Quote(key string) string {
+	if isReserved(key) {
+		return fmt.Sprintf(`"%s"`, key)
+	}
 	return key
 }
 
@@ -68,9 +72,9 @@ func (s oracle) HasForeignKey(tableName string, foreignKeyName string) bool {
 	foreignKeyName = strings.ToUpper(foreignKeyName)
 
 	if err := s.db.QueryRow(`SELECT count(*) FROM USER_CONSTRAINTS WHERE CONSTRAINT_NAME = :1 AND constraint_type = 'R' AND table_name = :2`, foreignKeyName, tableName).Scan(&count); err == nil {
-	   return count > 0
-   } 
-   return false
+		return count > 0
+	}
+	return false
 }
 
 func (s oracle) HasIndex(tableName string, indexName string) bool {
@@ -89,7 +93,7 @@ func (s oracle) HasTable(tableName string) bool {
 	tableName = strings.ToUpper(tableName)
 	if err := s.db.QueryRow("select count(*) from user_tables where table_name = :1", tableName).Scan(&count); err == nil {
 		return count > 0
-	} 
+	}
 	return false
 }
 
