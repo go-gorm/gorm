@@ -792,7 +792,7 @@ func TestRelated(t *testing.T) {
 
 	var creditcard CreditCard
 	var user3 User
-	DB.First(&creditcard, "number = ?", "1234567890")
+	DB.First(&creditcard, `"number" = ?`, "1234567890") // you have to properly quote number as a reserved word
 	DB.Model(&creditcard).Related(&user3)
 	if user3.Id != user.Id || user3.Name != user.Name {
 		t.Errorf("Should get user from credit card correctly")
