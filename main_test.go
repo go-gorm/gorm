@@ -23,6 +23,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mssql"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/oracle"
 	"github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/jinzhu/now"
@@ -69,6 +70,18 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 		}
 		db, err = gorm.Open("mssql", dbDSN)
+	case "oracle":
+		// 	ALTER SESSION SET CONTAINER = XEPDB1;
+		// create user gorm identified by gorm;
+
+		// GRANT CONNECT, RESOURCE, DBA TO gorm;
+		// GRANT CREATE SESSION TO gorm;
+		// GRANT UNLIMITED TABLESPACE TO gorm;
+		fmt.Println("testing oracle...")
+		if dbDSN == "" {
+			dbDSN = "gorm/gorm@localhost:1521/XEPDB1"
+		}
+		db, err = gorm.Open("oci8", dbDSN)
 	default:
 		fmt.Println("testing sqlite3...")
 		db, err = gorm.Open("sqlite3", filepath.Join(os.TempDir(), "gorm.db"))
