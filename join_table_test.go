@@ -99,7 +99,7 @@ func TestEmbeddedMany2ManyRelationship(t *testing.T) {
 		EmbeddedPerson
 		ExternalID uint
 	}
-	DB.Exec("drop table person_addresses;")
+	DB.Exec("drop table person_addresses")
 	DB.AutoMigrate(&NewPerson{})
 
 	address1 := &Address{Address1: "address 1"}
