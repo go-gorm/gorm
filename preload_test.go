@@ -375,7 +375,7 @@ func TestNestedPreload5(t *testing.T) {
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2").Preload("Level2.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level1").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -449,7 +449,7 @@ func TestNestedPreload6(t *testing.T) {
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2s.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1s").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -505,7 +505,7 @@ func TestNestedPreload7(t *testing.T) {
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2s.Level1").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2s.Level1").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -564,7 +564,7 @@ func TestNestedPreload8(t *testing.T) {
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -662,7 +662,7 @@ func TestNestedPreload9(t *testing.T) {
 	}
 
 	var got []Level3
-	if err := DB.Preload("Level2").Preload("Level2.Level1s").Preload("Level2_1").Preload("Level2_1.Level1s").Preload("Level2_1.Level1s.Level0s").Find(&got).Error; err != nil {
+	if err := DB.Preload("Level2").Preload("Level2.Level1s").Preload("Level2_1").Preload("Level2_1.Level1s").Preload("Level2_1.Level1s.Level0s").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -727,7 +727,7 @@ func TestNestedPreload10(t *testing.T) {
 	}
 
 	var got []*LevelA2
-	if err := DB.Preload("LevelA3s.LevelA1").Find(&got).Error; err != nil {
+	if err := DB.Preload("LevelA3s.LevelA1").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -841,7 +841,7 @@ func TestNestedPreload12(t *testing.T) {
 	}
 
 	var got []LevelC3
-	if err := DB.Preload("LevelC2").Preload("LevelC2.LevelC1").Find(&got).Error; err != nil {
+	if err := DB.Preload("LevelC2").Preload("LevelC2.LevelC1").Set("gorm:query_option", "order by id ASC").Find(&got).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -912,7 +912,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	var got3 []Level2
-	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s").Set("gorm:query_option", "order by id ASC").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -921,7 +921,7 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	var got4 []Level2
-	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Set("gorm:query_option", "order by id ASC").Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1016,7 +1016,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	}
 
 	var got3 []Level3
-	if err := DB.Preload("Level2.Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Set("gorm:query_option", "order by id ASC").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1025,7 +1025,7 @@ func TestManyToManyPreloadForNestedPointer(t *testing.T) {
 	}
 
 	var got4 []Level3
-	if err := DB.Preload("Level2.Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s", "value IN (?)", []string{"zh", "ru"}).Set("gorm:query_option", "order by id ASC").Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1230,9 +1230,7 @@ func TestNestedManyToManyPreload3(t *testing.T) {
 	}
 
 	var gots []*Level3
-	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
-		return db.Order("level1.id ASC")
-	}).Find(&gots).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Set("gorm:query_option", "order by id ASC").Find(&gots).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1305,9 +1303,7 @@ func TestNestedManyToManyPreload3ForStruct(t *testing.T) {
 	}
 
 	var gots []*Level3
-	if err := DB.Preload("Level2.Level1s", func(db *gorm.DB) *gorm.DB {
-		return db.Order("level1.id ASC")
-	}).Find(&gots).Error; err != nil {
+	if err := DB.Preload("Level2.Level1s").Set("gorm:query_option", "order by id ASC").Find(&gots).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1430,7 +1426,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 
 	var got3 []Level2
-	if err := DB.Preload("Level1s").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s").Set("gorm:query_option", "order by id ASC").Find(&got3, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1439,7 +1435,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 	}
 
 	var got4 []Level2
-	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
+	if err := DB.Preload("Level1s", "value IN (?)", []string{"zh", "ru"}).Set("gorm:query_option", "order by id ASC").Find(&got4, "value IN (?)", []string{"Bob", "Tom"}).Error; err != nil {
 		t.Error(err)
 	}
 
@@ -1643,7 +1639,7 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 	want := []Level1{want1, want2}
 
 	var got []Level1
-	err := DB.Preload("Level2.Level3.Level4s").Find(&got).Error
+	err := DB.Preload("Level2.Level3.Level4s").Set("gorm:query_option", "order by id ASC").Find(&got).Error
 	if err != nil {
 		t.Error(err)
 	}
