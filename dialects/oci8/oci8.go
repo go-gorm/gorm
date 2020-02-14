@@ -236,6 +236,7 @@ func (oci8) NormalizeIndexAndColumn(indexName, columnName string) (string, strin
 	return indexName, columnName
 }
 
+// SearchBlob returns a where clause substring for searching fieldName and will require you to pass a parameter for the search value
 func SearchBlob(fieldName string) string {
 	// oracle requires some hoop jumping to search []byte stored as BLOB
 
