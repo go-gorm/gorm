@@ -184,12 +184,16 @@ func TestSearchWithPlainSQL(t *testing.T) {
 		t.Errorf("Should found 2 users' birthday > 2000-1-1, but got %v", len(users))
 	}
 
-	scopedb.Where("birthday > ?", "2002-10-10").Find(&users)
+	param := "?"
+	if scopedb.Dialect().GetName() == "oci8" {
+		param = "to_date(?, 'YYYY-MM-DD')"
+	}
+	scopedb.Where("birthday > "+param, "2002-10-10").Find(&users)
 	if len(users) != 2 {
 		t.Errorf("Should found 2 users' birthday >= 2002-10-10, but got %v", len(users))
 	}
 
-	scopedb.Where("birthday >= ?", "2010-1-1").Where("birthday < ?", "2020-1-1").Find(&users)
+	scopedb.Where("birthday >= "+param, "2010-01-01").Where("birthday < "+param, "2020-01-01").Find(&users)
 	if len(users) != 1 {
 		t.Errorf("Should found 1 users' birthday < 2020-1-1 and >= 2010-1-1, but got %v", len(users))
 	}
@@ -768,8 +772,12 @@ func TestSelectWithEscapedFieldName(t *testing.T) {
 	user3 := User{Name: "EscapedFieldNameUser", Age: 20}
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
+	colName := "name"
+	if DB.Dialect().GetName() == "oci8" {
+		colName = "NAME" // oracle upper cases all identifiers that aren't explicitly escaped when the table is created
+	}
 	var names []string
-	DB.Model(User{}).Where(&User{Name: "EscapedFieldNameUser"}).Pluck("\"name\"", &names)
+	DB.Model(User{}).Where(&User{Name: "EscapedFieldNameUser"}).Pluck(fmt.Sprintf("\"%s\"", colName), &names)
 
 	if len(names) != 3 {
 		t.Errorf("Expected 3 name, but got: %d", len(names))
@@ -785,7 +793,11 @@ func TestSelectWithVariables(t *testing.T) {
 		t.Errorf("Should have returned at least one row")
 	} else {
 		columns, _ := rows.Columns()
-		if !reflect.DeepEqual(columns, []string{"fake"}) {
+		colName := "fake"
+		if DB.Dialect().GetName() == "oci8" {
+			colName = "FAKE" // oracle upper cases all identifiers that aren't explicitly escaped when the table is created
+		}
+		if !reflect.DeepEqual(columns, []string{colName}) {
 			t.Errorf("Should only contains one column")
 		}
 	}
