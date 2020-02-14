@@ -511,7 +511,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
-			if field.DBName == column || (scope.IsOracle() && strings.EqualFold(field.DBName, column)) {
+			if field.DBName == column || (scope.isOracle() && strings.EqualFold(field.DBName, column)) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -1035,14 +1035,14 @@ func (scope *Scope) count(value interface{}) *Scope {
 				scope.prepareQuerySQL()
 				scope.Search = &search{}
 				scope.Search.Select("count(*)")
-				if scope.IsOracle() {
+				if scope.isOracle() {
 					scope.Search.Table(fmt.Sprintf("( %s )", scope.SQL))
 				} else {
 					scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
 				}
 			} else {
 				scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
-				if scope.IsOracle() {
+				if scope.isOracle() {
 					scope.Search.group += " )"
 				} else {
 					scope.Search.group += " ) AS count_table"
@@ -1259,7 +1259,7 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	if scope.IsOracle() {
+	if scope.isOracle() {
 		scope.Raw(fmt.Sprintf(`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s`, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)).Exec()
 		return
 	}
@@ -1450,6 +1450,6 @@ func (scope *Scope) hasConditions() bool {
 		len(scope.Search.notConditions) > 0
 }
 
-func (scope *Scope) IsOracle() bool {
+func (scope *Scope) isOracle() bool {
 	return scope.Dialect().GetName() == "oci8"
 }

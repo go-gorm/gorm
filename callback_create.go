@@ -146,7 +146,7 @@ func createCallback(scope *Scope) {
 			return
 		}
 
-		if scope.IsOracle() {
+		if scope.isOracle() {
 			var stringId string
 			var intId uint32
 			primaryIsString := false
