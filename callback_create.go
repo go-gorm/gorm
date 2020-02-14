@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -146,12 +147,27 @@ func createCallback(scope *Scope) {
 		}
 
 		if scope.IsOracle() {
-			var id uint32
-			scope.SQLVars = append(scope.SQLVars, sql.Out{Dest: &id})
-			scope.SQL = fmt.Sprintf("%s returning id into :%d", scope.SQL, len(scope.SQLVars))
+			var stringId string
+			var intId uint32
+			primaryIsString := false
+			out := sql.Out{
+				Dest: &intId,
+			}
+			if primaryField.Field.Kind() == reflect.String {
+				out = sql.Out{
+					Dest: &stringId,
+				}
+				primaryIsString = true
+			}
+			scope.SQLVars = append(scope.SQLVars, out)
+			scope.SQL = fmt.Sprintf("%s returning %s into :%d", scope.SQL, scope.Quote(primaryField.DBName), len(scope.SQLVars))
 			if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 				scope.db.RowsAffected, _ = result.RowsAffected()
-				scope.Err(primaryField.Set(id))
+				if primaryIsString {
+					scope.Err(primaryField.Set(stringId))
+				} else {
+					scope.Err(primaryField.Set(intId))
+				}
 			}
 			return
 		}
