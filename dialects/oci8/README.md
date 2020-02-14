@@ -10,7 +10,7 @@
 
 ## Overview
 
-This document covers everything you need to install/configure/run to get the oci8 dialect up and running. 
+This document covers everything you need to install/configure/run to get the oci8 dialect up and running.  BTW, oci8 using pkg-config to bind to the Oracle instantclient libraries, so it uses CGO.
 
 You'll find some additional documentation on various challenges and design decisions for the dialect in [doc.go](./doc.go)
 
