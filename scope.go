@@ -6,8 +6,10 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -79,9 +81,25 @@ func (scope *Scope) Quote(str string) string {
 	return scope.Dialect().Quote(str)
 }
 
+// stackTrace spews a small stack trace
+func stackTrace(err error) {
+	if d := os.Getenv("DEBUG"); d == "true" {
+		fmt.Println("#########: ", err)
+		for i := 8; i > 0; i-- {
+			_, file, no, ok := runtime.Caller(i)
+			if ok {
+				fmt.Printf("called from %s#%d\n", file, no)
+			} else {
+				break
+			}
+		}
+	}
+}
+
 // Err add error to Scope
 func (scope *Scope) Err(err error) error {
 	if err != nil {
+		stackTrace(err)
 		scope.db.AddError(err)
 	}
 	return err
@@ -1017,10 +1035,18 @@ func (scope *Scope) count(value interface{}) *Scope {
 				scope.prepareQuerySQL()
 				scope.Search = &search{}
 				scope.Search.Select("count(*)")
-				scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
+				if scope.IsOracle() {
+					scope.Search.Table(fmt.Sprintf("( %s )", scope.SQL))
+				} else {
+					scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
+				}
 			} else {
 				scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
-				scope.Search.group += " ) AS count_table"
+				if scope.IsOracle() {
+					scope.Search.group += " )"
+				} else {
+					scope.Search.group += " ) AS count_table"
+				}
 			}
 		} else {
 			scope.Search.Select("count(*)")
@@ -1272,7 +1298,7 @@ func (scope *Scope) autoMigrate() *Scope {
 			if !scope.Dialect().HasColumn(tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.Dialect().DataTypeOf(field)
-					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec()
+					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec() // can't end sql in ";" since that's not valid in oracle
 				}
 			}
 			scope.createJoinTable(field)
