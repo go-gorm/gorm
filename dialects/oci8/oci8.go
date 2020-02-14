@@ -14,48 +14,48 @@ import (
 
 const dialectName = "oci8"
 
-type oracle struct {
+type oci8 struct {
 	db gorm.SQLCommon
 	gorm.DefaultForeignKeyNamer
 }
 
 func init() {
-	gorm.RegisterDialect(dialectName, &oracle{})
+	gorm.RegisterDialect(dialectName, &oci8{})
 }
 
-func (s *oracle) fieldCanAutoIncrement(field *gorm.StructField) bool {
+func (s *oci8) fieldCanAutoIncrement(field *gorm.StructField) bool {
 	if value, ok := field.TagSettingsGet("AUTO_INCREMENT"); ok {
 		return strings.ToLower(value) != "false"
 	}
 	return field.IsPrimaryKey
 }
 
-func (oracle) GetName() string {
+func (oci8) GetName() string {
 	return dialectName
 }
 
-func (oracle) BindVar(i int) string {
+func (oci8) BindVar(i int) string {
 	return fmt.Sprintf(":%v", i)
 }
 
-func (oracle) Quote(key string) string {
+func (oci8) Quote(key string) string {
 	if isReserved(key) {
 		return fmt.Sprintf(`"%s"`, key)
 	}
 	return key
 }
 
-func (s oracle) CurrentDatabase() string {
+func (s oci8) CurrentDatabase() string {
 	var name string
 	s.db.QueryRow("SELECT ORA_DATABASE_NAME as \"Current Database\" FROM DUAL").Scan(&name)
 	return name
 }
 
-func (oracle) DefaultValueStr() string {
-	return "DEFAULT VALUES"
+func (oci8) DefaultValueStr() string {
+	return "VALUES (DEFAULT)"
 }
 
-func (s oracle) HasColumn(tableName string, columnName string) bool {
+func (s oci8) HasColumn(tableName string, columnName string) bool {
 	var count int
 	_, tableName = currentDatabaseAndTable(&s, tableName)
 	tableName = strings.ToUpper(tableName)
@@ -66,7 +66,7 @@ func (s oracle) HasColumn(tableName string, columnName string) bool {
 	return false
 }
 
-func (s oracle) HasForeignKey(tableName string, foreignKeyName string) bool {
+func (s oci8) HasForeignKey(tableName string, foreignKeyName string) bool {
 	var count int
 	tableName = strings.ToUpper(tableName)
 	foreignKeyName = strings.ToUpper(foreignKeyName)
@@ -77,7 +77,7 @@ func (s oracle) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return false
 }
 
-func (s oracle) HasIndex(tableName string, indexName string) bool {
+func (s oci8) HasIndex(tableName string, indexName string) bool {
 	var count int
 	tableName = strings.ToUpper(tableName)
 	indexName = strings.ToUpper(indexName)
@@ -87,7 +87,7 @@ func (s oracle) HasIndex(tableName string, indexName string) bool {
 	return false
 }
 
-func (s oracle) HasTable(tableName string) bool {
+func (s oci8) HasTable(tableName string) bool {
 	var count int
 	_, tableName = currentDatabaseAndTable(&s, tableName)
 	tableName = strings.ToUpper(tableName)
@@ -97,29 +97,29 @@ func (s oracle) HasTable(tableName string) bool {
 	return false
 }
 
-func (oracle) LastInsertIDReturningSuffix(tableName, columnName string) string {
+func (oci8) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }
 
-func (oracle) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
+func (oci8) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
 	return ""
 }
 
-func (s oracle) ModifyColumn(tableName string, columnName string, typ string) error {
+func (s oci8) ModifyColumn(tableName string, columnName string, typ string) error {
 	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", tableName, columnName, typ))
 	return err
 }
 
-func (s oracle) RemoveIndex(tableName string, indexName string) error {
+func (s oci8) RemoveIndex(tableName string, indexName string) error {
 	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 	return err
 }
 
-func (oracle) SelectFromDummyTable() string {
+func (oci8) SelectFromDummyTable() string {
 	return "FROM DUAL"
 }
 
-func (s *oracle) SetDB(db gorm.SQLCommon) {
+func (s *oci8) SetDB(db gorm.SQLCommon) {
 	s.db = db
 }
 
@@ -131,7 +131,7 @@ func currentDatabaseAndTable(dialect gorm.Dialect, tableName string) (string, st
 	return dialect.CurrentDatabase(), tableName
 }
 
-func (s *oracle) DataTypeOf(field *gorm.StructField) string {
+func (s *oci8) DataTypeOf(field *gorm.StructField) string {
 	if _, found := field.TagSettingsGet("RESTRICT"); found {
 		field.TagSettingsDelete("RESTRICT")
 	}
@@ -155,7 +155,7 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 			case size > 0 && size < 4000:
 				sqlType = fmt.Sprintf("VARCHAR2(%d)", size)
 			case size == 0:
-				sqlType = "VARCHAR2 (4000)" // no size specified, so default to something that can be indexed
+				sqlType = "VARCHAR2 (1000)" // no size specified, so default to something that can be indexed
 			default:
 				sqlType = "CLOB"
 			}
@@ -170,14 +170,14 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 			}
 		default:
 			if gorm.IsByteArrayOrSlice(dataValue) {
-				switch {
-				case size > 0 && size < 4000:
-					sqlType = fmt.Sprintf("VARCHAR2(%d)", size)
-				case size == 0:
-					sqlType = "VARCHAR2 (4000)" // no size specified, so default to something that can be indexed
-				default:
-					sqlType = "BLOB"
-				}
+				// switch {
+				// case size > 0 && size < 4000:
+				// 	sqlType = fmt.Sprintf("VARCHAR2(%d)", size)
+				// case size == 0:
+				// 	sqlType = "VARCHAR2 (4000)" // no size specified, so default to something that can be indexed
+				// default:
+				sqlType = "BLOB"
+				// }
 			}
 		}
 	}
@@ -206,22 +206,37 @@ func (s *oracle) DataTypeOf(field *gorm.StructField) string {
 	}
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
-func (s oracle) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
+func (s oci8) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
 		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
-			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
-
-			if offset != nil {
+			// when only Limit() is called on a query, the offset is set to -1 for some reason
+			if offset != nil && offset != -1 {
 				if parsedOffset, err := strconv.ParseInt(fmt.Sprint(offset), 0, 0); err == nil && parsedOffset >= 0 {
 					sql += fmt.Sprintf(" OFFSET %d ROWS ", parsedOffset)
+				} else {
+					return "", err
 				}
 			}
+			sql += fmt.Sprintf(" FETCH NEXT %d ROWS ONLY", parsedLimit)
+		} else {
+			return "", err
 		}
 	}
 	return
 }
 
 // NormalizeIndexAndColumn returns argument's index name and column name without doing anything
-func (oracle) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
+func (oci8) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
 	return indexName, columnName
+}
+
+func SearchBlob(fieldName string) string {
+	// oracle requires some hoop jumping to search []byte stored as BLOB
+
+	const lobSearch = ` dbms_lob.instr (%s, -- the blob
+		utl_raw.cast_to_raw (?), -- the search string cast to raw
+		1, -- where to start. i.e. offset
+		1 -- Which occurrance i.e. 1=first
+		 ) > 0 `
+	return fmt.Sprintf(lobSearch, fieldName)
 }
