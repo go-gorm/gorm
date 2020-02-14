@@ -75,7 +75,7 @@ func TestJoinTable(t *testing.T) {
 		t.Errorf("Should found one address")
 	}
 
-	if DB.Debug().Model(person).Association("Addresses").Count() != 1 {
+	if DB.Model(person).Association("Addresses").Count() != 1 {
 		t.Errorf("Should found one address")
 	}
 
