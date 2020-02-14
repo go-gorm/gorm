@@ -2,11 +2,13 @@ package gorm_test
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/jinzhu/gorm"
+	oracle "github.com/jinzhu/gorm/dialects/oci8"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
@@ -62,9 +64,19 @@ func TestValuer(t *testing.T) {
 	}
 
 	var user2 User
-	if err := DB.Where("name = ? AND password = ? AND password_hash = ?", name, EncryptedData("pass1"), []byte("abc")).First(&user2).Error; err != nil {
-		t.Errorf("No error should happen when querying user with valuer, but got %v", err)
+
+	if DB.Dialect().GetName() == "oci8" {
+		where := fmt.Sprintf("name = ? AND %s AND %s", oracle.SearchBlob("password_hash"), oracle.SearchBlob("password"))
+
+		if err := DB.Where(where, name, "abc", "***pass1").First(&user2).Error; err != nil {
+			t.Errorf("No error should happen when querying user with valuer, but got %v", err)
+		}
+	} else {
+		if err := DB.Where("name = ? AND password = ? AND password_hash = ?", name, EncryptedData("pass1"), []byte("abc")).First(&user2).Error; err != nil {
+			t.Errorf("No error should happen when querying user with valuer, but got %v", err)
+		}
 	}
+
 }
 
 func TestFailedValuer(t *testing.T) {
