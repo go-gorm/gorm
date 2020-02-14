@@ -23,7 +23,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mssql"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/oracle"
+	_ "github.com/jinzhu/gorm/dialects/oci8"
 	"github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/jinzhu/now"
@@ -183,7 +183,7 @@ func TestSetTable(t *testing.T) {
 		t.Errorf("Should got error when table is set to an invalid table")
 	}
 
-	DB.Exec("drop table deleted_users;")
+	DB.Exec("drop table deleted_users")
 	if DB.Table("deleted_users").CreateTable(&User{}).Error != nil {
 		t.Errorf("Create table with specified table")
 	}
@@ -574,8 +574,11 @@ func TestTransactionReadonly(t *testing.T) {
 	if dialect == "" {
 		dialect = "sqlite"
 	}
+	if DB.Dialect().GetName() == "oci8" {
+		dialect = "oracle"
+	}
 	switch dialect {
-	case "mssql", "sqlite":
+	case "mssql", "sqlite", "oracle":
 		t.Skipf("%s does not support readonly transactions\n", dialect)
 	}
 
@@ -599,7 +602,6 @@ func TestTransactionReadonly(t *testing.T) {
 	if err := tx.Save(&u).Error; err == nil {
 		t.Errorf("Error should have been raised in a readonly transaction")
 	}
-
 	tx.Rollback()
 }
 
@@ -770,19 +772,19 @@ func TestJoins(t *testing.T) {
 	}
 
 	var users3 []User
-	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where("name = ?", "joins").First(&users3)
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "411111111111").Where("name = ?", "joins").First(&users3)
 	if len(users3) != 1 {
 		t.Errorf("should find one users using multiple left join conditions")
 	}
 
 	var users4 []User
-	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "422222222222").Where("name = ?", "joins").First(&users4)
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "422222222222").Where("name = ?", "joins").First(&users4)
 	if len(users4) != 0 {
 		t.Errorf("should find no user when searching with unexisting credit card")
 	}
 
 	var users5 []User
-	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?", "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
+	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
 	if db5.Error != nil {
 		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
 	}
@@ -1349,10 +1351,14 @@ func TestCountWithQueryOption(t *testing.T) {
 func TestQueryHint1(t *testing.T) {
 	db := DB.New()
 
-	_, err := db.Model(User{}).Raw("select 1").Rows()
+	q := "select 1"
+	if db.Dialect().GetName() == "oci8" {
+		q = q + " from dual"
+	}
+	_, err := db.Model(User{}).Raw(q).Rows()
 
 	if err != nil {
-		t.Error("Unexpected error on query count with query_option")
+		t.Error("Unexpected error on query count with query_option: ", err)
 	}
 }
 
