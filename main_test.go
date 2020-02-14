@@ -70,7 +70,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 		}
 		db, err = gorm.Open("mssql", dbDSN)
-	case "oracle":
+	case "oci8":
 		// 	ALTER SESSION SET CONTAINER = XEPDB1;
 		// create user gorm identified by gorm;
 
