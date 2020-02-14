@@ -181,6 +181,8 @@ func (i *Num) Scan(src interface{}) error {
 		*i = Num(n)
 	case int64:
 		*i = Num(s)
+	case float64:
+		*i = Num(s)
 	default:
 		return errors.New("Cannot scan NamedInt from " + reflect.ValueOf(src).String())
 	}
@@ -289,7 +291,7 @@ func runMigration() {
 	}
 
 	for _, table := range []string{"animals", "user_languages"} {
-		DB.Exec(fmt.Sprintf("drop table %v;", table))
+		DB.Exec(fmt.Sprintf("drop table %v", table)) // ending with ";" is not valid in oracle
 	}
 
 	values := []interface{}{&Short{}, &ReallyLongThingThatReferencesShort{}, &ReallyLongTableNameToTestMySQLNameLengthLimit{}, &NotSoLongTableName{}, &Product{}, &Email{}, &Address{}, &CreditCard{}, &Company{}, &Role{}, &Language{}, &HNPost{}, &EngadgetPost{}, &Animal{}, &User{}, &JoinTable{}, &Post{}, &Category{}, &Comment{}, &Cat{}, &Dog{}, &Hamster{}, &Toy{}, &ElementWithIgnoredField{}, &Place{}}
