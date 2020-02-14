@@ -761,7 +761,7 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("embedded struct email should be saved")
 	}
 
-	if DB.Where("email = ?", "1231231231").First(&CreditCard{}).RecordNotFound() {
+	if DB.Where("\"number\" = ?", "1231231231").First(&CreditCard{}).RecordNotFound() {
 		t.Errorf("embedded struct credit card should be saved")
 	}
 }
