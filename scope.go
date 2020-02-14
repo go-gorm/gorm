@@ -1260,7 +1260,12 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 		return
 	}
 	if scope.isOracle() {
-		scope.Raw(fmt.Sprintf(`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s`, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)).Exec()
+		query := fmt.Sprintf(`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s`, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)
+		if !strings.EqualFold(onDelete, "RESTRICT") {
+			query = fmt.Sprintf("%s ON DELETE %s", query, onDelete)
+		}
+		// ON UPDATE is not supported by oracle
+		scope.Raw(query).Exec()
 		return
 	}
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s`
