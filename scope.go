@@ -83,7 +83,7 @@ func (scope *Scope) Quote(str string) string {
 
 // stackTrace spews a small stack trace
 func stackTrace(err error) {
-	if d := os.Getenv("DEBUG"); d == "true" {
+	if d := os.Getenv("STACKTRACE"); d == "true" {
 		fmt.Println("#########: ", err)
 		for i := 8; i > 0; i-- {
 			_, file, no, ok := runtime.Caller(i)
