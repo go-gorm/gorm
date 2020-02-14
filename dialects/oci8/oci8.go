@@ -14,6 +14,8 @@ import (
 
 const dialectName = "oci8"
 
+var _ gorm.Dialect = (*oci8)(nil)
+
 type oci8 struct {
 	db gorm.SQLCommon
 	gorm.DefaultForeignKeyNamer
@@ -47,7 +49,9 @@ func (oci8) Quote(key string) string {
 
 func (s oci8) CurrentDatabase() string {
 	var name string
-	s.db.QueryRow("SELECT ORA_DATABASE_NAME as \"Current Database\" FROM DUAL").Scan(&name)
+	if err := s.db.QueryRow("SELECT ORA_DATABASE_NAME as \"Current Database\" FROM DUAL").Scan(&name); err != nil {
+		return "" // just return "", since the Dialect interface doesn't support returning an error for this func
+	}
 	return name
 }
 
