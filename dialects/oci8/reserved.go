@@ -5,6 +5,23 @@ import (
 	"sync"
 )
 
+var setupReserved sync.Once
+var reservedWords map[string]struct{}
+
+func isReserved(w string) bool {
+	setupReserved.Do(
+		func() {
+			words := strings.Split(reserved, "\n")
+			reservedWords = make(map[string]struct{}, len(words))
+			for _, s := range words {
+				reservedWords[s] = struct{}{}
+			}
+		},
+	)
+	_, ok := reservedWords[strings.ToUpper(w)]
+	return ok
+}
+
 const reserved = `AGGREGATE
 AGGREGATES
 ALL
@@ -147,20 +164,3 @@ WITH
 YEAR
 ZERO
 ZONE`
-
-var setupReserved sync.Once
-var reservedWords map[string]struct{}
-
-func isReserved(w string) bool {
-	setupReserved.Do(
-		func() {
-			words := strings.Split(reserved, "\n")
-			reservedWords = make(map[string]struct{}, len(words))
-			for _, s := range words {
-				reservedWords[s] = struct{}{}
-			}
-		},
-	)
-	_, ok := reservedWords[strings.ToUpper(w)]
-	return ok
-}
