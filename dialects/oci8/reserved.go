@@ -1,4 +1,4 @@
-package oracle
+package oci8
 
 import (
 	"strings"

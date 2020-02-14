@@ -1,5 +1,5 @@
-//Oracle oracle implements a gorm dialect
-package oracle
+// oci8 implements a gorm dialect for oracle
+package oci8
 
 import (
 	"fmt"
