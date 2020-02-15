@@ -185,7 +185,7 @@ func TestSearchWithPlainSQL(t *testing.T) {
 	}
 
 	param := "?"
-	if isOracle(scopedb) {
+	if isOra(scopedb) {
 		param = "to_date(?, 'YYYY-MM-DD')"
 	}
 	scopedb.Where("birthday > "+param, "2002-10-10").Find(&users)
@@ -773,7 +773,7 @@ func TestSelectWithEscapedFieldName(t *testing.T) {
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	colName := "name"
-	if isOracle(DB) {
+	if isOra(DB) {
 		colName = "NAME" // oracle upper cases all identifiers that aren't explicitly escaped when the table is created
 	}
 	var names []string
@@ -794,7 +794,7 @@ func TestSelectWithVariables(t *testing.T) {
 	} else {
 		columns, _ := rows.Columns()
 		colName := "fake"
-		if isOracle(DB) {
+		if isOra(DB) {
 			colName = "FAKE" // oracle upper cases all identifiers that aren't explicitly escaped when the table is created
 		}
 		if !reflect.DeepEqual(columns, []string{colName}) {

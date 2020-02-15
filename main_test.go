@@ -574,7 +574,7 @@ func TestTransactionReadonly(t *testing.T) {
 	if dialect == "" {
 		dialect = "sqlite"
 	}
-	if isOracle(DB) {
+	if isOra(DB) {
 		dialect = "oracle"
 	}
 	switch dialect {
@@ -1352,7 +1352,7 @@ func TestQueryHint1(t *testing.T) {
 	db := DB.New()
 
 	q := "select 1"
-	if isOracle(db) {
+	if isOra(db) {
 		q = q + " from dual"
 	}
 	_, err := db.Model(User{}).Raw(q).Rows()
@@ -1462,8 +1462,8 @@ func parseTime(str string) *time.Time {
 	return &t
 }
 
-// isOracle gives tests an easy way to determine if the dialect uses Oracle for its RMDBS, since oracle could have multiple dialects for different drivers.
-// and since tests run in their own namespace
-func isOracle(db *gorm.DB) bool {
-	return db.Dialect().GetName() == "oci8"
+// isOra gives tests an easy way to determine if the dialect uses Oracle for its RMDBS, since oracle could have multiple dialects for different drivers.
+func isOra(db *gorm.DB) bool {
+	_, ok := db.Dialect().(gorm.OraDialect)
+	return ok
 }

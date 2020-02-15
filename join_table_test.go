@@ -50,7 +50,7 @@ func (*PersonAddress) Delete(handler gorm.JoinTableHandlerInterface, db *gorm.DB
 func (pa *PersonAddress) JoinWith(handler gorm.JoinTableHandlerInterface, db *gorm.DB, source interface{}) *gorm.DB {
 	table := pa.Table(db)
 	where := fmt.Sprintf("%v.deleted_at IS NULL OR %v.deleted_at <= ", table, table)
-	if isOracle(db) {
+	if isOra(db) {
 		where = where + "DATE '0001-01-02'"
 	} else {
 		where = where + "'0001-01-02'"
