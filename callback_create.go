@@ -146,7 +146,8 @@ func createCallback(scope *Scope) {
 			return
 		}
 
-		if scope.isOracle() {
+		// this is very specific to how the oci8 driver handles the last insert id via a sql.Out parameter
+		if scope.Dialect().GetName() == "oci8" {
 			var stringId string
 			var intId uint32
 			primaryIsString := false
