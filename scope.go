@@ -1455,6 +1455,7 @@ func (scope *Scope) hasConditions() bool {
 		len(scope.Search.notConditions) > 0
 }
 
+// isOracle gives a scope an easy way to determine if the dialect uses Oracle for its RMDBS, since oracle could have multiple dialects for different drivers.
 func (scope *Scope) isOracle() bool {
 	return scope.Dialect().GetName() == "oci8"
 }
