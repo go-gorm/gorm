@@ -65,7 +65,7 @@ func TestValuer(t *testing.T) {
 
 	var user2 User
 
-	if DB.Dialect().GetName() == "oci8" {
+	if isOracle(DB) {
 		where := fmt.Sprintf("name = ? AND %s AND %s", oracle.SearchBlob("password_hash"), oracle.SearchBlob("password"))
 
 		if err := DB.Where(where, name, "abc", "***pass1").First(&user2).Error; err != nil {
