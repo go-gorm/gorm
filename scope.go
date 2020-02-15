@@ -511,7 +511,7 @@ func (scope *Scope) scan(rows *sql.Rows, columns []string, fields []*Field) {
 		}
 
 		for fieldIndex, field := range selectFields {
-			if field.DBName == column || (scope.isOracle() && strings.EqualFold(field.DBName, column)) {
+			if field.DBName == column || (scope.isOra() && strings.EqualFold(field.DBName, column)) {
 				if field.Field.Kind() == reflect.Ptr {
 					values[index] = field.Field.Addr().Interface()
 				} else {
@@ -1035,14 +1035,14 @@ func (scope *Scope) count(value interface{}) *Scope {
 				scope.prepareQuerySQL()
 				scope.Search = &search{}
 				scope.Search.Select("count(*)")
-				if scope.isOracle() {
+				if scope.isOra() {
 					scope.Search.Table(fmt.Sprintf("( %s )", scope.SQL))
 				} else {
 					scope.Search.Table(fmt.Sprintf("( %s ) AS count_table", scope.SQL))
 				}
 			} else {
 				scope.Search.Select("count(*) FROM ( SELECT count(*) as name ")
-				if scope.isOracle() {
+				if scope.isOra() {
 					scope.Search.group += " )"
 				} else {
 					scope.Search.group += " ) AS count_table"
@@ -1259,7 +1259,7 @@ func (scope *Scope) addForeignKey(field string, dest string, onDelete string, on
 	if scope.Dialect().HasForeignKey(scope.TableName(), keyName) {
 		return
 	}
-	if scope.isOracle() {
+	if scope.isOra() {
 		query := fmt.Sprintf(`ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s`, scope.QuotedTableName(), scope.quoteIfPossible(keyName), scope.quoteIfPossible(field), dest)
 		if !strings.EqualFold(onDelete, "RESTRICT") {
 			query = fmt.Sprintf("%s ON DELETE %s", query, onDelete)
@@ -1455,7 +1455,7 @@ func (scope *Scope) hasConditions() bool {
 		len(scope.Search.notConditions) > 0
 }
 
-// isOracle gives a scope an easy way to determine if the dialect uses Oracle for its RMDBS, since oracle could have multiple dialects for different drivers.
-func (scope *Scope) isOracle() bool {
-	return scope.Dialect().GetName() == "oci8"
+func (scope *Scope) isOra() bool {
+	_, ok := scope.Dialect().(OraDialect)
+	return ok
 }
