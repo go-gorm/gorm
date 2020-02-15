@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strings"
@@ -194,30 +195,39 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[string]interface{}) {
 	for k, v := range values {
 		t.Run("CheckField/"+k, func(t *testing.T) {
-			field := s.FieldsByDBName[k]
-			fv := field.ValueOf(value)
+			var (
+				checker func(fv interface{}, v interface{})
+				field   = s.FieldsByDBName[k]
+				fv      = field.ValueOf(value)
+			)
 
-			if reflect.ValueOf(fv).Kind() == reflect.Ptr {
-				if reflect.ValueOf(v).Kind() == reflect.Ptr {
-					if fv != v {
-						t.Errorf("pointer expects: %p, but got %p", v, fv)
+			checker = func(fv interface{}, v interface{}) {
+				if reflect.ValueOf(fv).Type() == reflect.ValueOf(v).Type() && fv != v {
+					t.Errorf("expects: %p, but got %p", v, fv)
+				} else if reflect.ValueOf(v).Type().ConvertibleTo(reflect.ValueOf(fv).Type()) {
+					if reflect.ValueOf(v).Convert(reflect.ValueOf(fv).Type()).Interface() != fv {
+						t.Errorf("expects: %p, but got %p", v, fv)
 					}
-				} else if fv == nil {
-					if v != nil {
-						t.Errorf("expects: %+v, but got nil", v)
+				} else if reflect.ValueOf(fv).Type().ConvertibleTo(reflect.ValueOf(v).Type()) {
+					if reflect.ValueOf(fv).Convert(reflect.ValueOf(fv).Type()).Interface() != v {
+						t.Errorf("expects: %p, but got %p", v, fv)
 					}
-				} else if reflect.ValueOf(fv).Elem().Interface() != v {
-					t.Errorf("expects: %+v, but got %+v", v, fv)
-				}
-			} else if reflect.ValueOf(v).Kind() == reflect.Ptr {
-				if reflect.ValueOf(v).Elem().Interface() != fv {
-					t.Errorf("expects: %+v, but got %+v", v, fv)
-				}
-			} else if reflect.ValueOf(v).Type().ConvertibleTo(field.FieldType) {
-				if reflect.ValueOf(v).Convert(field.FieldType).Interface() != fv {
+				} else if valuer, isValuer := fv.(driver.Valuer); isValuer {
+					valuerv, _ := valuer.Value()
+					checker(valuerv, v)
+				} else if valuer, isValuer := v.(driver.Valuer); isValuer {
+					valuerv, _ := valuer.Value()
+					checker(fv, valuerv)
+				} else if reflect.ValueOf(fv).Kind() == reflect.Ptr {
+					checker(reflect.ValueOf(fv).Elem().Interface(), v)
+				} else if reflect.ValueOf(v).Kind() == reflect.Ptr {
+					checker(fv, reflect.ValueOf(v).Elem().Interface())
+				} else {
 					t.Errorf("expects: %+v, but got %+v", v, fv)
 				}
 			}
+
+			checker(fv, v)
 		})
 	}
 }

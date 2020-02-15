@@ -9,13 +9,24 @@ import (
 )
 
 func TestParseSchema(t *testing.T) {
-	cacheMap := sync.Map{}
-
-	user, err := schema.Parse(&tests.User{}, &cacheMap, schema.NamingStrategy{})
+	user, err := schema.Parse(&tests.User{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
 		t.Fatalf("failed to parse user, got error %v", err)
 	}
 
+	checkUserSchema(t, user)
+}
+
+func TestParseSchemaWithPointerFields(t *testing.T) {
+	user, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse pointer user, got error %v", err)
+	}
+
+	checkUserSchema(t, user)
+}
+
+func checkUserSchema(t *testing.T, user *schema.Schema) {
 	// check schema
 	checkSchema(t, user, schema.Schema{Name: "User", Table: "users"}, []string{"ID"})
 
@@ -99,5 +110,33 @@ func TestParseSchema(t *testing.T) {
 
 	for _, relation := range relations {
 		checkSchemaRelation(t, user, relation)
+	}
+}
+
+func TestParseSchemaWithAdvancedDataType(t *testing.T) {
+	user, err := schema.Parse(&AdvancedDataTypeUser{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse pointer user, got error %v", err)
+	}
+
+	// check schema
+	checkSchema(t, user, schema.Schema{Name: "AdvancedDataTypeUser", Table: "advanced_data_type_users"}, []string{"ID"})
+
+	// check fields
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Int, PrimaryKey: true},
+		{Name: "Name", DBName: "name", BindNames: []string{"Name"}, DataType: schema.String},
+		{Name: "Birthday", DBName: "birthday", BindNames: []string{"Birthday"}, DataType: schema.Time},
+		{Name: "RegisteredAt", DBName: "registered_at", BindNames: []string{"RegisteredAt"}, DataType: schema.Time},
+		{Name: "DeletedAt", DBName: "deleted_at", BindNames: []string{"DeletedAt"}, DataType: schema.Time},
+		{Name: "Active", DBName: "active", BindNames: []string{"Active"}, DataType: schema.Bool},
+		{Name: "Admin", DBName: "admin", BindNames: []string{"Admin"}, DataType: schema.Bool},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, user, &f, func(f *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+		})
 	}
 }

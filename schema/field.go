@@ -164,6 +164,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.Struct:
 		if _, ok := fieldValue.Interface().(*time.Time); ok {
 			field.DataType = Time
+		} else if fieldValue.Type().ConvertibleTo(reflect.TypeOf(&time.Time{})) {
+			field.DataType = Time
 		}
 	case reflect.Array, reflect.Slice:
 		if fieldValue.Type().Elem() == reflect.TypeOf(uint8(0)) {
@@ -311,6 +313,24 @@ func (field *Field) setupValuerAndSetter() {
 		}
 	}
 
+	recoverFunc := func(value reflect.Value, v interface{}, setter func(reflect.Value, interface{}) error) (err error) {
+		reflectV := reflect.ValueOf(v)
+		if reflectV.Type().ConvertibleTo(field.FieldType) {
+			field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
+		} else if valuer, ok := v.(driver.Valuer); ok {
+			if v, err = valuer.Value(); err == nil {
+				return setter(value, v)
+			}
+		} else if field.FieldType.Kind() == reflect.Ptr && reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+			field.ReflectValuer(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+		} else if reflectV.Kind() == reflect.Ptr {
+			return field.Setter(value, reflectV.Elem().Interface())
+		} else {
+			return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+		}
+		return err
+	}
+
 	// Setter
 	switch field.FieldType.Kind() {
 	case reflect.Bool:
@@ -321,17 +341,12 @@ func (field *Field) setupValuerAndSetter() {
 			case *bool:
 				field.ReflectValuer(value).SetBool(*data)
 			default:
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else {
-					field.ReflectValuer(value).SetBool(!reflect.ValueOf(v).IsZero())
-				}
+				return recoverFunc(value, v, field.Setter)
 			}
 			return nil
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		field.Setter = func(value reflect.Value, v interface{}) error {
+		field.Setter = func(value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case int64:
 				field.ReflectValuer(value).SetInt(data)
@@ -366,19 +381,12 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			default:
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else if reflectV.Kind() == reflect.Ptr {
-					return field.Setter(value, reflectV.Elem().Interface())
-				} else {
-					return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-				}
+				return recoverFunc(value, v, field.Setter)
 			}
-			return nil
+			return err
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		field.Setter = func(value reflect.Value, v interface{}) error {
+		field.Setter = func(value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case uint64:
 				field.ReflectValuer(value).SetUint(data)
@@ -413,19 +421,12 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			default:
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else if reflectV.Kind() == reflect.Ptr {
-					return field.Setter(value, reflectV.Elem().Interface())
-				} else {
-					return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-				}
+				return recoverFunc(value, v, field.Setter)
 			}
-			return nil
+			return err
 		}
 	case reflect.Float32, reflect.Float64:
-		field.Setter = func(value reflect.Value, v interface{}) error {
+		field.Setter = func(value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case float64:
 				field.ReflectValuer(value).SetFloat(data)
@@ -460,19 +461,12 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			default:
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else if reflectV.Kind() == reflect.Ptr {
-					return field.Setter(value, reflectV.Elem().Interface())
-				} else {
-					return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-				}
+				return recoverFunc(value, v, field.Setter)
 			}
-			return nil
+			return err
 		}
 	case reflect.String:
-		field.Setter = func(value reflect.Value, v interface{}) error {
+		field.Setter = func(value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case string:
 				field.ReflectValuer(value).SetString(data)
@@ -483,16 +477,9 @@ func (field *Field) setupValuerAndSetter() {
 			case float64, float32:
 				field.ReflectValuer(value).SetString(fmt.Sprintf("%."+strconv.Itoa(field.Precision)+"f", data))
 			default:
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else if reflectV.Kind() == reflect.Ptr {
-					return field.Setter(value, reflectV.Elem().Interface())
-				} else {
-					return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-				}
+				return recoverFunc(value, v, field.Setter)
 			}
-			return nil
+			return err
 		}
 	default:
 		fieldValue := reflect.New(field.FieldType)
@@ -511,7 +498,7 @@ func (field *Field) setupValuerAndSetter() {
 						return fmt.Errorf("failed to set string %v to time.Time field %v, failed to parse it as time, got error %v", v, field.Name, err)
 					}
 				default:
-					return fmt.Errorf("failed to set value %+v to time.Time field %v", v, field.Name)
+					return recoverFunc(value, v, field.Setter)
 				}
 				return nil
 			}
@@ -529,14 +516,35 @@ func (field *Field) setupValuerAndSetter() {
 						return fmt.Errorf("failed to set string %v to time.Time field %v, failed to parse it as time, got error %v", v, field.Name, err)
 					}
 				default:
-					return fmt.Errorf("failed to set value %+v to time.Time field %v", v, field.Name)
+					return recoverFunc(value, v, field.Setter)
 				}
 				return nil
 			}
 		default:
 			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
+				// struct scanner
 				field.Setter = func(value reflect.Value, v interface{}) (err error) {
-					if valuer, ok := v.(driver.Valuer); ok {
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Type().ConvertibleTo(field.FieldType) {
+						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
+					} else if valuer, ok := v.(driver.Valuer); ok {
+						if v, err = valuer.Value(); err == nil {
+							err = field.ReflectValuer(value).Addr().Interface().(sql.Scanner).Scan(v)
+						}
+					} else {
+						err = field.ReflectValuer(value).Addr().Interface().(sql.Scanner).Scan(v)
+					}
+					return
+				}
+			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
+				// pointer scanner
+				field.Setter = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Type().ConvertibleTo(field.FieldType) {
+						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
+					} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+						field.ReflectValuer(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+					} else if valuer, ok := v.(driver.Valuer); ok {
 						if v, err = valuer.Value(); err == nil {
 							err = field.ReflectValuer(value).Interface().(sql.Scanner).Scan(v)
 						}
@@ -545,46 +553,9 @@ func (field *Field) setupValuerAndSetter() {
 					}
 					return
 				}
-				return
-			}
-
-			if fieldValue.CanAddr() {
-				if _, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
-					field.Setter = func(value reflect.Value, v interface{}) (err error) {
-						if valuer, ok := v.(driver.Valuer); ok {
-							if v, err = valuer.Value(); err == nil {
-								err = field.ReflectValuer(value).Addr().Interface().(sql.Scanner).Scan(v)
-							}
-						} else {
-							err = field.ReflectValuer(value).Addr().Interface().(sql.Scanner).Scan(v)
-						}
-						return
-					}
-					return
-				}
-			}
-
-			if field.FieldType.Kind() == reflect.Ptr {
-				field.Setter = func(value reflect.Value, v interface{}) (err error) {
-					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().ConvertibleTo(field.FieldType) {
-						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-					} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-						field.ReflectValuer(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
-					} else {
-						return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-					}
-					return nil
-				}
 			} else {
 				field.Setter = func(value reflect.Value, v interface{}) (err error) {
-					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().ConvertibleTo(field.FieldType) {
-						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-					} else {
-						return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
-					}
-					return nil
+					return recoverFunc(value, v, field.Setter)
 				}
 			}
 		}
