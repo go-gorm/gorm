@@ -128,6 +128,8 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		if _, ok := schema.FieldsByName[field.Name]; !ok {
 			schema.FieldsByName[field.Name] = field
 		}
+
+		field.setupValuerAndSetter()
 	}
 
 	if f := schema.LookUpField("id"); f != nil {
