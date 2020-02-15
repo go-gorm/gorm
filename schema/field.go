@@ -25,52 +25,53 @@ const (
 )
 
 type Field struct {
-	Name            string
-	DBName          string
-	BindNames       []string
-	DataType        DataType
-	DBDataType      string
-	PrimaryKey      bool
-	AutoIncrement   bool
-	Creatable       bool
-	Updatable       bool
-	HasDefaultValue bool
-	DefaultValue    string
-	NotNull         bool
-	Unique          bool
-	Comment         string
-	Size            int
-	Precision       int
-	FieldType       reflect.Type
-	StructField     reflect.StructField
-	Tag             reflect.StructTag
-	TagSettings     map[string]string
-	Schema          *Schema
-	EmbeddedSchema  *Schema
-	ReflectValuer   func(reflect.Value) reflect.Value
-	Valuer          func(reflect.Value) interface{}
-	Setter          func(reflect.Value, interface{}) error
+	Name              string
+	DBName            string
+	BindNames         []string
+	DataType          DataType
+	DBDataType        string
+	PrimaryKey        bool
+	AutoIncrement     bool
+	Creatable         bool
+	Updatable         bool
+	HasDefaultValue   bool
+	DefaultValue      string
+	NotNull           bool
+	Unique            bool
+	Comment           string
+	Size              int
+	Precision         int
+	FieldType         reflect.Type
+	IndirectFieldType reflect.Type
+	StructField       reflect.StructField
+	Tag               reflect.StructTag
+	TagSettings       map[string]string
+	Schema            *Schema
+	EmbeddedSchema    *Schema
+	ReflectValuer     func(reflect.Value) reflect.Value
+	Valuer            func(reflect.Value) interface{}
+	Setter            func(reflect.Value, interface{}) error
 }
 
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	field := &Field{
-		Name:        fieldStruct.Name,
-		BindNames:   []string{fieldStruct.Name},
-		FieldType:   fieldStruct.Type,
-		StructField: fieldStruct,
-		Creatable:   true,
-		Updatable:   true,
-		Tag:         fieldStruct.Tag,
-		TagSettings: ParseTagSetting(fieldStruct.Tag),
-		Schema:      schema,
+		Name:              fieldStruct.Name,
+		BindNames:         []string{fieldStruct.Name},
+		FieldType:         fieldStruct.Type,
+		IndirectFieldType: fieldStruct.Type,
+		StructField:       fieldStruct,
+		Creatable:         true,
+		Updatable:         true,
+		Tag:               fieldStruct.Tag,
+		TagSettings:       ParseTagSetting(fieldStruct.Tag),
+		Schema:            schema,
 	}
 
-	for field.FieldType.Kind() == reflect.Ptr {
-		field.FieldType = field.FieldType.Elem()
+	for field.IndirectFieldType.Kind() == reflect.Ptr {
+		field.IndirectFieldType = field.IndirectFieldType.Elem()
 	}
 
-	fieldValue := reflect.New(field.FieldType)
-
+	fieldValue := reflect.New(field.IndirectFieldType)
 	// if field is valuer, used its value or first fields as data type
 	if valuer, isValuer := fieldValue.Interface().(driver.Valuer); isValuer {
 		var overrideFieldValue bool
@@ -79,10 +80,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			fieldValue = reflect.ValueOf(v)
 		}
 
-		if field.FieldType.Kind() == reflect.Struct {
-			for i := 0; i < field.FieldType.NumField(); i++ {
+		if field.IndirectFieldType.Kind() == reflect.Struct {
+			for i := 0; i < field.IndirectFieldType.NumField(); i++ {
 				if !overrideFieldValue {
-					newFieldType := field.FieldType.Field(i).Type
+					newFieldType := field.IndirectFieldType.Field(i).Type
 					for newFieldType.Kind() == reflect.Ptr {
 						newFieldType = newFieldType.Elem()
 					}
@@ -92,7 +93,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				}
 
 				// copy tag settings from valuer
-				for key, value := range ParseTagSetting(field.FieldType.Field(i).Tag) {
+				for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag) {
 					if _, ok := field.TagSettings[key]; !ok {
 						field.TagSettings[key] = value
 					}
@@ -197,7 +198,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			if field.FieldType.Kind() == reflect.Struct {
 				ef.StructField.Index = append([]int{fieldStruct.Index[0]}, ef.StructField.Index...)
 			} else {
-				ef.StructField.Index = append([]int{-fieldStruct.Index[0]}, ef.StructField.Index...)
+				ef.StructField.Index = append([]int{-fieldStruct.Index[0] - 1}, ef.StructField.Index...)
 			}
 
 			if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
@@ -235,26 +236,29 @@ func (field *Field) setupValuerAndSetter() {
 	switch {
 	case len(field.StructField.Index) == 1:
 		field.Valuer = func(value reflect.Value) interface{} {
-			return value.Field(field.StructField.Index[0]).Interface()
+			return reflect.Indirect(value).Field(field.StructField.Index[0]).Interface()
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0:
 		field.Valuer = func(value reflect.Value) interface{} {
-			return value.Field(field.StructField.Index[0]).Field(field.StructField.Index[1]).Interface()
+			return reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1]).Interface()
 		}
 	default:
 		field.Valuer = func(value reflect.Value) interface{} {
-			v := value.Field(field.StructField.Index[0])
-			for _, idx := range field.StructField.Index[1:] {
-				if v.Kind() == reflect.Ptr {
+			v := reflect.Indirect(value)
+
+			for _, idx := range field.StructField.Index {
+				if idx >= 0 {
+					v = v.Field(idx)
+				} else {
+					v = v.Field(-idx - 1)
+
 					if v.Type().Elem().Kind() == reflect.Struct {
 						if !v.IsNil() {
-							v = v.Elem().Field(-idx)
-							continue
+							v = v.Elem()
 						}
+					} else {
+						return nil
 					}
-					return nil
-				} else {
-					v = v.Field(idx)
 				}
 			}
 			return v.Interface()
@@ -266,7 +270,7 @@ func (field *Field) setupValuerAndSetter() {
 	case len(field.StructField.Index) == 1:
 		if field.FieldType.Kind() == reflect.Ptr {
 			field.ReflectValuer = func(value reflect.Value) reflect.Value {
-				fieldValue := value.Field(field.StructField.Index[0])
+				fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
 				if fieldValue.IsNil() {
 					fieldValue.Set(reflect.New(field.FieldType.Elem()))
 				}
@@ -274,31 +278,33 @@ func (field *Field) setupValuerAndSetter() {
 			}
 		} else {
 			field.ReflectValuer = func(value reflect.Value) reflect.Value {
-				return value.Field(field.StructField.Index[0])
+				return reflect.Indirect(value).Field(field.StructField.Index[0])
 			}
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0 && field.FieldType.Kind() != reflect.Ptr:
-		field.Valuer = func(value reflect.Value) interface{} {
-			return value.Field(field.StructField.Index[0]).Field(field.StructField.Index[1]).Interface()
+		field.ReflectValuer = func(value reflect.Value) reflect.Value {
+			return reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
 		}
 	default:
 		field.ReflectValuer = func(value reflect.Value) reflect.Value {
-			v := value.Field(field.StructField.Index[0])
-			for _, idx := range field.StructField.Index[1:] {
+			v := reflect.Indirect(value)
+			for _, idx := range field.StructField.Index {
+				if idx >= 0 {
+					v = v.Field(idx)
+				} else {
+					v = v.Field(-idx - 1)
+				}
+
 				if v.Kind() == reflect.Ptr {
 					if v.Type().Elem().Kind() == reflect.Struct {
 						if v.IsNil() {
 							v.Set(reflect.New(v.Type().Elem()))
 						}
-
-						if idx >= 0 {
-							v = v.Elem().Field(idx)
-						} else {
-							v = v.Elem().Field(-idx)
-						}
 					}
-				} else {
-					v = v.Field(idx)
+
+					if idx < len(field.StructField.Index)-1 {
+						v = v.Elem()
+					}
 				}
 			}
 			return v
@@ -490,7 +496,7 @@ func (field *Field) setupValuerAndSetter() {
 		}
 	default:
 		fieldValue := reflect.New(field.FieldType)
-		switch fieldValue.Interface().(type) {
+		switch fieldValue.Elem().Interface().(type) {
 		case time.Time:
 			field.Setter = func(value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
@@ -528,6 +534,20 @@ func (field *Field) setupValuerAndSetter() {
 				return nil
 			}
 		default:
+			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
+				field.Setter = func(value reflect.Value, v interface{}) (err error) {
+					if valuer, ok := v.(driver.Valuer); ok {
+						if v, err = valuer.Value(); err == nil {
+							err = field.ReflectValuer(value).Interface().(sql.Scanner).Scan(v)
+						}
+					} else {
+						err = field.ReflectValuer(value).Interface().(sql.Scanner).Scan(v)
+					}
+					return
+				}
+				return
+			}
+
 			if fieldValue.CanAddr() {
 				if _, ok := fieldValue.Addr().Interface().(sql.Scanner); ok {
 					field.Setter = func(value reflect.Value, v interface{}) (err error) {
@@ -544,14 +564,28 @@ func (field *Field) setupValuerAndSetter() {
 				}
 			}
 
-			field.Setter = func(value reflect.Value, v interface{}) (err error) {
-				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().ConvertibleTo(field.FieldType) {
-					field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
-				} else {
-					return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+			if field.FieldType.Kind() == reflect.Ptr {
+				field.Setter = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Type().ConvertibleTo(field.FieldType) {
+						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
+					} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+						field.ReflectValuer(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+					} else {
+						return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+					}
+					return nil
 				}
-				return nil
+			} else {
+				field.Setter = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Type().ConvertibleTo(field.FieldType) {
+						field.ReflectValuer(value).Set(reflectV.Convert(field.FieldType))
+					} else {
+						return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+					}
+					return nil
+				}
 			}
 		}
 	}

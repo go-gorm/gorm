@@ -54,7 +54,7 @@ type Reference struct {
 func (schema *Schema) parseRelation(field *Field) {
 	var (
 		err        error
-		fieldValue = reflect.New(field.FieldType).Interface()
+		fieldValue = reflect.New(field.IndirectFieldType).Interface()
 		relation   = &Relationship{
 			Name:        field.Name,
 			Field:       field,
@@ -74,7 +74,7 @@ func (schema *Schema) parseRelation(field *Field) {
 	} else if many2many, _ := field.TagSettings["MANY2MANY"]; many2many != "" {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
-		switch field.FieldType.Kind() {
+		switch field.IndirectFieldType.Kind() {
 		case reflect.Struct, reflect.Slice:
 			schema.guessRelation(relation, field, true)
 		default:
@@ -83,7 +83,7 @@ func (schema *Schema) parseRelation(field *Field) {
 	}
 
 	if relation.Type == "has" {
-		switch field.FieldType.Kind() {
+		switch field.IndirectFieldType.Kind() {
 		case reflect.Struct:
 			relation.Type = HasOne
 		case reflect.Slice:

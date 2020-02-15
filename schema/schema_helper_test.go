@@ -2,6 +2,7 @@ package schema_test
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -188,4 +189,35 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 			t.Errorf("schema %v failed to find relations by name %v", s, relation.Name)
 		}
 	})
+}
+
+func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[string]interface{}) {
+	for k, v := range values {
+		t.Run("CheckField/"+k, func(t *testing.T) {
+			field := s.FieldsByDBName[k]
+			fv := field.ValueOf(value)
+
+			if reflect.ValueOf(fv).Kind() == reflect.Ptr {
+				if reflect.ValueOf(v).Kind() == reflect.Ptr {
+					if fv != v {
+						t.Errorf("pointer expects: %p, but got %p", v, fv)
+					}
+				} else if fv == nil {
+					if v != nil {
+						t.Errorf("expects: %+v, but got nil", v)
+					}
+				} else if reflect.ValueOf(fv).Elem().Interface() != v {
+					t.Errorf("expects: %+v, but got %+v", v, fv)
+				}
+			} else if reflect.ValueOf(v).Kind() == reflect.Ptr {
+				if reflect.ValueOf(v).Elem().Interface() != fv {
+					t.Errorf("expects: %+v, but got %+v", v, fv)
+				}
+			} else if reflect.ValueOf(v).Type().ConvertibleTo(field.FieldType) {
+				if reflect.ValueOf(v).Convert(field.FieldType).Interface() != fv {
+					t.Errorf("expects: %+v, but got %+v", v, fv)
+				}
+			}
+		})
+	}
 }
