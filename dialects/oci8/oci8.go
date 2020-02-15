@@ -2,6 +2,7 @@
 package oci8
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -238,6 +239,34 @@ func (s oci8) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err erro
 // NormalizeIndexAndColumn returns argument's index name and column name without doing anything
 func (oci8) NormalizeIndexAndColumn(indexName, columnName string) (string, string) {
 	return indexName, columnName
+}
+
+func (oci8) CreateWithReturningInto(scope *gorm.Scope) {
+	var stringId string
+	var intId uint32
+	primaryField := scope.PrimaryField()
+
+	primaryIsString := false
+	out := sql.Out{
+		Dest: &intId,
+	}
+	if primaryField.Field.Kind() == reflect.String {
+		out = sql.Out{
+			Dest: &stringId,
+		}
+		primaryIsString = true
+	}
+	scope.SQLVars = append(scope.SQLVars, out)
+	scope.SQL = fmt.Sprintf("%s returning %s into :%d", scope.SQL, scope.Quote(primaryField.DBName), len(scope.SQLVars))
+	if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
+		scope.DB().RowsAffected, _ = result.RowsAffected()
+		if primaryIsString {
+			scope.Err(primaryField.Set(stringId))
+		} else {
+			scope.Err(primaryField.Set(intId))
+		}
+	}
+	// this should raise an error, but the gorm.createCallback() which calls it simply doesn't support returning an error
 }
 
 // SearchBlob returns a where clause substring for searching fieldName and will require you to pass a parameter for the search value
