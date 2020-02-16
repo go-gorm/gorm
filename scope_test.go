@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/jinzhu/gorm"
-	oracle "github.com/jinzhu/gorm/dialects/oci8"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {
@@ -66,7 +65,7 @@ func TestValuer(t *testing.T) {
 	var user2 User
 
 	if isOra(DB) {
-		where := fmt.Sprintf("name = ? AND %s AND %s", oracle.SearchBlob("password_hash"), oracle.SearchBlob("password"))
+		where := fmt.Sprintf("name = ? AND %s AND %s", gorm.OraSearchBlob("password_hash"), gorm.OraSearchBlob("password"))
 
 		if err := DB.Where(where, name, "abc", "***pass1").First(&user2).Error; err != nil {
 			t.Errorf("No error should happen when querying user with valuer, but got %v", err)
