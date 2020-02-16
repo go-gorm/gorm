@@ -2,8 +2,8 @@ package clause
 
 // Select select attrs when querying, updating, creating
 type Select struct {
-	Columns []Column
-	Omits   []Column
+	Columns    []Column
+	Expression Expression
 }
 
 func (s Select) Name() string {
@@ -24,9 +24,9 @@ func (s Select) Build(builder Builder) {
 }
 
 func (s Select) MergeClause(clause *Clause) {
-	if v, ok := clause.Expression.(Select); ok {
-		s.Columns = append(v.Columns, s.Columns...)
-		s.Omits = append(v.Omits, s.Omits...)
+	if s.Expression != nil {
+		clause.Expression = s.Expression
+	} else {
+		clause.Expression = s
 	}
-	clause.Expression = s
 }

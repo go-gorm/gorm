@@ -43,6 +43,8 @@ type Statement struct {
 	Model    interface{}
 	Dest     interface{}
 	Clauses  map[string]clause.Clause
+	Selects  []string // selected columns
+	Omits    []string // omit columns
 	Settings sync.Map
 	DB       *DB
 	Schema   *schema.Schema

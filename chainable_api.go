@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jinzhu/gorm/clause"
 )
@@ -31,9 +32,7 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	}
 
 	if len(whereConds) > 0 {
-		tx.Statement.AddClause(&clause.Where{
-			tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...),
-		})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...)})
 	}
 	return
 }
@@ -48,38 +47,83 @@ func (db *DB) Table(name string) (tx *DB) {
 // Select specify fields that you want when querying, creating, updating
 func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+
+	switch v := query.(type) {
+	case []string:
+		tx.Statement.Selects = v
+
+		for _, arg := range args {
+			switch arg := arg.(type) {
+			case string:
+				tx.Statement.Selects = append(tx.Statement.Selects, arg)
+			case []string:
+				tx.Statement.Selects = append(tx.Statement.Selects, arg...)
+			default:
+				tx.AddError(fmt.Errorf("unsupported select args %v %v", query, args))
+				return
+			}
+		}
+	case string:
+		fields := strings.FieldsFunc(v, isChar)
+
+		// normal field names
+		if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
+			tx.Statement.Selects = fields
+
+			for _, arg := range args {
+				switch arg := arg.(type) {
+				case string:
+					tx.Statement.Selects = append(tx.Statement.Selects, arg)
+				case []string:
+					tx.Statement.Selects = append(tx.Statement.Selects, arg...)
+				default:
+					tx.Statement.AddClause(clause.Select{
+						Expression: clause.Expr{SQL: v, Vars: args},
+					})
+					return
+				}
+			}
+		} else {
+			tx.Statement.AddClause(clause.Select{
+				Expression: clause.Expr{SQL: v, Vars: args},
+			})
+		}
+	default:
+		tx.AddError(fmt.Errorf("unsupported select args %v %v", query, args))
+	}
+
 	return
 }
 
 // Omit specify fields that you want to ignore when creating, updating and querying
 func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
+
+	if len(columns) == 1 && strings.Contains(columns[0], ",") {
+		tx.Statement.Omits = strings.FieldsFunc(columns[0], isChar)
+	} else {
+		tx.Statement.Omits = columns
+	}
 	return
 }
 
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(&clause.Where{
-		tx.Statement.BuildCondtion(query, args...),
-	})
+	tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(query, args...)})
 	return
 }
 
 // Not add NOT condition
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(&clause.Where{
-		[]clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)},
-	})
+	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)}})
 	return
 }
 
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(&clause.Where{
-		[]clause.Expression{clause.Or(tx.Statement.BuildCondtion(query, args...)...)},
-	})
+	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(tx.Statement.BuildCondtion(query, args...)...)}})
 	return
 }
 
@@ -110,11 +154,11 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 
 	switch v := value.(type) {
 	case clause.OrderByColumn:
-		db.Statement.AddClause(clause.OrderBy{
+		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{v},
 		})
 	default:
-		db.Statement.AddClause(clause.OrderBy{
+		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{{
 				Column: clause.Column{Name: fmt.Sprint(value), Raw: true},
 			}},

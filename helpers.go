@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"time"
+	"unicode"
 )
 
 var (
@@ -26,4 +27,8 @@ type Model struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `gorm:"index"`
+}
+
+func isChar(c rune) bool {
+	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
 }

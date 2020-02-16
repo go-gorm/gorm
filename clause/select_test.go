@@ -29,7 +29,7 @@ func TestSelect(t *testing.T) {
 			}, clause.Select{
 				Columns: []clause.Column{{Name: "name"}},
 			}, clause.From{}},
-			"SELECT `users`.`id`,`name` FROM `users`", nil,
+			"SELECT `name` FROM `users`", nil,
 		},
 	}
 
