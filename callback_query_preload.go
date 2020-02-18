@@ -4,9 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 )
+
+type searchPreloadSlice []searchPreload
+
+func (s searchPreloadSlice) Len() int {
+	return len(s)
+}
+func (s searchPreloadSlice) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s searchPreloadSlice) Less(i, j int) bool {
+	return s[i].schema < s[j].schema
+}
 
 // preloadCallback used to preload associations
 func preloadCallback(scope *Scope) {
@@ -32,6 +45,8 @@ func preloadCallback(scope *Scope) {
 		preloadedMap = map[string]bool{}
 		fields       = scope.Fields()
 	)
+
+	sort.Sort(searchPreloadSlice(scope.Search.preload))
 
 	for _, preload := range scope.Search.preload {
 		var (
