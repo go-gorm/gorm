@@ -80,6 +80,7 @@ func (*OraCommon) fieldCanAutoIncrement(field *StructField) bool {
 	return field.IsPrimaryKey
 }
 
+// BindVar returns a proper Ora bind var
 func (OraCommon) BindVar(i int) string {
 	return fmt.Sprintf(":%v", i)
 }
@@ -92,6 +93,7 @@ func (OraCommon) Quote(key string) string {
 	return key
 }
 
+// CurrentDatabase returns the current database
 func (s OraCommon) CurrentDatabase() string {
 	var name string
 	if err := s.db.QueryRow("SELECT ORA_DATABASE_NAME as \"Current Database\" FROM DUAL").Scan(&name); err != nil {
@@ -100,10 +102,12 @@ func (s OraCommon) CurrentDatabase() string {
 	return name
 }
 
+// DefaultValueStr returns the ora's default value string
 func (OraCommon) DefaultValueStr() string {
 	return "VALUES (DEFAULT)"
 }
 
+// HasColumn checks if the column exists on the table
 func (s OraCommon) HasColumn(tableName string, columnName string) bool {
 	var count int
 	_, tableName = s.oraCurrentDatabaseAndTable(tableName)
@@ -115,6 +119,7 @@ func (s OraCommon) HasColumn(tableName string, columnName string) bool {
 	return false
 }
 
+// HasForeignKey checks for the foreign key
 func (s OraCommon) HasForeignKey(tableName string, foreignKeyName string) bool {
 	var count int
 	tableName = strings.ToUpper(tableName)
@@ -126,6 +131,7 @@ func (s OraCommon) HasForeignKey(tableName string, foreignKeyName string) bool {
 	return false
 }
 
+// HasIndex checks for the index
 func (s OraCommon) HasIndex(tableName string, indexName string) bool {
 	var count int
 	tableName = strings.ToUpper(tableName)
@@ -136,6 +142,7 @@ func (s OraCommon) HasIndex(tableName string, indexName string) bool {
 	return false
 }
 
+// HasTable checks for the table
 func (s OraCommon) HasTable(tableName string) bool {
 	var count int
 	_, tableName = s.oraCurrentDatabaseAndTable(tableName)
@@ -146,28 +153,34 @@ func (s OraCommon) HasTable(tableName string) bool {
 	return false
 }
 
+// LastInsertIDReturningSuffix returns the required suffix of nothing
 func (OraCommon) LastInsertIDReturningSuffix(tableName, columnName string) string {
 	return ""
 }
 
+// LastInsertIDOutputInterstitial returnes the required interstitial of nothing
 func (OraCommon) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
 	return ""
 }
 
+// ModifyColumn returns the proper alter table stmt for changing the column def
 func (s OraCommon) ModifyColumn(tableName string, columnName string, typ string) error {
 	_, err := s.db.Exec(fmt.Sprintf("ALTER TABLE %v MODIFY %v %v", tableName, columnName, typ))
 	return err
 }
 
+// RemoveIndex deletes the index
 func (s OraCommon) RemoveIndex(tableName string, indexName string) error {
 	_, err := s.db.Exec(fmt.Sprintf("DROP INDEX %v", indexName))
 	return err
 }
 
+// SelectFromDummyTable returns the name of the dummy table
 func (OraCommon) SelectFromDummyTable() string {
 	return "FROM DUAL"
 }
 
+// SetDB is a setter for the db
 func (s *OraCommon) SetDB(db SQLCommon) {
 	s.db = db
 }
@@ -180,6 +193,7 @@ func (s OraCommon) oraCurrentDatabaseAndTable(tableName string) (string, string)
 	return s.CurrentDatabase(), tableName
 }
 
+// DataTypeOf returns the ora specific data type for the field
 func (s *OraCommon) DataTypeOf(field *StructField) string {
 	if _, found := field.TagSettingsGet("RESTRICT"); found {
 		field.TagSettingsDelete("RESTRICT")
@@ -261,6 +275,8 @@ func (s *OraCommon) DataTypeOf(field *StructField) string {
 	}
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
+
+// LimitAddOffsetSQL returns the sql for limiting and offseting selects
 func (s OraCommon) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
 		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
