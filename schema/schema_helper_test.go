@@ -198,7 +198,7 @@ func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[
 			var (
 				checker func(fv interface{}, v interface{})
 				field   = s.FieldsByDBName[k]
-				fv      = field.ValueOf(value)
+				fv, _   = field.ValueOf(value)
 			)
 
 			checker = func(fv interface{}, v interface{}) {

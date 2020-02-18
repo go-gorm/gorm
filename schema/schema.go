@@ -18,6 +18,7 @@ type Schema struct {
 	ModelType               reflect.Type
 	Table                   string
 	PrioritizedPrimaryField *Field
+	DBNames                 []string
 	PrimaryFields           []*Field
 	Fields                  []*Field
 	FieldsByName            map[string]*Field
@@ -99,6 +100,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		if field.DBName != "" {
 			// nonexistence or shortest path or first appear prioritized if has permission
 			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || (field.Creatable && len(field.BindNames) < len(v.BindNames)) {
+				if _, ok := schema.FieldsByDBName[field.DBName]; !ok {
+					schema.DBNames = append(schema.DBNames, field.DBName)
+				}
 				schema.FieldsByDBName[field.DBName] = field
 				schema.FieldsByName[field.Name] = field
 
