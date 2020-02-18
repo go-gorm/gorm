@@ -77,9 +77,11 @@ build:
         # at the right place in the workspace tree
         - setup-go-workspace
 
-        - pkg-config
-        - gcc
-        - wget
+        - script:
+              name: oci8-pkgs
+              code: |
+                  sudo apt-get pkg-config gcc wget
+
         # Gets the dependencies
         - script:
               name: go get
