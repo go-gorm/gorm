@@ -276,7 +276,7 @@ func (s *OraCommon) DataTypeOf(field *StructField) string {
 	return fmt.Sprintf("%v %v", sqlType, additionalType)
 }
 
-// LimitAddOffsetSQL returns the sql for limiting and offseting selects
+// LimitAndOffsetSQL returns the sql for limiting and offseting selects
 func (s OraCommon) LimitAndOffsetSQL(limit, offset interface{}) (sql string, err error) {
 	if limit != nil {
 		if parsedLimit, err := strconv.ParseInt(fmt.Sprint(limit), 0, 0); err == nil && parsedLimit >= 0 {
@@ -303,17 +303,17 @@ func (OraCommon) NormalizeIndexAndColumn(indexName, columnName string) (string, 
 
 // CreateWithReturningInto to implement the OraDialect interface
 func (OraCommon) CreateWithReturningInto(scope *Scope) {
-	var stringId string
-	var intId uint32
+	var stringID string
+	var intID uint32
 	primaryField := scope.PrimaryField()
 
 	primaryIsString := false
 	out := sql.Out{
-		Dest: &intId,
+		Dest: &intID,
 	}
 	if primaryField.Field.Kind() == reflect.String {
 		out = sql.Out{
-			Dest: &stringId,
+			Dest: &stringID,
 		}
 		primaryIsString = true
 	}
@@ -322,9 +322,9 @@ func (OraCommon) CreateWithReturningInto(scope *Scope) {
 	if result, err := scope.SQLDB().Exec(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
 		scope.DB().RowsAffected, _ = result.RowsAffected()
 		if primaryIsString {
-			scope.Err(primaryField.Set(stringId))
+			scope.Err(primaryField.Set(stringID))
 		} else {
-			scope.Err(primaryField.Set(intId))
+			scope.Err(primaryField.Set(intID))
 		}
 	}
 	// this should raise an error, but the gorm.createCallback() which calls it simply doesn't support returning an error
