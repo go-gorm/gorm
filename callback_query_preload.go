@@ -46,6 +46,7 @@ func preloadCallback(scope *Scope) {
 		fields       = scope.Fields()
 	)
 
+	// sort scope.Search.preload by searchPreload.schema
 	sort.Sort(searchPreloadSlice(scope.Search.preload))
 
 	for _, preload := range scope.Search.preload {
