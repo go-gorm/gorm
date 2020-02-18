@@ -1,4 +1,4 @@
-// package oci8 implements a gorm dialect for oracle
+// Package oci8 implements a gorm dialect for oracle
 package oci8
 
 import (
