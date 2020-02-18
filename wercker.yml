@@ -78,9 +78,35 @@ build:
         - setup-go-workspace
 
         - script:
-              name: oci8-pkgs
+              name: install-oci-pkgs
               code: |
-                  sudo apt-get -y install pkg-config gcc wget
+                  sudo apt-get update
+                  sudo apt-get -y install pkg-config gcc wget alien libaio1 libaio-dev
+
+        - script:
+              name: install-instantclients
+              code: |
+                  cd $WERCKER_SOURCE_DIR/dialects/oci8/contrib
+                  alien -i oracle-instantclient19.6-basic-19.6.0.0.0-1.x86_64.rpm
+                  alien -i oracle-instantclient19.6-sqlplus-19.6.0.0.0-1.x86_64.rpm
+                  alien -i oracle-instantclient19.6-devel-19.6.0.0.0-1.x86_64.rpm
+
+        - script:
+              name: create-oci8-pkg-config
+              code: |
+                  echo "creating oci8.pc"
+                  mkdir -p /usr/local/pkg_config
+                  cd /usr/local/pkg_config
+                  export ORACLE_LIB=/usr/lib/oracle/19.6/client64
+                  export ORACLE_INC=/usr/include/oracle/19.6/client64
+                  export PKG_CONFIG_PATH=/usr/local/pkg_config
+                  cat > oci8.pc <<PKGCONFIG
+                  Name: oci8
+                  Description: Oracle Call Interface
+                  Version: 19.6
+                  Cflags: -I${ORACLE_INC}
+                  Libs: -L${ORACLE_LIB}/lib -Wl,-rpath,${ORACLE_LIB}/lib -lclntsh
+                  PKGCONFIG
 
         # Gets the dependencies
         - script:
