@@ -80,7 +80,7 @@ build:
         - script:
               name: oci8-pkgs
               code: |
-                  sudo apt-get pkg-config gcc wget
+                  sudo apt-get -y install pkg-config gcc wget
 
         # Gets the dependencies
         - script:
