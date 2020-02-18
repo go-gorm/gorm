@@ -39,7 +39,9 @@ This design decision has the following side affects:
 parameter to return the value in the oci8 driver.  Since Oracle parameters
 are positional, you need to know how many other bind variables there are before
 adding the returning clause.  We've implemented the
-OraDialect.CreateWithReturningInto(*Scope) to handle this.
+OraDialect.CreateWithReturningInto(*Scope) to handle this.  Defining this oracle
+specific interface also allows us to assert for the interface, whenever we have
+oracle specific behaviours in the rest of gorm.
 
 3. Oracle doesn't let you specify "AS <tablename> " when selecting a count
 	from a dynamic table, so you just omit it. (see Scope.count() )
