@@ -7,7 +7,7 @@ type Values struct {
 
 // Name from clause name
 func (Values) Name() string {
-	return ""
+	return "VALUES"
 }
 
 // Build build from clause
@@ -40,6 +40,7 @@ func (values Values) Build(builder Builder) {
 
 // MergeClause merge values clauses
 func (values Values) MergeClause(clause *Clause) {
+	clause.Name = ""
 	if v, ok := clause.Expression.(Values); ok {
 		values.Values = append(v.Values, values.Values...)
 	}

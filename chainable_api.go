@@ -99,7 +99,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
-	if len(columns) == 1 && strings.Contains(columns[0], ",") {
+	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
 		tx.Statement.Omits = strings.FieldsFunc(columns[0], isChar)
 	} else {
 		tx.Statement.Omits = columns
