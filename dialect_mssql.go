@@ -28,8 +28,8 @@ func turnOffIdentityInsert(scope *Scope) {
 }
 
 func init() {
-	DefaultCallback.Create().After("gorm:begin_transaction").Register("mssql:set_identity_insert", setIdentityInsert)
-	DefaultCallback.Create().Before("gorm:commit_or_rollback_transaction").Register("mssql:turn_off_identity_insert", turnOffIdentityInsert)
+	DefaultCallback.Create().Before("gorm:create").Register("mssql:set_identity_insert", setIdentityInsert)
+	DefaultCallback.Create().After("gorm:create").Register("mssql:turn_off_identity_insert", turnOffIdentityInsert)
 	RegisterDialect("mssql", &mssql{})
 }
 
