@@ -772,19 +772,23 @@ func TestJoins(t *testing.T) {
 	}
 
 	var users3 []User
-	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "411111111111").Where("name = ?", "joins").First(&users3)
+	join := "join credit_cards on credit_cards.user_id = users.id AND credit_cards.number = ?"
+	if isOra(DB) {
+		join = "join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?"
+	}
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins(join, "411111111111").Where("name = ?", "joins").First(&users3)
 	if len(users3) != 1 {
 		t.Errorf("should find one users using multiple left join conditions")
 	}
 
 	var users4 []User
-	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "422222222222").Where("name = ?", "joins").First(&users4)
+	DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins(join, "422222222222").Where("name = ?", "joins").First(&users4)
 	if len(users4) != 0 {
 		t.Errorf("should find no user when searching with unexisting credit card")
 	}
 
 	var users5 []User
-	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins("join credit_cards on credit_cards.user_id = users.id AND credit_cards.\"number\" = ?", "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
+	db5 := DB.Joins("join emails on emails.user_id = users.id AND emails.email = ?", "join1@example.com").Joins(join, "411111111111").Where(User{Id: 1}).Where(Email{Id: 1}).Not(Email{Id: 10}).First(&users5)
 	if db5.Error != nil {
 		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
 	}
