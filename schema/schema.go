@@ -14,19 +14,20 @@ import (
 var ErrUnsupportedDataType = errors.New("unsupported data type")
 
 type Schema struct {
-	Name                    string
-	ModelType               reflect.Type
-	Table                   string
-	PrioritizedPrimaryField *Field
-	DBNames                 []string
-	PrimaryFields           []*Field
-	Fields                  []*Field
-	FieldsByName            map[string]*Field
-	FieldsByDBName          map[string]*Field
-	Relationships           Relationships
-	err                     error
-	namer                   Namer
-	cacheStore              *sync.Map
+	Name                     string
+	ModelType                reflect.Type
+	Table                    string
+	PrioritizedPrimaryField  *Field
+	DBNames                  []string
+	PrimaryFields            []*Field
+	Fields                   []*Field
+	FieldsByName             map[string]*Field
+	FieldsByDBName           map[string]*Field
+	FieldsWithDefaultDBValue map[string]*Field // fields with default value assigned by database
+	Relationships            Relationships
+	err                      error
+	namer                    Namer
+	cacheStore               *sync.Map
 }
 
 func (schema Schema) String() string {
@@ -143,6 +144,20 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			f.PrimaryKey = true
 			schema.PrioritizedPrimaryField = f
 			schema.PrimaryFields = append(schema.PrimaryFields, f)
+		}
+	}
+
+	schema.FieldsWithDefaultDBValue = map[string]*Field{}
+	for db, field := range schema.FieldsByDBName {
+		if field.HasDefaultValue && field.DefaultValueInterface == nil {
+			schema.FieldsWithDefaultDBValue[db] = field
+		}
+	}
+
+	if schema.PrioritizedPrimaryField != nil {
+		switch schema.PrioritizedPrimaryField.DataType {
+		case Int, Uint:
+			schema.FieldsWithDefaultDBValue[schema.PrioritizedPrimaryField.DBName] = schema.PrioritizedPrimaryField
 		}
 	}
 

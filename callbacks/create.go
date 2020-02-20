@@ -59,8 +59,10 @@ func ConvertToCreateValues(stmt *gorm.Statement) (clause.Values, []map[string]in
 		)
 
 		for _, db := range stmt.Schema.DBNames {
-			if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
-				values.Columns = append(values.Columns, clause.Column{Name: db})
+			if stmt.Schema.FieldsWithDefaultDBValue[db] == nil {
+				if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
+					values.Columns = append(values.Columns, clause.Column{Name: db})
+				}
 			}
 		}
 
@@ -68,6 +70,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (clause.Values, []map[string]in
 		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			values.Values = make([][]interface{}, reflectValue.Len())
+			defaultValueFieldsHavingValue := map[string][]interface{}{}
 			for i := 0; i < reflectValue.Len(); i++ {
 				rv := reflect.Indirect(reflectValue.Index(i))
 				values.Values[i] = make([]interface{}, len(values.Columns))
@@ -80,18 +83,29 @@ func ConvertToCreateValues(stmt *gorm.Statement) (clause.Values, []map[string]in
 						} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
 							field.Set(rv, curTime)
 							values.Values[i][idx], _ = field.ValueOf(rv)
-						} else if field.HasDefaultValue {
-							if len(returnningValues) == 0 {
-								returnningValues = make([]map[string]interface{}, reflectValue.Len())
-							}
-
-							if returnningValues[i] == nil {
-								returnningValues[i] = map[string]interface{}{}
-							}
-
-							// FIXME
-							returnningValues[i][column.Name] = field.ReflectValueOf(reflectValue).Addr().Interface()
 						}
+					}
+				}
+
+				for db, field := range stmt.Schema.FieldsWithDefaultDBValue {
+					if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
+						if v, isZero := field.ValueOf(rv); !isZero {
+							if len(defaultValueFieldsHavingValue[db]) == 0 {
+								defaultValueFieldsHavingValue[db] = make([]interface{}, reflectValue.Len())
+							}
+							defaultValueFieldsHavingValue[db][i] = v
+						}
+					}
+				}
+			}
+
+			for db, vs := range defaultValueFieldsHavingValue {
+				values.Columns = append(values.Columns, clause.Column{Name: db})
+				for idx := range values.Values {
+					if vs[idx] == nil {
+						values.Values[idx] = append(values.Values[idx], clause.Expr{SQL: "DEFAULT"})
+					} else {
+						values.Values[idx] = append(values.Values[idx], vs[idx])
 					}
 				}
 			}
@@ -99,25 +113,27 @@ func ConvertToCreateValues(stmt *gorm.Statement) (clause.Values, []map[string]in
 			values.Values = [][]interface{}{make([]interface{}, len(values.Columns))}
 			for idx, column := range values.Columns {
 				field := stmt.Schema.FieldsByDBName[column.Name]
-				if values.Values[0][idx], _ = field.ValueOf(reflectValue); isZero {
+				if values.Values[0][idx], isZero = field.ValueOf(reflectValue); isZero {
 					if field.DefaultValueInterface != nil {
 						values.Values[0][idx] = field.DefaultValueInterface
 						field.Set(reflectValue, field.DefaultValueInterface)
 					} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
 						field.Set(reflectValue, curTime)
 						values.Values[0][idx], _ = field.ValueOf(reflectValue)
-					} else if field.HasDefaultValue {
-						if len(returnningValues) == 0 {
-							returnningValues = make([]map[string]interface{}, 1)
-						}
+					}
+				}
+			}
 
-						values.Values[0][idx] = clause.Expr{SQL: "DEFAULT"}
-						returnningValues[0][column.Name] = field.ReflectValueOf(reflectValue).Addr().Interface()
-					} else if field.PrimaryKey {
+			for db, field := range stmt.Schema.FieldsWithDefaultDBValue {
+				if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
+					if v, isZero := field.ValueOf(reflectValue); !isZero {
+						values.Columns = append(values.Columns, clause.Column{Name: db})
+						values.Values[0] = append(values.Values[0], v)
 					}
 				}
 			}
 		}
+
 		return values, returnningValues
 	}
 }
