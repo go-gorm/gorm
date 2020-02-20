@@ -193,5 +193,5 @@ build:
           go get github.com/wadey/gocovmerge
           go test -race -coverprofile=coverage1.txt -covermode=atomic ./...
           GORM_DIALECT=oci8 GORM_DSN="gorm/gorm@oracle:1521/XEPDB1" go test -race -coverprofile=coverage2.txt -covermode=atomic ./...
-          $GOBIN/gocovmerge coverage1.txt coverage2.txt > coverage.txt
+          gocovmerge coverage1.txt coverage2.txt > coverage.txt
           bash <(curl -s https://codecov.io/bash)
