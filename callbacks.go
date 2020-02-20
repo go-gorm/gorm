@@ -75,13 +75,10 @@ func (p *processor) Execute(db *DB) {
 		}
 
 		if stmt.Model != nil {
-			var err error
-			stmt.Schema, err = schema.Parse(stmt.Model, db.cacheStore, db.NamingStrategy)
+			err := stmt.Parse(stmt.Model)
 
 			if err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table == "") {
 				db.AddError(err)
-			} else if stmt.Table == "" && stmt.Schema != nil {
-				stmt.Table = stmt.Schema.Table
 			}
 		}
 	}

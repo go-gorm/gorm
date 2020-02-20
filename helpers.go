@@ -15,6 +15,8 @@ var (
 	ErrInvalidTransaction = errors.New("no valid transaction")
 	// ErrUnaddressable unaddressable value
 	ErrUnaddressable = errors.New("using unaddressable value")
+	// ErrNotImplemented not implemented
+	ErrNotImplemented = errors.New("not implemented")
 )
 
 // Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt

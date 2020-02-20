@@ -267,3 +267,10 @@ func (stmt *Statement) Build(clauses ...string) {
 	}
 	// TODO handle named vars
 }
+
+func (stmt *Statement) Parse(value interface{}) (err error) {
+	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
+		stmt.Table = stmt.Schema.Table
+	}
+	return err
+}

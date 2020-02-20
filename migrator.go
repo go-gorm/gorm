@@ -4,6 +4,11 @@ import (
 	"database/sql"
 )
 
+// Migrator returns migrator
+func (db *DB) Migrator() Migrator {
+	return db.Dialector.Migrator()
+}
+
 // ViewOption view option
 type ViewOption struct {
 	Replace     bool
@@ -15,10 +20,13 @@ type Migrator interface {
 	// AutoMigrate
 	AutoMigrate(dst ...interface{}) error
 
+	// Database
+	CurrentDatabase() string
+
 	// Tables
 	CreateTable(dst ...interface{}) error
 	DropTable(dst ...interface{}) error
-	HasTable(dst ...interface{}) error
+	HasTable(dst ...interface{}) bool
 	RenameTable(oldName, newName string) error
 
 	// Columns
@@ -39,6 +47,6 @@ type Migrator interface {
 	// Indexes
 	CreateIndex(dst interface{}, name string) error
 	DropIndex(dst interface{}, name string) error
-	HasIndex(dst interface{}, name string) error
+	HasIndex(dst interface{}, name string) bool
 	RenameIndex(dst interface{}, oldName, newName string) error
 }
