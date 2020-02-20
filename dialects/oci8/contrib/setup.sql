@@ -1,0 +1,9 @@
+ALTER SESSION
+SET
+  CONTAINER = XEPDB1;
+create user gorm identified by gorm;
+GRANT CONNECT,
+  RESOURCE,
+  DBA TO gorm;
+GRANT CREATE SESSION TO gorm;
+GRANT UNLIMITED TABLESPACE TO gorm;
