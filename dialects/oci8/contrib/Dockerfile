@@ -3,4 +3,4 @@
 
 FROM oracle/database:18.4.0-xe
 
-ADD setup.sql /u01/app/oracle/scripts/
+COPY setup.txt /u01/app/oracle/scripts/setup.sql
