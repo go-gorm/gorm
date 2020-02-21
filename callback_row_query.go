@@ -8,7 +8,7 @@ import (
 
 // Define callbacks for row query
 func init() {
-	DefaultCallback.RowQuery().Register("gorm:row_query", rowQueryCallback)
+	DefaultCallback.RowQuery().RegisterContext("gorm:row_query", rowQueryCallback)
 }
 
 type RowQueryResult struct {

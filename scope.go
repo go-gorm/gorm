@@ -1129,7 +1129,7 @@ func (scope *Scope) createJoinTable(ctx context.Context, field *StructField) {
 	if relationship := field.Relationship; relationship != nil && relationship.JoinTableHandler != nil {
 		joinTableHandler := relationship.JoinTableHandler
 		joinTable := joinTableHandler.Table(scope.db)
-		if !scope.Dialect().HasTable(ctx, joinTable) {
+		if !scope.Dialect().HasTableContext(ctx, joinTable) {
 			toScope := &Scope{Value: reflect.New(field.Struct.Type).Interface()}
 
 			var sqlTypes, primaryKeys []string
@@ -1202,7 +1202,7 @@ func (scope *Scope) dropTable(ctx context.Context) *Scope {
 }
 
 func (scope *Scope) modifyColumn(ctx context.Context, column string, typ string) {
-	scope.db.AddError(scope.Dialect().ModifyColumn(ctx, scope.QuotedTableName(), scope.Quote(column), typ))
+	scope.db.AddError(scope.Dialect().ModifyColumnContext(ctx, scope.QuotedTableName(), scope.Quote(column), typ))
 }
 
 func (scope *Scope) dropColumn(ctx context.Context, column string) {
@@ -1210,7 +1210,7 @@ func (scope *Scope) dropColumn(ctx context.Context, column string) {
 }
 
 func (scope *Scope) addIndex(ctx context.Context, unique bool, indexName string, column ...string) {
-	if scope.Dialect().HasIndex(ctx, scope.TableName(), indexName) {
+	if scope.Dialect().HasIndexContext(ctx, scope.TableName(), indexName) {
 		return
 	}
 
@@ -1231,7 +1231,7 @@ func (scope *Scope) addForeignKey(ctx context.Context, field string, dest string
 	// Compatible with old generated key
 	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
 
-	if scope.Dialect().HasForeignKey(ctx, scope.TableName(), keyName) {
+	if scope.Dialect().HasForeignKeyContext(ctx, scope.TableName(), keyName) {
 		return
 	}
 	var query = `ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s ON DELETE %s ON UPDATE %s;`
@@ -1240,7 +1240,7 @@ func (scope *Scope) addForeignKey(ctx context.Context, field string, dest string
 
 func (scope *Scope) removeForeignKey(ctx context.Context, field string, dest string) {
 	keyName := scope.Dialect().BuildKeyName(scope.TableName(), field, dest, "foreign")
-	if !scope.Dialect().HasForeignKey(ctx, scope.TableName(), keyName) {
+	if !scope.Dialect().HasForeignKeyContext(ctx, scope.TableName(), keyName) {
 		return
 	}
 	var mysql mysql
@@ -1255,18 +1255,18 @@ func (scope *Scope) removeForeignKey(ctx context.Context, field string, dest str
 }
 
 func (scope *Scope) removeIndex(ctx context.Context, indexName string) {
-	scope.Dialect().RemoveIndex(ctx, scope.TableName(), indexName)
+	scope.Dialect().RemoveIndexContext(ctx, scope.TableName(), indexName)
 }
 
 func (scope *Scope) autoMigrate(ctx context.Context) *Scope {
 	tableName := scope.TableName()
 	quotedTableName := scope.QuotedTableName()
 
-	if !scope.Dialect().HasTable(ctx, tableName) {
+	if !scope.Dialect().HasTableContext(ctx, tableName) {
 		scope.createTable(ctx)
 	} else {
 		for _, field := range scope.GetModelStruct().StructFields {
-			if !scope.Dialect().HasColumn(ctx, tableName, field.DBName) {
+			if !scope.Dialect().HasColumnContext(ctx, tableName, field.DBName) {
 				if field.IsNormal {
 					sqlTag := scope.Dialect().DataTypeOf(field)
 					scope.Raw(fmt.Sprintf("ALTER TABLE %v ADD %v %v;", quotedTableName, scope.Quote(field.DBName), sqlTag)).Exec(ctx)

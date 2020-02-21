@@ -817,7 +817,7 @@ func (s *DB) HasTableContext(ctx context.Context, value interface{}) bool {
 		tableName = scope.TableName()
 	}
 
-	has := scope.Dialect().HasTable(ctx, tableName)
+	has := scope.Dialect().HasTableContext(ctx, tableName)
 	s.AddError(scope.db.Error)
 	return has
 }
@@ -991,7 +991,7 @@ func (s *DB) SetJoinTableHandlerContext(ctx context.Context, source interface{},
 				destination := (&Scope{Value: reflect.New(field.Struct.Type).Interface()}).GetModelStruct().ModelType
 				handler.Setup(field.Relationship, many2many, source, destination)
 				field.Relationship.JoinTableHandler = handler
-				if table := handler.Table(s); scope.Dialect().HasTable(ctx, table) {
+				if table := handler.Table(s); scope.Dialect().HasTableContext(ctx, table) {
 					s.Table(table).AutoMigrate(handler)
 				}
 			}

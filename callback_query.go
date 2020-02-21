@@ -9,9 +9,9 @@ import (
 
 // Define callbacks for querying
 func init() {
-	DefaultCallback.Query().Register("gorm:query", queryCallback)
-	DefaultCallback.Query().Register("gorm:preload", preloadCallback)
-	DefaultCallback.Query().Register("gorm:after_query", afterQueryCallback)
+	DefaultCallback.Query().RegisterContext("gorm:query", queryCallback)
+	DefaultCallback.Query().RegisterContext("gorm:preload", preloadCallback)
+	DefaultCallback.Query().RegisterContext("gorm:after_query", afterQueryCallback)
 }
 
 // queryCallback used to query data from database

@@ -8,15 +8,15 @@ import (
 
 // Define callbacks for creating
 func init() {
-	DefaultCallback.Create().Register("gorm:begin_transaction", beginTransactionCallback)
-	DefaultCallback.Create().Register("gorm:before_create", beforeCreateCallback)
-	DefaultCallback.Create().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	DefaultCallback.Create().Register("gorm:update_time_stamp", updateTimeStampForCreateCallback)
-	DefaultCallback.Create().Register("gorm:create", createCallback)
-	DefaultCallback.Create().Register("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
-	DefaultCallback.Create().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
-	DefaultCallback.Create().Register("gorm:after_create", afterCreateCallback)
-	DefaultCallback.Create().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+	DefaultCallback.Create().RegisterContext("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.Create().RegisterContext("gorm:before_create", beforeCreateCallback)
+	DefaultCallback.Create().RegisterContext("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	DefaultCallback.Create().RegisterContext("gorm:update_time_stamp", updateTimeStampForCreateCallback)
+	DefaultCallback.Create().RegisterContext("gorm:create", createCallback)
+	DefaultCallback.Create().RegisterContext("gorm:force_reload_after_create", forceReloadAfterCreateCallback)
+	DefaultCallback.Create().RegisterContext("gorm:save_after_associations", saveAfterAssociationsCallback)
+	DefaultCallback.Create().RegisterContext("gorm:after_create", afterCreateCallback)
+	DefaultCallback.Create().RegisterContext("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }
 
 // beforeCreateCallback will invoke `BeforeSave`, `BeforeCreate` method before creating
@@ -101,10 +101,10 @@ func createCallback(ctx context.Context, scope *Scope) {
 			returningColumn = scope.Quote(primaryField.DBName)
 		}
 
-		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitial(ctx, quotedTableName, returningColumn, columns)
+		lastInsertIDOutputInterstitial := scope.Dialect().LastInsertIDOutputInterstitialContext(ctx, quotedTableName, returningColumn, columns)
 		var lastInsertIDReturningSuffix string
 		if lastInsertIDOutputInterstitial == "" {
-			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffix(ctx, quotedTableName, returningColumn)
+			lastInsertIDReturningSuffix = scope.Dialect().LastInsertIDReturningSuffixContext(ctx, quotedTableName, returningColumn)
 		}
 
 		if len(columns) == 0 {

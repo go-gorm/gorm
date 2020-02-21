@@ -10,15 +10,15 @@ import (
 
 // Define callbacks for updating
 func init() {
-	DefaultCallback.Update().Register("gorm:assign_updating_attributes", assignUpdatingAttributesCallback)
-	DefaultCallback.Update().Register("gorm:begin_transaction", beginTransactionCallback)
-	DefaultCallback.Update().Register("gorm:before_update", beforeUpdateCallback)
-	DefaultCallback.Update().Register("gorm:save_before_associations", saveBeforeAssociationsCallback)
-	DefaultCallback.Update().Register("gorm:update_time_stamp", updateTimeStampForUpdateCallback)
-	DefaultCallback.Update().Register("gorm:update", updateCallback)
-	DefaultCallback.Update().Register("gorm:save_after_associations", saveAfterAssociationsCallback)
-	DefaultCallback.Update().Register("gorm:after_update", afterUpdateCallback)
-	DefaultCallback.Update().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+	DefaultCallback.Update().RegisterContext("gorm:assign_updating_attributes", assignUpdatingAttributesCallback)
+	DefaultCallback.Update().RegisterContext("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.Update().RegisterContext("gorm:before_update", beforeUpdateCallback)
+	DefaultCallback.Update().RegisterContext("gorm:save_before_associations", saveBeforeAssociationsCallback)
+	DefaultCallback.Update().RegisterContext("gorm:update_time_stamp", updateTimeStampForUpdateCallback)
+	DefaultCallback.Update().RegisterContext("gorm:update", updateCallback)
+	DefaultCallback.Update().RegisterContext("gorm:save_after_associations", saveAfterAssociationsCallback)
+	DefaultCallback.Update().RegisterContext("gorm:after_update", afterUpdateCallback)
+	DefaultCallback.Update().RegisterContext("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
 }
 
 // assignUpdatingAttributesCallback assign updating attributes to model
