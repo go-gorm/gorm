@@ -331,6 +331,7 @@ func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	return s.FirstContext(ctx, out, where...)
 }
 
+// FirstContext same as First
 func (s *DB) FirstContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
@@ -345,6 +346,7 @@ func (s *DB) Take(out interface{}, where ...interface{}) *DB {
 	return s.TakeContext(ctx, out, where...)
 }
 
+// TakeContext same as Take
 func (s *DB) TakeContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
@@ -357,6 +359,7 @@ func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	return s.LastContext(ctx, out, where...)
 }
 
+// LastContext same as Last
 func (s *DB) LastContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
@@ -370,6 +373,7 @@ func (s *DB) Find(out interface{}, where ...interface{}) *DB {
 	return s.FindContext(ctx, out, where...)
 }
 
+// FindContext same as Find
 func (s *DB) FindContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	return s.NewScope(out).inlineCondition(where...).callCallbacks(ctx, s.parent.callbacks.queries).db
 }
@@ -380,6 +384,7 @@ func (s *DB) Preloads(out interface{}) *DB {
 	return s.PreloadsContext(ctx, out)
 }
 
+// PreloadsContext same as Preloads
 func (s *DB) PreloadsContext(ctx context.Context, out interface{}) *DB {
 	return s.NewScope(out).InstanceSet("gorm:only_preload", 1).callCallbacks(ctx, s.parent.callbacks.queries).db
 }
@@ -390,6 +395,7 @@ func (s *DB) Scan(dest interface{}) *DB {
 	return s.ScanContext(ctx, dest)
 }
 
+// ScanContext same as Scan
 func (s *DB) ScanContext(ctx context.Context, dest interface{}) *DB {
 	return s.NewScope(s.Value).Set("gorm:query_destination", dest).callCallbacks(ctx, s.parent.callbacks.queries).db
 }
@@ -400,6 +406,7 @@ func (s *DB) Row() *sql.Row {
 	return s.RowContext(ctx)
 }
 
+// RowContext same as Row
 func (s *DB) RowContext(ctx context.Context) *sql.Row {
 	return s.NewScope(s.Value).row(ctx)
 }
@@ -410,6 +417,7 @@ func (s *DB) Rows() (*sql.Rows, error) {
 	return s.RowsContext(ctx)
 }
 
+// RowsContext same as Rows
 func (s *DB) RowsContext(ctx context.Context) (*sql.Rows, error) {
 	return s.NewScope(s.Value).rows(ctx)
 }
@@ -437,6 +445,7 @@ func (s *DB) Pluck(column string, value interface{}) *DB {
 	return s.PluckContext(ctx, column, value)
 }
 
+// PluckContext same as Pluck
 func (s *DB) PluckContext(ctx context.Context, column string, value interface{}) *DB {
 	return s.NewScope(s.Value).pluck(ctx, column, value).db
 }
@@ -447,6 +456,7 @@ func (s *DB) Count(value interface{}) *DB {
 	return s.CountContext(ctx, value)
 }
 
+// CountContext same as Count
 func (s *DB) CountContext(ctx context.Context, value interface{}) *DB {
 	return s.NewScope(s.Value).count(ctx, value).db
 }
@@ -463,6 +473,7 @@ func (s *DB) FirstOrInit(out interface{}, where ...interface{}) *DB {
 	return s.FirstOrInitContext(ctx, out, where...)
 }
 
+// FirstOrInitContext same as FirstOrInit
 func (s *DB) FirstOrInitContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := c.FirstContext(ctx, out, where...); result.Error != nil {
@@ -483,6 +494,7 @@ func (s *DB) FirstOrCreate(out interface{}, where ...interface{}) *DB {
 	return s.FirstOrCreateContext(ctx, out, where...)
 }
 
+// FirstOrCreateContext same as FirstOrCreate
 func (s *DB) FirstOrCreateContext(ctx context.Context, out interface{}, where ...interface{}) *DB {
 	c := s.clone()
 	if result := s.First(out, where...); result.Error != nil {
@@ -503,6 +515,7 @@ func (s *DB) Update(attrs ...interface{}) *DB {
 	return s.UpdateContext(ctx, attrs...)
 }
 
+// UpdateContext same as Update
 func (s *DB) UpdateContext(ctx context.Context, attrs ...interface{}) *DB {
 	return s.UpdatesContext(ctx, toSearchableMap(attrs...), true)
 }
@@ -513,6 +526,7 @@ func (s *DB) Updates(values interface{}, ignoreProtectedAttrs ...bool) *DB {
 	return s.UpdatesContext(ctx, values, ignoreProtectedAttrs...)
 }
 
+// UpdatesContext same as Updates
 func (s *DB) UpdatesContext(ctx context.Context, values interface{}, ignoreProtectedAttrs ...bool) *DB {
 	return s.NewScope(s.Value).
 		Set("gorm:ignore_protected_attrs", len(ignoreProtectedAttrs) > 0).
@@ -526,6 +540,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 	return s.UpdateColumnContext(ctx, attrs...)
 }
 
+// UpdateColumnContext same as UpdateColumn
 func (s *DB) UpdateColumnContext(ctx context.Context, attrs ...interface{}) *DB {
 	return s.UpdateColumnsContext(ctx, toSearchableMap(attrs...))
 }
@@ -536,6 +551,7 @@ func (s *DB) UpdateColumns(values interface{}) *DB {
 	return s.UpdateColumnsContext(ctx, values)
 }
 
+// UpdateColumnsContext same as UpdateColumns
 func (s *DB) UpdateColumnsContext(ctx context.Context, values interface{}) *DB {
 	return s.NewScope(s.Value).
 		Set("gorm:update_column", true).
@@ -550,6 +566,7 @@ func (s *DB) Save(value interface{}) *DB {
 	return s.SaveContext(ctx, value)
 }
 
+// SaveContext same as Save
 func (s *DB) SaveContext(ctx context.Context, value interface{}) *DB {
 	scope := s.NewScope(value)
 	if !scope.PrimaryKeyZero() {
@@ -568,6 +585,7 @@ func (s *DB) Create(value interface{}) *DB {
 	return s.CreateContext(ctx, value)
 }
 
+// CreateContext same as Create
 func (s *DB) CreateContext(ctx context.Context, value interface{}) *DB {
 	scope := s.NewScope(value)
 	return scope.callCallbacks(ctx, s.parent.callbacks.creates).db
@@ -580,6 +598,7 @@ func (s *DB) Delete(value interface{}, where ...interface{}) *DB {
 	return s.DeleteContext(ctx, value, where...)
 }
 
+// DeleteContext same as Delete
 func (s *DB) DeleteContext(ctx context.Context, value interface{}, where ...interface{}) *DB {
 	return s.NewScope(value).inlineCondition(where...).callCallbacks(ctx, s.parent.callbacks.deletes).db
 }
@@ -596,6 +615,7 @@ func (s *DB) Exec(sql string, values ...interface{}) *DB {
 	return s.ExecContext(ctx, sql, values...)
 }
 
+// ExecContext same as Exec
 func (s *DB) ExecContext(ctx context.Context, sql string, values ...interface{}) *DB {
 	scope := s.NewScope(nil)
 	generatedSQL := scope.buildCondition(map[string]interface{}{"query": sql, "args": values}, true)
@@ -654,6 +674,7 @@ func (s *DB) Transaction(fc func(tx *DB) error) (err error) {
 func (s *DB) Begin() *DB {
 	return s.BeginTx(context.Background(), &sql.TxOptions{})
 }
+
 
 // BeginTx begins a transaction with options
 func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
@@ -732,6 +753,7 @@ func (s *DB) CreateTable(models ...interface{}) *DB {
 	return s.CreateTableContext(ctx, models...)
 }
 
+// CreateTableContext same as CreateTable
 func (s *DB) CreateTableContext(ctx context.Context, models ...interface{}) *DB {
 	db := s.Unscoped()
 	for _, model := range models {
@@ -746,6 +768,7 @@ func (s *DB) DropTable(values ...interface{}) *DB {
 	return s.DropTableContext(ctx, values...)
 }
 
+// DropTableContext same as DropTable
 func (s *DB) DropTableContext(ctx context.Context, values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
@@ -764,6 +787,7 @@ func (s *DB) DropTableIfExists(values ...interface{}) *DB {
 	return s.DropTableIfExistsContext(ctx, values...)
 }
 
+// DropTableIfExistsContext same as DropTableIfExists
 func (s *DB) DropTableIfExistsContext(ctx context.Context, values ...interface{}) *DB {
 	db := s.clone()
 	for _, value := range values {
@@ -780,6 +804,7 @@ func (s *DB) HasTable(value interface{}) bool {
 	return s.HasTableContext(ctx, value)
 }
 
+// HasTableContext same as HasTable
 func (s *DB) HasTableContext(ctx context.Context, value interface{}) bool {
 	var (
 		scope     = s.NewScope(value)
@@ -803,6 +828,7 @@ func (s *DB) AutoMigrate(values ...interface{}) *DB {
 	return s.AutoMigrateContext(ctx, values...)
 }
 
+// AutoMigrateContext same as AutoMigrate
 func (s *DB) AutoMigrateContext(ctx context.Context, values ...interface{}) *DB {
 	db := s.Unscoped()
 	for _, value := range values {
@@ -817,6 +843,7 @@ func (s *DB) ModifyColumn(column string, typ string) *DB {
 	return s.ModifyColumnContext(ctx, column, typ)
 }
 
+// ModifyColumnContext same as ModifyColumn
 func (s *DB) ModifyColumnContext(ctx context.Context, column string, typ string) *DB {
 	scope := s.NewScope(s.Value)
 	scope.modifyColumn(ctx, column, typ)
@@ -829,6 +856,7 @@ func (s *DB) DropColumn(column string) *DB {
 	return s.DropColumnContext(ctx, column)
 }
 
+// DropColumnContext same as DropColumn
 func (s *DB) DropColumnContext(ctx context.Context, column string) *DB {
 	scope := s.NewScope(s.Value)
 	scope.dropColumn(ctx, column)
@@ -841,6 +869,7 @@ func (s *DB) AddIndex(indexName string, columns ...string) *DB {
 	return s.AddIndexContext(ctx, indexName, columns...)
 }
 
+// AddIndexContext same as AddIndex
 func (s *DB) AddIndexContext(ctx context.Context, indexName string, columns ...string) *DB {
 	scope := s.Unscoped().NewScope(s.Value)
 	scope.addIndex(ctx, false, indexName, columns...)
@@ -853,6 +882,7 @@ func (s *DB) AddUniqueIndex(indexName string, columns ...string) *DB {
 	return s.AddUniqueIndexContext(ctx, indexName, columns...)
 }
 
+// AddUniqueIndexContext same as AddUniqueIndex
 func (s *DB) AddUniqueIndexContext(ctx context.Context, indexName string, columns ...string) *DB {
 	scope := s.Unscoped().NewScope(s.Value)
 	scope.addIndex(ctx, true, indexName, columns...)
@@ -865,6 +895,7 @@ func (s *DB) RemoveIndex(indexName string) *DB {
 	return s.RemoveIndexContext(ctx, indexName)
 }
 
+// RemoveIndexContext same as RemoveIndex
 func (s *DB) RemoveIndexContext(ctx context.Context, indexName string) *DB {
 	scope := s.NewScope(s.Value)
 	scope.removeIndex(ctx, indexName)
@@ -878,6 +909,7 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 	return s.AddForeignKeyContext(ctx, field, dest, onDelete, onUpdate)
 }
 
+// AddForeignKeyContext same as AddForeignKey
 func (s *DB) AddForeignKeyContext(ctx context.Context, field string, dest string, onDelete string, onUpdate string) *DB {
 	scope := s.NewScope(s.Value)
 	scope.addForeignKey(ctx, field, dest, onDelete, onUpdate)
@@ -891,6 +923,7 @@ func (s *DB) RemoveForeignKey(field string, dest string) *DB {
 	return s.RemoveForeignKeyContext(ctx, field, dest)
 }
 
+// RemoveForeignKeyContext same as RemoveForeignKey
 func (s *DB) RemoveForeignKeyContext(ctx context.Context, field string, dest string) *DB {
 	scope := s.clone().NewScope(s.Value)
 	scope.removeForeignKey(ctx, field, dest)
@@ -948,6 +981,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 	s.SetJoinTableHandlerContext(ctx, source, column, handler)
 }
 
+// SetJoinTableHandlerContext same as SetJoinTableHandler
 func (s *DB) SetJoinTableHandlerContext(ctx context.Context, source interface{}, column string, handler JoinTableHandlerInterface) {
 	scope := s.NewScope(source)
 	for _, field := range scope.GetModelStruct().StructFields {
