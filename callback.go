@@ -97,27 +97,27 @@ func (cp *CallbackProcessor) Before(callbackName string) *CallbackProcessor {
 
 // Register a new callback, refer `Callbacks.Create`
 func (cp *CallbackProcessor) Register(callbackName string, callback func(scope *Scope)) {
-  callbackContext := func(ctx context.Context, scope *Scope) {
-    callback(scope)
-  }
+	callbackContext := func(ctx context.Context, scope *Scope) {
+		callback(scope)
+	}
 
-  cp.RegisterContext(callbackName, callbackContext)
+	cp.RegisterContext(callbackName, callbackContext)
 }
 
 // RegisterContext same as Register
 func (cp *CallbackProcessor) RegisterContext(callbackName string, callback func(ctx context.Context, scope *Scope)) {
-  if cp.kind == "row_query" {
-    if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
-      cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
-      cp.before = "gorm:row_query"
-    }
-  }
+	if cp.kind == "row_query" {
+		if cp.before == "" && cp.after == "" && callbackName != "gorm:row_query" {
+			cp.logger.Print("info", fmt.Sprintf("Registering RowQuery callback %v without specify order with Before(), After(), applying Before('gorm:row_query') by default for compatibility...", callbackName))
+			cp.before = "gorm:row_query"
+		}
+	}
 
-  cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
-  cp.name = callbackName
-  cp.processor = &callback
-  cp.parent.processors = append(cp.parent.processors, cp)
-  cp.parent.reorder()
+	cp.logger.Print("info", fmt.Sprintf("[info] registering callback `%v` from %v", callbackName, fileWithLineNum()))
+	cp.name = callbackName
+	cp.processor = &callback
+	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.reorder()
 }
 
 // Remove a registered callback
@@ -136,47 +136,47 @@ func (cp *CallbackProcessor) Remove(callbackName string) {
 //		   scope.SetColumn("UpdatedAt", now)
 //     })
 func (cp *CallbackProcessor) Replace(callbackName string, callback func(scope *Scope)) {
-  callbackContext := func(ctx context.Context, scope *Scope) {
-    callback(scope)
-  }
+	callbackContext := func(ctx context.Context, scope *Scope) {
+		callback(scope)
+	}
 
-  cp.ReplaceContext(callbackName, callbackContext)
+	cp.ReplaceContext(callbackName, callbackContext)
 }
 
 // ReplaceContext same as Replace
 func (cp *CallbackProcessor) ReplaceContext(callbackName string, callback func(ctx context.Context, scope *Scope)) {
-  cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
-  cp.name = callbackName
-  cp.processor = &callback
-  cp.replace = true
-  cp.parent.processors = append(cp.parent.processors, cp)
-  cp.parent.reorder()
+	cp.logger.Print("info", fmt.Sprintf("[info] replacing callback `%v` from %v", callbackName, fileWithLineNum()))
+	cp.name = callbackName
+	cp.processor = &callback
+	cp.replace = true
+	cp.parent.processors = append(cp.parent.processors, cp)
+	cp.parent.reorder()
 }
 
 // Get registered callback
 //    db.Callback().Create().Get("gorm:create")
 func (cp *CallbackProcessor) Get(callbackName string) (callback func(scope *Scope)) {
-  c := cp.GetContext(callbackName)
+	c := cp.GetContext(callbackName)
 
-  callback = func(scope *Scope) {
-    ctx := context.Background()
-    c(ctx, scope)
-  }
-  return
+	callback = func(scope *Scope) {
+		ctx := context.Background()
+		c(ctx, scope)
+	}
+	return
 }
 
 // GetContext same as Get
 func (cp *CallbackProcessor) GetContext(callbackName string) (callback func(ctx context.Context, scope *Scope)) {
-  for _, p := range cp.parent.processors {
-    if p.name == callbackName && p.kind == cp.kind {
-      if p.remove {
-        callback = nil
-      } else {
-        callback = *p.processor
-      }
-    }
-  }
-  return
+	for _, p := range cp.parent.processors {
+		if p.name == callbackName && p.kind == cp.kind {
+			if p.remove {
+				callback = nil
+			} else {
+				callback = *p.processor
+			}
+		}
+	}
+	return
 }
 
 // getRIndex get right index from string slice

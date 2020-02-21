@@ -25,28 +25,28 @@ type Dialect interface {
 	DataTypeOf(field *StructField) string
 	// HasIndex check has index or not
 	HasIndex(tableName string, indexName string) bool
-  // HasIndexContext same as HasIndex
-  HasIndexContext(ctx context.Context, tableName string, indexName string) bool
-  // HasForeignKey check has foreign key or not
+	// HasIndexContext same as HasIndex
+	HasIndexContext(ctx context.Context, tableName string, indexName string) bool
+	// HasForeignKey check has foreign key or not
 	HasForeignKey(tableName string, foreignKeyName string) bool
-  // HasForeignKeyContext same as HasForeignKey
-  HasForeignKeyContext(ctx context.Context, tableName string, foreignKeyName string) bool
-  // RemoveIndex remove index
+	// HasForeignKeyContext same as HasForeignKey
+	HasForeignKeyContext(ctx context.Context, tableName string, foreignKeyName string) bool
+	// RemoveIndex remove index
 	RemoveIndex(tableName string, indexName string) error
 	// RemoveIndexContext same as RemoveIndex
-  RemoveIndexContext(ctx context.Context, tableName string, indexName string) error
-  // HasTable check has table or not
+	RemoveIndexContext(ctx context.Context, tableName string, indexName string) error
+	// HasTable check has table or not
 	HasTable(tableName string) bool
-  // HasTableContext same as HasTable
-  HasTableContext(ctx context.Context, tableName string) bool
+	// HasTableContext same as HasTable
+	HasTableContext(ctx context.Context, tableName string) bool
 	// HasColumn check has column or not
 	HasColumn(tableName string, columnName string) bool
 	// HasColumnContext same as HasColumn
-  HasColumnContext(ctx context.Context, tableName string, columnName string) bool
-  // ModifyColumn modify column's type
+	HasColumnContext(ctx context.Context, tableName string, columnName string) bool
+	// ModifyColumn modify column's type
 	ModifyColumn(tableName string, columnName string, typ string) error
-  // ModifyColumnContext same as ModifyColumn
-  ModifyColumnContext(ctx context.Context, tableName string, columnName string, typ string) error
+	// ModifyColumnContext same as ModifyColumn
+	ModifyColumnContext(ctx context.Context, tableName string, columnName string, typ string) error
 
 	// LimitAndOffsetSQL return generated SQL with Limit and Offset, as mssql has special case
 	LimitAndOffsetSQL(limit, offset interface{}) (string, error)
@@ -55,12 +55,12 @@ type Dialect interface {
 	// LastInsertIDOutputInterstitial most dbs support LastInsertId, but mssql needs to use `OUTPUT`
 	LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string
 	// LastInsertIDOutputInterstitialContext same as LastInsertIDOutputInterstitial
-  LastInsertIDOutputInterstitialContext(ctx context.Context, tableName, columnName string, columns []string) string
-  // LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
+	LastInsertIDOutputInterstitialContext(ctx context.Context, tableName, columnName string, columns []string) string
+	// LastInsertIdReturningSuffix most dbs support LastInsertId, but postgres needs to use `RETURNING`
 	LastInsertIDReturningSuffix(tableName, columnName string) string
 	// LastInsertIDReturningSuffixContext same as LastInsertIDReturningSuffix
-  LastInsertIDReturningSuffixContext(ctx context.Context, tableName, columnName string) string
-  // DefaultValueStr
+	LastInsertIDReturningSuffixContext(ctx context.Context, tableName, columnName string) string
+	// DefaultValueStr
 	DefaultValueStr() string
 
 	// BuildKeyName returns a valid key name (foreign key, index key) for the given table, field and reference
@@ -71,8 +71,8 @@ type Dialect interface {
 
 	// CurrentDatabase return current database name
 	CurrentDatabase() string
-  // CurrentDatabaseContext same as CurrentDatabase
-  CurrentDatabaseContext(ctx context.Context) string
+	// CurrentDatabaseContext same as CurrentDatabase
+	CurrentDatabaseContext(ctx context.Context) string
 }
 
 var dialectsMap = map[string]Dialect{}

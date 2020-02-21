@@ -101,8 +101,8 @@ func (s *commonDialect) DataTypeOf(field *StructField) string {
 }
 
 func (s commonDialect) HasIndex(tableName string, indexName string) bool {
-  ctx := context.Background()
-  return s.HasIndexContext(ctx, tableName, indexName)
+	ctx := context.Background()
+	return s.HasIndexContext(ctx, tableName, indexName)
 }
 
 func (s commonDialect) HasIndexContext(ctx context.Context, tableName string, indexName string) bool {
@@ -113,8 +113,8 @@ func (s commonDialect) HasIndexContext(ctx context.Context, tableName string, in
 }
 
 func (s commonDialect) RemoveIndex(tableName string, indexName string) error {
-  ctx := context.Background()
-  return s.RemoveIndexContext(ctx, tableName, indexName)
+	ctx := context.Background()
+	return s.RemoveIndexContext(ctx, tableName, indexName)
 }
 
 func (s commonDialect) RemoveIndexContext(ctx context.Context, tableName string, indexName string) error {
@@ -123,8 +123,8 @@ func (s commonDialect) RemoveIndexContext(ctx context.Context, tableName string,
 }
 
 func (s commonDialect) HasForeignKey(tableName string, foreignKeyName string) bool {
-  ctx := context.Background()
-  return s.HasForeignKeyContext(ctx, tableName, foreignKeyName)
+	ctx := context.Background()
+	return s.HasForeignKeyContext(ctx, tableName, foreignKeyName)
 }
 
 func (s commonDialect) HasForeignKeyContext(_ctx context.Context, tableName string, foreignKeyName string) bool {
@@ -132,8 +132,8 @@ func (s commonDialect) HasForeignKeyContext(_ctx context.Context, tableName stri
 }
 
 func (s commonDialect) HasTable(tableName string) bool {
-  ctx := context.Background()
-  return s.HasTableContext(ctx, tableName)
+	ctx := context.Background()
+	return s.HasTableContext(ctx, tableName)
 }
 
 func (s commonDialect) HasTableContext(ctx context.Context, tableName string) bool {
@@ -144,8 +144,8 @@ func (s commonDialect) HasTableContext(ctx context.Context, tableName string) bo
 }
 
 func (s commonDialect) HasColumn(tableName string, columnName string) bool {
-  ctx := context.Background()
-  return s.HasColumnContext(ctx, tableName, columnName)
+	ctx := context.Background()
+	return s.HasColumnContext(ctx, tableName, columnName)
 }
 
 func (s commonDialect) HasColumnContext(ctx context.Context, tableName string, columnName string) bool {
@@ -156,8 +156,8 @@ func (s commonDialect) HasColumnContext(ctx context.Context, tableName string, c
 }
 
 func (s commonDialect) ModifyColumn(tableName string, columnName string, typ string) error {
-  ctx := context.Background()
-  return s.ModifyColumnContext(ctx, tableName, columnName, typ)
+	ctx := context.Background()
+	return s.ModifyColumnContext(ctx, tableName, columnName, typ)
 }
 
 func (s commonDialect) ModifyColumnContext(ctx context.Context, tableName string, columnName string, typ string) error {
@@ -166,8 +166,8 @@ func (s commonDialect) ModifyColumnContext(ctx context.Context, tableName string
 }
 
 func (s commonDialect) CurrentDatabase() (name string) {
-  ctx := context.Background()
-  return s.CurrentDatabaseContext(ctx)
+	ctx := context.Background()
+	return s.CurrentDatabaseContext(ctx)
 }
 
 func (s commonDialect) CurrentDatabaseContext(ctx context.Context) (name string) {
@@ -199,8 +199,8 @@ func (commonDialect) SelectFromDummyTable() string {
 }
 
 func (s commonDialect) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
-  ctx := context.Background()
-  return s.LastInsertIDOutputInterstitialContext(ctx, tableName, columnName, columns)
+	ctx := context.Background()
+	return s.LastInsertIDOutputInterstitialContext(ctx, tableName, columnName, columns)
 }
 
 func (commonDialect) LastInsertIDOutputInterstitialContext(_ctx context.Context, tableName, columnName string, columns []string) string {
@@ -208,8 +208,8 @@ func (commonDialect) LastInsertIDOutputInterstitialContext(_ctx context.Context,
 }
 
 func (s commonDialect) LastInsertIDReturningSuffix(tableName, columnName string) string {
-  ctx := context.Background()
-  return s.LastInsertIDReturningSuffixContext(ctx, tableName, columnName)
+	ctx := context.Background()
+	return s.LastInsertIDReturningSuffixContext(ctx, tableName, columnName)
 }
 
 func (commonDialect) LastInsertIDReturningSuffixContext(_ctx context.Context, tableName, columnName string) string {

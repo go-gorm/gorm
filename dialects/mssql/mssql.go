@@ -124,8 +124,8 @@ func (s mssql) fieldCanAutoIncrement(field *gorm.StructField) bool {
 }
 
 func (s mssql) HasIndex(tableName string, indexName string) bool {
-  ctx := context.Background()
-  return s.HasIndexContext(ctx, tableName, indexName)
+	ctx := context.Background()
+	return s.HasIndexContext(ctx, tableName, indexName)
 }
 
 func (s mssql) HasIndexContext(ctx context.Context, tableName string, indexName string) bool {
@@ -135,8 +135,8 @@ func (s mssql) HasIndexContext(ctx context.Context, tableName string, indexName 
 }
 
 func (s mssql) RemoveIndex(tableName string, indexName string) error {
-  ctx := context.Background()
-  return s.RemoveIndexContext(ctx, tableName, indexName)
+	ctx := context.Background()
+	return s.RemoveIndexContext(ctx, tableName, indexName)
 }
 
 func (s mssql) RemoveIndexContext(ctx context.Context, tableName string, indexName string) error {
@@ -145,8 +145,8 @@ func (s mssql) RemoveIndexContext(ctx context.Context, tableName string, indexNa
 }
 
 func (s mssql) HasForeignKey(tableName string, foreignKeyName string) bool {
-  ctx := context.Background()
-  return s.HasForeignKeyContext(ctx, tableName, foreignKeyName)
+	ctx := context.Background()
+	return s.HasForeignKeyContext(ctx, tableName, foreignKeyName)
 }
 
 func (s mssql) HasForeignKeyContext(ctx context.Context, tableName string, foreignKeyName string) bool {
@@ -161,8 +161,8 @@ func (s mssql) HasForeignKeyContext(ctx context.Context, tableName string, forei
 }
 
 func (s mssql) HasTable(tableName string) bool {
-  ctx := context.Background()
-  return s.HasTableContext(ctx, tableName)
+	ctx := context.Background()
+	return s.HasTableContext(ctx, tableName)
 }
 
 func (s mssql) HasTableContext(ctx context.Context, tableName string) bool {
@@ -173,8 +173,8 @@ func (s mssql) HasTableContext(ctx context.Context, tableName string) bool {
 }
 
 func (s mssql) HasColumn(tableName string, columnName string) bool {
-  ctx := context.Background()
-  return s.HasColumnContext(ctx, tableName, columnName)
+	ctx := context.Background()
+	return s.HasColumnContext(ctx, tableName, columnName)
 }
 
 func (s mssql) HasColumnContext(ctx context.Context, tableName string, columnName string) bool {
@@ -185,8 +185,8 @@ func (s mssql) HasColumnContext(ctx context.Context, tableName string, columnNam
 }
 
 func (s mssql) ModifyColumn(tableName string, columnName string, typ string) error {
-  ctx := context.Background()
-  return s.ModifyColumnContext(ctx, tableName, columnName, typ)
+	ctx := context.Background()
+	return s.ModifyColumnContext(ctx, tableName, columnName, typ)
 }
 
 func (s mssql) ModifyColumnContext(ctx context.Context, tableName string, columnName string, typ string) error {
@@ -195,9 +195,9 @@ func (s mssql) ModifyColumnContext(ctx context.Context, tableName string, column
 }
 
 func (s mssql) CurrentDatabase() (name string) {
-  ctx := context.Background()
-  s.CurrentDatabaseContext(ctx)
-  return
+	ctx := context.Background()
+	s.CurrentDatabaseContext(ctx)
+	return
 }
 
 func (s mssql) CurrentDatabaseContext(ctx context.Context) (name string) {
@@ -236,8 +236,8 @@ func (mssql) SelectFromDummyTable() string {
 }
 
 func (s mssql) LastInsertIDOutputInterstitial(tableName, columnName string, columns []string) string {
-  ctx := context.Background()
-  return s.LastInsertIDOutputInterstitialContext(ctx, tableName, columnName, columns)
+	ctx := context.Background()
+	return s.LastInsertIDOutputInterstitialContext(ctx, tableName, columnName, columns)
 }
 
 func (mssql) LastInsertIDOutputInterstitialContext(_ctx context.Context, tableName, columnName string, columns []string) string {
@@ -249,8 +249,8 @@ func (mssql) LastInsertIDOutputInterstitialContext(_ctx context.Context, tableNa
 }
 
 func (s mssql) LastInsertIDReturningSuffix(tableName, columnName string) string {
-  ctx := context.Background()
-  return s.LastInsertIDReturningSuffixContext(ctx, tableName, columnName)
+	ctx := context.Background()
+	return s.LastInsertIDReturningSuffixContext(ctx, tableName, columnName)
 }
 
 func (mssql) LastInsertIDReturningSuffixContext(_ctx context.Context, tableName, columnName string) string {
