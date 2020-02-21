@@ -1,9 +1,11 @@
 package schema
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/jinzhu/inflection"
 )
@@ -12,6 +14,7 @@ import (
 type Namer interface {
 	TableName(table string) string
 	ColumnName(table, column string) string
+	IndexName(table, column string) string
 	JoinTableName(table string) string
 }
 
@@ -30,8 +33,21 @@ func (ns NamingStrategy) TableName(str string) string {
 }
 
 // ColumnName convert string to column name
-func (ns NamingStrategy) ColumnName(table, str string) string {
-	return toDBName(str)
+func (ns NamingStrategy) ColumnName(table, column string) string {
+	return toDBName(column)
+}
+
+func (ns NamingStrategy) IndexName(table, column string) string {
+	idxName := fmt.Sprintf("idx_%v_%v", table, toDBName(column))
+
+	if utf8.RuneCountInString(idxName) > 64 {
+		h := sha1.New()
+		h.Write([]byte(idxName))
+		bs := h.Sum(nil)
+
+		idxName = fmt.Sprintf("idx%v%v", table, column)[0:56] + string(bs)[:8]
+	}
+	return idxName
 }
 
 // JoinTableName convert string to join table name
