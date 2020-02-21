@@ -6,9 +6,12 @@ import (
 )
 
 type Index struct {
-	Name   string
-	Class  string // UNIQUE | FULLTEXT | SPATIAL
-	Fields []IndexOption
+	Name    string
+	Class   string // UNIQUE | FULLTEXT | SPATIAL
+	Type    string // btree, hash, gist, spgist, gin, and brin
+	Where   string
+	Comment string
+	Fields  []IndexOption
 }
 
 type IndexOption struct {
@@ -17,9 +20,6 @@ type IndexOption struct {
 	Sort       string // DESC, ASC
 	Collate    string
 	Length     int
-	Type       string // btree, hash, gist, spgist, gin, and brin
-	Where      string
-	Comment    string
 }
 
 // ParseIndexes parse schema indexes
@@ -33,6 +33,15 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				idx.Name = index.Name
 				if idx.Class == "" {
 					idx.Class = index.Class
+				}
+				if idx.Type == "" {
+					idx.Type = index.Type
+				}
+				if idx.Where == "" {
+					idx.Where = index.Where
+				}
+				if idx.Comment == "" {
+					idx.Comment = index.Comment
 				}
 				idx.Fields = append(idx.Fields, index.Fields...)
 				indexes[index.Name] = idx
@@ -50,62 +59,37 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 			k := strings.TrimSpace(strings.ToUpper(v[0]))
 			if k == "INDEX" || k == "UNIQUE_INDEX" {
 				var (
-					name     string
-					tag      = strings.Join(v[1:], ":")
-					settings = map[string]string{}
+					name      string
+					tag       = strings.Join(v[1:], ":")
+					idx       = strings.Index(tag, ",")
+					settings  = ParseTagSetting(tag, ",")
+					length, _ = strconv.Atoi(settings["LENGTH"])
 				)
 
-				names := strings.Split(tag, ",")
-				for i := 0; i < len(names); i++ {
-					if len(names[i]) > 0 {
-						j := i
-						for {
-							if names[j][len(names[j])-1] == '\\' {
-								i++
-								names[j] = names[j][0:len(names[j])-1] + names[i]
-								names[i] = ""
-							} else {
-								break
-							}
-						}
-					}
-
-					if i == 0 {
-						name = names[0]
-					}
-
-					values := strings.Split(names[i], ":")
-					k := strings.TrimSpace(strings.ToUpper(values[0]))
-
-					if len(values) >= 2 {
-						settings[k] = strings.Join(values[1:], ":")
-					} else if k != "" {
-						settings[k] = k
-					}
+				if idx != -1 {
+					name = tag[0:idx]
 				}
 
 				if name == "" {
 					name = field.Schema.namer.IndexName(field.Schema.Table, field.Name)
 				}
 
-				length, _ := strconv.Atoi(settings["LENGTH"])
-
 				if (k == "UNIQUE_INDEX") || settings["UNIQUE"] != "" {
 					settings["CLASS"] = "UNIQUE"
 				}
 
 				indexes = append(indexes, Index{
-					Name:  name,
-					Class: settings["CLASS"],
+					Name:    name,
+					Class:   settings["CLASS"],
+					Type:    settings["TYPE"],
+					Where:   settings["WHERE"],
+					Comment: settings["COMMENT"],
 					Fields: []IndexOption{{
 						Field:      field,
 						Expression: settings["EXPRESSION"],
 						Sort:       settings["SORT"],
 						Collate:    settings["COLLATE"],
-						Type:       settings["TYPE"],
 						Length:     length,
-						Where:      settings["WHERE"],
-						Comment:    settings["COMMENT"],
 					}},
 				})
 			}

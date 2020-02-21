@@ -74,7 +74,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Creatable:         true,
 		Updatable:         true,
 		Tag:               fieldStruct.Tag,
-		TagSettings:       ParseTagSetting(fieldStruct.Tag),
+		TagSettings:       ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";"),
 		Schema:            schema,
 	}
 
@@ -104,7 +104,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				}
 
 				// copy tag settings from valuer
-				for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag) {
+				for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
 					if _, ok := field.TagSettings[key]; !ok {
 						field.TagSettings[key] = value
 					}

@@ -35,13 +35,13 @@ func TestParseIndex(t *testing.T) {
 			Fields: []schema.IndexOption{{}},
 		},
 		"idx_user_indices_name3": {
-			Name: "idx_user_indices_name3",
+			Name:  "idx_user_indices_name3",
+			Type:  "btree",
+			Where: "name3 != 'jinzhu'",
 			Fields: []schema.IndexOption{{
 				Sort:    "desc",
 				Collate: "utf8",
 				Length:  10,
-				Type:    "btree",
-				Where:   "name3 != 'jinzhu'",
 			}},
 		},
 		"idx_user_indices_name4": {
@@ -50,19 +50,17 @@ func TestParseIndex(t *testing.T) {
 			Fields: []schema.IndexOption{{}},
 		},
 		"idx_user_indices_name5": {
-			Name:  "idx_user_indices_name5",
-			Class: "FULLTEXT",
-			Fields: []schema.IndexOption{{
-				Comment: "hello , world",
-				Where:   "age > 10",
-			}},
+			Name:    "idx_user_indices_name5",
+			Class:   "FULLTEXT",
+			Comment: "hello , world",
+			Where:   "age > 10",
+			Fields:  []schema.IndexOption{{}},
 		},
 		"profile": {
-			Name: "profile",
-			Fields: []schema.IndexOption{{
-				Comment: "hello , world",
-				Where:   "age > 10",
-			}, {
+			Name:    "profile",
+			Comment: "hello , world",
+			Where:   "age > 10",
+			Fields: []schema.IndexOption{{}, {
 				Expression: "(age+10)",
 			}},
 		},
@@ -76,19 +74,23 @@ func TestParseIndex(t *testing.T) {
 			t.Errorf("Failed to found index %v from parsed indices %+v", k, indices)
 		}
 
-		if result.Name != v.Name {
-			t.Errorf("index %v name should equal, expects %v, got %v", k, result.Name, v.Name)
-		}
-
-		if result.Class != v.Class {
-			t.Errorf("index %v Class should equal, expects %v, got %v", k, result.Class, v.Class)
+		for _, name := range []string{"Name", "Class", "Type", "Where", "Comment"} {
+			if reflect.ValueOf(result).FieldByName(name).Interface() != reflect.ValueOf(v).FieldByName(name).Interface() {
+				t.Errorf(
+					"index %v %v should equal, expects %v, got %v",
+					k, name, reflect.ValueOf(result).FieldByName(name).Interface(), reflect.ValueOf(v).FieldByName(name).Interface(),
+				)
+			}
 		}
 
 		for idx, ef := range result.Fields {
 			rf := v.Fields[idx]
-			for _, name := range []string{"Expression", "Sort", "Collate", "Length", "Type", "Where"} {
+			for _, name := range []string{"Expression", "Sort", "Collate", "Length"} {
 				if reflect.ValueOf(ef).FieldByName(name).Interface() != reflect.ValueOf(rf).FieldByName(name).Interface() {
-					t.Errorf("index %v field #%v's %v should equal, expects %v, got %v", k, idx+1, name, reflect.ValueOf(ef).FieldByName(name).Interface(), reflect.ValueOf(rf).FieldByName(name).Interface())
+					t.Errorf(
+						"index %v field #%v's %v should equal, expects %v, got %v", k, idx+1, name,
+						reflect.ValueOf(ef).FieldByName(name).Interface(), reflect.ValueOf(rf).FieldByName(name).Interface(),
+					)
 				}
 			}
 		}

@@ -6,22 +6,35 @@ import (
 	"strings"
 )
 
-func ParseTagSetting(tags reflect.StructTag) map[string]string {
-	setting := map[string]string{}
+func ParseTagSetting(str string, sep string) map[string]string {
+	settings := map[string]string{}
+	names := strings.Split(str, sep)
 
-	for _, value := range strings.Split(tags.Get("gorm"), ";") {
-		if value != "" {
-			v := strings.Split(value, ":")
-			k := strings.TrimSpace(strings.ToUpper(v[0]))
-
-			if len(v) >= 2 {
-				setting[k] = strings.Join(v[1:], ":")
-			} else {
-				setting[k] = k
+	for i := 0; i < len(names); i++ {
+		j := i
+		if len(names[j]) > 0 {
+			for {
+				if names[j][len(names[j])-1] == '\\' {
+					i++
+					names[j] = names[j][0:len(names[j])-1] + sep + names[i]
+					names[i] = ""
+				} else {
+					break
+				}
 			}
 		}
+
+		values := strings.Split(names[j], ":")
+		k := strings.TrimSpace(strings.ToUpper(values[0]))
+
+		if len(values) >= 2 {
+			settings[k] = strings.Join(values[1:], ":")
+		} else if k != "" {
+			settings[k] = k
+		}
 	}
-	return setting
+
+	return settings
 }
 
 func checkTruth(val string) bool {
