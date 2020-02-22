@@ -3,12 +3,15 @@ package gorm
 import (
 	"context"
 	"database/sql"
+
+	"github.com/jinzhu/gorm/schema"
 )
 
 // Dialector GORM database dialector
 type Dialector interface {
 	Initialize(*DB) error
-	Migrator() Migrator
+	Migrator(db *DB) Migrator
+	DataTypeOf(*schema.Field) string
 	BindVar(stmt *Statement, v interface{}) string
 	QuoteChars() [2]byte
 }

@@ -1,14 +1,14 @@
-package postgres
+package mssql
 
 import (
 	"database/sql"
 	"fmt"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
 	"github.com/jinzhu/gorm/migrator"
 	"github.com/jinzhu/gorm/schema"
-	_ "github.com/lib/pq"
 )
 
 type Dialector struct {
@@ -23,7 +23,7 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db)
 
-	db.DB, err = sql.Open("postgres", dialector.DSN)
+	db.DB, err = sql.Open("sqlserver", dialector.DSN)
 	return
 }
 
@@ -36,44 +36,39 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 }
 
 func (dialector Dialector) QuoteChars() [2]byte {
-	return [2]byte{'"', '"'} // "name"
+	return [2]byte{'[', ']'} // `name`
 }
 
 func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	switch field.DataType {
 	case schema.Bool:
-		return "boolean"
+		return "bit"
 	case schema.Int, schema.Uint:
-		if field.AutoIncrement {
-			switch {
-			case field.Size < 16:
-				return "smallserial"
-			case field.Size < 31:
-				return "serial"
-			default:
-				return "bigserial"
-			}
-		} else {
-			switch {
-			case field.Size < 16:
-				return "smallint"
-			case field.Size < 31:
-				return "integer"
-			default:
-				return "bigint"
-			}
+		var sqlType string
+		switch {
+		case field.Size < 16:
+			sqlType = "smallint"
+		case field.Size < 31:
+			sqlType = "int"
+		default:
+			sqlType = "bigint"
 		}
+
+		if field.AutoIncrement {
+			return sqlType + " IDENTITY(1,1)"
+		}
+		return sqlType
 	case schema.Float:
 		return "decimal"
 	case schema.String:
-		if field.Size > 0 {
-			return fmt.Sprintf("varchar(%d)", field.Size)
+		if field.Size > 0 && field.Size <= 4000 {
+			return fmt.Sprintf("nvarchar(%d)", field.Size)
 		}
-		return "text"
+		return "ntext"
 	case schema.Time:
-		return "timestamp with time zone"
+		return "datetimeoffset"
 	case schema.Bytes:
-		return "bytea"
+		return "binary"
 	}
 
 	return ""

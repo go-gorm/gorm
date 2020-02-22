@@ -138,7 +138,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if num, ok := field.TagSettings["SIZE"]; ok {
-		field.Size, _ = strconv.Atoi(num)
+		var err error
+		if field.Size, err = strconv.Atoi(num); err != nil {
+			field.Size = -1
+		}
 	}
 
 	if p, ok := field.TagSettings["PRECISION"]; ok {

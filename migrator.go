@@ -6,7 +6,7 @@ import (
 
 // Migrator returns migrator
 func (db *DB) Migrator() Migrator {
-	return db.Dialector.Migrator()
+	return db.Dialector.Migrator(db)
 }
 
 // ViewOption view option
@@ -26,7 +26,7 @@ type Migrator interface {
 	// Tables
 	CreateTable(dst ...interface{}) error
 	DropTable(dst ...interface{}) error
-	HasTable(dst ...interface{}) bool
+	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName string) error
 
 	// Columns
