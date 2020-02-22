@@ -222,5 +222,8 @@ func (db *DB) Unscoped() (tx *DB) {
 
 func (db *DB) Raw(sql string, values ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	stmt := tx.Statement
+	stmt.SQL = strings.Builder{}
+	clause.Expr{SQL: sql, Vars: values}.Build(stmt)
 	return
 }

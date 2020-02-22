@@ -22,6 +22,10 @@ func init() {
 	}
 }
 
-func TestSqlite(t *testing.T) {
+func TestCURD(t *testing.T) {
 	tests.RunTestsSuit(t, DB)
+}
+
+func TestMigrate(t *testing.T) {
+	tests.TestMigrate(t, DB)
 }

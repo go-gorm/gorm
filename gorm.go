@@ -138,6 +138,11 @@ func (db *DB) Callback() *callbacks {
 	return db.callbacks
 }
 
+// AutoMigrate run auto migration for given models
+func (db *DB) AutoMigrate(dst ...interface{}) error {
+	return db.Migrator().AutoMigrate(dst...)
+}
+
 func (db *DB) getInstance() *DB {
 	if db.clone {
 		ctx := db.Instance.Context

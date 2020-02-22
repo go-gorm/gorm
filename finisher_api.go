@@ -108,11 +108,15 @@ func (db *DB) Count(value interface{}) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	return nil
+	tx := db.getInstance()
+	tx.callbacks.Row().Execute(tx)
+	return tx.Statement.Dest.(*sql.Row)
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	return nil, nil
+	tx := db.Set("rows", true)
+	tx.callbacks.Row().Execute(tx)
+	return tx.Statement.Dest.(*sql.Rows), tx.Error
 }
 
 // Scan scan value to a struct
@@ -162,5 +166,6 @@ func (db *DB) Rollback() (tx *DB) {
 
 func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.callbacks.Raw().Execute(tx)
 	return
 }

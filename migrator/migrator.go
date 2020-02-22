@@ -265,8 +265,15 @@ func (m Migrator) RenameColumn(value interface{}, oldName, field string) error {
 	})
 }
 
-func (m Migrator) ColumnTypes(value interface{}) ([]*sql.ColumnType, error) {
-	return nil, gorm.ErrNotImplemented
+func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {
+	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		rows, err := m.DB.Raw("select * from ?", clause.Table{Name: stmt.Table}).Rows()
+		if err == nil {
+			columnTypes, err = rows.ColumnTypes()
+		}
+		return err
+	})
+	return
 }
 
 func (m Migrator) CreateView(name string, option gorm.ViewOption) error {

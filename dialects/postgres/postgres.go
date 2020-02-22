@@ -28,7 +28,10 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 }
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return Migrator{migrator.Migrator{Config: migrator.Config{DB: db}}}
+	return Migrator{migrator.Migrator{Config: migrator.Config{
+		DB:        db,
+		Dialector: dialector,
+	}}}
 }
 
 func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {

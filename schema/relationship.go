@@ -317,7 +317,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 		settings = ParseTagSetting(str, ",")
 	)
 
-	if idx != -1 && regexp.MustCompile("^[A-Za-z]+$").MatchString(str[0:idx]) {
+	if idx != -1 && regexp.MustCompile("^[A-Za-z-_]+$").MatchString(str[0:idx]) {
 		name = str[0:idx]
 	} else {
 		name = rel.Schema.namer.RelationshipFKName(*rel)
@@ -337,6 +337,10 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 			constraint.References = append(constraint.References, ref.PrimaryKey)
 			constraint.ReferenceSchema = ref.PrimaryKey.Schema
 		}
+	}
+
+	if constraint.ReferenceSchema == nil {
+		return nil
 	}
 
 	return &constraint
