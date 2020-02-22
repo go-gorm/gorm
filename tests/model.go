@@ -21,7 +21,7 @@ type User struct {
 	Toys      []Toy `gorm:"polymorphic:Owner"`
 	CompanyID *int
 	Company   Company
-	ManagerID int
+	ManagerID uint
 	Manager   *User
 	Team      []User     `gorm:"foreignkey:ManagerID"`
 	Languages []Language `gorm:"many2many:UserSpeak"`
@@ -49,7 +49,7 @@ type Toy struct {
 }
 
 type Company struct {
-	ID   uint
+	ID   int
 	Name string
 }
 

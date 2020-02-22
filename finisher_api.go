@@ -140,7 +140,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 		}
 	}()
 
-	err = fc(tx)
+	err = fc(tx.Session(&Session{}))
 
 	if err == nil {
 		err = tx.Commit().Error

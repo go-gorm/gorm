@@ -23,9 +23,8 @@ func Open(dsn string) gorm.Dialector {
 func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db)
-	db.DB, err = sql.Open("sqlite3", dialector.DSN)
-
-	return nil
+	db.DB, err = sql.Open("mysql", dialector.DSN)
+	return
 }
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
@@ -75,9 +74,13 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		return "double"
 	case schema.String:
 		size := field.Size
+		if field.PrimaryKey {
+			size = 256
+		}
+
 		if size >= 65536 && size <= int(math.Pow(2, 24)) {
 			return "mediumtext"
-		} else if size > int(math.Pow(2, 24)) || size < 0 {
+		} else if size > int(math.Pow(2, 24)) || size <= 0 {
 			return "longtext"
 		}
 		return fmt.Sprintf("varchar(%d)", size)

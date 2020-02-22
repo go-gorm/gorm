@@ -18,8 +18,9 @@ type Migrator struct {
 
 // Config schema config
 type Config struct {
-	CreateIndexAfterCreateTable bool
-	DB                          *gorm.DB
+	CreateIndexAfterCreateTable             bool
+	AllowDeferredConstraintsWhenAutoMigrate bool
+	DB                                      *gorm.DB
 	gorm.Dialector
 }
 
@@ -47,17 +48,17 @@ func (m Migrator) DataTypeOf(field *schema.Field) string {
 // AutoMigrate
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	// TODO smart migrate data type
-
 	for _, value := range values {
-		if !m.DB.Migrator().HasTable(value) {
-			if err := m.DB.Migrator().CreateTable(value); err != nil {
+		tx := m.DB.Session(&gorm.Session{})
+		if !tx.Migrator().HasTable(value) {
+			if err := tx.Migrator().CreateTable(value); err != nil {
 				return err
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
 				for _, field := range stmt.Schema.FieldsByDBName {
-					if !m.DB.Migrator().HasColumn(value, field.DBName) {
-						if err := m.DB.Migrator().AddColumn(value, field.DBName); err != nil {
+					if !tx.Migrator().HasColumn(value, field.DBName) {
+						if err := tx.Migrator().AddColumn(value, field.DBName); err != nil {
 							return err
 						}
 					}
@@ -65,16 +66,16 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 				for _, rel := range stmt.Schema.Relationships.Relations {
 					if constraint := rel.ParseConstraint(); constraint != nil {
-						if !m.DB.Migrator().HasConstraint(value, constraint.Name) {
-							if err := m.DB.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+						if !tx.Migrator().HasConstraint(value, constraint.Name) {
+							if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
 								return err
 							}
 						}
 					}
 
 					for _, chk := range stmt.Schema.ParseCheckConstraints() {
-						if !m.DB.Migrator().HasConstraint(value, chk.Name) {
-							if err := m.DB.Migrator().CreateConstraint(value, chk.Name); err != nil {
+						if !tx.Migrator().HasConstraint(value, chk.Name) {
+							if err := tx.Migrator().CreateConstraint(value, chk.Name); err != nil {
 								return err
 							}
 						}
@@ -83,8 +84,8 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					// create join table
 					if rel.JoinTable != nil {
 						joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-						if !m.DB.Migrator().HasTable(joinValue) {
-							defer m.DB.Migrator().CreateTable(joinValue)
+						if !tx.Migrator().HasTable(joinValue) {
+							defer tx.Migrator().CreateTable(joinValue)
 						}
 					}
 				}
@@ -100,6 +101,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range values {
+		tx := m.DB.Session(&gorm.Session{})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
 			var (
 				createTableSQL          = "CREATE TABLE ? ("
@@ -144,10 +146,10 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, idx := range stmt.Schema.ParseIndexes() {
 				if m.CreateIndexAfterCreateTable {
-					m.DB.Migrator().CreateIndex(value, idx.Name)
+					tx.Migrator().CreateIndex(value, idx.Name)
 				} else {
 					createTableSQL += "INDEX ? ?,"
-					values = append(values, clause.Expr{SQL: idx.Name}, m.DB.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
+					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
 				}
 			}
 
@@ -161,8 +163,8 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				// create join table
 				if rel.JoinTable != nil {
 					joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-					if !m.DB.Migrator().HasTable(joinValue) {
-						defer m.DB.Migrator().CreateTable(joinValue)
+					if !tx.Migrator().HasTable(joinValue) {
+						defer tx.Migrator().CreateTable(joinValue)
 					}
 				}
 			}
@@ -175,7 +177,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			createTableSQL = strings.TrimSuffix(createTableSQL, ",")
 
 			createTableSQL += ")"
-			return m.DB.Exec(createTableSQL, values...).Error
+			return tx.Exec(createTableSQL, values...).Error
 		}); err != nil {
 			return err
 		}
@@ -185,8 +187,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 func (m Migrator) DropTable(values ...interface{}) error {
 	for _, value := range values {
+		tx := m.DB.Session(&gorm.Session{})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-			return m.DB.Exec("DROP TABLE ?", clause.Table{Name: stmt.Table}).Error
+			return tx.Exec("DROP TABLE ?", clause.Table{Name: stmt.Table}).Error
 		}); err != nil {
 			return err
 		}
