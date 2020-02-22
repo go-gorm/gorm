@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"github.com/jinzhu/inflection"
@@ -291,4 +292,52 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	} else {
 		relation.Type = BelongsTo
 	}
+}
+
+type Constraint struct {
+	Name            string
+	Field           *Field
+	Schema          *Schema
+	ForeignKeys     []*Field
+	ReferenceSchema *Schema
+	References      []*Field
+	OnDelete        string
+	OnUpdate        string
+}
+
+func (rel *Relationship) ParseConstraint() *Constraint {
+	str := rel.Field.TagSettings["CONSTRAINT"]
+	if str == "-" {
+		return nil
+	}
+
+	var (
+		name     string
+		idx      = strings.Index(str, ",")
+		settings = ParseTagSetting(str, ",")
+	)
+
+	if idx != -1 && regexp.MustCompile("^[A-Za-z]+$").MatchString(str[0:idx]) {
+		name = str[0:idx]
+	} else {
+		name = rel.Schema.namer.RelationshipFKName(*rel)
+	}
+
+	constraint := Constraint{
+		Name:     name,
+		Field:    rel.Field,
+		OnUpdate: settings["ONUPDATE"],
+		OnDelete: settings["ONDELETE"],
+		Schema:   rel.Schema,
+	}
+
+	for _, ref := range rel.References {
+		if ref.PrimaryKey != nil && !ref.OwnPrimaryKey {
+			constraint.ForeignKeys = append(constraint.ForeignKeys, ref.ForeignKey)
+			constraint.References = append(constraint.References, ref.PrimaryKey)
+			constraint.ReferenceSchema = ref.PrimaryKey.Schema
+		}
+	}
+
+	return &constraint
 }

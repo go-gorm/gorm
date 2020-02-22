@@ -14,8 +14,10 @@ import (
 type Namer interface {
 	TableName(table string) string
 	ColumnName(table, column string) string
-	IndexName(table, column string) string
 	JoinTableName(table string) string
+	RelationshipFKName(Relationship) string
+	CheckerName(table, column string) string
+	IndexName(table, column string) string
 }
 
 // NamingStrategy tables, columns naming strategy
@@ -37,6 +39,22 @@ func (ns NamingStrategy) ColumnName(table, column string) string {
 	return toDBName(column)
 }
 
+// JoinTableName convert string to join table name
+func (ns NamingStrategy) JoinTableName(str string) string {
+	return ns.TablePrefix + inflection.Plural(toDBName(str))
+}
+
+// RelationshipFKName generate fk name for relation
+func (ns NamingStrategy) RelationshipFKName(rel Relationship) string {
+	return fmt.Sprintf("fk_%s_%s", rel.Schema.Table, rel.FieldSchema.Table)
+}
+
+// CheckerName generate checker name
+func (ns NamingStrategy) CheckerName(table, column string) string {
+	return fmt.Sprintf("chk_%s_%s", table, column)
+}
+
+// IndexName generate index name
 func (ns NamingStrategy) IndexName(table, column string) string {
 	idxName := fmt.Sprintf("idx_%v_%v", table, toDBName(column))
 
@@ -48,11 +66,6 @@ func (ns NamingStrategy) IndexName(table, column string) string {
 		idxName = fmt.Sprintf("idx%v%v", table, column)[0:56] + string(bs)[:8]
 	}
 	return idxName
-}
-
-// JoinTableName convert string to join table name
-func (ns NamingStrategy) JoinTableName(str string) string {
-	return ns.TablePrefix + inflection.Plural(toDBName(str))
 }
 
 var (
