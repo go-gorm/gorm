@@ -33,6 +33,7 @@ type Migrator interface {
 	AddColumn(dst interface{}, field string) error
 	DropColumn(dst interface{}, field string) error
 	AlterColumn(dst interface{}, field string) error
+	HasColumn(dst interface{}, field string) bool
 	RenameColumn(dst interface{}, oldName, field string) error
 	ColumnTypes(dst interface{}) ([]*sql.ColumnType, error)
 
@@ -43,6 +44,7 @@ type Migrator interface {
 	// Constraints
 	CreateConstraint(dst interface{}, name string) error
 	DropConstraint(dst interface{}, name string) error
+	HasConstraint(dst interface{}, name string) bool
 
 	// Indexes
 	CreateIndex(dst interface{}, name string) error
