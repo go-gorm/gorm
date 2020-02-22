@@ -87,3 +87,29 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 		return err
 	})
 }
+
+func (m Migrator) HasTable(value interface{}) bool {
+	var count int64
+	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		return m.DB.Raw("SELECT count(*) FROM information_schema.tables WHERE table_schema =  CURRENT_SCHEMA() AND table_name = ? AND table_type = ?", stmt.Table, "BASE TABLE").Row().Scan(&count)
+	})
+
+	return count > 0
+}
+
+func (m Migrator) HasColumn(value interface{}, field string) bool {
+	var count int64
+	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		name := field
+		if field := stmt.Schema.LookUpField(field); field != nil {
+			name = field.DBName
+		}
+
+		return m.DB.Raw(
+			"SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_schema = CURRENT_SCHEMA() AND table_name = ? AND column_name = ?",
+			stmt.Table, name,
+		).Row().Scan(&count)
+	})
+
+	return count > 0
+}

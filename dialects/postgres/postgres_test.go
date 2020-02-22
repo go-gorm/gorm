@@ -1,11 +1,11 @@
-package mysql_test
+package postgres_test
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/dialects/mysql"
+	"github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/jinzhu/gorm/tests"
 )
 
@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	if DB, err = gorm.Open(mysql.Open("gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"), &gorm.Config{}); err != nil {
+	if DB, err = gorm.Open(postgres.Open("user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"), &gorm.Config{}); err != nil {
 		panic(fmt.Sprintf("failed to initialize database, got error %v", err))
 	}
 }
