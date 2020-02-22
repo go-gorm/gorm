@@ -28,8 +28,9 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
 	return Migrator{migrator.Migrator{Config: migrator.Config{
-		DB:        db,
-		Dialector: dialector,
+		DB:                          db,
+		Dialector:                   dialector,
+		CreateIndexAfterCreateTable: true,
 	}}}
 }
 
@@ -44,20 +45,20 @@ func (dialector Dialector) QuoteChars() [2]byte {
 func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	switch field.DataType {
 	case schema.Bool:
-		return "NUMERIC"
+		return "numeric"
 	case schema.Int, schema.Uint:
 		if field.AutoIncrement {
 			// https://www.sqlite.org/autoinc.html
-			return "INTEGER PRIMARY KEY AUTOINCREMENT"
+			return "integer PRIMARY KEY AUTOINCREMENT"
 		} else {
-			return "INTEGER"
+			return "integer"
 		}
 	case schema.Float:
-		return "REAL"
+		return "real"
 	case schema.String, schema.Time:
-		return "TEXT"
+		return "text"
 	case schema.Bytes:
-		return "BLOB"
+		return "blob"
 	}
 
 	return ""

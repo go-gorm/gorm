@@ -30,8 +30,8 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 		}
 
 		return m.DB.Raw(
-			"SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND (sql LIKE ? OR sql LIKE ?)",
-			stmt.Table, `%"`+name+`" %`, `%`+name+` %`,
+			"SELECT count(*) FROM sqlite_master WHERE tbl_name = ? AND (sql LIKE ? OR sql LIKE ? OR sql LIKE ?)",
+			stmt.Table, `%"`+name+`" %`, `%`+name+` %`, "%`"+name+"`%",
 		).Row().Scan(&count)
 	})
 	return count > 0

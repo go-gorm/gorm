@@ -1,6 +1,8 @@
 package clause
 
-import "strings"
+import (
+	"strings"
+)
 
 // Expression expression interface
 type Expression interface {
@@ -22,7 +24,7 @@ type Expr struct {
 func (expr Expr) Build(builder Builder) {
 	sql := expr.SQL
 	for _, v := range expr.Vars {
-		sql = strings.Replace(sql, " ?", " "+builder.AddVar(v), 1)
+		sql = strings.Replace(sql, "?", builder.AddVar(v), 1)
 	}
 	builder.Write(sql)
 }

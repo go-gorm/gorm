@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/jinzhu/gorm/clause"
 )
@@ -166,6 +167,8 @@ func (db *DB) Rollback() (tx *DB) {
 
 func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.SQL = strings.Builder{}
+	clause.Expr{SQL: sql, Vars: values}.Build(tx.Statement)
 	tx.callbacks.Raw().Execute(tx)
 	return
 }

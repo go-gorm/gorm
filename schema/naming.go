@@ -46,7 +46,7 @@ func (ns NamingStrategy) JoinTableName(str string) string {
 
 // RelationshipFKName generate fk name for relation
 func (ns NamingStrategy) RelationshipFKName(rel Relationship) string {
-	return fmt.Sprintf("fk_%s_%s", rel.Schema.Table, rel.FieldSchema.Table)
+	return fmt.Sprintf("fk_%s_%s", rel.Schema.Table, toDBName(rel.Field.Name))
 }
 
 // CheckerName generate checker name

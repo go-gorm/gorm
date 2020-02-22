@@ -339,7 +339,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 		}
 	}
 
-	if constraint.ReferenceSchema == nil {
+	if rel.JoinTable != nil || constraint.ReferenceSchema == nil {
 		return nil
 	}
 

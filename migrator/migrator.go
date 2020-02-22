@@ -18,7 +18,8 @@ type Migrator struct {
 
 // Config schema config
 type Config struct {
-	DB *gorm.DB
+	CreateIndexAfterCreateTable bool
+	DB                          *gorm.DB
 	gorm.Dialector
 }
 
@@ -80,9 +81,11 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					}
 
 					// create join table
-					joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-					if !m.DB.Migrator().HasTable(joinValue) {
-						defer m.DB.Migrator().CreateTable(joinValue)
+					if rel.JoinTable != nil {
+						joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
+						if !m.DB.Migrator().HasTable(joinValue) {
+							defer m.DB.Migrator().CreateTable(joinValue)
+						}
 					}
 				}
 				return nil
@@ -140,8 +143,12 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			}
 
 			for _, idx := range stmt.Schema.ParseIndexes() {
-				createTableSQL += "INDEX ? ?,"
-				values = append(values, clause.Expr{SQL: idx.Name}, m.DB.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
+				if m.CreateIndexAfterCreateTable {
+					m.DB.Migrator().CreateIndex(value, idx.Name)
+				} else {
+					createTableSQL += "INDEX ? ?,"
+					values = append(values, clause.Expr{SQL: idx.Name}, m.DB.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
+				}
 			}
 
 			for _, rel := range stmt.Schema.Relationships.Relations {
@@ -152,9 +159,11 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				}
 
 				// create join table
-				joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-				if !m.DB.Migrator().HasTable(joinValue) {
-					defer m.DB.Migrator().CreateTable(joinValue)
+				if rel.JoinTable != nil {
+					joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
+					if !m.DB.Migrator().HasTable(joinValue) {
+						defer m.DB.Migrator().CreateTable(joinValue)
+					}
 				}
 			}
 
@@ -302,7 +311,7 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 	for _, field := range constraint.References {
 		references = append(references, clause.Column{Name: field.DBName})
 	}
-	results = append(results, constraint.Name, foreignKeys, clause.Table{Name: constraint.ReferenceSchema.Table}, references)
+	results = append(results, clause.Table{Name: constraint.Name}, foreignKeys, clause.Table{Name: constraint.ReferenceSchema.Table}, references)
 	return
 }
 
@@ -326,14 +335,14 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 		err := fmt.Errorf("failed to create constraint with name %v", name)
 		if field := stmt.Schema.LookUpField(name); field != nil {
 			for _, cc := range checkConstraints {
-				if err = m.CreateIndex(value, cc.Name); err != nil {
+				if err = m.DB.Migrator().CreateIndex(value, cc.Name); err != nil {
 					return err
 				}
 			}
 
 			for _, rel := range stmt.Schema.Relationships.Relations {
 				if constraint := rel.ParseConstraint(); constraint != nil && constraint.Field == field {
-					if err = m.CreateIndex(value, constraint.Name); err != nil {
+					if err = m.DB.Migrator().CreateIndex(value, constraint.Name); err != nil {
 						return err
 					}
 				}
