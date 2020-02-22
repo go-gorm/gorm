@@ -189,11 +189,13 @@ func (m Migrator) DropTable(values ...interface{}) error {
 	values = m.ReorderModels(values, false)
 	for i := len(values) - 1; i >= 0; i-- {
 		value := values[i]
-		tx := m.DB.Session(&gorm.Session{})
-		if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-			return tx.Exec("DROP TABLE ?", clause.Table{Name: stmt.Table}).Error
-		}); err != nil {
-			return err
+		if m.DB.Migrator().HasTable(value) {
+			tx := m.DB.Session(&gorm.Session{})
+			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
+				return tx.Exec("DROP TABLE ?", clause.Table{Name: stmt.Table}).Error
+			}); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

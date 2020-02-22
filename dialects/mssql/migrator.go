@@ -9,6 +9,17 @@ type Migrator struct {
 	migrator.Migrator
 }
 
+func (m Migrator) HasTable(value interface{}) bool {
+	var count int
+	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		return m.DB.Raw(
+			"SELECT count(*) FROM INFORMATION_SCHEMA.tables WHERE table_name = ? AND table_catalog = ?",
+			stmt.Table, m.CurrentDatabase(),
+		).Row().Scan(&count)
+	})
+	return count > 0
+}
+
 func (m Migrator) HasIndex(value interface{}, name string) bool {
 	var count int
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {

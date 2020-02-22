@@ -3,6 +3,7 @@ package mssql
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
@@ -29,17 +30,18 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
 	return Migrator{migrator.Migrator{Config: migrator.Config{
-		DB:        db,
-		Dialector: dialector,
+		DB:                          db,
+		Dialector:                   dialector,
+		CreateIndexAfterCreateTable: true,
 	}}}
 }
 
 func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
-	return "?"
+	return "@p" + strconv.Itoa(len(stmt.Vars))
 }
 
 func (dialector Dialector) QuoteChars() [2]byte {
-	return [2]byte{'[', ']'} // `name`
+	return [2]byte{'"', '"'} // `name`
 }
 
 func (dialector Dialector) DataTypeOf(field *schema.Field) string {
@@ -64,8 +66,12 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	case schema.Float:
 		return "decimal"
 	case schema.String:
-		if field.Size > 0 && field.Size <= 4000 {
-			return fmt.Sprintf("nvarchar(%d)", field.Size)
+		size := field.Size
+		if field.PrimaryKey {
+			size = 256
+		}
+		if size > 0 && size <= 4000 {
+			return fmt.Sprintf("nvarchar(%d)", size)
 		}
 		return "ntext"
 	case schema.Time:
