@@ -18,7 +18,7 @@ type User struct {
 	Toys      []*tests.Toy `gorm:"polymorphic:Owner"`
 	CompanyID *int
 	Company   *tests.Company
-	ManagerID *int
+	ManagerID *uint
 	Manager   *User
 	Team      []*User           `gorm:"foreignkey:ManagerID"`
 	Languages []*tests.Language `gorm:"many2many:UserSpeak"`

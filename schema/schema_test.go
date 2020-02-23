@@ -40,7 +40,7 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 		{Name: "Age", DBName: "age", BindNames: []string{"Age"}, DataType: schema.Uint},
 		{Name: "Birthday", DBName: "birthday", BindNames: []string{"Birthday"}, DataType: schema.Time},
 		{Name: "CompanyID", DBName: "company_id", BindNames: []string{"CompanyID"}, DataType: schema.Int},
-		{Name: "ManagerID", DBName: "manager_id", BindNames: []string{"ManagerID"}, DataType: schema.Int},
+		{Name: "ManagerID", DBName: "manager_id", BindNames: []string{"ManagerID"}, DataType: schema.Uint},
 		{Name: "Active", DBName: "active", BindNames: []string{"Active"}, DataType: schema.Bool},
 	}
 
