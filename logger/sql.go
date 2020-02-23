@@ -3,6 +3,7 @@ package logger
 import (
 	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,18 +20,16 @@ func isPrintable(s []byte) bool {
 	return true
 }
 
-func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, vars ...interface{}) string {
-	for idx, v := range vars {
-		if valuer, ok := v.(driver.Valuer); ok {
-			v, _ = valuer.Value()
-		}
+var convertableTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
+func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, vars ...interface{}) string {
+	var convertParams func(interface{}, int)
+
+	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
 		case bool:
 			vars[idx] = fmt.Sprint(v)
 		case time.Time:
-			vars[idx] = escaper + v.Format("2006-01-02 15:04:05") + escaper
-		case *time.Time:
 			vars[idx] = escaper + v.Format("2006-01-02 15:04:05") + escaper
 		case []byte:
 			if isPrintable(v) {
@@ -48,9 +47,25 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 			if v == nil {
 				vars[idx] = "NULL"
 			} else {
+				rv := reflect.Indirect(reflect.ValueOf(v))
+				for _, t := range convertableTypes {
+					if rv.Type().ConvertibleTo(t) {
+						convertParams(rv.Convert(t).Interface(), idx)
+						return
+					}
+				}
+
 				vars[idx] = escaper + strings.Replace(fmt.Sprint(v), escaper, "\\"+escaper, -1) + escaper
 			}
 		}
+	}
+
+	for idx, v := range vars {
+		if valuer, ok := v.(driver.Valuer); ok {
+			v, _ = valuer.Value()
+		}
+
+		convertParams(v, idx)
 	}
 
 	if numericPlaceholder == nil {
@@ -58,9 +73,9 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 			sql = strings.Replace(sql, "?", v.(string), 1)
 		}
 	} else {
-		sql = numericPlaceholder.ReplaceAllString(sql, "$$$$$1")
+		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
 		for idx, v := range vars {
-			sql = strings.Replace(sql, "$$"+strconv.Itoa(idx), v.(string), 1)
+			sql = strings.Replace(sql, "$"+strconv.Itoa(idx)+"$", v.(string), 1)
 		}
 	}
 
