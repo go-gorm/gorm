@@ -14,20 +14,25 @@ import (
 var ErrUnsupportedDataType = errors.New("unsupported data type")
 
 type Schema struct {
-	Name                     string
-	ModelType                reflect.Type
-	Table                    string
-	PrioritizedPrimaryField  *Field
-	DBNames                  []string
-	PrimaryFields            []*Field
-	Fields                   []*Field
-	FieldsByName             map[string]*Field
-	FieldsByDBName           map[string]*Field
-	FieldsWithDefaultDBValue map[string]*Field // fields with default value assigned by database
-	Relationships            Relationships
-	err                      error
-	namer                    Namer
-	cacheStore               *sync.Map
+	Name                      string
+	ModelType                 reflect.Type
+	Table                     string
+	PrioritizedPrimaryField   *Field
+	DBNames                   []string
+	PrimaryFields             []*Field
+	Fields                    []*Field
+	FieldsByName              map[string]*Field
+	FieldsByDBName            map[string]*Field
+	FieldsWithDefaultDBValue  map[string]*Field // fields with default value assigned by database
+	Relationships             Relationships
+	BeforeCreate, AfterCreate bool
+	BeforeUpdate, AfterUpdate bool
+	BeforeDelete, AfterDelete bool
+	BeforeSave, AfterSave     bool
+	AfterFind                 bool
+	err                       error
+	namer                     Namer
+	cacheStore                *sync.Map
 }
 
 func (schema Schema) String() string {
@@ -159,6 +164,18 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, reflec
 		switch schema.PrioritizedPrimaryField.DataType {
 		case Int, Uint:
 			schema.FieldsWithDefaultDBValue[schema.PrioritizedPrimaryField.DBName] = schema.PrioritizedPrimaryField
+		}
+	}
+
+	callbacks := []string{"BeforeCreate", "AfterCreate", "BeforeUpdate", "AfterUpdate", "BeforeSave", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind"}
+	for _, name := range callbacks {
+		if methodValue := reflectValue.MethodByName(name); methodValue.IsValid() {
+			switch methodValue.Type().String() {
+			case "func(*gorm.DB)": // TODO hack
+				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(name).SetBool(true)
+			default:
+				logger.Default.Warn("Model %v don't match %vInterface, should be %v(*gorm.DB)", schema, name, name)
+			}
 		}
 	}
 

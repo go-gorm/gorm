@@ -18,7 +18,7 @@ func checkBuildClauses(t *testing.T, clauses []clause.Interface, result string, 
 	var (
 		buildNames    []string
 		buildNamesMap = map[string]bool{}
-		user, _       = schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
+		user, _, _    = schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
 		stmt          = gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
 	)
 

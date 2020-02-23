@@ -24,3 +24,39 @@ type CommonDB interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
+
+type BeforeCreateInterface interface {
+	BeforeCreate(*DB)
+}
+
+type AfterCreateInterface interface {
+	AfterCreate(*DB)
+}
+
+type BeforeUpdateInterface interface {
+	BeforeUpdate(*DB)
+}
+
+type AfterUpdateInterface interface {
+	AfterUpdate(*DB)
+}
+
+type BeforeSaveInterface interface {
+	BeforeSave(*DB)
+}
+
+type AfterSaveInterface interface {
+	AfterSave(*DB)
+}
+
+type BeforeDeleteInterface interface {
+	BeforeDelete(*DB)
+}
+
+type AfterDeleteInterface interface {
+	AfterDelete(*DB)
+}
+
+type AfterFindInterface interface {
+	AfterFind(*DB)
+}

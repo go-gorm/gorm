@@ -8,8 +8,36 @@ import (
 )
 
 func BeforeCreate(db *gorm.DB) {
-	// before save
-	// before create
+	if db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
+		callMethod := func(value interface{}) bool {
+			var ok bool
+			if db.Statement.Schema.BeforeSave {
+				if i, ok := value.(gorm.BeforeSaveInterface); ok {
+					ok = true
+					i.BeforeSave(db)
+				}
+			}
+
+			if db.Statement.Schema.BeforeCreate {
+				if i, ok := value.(gorm.BeforeCreateInterface); ok {
+					ok = true
+					i.BeforeCreate(db)
+				}
+			}
+			return ok
+		}
+
+		if ok := callMethod(db.Statement.Dest); !ok {
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice, reflect.Array:
+				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+				}
+			case reflect.Struct:
+				callMethod(db.Statement.ReflectValue.Interface())
+			}
+		}
+	}
 }
 
 func SaveBeforeAssociations(db *gorm.DB) {
@@ -48,8 +76,36 @@ func SaveAfterAssociations(db *gorm.DB) {
 }
 
 func AfterCreate(db *gorm.DB) {
-	// after save
-	// after create
+	if db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
+		callMethod := func(value interface{}) bool {
+			var ok bool
+			if db.Statement.Schema.AfterSave {
+				if i, ok := value.(gorm.AfterSaveInterface); ok {
+					ok = true
+					i.AfterSave(db)
+				}
+			}
+
+			if db.Statement.Schema.AfterCreate {
+				if i, ok := value.(gorm.AfterCreateInterface); ok {
+					ok = true
+					i.AfterCreate(db)
+				}
+			}
+			return ok
+		}
+
+		if ok := callMethod(db.Statement.Dest); !ok {
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice, reflect.Array:
+				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+				}
+			case reflect.Struct:
+				callMethod(db.Statement.ReflectValue.Interface())
+			}
+		}
+	}
 }
 
 // ConvertToCreateValues convert to create values
