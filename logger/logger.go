@@ -53,6 +53,7 @@ type Interface interface {
 
 var Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
 	SlowThreshold: 100 * time.Millisecond,
+	LogLevel:      Warn,
 	Colorful:      true,
 })
 

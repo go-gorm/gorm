@@ -11,12 +11,13 @@ func Query(db *gorm.DB) {
 	if db.Statement.SQL.String() == "" {
 		db.Statement.AddClauseIfNotExists(clause.Select{})
 		db.Statement.AddClauseIfNotExists(clause.From{})
-
 		db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
 	}
 
-	_, err := db.DB.QueryContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	rows, err := db.DB.QueryContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 	db.AddError(err)
+	_ = rows
+	// scan rows
 }
 
 func Preload(db *gorm.DB) {

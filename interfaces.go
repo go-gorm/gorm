@@ -25,6 +25,15 @@ type CommonDB interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
+type TxBeginner interface {
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
+type TxCommiter interface {
+	Commit() error
+	Rollback() error
+}
+
 type BeforeCreateInterface interface {
 	BeforeCreate(*DB)
 }
