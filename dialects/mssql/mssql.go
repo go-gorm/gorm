@@ -67,7 +67,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		return "decimal"
 	case schema.String:
 		size := field.Size
-		if field.PrimaryKey {
+		if field.PrimaryKey && size == 0 {
 			size = 256
 		}
 		if size > 0 && size <= 4000 {

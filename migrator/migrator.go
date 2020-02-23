@@ -483,55 +483,48 @@ func (m Migrator) CurrentDatabase() (name string) {
 // ReorderModels reorder models according to constraint dependencies
 func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []interface{}) {
 	type Dependency struct {
-		Table   string
+		*gorm.Statement
 		Depends []*schema.Schema
 	}
 
 	var (
 		modelNames, orderedModelNames []string
 		orderedModelNamesMap          = map[string]bool{}
-		valuesMap                     = map[string]*gorm.Statement{}
-		dependencies                  = map[string]Dependency{}
-		insertIntoOrderedMap          func(name string)
+		valuesMap                     = map[string]Dependency{}
+		insertIntoOrderedList         func(name string)
 	)
 
-	parseDependence := func(value interface{}, addToMap bool) {
-		stmt := &gorm.Statement{DB: m.DB, Dest: value}
-		stmt.Parse(value)
-		dep := Dependency{Table: stmt.Schema.Table}
+	parseDependence := func(value interface{}, addToList bool) {
+		dep := Dependency{
+			Statement: &gorm.Statement{DB: m.DB, Dest: value},
+		}
+		dep.Parse(value)
 
-		for _, rel := range stmt.Schema.Relationships.Relations {
-			if constraint := rel.ParseConstraint(); constraint != nil {
-				dep.Depends = append(dep.Depends, constraint.ReferenceSchema)
+		for _, rel := range dep.Schema.Relationships.Relations {
+			if c := rel.ParseConstraint(); c != nil && c.Schema != c.ReferenceSchema {
+				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
 		}
-		dependencies[stmt.Schema.Table] = dep
 
-		if addToMap {
-			modelNames = append(modelNames, stmt.Schema.Table)
-			valuesMap[stmt.Schema.Table] = stmt
+		valuesMap[dep.Schema.Table] = dep
+
+		if addToList {
+			modelNames = append(modelNames, dep.Schema.Table)
 		}
 	}
 
-	for _, value := range values {
-		parseDependence(value, true)
-	}
-
-	insertIntoOrderedMap = func(name string) {
-		// avoid loop
+	insertIntoOrderedList = func(name string) {
 		if _, ok := orderedModelNamesMap[name]; ok {
-			return
+			return // avoid loop
 		}
 
-		dep := dependencies[name]
+		dep := valuesMap[name]
 		for _, d := range dep.Depends {
 			if _, ok := valuesMap[d.Table]; ok {
-				if _, ok := orderedModelNamesMap[d.Table]; !ok && name != d.Table {
-					insertIntoOrderedMap(d.Table)
-				}
+				insertIntoOrderedList(d.Table)
 			} else if autoAdd {
 				parseDependence(reflect.New(d.ModelType).Interface(), autoAdd)
-				insertIntoOrderedMap(d.Table)
+				insertIntoOrderedList(d.Table)
 			}
 		}
 
@@ -539,12 +532,16 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		orderedModelNamesMap[name] = true
 	}
 
+	for _, value := range values {
+		parseDependence(value, true)
+	}
+
 	for _, name := range modelNames {
-		insertIntoOrderedMap(name)
+		insertIntoOrderedList(name)
 	}
 
 	for _, name := range orderedModelNames {
-		results = append(results, valuesMap[name].Dest)
+		results = append(results, valuesMap[name].Statement.Dest)
 	}
 	return
 }
