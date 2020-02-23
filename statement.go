@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,22 +33,23 @@ func (instance *Instance) ToSQL(clauses ...string) (string, []interface{}) {
 func (inst *Instance) AddError(err error) {
 	if inst.Error == nil {
 		inst.Error = err
-	} else {
+	} else if err != nil {
 		inst.Error = fmt.Errorf("%v; %w", inst.Error, err)
 	}
 }
 
 // Statement statement
 type Statement struct {
-	Table    string
-	Model    interface{}
-	Dest     interface{}
-	Clauses  map[string]clause.Clause
-	Selects  []string // selected columns
-	Omits    []string // omit columns
-	Settings sync.Map
-	DB       *DB
-	Schema   *schema.Schema
+	Table        string
+	Model        interface{}
+	Dest         interface{}
+	ReflectValue reflect.Value
+	Clauses      map[string]clause.Clause
+	Selects      []string // selected columns
+	Omits        []string // omit columns
+	Settings     sync.Map
+	DB           *DB
+	Schema       *schema.Schema
 
 	// SQL Builder
 	SQL       strings.Builder
@@ -197,7 +199,7 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 // BuildCondtion build condition
 func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conditions []clause.Expression) {
 	if sql, ok := query.(string); ok {
-		if i, err := strconv.Atoi(sql); err != nil {
+		if i, err := strconv.Atoi(sql); err == nil {
 			query = i
 		} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
 			return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
@@ -272,8 +274,12 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
-		stmt.Table = stmt.Schema.Table
+	if stmt.Schema, stmt.ReflectValue, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+		stmt.ReflectValue = reflect.Indirect(stmt.ReflectValue)
+
+		if stmt.Table == "" {
+			stmt.Table = stmt.Schema.Table
+		}
 	}
 	return err
 }

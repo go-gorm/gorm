@@ -48,21 +48,22 @@ func (schema Schema) LookUpField(name string) *Field {
 }
 
 // get data type from dialector
-func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	modelType := reflect.ValueOf(dest).Type()
+func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, reflect.Value, error) {
+	reflectValue := reflect.ValueOf(dest)
+	modelType := reflectValue.Type()
 	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
 
 	if modelType.Kind() != reflect.Struct {
 		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+			return nil, reflectValue, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 		}
-		return nil, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		return nil, reflectValue, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
-		return v.(*Schema), nil
+		return v.(*Schema), reflectValue, nil
 	}
 
 	schema := &Schema{
@@ -167,10 +168,10 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	for _, field := range schema.Fields {
 		if field.DataType == "" && field.Creatable {
 			if schema.parseRelation(field); schema.err != nil {
-				return schema, schema.err
+				return schema, reflectValue, schema.err
 			}
 		}
 	}
 
-	return schema, schema.err
+	return schema, reflectValue, schema.err
 }

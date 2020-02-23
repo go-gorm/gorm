@@ -66,9 +66,9 @@ func New(writer Writer, config Config) Interface {
 	)
 
 	if config.Colorful {
-		infoPrefix = Green + "%s\n" + Reset + Green + "[info]" + Reset
-		warnPrefix = Blue + "%s\n" + Reset + Magenta + "[warn]" + Reset
-		errPrefix = Magenta + "%s\n" + Reset + Red + "[error]" + Reset
+		infoPrefix = Green + "%s\n" + Reset + Green + "[info] " + Reset
+		warnPrefix = Blue + "%s\n" + Reset + Magenta + "[warn] " + Reset
+		errPrefix = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
 		tracePrefix = Green + "%s\n" + Reset + YellowBold + "[%.3fms] " + Green + "[rows:%d]" + Reset + " %s"
 		traceErrPrefix = Magenta + "%s\n" + Reset + Redbold + "[%.3fms] " + Yellow + "[rows:%d]" + Reset + " %s"
 	}
@@ -93,29 +93,28 @@ type logger struct {
 
 // LogMode log mode
 func (l logger) LogMode(level LogLevel) Interface {
-	config := l.Config
-	config.LogLevel = level
-	return logger{Writer: l.Writer, Config: config}
+	l.LogLevel = level
+	return l
 }
 
 // Info print info
 func (l logger) Info(msg string, data ...interface{}) {
 	if l.LogLevel >= Info {
-		l.Printf(l.infoPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...))
+		l.Printf(l.infoPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Warn print warn messages
 func (l logger) Warn(msg string, data ...interface{}) {
 	if l.LogLevel >= Warn {
-		l.Printf(l.warnPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...))
+		l.Printf(l.warnPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Error print error messages
 func (l logger) Error(msg string, data ...interface{}) {
 	if l.LogLevel >= Error {
-		l.Printf(l.errPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...))
+		l.Printf(l.errPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
@@ -123,7 +122,11 @@ func (l logger) Error(msg string, data ...interface{}) {
 func (l logger) Trace(begin time.Time, fc func() (string, int64), err error) {
 	if elapsed := time.Now().Sub(begin); err != nil || elapsed > l.SlowThreshold {
 		sql, rows := fc()
-		l.Printf(l.traceErrPrefix, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+		fileline := utils.FileWithLineNum()
+		if err != nil {
+			fileline += " " + err.Error()
+		}
+		l.Printf(l.traceErrPrefix, fileline, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 	} else if l.LogLevel >= Info {
 		sql, rows := fc()
 		l.Printf(l.tracePrefix, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)

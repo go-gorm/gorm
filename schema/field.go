@@ -235,7 +235,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		var err error
 		field.Creatable = false
 		field.Updatable = false
-		if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
+		if field.EmbeddedSchema, _, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
 			schema.err = err
 		}
 		for _, ef := range field.EmbeddedSchema.Fields {

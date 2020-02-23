@@ -30,7 +30,11 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 		case bool:
 			vars[idx] = fmt.Sprint(v)
 		case time.Time:
-			vars[idx] = escaper + v.Format("2006-01-02 15:04:05") + escaper
+			if v.IsZero() {
+				vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
+			} else {
+				vars[idx] = escaper + v.Format("2006-01-02 15:04:05") + escaper
+			}
 		case []byte:
 			if isPrintable(v) {
 				vars[idx] = escaper + strings.Replace(string(v), escaper, "\\"+escaper, -1) + escaper
@@ -48,6 +52,11 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 				vars[idx] = "NULL"
 			} else {
 				rv := reflect.Indirect(reflect.ValueOf(v))
+				if !rv.IsValid() {
+					vars[idx] = "NULL"
+					return
+				}
+
 				for _, t := range convertableTypes {
 					if rv.Type().ConvertibleTo(t) {
 						convertParams(rv.Convert(t).Interface(), idx)
