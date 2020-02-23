@@ -90,9 +90,9 @@ func (p *processor) Execute(db *DB) {
 	}
 
 	if stmt := db.Statement; stmt != nil {
-		db.Logger.RunWith(logger.Info, func() {
-			db.Logger.Info(db.Dialector.Explain(stmt.SQL.String(), stmt.Vars))
-		})
+		db.Logger.Trace(curTime, func() (string, int64) {
+			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars), db.RowsAffected
+		}, db.Error)
 	}
 }
 
