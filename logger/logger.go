@@ -11,9 +11,9 @@ type LogLevel int
 var Default Interface = Logger{Writer: log.New(os.Stdout, "\r\n", log.LstdFlags)}
 
 const (
-	Info LogLevel = iota + 1
+	Error LogLevel = iota + 1
 	Warn
-	Error
+	Info
 )
 
 // Interface logger interface
@@ -22,6 +22,7 @@ type Interface interface {
 	Info(string, ...interface{})
 	Warn(string, ...interface{})
 	Error(string, ...interface{})
+	RunWith(LogLevel, func())
 }
 
 // Writer log writer interface
@@ -40,21 +41,27 @@ func (logger Logger) LogMode(level LogLevel) Interface {
 
 // Info print info
 func (logger Logger) Info(msg string, data ...interface{}) {
-	if logger.logLevel <= Info {
+	if logger.logLevel >= Info {
 		logger.Print("[info] " + fmt.Sprintf(msg, data...))
 	}
 }
 
 // Warn print warn messages
 func (logger Logger) Warn(msg string, data ...interface{}) {
-	if logger.logLevel <= Warn {
+	if logger.logLevel >= Warn {
 		logger.Print("[warn] " + fmt.Sprintf(msg, data...))
 	}
 }
 
 // Error print error messages
 func (logger Logger) Error(msg string, data ...interface{}) {
-	if logger.logLevel <= Error {
+	if logger.logLevel >= Error {
 		logger.Print("[error] " + fmt.Sprintf(msg, data...))
+	}
+}
+
+func (logger Logger) RunWith(logLevel LogLevel, fc func()) {
+	if logger.logLevel >= logLevel {
+		fc()
 	}
 }

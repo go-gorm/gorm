@@ -2,6 +2,7 @@ package mysql_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -15,7 +16,12 @@ var (
 )
 
 func init() {
-	if DB, err = gorm.Open(mysql.Open("gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"), &gorm.Config{}); err != nil {
+	dsn := "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
+	if os.Getenv("GORM_DSN") != "" {
+		dsn = os.Getenv("GORM_DSN")
+	}
+
+	if DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{}); err != nil {
 		panic(fmt.Sprintf("failed to initialize database, got error %v", err))
 	}
 }

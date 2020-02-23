@@ -14,6 +14,7 @@ type Dialector interface {
 	DataTypeOf(*schema.Field) string
 	BindVar(stmt *Statement, v interface{}) string
 	QuoteChars() [2]byte
+	Explain(sql string, vars ...interface{}) string
 }
 
 // CommonDB common db interface

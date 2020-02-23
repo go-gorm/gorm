@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
+	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/migrator"
 	"github.com/jinzhu/gorm/schema"
 	_ "github.com/mattn/go-sqlite3"
@@ -39,6 +40,10 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 
 func (dialector Dialector) QuoteChars() [2]byte {
 	return [2]byte{'`', '`'} // `name`
+}
+
+func (dialector Dialector) Explain(sql string, vars ...interface{}) string {
+	return logger.ExplainSQL(sql, nil, `"`, vars...)
 }
 
 func (dialector Dialector) DataTypeOf(field *schema.Field) string {

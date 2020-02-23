@@ -3,11 +3,13 @@ package mssql
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strconv"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
+	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/migrator"
 	"github.com/jinzhu/gorm/schema"
 )
@@ -42,6 +44,12 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 
 func (dialector Dialector) QuoteChars() [2]byte {
 	return [2]byte{'"', '"'} // `name`
+}
+
+var numericPlaceholder = regexp.MustCompile("@p(\\d+)")
+
+func (dialector Dialector) Explain(sql string, vars ...interface{}) string {
+	return logger.ExplainSQL(sql, numericPlaceholder, `'`, vars...)
 }
 
 func (dialector Dialector) DataTypeOf(field *schema.Field) string {

@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -15,7 +16,12 @@ var (
 )
 
 func init() {
-	if DB, err = gorm.Open(postgres.Open("user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"), &gorm.Config{}); err != nil {
+	dsn := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
+	if os.Getenv("GORM_DSN") != "" {
+		dsn = os.Getenv("GORM_DSN")
+	}
+
+	if DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{}); err != nil {
 		panic(fmt.Sprintf("failed to initialize database, got error %v", err))
 	}
 }

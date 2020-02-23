@@ -1,4 +1,4 @@
-dialects=("postgres" "mysql" "mssql" "sqlite")
+dialects=("sqlite" "mysql" "postgres" "mssql")
 
 if [[ $(pwd) == *"gorm/tests"* ]]; then
   cd ..

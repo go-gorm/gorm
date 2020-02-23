@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/schema"
@@ -69,6 +70,7 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
+	curTime := time.Now()
 	if stmt := db.Statement; stmt != nil {
 		if stmt.Model == nil {
 			stmt.Model = stmt.Dest
@@ -85,6 +87,12 @@ func (p *processor) Execute(db *DB) {
 
 	for _, f := range p.fns {
 		f(db)
+	}
+
+	if stmt := db.Statement; stmt != nil {
+		db.Logger.RunWith(logger.Info, func() {
+			db.Logger.Info(db.Dialector.Explain(stmt.SQL.String(), stmt.Vars))
+		})
 	}
 }
 
