@@ -19,7 +19,7 @@ type UserIndex struct {
 }
 
 func TestParseIndex(t *testing.T) {
-	user, _, err := schema.Parse(&UserIndex{}, &sync.Map{}, schema.NamingStrategy{})
+	user, err := schema.Parse(&UserIndex{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
 		t.Fatalf("failed to parse user index, got error %v", err)
 	}

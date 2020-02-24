@@ -3,6 +3,7 @@ package gorm
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/jinzhu/gorm/logger"
@@ -77,12 +78,11 @@ func (p *processor) Execute(db *DB) {
 		}
 
 		if stmt.Model != nil {
-			err := stmt.Parse(stmt.Model)
-
-			if err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table == "") {
+			if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table == "") {
 				db.AddError(err)
 			}
 		}
+		stmt.ReflectValue = reflect.Indirect(reflect.ValueOf(stmt.Dest))
 	}
 
 	for _, f := range p.fns {

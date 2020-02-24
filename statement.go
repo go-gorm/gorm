@@ -274,12 +274,8 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	if stmt.Schema, stmt.ReflectValue, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
-		stmt.ReflectValue = reflect.Indirect(stmt.ReflectValue)
-
-		if stmt.Table == "" {
-			stmt.Table = stmt.Schema.Table
-		}
+	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
+		stmt.Table = stmt.Schema.Table
 	}
 	return err
 }

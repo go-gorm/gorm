@@ -84,7 +84,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 	} else {
 		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
 		for idx, v := range vars {
-			sql = strings.Replace(sql, "$"+strconv.Itoa(idx)+"$", v.(string), 1)
+			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v.(string), 1)
 		}
 	}
 

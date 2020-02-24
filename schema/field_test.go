@@ -14,8 +14,8 @@ import (
 
 func TestFieldValuerAndSetter(t *testing.T) {
 	var (
-		userSchema, _, _ = schema.Parse(&tests.User{}, &sync.Map{}, schema.NamingStrategy{})
-		user             = tests.User{
+		userSchema, _ = schema.Parse(&tests.User{}, &sync.Map{}, schema.NamingStrategy{})
+		user          = tests.User{
 			Model: gorm.Model{
 				ID:        10,
 				CreatedAt: time.Now(),
@@ -81,11 +81,11 @@ func TestFieldValuerAndSetter(t *testing.T) {
 
 func TestPointerFieldValuerAndSetter(t *testing.T) {
 	var (
-		userSchema, _, _      = schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
-		name                  = "pointer_field_valuer_and_setter"
-		age              uint = 18
-		active                = true
-		user                  = User{
+		userSchema, _      = schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+		name               = "pointer_field_valuer_and_setter"
+		age           uint = 18
+		active             = true
+		user               = User{
 			Model: &gorm.Model{
 				ID:        10,
 				CreatedAt: time.Now(),
@@ -151,11 +151,11 @@ func TestPointerFieldValuerAndSetter(t *testing.T) {
 
 func TestAdvancedDataTypeValuerAndSetter(t *testing.T) {
 	var (
-		userSchema, _, _ = schema.Parse(&AdvancedDataTypeUser{}, &sync.Map{}, schema.NamingStrategy{})
-		name             = "advanced_data_type_valuer_and_setter"
-		deletedAt        = mytime(time.Now())
-		isAdmin          = mybool(false)
-		user             = AdvancedDataTypeUser{
+		userSchema, _ = schema.Parse(&AdvancedDataTypeUser{}, &sync.Map{}, schema.NamingStrategy{})
+		name          = "advanced_data_type_valuer_and_setter"
+		deletedAt     = mytime(time.Now())
+		isAdmin       = mybool(false)
+		user          = AdvancedDataTypeUser{
 			ID:           sql.NullInt64{Int64: 10, Valid: true},
 			Name:         &sql.NullString{String: name, Valid: true},
 			Birthday:     sql.NullTime{Time: time.Now(), Valid: true},
