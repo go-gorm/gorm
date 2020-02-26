@@ -11,7 +11,7 @@ import (
 )
 
 func BenchmarkSelect(b *testing.B) {
-	user, _, _ := schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
+	user, _ := schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
 
 	for i := 0; i < b.N; i++ {
 		stmt := gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
@@ -27,7 +27,7 @@ func BenchmarkSelect(b *testing.B) {
 }
 
 func BenchmarkComplexSelect(b *testing.B) {
-	user, _, _ := schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
+	user, _ := schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
 
 	for i := 0; i < b.N; i++ {
 		stmt := gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
