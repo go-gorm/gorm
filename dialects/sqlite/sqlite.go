@@ -59,8 +59,10 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		}
 	case schema.Float:
 		return "real"
-	case schema.String, schema.Time:
+	case schema.String:
 		return "text"
+	case schema.Time:
+		return "datetime"
 	case schema.Bytes:
 		return "blob"
 	}

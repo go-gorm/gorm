@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"database/sql"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -15,9 +16,31 @@ func Query(db *gorm.DB) {
 	}
 
 	rows, err := db.DB.QueryContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-	db.AddError(err)
-	_ = rows
-	// scan rows
+	if err != nil {
+		db.AddError(err)
+		return
+	}
+	defer rows.Close()
+
+	columns, _ := rows.Columns()
+	values := make([]interface{}, len(columns))
+
+	for idx, column := range columns {
+		if field, ok := db.Statement.Schema.FieldsByDBName[column]; ok {
+			values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+		} else {
+			values[idx] = sql.RawBytes{}
+		}
+	}
+
+	for rows.Next() {
+		db.RowsAffected++
+		rows.Scan(values...)
+	}
+
+	if db.RowsAffected == 0 && db.Statement.RaiseErrorOnNotFound {
+		db.AddError(gorm.ErrRecordNotFound)
+	}
 }
 
 func Preload(db *gorm.DB) {

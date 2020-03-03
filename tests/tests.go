@@ -18,7 +18,6 @@ func RunTestsSuit(t *testing.T, db *gorm.DB) {
 
 func TestCreate(t *testing.T, db *gorm.DB) {
 	db.AutoMigrate(&User{})
-	db = db.Debug()
 
 	t.Run("Create", func(t *testing.T) {
 		var user = User{

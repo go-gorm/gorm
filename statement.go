@@ -40,16 +40,17 @@ func (inst *Instance) AddError(err error) {
 
 // Statement statement
 type Statement struct {
-	Table        string
-	Model        interface{}
-	Dest         interface{}
-	ReflectValue reflect.Value
-	Clauses      map[string]clause.Clause
-	Selects      []string // selected columns
-	Omits        []string // omit columns
-	Settings     sync.Map
-	DB           *DB
-	Schema       *schema.Schema
+	Table                string
+	Model                interface{}
+	Dest                 interface{}
+	ReflectValue         reflect.Value
+	Clauses              map[string]clause.Clause
+	Selects              []string // selected columns
+	Omits                []string // omit columns
+	Settings             sync.Map
+	DB                   *DB
+	Schema               *schema.Schema
+	RaiseErrorOnNotFound bool
 
 	// SQL Builder
 	SQL       strings.Builder

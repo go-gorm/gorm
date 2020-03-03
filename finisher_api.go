@@ -28,6 +28,7 @@ func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 		Desc:   true,
 	})
+	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
 	return
@@ -35,7 +36,8 @@ func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
 
 // Take return a record that match given conditions, the order will depend on the database implementation
 func (db *DB) Take(out interface{}, where ...interface{}) (tx *DB) {
-	tx = db.getInstance()
+	tx = db.getInstance().Limit(1)
+	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
 	return
@@ -46,6 +48,7 @@ func (db *DB) Last(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
+	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
 	return
@@ -54,6 +57,8 @@ func (db *DB) Last(out interface{}, where ...interface{}) (tx *DB) {
 // Find find records that match given conditions
 func (db *DB) Find(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = out
+	tx.callbacks.Query().Execute(tx)
 	return
 }
 
