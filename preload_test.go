@@ -97,6 +97,10 @@ func TestPreload(t *testing.T) {
 }
 
 func TestAutoPreload(t *testing.T) {
+	var users []User
+	DB.Find(&users)
+	DB.Delete(&users)
+
 	user1 := getPreloadUser("auto_user1")
 	DB.Save(user1)
 
@@ -108,7 +112,6 @@ func TestAutoPreload(t *testing.T) {
 	user2 := getPreloadUser("auto_user2")
 	DB.Save(user2)
 
-	var users []User
 	preloadDB.Find(&users)
 
 	for _, user := range users {

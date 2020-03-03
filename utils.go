@@ -25,6 +25,7 @@ var NowFunc = func() time.Time {
 var commonInitialisms = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UID", "UI", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}
 var commonInitialismsReplacer *strings.Replacer
 
+var cleanInRegexp = regexp.MustCompile("\\((\\?,)+\\?\\)")
 var goSrcRegexp = regexp.MustCompile(`jinzhu/gorm(@.*)?/.*.go`)
 var goTestRegexp = regexp.MustCompile(`jinzhu/gorm(@.*)?/.*test.go`)
 
@@ -223,4 +224,10 @@ func addExtraSpaceIfExist(str string) string {
 		return " " + str
 	}
 	return ""
+}
+
+func cleanParentSql(parentSql *SqlExpr) *SqlExpr {
+	// having more than one query mark will confuse generating the correct number of query marks based upon args
+	parentSql.expr = string(cleanInRegexp.ReplaceAll([]byte(parentSql.expr), []byte("(?)")))
+	return parentSql
 }

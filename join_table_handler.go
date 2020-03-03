@@ -19,6 +19,8 @@ type JoinTableHandlerInterface interface {
 	Delete(handler JoinTableHandlerInterface, db *DB, sources ...interface{}) error
 	// JoinWith query with `Join` conditions
 	JoinWith(handler JoinTableHandlerInterface, db *DB, source interface{}) *DB
+	// JoinWith query with `Join` query
+	JoinWithQuery(handler JoinTableHandlerInterface, db *DB, source interface{}, query *SqlExpr) *DB
 	// SourceForeignKeys return source foreign keys
 	SourceForeignKeys() []JoinTableForeignKey
 	// DestinationForeignKeys return destination foreign keys
@@ -157,6 +159,53 @@ func (s JoinTableHandler) Delete(handler JoinTableHandlerInterface, db *DB, sour
 	}
 
 	return db.Table(handler.Table(db)).Where(strings.Join(conditions, " AND "), values...).Delete("").Error
+}
+
+// JoinWith query with `Join` query
+func (s JoinTableHandler) JoinWithQuery(handler JoinTableHandlerInterface, db *DB, source interface{}, query *SqlExpr) *DB {
+	var (
+		scope           = db.NewScope(source)
+		tableName       = handler.Table(db)
+		quotedTableName = scope.Quote(tableName)
+		joinConditions  []string
+		values          []interface{}
+	)
+
+	if s.Source.ModelType == scope.GetModelStruct().ModelType {
+		destinationTableName := db.NewScope(reflect.New(s.Destination.ModelType).Interface()).QuotedTableName()
+		for _, foreignKey := range s.Destination.ForeignKeys {
+			joinConditions = append(joinConditions, fmt.Sprintf("%v.%v = %v.%v", quotedTableName, scope.Quote(foreignKey.DBName), destinationTableName, scope.Quote(foreignKey.AssociationDBName)))
+		}
+
+		var foreignDBNames []string
+		var foreignFieldNames []string
+
+		for _, foreignKey := range s.Source.ForeignKeys {
+			foreignDBNames = append(foreignDBNames, foreignKey.DBName)
+			if field, ok := scope.FieldByName(foreignKey.AssociationDBName); ok {
+				foreignFieldNames = append(foreignFieldNames, field.Name)
+			}
+		}
+
+		var condString string
+		var quotedForeignDBNames []string
+		for _, dbName := range foreignDBNames {
+			quotedForeignDBNames = append(quotedForeignDBNames, tableName+"."+dbName)
+		}
+
+		if query != nil {
+			values = query.args
+			condString = fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, quotedForeignDBNames), query.expr)
+		} else {
+			values = []interface{}{}
+			condString = fmt.Sprintf("1 <> 1")
+		}
+		return db.Joins(fmt.Sprintf("INNER JOIN %v ON %v", quotedTableName, strings.Join(joinConditions, " AND "))).
+			Where(condString, values)
+	}
+
+	db.Error = errors.New("wrong source type for join table handler")
+	return db
 }
 
 // JoinWith query with `Join` conditions
