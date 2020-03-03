@@ -63,6 +63,16 @@ type SqlExpr struct {
 	args []interface{}
 }
 
+// GetExpr get SqlExpr expr
+func (s *SqlExpr) GetExpr() string {
+	return s.expr
+}
+
+// GetArgs get SqlExpr args
+func (s *SqlExpr) GetArgs() []interface{} {
+	return s.args
+}
+
 // Expr generate raw SQL expression, for example:
 //     DB.Model(&product).Update("price", gorm.Expr("price * ? + ?", 2, 100))
 func Expr(expression string, args ...interface{}) *SqlExpr {
