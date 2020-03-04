@@ -18,11 +18,11 @@ func (limit Limit) Build(builder Builder) {
 	if limit.Limit > 0 {
 		builder.Write("LIMIT ")
 		builder.Write(strconv.Itoa(limit.Limit))
+	}
 
-		if limit.Offset > 0 {
-			builder.Write(" OFFSET ")
-			builder.Write(strconv.Itoa(limit.Offset))
-		}
+	if limit.Offset > 0 {
+		builder.Write(" OFFSET ")
+		builder.Write(strconv.Itoa(limit.Offset))
 	}
 }
 
@@ -33,10 +33,14 @@ func (limit Limit) MergeClause(clause *Clause) {
 	if v, ok := clause.Expression.(Limit); ok {
 		if limit.Limit == 0 && v.Limit > 0 {
 			limit.Limit = v.Limit
+		} else if limit.Limit < 0 {
+			limit.Limit = 0
 		}
 
 		if limit.Offset == 0 && v.Offset > 0 {
 			limit.Offset = v.Offset
+		} else if limit.Offset < 0 {
+			limit.Offset = 0
 		}
 	}
 

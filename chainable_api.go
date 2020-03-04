@@ -168,14 +168,16 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 }
 
 // Limit specify the number of records to be retrieved
-func (db *DB) Limit(limit int64) (tx *DB) {
+func (db *DB) Limit(limit int) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.Limit{Limit: limit})
 	return
 }
 
 // Offset specify the number of records to skip before starting to return the records
-func (db *DB) Offset(offset int64) (tx *DB) {
+func (db *DB) Offset(offset int) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.Limit{Offset: offset})
 	return
 }
 
