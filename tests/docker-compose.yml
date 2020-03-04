@@ -15,8 +15,8 @@ services:
     ports:
       - 9920:5432
     environment:
-      - POSTGRES_USER=gorm
       - POSTGRES_DB=gorm
+      - POSTGRES_USER=gorm
       - POSTGRES_PASSWORD=gorm
   mssql:
     image: 'mcmoe/mssqldocker:latest'

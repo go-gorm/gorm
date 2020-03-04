@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func Scan(rows *sql.Rows, db *gorm.DB) {
@@ -52,14 +53,17 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 		case reflect.Slice, reflect.Array:
 			isPtr := db.Statement.ReflectValue.Type().Elem().Kind() == reflect.Ptr
 			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 0))
+			fields := make([]*schema.Field, len(columns))
+
+			for idx, column := range columns {
+				fields[idx] = db.Statement.Schema.LookUpField(column)
+			}
 
 			for rows.Next() {
 				elem := reflect.New(db.Statement.Schema.ModelType).Elem()
-				for idx, column := range columns {
-					if field := db.Statement.Schema.LookUpField(column); field != nil {
+				for idx, field := range fields {
+					if field != nil {
 						values[idx] = field.ReflectValueOf(elem).Addr().Interface()
-					} else if db.RowsAffected == 0 {
-						values[idx] = sql.RawBytes{}
 					}
 				}
 
