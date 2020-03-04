@@ -26,7 +26,6 @@ func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
 	// TODO handle where
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
-		Desc:   true,
 	})
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
@@ -47,6 +46,7 @@ func (db *DB) Take(out interface{}, where ...interface{}) (tx *DB) {
 func (db *DB) Last(out interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Desc:   true,
 	})
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out

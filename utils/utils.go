@@ -6,8 +6,8 @@ import (
 	"runtime"
 )
 
-var goSrcRegexp = regexp.MustCompile(`/gorm/.*.go`)
-var goTestRegexp = regexp.MustCompile(`/gorm/.*test.go`)
+var goSrcRegexp = regexp.MustCompile(`/gorm/.*\.go`)
+var goTestRegexp = regexp.MustCompile(`/gorm/.*test\.go`)
 
 func FileWithLineNum() string {
 	for i := 2; i < 15; i++ {

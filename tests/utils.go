@@ -6,24 +6,43 @@ import (
 	"time"
 )
 
-func AssertEqual(t *testing.T, r, e interface{}, names ...string) {
+func AssertObjEqual(t *testing.T, r, e interface{}, names ...string) {
 	for _, name := range names {
 		got := reflect.Indirect(reflect.ValueOf(r)).FieldByName(name).Interface()
-		expects := reflect.Indirect(reflect.ValueOf(e)).FieldByName(name).Interface()
+		expect := reflect.Indirect(reflect.ValueOf(e)).FieldByName(name).Interface()
+		t.Run(name, func(t *testing.T) {
+			AssertEqual(t, got, expect)
+		})
+	}
+}
 
-		if !reflect.DeepEqual(got, expects) {
-			got = reflect.Indirect(reflect.ValueOf(got)).Interface()
-			expects = reflect.Indirect(reflect.ValueOf(got)).Interface()
+func AssertEqual(t *testing.T, got, expect interface{}) {
+	if !reflect.DeepEqual(got, expect) {
+		isEqual := func() {
 			if curTime, ok := got.(time.Time); ok {
 				format := "2006-01-02T15:04:05Z07:00"
-				if curTime.Format(format) != expects.(time.Time).Format(format) {
-					t.Errorf("expects: %v, got %v", expects.(time.Time).Format(format), curTime.Format(format))
+				if curTime.Format(format) != expect.(time.Time).Format(format) {
+					t.Errorf("expect: %v, got %v", expect.(time.Time).Format(format), curTime.Format(format))
 				}
-			} else {
-				t.Run(name, func(t *testing.T) {
-					t.Errorf("expects: %v, got %v", expects, got)
-				})
+			} else if got != expect {
+				t.Errorf("expect: %#v, got %#v", expect, got)
 			}
+		}
+
+		if got != nil {
+			got = reflect.Indirect(reflect.ValueOf(got)).Interface()
+		}
+
+		if expect != nil {
+			expect = reflect.Indirect(reflect.ValueOf(expect)).Interface()
+		}
+
+		if reflect.ValueOf(got).Type().ConvertibleTo(reflect.ValueOf(expect).Type()) {
+			got = reflect.ValueOf(got).Convert(reflect.ValueOf(expect).Type()).Interface()
+			isEqual()
+		} else if reflect.ValueOf(expect).Type().ConvertibleTo(reflect.ValueOf(got).Type()) {
+			expect = reflect.ValueOf(got).Convert(reflect.ValueOf(got).Type()).Interface()
+			isEqual()
 		}
 	}
 }

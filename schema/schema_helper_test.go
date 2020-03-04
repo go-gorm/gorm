@@ -1,7 +1,6 @@
 package schema_test
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,7 +12,7 @@ import (
 
 func checkSchema(t *testing.T, s *schema.Schema, v schema.Schema, primaryFields []string) {
 	t.Run("CheckSchema/"+s.Name, func(t *testing.T) {
-		tests.AssertEqual(t, s, v, "Name", "Table")
+		tests.AssertObjEqual(t, s, v, "Name", "Table")
 
 		for idx, field := range primaryFields {
 			var found bool
@@ -53,7 +52,7 @@ func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*
 		if parsedField, ok := s.FieldsByName[f.Name]; !ok {
 			t.Errorf("schema %v failed to look up field with name %v", s, f.Name)
 		} else {
-			tests.AssertEqual(t, parsedField, f, "Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings")
+			tests.AssertObjEqual(t, parsedField, f, "Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings")
 
 			if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
 				t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
@@ -195,39 +194,8 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[string]interface{}) {
 	for k, v := range values {
 		t.Run("CheckField/"+k, func(t *testing.T) {
-			var (
-				checker func(fv interface{}, v interface{})
-				field   = s.FieldsByDBName[k]
-				fv, _   = field.ValueOf(value)
-			)
-
-			checker = func(fv interface{}, v interface{}) {
-				if reflect.ValueOf(fv).Type() == reflect.ValueOf(v).Type() && fv != v {
-					t.Errorf("expects: %p, but got %p", v, fv)
-				} else if reflect.ValueOf(v).Type().ConvertibleTo(reflect.ValueOf(fv).Type()) {
-					if reflect.ValueOf(v).Convert(reflect.ValueOf(fv).Type()).Interface() != fv {
-						t.Errorf("expects: %p, but got %p", v, fv)
-					}
-				} else if reflect.ValueOf(fv).Type().ConvertibleTo(reflect.ValueOf(v).Type()) {
-					if reflect.ValueOf(fv).Convert(reflect.ValueOf(fv).Type()).Interface() != v {
-						t.Errorf("expects: %p, but got %p", v, fv)
-					}
-				} else if valuer, isValuer := fv.(driver.Valuer); isValuer {
-					valuerv, _ := valuer.Value()
-					checker(valuerv, v)
-				} else if valuer, isValuer := v.(driver.Valuer); isValuer {
-					valuerv, _ := valuer.Value()
-					checker(fv, valuerv)
-				} else if reflect.ValueOf(fv).Kind() == reflect.Ptr {
-					checker(reflect.ValueOf(fv).Elem().Interface(), v)
-				} else if reflect.ValueOf(v).Kind() == reflect.Ptr {
-					checker(fv, reflect.ValueOf(v).Elem().Interface())
-				} else {
-					t.Errorf("expects: %+v, but got %+v", v, fv)
-				}
-			}
-
-			checker(fv, v)
+			fv, _ := s.FieldsByDBName[k].ValueOf(value)
+			tests.AssertEqual(t, v, fv)
 		})
 	}
 }
