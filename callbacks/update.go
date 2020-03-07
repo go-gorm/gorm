@@ -2,8 +2,10 @@ package callbacks
 
 import (
 	"reflect"
+	"sort"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 )
 
 func BeforeUpdate(db *gorm.DB) {
@@ -40,6 +42,17 @@ func BeforeUpdate(db *gorm.DB) {
 }
 
 func Update(db *gorm.DB) {
+	db.Statement.AddClauseIfNotExists(clause.Update{})
+	db.Statement.AddClause(ConvertToAssignments(db.Statement))
+	db.Statement.Build("UPDATE", "SET", "WHERE")
+
+	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+	if err == nil {
+		db.RowsAffected, _ = result.RowsAffected()
+	} else {
+		db.AddError(err)
+	}
 }
 
 func AfterUpdate(db *gorm.DB) {
@@ -73,4 +86,49 @@ func AfterUpdate(db *gorm.DB) {
 			}
 		}
 	}
+}
+
+// ConvertToAssignments convert to update assignments
+func ConvertToAssignments(stmt *gorm.Statement) clause.Set {
+	selectColumns, restricted := SelectAndOmitColumns(stmt)
+	reflectModelValue := reflect.ValueOf(stmt.Model)
+
+	switch value := stmt.Dest.(type) {
+	case map[string]interface{}:
+		var set clause.Set = make([]clause.Assignment, 0, len(value))
+
+		var keys []string
+		for k, _ := range value {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			if field := stmt.Schema.LookUpField(k); field != nil {
+				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+					field.Set(reflectModelValue, value[k])
+				}
+			} else if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
+				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: value[k]})
+			}
+		}
+
+		return set
+	default:
+		switch stmt.ReflectValue.Kind() {
+		case reflect.Struct:
+			var set clause.Set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
+			for _, field := range stmt.Schema.FieldsByDBName {
+				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+					value, _ := field.ValueOf(stmt.ReflectValue)
+					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
+					field.Set(reflectModelValue, value)
+				}
+			}
+			return set
+		}
+	}
+
+	return clause.Set{}
 }

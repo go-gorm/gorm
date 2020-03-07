@@ -18,6 +18,7 @@ func Now() *time.Time {
 func RunTestsSuit(t *testing.T, db *gorm.DB) {
 	TestCreate(t, db)
 	TestFind(t, db)
+	TestUpdate(t, db)
 }
 
 func TestCreate(t *testing.T, db *gorm.DB) {
@@ -130,6 +131,65 @@ func TestFind(t *testing.T, db *gorm.DB) {
 					}
 				})
 			}
+		}
+	})
+}
+
+func TestUpdate(t *testing.T, db *gorm.DB) {
+	db.Migrator().DropTable(&User{})
+	db.AutoMigrate(&User{})
+
+	t.Run("Update", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Errorf("errors happened when create: %v", err)
+		}
+
+		if err := db.Model(&user).Update("Age", 10).Error; err != nil {
+			t.Errorf("errors happened when update: %v", err)
+		} else if user.Age != 10 {
+			t.Errorf("Age should equals to 10, but got %v", user.Age)
+		}
+
+		var result User
+		if err := db.Where("id = ?", user.ID).First(&result).Error; err != nil {
+			t.Errorf("errors happened when query: %v", err)
+		} else {
+			AssertObjEqual(t, result, user, "Name", "Age", "Birthday")
+		}
+
+		values := map[string]interface{}{"Active": true, "age": 5}
+		if err := db.Model(&user).Updates(values).Error; err != nil {
+			t.Errorf("errors happened when update: %v", err)
+		} else if user.Age != 5 {
+			t.Errorf("Age should equals to 5, but got %v", user.Age)
+		} else if user.Active != true {
+			t.Errorf("Active should be true, but got %v", user.Active)
+		}
+
+		var result2 User
+		if err := db.Where("id = ?", user.ID).First(&result2).Error; err != nil {
+			t.Errorf("errors happened when query: %v", err)
+		} else {
+			AssertObjEqual(t, result2, user, "Name", "Age", "Birthday")
+		}
+
+		if err := db.Model(&user).Updates(User{Age: 2}).Error; err != nil {
+			t.Errorf("errors happened when update: %v", err)
+		} else if user.Age != 2 {
+			t.Errorf("Age should equals to 2, but got %v", user.Age)
+		}
+
+		var result3 User
+		if err := db.Where("id = ?", user.ID).First(&result3).Error; err != nil {
+			t.Errorf("errors happened when query: %v", err)
+		} else {
+			AssertObjEqual(t, result3, user, "Name", "Age", "Birthday")
 		}
 	})
 }

@@ -44,13 +44,14 @@ func ConvertMapToValues(stmt *gorm.Statement, mapValue map[string]interface{}) (
 	sort.Strings(keys)
 
 	for _, k := range keys {
+		value := mapValue[k]
 		if field := stmt.Schema.LookUpField(k); field != nil {
 			k = field.DBName
 		}
 
 		if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
 			columns = append(columns, k)
-			values.Values[0] = append(values.Values[0], mapValue[k])
+			values.Values[0] = append(values.Values[0], value)
 		}
 	}
 	return

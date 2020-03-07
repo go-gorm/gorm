@@ -22,11 +22,13 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 }
 
 // First find first record that match given conditions, order by primary key
-func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
-	// TODO handle where
+func (db *DB) First(out interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
+	if len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
@@ -34,8 +36,11 @@ func (db *DB) First(out interface{}, where ...interface{}) (tx *DB) {
 }
 
 // Take return a record that match given conditions, the order will depend on the database implementation
-func (db *DB) Take(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) Take(out interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1)
+	if len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
@@ -43,11 +48,14 @@ func (db *DB) Take(out interface{}, where ...interface{}) (tx *DB) {
 }
 
 // Last find last record that match given conditions, order by primary key
-func (db *DB) Last(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) Last(out interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 		Desc:   true,
 	})
+	if len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
@@ -55,8 +63,11 @@ func (db *DB) Last(out interface{}, where ...interface{}) (tx *DB) {
 }
 
 // Find find records that match given conditions
-func (db *DB) Find(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) Find(out interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	if len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+	}
 	tx.Statement.Dest = out
 	tx.callbacks.Query().Execute(tx)
 	return
@@ -75,22 +86,30 @@ func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
 // Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (db *DB) Update(column string, value interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = map[string]interface{}{column: value}
+	tx.callbacks.Update().Execute(tx)
 	return
 }
 
 // Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (db *DB) Updates(values interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = values
+	tx.callbacks.Update().Execute(tx)
 	return
 }
 
 func (db *DB) UpdateColumn(column string, value interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = map[string]interface{}{column: value}
+	tx.callbacks.Update().Execute(tx)
 	return
 }
 
 func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = values
+	tx.callbacks.Update().Execute(tx)
 	return
 }
 
