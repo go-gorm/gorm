@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
@@ -42,8 +43,10 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "$" + strconv.Itoa(len(stmt.Vars))
 }
 
-func (dialector Dialector) QuoteChars() [2]byte {
-	return [2]byte{'"', '"'} // "name"
+func (dialector Dialector) QuoteTo(builder *strings.Builder, str string) {
+	builder.WriteByte('"')
+	builder.WriteString(str)
+	builder.WriteByte('"')
 }
 
 var numericPlaceholder = regexp.MustCompile("\\$(\\d+)")

@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/schema"
@@ -21,8 +23,10 @@ func (DummyDialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "?"
 }
 
-func (DummyDialector) QuoteChars() [2]byte {
-	return [2]byte{'`', '`'} // `name`
+func (DummyDialector) QuoteTo(builder *strings.Builder, str string) {
+	builder.WriteByte('`')
+	builder.WriteString(str)
+	builder.WriteByte('`')
 }
 
 func (DummyDialector) Explain(sql string, vars ...interface{}) string {

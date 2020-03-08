@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"strings"
 
 	"github.com/jinzhu/gorm/schema"
 )
@@ -13,7 +14,7 @@ type Dialector interface {
 	Migrator(db *DB) Migrator
 	DataTypeOf(*schema.Field) string
 	BindVar(stmt *Statement, v interface{}) string
-	QuoteChars() [2]byte
+	QuoteTo(*strings.Builder, string)
 	Explain(sql string, vars ...interface{}) string
 }
 

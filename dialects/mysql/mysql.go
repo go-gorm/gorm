@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -39,8 +40,10 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "?"
 }
 
-func (dialector Dialector) QuoteChars() [2]byte {
-	return [2]byte{'`', '`'} // `name`
+func (dialector Dialector) QuoteTo(builder *strings.Builder, str string) {
+	builder.WriteByte('`')
+	builder.WriteString(str)
+	builder.WriteByte('`')
 }
 
 func (dialector Dialector) Explain(sql string, vars ...interface{}) string {

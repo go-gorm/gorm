@@ -76,65 +76,58 @@ func (stmt *Statement) WriteByte(c byte) (err error) {
 	return stmt.SQL.WriteByte(c)
 }
 
-// WriteQuoted write quoted field
-func (stmt *Statement) WriteQuoted(field interface{}) (err error) {
-	_, err = stmt.SQL.WriteString(stmt.Quote(field))
-	return
+// WriteQuoted write quoted value
+func (stmt *Statement) WriteQuoted(value interface{}) error {
+	stmt.QuoteTo(&stmt.SQL, value)
+	return nil
 }
 
-// Quote returns quoted value
-func (stmt Statement) Quote(field interface{}) string {
-	var str strings.Builder
-	str.WriteByte(stmt.DB.quoteChars[0])
-
+// QuoteTo write quoted value to writer
+func (stmt Statement) QuoteTo(writer *strings.Builder, field interface{}) {
 	switch v := field.(type) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
-			str.WriteString(stmt.Table)
+			stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
 		} else {
-			str.WriteString(v.Name)
+			stmt.DB.Dialector.QuoteTo(writer, v.Name)
 		}
 
 		if v.Alias != "" {
-			str.WriteByte(stmt.DB.quoteChars[1])
-			str.WriteString(" AS ")
-			str.WriteByte(stmt.DB.quoteChars[0])
-			str.WriteString(v.Alias)
-			str.WriteByte(stmt.DB.quoteChars[1])
+			writer.WriteString(" AS ")
+			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
 		}
 	case clause.Column:
 		if v.Table != "" {
 			if v.Table == clause.CurrentTable {
-				str.WriteString(stmt.Table)
+				stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
 			} else {
-				str.WriteString(v.Table)
+				stmt.DB.Dialector.QuoteTo(writer, v.Table)
 			}
-			str.WriteByte(stmt.DB.quoteChars[1])
-			str.WriteByte('.')
-			str.WriteByte(stmt.DB.quoteChars[0])
+			writer.WriteByte('.')
 		}
 
 		if v.Name == clause.PrimaryKey {
 			if stmt.Schema != nil && stmt.Schema.PrioritizedPrimaryField != nil {
-				str.WriteString(stmt.Schema.PrioritizedPrimaryField.DBName)
+				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
 			}
 		} else {
-			str.WriteString(v.Name)
+			stmt.DB.Dialector.QuoteTo(writer, v.Name)
 		}
 
 		if v.Alias != "" {
-			str.WriteByte(stmt.DB.quoteChars[1])
-			str.WriteString(" AS ")
-			str.WriteByte(stmt.DB.quoteChars[0])
-			str.WriteString(v.Alias)
-			str.WriteByte(stmt.DB.quoteChars[1])
+			writer.WriteString(" AS ")
+			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
 		}
 	default:
-		str.WriteString(fmt.Sprint(field))
+		stmt.DB.Dialector.QuoteTo(writer, fmt.Sprint(field))
 	}
+}
 
-	str.WriteByte(stmt.DB.quoteChars[1])
-	return str.String()
+// Quote returns quoted value
+func (stmt Statement) Quote(field interface{}) string {
+	var builder strings.Builder
+	stmt.QuoteTo(&builder, field)
+	return builder.String()
 }
 
 // Write write string

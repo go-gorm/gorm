@@ -79,7 +79,6 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 
 	if dialector != nil {
 		err = dialector.Initialize(db)
-		db.quoteChars = dialector.QuoteChars()
 	}
 	return
 }
