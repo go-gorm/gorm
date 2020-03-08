@@ -22,6 +22,7 @@ func RunTestsSuit(t *testing.T, db *gorm.DB) {
 	TestDelete(t, db)
 
 	TestGroupBy(t, db)
+	TestJoins(t, db)
 }
 
 func TestCreate(t *testing.T, db *gorm.DB) {
