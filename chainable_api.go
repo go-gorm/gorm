@@ -135,14 +135,20 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 }
 
 // Group specify the group method on the find
-func (db *DB) Group(column string) (tx *DB) {
+func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.GroupBy{
+		Columns: []clause.Column{{Name: name}},
+	})
 	return
 }
 
 // Having specify HAVING conditions for GROUP BY
 func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.AddClause(clause.GroupBy{
+		Having: tx.Statement.BuildCondtion(query, args...),
+	})
 	return
 }
 

@@ -3,7 +3,7 @@ package clause
 // GroupBy group by clause
 type GroupBy struct {
 	Columns []Column
-	Having  Where
+	Having  []Expression
 }
 
 // Name from clause name
@@ -21,9 +21,9 @@ func (groupBy GroupBy) Build(builder Builder) {
 		builder.WriteQuoted(column)
 	}
 
-	if len(groupBy.Having.Exprs) > 0 {
+	if len(groupBy.Having) > 0 {
 		builder.Write(" HAVING ")
-		groupBy.Having.Build(builder)
+		Where{Exprs: groupBy.Having}.Build(builder)
 	}
 }
 
@@ -31,7 +31,7 @@ func (groupBy GroupBy) Build(builder Builder) {
 func (groupBy GroupBy) MergeClause(clause *Clause) {
 	if v, ok := clause.Expression.(GroupBy); ok {
 		groupBy.Columns = append(v.Columns, groupBy.Columns...)
-		groupBy.Having.Exprs = append(v.Having.Exprs, groupBy.Having.Exprs...)
+		groupBy.Having = append(v.Having, groupBy.Having...)
 	}
 	clause.Expression = groupBy
 }

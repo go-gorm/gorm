@@ -145,12 +145,6 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	return
 }
 
-//Preloads only preloads relations, don`t touch out
-func (db *DB) Preloads(out interface{}) (tx *DB) {
-	tx = db.getInstance()
-	return
-}
-
 func (db *DB) Count(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return

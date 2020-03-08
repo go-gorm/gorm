@@ -41,7 +41,7 @@ func BenchmarkComplexSelect(b *testing.B) {
 			clause.Where{Exprs: []clause.Expression{
 				clause.Or(clause.Gt{Column: "score", Value: 100}, clause.Like{Column: "name", Value: "%linus%"}),
 			}},
-			clause.GroupBy{Columns: []clause.Column{{Name: "role"}}, Having: clause.Where{[]clause.Expression{clause.Eq{"role", "admin"}}}},
+			clause.GroupBy{Columns: []clause.Column{{Name: "role"}}, Having: []clause.Expression{clause.Eq{"role", "admin"}}},
 			clause.Limit{Limit: 10, Offset: 20},
 			clause.OrderBy{Columns: []clause.OrderByColumn{{Column: clause.PrimaryColumn, Desc: true}}},
 		}
