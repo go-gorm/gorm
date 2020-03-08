@@ -121,7 +121,7 @@ func (l logger) Error(msg string, data ...interface{}) {
 
 // Trace print sql message
 func (l logger) Trace(begin time.Time, fc func() (string, int64), err error) {
-	if elapsed := time.Now().Sub(begin); err != nil || (elapsed > l.SlowThreshold && l.SlowThreshold != 0) {
+	if elapsed := time.Now().Sub(begin); elapsed > l.SlowThreshold && l.SlowThreshold != 0 {
 		sql, rows := fc()
 		fileline := utils.FileWithLineNum()
 		if err != nil {

@@ -135,8 +135,13 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 }
 
 // Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
-func (db *DB) Delete(value interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	if len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+	}
+	tx.Statement.Dest = value
+	tx.callbacks.Delete().Execute(tx)
 	return
 }
 

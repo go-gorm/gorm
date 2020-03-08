@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 )
 
 func BeforeDelete(db *gorm.DB) {
@@ -32,6 +33,37 @@ func BeforeDelete(db *gorm.DB) {
 }
 
 func Delete(db *gorm.DB) {
+	if db.Statement.SQL.String() == "" {
+		db.Statement.AddClauseIfNotExists(clause.Delete{})
+
+		values := []reflect.Value{db.Statement.ReflectValue}
+		if db.Statement.Dest != db.Statement.Model {
+			values = append(values, reflect.ValueOf(db.Statement.Model))
+		}
+		for _, field := range db.Statement.Schema.PrimaryFields {
+			for _, value := range values {
+				if value, isZero := field.ValueOf(value); !isZero {
+					db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+				}
+			}
+		}
+
+		if _, ok := db.Statement.Clauses["WHERE"]; !ok {
+			db.AddError(gorm.ErrMissingWhereClause)
+			return
+		}
+
+		db.Statement.AddClauseIfNotExists(clause.From{})
+		db.Statement.Build("DELETE", "FROM", "WHERE")
+	}
+
+	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+	if err == nil {
+		db.RowsAffected, _ = result.RowsAffected()
+	} else {
+		db.AddError(err)
+	}
 }
 
 func AfterDelete(db *gorm.DB) {

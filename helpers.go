@@ -17,6 +17,8 @@ var (
 	ErrUnaddressable = errors.New("using unaddressable value")
 	// ErrNotImplemented not implemented
 	ErrNotImplemented = errors.New("not implemented")
+	// ErrMissingWhereClause missing where clause
+	ErrMissingWhereClause = errors.New("missing WHERE clause while deleting")
 )
 
 // Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt
