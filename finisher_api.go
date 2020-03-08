@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"reflect"
 	"strings"
 
 	"github.com/jinzhu/gorm/clause"
@@ -18,6 +19,26 @@ func (db *DB) Create(value interface{}) (tx *DB) {
 // Save update value in database, if the value doesn't have primary key, will insert it
 func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = value
+
+	if err := tx.Statement.Parse(value); err != nil && tx.Statement.Schema != nil {
+		where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
+		reflectValue := reflect.ValueOf(value)
+		for idx, pf := range tx.Statement.Schema.PrimaryFields {
+			if pv, isZero := pf.ValueOf(reflectValue); isZero {
+				tx.callbacks.Create().Execute(tx)
+				where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
+				return
+			}
+		}
+
+		tx.Statement.AddClause(where)
+	}
+
+	if len(tx.Statement.Selects) == 0 {
+		tx.Statement.Selects = []string{"*"}
+	}
+	tx.callbacks.Update().Execute(tx)
 	return
 }
 

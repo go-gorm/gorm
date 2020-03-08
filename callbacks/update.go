@@ -3,6 +3,7 @@ package callbacks
 import (
 	"reflect"
 	"sort"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
@@ -89,13 +90,13 @@ func AfterUpdate(db *gorm.DB) {
 }
 
 // ConvertToAssignments convert to update assignments
-func ConvertToAssignments(stmt *gorm.Statement) clause.Set {
+func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	selectColumns, restricted := SelectAndOmitColumns(stmt)
 	reflectModelValue := reflect.ValueOf(stmt.Model)
 
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
-		var set clause.Set = make([]clause.Assignment, 0, len(value))
+		set = make([]clause.Assignment, 0, len(value))
 
 		var keys []string
 		for k, _ := range value {
@@ -106,6 +107,9 @@ func ConvertToAssignments(stmt *gorm.Statement) clause.Set {
 		for _, k := range keys {
 			if field := stmt.Schema.LookUpField(k); field != nil {
 				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+					if field.AutoUpdateTime > 0 {
+						value[k] = time.Now()
+					}
 					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
 					field.Set(reflectModelValue, value[k])
 				}
@@ -114,21 +118,47 @@ func ConvertToAssignments(stmt *gorm.Statement) clause.Set {
 			}
 		}
 
-		return set
+		for _, field := range stmt.Schema.FieldsByDBName {
+			if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
+				now := time.Now()
+				set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
+				field.Set(reflectModelValue, now)
+			}
+		}
 	default:
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Struct:
-			var set clause.Set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
+			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, field := range stmt.Schema.FieldsByDBName {
-				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					value, _ := field.ValueOf(stmt.ReflectValue)
-					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
-					field.Set(reflectModelValue, value)
+				if !field.PrimaryKey || stmt.Dest != stmt.Model {
+					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+						value, isZero := field.ValueOf(stmt.ReflectValue)
+						if field.AutoUpdateTime > 0 {
+							value = time.Now()
+							isZero = false
+						}
+
+						if ok || !isZero {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
+							field.Set(reflectModelValue, value)
+						}
+					}
+				} else {
+					if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+						stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+					}
 				}
 			}
-			return set
 		}
 	}
 
-	return clause.Set{}
+	if stmt.Dest != stmt.Model {
+		reflectValue := reflect.ValueOf(stmt.Model)
+		for _, field := range stmt.Schema.PrimaryFields {
+			if value, isZero := field.ValueOf(reflectValue); !isZero {
+				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+			}
+		}
+	}
+	return
 }

@@ -164,22 +164,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DBDataType = val
 	}
 
-	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int)) {
-		if strings.ToUpper(v) == "NANO" {
-			field.AutoCreateTime = UnixNanosecond
-		} else {
-			field.AutoCreateTime = UnixSecond
-		}
-	}
-
-	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int)) {
-		if strings.ToUpper(v) == "NANO" {
-			field.AutoUpdateTime = UnixNanosecond
-		} else {
-			field.AutoUpdateTime = UnixSecond
-		}
-	}
-
 	switch fieldValue.Elem().Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
@@ -215,6 +199,22 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.Array, reflect.Slice:
 		if fieldValue.Type().Elem() == reflect.TypeOf(uint8(0)) {
 			field.DataType = Bytes
+		}
+	}
+
+	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int)) {
+		if strings.ToUpper(v) == "NANO" {
+			field.AutoCreateTime = UnixNanosecond
+		} else {
+			field.AutoCreateTime = UnixSecond
+		}
+	}
+
+	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int)) {
+		if strings.ToUpper(v) == "NANO" {
+			field.AutoUpdateTime = UnixNanosecond
+		} else {
+			field.AutoUpdateTime = UnixSecond
 		}
 	}
 

@@ -13,6 +13,13 @@ func SelectAndOmitColumns(stmt *gorm.Statement) (map[string]bool, bool) {
 
 	// select columns
 	for _, column := range stmt.Selects {
+		if column == "*" {
+			for _, dbName := range stmt.Schema.DBNames {
+				results[dbName] = true
+			}
+			return results, true
+		}
+
 		if field := stmt.Schema.LookUpField(column); field != nil {
 			results[field.DBName] = true
 		} else {
