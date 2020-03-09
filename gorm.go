@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -51,7 +52,7 @@ type Session struct {
 }
 
 // Open initialize db session based on dialector
-func Open(dialector Dialector, config *Config) (db DB, err error) {
+func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	if config == nil {
 		config = &Config{}
 	}
@@ -87,21 +88,21 @@ func Open(dialector Dialector, config *Config) (db DB, err error) {
 		},
 	}
 
-	db = DB{
+	db = &DB{
 		Config: config,
 		clone:  true,
 	}
 
-	db.callbacks = initializeCallbacks(&db)
+	db.callbacks = initializeCallbacks(db)
 
 	if dialector != nil {
-		err = dialector.Initialize(&db)
+		err = dialector.Initialize(db)
 	}
 	return
 }
 
 // Session create new db session
-func (db DB) Session(config *Session) DB {
+func (db *DB) Session(config *Session) *DB {
 	var (
 		tx       = db.getInstance()
 		txConfig = *tx.Config
@@ -125,24 +126,24 @@ func (db DB) Session(config *Session) DB {
 }
 
 // WithContext change current instance db's context to ctx
-func (db DB) WithContext(ctx context.Context) DB {
+func (db *DB) WithContext(ctx context.Context) *DB {
 	return db.Session(&Session{Context: ctx})
 }
 
 // Debug start debug mode
-func (db DB) Debug() (tx DB) {
+func (db *DB) Debug() (tx *DB) {
 	return db.Session(&Session{Logger: db.Logger.LogMode(logger.Info)})
 }
 
 // Set store value with key into current db instance's context
-func (db DB) Set(key string, value interface{}) DB {
+func (db *DB) Set(key string, value interface{}) *DB {
 	tx := db.getInstance()
 	tx.Statement.Settings.Store(key, value)
 	return tx
 }
 
 // Get get value with key from current db instance's context
-func (db DB) Get(key string) (interface{}, bool) {
+func (db *DB) Get(key string) (interface{}, bool) {
 	if db.Statement != nil {
 		return db.Statement.Settings.Load(key)
 	}
@@ -150,28 +151,32 @@ func (db DB) Get(key string) (interface{}, bool) {
 }
 
 // Callback returns callback manager
-func (db DB) Callback() *callbacks {
+func (db *DB) Callback() *callbacks {
 	return db.callbacks
 }
 
 // AutoMigrate run auto migration for given models
-func (db DB) AutoMigrate(dst ...interface{}) error {
+func (db *DB) AutoMigrate(dst ...interface{}) error {
 	return db.Migrator().AutoMigrate(dst...)
 }
 
 // AddError add error to db
-func (db DB) AddError(err error) {
-	db.Statement.AddError(err)
+func (db *DB) AddError(err error) {
+	if db.Error == nil {
+		db.Error = err
+	} else if err != nil {
+		db.Error = fmt.Errorf("%v; %w", db.Error, err)
+	}
 }
 
-func (db DB) getInstance() DB {
+func (db *DB) getInstance() *DB {
 	if db.clone {
 		stmt := db.Config.statementPool.Get().(*Statement)
 		if db.Statement != nil {
 			stmt.Context = db.Statement.Context
 		}
 
-		return DB{Config: db.Config, Statement: stmt}
+		return &DB{Config: db.Config, Statement: stmt}
 	}
 
 	return db

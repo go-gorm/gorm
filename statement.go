@@ -16,6 +16,7 @@ import (
 
 // Statement statement
 type Statement struct {
+	*DB
 	Table                string
 	Model                interface{}
 	Dest                 interface{}
@@ -25,7 +26,6 @@ type Statement struct {
 	Omits                []string // omit columns
 	Settings             sync.Map
 	ConnPool             ConnPool
-	DB                   DB
 	Schema               *schema.Schema
 	Context              context.Context
 	Error                error
@@ -217,14 +217,6 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 	}
 
 	return conditions
-}
-
-func (stmt *Statement) AddError(err error) {
-	if stmt.Error == nil {
-		stmt.Error = err
-	} else if err != nil {
-		stmt.Error = fmt.Errorf("%v; %w", stmt.Error, err)
-	}
 }
 
 // Build build sql with clauses names
