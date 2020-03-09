@@ -21,23 +21,25 @@ type Config struct {
 	Logger logger.Interface
 	// NowFunc the function to be used when creating a new timestamp
 	NowFunc func() time.Time
-}
 
-type shared struct {
+	// ClauseBuilders clause builder
+	ClauseBuilders map[string]clause.ClauseBuilder
+	// ConnPool db conn pool
+	ConnPool ConnPool
+	// Dialector database dialector
+	Dialector
+
 	callbacks  *callbacks
 	cacheStore *sync.Map
-	quoteChars [2]byte
 }
 
 // DB GORM DB definition
 type DB struct {
 	*Config
-	Dialector
-	Instance
-	ClauseBuilders map[string]clause.ClauseBuilder
-	DB             CommonDB
-	clone          bool
-	*shared
+	Error        error
+	RowsAffected int64
+	Statement    *Statement
+	clone        bool
 }
 
 // Session session config when create session with Session() method
@@ -65,14 +67,17 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.NowFunc = func() time.Time { return time.Now().Local() }
 	}
 
+	if dialector != nil {
+		config.Dialector = dialector
+	}
+
+	if config.cacheStore == nil {
+		config.cacheStore = &sync.Map{}
+	}
+
 	db = &DB{
-		Config:         config,
-		Dialector:      dialector,
-		ClauseBuilders: map[string]clause.ClauseBuilder{},
-		clone:          true,
-		shared: &shared{
-			cacheStore: &sync.Map{},
-		},
+		Config: config,
+		clone:  true,
 	}
 
 	db.callbacks = initializeCallbacks(db)
@@ -91,7 +96,7 @@ func (db *DB) Session(config *Session) *DB {
 	)
 
 	if config.Context != nil {
-		tx.Context = config.Context
+		tx.Statement.Context = config.Context
 	}
 
 	if config.Logger != nil {
@@ -142,23 +147,26 @@ func (db *DB) AutoMigrate(dst ...interface{}) error {
 	return db.Migrator().AutoMigrate(dst...)
 }
 
+// AddError add error to db
+func (db *DB) AddError(err error) {
+	db.Statement.AddError(err)
+}
+
 func (db *DB) getInstance() *DB {
 	if db.clone {
-		ctx := db.Instance.Context
-		if ctx == nil {
-			ctx = context.Background()
+		ctx := context.Background()
+		if db.Statement != nil {
+			ctx = db.Statement.Context
 		}
 
 		return &DB{
-			Instance: Instance{
-				Context:   ctx,
-				Statement: &Statement{DB: db, Clauses: map[string]clause.Clause{}},
+			Config: db.Config,
+			Statement: &Statement{
+				DB:       db,
+				ConnPool: db.ConnPool,
+				Clauses:  map[string]clause.Clause{},
+				Context:  ctx,
 			},
-			Config:         db.Config,
-			Dialector:      db.Dialector,
-			ClauseBuilders: db.ClauseBuilders,
-			DB:             db.DB,
-			shared:         db.shared,
 		}
 	}
 

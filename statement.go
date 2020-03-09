@@ -14,30 +14,6 @@ import (
 	"github.com/jinzhu/gorm/schema"
 )
 
-// Instance db instance
-type Instance struct {
-	Error        error
-	RowsAffected int64
-	Context      context.Context
-	Statement    *Statement
-}
-
-func (instance *Instance) ToSQL(clauses ...string) (string, []interface{}) {
-	if len(clauses) > 0 {
-		instance.Statement.Build(clauses...)
-	}
-	return strings.TrimSpace(instance.Statement.SQL.String()), instance.Statement.Vars
-}
-
-// AddError add error to instance
-func (inst *Instance) AddError(err error) {
-	if inst.Error == nil {
-		inst.Error = err
-	} else if err != nil {
-		inst.Error = fmt.Errorf("%v; %w", inst.Error, err)
-	}
-}
-
 // Statement statement
 type Statement struct {
 	Table                string
@@ -48,8 +24,12 @@ type Statement struct {
 	Selects              []string // selected columns
 	Omits                []string // omit columns
 	Settings             sync.Map
+	ConnPool             ConnPool
 	DB                   *DB
 	Schema               *schema.Schema
+	Context              context.Context
+	Error                error
+	RowsAffected         int64
 	RaiseErrorOnNotFound bool
 
 	// SQL Builder
@@ -244,6 +224,14 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 	}
 
 	return conditions
+}
+
+func (stmt *Statement) AddError(err error) {
+	if stmt.Error == nil {
+		stmt.Error = err
+	} else if err != nil {
+		stmt.Error = fmt.Errorf("%v; %w", stmt.Error, err)
+	}
 }
 
 // Build build sql with clauses names

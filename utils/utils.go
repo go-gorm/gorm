@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"unicode"
 )
 
 var goSrcRegexp = regexp.MustCompile(`/gorm/.*.go`)
@@ -17,4 +18,8 @@ func FileWithLineNum() string {
 		}
 	}
 	return ""
+}
+
+func IsChar(c rune) bool {
+	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
 }

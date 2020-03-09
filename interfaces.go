@@ -18,8 +18,8 @@ type Dialector interface {
 	Explain(sql string, vars ...interface{}) string
 }
 
-// CommonDB common db interface
-type CommonDB interface {
+// ConnPool db conns pool interface
+type ConnPool interface {
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)

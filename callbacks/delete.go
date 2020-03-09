@@ -57,7 +57,7 @@ func Delete(db *gorm.DB) {
 		db.Statement.Build("DELETE", "FROM", "WHERE")
 	}
 
-	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 	if err == nil {
 		db.RowsAffected, _ = result.RowsAffected()

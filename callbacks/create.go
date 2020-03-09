@@ -50,7 +50,7 @@ func Create(db *gorm.DB) {
 	db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
 	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
-	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 	if err == nil {
 		if db.Statement.Schema != nil {

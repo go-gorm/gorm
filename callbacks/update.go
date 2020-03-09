@@ -47,7 +47,7 @@ func Update(db *gorm.DB) {
 	db.Statement.AddClause(ConvertToAssignments(db.Statement))
 	db.Statement.Build("UPDATE", "SET", "WHERE")
 
-	result, err := db.DB.ExecContext(db.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 	if err == nil {
 		db.RowsAffected, _ = result.RowsAffected()

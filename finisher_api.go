@@ -196,14 +196,14 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 // Begin begins a transaction
 func (db *DB) Begin(opts ...*sql.TxOptions) (tx *DB) {
 	tx = db.getInstance()
-	if beginner, ok := tx.DB.(TxBeginner); ok {
+	if beginner, ok := tx.Statement.ConnPool.(TxBeginner); ok {
 		var opt *sql.TxOptions
 		var err error
 		if len(opts) > 0 {
 			opt = opts[0]
 		}
 
-		if tx.DB, err = beginner.BeginTx(db.Context, opt); err != nil {
+		if tx.Statement.ConnPool, err = beginner.BeginTx(db.Statement.Context, opt); err != nil {
 			tx.AddError(err)
 		}
 	} else {
@@ -214,7 +214,7 @@ func (db *DB) Begin(opts ...*sql.TxOptions) (tx *DB) {
 
 // Commit commit a transaction
 func (db *DB) Commit() *DB {
-	if comminter, ok := db.DB.(TxCommiter); ok && comminter != nil {
+	if comminter, ok := db.Statement.ConnPool.(TxCommiter); ok && comminter != nil {
 		db.AddError(comminter.Commit())
 	} else {
 		db.AddError(ErrInvalidTransaction)
@@ -224,7 +224,7 @@ func (db *DB) Commit() *DB {
 
 // Rollback rollback a transaction
 func (db *DB) Rollback() *DB {
-	if comminter, ok := db.DB.(TxCommiter); ok && comminter != nil {
+	if comminter, ok := db.Statement.ConnPool.(TxCommiter); ok && comminter != nil {
 		db.AddError(comminter.Rollback())
 	} else {
 		db.AddError(ErrInvalidTransaction)

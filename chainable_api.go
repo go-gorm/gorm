@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/utils"
 )
 
 // Model specify the model you would like to run db operations
@@ -64,7 +65,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 			}
 		}
 	case string:
-		fields := strings.FieldsFunc(v, isChar)
+		fields := strings.FieldsFunc(v, utils.IsChar)
 
 		// normal field names
 		if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
@@ -100,7 +101,7 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], isChar)
+		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsChar)
 	} else {
 		tx.Statement.Omits = columns
 	}
