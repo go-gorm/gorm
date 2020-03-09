@@ -33,6 +33,7 @@ type TxBeginner interface {
 type TxCommiter interface {
 	Commit() error
 	Rollback() error
+	RollbackUnlessCommitted() error
 }
 
 type BeforeCreateInterface interface {

@@ -214,8 +214,8 @@ func (db DB) Begin(opts ...*sql.TxOptions) (tx DB) {
 
 // Commit commit a transaction
 func (db DB) Commit() DB {
-	if comminter, ok := db.Statement.ConnPool.(TxCommiter); ok && comminter != nil {
-		db.AddError(comminter.Commit())
+	if commiter, ok := db.Statement.ConnPool.(TxCommiter); ok && commiter != nil {
+		db.AddError(commiter.Commit())
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
@@ -224,8 +224,22 @@ func (db DB) Commit() DB {
 
 // Rollback rollback a transaction
 func (db DB) Rollback() DB {
-	if comminter, ok := db.Statement.ConnPool.(TxCommiter); ok && comminter != nil {
-		db.AddError(comminter.Rollback())
+	if commiter, ok := db.Statement.ConnPool.(TxCommiter); ok && commiter != nil {
+		db.AddError(commiter.Rollback())
+	} else {
+		db.AddError(ErrInvalidTransaction)
+	}
+	return db
+}
+
+// RollbackUnlessCommitted rollbacks a transaction if it is not yet commited
+func (db DB) RollbackUnlessCommitted() DB {
+	if commiter, ok := db.Statement.ConnPool.(TxCommiter); ok && commiter != nil {
+		err := commiter.Rollback()
+		if err == nil || err == sql.ErrTxDone {
+			return db
+		}
+		db.AddError(err)
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
