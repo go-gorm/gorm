@@ -96,6 +96,9 @@ func (p *processor) Execute(db *DB) {
 		db.Logger.Trace(curTime, func() (string, int64) {
 			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
 		}, db.Error)
+
+		stmt.reinit()
+		db.Config.statementPool.Put(stmt)
 	}
 }
 

@@ -25,17 +25,16 @@ type Statement struct {
 	Omits                []string // omit columns
 	Settings             sync.Map
 	ConnPool             ConnPool
-	DB                   *DB
+	DB                   DB
 	Schema               *schema.Schema
 	Context              context.Context
 	Error                error
 	RowsAffected         int64
 	RaiseErrorOnNotFound bool
-
-	// SQL Builder
-	SQL       strings.Builder
-	Vars      []interface{}
-	NamedVars []sql.NamedArg
+	SQL                  strings.Builder
+	Vars                 []interface{}
+	NamedVars            []sql.NamedArg
+	placeholders         strings.Builder
 }
 
 // StatementOptimizer statement optimizer interface
@@ -112,41 +111,43 @@ func (stmt Statement) Quote(field interface{}) string {
 
 // Write write string
 func (stmt *Statement) AddVar(vars ...interface{}) string {
-	var placeholders strings.Builder
+	stmt.placeholders = strings.Builder{}
+	stmt.placeholders.Reset()
+
 	for idx, v := range vars {
 		if idx > 0 {
-			placeholders.WriteByte(',')
+			stmt.placeholders.WriteByte(',')
 		}
 
 		switch v := v.(type) {
 		case sql.NamedArg:
 			if len(v.Name) > 0 {
 				stmt.NamedVars = append(stmt.NamedVars, v)
-				placeholders.WriteByte('@')
-				placeholders.WriteString(v.Name)
+				stmt.placeholders.WriteByte('@')
+				stmt.placeholders.WriteString(v.Name)
 			} else {
 				stmt.Vars = append(stmt.Vars, v.Value)
-				placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
+				stmt.placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
 			}
 		case clause.Column, clause.Table:
-			placeholders.WriteString(stmt.Quote(v))
+			stmt.placeholders.WriteString(stmt.Quote(v))
 		case clause.Expr:
-			placeholders.WriteString(v.SQL)
+			stmt.placeholders.WriteString(v.SQL)
 			stmt.Vars = append(stmt.Vars, v.Vars...)
 		case []interface{}:
 			if len(v) > 0 {
-				placeholders.WriteByte('(')
-				placeholders.WriteString(stmt.AddVar(v...))
-				placeholders.WriteByte(')')
+				stmt.placeholders.WriteByte('(')
+				stmt.placeholders.WriteString(stmt.AddVar(v...))
+				stmt.placeholders.WriteByte(')')
 			} else {
-				placeholders.WriteString("(NULL)")
+				stmt.placeholders.WriteString("(NULL)")
 			}
 		default:
 			stmt.Vars = append(stmt.Vars, v)
-			placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
+			stmt.placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
 		}
 	}
-	return placeholders.String()
+	return stmt.placeholders.String()
 }
 
 // AddClause add clause
@@ -260,4 +261,30 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 		stmt.Table = stmt.Schema.Table
 	}
 	return err
+}
+
+func (stmt *Statement) reinit() {
+	stmt.Table = ""
+	stmt.Model = nil
+	stmt.Selects = nil
+	stmt.Omits = nil
+	stmt.ConnPool = stmt.DB.Config.ConnPool
+	stmt.Schema = nil
+	stmt.Context = context.Background()
+	stmt.Error = nil
+	stmt.RowsAffected = 0
+	stmt.RaiseErrorOnNotFound = false
+
+	stmt.SQL.Reset()
+	stmt.Vars = nil
+	stmt.NamedVars = nil
+
+	for k := range stmt.Clauses {
+		delete(stmt.Clauses, k)
+	}
+
+	stmt.Settings.Range(func(k, _ interface{}) bool {
+		stmt.Settings.Delete(k)
+		return true
+	})
 }

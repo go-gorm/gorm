@@ -13,14 +13,14 @@ import (
 //    db.Model(&User{}).Update("name", "hello")
 //    // if user's primary key is non-blank, will use it as condition, then will only update the user's name to `hello`
 //    db.Model(&user).Update("name", "hello")
-func (db *DB) Model(value interface{}) (tx *DB) {
+func (db DB) Model(value interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.Model = value
 	return
 }
 
 // Clauses Add clauses
-func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
+func (db DB) Clauses(conds ...clause.Expression) (tx DB) {
 	tx = db.getInstance()
 	var whereConds []interface{}
 
@@ -39,14 +39,14 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 }
 
 // Table specify the table you would like to run db operations
-func (db *DB) Table(name string) (tx *DB) {
+func (db DB) Table(name string) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.Table = name
 	return
 }
 
 // Select specify fields that you want when querying, creating, updating
-func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
+func (db DB) Select(query interface{}, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 
 	switch v := query.(type) {
@@ -97,7 +97,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 }
 
 // Omit specify fields that you want to ignore when creating, updating and querying
-func (db *DB) Omit(columns ...string) (tx *DB) {
+func (db DB) Omit(columns ...string) (tx DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
@@ -108,21 +108,21 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	return
 }
 
-func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
+func (db DB) Where(query interface{}, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(query, args...)})
 	return
 }
 
 // Not add NOT condition
-func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
+func (db DB) Not(query interface{}, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)}})
 	return
 }
 
 // Or add OR conditions
-func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
+func (db DB) Or(query interface{}, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(tx.Statement.BuildCondtion(query, args...)...)}})
 	return
@@ -131,13 +131,13 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 // Joins specify Joins conditions
 //     db.Joins("Account").Find(&user)
 //     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
-func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
+func (db DB) Joins(query string, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	return
 }
 
 // Group specify the group method on the find
-func (db *DB) Group(name string) (tx *DB) {
+func (db DB) Group(name string) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.GroupBy{
 		Columns: []clause.Column{{Name: name}},
@@ -146,7 +146,7 @@ func (db *DB) Group(name string) (tx *DB) {
 }
 
 // Having specify HAVING conditions for GROUP BY
-func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
+func (db DB) Having(query interface{}, args ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.GroupBy{
 		Having: tx.Statement.BuildCondtion(query, args...),
@@ -157,7 +157,7 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 // Order specify order when retrieve records from database
 //     db.Order("name DESC")
 //     db.Order(gorm.Expr("name = ? DESC", "first")) // sql expression
-func (db *DB) Order(value interface{}) (tx *DB) {
+func (db DB) Order(value interface{}) (tx DB) {
 	tx = db.getInstance()
 
 	switch v := value.(type) {
@@ -176,20 +176,20 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 }
 
 // Limit specify the number of records to be retrieved
-func (db *DB) Limit(limit int) (tx *DB) {
+func (db DB) Limit(limit int) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Limit{Limit: limit})
 	return
 }
 
 // Offset specify the number of records to skip before starting to return the records
-func (db *DB) Offset(offset int) (tx *DB) {
+func (db DB) Offset(offset int) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Limit{Offset: offset})
 	return
 }
 
-// Scopes pass current database connection to arguments `func(*DB) *DB`, which could be used to add conditions dynamically
+// Scopes pass current database connection to arguments `func(DB) DB`, which could be used to add conditions dynamically
 //     func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
 //         return db.Where("amount > ?", 1000)
 //     }
@@ -201,7 +201,7 @@ func (db *DB) Offset(offset int) (tx *DB) {
 //     }
 //
 //     db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
-func (db *DB) Scopes(funcs ...func(*DB) *DB) *DB {
+func (db DB) Scopes(funcs ...func(DB) DB) DB {
 	for _, f := range funcs {
 		db = f(db)
 	}
@@ -210,27 +210,27 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 
 // Preload preload associations with given conditions
 //    db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
-func (db *DB) Preload(column string, conditions ...interface{}) (tx *DB) {
+func (db DB) Preload(column string, conditions ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
+func (db DB) Assign(attrs ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) Attrs(attrs ...interface{}) (tx *DB) {
+func (db DB) Attrs(attrs ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) Unscoped() (tx *DB) {
+func (db DB) Unscoped() (tx DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) Raw(sql string, values ...interface{}) (tx *DB) {
+func (db DB) Raw(sql string, values ...interface{}) (tx DB) {
 	tx = db.getInstance()
 	tx.Statement.SQL = strings.Builder{}
 	clause.Expr{SQL: sql, Vars: values}.Build(tx.Statement)

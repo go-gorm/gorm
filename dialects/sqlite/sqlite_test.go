@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	DB  *gorm.DB
+	DB  gorm.DB
 	err error
 )
 
@@ -23,9 +23,9 @@ func init() {
 }
 
 func TestCURD(t *testing.T) {
-	tests.RunTestsSuit(t, DB)
+	tests.RunTestsSuit(t, &DB)
 }
 
 func TestMigrate(t *testing.T) {
-	tests.TestMigrate(t, DB)
+	tests.TestMigrate(t, &DB)
 }

@@ -27,7 +27,7 @@ type Config struct {
 func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error) error {
 	stmt := m.DB.Statement
 	if stmt == nil {
-		stmt = &gorm.Statement{DB: m.DB}
+		stmt = &gorm.Statement{DB: *m.DB}
 	}
 
 	if err := stmt.Parse(value); err != nil {
@@ -496,7 +496,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 
 	parseDependence := func(value interface{}, addToList bool) {
 		dep := Dependency{
-			Statement: &gorm.Statement{DB: m.DB, Dest: value},
+			Statement: &gorm.Statement{DB: *m.DB, Dest: value},
 		}
 		dep.Parse(value)
 
