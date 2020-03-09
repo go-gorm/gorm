@@ -36,8 +36,8 @@ func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
 	}}}
 }
 
-func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
-	return "?"
+func (dialector Dialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
+	writer.WriteByte('?')
 }
 
 func (dialector Dialector) QuoteTo(writer clause.Writer, str string) {

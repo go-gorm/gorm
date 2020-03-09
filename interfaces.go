@@ -13,7 +13,7 @@ type Dialector interface {
 	Initialize(*DB) error
 	Migrator(db *DB) Migrator
 	DataTypeOf(*schema.Field) string
-	BindVar(stmt *Statement, v interface{}) string
+	BindVarTo(writer clause.Writer, stmt *Statement, v interface{})
 	QuoteTo(clause.Writer, string)
 	Explain(sql string, vars ...interface{}) string
 }

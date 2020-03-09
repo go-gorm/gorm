@@ -18,8 +18,8 @@ func (DummyDialector) Migrator(*gorm.DB) gorm.Migrator {
 	return nil
 }
 
-func (DummyDialector) BindVar(stmt *gorm.Statement, v interface{}) string {
-	return "?"
+func (DummyDialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
+	writer.WriteByte('?')
 }
 
 func (DummyDialector) QuoteTo(writer clause.Writer, str string) {

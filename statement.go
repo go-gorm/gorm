@@ -120,7 +120,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString(v.Name)
 			} else {
 				stmt.Vars = append(stmt.Vars, v.Value)
-				writer.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
+				stmt.DB.Dialector.BindVarTo(writer, stmt, v.Value)
 			}
 		case clause.Column, clause.Table:
 			stmt.QuoteTo(writer, v)
@@ -130,7 +130,6 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		case []interface{}:
 			if len(v) > 0 {
 				writer.WriteByte('(')
-				stmt.skipResetPlacehodler = true
 				stmt.AddVar(writer, v...)
 				writer.WriteByte(')')
 			} else {
@@ -138,7 +137,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			}
 		default:
 			stmt.Vars = append(stmt.Vars, v)
-			writer.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
+			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
 		}
 	}
 }
