@@ -26,9 +26,9 @@ func (where Where) Build(builder Builder) {
 		if expr != nil {
 			if idx > 0 {
 				if v, ok := expr.(OrConditions); ok && len(v.Exprs) == 1 {
-					builder.Write(" OR ")
+					builder.WriteString(" OR ")
 				} else {
-					builder.Write(" AND ")
+					builder.WriteString(" AND ")
 				}
 			}
 
@@ -65,7 +65,7 @@ func (and AndConditions) Build(builder Builder) {
 	}
 	for idx, c := range and.Exprs {
 		if idx > 0 {
-			builder.Write(" AND ")
+			builder.WriteString(" AND ")
 		}
 		c.Build(builder)
 	}
@@ -91,7 +91,7 @@ func (or OrConditions) Build(builder Builder) {
 	}
 	for idx, c := range or.Exprs {
 		if idx > 0 {
-			builder.Write(" OR ")
+			builder.WriteString(" OR ")
 		}
 		c.Build(builder)
 	}
@@ -117,13 +117,13 @@ func (not NotConditions) Build(builder Builder) {
 	}
 	for idx, c := range not.Exprs {
 		if idx > 0 {
-			builder.Write(" AND ")
+			builder.WriteString(" AND ")
 		}
 
 		if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
 			negationBuilder.NegationBuild(builder)
 		} else {
-			builder.Write(" NOT ")
+			builder.WriteString(" NOT ")
 			c.Build(builder)
 		}
 	}

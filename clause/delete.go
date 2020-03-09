@@ -9,11 +9,11 @@ func (d Delete) Name() string {
 }
 
 func (d Delete) Build(builder Builder) {
-	builder.Write("DELETE")
+	builder.WriteString("DELETE")
 
 	if d.Modifier != "" {
 		builder.WriteByte(' ')
-		builder.Write(d.Modifier)
+		builder.WriteString(d.Modifier)
 	}
 }
 

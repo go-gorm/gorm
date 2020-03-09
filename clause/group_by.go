@@ -22,7 +22,7 @@ func (groupBy GroupBy) Build(builder Builder) {
 	}
 
 	if len(groupBy.Having) > 0 {
-		builder.Write(" HAVING ")
+		builder.WriteString(" HAVING ")
 		Where{Exprs: groupBy.Having}.Build(builder)
 	}
 }

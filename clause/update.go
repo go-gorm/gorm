@@ -13,7 +13,7 @@ func (update Update) Name() string {
 // Build build update clause
 func (update Update) Build(builder Builder) {
 	if update.Modifier != "" {
-		builder.Write(update.Modifier)
+		builder.WriteString(update.Modifier)
 		builder.WriteByte(' ')
 	}
 

@@ -22,16 +22,16 @@ func (f For) Build(builder Builder) {
 			builder.WriteByte(' ')
 		}
 
-		builder.Write("FOR ")
-		builder.Write(locking.Strength)
+		builder.WriteString("FOR ")
+		builder.WriteString(locking.Strength)
 		if locking.Table.Name != "" {
-			builder.Write(" OF ")
+			builder.WriteString(" OF ")
 			builder.WriteQuoted(locking.Table)
 		}
 
 		if locking.Options != "" {
 			builder.WriteByte(' ')
-			builder.Write(locking.Options)
+			builder.WriteString(locking.Options)
 		}
 	}
 }

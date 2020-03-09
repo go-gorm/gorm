@@ -16,12 +16,12 @@ func (limit Limit) Name() string {
 // Build build where clause
 func (limit Limit) Build(builder Builder) {
 	if limit.Limit > 0 {
-		builder.Write("LIMIT ")
-		builder.Write(strconv.Itoa(limit.Limit))
+		builder.WriteString("LIMIT ")
+		builder.WriteString(strconv.Itoa(limit.Limit))
 
 		if limit.Offset > 0 {
-			builder.Write(" OFFSET ")
-			builder.Write(strconv.Itoa(limit.Offset))
+			builder.WriteString(" OFFSET ")
+			builder.WriteString(strconv.Itoa(limit.Offset))
 		}
 	}
 }

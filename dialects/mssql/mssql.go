@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/migrator"
 	"github.com/jinzhu/gorm/schema"
@@ -42,10 +42,10 @@ func (dialector Dialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "@p" + strconv.Itoa(len(stmt.Vars))
 }
 
-func (dialector Dialector) QuoteTo(builder *strings.Builder, str string) {
-	builder.WriteByte('"')
-	builder.WriteString(str)
-	builder.WriteByte('"')
+func (dialector Dialector) QuoteTo(writer clause.Writer, str string) {
+	writer.WriteByte('"')
+	writer.WriteString(str)
+	writer.WriteByte('"')
 }
 
 var numericPlaceholder = regexp.MustCompile("@p(\\d+)")

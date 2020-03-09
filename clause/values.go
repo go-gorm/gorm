@@ -22,7 +22,7 @@ func (values Values) Build(builder Builder) {
 		}
 		builder.WriteByte(')')
 
-		builder.Write(" VALUES ")
+		builder.WriteString(" VALUES ")
 
 		for idx, value := range values.Values {
 			if idx > 0 {
@@ -30,11 +30,11 @@ func (values Values) Build(builder Builder) {
 			}
 
 			builder.WriteByte('(')
-			builder.Write(builder.AddVar(value...))
+			builder.AddVar(builder, value...)
 			builder.WriteByte(')')
 		}
 	} else {
-		builder.Write("DEFAULT VALUES")
+		builder.WriteString("DEFAULT VALUES")
 	}
 }
 

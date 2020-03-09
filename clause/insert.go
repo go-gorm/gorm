@@ -13,11 +13,11 @@ func (insert Insert) Name() string {
 // Build build insert clause
 func (insert Insert) Build(builder Builder) {
 	if insert.Modifier != "" {
-		builder.Write(insert.Modifier)
+		builder.WriteString(insert.Modifier)
 		builder.WriteByte(' ')
 	}
 
-	builder.Write("INTO ")
+	builder.WriteString("INTO ")
 	if insert.Table.Name == "" {
 		builder.WriteQuoted(currentTable)
 	} else {

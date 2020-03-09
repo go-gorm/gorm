@@ -1,9 +1,5 @@
 package clause
 
-import (
-	"strings"
-)
-
 // Expression expression interface
 type Expression interface {
 	Build(builder Builder)
@@ -22,11 +18,15 @@ type Expr struct {
 
 // Build build raw expression
 func (expr Expr) Build(builder Builder) {
-	sql := expr.SQL
-	for _, v := range expr.Vars {
-		sql = strings.Replace(sql, "?", builder.AddVar(v), 1)
+	var idx int
+	for _, v := range []byte(expr.SQL) {
+		if v == '?' {
+			builder.AddVar(builder, expr.Vars[idx])
+			idx++
+		} else {
+			builder.WriteByte(v)
+		}
 	}
-	builder.Write(sql)
 }
 
 // IN Whether a value is within a set of values
@@ -40,11 +40,14 @@ func (in IN) Build(builder Builder) {
 
 	switch len(in.Values) {
 	case 0:
-		builder.Write(" IN (NULL)")
+		builder.WriteString(" IN (NULL)")
 	case 1:
-		builder.Write(" = ", builder.AddVar(in.Values...))
+		builder.WriteString(" = ")
+		builder.AddVar(builder, in.Values...)
 	default:
-		builder.Write(" IN (", builder.AddVar(in.Values...), ")")
+		builder.WriteString(" IN (")
+		builder.AddVar(builder, in.Values...)
+		builder.WriteByte(')')
 	}
 }
 
@@ -52,9 +55,12 @@ func (in IN) NegationBuild(builder Builder) {
 	switch len(in.Values) {
 	case 0:
 	case 1:
-		builder.Write(" <> ", builder.AddVar(in.Values...))
+		builder.WriteString(" <> ")
+		builder.AddVar(builder, in.Values...)
 	default:
-		builder.Write(" NOT IN (", builder.AddVar(in.Values...), ")")
+		builder.WriteString(" NOT IN (")
+		builder.AddVar(builder, in.Values...)
+		builder.WriteByte(')')
 	}
 }
 
@@ -68,9 +74,10 @@ func (eq Eq) Build(builder Builder) {
 	builder.WriteQuoted(eq.Column)
 
 	if eq.Value == nil {
-		builder.Write(" IS NULL")
+		builder.WriteString(" IS NULL")
 	} else {
-		builder.Write(" = ", builder.AddVar(eq.Value))
+		builder.WriteString(" = ")
+		builder.AddVar(builder, eq.Value)
 	}
 }
 
@@ -85,9 +92,10 @@ func (neq Neq) Build(builder Builder) {
 	builder.WriteQuoted(neq.Column)
 
 	if neq.Value == nil {
-		builder.Write(" IS NOT NULL")
+		builder.WriteString(" IS NOT NULL")
 	} else {
-		builder.Write(" <> ", builder.AddVar(neq.Value))
+		builder.WriteString(" <> ")
+		builder.AddVar(builder, neq.Value)
 	}
 }
 
@@ -100,7 +108,8 @@ type Gt Eq
 
 func (gt Gt) Build(builder Builder) {
 	builder.WriteQuoted(gt.Column)
-	builder.Write(" > ", builder.AddVar(gt.Value))
+	builder.WriteString(" > ")
+	builder.AddVar(builder, gt.Value)
 }
 
 func (gt Gt) NegationBuild(builder Builder) {
@@ -112,7 +121,8 @@ type Gte Eq
 
 func (gte Gte) Build(builder Builder) {
 	builder.WriteQuoted(gte.Column)
-	builder.Write(" >= ", builder.AddVar(gte.Value))
+	builder.WriteString(" >= ")
+	builder.AddVar(builder, gte.Value)
 }
 
 func (gte Gte) NegationBuild(builder Builder) {
@@ -124,7 +134,8 @@ type Lt Eq
 
 func (lt Lt) Build(builder Builder) {
 	builder.WriteQuoted(lt.Column)
-	builder.Write(" < ", builder.AddVar(lt.Value))
+	builder.WriteString(" < ")
+	builder.AddVar(builder, lt.Value)
 }
 
 func (lt Lt) NegationBuild(builder Builder) {
@@ -136,7 +147,8 @@ type Lte Eq
 
 func (lte Lte) Build(builder Builder) {
 	builder.WriteQuoted(lte.Column)
-	builder.Write(" <= ", builder.AddVar(lte.Value))
+	builder.WriteString(" <= ")
+	builder.AddVar(builder, lte.Value)
 }
 
 func (lte Lte) NegationBuild(builder Builder) {
@@ -148,12 +160,14 @@ type Like Eq
 
 func (like Like) Build(builder Builder) {
 	builder.WriteQuoted(like.Column)
-	builder.Write(" LIKE ", builder.AddVar(like.Value))
+	builder.WriteString(" LIKE ")
+	builder.AddVar(builder, like.Value)
 }
 
 func (like Like) NegationBuild(builder Builder) {
 	builder.WriteQuoted(like.Column)
-	builder.Write(" NOT LIKE ", builder.AddVar(like.Value))
+	builder.WriteString(" NOT LIKE ")
+	builder.AddVar(builder, like.Value)
 }
 
 // Map

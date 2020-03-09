@@ -1,9 +1,8 @@
 package tests
 
 import (
-	"strings"
-
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/logger"
 	"github.com/jinzhu/gorm/schema"
 )
@@ -23,10 +22,10 @@ func (DummyDialector) BindVar(stmt *gorm.Statement, v interface{}) string {
 	return "?"
 }
 
-func (DummyDialector) QuoteTo(builder *strings.Builder, str string) {
-	builder.WriteByte('`')
-	builder.WriteString(str)
-	builder.WriteByte('`')
+func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
+	writer.WriteByte('`')
+	writer.WriteString(str)
+	writer.WriteByte('`')
 }
 
 func (DummyDialector) Explain(sql string, vars ...interface{}) string {

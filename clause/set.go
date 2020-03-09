@@ -19,7 +19,7 @@ func (set Set) Build(builder Builder) {
 			}
 			builder.WriteQuoted(assignment.Column)
 			builder.WriteByte('=')
-			builder.Write(builder.AddVar(assignment.Value))
+			builder.AddVar(builder, assignment.Value)
 		}
 	} else {
 		builder.WriteQuoted(PrimaryColumn)

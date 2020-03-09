@@ -24,7 +24,7 @@ func (orderBy OrderBy) Build(builder Builder) {
 
 		builder.WriteQuoted(column.Column)
 		if column.Desc {
-			builder.Write(" DESC")
+			builder.WriteString(" DESC")
 		}
 	}
 }

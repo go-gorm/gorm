@@ -12,13 +12,16 @@ type ClauseBuilder interface {
 	Build(Clause, Builder)
 }
 
+type Writer interface {
+	WriteByte(byte) error
+	WriteString(string) (int, error)
+}
+
 // Builder builder interface
 type Builder interface {
-	WriteByte(byte) error
-	Write(sql ...string) error
+	Writer
 	WriteQuoted(field interface{}) error
-	AddVar(vars ...interface{}) string
-	Quote(field interface{}) string
+	AddVar(Writer, ...interface{})
 }
 
 // Clause

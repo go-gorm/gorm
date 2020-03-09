@@ -34,7 +34,6 @@ type Statement struct {
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	NamedVars            []sql.NamedArg
-	placeholders         strings.Builder
 }
 
 // StatementOptimizer statement optimizer interface
@@ -43,15 +42,12 @@ type StatementOptimizer interface {
 }
 
 // Write write string
-func (stmt *Statement) Write(sql ...string) (err error) {
-	for _, s := range sql {
-		_, err = stmt.SQL.WriteString(s)
-	}
-	return
+func (stmt *Statement) WriteString(str string) (int, error) {
+	return stmt.SQL.WriteString(str)
 }
 
 // Write write string
-func (stmt *Statement) WriteByte(c byte) (err error) {
+func (stmt *Statement) WriteByte(c byte) error {
 	return stmt.SQL.WriteByte(c)
 }
 
@@ -62,7 +58,7 @@ func (stmt *Statement) WriteQuoted(value interface{}) error {
 }
 
 // QuoteTo write quoted value to writer
-func (stmt Statement) QuoteTo(writer *strings.Builder, field interface{}) {
+func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	switch v := field.(type) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
@@ -110,44 +106,41 @@ func (stmt Statement) Quote(field interface{}) string {
 }
 
 // Write write string
-func (stmt *Statement) AddVar(vars ...interface{}) string {
-	stmt.placeholders = strings.Builder{}
-	stmt.placeholders.Reset()
-
+func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 	for idx, v := range vars {
 		if idx > 0 {
-			stmt.placeholders.WriteByte(',')
+			writer.WriteByte(',')
 		}
 
 		switch v := v.(type) {
 		case sql.NamedArg:
 			if len(v.Name) > 0 {
 				stmt.NamedVars = append(stmt.NamedVars, v)
-				stmt.placeholders.WriteByte('@')
-				stmt.placeholders.WriteString(v.Name)
+				writer.WriteByte('@')
+				writer.WriteString(v.Name)
 			} else {
 				stmt.Vars = append(stmt.Vars, v.Value)
-				stmt.placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
+				writer.WriteString(stmt.DB.Dialector.BindVar(stmt, v.Value))
 			}
 		case clause.Column, clause.Table:
-			stmt.placeholders.WriteString(stmt.Quote(v))
+			stmt.QuoteTo(writer, v)
 		case clause.Expr:
-			stmt.placeholders.WriteString(v.SQL)
+			writer.WriteString(v.SQL)
 			stmt.Vars = append(stmt.Vars, v.Vars...)
 		case []interface{}:
 			if len(v) > 0 {
-				stmt.placeholders.WriteByte('(')
-				stmt.placeholders.WriteString(stmt.AddVar(v...))
-				stmt.placeholders.WriteByte(')')
+				writer.WriteByte('(')
+				stmt.skipResetPlacehodler = true
+				stmt.AddVar(writer, v...)
+				writer.WriteByte(')')
 			} else {
-				stmt.placeholders.WriteString("(NULL)")
+				writer.WriteString("(NULL)")
 			}
 		default:
 			stmt.Vars = append(stmt.Vars, v)
-			stmt.placeholders.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
+			writer.WriteString(stmt.DB.Dialector.BindVar(stmt, v))
 		}
 	}
-	return stmt.placeholders.String()
 }
 
 // AddClause add clause

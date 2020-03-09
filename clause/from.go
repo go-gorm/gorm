@@ -50,18 +50,18 @@ func (from From) Build(builder Builder) {
 
 func (join Join) Build(builder Builder) {
 	if join.Type != "" {
-		builder.Write(string(join.Type))
+		builder.WriteString(string(join.Type))
 		builder.WriteByte(' ')
 	}
 
-	builder.Write("JOIN ")
+	builder.WriteString("JOIN ")
 	builder.WriteQuoted(join.Table)
 
 	if len(join.ON.Exprs) > 0 {
-		builder.Write(" ON ")
+		builder.WriteString(" ON ")
 		join.ON.Build(builder)
 	} else if len(join.Using) > 0 {
-		builder.Write(" USING (")
+		builder.WriteString(" USING (")
 		for idx, c := range join.Using {
 			if idx > 0 {
 				builder.WriteByte(',')
