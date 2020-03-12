@@ -322,7 +322,9 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 		preloadDB = preloadDB.Where(preloadConditions[0], preloadConditions[1:]...)
 	}
 
-	rows, err := preloadDB.Rows()
+	preScope := preloadDB.NewScope(preloadDB.Value)
+	rows, err := preScope.rows()
+	defer preScope.trace(NowFunc())
 
 	if scope.Err(err) != nil {
 		return
@@ -330,7 +332,9 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 	defer rows.Close()
 
 	columns, _ := rows.Columns()
+	preScope.db.RowsAffected = 0
 	for rows.Next() {
+		preScope.db.RowsAffected++
 		var (
 			elem   = reflect.New(fieldType).Elem()
 			fields = scope.New(elem.Addr().Interface()).Fields()

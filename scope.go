@@ -934,8 +934,6 @@ func (scope *Scope) updatedAttrsWithValues(value interface{}) (results map[strin
 }
 
 func (scope *Scope) row() *sql.Row {
-	defer scope.trace(NowFunc())
-
 	result := &RowQueryResult{}
 	scope.InstanceSet("row_query_result", result)
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
@@ -944,8 +942,6 @@ func (scope *Scope) row() *sql.Row {
 }
 
 func (scope *Scope) rows() (*sql.Rows, error) {
-	defer scope.trace(NowFunc())
-
 	result := &RowsQueryResult{}
 	scope.InstanceSet("row_query_result", result)
 	scope.callCallbacks(scope.db.parent.callbacks.rowQueries)
@@ -994,10 +990,13 @@ func (scope *Scope) pluck(column string, value interface{}) *Scope {
 		scope.Search.Select(column)
 	}
 
+	defer scope.trace(NowFunc())
 	rows, err := scope.rows()
 	if scope.Err(err) == nil {
 		defer rows.Close()
+		scope.db.RowsAffected = 0
 		for rows.Next() {
+			scope.db.RowsAffected++
 			elem := reflect.New(dest.Type().Elem()).Interface()
 			scope.Err(rows.Scan(elem))
 			dest.Set(reflect.Append(dest, reflect.ValueOf(elem).Elem()))
@@ -1027,7 +1026,12 @@ func (scope *Scope) count(value interface{}) *Scope {
 		}
 	}
 	scope.Search.ignoreOrderQuery = true
+	defer scope.trace(NowFunc())
 	scope.Err(scope.row().Scan(value))
+	if !scope.HasError() {
+		scope.db.RowsAffected++
+	}
+
 	return scope
 }
 
