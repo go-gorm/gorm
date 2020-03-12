@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	dsn := "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True"
+	dsn := "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
 	if os.Getenv("GORM_DSN") != "" {
 		dsn = os.Getenv("GORM_DSN")
 	}

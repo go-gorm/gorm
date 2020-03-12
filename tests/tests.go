@@ -81,7 +81,7 @@ func TestFind(t *testing.T, db *gorm.DB) {
 		}}
 
 		if err := db.Create(&users).Error; err != nil {
-			t.Errorf("errors happened when create users: %v", err)
+			t.Fatal("errors happened when create users: %v", err)
 		}
 
 		t.Run("First", func(t *testing.T) {

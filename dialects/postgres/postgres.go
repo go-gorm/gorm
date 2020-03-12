@@ -60,7 +60,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	case schema.Bool:
 		return "boolean"
 	case schema.Int, schema.Uint:
-		if field.AutoIncrement {
+		if field.AutoIncrement || field == field.Schema.PrioritizedPrimaryField {
 			switch {
 			case field.Size < 16:
 				return "smallserial"

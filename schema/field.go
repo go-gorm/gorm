@@ -219,7 +219,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if field.Size == 0 {
-		switch fieldValue.Kind() {
+		switch reflect.Indirect(fieldValue).Kind() {
 		case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64, reflect.Float64:
 			field.Size = 64
 		case reflect.Int8, reflect.Uint8:

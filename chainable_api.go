@@ -108,13 +108,14 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	return
 }
 
+// Where add conditions
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(query, args...)})
 	return
 }
 
-// Not add NOT condition
+// Not add NOT conditions
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)}})

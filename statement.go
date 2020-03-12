@@ -28,17 +28,15 @@ type Statement struct {
 	ConnPool             ConnPool
 	Schema               *schema.Schema
 	Context              context.Context
-	Error                error
-	RowsAffected         int64
 	RaiseErrorOnNotFound bool
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	NamedVars            []sql.NamedArg
 }
 
-// StatementOptimizer statement optimizer interface
-type StatementOptimizer interface {
-	OptimizeStatement(*Statement)
+// StatementModifier statement modifier interface
+type StatementModifier interface {
+	ModifyStatement(*Statement)
 }
 
 // Write write string
@@ -144,8 +142,8 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 
 // AddClause add clause
 func (stmt *Statement) AddClause(v clause.Interface) {
-	if optimizer, ok := v.(StatementOptimizer); ok {
-		optimizer.OptimizeStatement(stmt)
+	if optimizer, ok := v.(StatementModifier); ok {
+		optimizer.ModifyStatement(stmt)
 	}
 
 	c, ok := stmt.Clauses[v.Name()]
@@ -255,8 +253,6 @@ func (stmt *Statement) reinit() {
 	stmt.ConnPool = stmt.DB.Config.ConnPool
 	stmt.Schema = nil
 	stmt.Context = context.Background()
-	stmt.Error = nil
-	stmt.RowsAffected = 0
 	stmt.RaiseErrorOnNotFound = false
 
 	stmt.SQL.Reset()

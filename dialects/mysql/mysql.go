@@ -71,7 +71,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 			sqlType += " unsigned"
 		}
 
-		if field.AutoIncrement {
+		if field.AutoIncrement || field == field.Schema.PrioritizedPrimaryField {
 			sqlType += " AUTO_INCREMENT"
 		}
 		return sqlType
@@ -94,6 +94,10 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		return fmt.Sprintf("varchar(%d)", size)
 	case schema.Time:
 		precision := ""
+		if field.Precision == 0 {
+			field.Precision = 3
+		}
+
 		if field.Precision > 0 {
 			precision = fmt.Sprintf("(%d)", field.Precision)
 		}

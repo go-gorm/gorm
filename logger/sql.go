@@ -33,7 +33,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 			if v.IsZero() {
 				vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
 			} else {
-				vars[idx] = escaper + v.Format("2006-01-02 15:04:05") + escaper
+				vars[idx] = escaper + v.Format("2006-01-02 15:04:05.999") + escaper
 			}
 		case []byte:
 			if isPrintable(v) {

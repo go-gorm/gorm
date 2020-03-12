@@ -6,23 +6,6 @@ type From struct {
 	Joins  []Join
 }
 
-type JoinType string
-
-const (
-	CrossJoin JoinType = "CROSS"
-	InnerJoin          = "INNER"
-	LeftJoin           = "LEFT"
-	RightJoin          = "RIGHT"
-)
-
-// Join join clause for from
-type Join struct {
-	Type  JoinType
-	Table Table
-	ON    Where
-	Using []string
-}
-
 // Name from clause name
 func (from From) Name() string {
 	return "FROM"
@@ -45,30 +28,6 @@ func (from From) Build(builder Builder) {
 	for _, join := range from.Joins {
 		builder.WriteByte(' ')
 		join.Build(builder)
-	}
-}
-
-func (join Join) Build(builder Builder) {
-	if join.Type != "" {
-		builder.WriteString(string(join.Type))
-		builder.WriteByte(' ')
-	}
-
-	builder.WriteString("JOIN ")
-	builder.WriteQuoted(join.Table)
-
-	if len(join.ON.Exprs) > 0 {
-		builder.WriteString(" ON ")
-		join.ON.Build(builder)
-	} else if len(join.Using) > 0 {
-		builder.WriteString(" USING (")
-		for idx, c := range join.Using {
-			if idx > 0 {
-				builder.WriteByte(',')
-			}
-			builder.WriteQuoted(c)
-		}
-		builder.WriteByte(')')
 	}
 }
 
