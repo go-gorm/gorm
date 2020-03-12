@@ -4,7 +4,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func RegisterDefaultCallbacks(db *gorm.DB) {
+type Config struct {
+	LastInsertIDReversed bool
+	WithReturning        bool
+}
+
+func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	enableTransaction := func(db *gorm.DB) bool {
 		return !db.SkipDefaultTransaction
 	}
@@ -13,7 +18,7 @@ func RegisterDefaultCallbacks(db *gorm.DB) {
 	createCallback.Match(enableTransaction).Register("gorm:begin_transaction", BeginTransaction)
 	createCallback.Register("gorm:before_create", BeforeCreate)
 	createCallback.Register("gorm:save_before_associations", SaveBeforeAssociations)
-	createCallback.Register("gorm:create", Create)
+	createCallback.Register("gorm:create", Create(config))
 	createCallback.Register("gorm:save_after_associations", SaveAfterAssociations)
 	createCallback.Register("gorm:after_create", AfterCreate)
 	createCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)

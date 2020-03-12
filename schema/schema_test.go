@@ -32,15 +32,15 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 
 	// check fields
 	fields := []schema.Field{
-		{Name: "ID", DBName: "id", BindNames: []string{"Model", "ID"}, DataType: schema.Uint, PrimaryKey: true, Tag: `gorm:"primarykey"`, TagSettings: map[string]string{"PRIMARYKEY": "PRIMARYKEY"}},
+		{Name: "ID", DBName: "id", BindNames: []string{"Model", "ID"}, DataType: schema.Uint, PrimaryKey: true, Tag: `gorm:"primarykey"`, TagSettings: map[string]string{"PRIMARYKEY": "PRIMARYKEY"}, Size: 64},
 		{Name: "CreatedAt", DBName: "created_at", BindNames: []string{"Model", "CreatedAt"}, DataType: schema.Time},
 		{Name: "UpdatedAt", DBName: "updated_at", BindNames: []string{"Model", "UpdatedAt"}, DataType: schema.Time},
 		{Name: "DeletedAt", DBName: "deleted_at", BindNames: []string{"Model", "DeletedAt"}, Tag: `gorm:"index"`, DataType: schema.Time},
 		{Name: "Name", DBName: "name", BindNames: []string{"Name"}, DataType: schema.String},
-		{Name: "Age", DBName: "age", BindNames: []string{"Age"}, DataType: schema.Uint},
+		{Name: "Age", DBName: "age", BindNames: []string{"Age"}, DataType: schema.Uint, Size: 64},
 		{Name: "Birthday", DBName: "birthday", BindNames: []string{"Birthday"}, DataType: schema.Time},
-		{Name: "CompanyID", DBName: "company_id", BindNames: []string{"CompanyID"}, DataType: schema.Int},
-		{Name: "ManagerID", DBName: "manager_id", BindNames: []string{"ManagerID"}, DataType: schema.Uint},
+		{Name: "CompanyID", DBName: "company_id", BindNames: []string{"CompanyID"}, DataType: schema.Int, Size: 64},
+		{Name: "ManagerID", DBName: "manager_id", BindNames: []string{"ManagerID"}, DataType: schema.Uint, Size: 64},
 		{Name: "Active", DBName: "active", BindNames: []string{"Active"}, DataType: schema.Bool},
 	}
 
@@ -83,7 +83,7 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 			JoinTable: JoinTable{Name: "UserSpeak", Table: "user_speaks", Fields: []schema.Field{
 				{
 					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
 				},
 				{
 					Name: "LanguageCode", DBName: "language_code", BindNames: []string{"LanguageCode"}, DataType: schema.String,
@@ -97,11 +97,11 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 			JoinTable: JoinTable{Name: "user_friends", Table: "user_friends", Fields: []schema.Field{
 				{
 					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
 				},
 				{
 					Name: "FriendID", DBName: "friend_id", BindNames: []string{"FriendID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
 				},
 			}},
 			References: []Reference{{"ID", "User", "UserID", "user_friends", "", true}, {"ID", "User", "FriendID", "user_friends", "", false}},
@@ -124,7 +124,7 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 
 	// check fields
 	fields := []schema.Field{
-		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Int, PrimaryKey: true},
+		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Int, PrimaryKey: true, Size: 64},
 		{Name: "Name", DBName: "name", BindNames: []string{"Name"}, DataType: schema.String},
 		{Name: "Birthday", DBName: "birthday", BindNames: []string{"Birthday"}, DataType: schema.Time},
 		{Name: "RegisteredAt", DBName: "registered_at", BindNames: []string{"RegisteredAt"}, DataType: schema.Time},

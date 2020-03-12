@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func BeforeCreate(db *gorm.DB) {
@@ -43,32 +44,113 @@ func BeforeCreate(db *gorm.DB) {
 func SaveBeforeAssociations(db *gorm.DB) {
 }
 
-func Create(db *gorm.DB) {
+func Create(config *Config) func(db *gorm.DB) {
+	if config.WithReturning {
+		return CreateWithReturning
+	} else {
+		return func(db *gorm.DB) {
+			db.Statement.AddClauseIfNotExists(clause.Insert{
+				Table: clause.Table{Name: db.Statement.Table},
+			})
+			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+
+			db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
+			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+			if err == nil {
+				if db.Statement.Schema != nil {
+					if insertID, err := result.LastInsertId(); err == nil {
+						switch db.Statement.ReflectValue.Kind() {
+						case reflect.Slice, reflect.Array:
+							if config.LastInsertIDReversed {
+								for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+									insertID--
+								}
+							} else {
+								for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+									insertID++
+								}
+							}
+						case reflect.Struct:
+							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+						}
+					} else {
+						db.AddError(err)
+					}
+				}
+				db.RowsAffected, _ = result.RowsAffected()
+			} else {
+				db.AddError(err)
+			}
+		}
+	}
+}
+
+func CreateWithReturning(db *gorm.DB) {
 	db.Statement.AddClauseIfNotExists(clause.Insert{
 		Table: clause.Table{Name: db.Statement.Table},
 	})
 	db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
 	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
-	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-	if err == nil {
-		if db.Statement.Schema != nil {
-			if insertID, err := result.LastInsertId(); err == nil {
-				switch db.Statement.ReflectValue.Kind() {
-				case reflect.Slice, reflect.Array:
-					for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-						db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-						insertID--
+	if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
+		db.Statement.WriteString(" RETURNING ")
+
+		var (
+			idx    int
+			fields = make([]*schema.Field, len(sch.FieldsWithDefaultDBValue))
+			values = make([]interface{}, len(sch.FieldsWithDefaultDBValue))
+		)
+
+		for dbName, field := range sch.FieldsWithDefaultDBValue {
+			if idx != 0 {
+				db.Statement.WriteByte(',')
+			}
+
+			fields[idx] = field
+			db.Statement.WriteQuoted(dbName)
+			idx++
+		}
+
+		rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+		if err == nil {
+			defer rows.Close()
+
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice, reflect.Array:
+				for rows.Next() {
+					for idx, field := range fields {
+						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
 					}
-				case reflect.Struct:
-					db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+					if err := rows.Scan(values...); err != nil {
+						db.AddError(err)
+					}
+					db.RowsAffected++
+				}
+			case reflect.Struct:
+				for idx, field := range fields {
+					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+				}
+
+				if rows.Next() {
+					err = rows.Scan(values...)
 				}
 			}
 		}
-		db.RowsAffected, _ = result.RowsAffected()
+
+		if err != nil {
+			db.AddError(err)
+		}
 	} else {
-		db.AddError(err)
+		if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
+			db.RowsAffected, _ = result.RowsAffected()
+		} else {
+			db.AddError(err)
+		}
 	}
 }
 

@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	dsn := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable"
+	dsn := "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 	if os.Getenv("GORM_DSN") != "" {
 		dsn = os.Getenv("GORM_DSN")
 	}

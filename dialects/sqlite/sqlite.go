@@ -22,7 +22,9 @@ func Open(dsn string) gorm.Dialector {
 
 func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
-	callbacks.RegisterDefaultCallbacks(db)
+	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
+		LastInsertIDReversed: true,
+	})
 	db.ConnPool, err = sql.Open("sqlite3", dialector.DSN)
 	return
 }

@@ -37,7 +37,7 @@ func TestCreate(t *testing.T, db *gorm.DB) {
 		}
 
 		if err := db.Create(&user).Error; err != nil {
-			t.Errorf("errors happened when create: %v", err)
+			t.Fatalf("errors happened when create: %v", err)
 		}
 
 		if user.ID == 0 {
@@ -81,7 +81,7 @@ func TestFind(t *testing.T, db *gorm.DB) {
 		}}
 
 		if err := db.Create(&users).Error; err != nil {
-			t.Fatal("errors happened when create users: %v", err)
+			t.Fatalf("errors happened when create users: %v", err)
 		}
 
 		t.Run("First", func(t *testing.T) {
@@ -195,11 +195,11 @@ func TestUpdate(t *testing.T, db *gorm.DB) {
 		}
 
 		if err := db.Create(&users).Error; err != nil {
-			t.Errorf("errors happened when create: %v", err)
+			t.Fatalf("errors happened when create: %v", err)
 		} else if user.ID == 0 {
-			t.Errorf("user's primary value should not zero, %v", user.ID)
+			t.Fatalf("user's primary value should not zero, %v", user.ID)
 		} else if user.UpdatedAt.IsZero() {
-			t.Errorf("user's updated at should not zero, %v", user.UpdatedAt)
+			t.Fatalf("user's updated at should not zero, %v", user.UpdatedAt)
 		}
 		lastUpdatedAt = user.UpdatedAt
 
@@ -297,7 +297,7 @@ func TestDelete(t *testing.T, db *gorm.DB) {
 
 		for _, user := range users {
 			if user.ID == 0 {
-				t.Errorf("user's primary key should has value after create, got : %v", user.ID)
+				t.Fatalf("user's primary key should has value after create, got : %v", user.ID)
 			}
 		}
 

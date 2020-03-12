@@ -91,6 +91,8 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			writer.WriteString(" AS ")
 			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
 		}
+	case string:
+		stmt.DB.Dialector.QuoteTo(writer, v)
 	default:
 		stmt.DB.Dialector.QuoteTo(writer, fmt.Sprint(field))
 	}
