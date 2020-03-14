@@ -10,16 +10,17 @@ import (
 
 // Colors
 const (
-	Reset      = "\033[0m"
-	Red        = "\033[31m"
-	Green      = "\033[32m"
-	Yellow     = "\033[33m"
-	Blue       = "\033[34m"
-	Magenta    = "\033[35m"
-	Cyan       = "\033[36m"
-	White      = "\033[37m"
-	Redbold    = "\033[31;1m"
-	YellowBold = "\033[33;1m"
+	Reset       = "\033[0m"
+	Red         = "\033[31m"
+	Green       = "\033[32m"
+	Yellow      = "\033[33m"
+	Blue        = "\033[34m"
+	Magenta     = "\033[35m"
+	Cyan        = "\033[36m"
+	White       = "\033[37m"
+	MagentaBold = "\033[35;1m"
+	RedBold     = "\033[31;1m"
+	YellowBold  = "\033[33;1m"
 )
 
 // LogLevel
@@ -59,37 +60,40 @@ var Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
 
 func New(writer Writer, config Config) Interface {
 	var (
-		infoPrefix     = "%s\n[info] "
-		warnPrefix     = "%s\n[warn] "
-		errPrefix      = "%s\n[error] "
-		tracePrefix    = "%s\n[%v] [rows:%d] %s"
-		traceErrPrefix = "%s\n[%v] [rows:%d] %s"
+		infoStr      = "%s\n[info] "
+		warnStr      = "%s\n[warn] "
+		errStr       = "%s\n[error] "
+		traceStr     = "%s\n[%v] [rows:%d] %s"
+		traceWarnStr = "%s\n[%v] [rows:%d] %s"
+		traceErrStr  = "%s %s\n[%v] [rows:%d] %s"
 	)
 
 	if config.Colorful {
-		infoPrefix = Green + "%s\n" + Reset + Green + "[info] " + Reset
-		warnPrefix = Blue + "%s\n" + Reset + Magenta + "[warn] " + Reset
-		errPrefix = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
-		tracePrefix = Green + "%s\n" + Reset + YellowBold + "[%.3fms] " + Green + "[rows:%d]" + Reset + " %s"
-		traceErrPrefix = Magenta + "%s\n" + Reset + Redbold + "[%.3fms] " + Yellow + "[rows:%d]" + Reset + " %s"
+		infoStr = Green + "%s\n" + Reset + Green + "[info] " + Reset
+		warnStr = Blue + "%s\n" + Reset + Magenta + "[warn] " + Reset
+		errStr = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
+		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + Blue + "[rows:%d]" + Reset + " %s"
+		traceWarnStr = Green + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%d]" + Magenta + " %s" + Reset
+		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + Blue + "[rows:%d]" + Reset + " %s"
 	}
 
 	return logger{
-		Writer:         writer,
-		Config:         config,
-		infoPrefix:     infoPrefix,
-		warnPrefix:     warnPrefix,
-		errPrefix:      errPrefix,
-		tracePrefix:    tracePrefix,
-		traceErrPrefix: traceErrPrefix,
+		Writer:       writer,
+		Config:       config,
+		infoStr:      infoStr,
+		warnStr:      warnStr,
+		errStr:       errStr,
+		traceStr:     traceStr,
+		traceWarnStr: traceWarnStr,
+		traceErrStr:  traceErrStr,
 	}
 }
 
 type logger struct {
 	Writer
 	Config
-	infoPrefix, warnPrefix, errPrefix string
-	tracePrefix, traceErrPrefix       string
+	infoStr, warnStr, errStr            string
+	traceStr, traceErrStr, traceWarnStr string
 }
 
 // LogMode log mode
@@ -101,35 +105,38 @@ func (l logger) LogMode(level LogLevel) Interface {
 // Info print info
 func (l logger) Info(msg string, data ...interface{}) {
 	if l.LogLevel >= Info {
-		l.Printf(l.infoPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+		l.Printf(l.infoStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Warn print warn messages
 func (l logger) Warn(msg string, data ...interface{}) {
 	if l.LogLevel >= Warn {
-		l.Printf(l.warnPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+		l.Printf(l.warnStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Error print error messages
 func (l logger) Error(msg string, data ...interface{}) {
 	if l.LogLevel >= Error {
-		l.Printf(l.errPrefix+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+		l.Printf(l.errStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
 	}
 }
 
 // Trace print sql message
 func (l logger) Trace(begin time.Time, fc func() (string, int64), err error) {
-	if elapsed := time.Now().Sub(begin); elapsed > l.SlowThreshold && l.SlowThreshold != 0 {
-		sql, rows := fc()
-		fileline := utils.FileWithLineNum()
-		if err != nil {
-			fileline += " " + err.Error()
+	if l.LogLevel > 0 {
+		elapsed := time.Now().Sub(begin)
+		switch {
+		case err != nil:
+			sql, rows := fc()
+			l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+		case elapsed > l.SlowThreshold && l.SlowThreshold != 0:
+			sql, rows := fc()
+			l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+		case l.LogLevel >= Info:
+			sql, rows := fc()
+			l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
-		l.Printf(l.traceErrPrefix, fileline, float64(elapsed.Nanoseconds())/1e6, rows, sql)
-	} else if l.LogLevel >= Info {
-		sql, rows := fc()
-		l.Printf(l.tracePrefix, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
 	}
 }
