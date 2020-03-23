@@ -17,7 +17,7 @@ func SelectAndOmitColumns(stmt *gorm.Statement) (map[string]bool, bool) {
 			for _, dbName := range stmt.Schema.DBNames {
 				results[dbName] = true
 			}
-			return results, true
+			break
 		}
 
 		if field := stmt.Schema.LookUpField(column); field != nil {
