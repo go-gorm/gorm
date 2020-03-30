@@ -45,6 +45,27 @@ func (m Migrator) DataTypeOf(field *schema.Field) string {
 	return m.Dialector.DataTypeOf(field)
 }
 
+func (m Migrator) FullDataTypeOf(field *schema.Field) string {
+	dataType := m.DataTypeOf(field)
+
+	if field.AutoIncrement {
+		dataType += " AUTO_INCREMENT"
+	}
+
+	if field.NotNull {
+		dataType += " NOT NULL"
+	}
+
+	if field.Unique {
+		dataType += " UNIQUE"
+	}
+
+	if field.HasDefaultValue {
+		dataType += " DEFAULT " + field.DefaultValue
+	}
+	return dataType
+}
+
 // AutoMigrate
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	// TODO smart migrate data type
@@ -113,24 +134,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				field := stmt.Schema.FieldsByDBName[dbName]
 				createTableSQL += fmt.Sprintf("? ?")
 				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(field.DBDataType), "PRIMARY KEY")
-				values = append(values, clause.Column{Name: dbName}, clause.Expr{SQL: m.DataTypeOf(field)})
-
-				if field.AutoIncrement {
-					createTableSQL += " AUTO_INCREMENT"
-				}
-
-				if field.NotNull {
-					createTableSQL += " NOT NULL"
-				}
-
-				if field.Unique {
-					createTableSQL += " UNIQUE"
-				}
-
-				if field.DefaultValue != "" {
-					createTableSQL += " DEFAULT ?"
-					values = append(values, clause.Expr{SQL: field.DefaultValue})
-				}
+				values = append(values, clause.Column{Name: dbName}, clause.Expr{SQL: m.FullDataTypeOf(field)})
 				createTableSQL += ","
 			}
 
@@ -220,7 +224,7 @@ func (m Migrator) AddColumn(value interface{}, field string) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? ADD ? ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, clause.Expr{SQL: m.DataTypeOf(field)},
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, clause.Expr{SQL: m.FullDataTypeOf(field)},
 			).Error
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)
