@@ -9,13 +9,15 @@ import (
 )
 
 type UserIndex struct {
-	Name  string `gorm:"index"`
-	Name2 string `gorm:"index:idx_name,unique"`
-	Name3 string `gorm:"index:,sort:desc,collate:utf8,type:btree,length:10,where:name3 != 'jinzhu'"`
-	Name4 string `gorm:"unique_index"`
-	Name5 int64  `gorm:"index:,class:FULLTEXT,comment:hello \\, world,where:age > 10"`
-	Name6 int64  `gorm:"index:profile,comment:hello \\, world,where:age > 10"`
-	Age   int64  `gorm:"index:profile,expression:ABS(age)"`
+	Name         string `gorm:"index"`
+	Name2        string `gorm:"index:idx_name,unique"`
+	Name3        string `gorm:"index:,sort:desc,collate:utf8,type:btree,length:10,where:name3 != 'jinzhu'"`
+	Name4        string `gorm:"unique_index"`
+	Name5        int64  `gorm:"index:,class:FULLTEXT,comment:hello \\, world,where:age > 10"`
+	Name6        int64  `gorm:"index:profile,comment:hello \\, world,where:age > 10"`
+	Age          int64  `gorm:"index:profile,expression:ABS(age)"`
+	OID          int64  `gorm:"index:idx_id"`
+	MemberNumber string `gorm:"index:idx_id"`
 }
 
 func TestParseIndex(t *testing.T) {
@@ -64,6 +66,10 @@ func TestParseIndex(t *testing.T) {
 				Expression: "ABS(age)",
 			}},
 		},
+		"idx_id": {
+			Name:   "idx_id",
+			Fields: []schema.IndexOption{{}, {}},
+		},
 	}
 
 	indices := user.ParseIndexes()
@@ -71,7 +77,7 @@ func TestParseIndex(t *testing.T) {
 	for k, result := range results {
 		v, ok := indices[k]
 		if !ok {
-			t.Errorf("Failed to found index %v from parsed indices %+v", k, indices)
+			t.Fatalf("Failed to found index %v from parsed indices %+v", k, indices)
 		}
 
 		for _, name := range []string{"Name", "Class", "Type", "Where", "Comment"} {

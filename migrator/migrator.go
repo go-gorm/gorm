@@ -150,7 +150,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, idx := range stmt.Schema.ParseIndexes() {
 				if m.CreateIndexAfterCreateTable {
-					tx.Migrator().CreateIndex(value, idx.Name)
+					defer tx.Migrator().CreateIndex(value, idx.Name)
 				} else {
 					createTableSQL += "INDEX ? ?,"
 					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
