@@ -216,3 +216,34 @@ func TestAdvancedDataTypeValuerAndSetter(t *testing.T) {
 	}
 	checkField(t, userSchema, reflectValue, newValues2)
 }
+
+type UserWithPermissionControl struct {
+	ID    uint
+	Name  string `gorm:"-"`
+	Name2 string `gorm:"->"`
+	Name3 string `gorm:"<-"`
+	Name4 string `gorm:"<-:create"`
+	Name5 string `gorm:"<-:update"`
+	Name6 string `gorm:"<-:create,update"`
+}
+
+func TestParseFieldWithPermission(t *testing.T) {
+	user, err := schema.Parse(&UserWithPermissionControl{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("Failed to parse user with permission, got error %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, Creatable: true, Updatable: true, Readable: true},
+		{Name: "Name", DBName: "name", BindNames: []string{"Name"}, DataType: schema.String, Tag: `gorm:"-"`, Creatable: false, Updatable: false, Readable: false},
+		{Name: "Name2", DBName: "name2", BindNames: []string{"Name2"}, DataType: schema.String, Tag: `gorm:"->"`, Creatable: false, Updatable: false, Readable: true},
+		{Name: "Name3", DBName: "name3", BindNames: []string{"Name3"}, DataType: schema.String, Tag: `gorm:"<-"`, Creatable: true, Updatable: true, Readable: false},
+		{Name: "Name4", DBName: "name4", BindNames: []string{"Name4"}, DataType: schema.String, Tag: `gorm:"<-:create"`, Creatable: true, Updatable: false, Readable: false},
+		{Name: "Name5", DBName: "name5", BindNames: []string{"Name5"}, DataType: schema.String, Tag: `gorm:"<-:update"`, Creatable: false, Updatable: true, Readable: false},
+		{Name: "Name6", DBName: "name6", BindNames: []string{"Name6"}, DataType: schema.String, Tag: `gorm:"<-:create,update"`, Creatable: true, Updatable: true, Readable: false},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, user, &f, func(f *schema.Field) {})
+	}
+}

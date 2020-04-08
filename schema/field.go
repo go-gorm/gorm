@@ -123,17 +123,23 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if v, ok := field.TagSettings["<-"]; ok {
-		if !strings.Contains(v, "create") {
-			field.Creatable = false
+		if v != "<-" {
+			if !strings.Contains(v, "create") {
+				field.Creatable = false
+			}
+
+			if !strings.Contains(v, "update") {
+				field.Updatable = false
+			}
 		}
 
-		if !strings.Contains(v, "update") {
-			field.Updatable = false
-		}
+		field.Readable = false
 	}
 
 	if _, ok := field.TagSettings["->"]; ok {
-		field.Readable = false
+		field.Creatable = false
+		field.Updatable = false
+		field.Readable = true
 	}
 
 	if dbName, ok := field.TagSettings["COLUMN"]; ok {

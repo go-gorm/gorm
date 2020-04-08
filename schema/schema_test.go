@@ -48,6 +48,7 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 		checkSchemaField(t, user, &f, func(f *schema.Field) {
 			f.Creatable = true
 			f.Updatable = true
+			f.Readable = true
 		})
 	}
 
@@ -83,11 +84,11 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 			JoinTable: JoinTable{Name: "UserSpeak", Table: "user_speaks", Fields: []schema.Field{
 				{
 					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, Readable: true, PrimaryKey: true, Size: 64,
 				},
 				{
 					Name: "LanguageCode", DBName: "language_code", BindNames: []string{"LanguageCode"}, DataType: schema.String,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, Readable: true, PrimaryKey: true,
 				},
 			}},
 			References: []Reference{{"ID", "User", "UserID", "UserSpeak", "", true}, {"Code", "Language", "LanguageCode", "UserSpeak", "", false}},
@@ -97,11 +98,11 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 			JoinTable: JoinTable{Name: "user_friends", Table: "user_friends", Fields: []schema.Field{
 				{
 					Name: "UserID", DBName: "user_id", BindNames: []string{"UserID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, Readable: true, PrimaryKey: true, Size: 64,
 				},
 				{
 					Name: "FriendID", DBName: "friend_id", BindNames: []string{"FriendID"}, DataType: schema.Uint,
-					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, PrimaryKey: true, Size: 64,
+					Tag: `gorm:"primarykey"`, Creatable: true, Updatable: true, Readable: true, PrimaryKey: true, Size: 64,
 				},
 			}},
 			References: []Reference{{"ID", "User", "UserID", "user_friends", "", true}, {"ID", "User", "FriendID", "user_friends", "", false}},
@@ -137,6 +138,7 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 		checkSchemaField(t, user, &f, func(f *schema.Field) {
 			f.Creatable = true
 			f.Updatable = true
+			f.Readable = true
 		})
 	}
 }
