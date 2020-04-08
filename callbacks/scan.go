@@ -56,7 +56,11 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			fields := make([]*schema.Field, len(columns))
 
 			for idx, column := range columns {
-				fields[idx] = db.Statement.Schema.LookUpField(column)
+				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
+					fields[idx] = field
+				} else {
+					values[idx] = sql.RawBytes{}
+				}
 			}
 
 			for rows.Next() {
@@ -80,7 +84,7 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			}
 		case reflect.Struct:
 			for idx, column := range columns {
-				if field := db.Statement.Schema.LookUpField(column); field != nil {
+				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
 					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
 				} else {
 					values[idx] = sql.RawBytes{}

@@ -194,13 +194,13 @@ func AfterCreate(db *gorm.DB) {
 func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
-		return ConvertMapToValues(stmt, value)
+		return ConvertMapToValuesForCreate(stmt, value)
 	case []map[string]interface{}:
-		return ConvertSliceOfMapToValues(stmt, value)
+		return ConvertSliceOfMapToValuesForCreate(stmt, value)
 	default:
 		var (
 			values                    = clause.Values{}
-			selectColumns, restricted = SelectAndOmitColumns(stmt)
+			selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
 			curTime                   = stmt.DB.NowFunc()
 			isZero                    = false
 		)

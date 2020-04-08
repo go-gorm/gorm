@@ -42,6 +42,7 @@ type Field struct {
 	AutoIncrement         bool
 	Creatable             bool
 	Updatable             bool
+	Readable              bool
 	HasDefaultValue       bool
 	AutoCreateTime        TimeType
 	AutoUpdateTime        TimeType
@@ -73,6 +74,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		StructField:       fieldStruct,
 		Creatable:         true,
 		Updatable:         true,
+		Readable:          true,
 		Tag:               fieldStruct.Tag,
 		TagSettings:       ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";"),
 		Schema:            schema,
@@ -117,6 +119,21 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	if _, ok := field.TagSettings["-"]; ok {
 		field.Creatable = false
 		field.Updatable = false
+		field.Readable = false
+	}
+
+	if v, ok := field.TagSettings["<-"]; ok {
+		if !strings.Contains(v, "create") {
+			field.Creatable = false
+		}
+
+		if !strings.Contains(v, "update") {
+			field.Updatable = false
+		}
+	}
+
+	if _, ok := field.TagSettings["->"]; ok {
+		field.Readable = false
 	}
 
 	if dbName, ok := field.TagSettings["COLUMN"]; ok {
@@ -235,6 +252,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		var err error
 		field.Creatable = false
 		field.Updatable = false
+		field.Readable = false
 		if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
 			schema.err = err
 		}

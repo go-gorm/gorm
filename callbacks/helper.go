@@ -8,7 +8,7 @@ import (
 )
 
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
-func SelectAndOmitColumns(stmt *gorm.Statement) (map[string]bool, bool) {
+func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate bool) (map[string]bool, bool) {
 	results := map[string]bool{}
 
 	// select columns
@@ -36,13 +36,23 @@ func SelectAndOmitColumns(stmt *gorm.Statement) (map[string]bool, bool) {
 		}
 	}
 
+	if stmt.Schema != nil {
+		for _, field := range stmt.Schema.FieldsByDBName {
+			if requireCreate && !field.Creatable {
+				results[field.DBName] = false
+			} else if requireUpdate && !field.Updatable {
+				results[field.DBName] = false
+			}
+		}
+	}
+
 	return results, len(stmt.Selects) > 0
 }
 
-// ConvertMapToValues convert map to values
-func ConvertMapToValues(stmt *gorm.Statement, mapValue map[string]interface{}) (values clause.Values) {
+// ConvertMapToValuesForCreate convert map to values
+func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]interface{}) (values clause.Values) {
 	columns := make([]string, 0, len(mapValue))
-	selectColumns, restricted := SelectAndOmitColumns(stmt)
+	selectColumns, restricted := SelectAndOmitColumns(stmt, true, false)
 
 	var keys []string
 	for k, _ := range mapValue {
@@ -64,12 +74,12 @@ func ConvertMapToValues(stmt *gorm.Statement, mapValue map[string]interface{}) (
 	return
 }
 
-// ConvertSliceOfMapToValues convert slice of map to values
-func ConvertSliceOfMapToValues(stmt *gorm.Statement, mapValues []map[string]interface{}) (values clause.Values) {
+// ConvertSliceOfMapToValuesForCreate convert slice of map to values
+func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[string]interface{}) (values clause.Values) {
 	var (
 		columns                   = []string{}
 		result                    = map[string][]interface{}{}
-		selectColumns, restricted = SelectAndOmitColumns(stmt)
+		selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
 	)
 
 	for idx, mapValue := range mapValues {
