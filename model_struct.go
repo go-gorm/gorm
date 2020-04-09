@@ -220,7 +220,8 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				}
 
 				fieldValue := reflect.New(indirectType).Interface()
-				if _, isScanner := fieldValue.(sql.Scanner); isScanner {
+				_, isEmbed := field.TagSettingsGet("EMBEDDED")
+				if _, isScanner := fieldValue.(sql.Scanner); isScanner && !isEmbed {
 					// is scanner
 					field.IsScanner, field.IsNormal = true, true
 					if indirectType.Kind() == reflect.Struct {
@@ -235,7 +236,7 @@ func (scope *Scope) GetModelStruct() *ModelStruct {
 				} else if _, isTime := fieldValue.(*time.Time); isTime {
 					// is time
 					field.IsNormal = true
-				} else if _, ok := field.TagSettingsGet("EMBEDDED"); ok || fieldStruct.Anonymous {
+				} else if isEmbed || fieldStruct.Anonymous {
 					// is embedded struct
 					for _, subField := range scope.New(fieldValue).GetModelStruct().StructFields {
 						subField = subField.clone()
