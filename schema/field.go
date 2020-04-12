@@ -148,6 +148,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if val, ok := field.TagSettings["PRIMARYKEY"]; ok && checkTruth(val) {
 		field.PrimaryKey = true
+	} else if val, ok := field.TagSettings["PRIMARY_KEY"]; ok && checkTruth(val) {
+		field.PrimaryKey = true
 	}
 
 	if val, ok := field.TagSettings["AUTOINCREMENT"]; ok && checkTruth(val) {
