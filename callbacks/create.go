@@ -42,6 +42,29 @@ func BeforeCreate(db *gorm.DB) {
 }
 
 func SaveBeforeAssociations(db *gorm.DB) {
+	if db.Statement.Schema != nil {
+		for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice:
+			case reflect.Struct:
+				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
+					f := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+					if f.Kind() == reflect.Ptr {
+						db.Session(&gorm.Session{}).Create(f.Interface())
+					} else {
+						db.Session(&gorm.Session{}).Create(f.Addr().Interface())
+					}
+
+					for _, ref := range rel.References {
+						if !ref.OwnPrimaryKey {
+							fv, _ := ref.PrimaryKey.ValueOf(f)
+							ref.ForeignKey.Set(db.Statement.ReflectValue, fv)
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 func Create(config *Config) func(db *gorm.DB) {

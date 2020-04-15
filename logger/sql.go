@@ -51,20 +51,22 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 			if v == nil {
 				vars[idx] = "NULL"
 			} else {
-				rv := reflect.Indirect(reflect.ValueOf(v))
+				rv := reflect.ValueOf(v)
+
 				if !rv.IsValid() {
 					vars[idx] = "NULL"
-					return
-				}
-
-				for _, t := range convertableTypes {
-					if rv.Type().ConvertibleTo(t) {
-						convertParams(rv.Convert(t).Interface(), idx)
-						return
+				} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
+					convertParams(reflect.Indirect(rv).Interface(), idx)
+				} else {
+					for _, t := range convertableTypes {
+						if rv.Type().ConvertibleTo(t) {
+							convertParams(rv.Convert(t).Interface(), idx)
+							return
+						}
 					}
-				}
 
-				vars[idx] = escaper + strings.Replace(fmt.Sprint(v), escaper, "\\"+escaper, -1) + escaper
+					vars[idx] = escaper + strings.Replace(fmt.Sprint(v), escaper, "\\"+escaper, -1) + escaper
+				}
 			}
 		}
 	}
