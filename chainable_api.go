@@ -134,6 +134,10 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 //     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	if tx.Statement.Joins == nil {
+		tx.Statement.Joins = map[string][]interface{}{}
+	}
+	tx.Statement.Joins[query] = args
 	return
 }
 
@@ -211,8 +215,12 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) *DB {
 
 // Preload preload associations with given conditions
 //    db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
-func (db *DB) Preload(column string, conditions ...interface{}) (tx *DB) {
+func (db *DB) Preload(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	if tx.Statement.Preloads == nil {
+		tx.Statement.Preloads = map[string][]interface{}{}
+	}
+	tx.Statement.Preloads[query] = args
 	return
 }
 

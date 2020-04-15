@@ -24,6 +24,8 @@ type Statement struct {
 	Clauses              map[string]clause.Clause
 	Selects              []string // selected columns
 	Omits                []string // omit columns
+	Joins                map[string][]interface{}
+	Preloads             map[string][]interface{}
 	Settings             sync.Map
 	ConnPool             ConnPool
 	Schema               *schema.Schema
@@ -263,6 +265,14 @@ func (stmt *Statement) reinit() {
 
 	for k := range stmt.Clauses {
 		delete(stmt.Clauses, k)
+	}
+
+	for k := range stmt.Joins {
+		delete(stmt.Joins, k)
+	}
+
+	for k := range stmt.Preloads {
+		delete(stmt.Preloads, k)
 	}
 
 	stmt.Settings.Range(func(k, _ interface{}) bool {
