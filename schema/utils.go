@@ -37,13 +37,6 @@ func ParseTagSetting(str string, sep string) map[string]string {
 	return settings
 }
 
-func checkTruth(val string) bool {
-	if strings.ToLower(val) == "false" {
-		return false
-	}
-	return true
-}
-
 func toColumns(val string) (results []string) {
 	if val != "" {
 		for _, v := range strings.Split(val, ",") {

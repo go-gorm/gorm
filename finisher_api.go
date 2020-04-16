@@ -21,7 +21,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = value
 
-	if err := tx.Statement.Parse(value); err != nil && tx.Statement.Schema != nil {
+	if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 		where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
 		reflectValue := reflect.ValueOf(value)
 		for idx, pf := range tx.Statement.Schema.PrimaryFields {
@@ -35,9 +35,6 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(where)
 	}
 
-	if len(tx.Statement.Selects) == 0 {
-		tx.Statement.Selects = []string{"*"}
-	}
 	tx.callbacks.Update().Execute(tx)
 	return
 }

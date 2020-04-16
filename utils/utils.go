@@ -2,8 +2,10 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"runtime"
+	"strings"
 	"unicode"
 )
 
@@ -22,4 +24,17 @@ func FileWithLineNum() string {
 
 func IsChar(c rune) bool {
 	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+}
+
+func CheckTruth(val interface{}) bool {
+	if v, ok := val.(bool); ok {
+		return v
+	}
+
+	if v, ok := val.(string); ok {
+		v = strings.ToLower(v)
+		return v != "false"
+	}
+
+	return !reflect.ValueOf(val).IsZero()
 }

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/gorm/utils"
 	"github.com/jinzhu/now"
 )
 
@@ -146,13 +147,13 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DBName = dbName
 	}
 
-	if val, ok := field.TagSettings["PRIMARYKEY"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
 		field.PrimaryKey = true
-	} else if val, ok := field.TagSettings["PRIMARY_KEY"]; ok && checkTruth(val) {
+	} else if val, ok := field.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
 		field.PrimaryKey = true
 	}
 
-	if val, ok := field.TagSettings["AUTOINCREMENT"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["AUTOINCREMENT"]; ok && utils.CheckTruth(val) {
 		field.AutoIncrement = true
 		field.HasDefaultValue = true
 	}
@@ -173,11 +174,11 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.Precision, _ = strconv.Atoi(p)
 	}
 
-	if val, ok := field.TagSettings["NOT NULL"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["NOT NULL"]; ok && utils.CheckTruth(val) {
 		field.NotNull = true
 	}
 
-	if val, ok := field.TagSettings["UNIQUE"]; ok && checkTruth(val) {
+	if val, ok := field.TagSettings["UNIQUE"]; ok && utils.CheckTruth(val) {
 		field.Unique = true
 	}
 
