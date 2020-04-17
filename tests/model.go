@@ -44,6 +44,7 @@ type Pet struct {
 
 type Toy struct {
 	gorm.Model
+	Name      string
 	OwnerID   string
 	OwnerType string
 }

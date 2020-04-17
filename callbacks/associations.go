@@ -73,6 +73,8 @@ func SaveAfterAssociations(db *gorm.DB) {
 						if ref.OwnPrimaryKey {
 							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
 							ref.ForeignKey.Set(f, fv)
+						} else if ref.PrimaryValue != "" {
+							ref.ForeignKey.Set(f, ref.PrimaryValue)
 						}
 					}
 				}

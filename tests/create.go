@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/jinzhu/gorm"
@@ -103,6 +104,27 @@ func TestCreateAssociations(t *testing.T, db *gorm.DB) {
 			db.First(&account, "id = ?", user.Account.ID)
 			if user.Account.Number != "account-has-one-association" {
 				t.Errorf("Failed to query saved has one association - Account")
+			}
+		}
+	})
+
+	t.Run("Create-HasOneAssociation-Polymorphic", func(t *testing.T) {
+		var pet = Pet{
+			Name: "create",
+			Toy:  Toy{Name: "Create-HasOneAssociation-Polymorphic"},
+		}
+
+		if err := db.Create(&pet).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		if pet.Toy.OwnerID != fmt.Sprint(pet.ID) || pet.Toy.OwnerType != "pets" {
+			t.Errorf("Failed to create polymorphic has one association - toy owner id %v, owner type %v", pet.Toy.OwnerID, pet.Toy.OwnerType)
+		} else {
+			var toy Toy
+			db.First(&toy, "owner_id = ? and owner_type = ?", pet.Toy.OwnerID, pet.Toy.OwnerType)
+			if toy.Name != "Create-HasOneAssociation-Polymorphic" {
+				t.Errorf("Failed to query saved polymorphic has one association")
 			}
 		}
 	})
