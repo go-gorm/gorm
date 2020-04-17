@@ -81,4 +81,29 @@ func TestCreateAssociations(t *testing.T, db *gorm.DB) {
 			}
 		}
 	})
+
+	t.Run("Create-HasOneAssociation", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+			Account:  Account{Number: "account-has-one-association"},
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		if user.Account.ID == 0 {
+			t.Errorf("Failed to create has one association - Account")
+		} else if user.Account.UserID.Int64 != int64(user.ID) {
+			t.Errorf("Failed to create has one association - Account")
+		} else {
+			var account Account
+			db.First(&account, "id = ?", user.Account.ID)
+			if user.Account.Number != "account-has-one-association" {
+				t.Errorf("Failed to query saved has one association - Account")
+			}
+		}
+	})
 }

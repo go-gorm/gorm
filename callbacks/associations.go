@@ -10,15 +10,18 @@ import (
 
 func SaveBeforeAssociations(db *gorm.DB) {
 	if db.Statement.Schema != nil {
+		// Save Belongs To associations
 		for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
 			creatable, updatable, saveRef := saveAssociationCheck(db, rel.Field)
+			if !(creatable || updatable) {
+				continue
+			}
 
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice:
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
 					f := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
-
 					_, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(f)
 
 					if isZero && creatable {
@@ -45,6 +48,51 @@ func SaveBeforeAssociations(db *gorm.DB) {
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+}
+
+func SaveAfterAssociations(db *gorm.DB) {
+	// Save Has One associations
+	for _, rel := range db.Statement.Schema.Relationships.HasOne {
+		creatable, updatable, saveRef := saveAssociationCheck(db, rel.Field)
+		if !(creatable || updatable) {
+			continue
+		}
+
+		switch db.Statement.ReflectValue.Kind() {
+		case reflect.Slice:
+		case reflect.Struct:
+			if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
+				f := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+
+				if saveRef {
+					for _, ref := range rel.References {
+						if ref.OwnPrimaryKey {
+							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
+							ref.ForeignKey.Set(f, fv)
+						}
+					}
+				}
+
+				_, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(f)
+
+				if isZero && creatable {
+					if f.Kind() == reflect.Ptr {
+						db.Session(&gorm.Session{}).Create(f.Interface())
+					} else {
+						db.Session(&gorm.Session{}).Create(f.Addr().Interface())
+					}
+				} else if !isZero && updatable {
+					if f.Kind() == reflect.Ptr {
+						db.Session(&gorm.Session{}).Save(f.Interface())
+					} else {
+						db.Session(&gorm.Session{}).Save(f.Addr().Interface())
+					}
+				} else {
+					continue
 				}
 			}
 		}

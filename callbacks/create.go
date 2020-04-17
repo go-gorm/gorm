@@ -151,9 +151,6 @@ func CreateWithReturning(db *gorm.DB) {
 	}
 }
 
-func SaveAfterAssociations(db *gorm.DB) {
-}
-
 func AfterCreate(db *gorm.DB) {
 	if db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod := func(value interface{}) bool {
