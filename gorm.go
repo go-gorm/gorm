@@ -161,12 +161,13 @@ func (db *DB) AutoMigrate(dst ...interface{}) error {
 }
 
 // AddError add error to db
-func (db *DB) AddError(err error) {
+func (db *DB) AddError(err error) error {
 	if db.Error == nil {
 		db.Error = err
 	} else if err != nil {
 		db.Error = fmt.Errorf("%v; %w", db.Error, err)
 	}
+	return db.Error
 }
 
 func (db *DB) getInstance() *DB {

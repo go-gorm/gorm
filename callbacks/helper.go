@@ -37,11 +37,16 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 	}
 
 	if stmt.Schema != nil {
-		for _, field := range stmt.Schema.FieldsByDBName {
+		for _, field := range stmt.Schema.Fields {
+			name := field.DBName
+			if name == "" {
+				name = field.Name
+			}
+
 			if requireCreate && !field.Creatable {
-				results[field.DBName] = false
+				results[name] = false
 			} else if requireUpdate && !field.Updatable {
-				results[field.DBName] = false
+				results[name] = false
 			}
 		}
 	}
