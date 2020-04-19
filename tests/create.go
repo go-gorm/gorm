@@ -128,4 +128,58 @@ func TestCreateAssociations(t *testing.T, db *gorm.DB) {
 			}
 		}
 	})
+
+	t.Run("Create-HasManyAssociation", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet1"}, {Name: "pet2"}},
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for idx, pet := range user.Pets {
+			if pet.ID == 0 {
+				t.Fatalf("Failed to create pet #%v", idx)
+			}
+
+			var result Pet
+			db.First(&result, "id = ?", pet.ID)
+			if result.Name != pet.Name {
+				t.Errorf("Failed to query pet")
+			} else if result.UserID != user.ID {
+				t.Errorf("Failed to save relation")
+			}
+		}
+	})
+
+	t.Run("Create-HasManyAssociation-Polymorphic", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy1"}, {Name: "toy2"}},
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for idx, toy := range user.Toys {
+			if toy.ID == 0 {
+				t.Fatalf("Failed to create toy #%v", idx)
+			}
+
+			var result Toy
+			db.First(&result, "id = ?", toy.ID)
+			if result.Name != toy.Name {
+				t.Errorf("Failed to query saved toy")
+			} else if result.OwnerID != fmt.Sprint(user.ID) || result.OwnerType != "users" {
+				t.Errorf("Failed to save relation")
+			}
+		}
+	})
 }
