@@ -18,6 +18,15 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				continue
 			}
 
+			setupReferences := func(obj reflect.Value, elem reflect.Value) {
+				for _, ref := range rel.References {
+					if !ref.OwnPrimaryKey {
+						pv, _ := ref.PrimaryKey.ValueOf(elem)
+						ref.ForeignKey.Set(obj, pv)
+					}
+				}
+			}
+
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice:
 				var (
@@ -43,12 +52,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 								elems = reflect.Append(elems, rv.Addr())
 							}
 						} else {
-							for _, ref := range rel.References {
-								if !ref.OwnPrimaryKey {
-									pv, _ := ref.PrimaryKey.ValueOf(rv)
-									ref.ForeignKey.Set(objs[i], pv)
-								}
-							}
+							setupReferences(obj, rv)
 						}
 					}
 				}
@@ -56,31 +60,20 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				if elems.Len() > 0 {
 					if db.AddError(db.Session(&gorm.Session{}).Create(elems.Interface()).Error) == nil {
 						for i := 0; i < elems.Len(); i++ {
-							for _, ref := range rel.References {
-								if !ref.OwnPrimaryKey {
-									pv, _ := ref.PrimaryKey.ValueOf(elems.Index(i))
-									ref.ForeignKey.Set(objs[i], pv)
-								}
-							}
+							setupReferences(objs[i], elems.Index(i))
 						}
 					}
 				}
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
 					rv := rel.Field.ReflectValueOf(db.Statement.ReflectValue) // relation reflect value
-					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-						if rv.Kind() == reflect.Ptr {
-							db.Session(&gorm.Session{}).Create(rv.Interface())
-						} else {
-							db.Session(&gorm.Session{}).Create(rv.Addr().Interface())
-						}
+					if rv.Kind() != reflect.Ptr {
+						rv = rv.Addr()
+					}
 
-						for _, ref := range rel.References {
-							if !ref.OwnPrimaryKey {
-								pv, _ := ref.PrimaryKey.ValueOf(rv)
-								ref.ForeignKey.Set(db.Statement.ReflectValue, pv)
-							}
-						}
+					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+						db.Session(&gorm.Session{}).Create(rv.Interface())
+						setupReferences(db.Statement.ReflectValue, rv)
 					}
 				}
 			}
@@ -113,8 +106,13 @@ func SaveAfterAssociations(db *gorm.DB) {
 
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					obj := db.Statement.ReflectValue.Index(i)
-					if rv, zero := rel.Field.ValueOf(obj); !zero {
-						rv := reflect.ValueOf(rv)
+
+					if _, zero := rel.Field.ValueOf(obj); !zero {
+						rv := rel.Field.ReflectValueOf(obj)
+						if rv.Kind() != reflect.Ptr {
+							rv = rv.Addr()
+						}
+
 						for _, ref := range rel.References {
 							if ref.OwnPrimaryKey {
 								fv, _ := ref.PrimaryKey.ValueOf(obj)
@@ -125,11 +123,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						}
 
 						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-							if isPtr {
-								elems = reflect.Append(elems, rv)
-							} else {
-								elems = reflect.Append(elems, rv.Addr())
-							}
+							elems = reflect.Append(elems, rv)
 						}
 					}
 				}
@@ -140,6 +134,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
 					f := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+					if f.Kind() != reflect.Ptr {
+						f = f.Addr()
+					}
 
 					for _, ref := range rel.References {
 						if ref.OwnPrimaryKey {
@@ -151,11 +148,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 					}
 
 					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(f); isZero {
-						if f.Kind() == reflect.Ptr {
-							db.Session(&gorm.Session{}).Create(f.Interface())
-						} else {
-							db.Session(&gorm.Session{}).Create(f.Addr().Interface())
-						}
+						db.Session(&gorm.Session{}).Create(f.Interface())
 					}
 				}
 			}
@@ -168,9 +161,8 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			fieldType := rel.Field.IndirectFieldType.Elem()
-			isPtr := true
-			if fieldType.Kind() != reflect.Ptr {
-				isPtr = false
+			isPtr := fieldType.Kind() == reflect.Ptr
+			if !isPtr {
 				fieldType = reflect.PtrTo(fieldType)
 			}
 			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
@@ -221,46 +213,71 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			fieldType := rel.Field.IndirectFieldType.Elem()
-			isPtr := true
-			if fieldType.Kind() != reflect.Ptr {
-				isPtr = false
+			isPtr := fieldType.Kind() == reflect.Ptr
+			if !isPtr {
 				fieldType = reflect.PtrTo(fieldType)
 			}
 			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+			joins := reflect.MakeSlice(reflect.SliceOf(rel.JoinTable.ModelType), 0, 0)
+			objs := []reflect.Value{}
 
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					db.Statement.ReflectValue.Index(i)
+			appendToJoins := func(obj reflect.Value, elem reflect.Value) {
+				joinValue := reflect.New(rel.JoinTable.ModelType)
+				for _, ref := range rel.References {
+					if ref.OwnPrimaryKey {
+						fv, _ := ref.PrimaryKey.ValueOf(obj)
+						ref.ForeignKey.Set(joinValue, fv)
+					} else if ref.PrimaryValue != "" {
+						ref.ForeignKey.Set(joinValue, ref.PrimaryValue)
+					} else {
+						fv, _ := ref.PrimaryKey.ValueOf(elem)
+						ref.ForeignKey.Set(joinValue, fv)
+					}
 				}
-			case reflect.Struct:
-				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
-					f := reflect.Indirect(rel.Field.ReflectValueOf(db.Statement.ReflectValue))
+
+				joins = reflect.Append(joins, joinValue)
+			}
+
+			appendToElems := func(v reflect.Value) {
+				if _, zero := rel.Field.ValueOf(v); !zero {
+					f := reflect.Indirect(rel.Field.ReflectValueOf(v))
 
 					for i := 0; i < f.Len(); i++ {
 						elem := f.Index(i)
-						for _, ref := range rel.References {
-							if ref.OwnPrimaryKey {
-								fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
-								ref.ForeignKey.Set(elem, fv)
-							} else if ref.PrimaryValue != "" {
-								ref.ForeignKey.Set(elem, ref.PrimaryValue)
-							}
-						}
 
 						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(elem); isZero {
+							objs = append(objs, v)
 							if isPtr {
 								elems = reflect.Append(elems, elem)
 							} else {
 								elems = reflect.Append(elems, elem.Addr())
 							}
+						} else {
+							appendToJoins(v, elem)
 						}
 					}
 				}
 			}
 
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice:
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+					appendToElems(db.Statement.ReflectValue.Index(i))
+				}
+			case reflect.Struct:
+				appendToElems(db.Statement.ReflectValue)
+			}
+
 			if elems.Len() > 0 {
 				db.Session(&gorm.Session{}).Create(elems.Interface())
+
+				for i := 0; i < elems.Len(); i++ {
+					appendToJoins(objs[i], elems.Index(i))
+				}
+			}
+
+			if joins.Len() > 0 {
+				db.Session(&gorm.Session{}).Create(joins.Interface())
 			}
 		}
 	}
