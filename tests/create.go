@@ -46,6 +46,9 @@ func TestCreate(t *testing.T, db *gorm.DB) {
 }
 
 func TestCreateAssociations(t *testing.T, db *gorm.DB) {
+	db.Migrator().DropTable(&Account{}, &Company{}, &Pet{}, &Toy{}, &Language{})
+	db.Migrator().AutoMigrate(&Account{}, &Company{}, &Pet{}, &Toy{}, &Language{})
+
 	TestCreateBelongsToAssociations(t, db)
 	TestCreateHasOneAssociations(t, db)
 	TestCreateHasManyAssociations(t, db)
@@ -53,9 +56,6 @@ func TestCreateAssociations(t *testing.T, db *gorm.DB) {
 }
 
 func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
-	db.Migrator().DropTable(&Company{})
-	db.Migrator().AutoMigrate(&Company{})
-
 	check := func(t *testing.T, user User) {
 		if user.Company.Name != "" {
 			if user.CompanyID == nil {
@@ -391,6 +391,22 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 }
 
 func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		for _, pet := range user.Pets {
+			if pet.ID == 0 {
+				t.Errorf("Pet's foreign key should be saved")
+			}
+
+			var result Pet
+			db.First(&result, "id = ?", pet.ID)
+			if result.Name != pet.Name {
+				t.Errorf("Pet's name should be same")
+			} else if result.UserID != user.ID {
+				t.Errorf("Pet's foreign key should be saved")
+			}
+		}
+	}
+
 	t.Run("HasMany", func(t *testing.T) {
 		var user = User{
 			Name:     "create",
@@ -403,33 +419,91 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		for idx, pet := range user.Pets {
-			if pet.ID == 0 {
-				t.Fatalf("Failed to create pet #%v", idx)
-			}
-
-			var result Pet
-			db.First(&result, "id = ?", pet.ID)
-			if result.Name != pet.Name {
-				t.Errorf("Failed to query pet")
-			} else if result.UserID != user.ID {
-				t.Errorf("Failed to save relation")
-			}
-		}
+		check(t, user)
 	})
 
-	t.Run("PolymorphicHasMany", func(t *testing.T) {
-		var user = User{
-			Name:     "create",
+	t.Run("HasManyForBulkInsert", func(t *testing.T) {
+		var users = []User{{
+			Name:     "create-1",
 			Age:      18,
 			Birthday: Now(),
-			Toys:     []Toy{{Name: "toy1"}, {Name: "toy2"}},
-		}
+			Pets:     []*Pet{{Name: "pet-1-1"}, {Name: "pet-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-2-1"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-3-1"}, {Name: "pet-3-2"}},
+		}}
 
-		if err := db.Create(&user).Error; err != nil {
+		if err := db.Create(&users).Error; err != nil {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		for _, user := range users {
+			check(t, user)
+		}
+	})
+
+	t.Run("HasManyForBulkInsertPtrData", func(t *testing.T) {
+		var users = []*User{{
+			Name:     "create-1",
+			Age:      18,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-1-1"}, {Name: "pet-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-2-1"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-3-1"}, {Name: "pet-3-2"}},
+		}}
+
+		if err := db.Create(&users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, user := range users {
+			check(t, *user)
+		}
+	})
+
+	t.Run("HasManyForBulkInsertWithoutPtr", func(t *testing.T) {
+		var users = []*User{{
+			Name:     "create-1",
+			Age:      18,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-1-1"}, {Name: "pet-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-2-1"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Pets:     []*Pet{{Name: "pet-3-1"}, {Name: "pet-3-2"}},
+		}}
+
+		if err := db.Create(users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, user := range users {
+			check(t, *user)
+		}
+	})
+
+	checkToy := func(t *testing.T, user User) {
 		for idx, toy := range user.Toys {
 			if toy.ID == 0 {
 				t.Fatalf("Failed to create toy #%v", idx)
@@ -443,8 +517,142 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 				t.Errorf("Failed to save relation")
 			}
 		}
+	}
+
+	t.Run("PolymorphicHasMany", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy1"}, {Name: "toy2"}},
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		checkToy(t, user)
+	})
+
+	t.Run("PolymorphicHasManyForBulkInsert", func(t *testing.T) {
+		var users = []User{{
+			Name:     "create-1",
+			Age:      18,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-1-1"}, {Name: "toy-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-2-1"}, {Name: "toy-2-2"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-3-1"}, {Name: "toy-3-2"}},
+		}}
+
+		if err := db.Create(&users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, user := range users {
+			checkToy(t, user)
+		}
+	})
+
+	t.Run("PolymorphicHasManyForBulkInsertPtrData", func(t *testing.T) {
+		var users = []*User{{
+			Name:     "create-1",
+			Age:      18,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-1-1"}, {Name: "toy-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-2-1"}, {Name: "toy-2-2"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-3-1"}, {Name: "toy-3-2"}},
+		}}
+
+		if err := db.Create(&users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, user := range users {
+			checkToy(t, *user)
+		}
+	})
+
+	t.Run("PolymorphicHasManyForBulkInsertWithoutPtr", func(t *testing.T) {
+		var users = []User{{
+			Name:     "create-1",
+			Age:      18,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-1-1"}, {Name: "toy-1-2"}},
+		}, {
+			Name:     "create-2",
+			Age:      28,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-2-1"}, {Name: "toy-2-2"}},
+		}, {
+			Name:     "create-3",
+			Age:      38,
+			Birthday: Now(),
+			Toys:     []Toy{{Name: "toy-3-1"}, {Name: "toy-3-2"}},
+		}}
+
+		if err := db.Create(users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, user := range users {
+			checkToy(t, user)
+		}
 	})
 }
 
 func TestCreateMany2ManyAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		for _, language := range user.Languages {
+			var result Language
+			db.First(&result, "code = ?", language.Code)
+			// TODO
+			// if result.Name != language.Name {
+			// 	t.Errorf("Language's name should be same")
+			// }
+		}
+
+		for _, f := range user.Friends {
+			if f.ID == 0 {
+				t.Errorf("Friend's foreign key should be saved")
+			}
+
+			var result User
+			db.First(&result, "id = ?", f.ID)
+			if result.Name != f.Name {
+				t.Errorf("Friend's name should be same")
+			}
+		}
+	}
+
+	t.Run("Many2Many", func(t *testing.T) {
+		var user = User{
+			Name:      "create",
+			Age:       18,
+			Birthday:  Now(),
+			Languages: []Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}},
+			Friends:   []*User{{Name: "friend-1"}, {Name: "friend-2"}},
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		check(t, user)
+	})
 }

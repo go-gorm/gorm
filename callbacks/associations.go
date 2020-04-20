@@ -218,7 +218,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 				fieldType = reflect.PtrTo(fieldType)
 			}
 			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
-			joins := reflect.MakeSlice(reflect.SliceOf(rel.JoinTable.ModelType), 0, 0)
+			joins := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.JoinTable.ModelType)), 0, 0)
 			objs := []reflect.Value{}
 
 			appendToJoins := func(obj reflect.Value, elem reflect.Value) {
