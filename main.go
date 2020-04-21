@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	goerr "github.com/go-errors/errors"
 	"reflect"
 	"strings"
 	"sync"
@@ -824,6 +825,15 @@ func (s *DB) AddError(err error) error {
 
 // GetErrors get happened errors from the db
 func (s *DB) GetErrors() []error {
+	errs := s.getErrors()
+	wrapperErrors := []error{}
+	for _, err := range errs {
+		wrapperErrors = append(wrapperErrors, goerr.New(err))
+	}
+	return wrapperErrors
+}
+
+func (s *DB) getErrors() []error {
 	if errs, ok := s.Error.(Errors); ok {
 		return errs
 	} else if s.Error != nil {
