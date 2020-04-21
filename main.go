@@ -732,7 +732,7 @@ func (s *DB) AddForeignKey(field string, dest string, onDelete string, onUpdate 
 // RemoveForeignKey Remove foreign key from the given scope, e.g:
 //     db.Model(&User{}).RemoveForeignKey("city_id", "cities(id)")
 func (s *DB) RemoveForeignKey(field string, dest string) *DB {
-	scope := s.clone().NewScope(s.Value)
+	scope := s.NewScope(s.Value)
 	scope.removeForeignKey(field, dest)
 	return scope.db
 }
