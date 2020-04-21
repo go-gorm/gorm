@@ -42,6 +42,8 @@ func (s *ModelStruct) TableName(db *DB) string {
 		// Set default table name
 		if tabler, ok := reflect.New(s.ModelType).Interface().(tabler); ok {
 			s.defaultTableName = tabler.TableName()
+		} else if dbTabler, ok := reflect.New(s.ModelType).Interface().(dbTabler); ok {
+			s.defaultTableName = dbTabler.TableName(db)
 		} else {
 			tableName := ToTableName(s.ModelType.Name())
 			db.parent.RLock()
