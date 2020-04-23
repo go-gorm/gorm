@@ -1,12 +1,11 @@
 package gorm_test
 
 import (
+	"github.com/jinzhu/now"
 	"os"
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/jinzhu/now"
 )
 
 func TestCreate(t *testing.T) {
@@ -288,35 +287,35 @@ func TestCreateIgnore(t *testing.T) {
 }
 
 func TestPostgresReturningMultipleColumns(t *testing.T) {
-	type ReturningMultipleColumns struct {
-		ID      uint `gorm:"primary_key"`
-		SerialA int  `gorm:"type:serial;not null"`
-		SerialB int  `gorm:"type:serial;not null"`
-		SerialC int  `gorm:"type:serial;not null"`
-	}
+	if DB.Dialect().GetName() == "postgres" {
+		type ReturningMultipleColumns struct {
+			ID      uint `gorm:"primary_key"`
+			SerialA int  `gorm:"type:serial;not null"`
+			SerialB int  `gorm:"type:serial;not null"`
+			SerialC int  `gorm:"type:serial;not null"`
+		}
 
-	DB.LogMode(true)
+		err := DB.AutoMigrate(&ReturningMultipleColumns{}).Error
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	err := DB.AutoMigrate(&ReturningMultipleColumns{}).Error
-	if err != nil {
-		t.Fatal(err)
-	}
+		record := ReturningMultipleColumns{}
+		err = DB.Omit("serial_a", "serial_b", "serial_c").Create(&record).Error
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	record := ReturningMultipleColumns{}
-	err = DB.Omit("serial_a", "serial_b", "serial_c").Create(&record).Error
-	if err != nil {
-		t.Fatal(err)
-	}
+		if record.SerialA == 0 {
+			t.Error("SerialA should not be 0")
+		}
 
-	if record.SerialA == 0 {
-		t.Error("SerialA should not be 0")
-	}
+		if record.SerialB == 0 {
+			t.Error("SerialB should not be 0")
+		}
 
-	if record.SerialB == 0 {
-		t.Error("SerialB should not be 0")
-	}
-
-	if record.SerialC == 0 {
-		t.Error("SerialC should not be 0")
+		if record.SerialC == 0 {
+			t.Error("SerialC should not be 0")
+		}
 	}
 }
