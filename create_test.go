@@ -286,3 +286,37 @@ func TestCreateIgnore(t *testing.T) {
 		t.Error("Should ignore duplicate user insert by insert modifier:IGNORE ")
 	}
 }
+
+func TestPostgresReturningMultipleColumns(t *testing.T) {
+	type ReturningMultipleColumns struct {
+		ID      uint `gorm:"primary_key"`
+		SerialA int  `gorm:"type:serial;not null"`
+		SerialB int  `gorm:"type:serial;not null"`
+		SerialC int  `gorm:"type:serial;not null"`
+	}
+
+	DB.LogMode(true)
+
+	err := DB.AutoMigrate(&ReturningMultipleColumns{}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	record := ReturningMultipleColumns{}
+	err = DB.Omit("serial_a", "serial_b", "serial_c").Create(&record).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if record.SerialA == 0 {
+		t.Error("SerialA should not be 0")
+	}
+
+	if record.SerialB == 0 {
+		t.Error("SerialB should not be 0")
+	}
+
+	if record.SerialC == 0 {
+		t.Error("SerialC should not be 0")
+	}
+}

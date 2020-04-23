@@ -162,7 +162,18 @@ func createCallback(scope *Scope) {
 
 		// execute create sql: dialects with additional lastInsertID requirements (currently postgres & mssql)
 		if primaryField.Field.CanAddr() {
-			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(primaryField.Field.Addr().Interface()); scope.Err(err) == nil {
+			dest := []interface{}{primaryField.Field.Addr().Interface()}
+			if scope.Dialect().GetName() == "postgres" {
+				for _, field := range scope.Fields() {
+					typ, ok := field.TagSettingsGet("TYPE")
+					if ok && typ == "serial" && field.Field.CanAddr() {
+						dest = append(dest, field.Field.Addr().Interface())
+						scope.SQL += fmt.Sprintf(", %s.%s", quotedTableName, scope.Quote(field.DBName))
+					}
+				}
+			}
+
+			if err := scope.SQLDB().QueryRow(scope.SQL, scope.SQLVars...).Scan(dest...); scope.Err(err) == nil {
 				primaryField.IsBlank = false
 				scope.db.RowsAffected = 1
 			}
