@@ -620,7 +620,7 @@ func (s *DB) NewRecord(value interface{}) bool {
 // RecordNotFound check if returning ErrRecordNotFound error
 func (s *DB) RecordNotFound() bool {
 	for _, err := range s.GetErrors() {
-		if err == ErrRecordNotFound {
+		if err.Error() == ErrRecordNotFound.Error() {
 			return true
 		}
 	}
