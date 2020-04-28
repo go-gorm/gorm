@@ -108,12 +108,13 @@ func (e *expr) operator(operator string, value interface{}) *expr {
 		return e
 	}
 
-	if _, ok := value.(*expr); ok {
-		e.expr = "(" + e.expr + " " + operator + " (?))"
+	if vExpr, ok := value.(*expr); ok {
+		e.expr = "(" + e.expr + " " + operator + " (" + vExpr.expr + "))"
+		e.args = append(e.args, vExpr.args...)
 	} else {
 		e.expr = "(" + e.expr + " " + operator + " ?)"
+		e.args = append(e.args, value)
 	}
-	e.args = append(e.args, value)
 
 	return e
 }
