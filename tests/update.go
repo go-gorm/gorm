@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -129,5 +130,253 @@ func TestUpdate(t *testing.T, db *gorm.DB) {
 		} else {
 			AssertObjEqual(t, result4, user, "Name", "Age", "Birthday")
 		}
+
+		TestUpdateAssociations(t, db)
+	})
+}
+
+func TestUpdateAssociations(t *testing.T, db *gorm.DB) {
+	db.Migrator().DropTable(&Account{}, &Company{}, &Pet{}, &Toy{}, &Language{})
+	db.Migrator().AutoMigrate(&Account{}, &Company{}, &Pet{}, &Toy{}, &Language{})
+
+	TestUpdateBelongsToAssociations(t, db)
+	TestUpdateHasOneAssociations(t, db)
+	TestUpdateHasManyAssociations(t, db)
+	TestUpdateMany2ManyAssociations(t, db)
+}
+
+func TestUpdateBelongsToAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		if user.Company.Name != "" {
+			if user.CompanyID == nil {
+				t.Errorf("Company's foreign key should be saved")
+			} else {
+				var company Company
+				db.First(&company, "id = ?", *user.CompanyID)
+				if company.Name != user.Company.Name {
+					t.Errorf("Company's name should be same")
+				}
+			}
+		} else if user.CompanyID != nil {
+			t.Errorf("Company should not be created for zero value, got: %+v", user.CompanyID)
+		}
+
+		if user.Manager != nil {
+			if user.ManagerID == nil {
+				t.Errorf("Manager's foreign key should be saved")
+			} else {
+				var manager User
+				db.First(&manager, "id = ?", *user.ManagerID)
+				if manager.Name != user.Manager.Name {
+					t.Errorf("Manager's name should be same")
+				}
+			}
+		} else if user.ManagerID != nil {
+			t.Errorf("Manager should not be created for zero value, got: %+v", user.ManagerID)
+		}
+	}
+
+	t.Run("BelongsTo", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		user.Company = Company{Name: "company-belongs-to-association"}
+		user.Manager = &User{Name: "manager-belongs-to-association"}
+		if err := db.Save(&user).Error; err != nil {
+			t.Fatalf("errors happened when update: %v", err)
+		}
+
+		check(t, user)
+	})
+}
+
+func TestUpdateHasOneAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		if user.Account.ID == 0 {
+			t.Errorf("Account should be saved")
+		} else if user.Account.UserID.Int64 != int64(user.ID) {
+			t.Errorf("Account's foreign key should be saved")
+		} else {
+			var account Account
+			db.First(&account, "id = ?", user.Account.ID)
+			if account.Number != user.Account.Number {
+				t.Errorf("Account's number should be sme")
+			}
+		}
+	}
+
+	t.Run("HasOne", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		user.Account = Account{Number: "account-has-one-association"}
+
+		if err := db.Save(&user).Error; err != nil {
+			t.Fatalf("errors happened when update: %v", err)
+		}
+
+		check(t, user)
+	})
+
+	checkPet := func(t *testing.T, pet Pet) {
+		if pet.Toy.OwnerID != fmt.Sprint(pet.ID) || pet.Toy.OwnerType != "pets" {
+			t.Errorf("Failed to create polymorphic has one association - toy owner id %v, owner type %v", pet.Toy.OwnerID, pet.Toy.OwnerType)
+		} else {
+			var toy Toy
+			db.First(&toy, "owner_id = ? and owner_type = ?", pet.Toy.OwnerID, pet.Toy.OwnerType)
+			if toy.Name != pet.Toy.Name {
+				t.Errorf("Failed to query saved polymorphic has one association")
+			}
+		}
+	}
+
+	t.Run("PolymorphicHasOne", func(t *testing.T) {
+		var pet = Pet{
+			Name: "create",
+		}
+
+		if err := db.Create(&pet).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		pet.Toy = Toy{Name: "Update-HasOneAssociation-Polymorphic"}
+
+		if err := db.Save(&pet).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		checkPet(t, pet)
+	})
+}
+
+func TestUpdateHasManyAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		for _, pet := range user.Pets {
+			if pet.ID == 0 {
+				t.Errorf("Pet's foreign key should be saved")
+			}
+
+			var result Pet
+			db.First(&result, "id = ?", pet.ID)
+			if result.Name != pet.Name {
+				t.Errorf("Pet's name should be same")
+			} else if result.UserID != user.ID {
+				t.Errorf("Pet's foreign key should be saved")
+			}
+		}
+	}
+
+	t.Run("HasMany", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		user.Pets = []*Pet{{Name: "pet1"}, {Name: "pet2"}}
+		if err := db.Save(&user).Error; err != nil {
+			t.Fatalf("errors happened when update: %v", err)
+		}
+
+		check(t, user)
+	})
+
+	checkToy := func(t *testing.T, user User) {
+		for idx, toy := range user.Toys {
+			if toy.ID == 0 {
+				t.Fatalf("Failed to create toy #%v", idx)
+			}
+
+			var result Toy
+			db.First(&result, "id = ?", toy.ID)
+			if result.Name != toy.Name {
+				t.Errorf("Failed to query saved toy")
+			} else if result.OwnerID != fmt.Sprint(user.ID) || result.OwnerType != "users" {
+				t.Errorf("Failed to save relation")
+			}
+		}
+	}
+
+	t.Run("PolymorphicHasMany", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		user.Toys = []Toy{{Name: "toy1"}, {Name: "toy2"}}
+		if err := db.Save(&user).Error; err != nil {
+			t.Fatalf("errors happened when update: %v", err)
+		}
+
+		checkToy(t, user)
+	})
+}
+
+func TestUpdateMany2ManyAssociations(t *testing.T, db *gorm.DB) {
+	check := func(t *testing.T, user User) {
+		for _, language := range user.Languages {
+			var result Language
+			db.First(&result, "code = ?", language.Code)
+			// TODO
+			// if result.Name != language.Name {
+			// 	t.Errorf("Language's name should be same")
+			// }
+		}
+
+		for _, f := range user.Friends {
+			if f.ID == 0 {
+				t.Errorf("Friend's foreign key should be saved")
+			}
+
+			var result User
+			db.First(&result, "id = ?", f.ID)
+			if result.Name != f.Name {
+				t.Errorf("Friend's name should be same")
+			}
+		}
+	}
+
+	t.Run("Many2Many", func(t *testing.T) {
+		var user = User{
+			Name:     "create",
+			Age:      18,
+			Birthday: Now(),
+		}
+
+		if err := db.Create(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		user.Languages = []Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}}
+		user.Friends = []*User{{Name: "friend-1"}, {Name: "friend-2"}}
+
+		if err := db.Save(&user).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		check(t, user)
 	})
 }
