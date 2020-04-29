@@ -3,6 +3,7 @@ package callbacks
 import (
 	"database/sql"
 	"reflect"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/schema"
@@ -54,12 +55,21 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			isPtr := db.Statement.ReflectValue.Type().Elem().Kind() == reflect.Ptr
 			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 0))
 			fields := make([]*schema.Field, len(columns))
+			joinFields := make([][2]*schema.Field, len(columns))
 
 			for idx, column := range columns {
 				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
 					fields[idx] = field
+				} else if names := strings.Split(column, "__"); len(names) > 1 {
+					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
+						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							joinFields[idx] = [2]*schema.Field{rel.Field, field}
+							continue
+						}
+					}
+					values[idx] = &sql.RawBytes{}
 				} else {
-					values[idx] = sql.RawBytes{}
+					values[idx] = &sql.RawBytes{}
 				}
 			}
 
@@ -68,6 +78,9 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 				for idx, field := range fields {
 					if field != nil {
 						values[idx] = field.ReflectValueOf(elem).Addr().Interface()
+					} else if joinFields[idx][0] != nil {
+						relValue := joinFields[idx][0].ReflectValueOf(elem)
+						values[idx] = joinFields[idx][1].ReflectValueOf(relValue).Addr().Interface()
 					}
 				}
 
@@ -86,8 +99,17 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			for idx, column := range columns {
 				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
 					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+				} else if names := strings.Split(column, "__"); len(names) > 1 {
+					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
+						relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							values[idx] = field.ReflectValueOf(relValue).Addr().Interface()
+							continue
+						}
+					}
+					values[idx] = &sql.RawBytes{}
 				} else {
-					values[idx] = sql.RawBytes{}
+					values[idx] = &sql.RawBytes{}
 				}
 			}
 
