@@ -548,7 +548,7 @@ func TestTransactionWithBlock(t *testing.T) {
 		})
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transcation-3").Error; err == nil {
 		t.Errorf("Should not find record after panic rollback")
 	}
 }
