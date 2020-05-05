@@ -98,12 +98,12 @@ func TestRunCallbacks(t *testing.T) {
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 0, 1, 0, 0, 0, 0, 2}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0, 2}) {
 		t.Errorf("After update callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	DB.Delete(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 0, 1, 0, 0, 1, 1, 2}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2}) {
 		t.Errorf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
