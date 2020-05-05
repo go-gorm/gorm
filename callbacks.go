@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -90,7 +91,7 @@ func (p *processor) Execute(db *DB) {
 	}
 
 	if stmt := db.Statement; stmt != nil {
-		db.Logger.Trace(curTime, func() (string, int64) {
+		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
 			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
 		}, db.Error)
 
@@ -141,7 +142,7 @@ func (p *processor) compile() (err error) {
 	}
 
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
-		logger.Default.Error("Got error when compile callbacks, got %v", err)
+		logger.Default.Error(context.Background(), "Got error when compile callbacks, got %v", err)
 	}
 	return
 }
@@ -164,7 +165,7 @@ func (c *callback) Register(name string, fn func(*DB)) error {
 }
 
 func (c *callback) Remove(name string) error {
-	logger.Default.Warn("removing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	logger.Default.Warn(context.Background(), "removing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.remove = true
 	c.processor.callbacks = append(c.processor.callbacks, c)
@@ -172,7 +173,7 @@ func (c *callback) Remove(name string) error {
 }
 
 func (c *callback) Replace(name string, fn func(*DB)) error {
-	logger.Default.Info("replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	logger.Default.Info(context.Background(), "replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.handler = fn
 	c.replace = true
@@ -199,7 +200,7 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 	for _, c := range cs {
 		// show warning message the callback name already exists
 		if idx := getRIndex(names, c.name); idx > -1 && !c.replace && !c.remove && !cs[idx].remove {
-			logger.Default.Warn("duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
+			logger.Default.Warn(context.Background(), "duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
 		}
 		names = append(names, c.name)
 	}

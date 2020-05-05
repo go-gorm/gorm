@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -83,7 +84,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	defer func() {
 		if schema.err != nil {
-			logger.Default.Error(schema.err.Error())
+			logger.Default.Error(context.Background(), schema.err.Error())
 			cacheStore.Delete(modelType)
 		}
 	}()
@@ -174,7 +175,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			case "func(*gorm.DB)": // TODO hack
 				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(name).SetBool(true)
 			default:
-				logger.Default.Warn("Model %v don't match %vInterface, should be %v(*gorm.DB)", schema, name, name)
+				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be %v(*gorm.DB)", schema, name, name)
 			}
 		}
 	}
