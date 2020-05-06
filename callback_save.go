@@ -129,7 +129,7 @@ func saveAfterAssociationsCallback(scope *Scope) {
 							scope.Err(newDB.Save(elem).Error)
 						}
 					} else if autoUpdate {
-						scope.Err(newDB.Save(elem).Error)
+						scope.Err(newScope.DB().Updates(elem).Error)
 					}
 
 					if !scope.New(newScope.Value).PrimaryKeyZero() && saveReference {
