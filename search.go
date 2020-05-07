@@ -32,7 +32,57 @@ type searchPreload struct {
 }
 
 func (s *search) clone() *search {
-	clone := *s
+	clone := search{
+		db:               s.db,
+		whereConditions:  make([]map[string]interface{}, len(s.whereConditions)),
+		orConditions:     make([]map[string]interface{}, len(s.orConditions)),
+		notConditions:    make([]map[string]interface{}, len(s.notConditions)),
+		havingConditions: make([]map[string]interface{}, len(s.havingConditions)),
+		joinConditions:   make([]map[string]interface{}, len(s.joinConditions)),
+		initAttrs:        make([]interface{}, len(s.initAttrs)),
+		assignAttrs:      make([]interface{}, len(s.assignAttrs)),
+		selects:          s.selects,
+		omits:            make([]string, len(s.omits)),
+		orders:           make([]interface{}, len(s.orders)),
+		preload:          make([]searchPreload, len(s.preload)),
+		offset:           s.offset,
+		limit:            s.limit,
+		group:            s.group,
+		tableName:        s.tableName,
+		raw:              s.raw,
+		Unscoped:         s.Unscoped,
+		ignoreOrderQuery: s.ignoreOrderQuery,
+	}
+	for i, value := range s.whereConditions {
+		clone.whereConditions[i] = value
+	}
+	for i, value := range s.orConditions {
+		clone.orConditions[i] = value
+	}
+	for i, value := range s.notConditions {
+		clone.notConditions[i] = value
+	}
+	for i, value := range s.havingConditions {
+		clone.havingConditions[i] = value
+	}
+	for i, value := range s.joinConditions {
+		clone.joinConditions[i] = value
+	}
+	for i, value := range s.initAttrs {
+		clone.initAttrs[i] = value
+	}
+	for i, value := range s.assignAttrs {
+		clone.assignAttrs[i] = value
+	}
+	for i, value := range s.omits {
+		clone.omits[i] = value
+	}
+	for i, value := range s.orders {
+		clone.orders[i] = value
+	}
+	for i, value := range s.preload {
+		clone.preload[i] = value
+	}
 	return &clone
 }
 
