@@ -17,4 +17,6 @@ var (
 	ErrNotImplemented = errors.New("not implemented")
 	// ErrMissingWhereClause missing where clause
 	ErrMissingWhereClause = errors.New("missing WHERE clause while deleting")
+	// ErrUnsupportedRelation unsupported relations
+	ErrUnsupportedRelation = errors.New("unsupported relations")
 )

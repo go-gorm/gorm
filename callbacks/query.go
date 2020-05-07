@@ -3,9 +3,12 @@ package callbacks
 import (
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func Query(db *gorm.DB) {
@@ -96,6 +99,48 @@ func Query(db *gorm.DB) {
 }
 
 func Preload(db *gorm.DB) {
+	if len(db.Statement.Preloads) > 0 {
+		preloadMap := map[string][]string{}
+
+		for name := range db.Statement.Preloads {
+			preloadFields := strings.Split(name, ".")
+			for idx := range preloadFields {
+				preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
+			}
+		}
+
+		preloadNames := make([]string, len(preloadMap))
+		idx := 0
+		for key := range preloadMap {
+			preloadNames[idx] = key
+			idx++
+		}
+		sort.Strings(preloadNames)
+
+		for _, name := range preloadNames {
+			curSchema := db.Statement.Schema
+			preloadFields := preloadMap[name]
+
+			for idx, preloadField := range preloadFields {
+				if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
+					if idx == len(preloadFields)-1 {
+						conds := db.Statement.Preloads[strings.Join(preloadFields[:idx+1], ".")]
+
+						switch rel.Type {
+						case schema.HasOne:
+						case schema.HasMany:
+						case schema.BelongsTo:
+						case schema.Many2Many:
+						}
+					} else {
+						curSchema = rel.FieldSchema
+					}
+				} else {
+					db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
+				}
+			}
+		}
+	}
 }
 
 func AfterQuery(db *gorm.DB) {
