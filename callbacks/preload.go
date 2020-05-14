@@ -85,27 +85,31 @@ func getIdentityFieldValuesMap(reflectValue reflect.Value, fields []*schema.Fiel
 }
 
 func preloadData(tx *gorm.DB, resultSchema *schema.Schema, foreignKeys []string, foreignValues [][]interface{}) reflect.Value {
-	results := reflect.MakeSlice(reflect.SliceOf(resultSchema.ModelType), 0, 0)
+	slice := reflect.MakeSlice(reflect.SliceOf(resultSchema.ModelType), 0, 0)
+	results := reflect.New(slice.Type())
+	results.Elem().Set(slice)
+
 	queryValues := make([]interface{}, len(foreignValues))
 	if len(foreignKeys) == 1 {
 		for idx, r := range foreignValues {
 			queryValues[idx] = r[0]
 		}
-		tx.Where(clause.IN{Column: foreignKeys[0], Values: queryValues}).Find(results.Addr().Interface())
+		tx.Where(clause.IN{Column: foreignKeys[0], Values: queryValues}).Find(results.Interface())
 	} else {
 		for idx, r := range foreignValues {
 			queryValues[idx] = r
 		}
-		tx.Where(clause.IN{Column: foreignKeys, Values: queryValues}).Find(results.Addr().Interface())
+		tx.Where(clause.IN{Column: foreignKeys, Values: queryValues}).Find(results.Interface())
 	}
 
-	return results
+	return results.Elem()
 }
 
-func preload(tx *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
+func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	var (
-		reflectValue     = tx.Statement.ReflectValue
+		reflectValue     = db.Statement.ReflectValue
 		rel              = rels[len(rels)-1]
+		tx               = db.Session(&gorm.Session{})
 		relForeignKeys   []string
 		relForeignFields []*schema.Field
 		foreignFields    []*schema.Field
@@ -177,7 +181,7 @@ func preload(tx *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 
 	fieldValues := make([]reflect.Value, len(foreignFields))
 	for i := 0; i < reflectResults.Len(); i++ {
-		for idx, field := range foreignFields {
+		for idx, field := range relForeignFields {
 			fieldValues[idx] = field.ReflectValueOf(reflectResults.Index(i))
 		}
 
@@ -185,11 +189,13 @@ func preload(tx *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 			reflectFieldValue := reflect.Indirect(rel.Field.ReflectValueOf(data))
 			switch reflectFieldValue.Kind() {
 			case reflect.Struct:
-				elem := reflectResults.Index(i).Convert(reflectFieldValue.Type().Elem())
-				rel.Field.Set(data, elem.Interface())
+				rel.Field.Set(data, reflectResults.Index(i).Interface())
 			case reflect.Slice, reflect.Array:
-				elem := reflectResults.Index(i).Convert(reflectFieldValue.Type().Elem())
-				rel.Field.Set(data, reflect.Append(reflectFieldValue, elem).Interface())
+				if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
+					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i).Addr()).Interface())
+				} else {
+					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i)).Interface())
+				}
 			}
 		}
 	}

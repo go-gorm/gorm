@@ -56,14 +56,16 @@ func TestCreateAssociations(t *testing.T, db *gorm.DB) {
 }
 
 func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
-	check := func(t *testing.T, user User) {
-		if user.Company.Name != "" {
+	check := func(t *testing.T, user User, old User) {
+		if old.Company.Name != "" {
 			if user.CompanyID == nil {
 				t.Errorf("Company's foreign key should be saved")
 			} else {
 				var company Company
 				db.First(&company, "id = ?", *user.CompanyID)
-				if company.Name != user.Company.Name {
+				if company.Name != old.Company.Name {
+					t.Errorf("Company's name should be same")
+				} else if user.Company.Name != old.Company.Name {
 					t.Errorf("Company's name should be same")
 				}
 			}
@@ -71,13 +73,15 @@ func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
 			t.Errorf("Company should not be created for zero value, got: %+v", user.CompanyID)
 		}
 
-		if user.Manager != nil {
+		if old.Manager != nil {
 			if user.ManagerID == nil {
 				t.Errorf("Manager's foreign key should be saved")
 			} else {
 				var manager User
 				db.First(&manager, "id = ?", *user.ManagerID)
 				if manager.Name != user.Manager.Name {
+					t.Errorf("Manager's name should be same")
+				} else if user.Manager.Name != old.Manager.Name {
 					t.Errorf("Manager's name should be same")
 				}
 			}
@@ -99,7 +103,11 @@ func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		check(t, user)
+		check(t, user, user)
+
+		var user2 User
+		db.Preload("Company").Preload("Manager").Find(&user2, "id = ?", user.ID)
+		check(t, user2, user)
 	})
 
 	t.Run("BelongsToForBulkInsert", func(t *testing.T) {
@@ -126,8 +134,22 @@ func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		var userIDs []uint
 		for _, user := range users {
-			check(t, user)
+			userIDs = append(userIDs, user.ID)
+			check(t, user, user)
+		}
+
+		var users2 []User
+		db.Preload("Company").Preload("Manager").Find(&users2, "id IN (?)", userIDs)
+		for idx, user := range users2 {
+			check(t, user, users[idx])
+		}
+
+		var users3 []User
+		db.Preload("Company").Preload("Manager").Find(users3, "id IN (?)", userIDs)
+		for idx, user := range users3 {
+			check(t, user, users[idx])
 		}
 	})
 
@@ -156,7 +178,7 @@ func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, *user)
+			check(t, *user, *user)
 		}
 	})
 
@@ -185,13 +207,13 @@ func TestCreateBelongsToAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, *user)
+			check(t, *user, *user)
 		}
 	})
 }
 
 func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
-	check := func(t *testing.T, user User) {
+	check := func(t *testing.T, user User, old User) {
 		if user.Account.ID == 0 {
 			t.Errorf("Account should be saved")
 		} else if user.Account.UserID.Int64 != int64(user.ID) {
@@ -200,7 +222,9 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 			var account Account
 			db.First(&account, "id = ?", user.Account.ID)
 			if account.Number != user.Account.Number {
-				t.Errorf("Account's number should be sme")
+				t.Errorf("Account's number should be same")
+			} else if user.Account.Number != old.Account.Number {
+				t.Errorf("Account's number should be same")
 			}
 		}
 	}
@@ -217,7 +241,11 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		check(t, user)
+		check(t, user, user)
+
+		var user2 User
+		db.Preload("Account").Find(&user2, "id = ?", user.ID)
+		check(t, user2, user)
 	})
 
 	t.Run("HasOneForBulkInsert", func(t *testing.T) {
@@ -242,8 +270,16 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		var userIDs []uint
 		for _, user := range users {
-			check(t, user)
+			userIDs = append(userIDs, user.ID)
+			check(t, user, user)
+		}
+
+		var users2 []User
+		db.Preload("Account").Find(&users2, "id IN (?)", userIDs)
+		for idx, user := range users2 {
+			check(t, user, users[idx])
 		}
 	})
 
@@ -270,7 +306,7 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, *user)
+			check(t, *user, *user)
 		}
 	})
 
@@ -297,17 +333,19 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, user)
+			check(t, user, user)
 		}
 	})
 
-	checkPet := func(t *testing.T, pet Pet) {
+	checkPet := func(t *testing.T, pet Pet, old Pet) {
 		if pet.Toy.OwnerID != fmt.Sprint(pet.ID) || pet.Toy.OwnerType != "pets" {
 			t.Errorf("Failed to create polymorphic has one association - toy owner id %v, owner type %v", pet.Toy.OwnerID, pet.Toy.OwnerType)
 		} else {
 			var toy Toy
 			db.First(&toy, "owner_id = ? and owner_type = ?", pet.Toy.OwnerID, pet.Toy.OwnerType)
 			if toy.Name != pet.Toy.Name {
+				t.Errorf("Failed to query saved polymorphic has one association")
+			} else if old.Toy.Name != pet.Toy.Name {
 				t.Errorf("Failed to query saved polymorphic has one association")
 			}
 		}
@@ -323,7 +361,11 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		checkPet(t, pet)
+		checkPet(t, pet, pet)
+
+		var pet2 Pet
+		db.Preload("Toy").Find(&pet2, "id = ?", pet.ID)
+		checkPet(t, pet2, pet)
 	})
 
 	t.Run("PolymorphicHasOneForBulkInsert", func(t *testing.T) {
@@ -342,8 +384,16 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		var petIDs []uint
 		for _, pet := range pets {
-			checkPet(t, pet)
+			petIDs = append(petIDs, pet.ID)
+			checkPet(t, pet, pet)
+		}
+
+		var pets2 []Pet
+		db.Preload("Toy").Find(&pets2, "id IN (?)", petIDs)
+		for idx, pet := range pets2 {
+			checkPet(t, pet, pets[idx])
 		}
 	})
 
@@ -364,7 +414,7 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, pet := range pets {
-			checkPet(t, *pet)
+			checkPet(t, *pet, *pet)
 		}
 	})
 
@@ -385,14 +435,14 @@ func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, pet := range pets {
-			checkPet(t, *pet)
+			checkPet(t, *pet, *pet)
 		}
 	})
 }
 
 func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
-	check := func(t *testing.T, user User) {
-		for _, pet := range user.Pets {
+	check := func(t *testing.T, user User, old User) {
+		for idx, pet := range user.Pets {
 			if pet.ID == 0 {
 				t.Errorf("Pet's foreign key should be saved")
 			}
@@ -403,6 +453,8 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 				t.Errorf("Pet's name should be same")
 			} else if result.UserID != user.ID {
 				t.Errorf("Pet's foreign key should be saved")
+			} else if result.Name != old.Pets[idx].Name {
+				t.Errorf("Pet's name should be same")
 			}
 		}
 	}
@@ -419,7 +471,11 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		check(t, user)
+		check(t, user, user)
+
+		var user2 User
+		db.Preload("Pets").Find(&user2, "id = ?", user.ID)
+		check(t, user2, user)
 	})
 
 	t.Run("HasManyForBulkInsert", func(t *testing.T) {
@@ -444,8 +500,16 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		var userIDs []uint
 		for _, user := range users {
-			check(t, user)
+			userIDs = append(userIDs, user.ID)
+			check(t, user, user)
+		}
+
+		var users2 []User
+		db.Preload("Pets").Find(&users2, "id IN (?)", userIDs)
+		for idx, user := range users2 {
+			check(t, user, users[idx])
 		}
 	})
 
@@ -472,7 +536,7 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, *user)
+			check(t, *user, *user)
 		}
 	})
 
@@ -499,11 +563,11 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			check(t, *user)
+			check(t, *user, *user)
 		}
 	})
 
-	checkToy := func(t *testing.T, user User) {
+	checkToy := func(t *testing.T, user User, old User) {
 		for idx, toy := range user.Toys {
 			if toy.ID == 0 {
 				t.Fatalf("Failed to create toy #%v", idx)
@@ -512,6 +576,8 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			var result Toy
 			db.First(&result, "id = ?", toy.ID)
 			if result.Name != toy.Name {
+				t.Errorf("Failed to query saved toy")
+			} else if result.Name != old.Toys[idx].Name {
 				t.Errorf("Failed to query saved toy")
 			} else if result.OwnerID != fmt.Sprint(user.ID) || result.OwnerType != "users" {
 				t.Errorf("Failed to save relation")
@@ -531,7 +597,11 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		checkToy(t, user)
+		checkToy(t, user, user)
+
+		var user2 User
+		db.Preload("Toys").Find(&user2, "id = ?", user.ID)
+		check(t, user2, user)
 	})
 
 	t.Run("PolymorphicHasManyForBulkInsert", func(t *testing.T) {
@@ -556,8 +626,16 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
+		var userIDs []uint
 		for _, user := range users {
-			checkToy(t, user)
+			userIDs = append(userIDs, user.ID)
+			checkToy(t, user, user)
+		}
+
+		var users2 []User
+		db.Preload("Toys").Find(&users2, "id IN (?)", userIDs)
+		for idx, user := range users2 {
+			check(t, user, users[idx])
 		}
 	})
 
@@ -584,7 +662,7 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			checkToy(t, *user)
+			checkToy(t, *user, *user)
 		}
 	})
 
@@ -611,7 +689,7 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 		}
 
 		for _, user := range users {
-			checkToy(t, user)
+			checkToy(t, user, user)
 		}
 	})
 }

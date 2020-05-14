@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -45,6 +46,9 @@ func ToStringKey(values ...reflect.Value) string {
 
 	for idx, value := range values {
 		rv := reflect.Indirect(value).Interface()
+		if valuer, ok := rv.(driver.Valuer); ok {
+			rv, _ = valuer.Value()
+		}
 
 		switch v := rv.(type) {
 		case string:

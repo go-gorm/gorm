@@ -133,7 +133,7 @@ func Preload(db *gorm.DB) {
 				}
 			}
 
-			preload(db.Session(&gorm.Session{}), rels, db.Statement.Preloads[name])
+			preload(db, rels, db.Statement.Preloads[name])
 		}
 	}
 }
