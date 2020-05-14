@@ -695,17 +695,18 @@ func TestCreateHasManyAssociations(t *testing.T, db *gorm.DB) {
 }
 
 func TestCreateMany2ManyAssociations(t *testing.T, db *gorm.DB) {
-	check := func(t *testing.T, user User) {
-		for _, language := range user.Languages {
+	check := func(t *testing.T, user User, old User) {
+		for idx, language := range user.Languages {
 			var result Language
 			db.First(&result, "code = ?", language.Code)
-			// TODO
-			// if result.Name != language.Name {
-			// 	t.Errorf("Language's name should be same")
-			// }
+			if result.Name != language.Name {
+				t.Errorf("Language's name should be same")
+			} else if result.Name != old.Languages[idx].Name {
+				t.Errorf("Language's name should be same")
+			}
 		}
 
-		for _, f := range user.Friends {
+		for idx, f := range user.Friends {
 			if f.ID == 0 {
 				t.Errorf("Friend's foreign key should be saved")
 			}
@@ -714,9 +715,13 @@ func TestCreateMany2ManyAssociations(t *testing.T, db *gorm.DB) {
 			db.First(&result, "id = ?", f.ID)
 			if result.Name != f.Name {
 				t.Errorf("Friend's name should be same")
+			} else if result.Name != old.Friends[idx].Name {
+				t.Errorf("Language's name should be same")
 			}
 		}
 	}
+
+	db.Create(&[]Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}})
 
 	t.Run("Many2Many", func(t *testing.T) {
 		var user = User{
@@ -731,6 +736,52 @@ func TestCreateMany2ManyAssociations(t *testing.T, db *gorm.DB) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 
-		check(t, user)
+		check(t, user, user)
+
+		var user2 User
+		db.Preload("Languages").Preload("Friends").Find(&user2, "id = ?", user.ID)
+		check(t, user2, user)
+	})
+
+	t.Run("Many2ManyForBulkInsert", func(t *testing.T) {
+		var users = []User{
+			{
+				Name:      "create-1",
+				Age:       18,
+				Birthday:  Now(),
+				Languages: []Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}},
+				Friends:   []*User{{Name: "friend-1-1"}, {Name: "friend-1-2"}},
+			},
+			{
+				Name:      "create-2",
+				Age:       18,
+				Birthday:  Now(),
+				Languages: []Language{{Code: "zh-CN", Name: "Chinese"}},
+				Friends:   []*User{{Name: "friend-2-1"}},
+			},
+			{
+				Name:      "create-3",
+				Age:       18,
+				Birthday:  Now(),
+				Languages: []Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}},
+				Friends:   []*User{{Name: "friend-3-1"}, {Name: "friend-3-2"}, {Name: "friend-3-3"}},
+			},
+		}
+
+		if err := db.Create(&users).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		var userIDs []uint
+		for _, user := range users {
+			userIDs = append(userIDs, user.ID)
+			check(t, user, user)
+		}
+
+		var users2 []User
+		db.Preload("Languages").Preload("Friends").Find(&users2, "id IN (?)", userIDs)
+		for idx, user := range users2 {
+			check(t, user, users[idx])
+		}
 	})
 }
