@@ -84,7 +84,7 @@ func getIdentityFieldValuesMap(reflectValue reflect.Value, fields []*schema.Fiel
 	return dataResults, results
 }
 
-func preloadData(tx *gorm.DB, resultSchema *schema.Schema, foreignKeys []string, foreignValues [][]interface{}) reflect.Value {
+func preloadData(tx *gorm.DB, resultSchema *schema.Schema, foreignKeys []string, foreignValues [][]interface{}, conds []interface{}) reflect.Value {
 	slice := reflect.MakeSlice(reflect.SliceOf(resultSchema.ModelType), 0, 0)
 	results := reflect.New(slice.Type())
 	results.Elem().Set(slice)
@@ -94,12 +94,12 @@ func preloadData(tx *gorm.DB, resultSchema *schema.Schema, foreignKeys []string,
 		for idx, r := range foreignValues {
 			queryValues[idx] = r[0]
 		}
-		tx.Where(clause.IN{Column: foreignKeys[0], Values: queryValues}).Find(results.Interface())
+		tx.Where(clause.IN{Column: foreignKeys[0], Values: queryValues}).Find(results.Interface(), conds...)
 	} else {
 		for idx, r := range foreignValues {
 			queryValues[idx] = r
 		}
-		tx.Where(clause.IN{Column: foreignKeys, Values: queryValues}).Find(results.Interface())
+		tx.Where(clause.IN{Column: foreignKeys, Values: queryValues}).Find(results.Interface(), conds...)
 	}
 
 	return results.Elem()
@@ -139,7 +139,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		}
 
 		joinIdentityMap, joinForeignValues := getIdentityFieldValuesMap(reflectValue, joinForeignFields)
-		joinResults := preloadData(tx, rel.JoinTable, joinForeignKeys, joinForeignValues)
+		joinResults := preloadData(tx, rel.JoinTable, joinForeignKeys, joinForeignValues, nil)
 
 		// convert join identity map to relation identity map
 		fieldValues := make([]reflect.Value, len(foreignFields))
@@ -177,7 +177,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		identityMap, foreignValues = getIdentityFieldValuesMap(reflectValue, foreignFields)
 	}
 
-	reflectResults := preloadData(tx, rel.FieldSchema, relForeignKeys, foreignValues)
+	reflectResults := preloadData(tx, rel.FieldSchema, relForeignKeys, foreignValues, conds)
 
 	fieldValues := make([]reflect.Value, len(foreignFields))
 	for i := 0; i < reflectResults.Len(); i++ {
