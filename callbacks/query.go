@@ -25,6 +25,7 @@ func Query(db *gorm.DB) {
 			}
 		}
 
+		// inline joins
 		if len(db.Statement.Joins) != 0 {
 			joins := []clause.Join{}
 
@@ -101,7 +102,6 @@ func Query(db *gorm.DB) {
 func Preload(db *gorm.DB) {
 	if len(db.Statement.Preloads) > 0 {
 		preloadMap := map[string][]string{}
-
 		for name := range db.Statement.Preloads {
 			preloadFields := strings.Split(name, ".")
 			for idx := range preloadFields {
@@ -118,27 +118,22 @@ func Preload(db *gorm.DB) {
 		sort.Strings(preloadNames)
 
 		for _, name := range preloadNames {
-			curSchema := db.Statement.Schema
-			preloadFields := preloadMap[name]
+			var (
+				curSchema     = db.Statement.Schema
+				preloadFields = preloadMap[name]
+				rels          = make([]*schema.Relationship, len(preloadFields))
+			)
 
 			for idx, preloadField := range preloadFields {
 				if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
-					if idx == len(preloadFields)-1 {
-						conds := db.Statement.Preloads[strings.Join(preloadFields[:idx+1], ".")]
-
-						switch rel.Type {
-						case schema.HasOne:
-						case schema.HasMany:
-						case schema.BelongsTo:
-						case schema.Many2Many:
-						}
-					} else {
-						curSchema = rel.FieldSchema
-					}
+					rels[idx] = rel
+					curSchema = rel.FieldSchema
 				} else {
 					db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
 				}
 			}
+
+			preload(db.Session(&gorm.Session{}), rels, db.Statement.Preloads[name])
 		}
 	}
 }

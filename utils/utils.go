@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -37,4 +38,25 @@ func CheckTruth(val interface{}) bool {
 	}
 
 	return !reflect.ValueOf(val).IsZero()
+}
+
+func ToStringKey(values ...reflect.Value) string {
+	results := make([]string, len(values))
+
+	for idx, value := range values {
+		rv := reflect.Indirect(value).Interface()
+
+		switch v := rv.(type) {
+		case string:
+			results[idx] = v
+		case []byte:
+			results[idx] = string(v)
+		case uint:
+			results[idx] = strconv.FormatUint(uint64(v), 10)
+		default:
+			results[idx] = fmt.Sprint(v)
+		}
+	}
+
+	return strings.Join(results, "_")
 }

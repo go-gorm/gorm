@@ -95,6 +95,15 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		}
 	case string:
 		stmt.DB.Dialector.QuoteTo(writer, v)
+	case []string:
+		writer.WriteByte('(')
+		for idx, d := range v {
+			if idx != 0 {
+				writer.WriteString(",")
+			}
+			stmt.DB.Dialector.QuoteTo(writer, d)
+		}
+		writer.WriteByte(')')
 	default:
 		stmt.DB.Dialector.QuoteTo(writer, fmt.Sprint(field))
 	}
