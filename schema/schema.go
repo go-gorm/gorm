@@ -43,6 +43,13 @@ func (schema Schema) String() string {
 	return fmt.Sprintf("%v.%v", schema.ModelType.PkgPath(), schema.ModelType.Name())
 }
 
+func (schema Schema) MakeSlice() reflect.Value {
+	slice := reflect.MakeSlice(reflect.SliceOf(schema.ModelType), 0, 0)
+	results := reflect.New(slice.Type())
+	results.Elem().Set(slice)
+	return results
+}
+
 func (schema Schema) LookUpField(name string) *Field {
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
