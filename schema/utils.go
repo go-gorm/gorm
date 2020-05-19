@@ -128,6 +128,21 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 	return dataResults, results
 }
 
+// GetIdentityFieldValuesMapFromValues get identity map from fields
+func GetIdentityFieldValuesMapFromValues(values []interface{}, fields []*Field) (map[string][]reflect.Value, [][]interface{}) {
+	resultsMap := map[string][]reflect.Value{}
+	results := [][]interface{}{}
+
+	for _, v := range values {
+		rm, rs := GetIdentityFieldValuesMap(reflect.Indirect(reflect.ValueOf(v)), fields)
+		for k, v := range rm {
+			resultsMap[k] = append(resultsMap[k], v...)
+		}
+		results = append(results, rs...)
+	}
+	return resultsMap, results
+}
+
 // ToQueryValues to query values
 func ToQueryValues(foreignKeys []string, foreignValues [][]interface{}) (interface{}, []interface{}) {
 	queryValues := make([]interface{}, len(foreignValues))
