@@ -3,6 +3,7 @@ package gorm
 import (
 	"fmt"
 
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/schema"
 )
 
@@ -31,10 +32,6 @@ func (db *DB) Association(column string) *Association {
 
 func (association *Association) Find(out interface{}, conds ...interface{}) error {
 	if association.Error == nil {
-		for _, ref := range association.Relationship.References {
-			if ref.OwnPrimaryKey {
-			}
-		}
 	}
 
 	return association.Error
@@ -53,9 +50,27 @@ func (association *Association) Delete(values ...interface{}) error {
 }
 
 func (association *Association) Clear() error {
-	return association.Error
+	return association.Replace()
 }
 
-func (association *Association) Count() int {
-	return 0
+func (association *Association) Count() (count int) {
+	if association.Error == nil {
+		var (
+			tx    = association.DB
+			conds = association.Relationship.ToQueryConditions(tx.Statement.ReflectValue)
+		)
+
+		if association.Relationship.JoinTable != nil {
+			tx.Clauses(clause.From{Joins: []clause.Join{{
+				Table: clause.Table{Name: association.Relationship.JoinTable.Table},
+				ON:    clause.Where{Exprs: conds},
+			}}})
+		} else {
+			tx.Clauses(clause.Where{Exprs: conds})
+		}
+
+		association.Error = tx.Count(&count).Error
+	}
+
+	return
 }

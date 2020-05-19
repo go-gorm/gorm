@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/logger"
 )
 
@@ -26,6 +27,10 @@ type Schema struct {
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  map[string]*Field // fields with default value assigned by database
 	Relationships             Relationships
+	CreateClauses             []clause.Interface
+	QueryClauses              []clause.Interface
+	UpdateClauses             []clause.Interface
+	DeleteClauses             []clause.Interface
 	BeforeCreate, AfterCreate bool
 	BeforeUpdate, AfterUpdate bool
 	BeforeDelete, AfterDelete bool

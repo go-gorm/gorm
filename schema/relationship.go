@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/inflection"
 )
 
@@ -344,4 +345,48 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	}
 
 	return &constraint
+}
+
+func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []clause.Expression) {
+	foreignFields := []*Field{}
+	relForeignKeys := []string{}
+
+	if rel.JoinTable != nil {
+		for _, ref := range rel.References {
+			if ref.OwnPrimaryKey {
+				foreignFields = append(foreignFields, ref.PrimaryKey)
+				relForeignKeys = append(relForeignKeys, ref.PrimaryKey.DBName)
+			} else if ref.PrimaryValue != "" {
+				conds = append(conds, clause.Eq{
+					Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+					Value:  ref.PrimaryValue,
+				})
+			} else {
+				conds = append(conds, clause.Eq{
+					Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+					Value:  clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+				})
+			}
+		}
+	} else {
+		for _, ref := range rel.References {
+			if ref.OwnPrimaryKey {
+				relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
+				foreignFields = append(foreignFields, ref.PrimaryKey)
+			} else if ref.PrimaryValue != "" {
+				conds = append(conds, clause.Eq{
+					Column: clause.Column{Table: rel.FieldSchema.Table, Name: ref.ForeignKey.DBName},
+					Value:  ref.PrimaryValue,
+				})
+			} else {
+				relForeignKeys = append(relForeignKeys, ref.PrimaryKey.DBName)
+				foreignFields = append(foreignFields, ref.ForeignKey)
+			}
+		}
+	}
+
+	_, foreignValues := GetIdentityFieldValuesMap(reflectValue, foreignFields)
+	column, values := ToQueryValues(relForeignKeys, foreignValues)
+	conds = append(conds, clause.IN{Column: column, Values: values})
+	return
 }
