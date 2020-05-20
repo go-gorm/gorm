@@ -28,7 +28,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 			}
 
 			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice:
+			case reflect.Slice, reflect.Array:
 				var (
 					objs      []reflect.Value
 					fieldType = rel.Field.FieldType
@@ -92,7 +92,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice:
+			case reflect.Slice, reflect.Array:
 				var (
 					fieldType = rel.Field.FieldType
 					isPtr     = fieldType.Kind() == reflect.Ptr
@@ -193,7 +193,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice:
+			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					appendToElems(db.Statement.ReflectValue.Index(i))
 				}
@@ -260,7 +260,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice:
+			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					appendToElems(db.Statement.ReflectValue.Index(i))
 				}
