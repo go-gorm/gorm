@@ -400,12 +400,12 @@ func TestNullValuesWithFirstOrCreate(t *testing.T) {
 
 func TestTransaction(t *testing.T) {
 	tx := DB.Begin()
-	u := User{Name: "transcation"}
+	u := User{Name: "transaction"}
 	if err := tx.Save(&u).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+	if err := tx.First(&User{}, "name = ?", "transaction").Error; err != nil {
 		t.Errorf("Should find saved record")
 	}
 
@@ -415,49 +415,49 @@ func TestTransaction(t *testing.T) {
 
 	tx.Rollback()
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := tx.First(&User{}, "name = ?", "transaction").Error; err == nil {
 		t.Errorf("Should not find record after rollback")
 	}
 
 	tx2 := DB.Begin()
-	u2 := User{Name: "transcation-2"}
+	u2 := User{Name: "transaction-2"}
 	if err := tx2.Save(&u2).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := tx2.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Errorf("Should find saved record")
 	}
 
 	tx2.Commit()
 
-	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
 
 	tx3 := DB.Begin()
-	u3 := User{Name: "transcation-3"}
+	u3 := User{Name: "transaction-3"}
 	if err := tx3.Save(&u3).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx3.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+	if err := tx3.First(&User{}, "name = ?", "transaction-3").Error; err != nil {
 		t.Errorf("Should find saved record")
 	}
 
 	tx3.RollbackUnlessCommitted()
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := tx.First(&User{}, "name = ?", "transaction").Error; err == nil {
 		t.Errorf("Should not find record after rollback")
 	}
 
 	tx4 := DB.Begin()
-	u4 := User{Name: "transcation-4"}
+	u4 := User{Name: "transaction-4"}
 	if err := tx4.Save(&u4).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
 
-	if err := tx4.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+	if err := tx4.First(&User{}, "name = ?", "transaction-4").Error; err != nil {
 		t.Errorf("Should find saved record")
 	}
 
@@ -465,7 +465,7 @@ func TestTransaction(t *testing.T) {
 
 	tx4.RollbackUnlessCommitted()
 
-	if err := DB.First(&User{}, "name = ?", "transcation-4").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-4").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
 }
@@ -482,12 +482,12 @@ func assertPanic(t *testing.T, f func()) {
 func TestTransactionWithBlock(t *testing.T) {
 	// rollback
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		u := User{Name: "transcation"}
+		u := User{Name: "transaction"}
 		if err := tx.Save(&u).Error; err != nil {
 			t.Errorf("No error should raise")
 		}
 
-		if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+		if err := tx.First(&User{}, "name = ?", "transaction").Error; err != nil {
 			t.Errorf("Should find saved record")
 		}
 
@@ -498,36 +498,36 @@ func TestTransactionWithBlock(t *testing.T) {
 		t.Errorf("Transaction return error will equal the block returns error")
 	}
 
-	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transaction").Error; err == nil {
 		t.Errorf("Should not find record after rollback")
 	}
 
 	// commit
 	DB.Transaction(func(tx *gorm.DB) error {
-		u2 := User{Name: "transcation-2"}
+		u2 := User{Name: "transaction-2"}
 		if err := tx.Save(&u2).Error; err != nil {
 			t.Errorf("No error should raise")
 		}
 
-		if err := tx.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+		if err := tx.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 			t.Errorf("Should find saved record")
 		}
 		return nil
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Errorf("Should be able to find committed record")
 	}
 
 	// panic will rollback
 	assertPanic(t, func() {
 		DB.Transaction(func(tx *gorm.DB) error {
-			u3 := User{Name: "transcation-3"}
+			u3 := User{Name: "transaction-3"}
 			if err := tx.Save(&u3).Error; err != nil {
 				t.Errorf("No error should raise")
 			}
 
-			if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+			if err := tx.First(&User{}, "name = ?", "transaction-3").Error; err != nil {
 				t.Errorf("Should find saved record")
 			}
 
@@ -535,14 +535,14 @@ func TestTransactionWithBlock(t *testing.T) {
 		})
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation-3").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-3").Error; err == nil {
 		t.Errorf("Should not find record after panic rollback")
 	}
 }
 
 func TestTransaction_NoErrorOnRollbackAfterCommit(t *testing.T) {
 	tx := DB.Begin()
-	u := User{Name: "transcation"}
+	u := User{Name: "transaction"}
 	if err := tx.Save(&u).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
@@ -567,14 +567,14 @@ func TestTransactionReadonly(t *testing.T) {
 	}
 
 	tx := DB.Begin()
-	u := User{Name: "transcation"}
+	u := User{Name: "transaction"}
 	if err := tx.Save(&u).Error; err != nil {
 		t.Errorf("No error should raise")
 	}
 	tx.Commit()
 
 	tx = DB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+	if err := tx.First(&User{}, "name = ?", "transaction").Error; err != nil {
 		t.Errorf("Should find saved record")
 	}
 
@@ -582,7 +582,7 @@ func TestTransactionReadonly(t *testing.T) {
 		t.Errorf("Should return the underlying sql.Tx")
 	}
 
-	u = User{Name: "transcation-2"}
+	u = User{Name: "transaction-2"}
 	if err := tx.Save(&u).Error; err == nil {
 		t.Errorf("Error should have been raised in a readonly transaction")
 	}
