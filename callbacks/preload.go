@@ -42,22 +42,25 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 			}
 		}
 
-		joinIdentityMap, joinForeignValues := schema.GetIdentityFieldValuesMap(reflectValue, joinForeignFields)
+		joinIdentityMap, joinForeignValues := schema.GetIdentityFieldValuesMap(reflectValue, foreignFields)
+		if len(joinForeignValues) == 0 {
+			return
+		}
 
 		joinResults := rel.JoinTable.MakeSlice().Elem()
 		column, values := schema.ToQueryValues(joinForeignKeys, joinForeignValues)
 		tx.Where(clause.IN{Column: column, Values: values}).Find(joinResults.Addr().Interface())
 
 		// convert join identity map to relation identity map
-		fieldValues := make([]reflect.Value, len(foreignFields))
-		joinFieldValues := make([]reflect.Value, len(joinForeignFields))
+		fieldValues := make([]interface{}, len(foreignFields))
+		joinFieldValues := make([]interface{}, len(joinForeignFields))
 		for i := 0; i < joinResults.Len(); i++ {
-			for idx, field := range foreignFields {
-				fieldValues[idx] = field.ReflectValueOf(joinResults.Index(i))
+			for idx, field := range joinForeignFields {
+				fieldValues[idx], _ = field.ValueOf(joinResults.Index(i))
 			}
 
-			for idx, field := range joinForeignFields {
-				joinFieldValues[idx] = field.ReflectValueOf(joinResults.Index(i))
+			for idx, field := range joinRelForeignFields {
+				joinFieldValues[idx], _ = field.ValueOf(joinResults.Index(i))
 			}
 
 			if results, ok := joinIdentityMap[utils.ToStringKey(fieldValues...)]; ok {
@@ -82,16 +85,19 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		}
 
 		identityMap, foreignValues = schema.GetIdentityFieldValuesMap(reflectValue, foreignFields)
+		if len(foreignValues) == 0 {
+			return
+		}
 	}
 
 	reflectResults := rel.FieldSchema.MakeSlice().Elem()
 	column, values := schema.ToQueryValues(relForeignKeys, foreignValues)
 	tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), conds...)
 
-	fieldValues := make([]reflect.Value, len(foreignFields))
+	fieldValues := make([]interface{}, len(foreignFields))
 	for i := 0; i < reflectResults.Len(); i++ {
 		for idx, field := range relForeignFields {
-			fieldValues[idx] = field.ReflectValueOf(reflectResults.Index(i))
+			fieldValues[idx], _ = field.ValueOf(reflectResults.Index(i))
 		}
 
 		for _, data := range identityMap[utils.ToStringKey(fieldValues...)] {

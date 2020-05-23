@@ -101,8 +101,10 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 
 			_, values := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
-			column, queryValues := schema.ToQueryValues(foreignKeys, values)
-			association.DB.Model(modelValue).Where(clause.IN{Column: column, Values: queryValues}).UpdateColumns(updateMap)
+			if len(values) > 0 {
+				column, queryValues := schema.ToQueryValues(foreignKeys, values)
+				association.DB.Model(modelValue).Where(clause.IN{Column: column, Values: queryValues}).UpdateColumns(updateMap)
+			}
 		case schema.Many2Many:
 			var primaryFields, relPrimaryFields []*schema.Field
 			var foreignKeys, relForeignKeys []string
@@ -200,13 +202,13 @@ func (association *Association) Delete(values ...interface{}) error {
 				if _, zero := rel.Field.ValueOf(data); !zero {
 					fieldValue := reflect.Indirect(rel.Field.ReflectValueOf(data))
 
-					fieldValues := make([]reflect.Value, len(relFields))
+					fieldValues := make([]interface{}, len(relFields))
 					switch fieldValue.Kind() {
 					case reflect.Slice, reflect.Array:
 						validFieldValues := reflect.Zero(rel.Field.FieldType)
 						for i := 0; i < fieldValue.Len(); i++ {
 							for idx, field := range relFields {
-								fieldValues[idx] = field.ReflectValueOf(fieldValue.Index(i))
+								fieldValues[idx], _ = field.ValueOf(fieldValue.Index(i))
 							}
 
 							if _, ok := relValuesMap[utils.ToStringKey(fieldValues...)]; !ok {
@@ -217,7 +219,7 @@ func (association *Association) Delete(values ...interface{}) error {
 						rel.Field.Set(data, validFieldValues)
 					case reflect.Struct:
 						for idx, field := range relFields {
-							fieldValues[idx] = field.ReflectValueOf(data)
+							fieldValues[idx], _ = field.ValueOf(data)
 						}
 						if _, ok := relValuesMap[utils.ToStringKey(fieldValues...)]; ok {
 							rel.Field.Set(data, reflect.Zero(rel.FieldSchema.ModelType))

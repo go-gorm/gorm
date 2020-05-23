@@ -34,7 +34,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateWithAssociations(t *testing.T) {
-	var user = *GetUser("create_with_belongs_to", Config{
+	var user = *GetUser("create_with_associations", Config{
 		Account:   true,
 		Pets:      2,
 		Toys:      3,
@@ -52,34 +52,38 @@ func TestCreateWithAssociations(t *testing.T) {
 	CheckUser(t, user, user)
 
 	var user2 User
-	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Find(&user2, "id = ?", user.ID)
+	DB.Debug().Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").Find(&user2, "id = ?", user.ID)
 	CheckUser(t, user2, user)
 }
 
-// func TestBulkCreateWithBelongsTo(t *testing.T) {
-// 	users := []User{
-// 		*GetUser("create_with_belongs_to_1", Config{Company: true, Manager: true}),
-// 		*GetUser("create_with_belongs_to_2", Config{Company: true, Manager: false}),
-// 		*GetUser("create_with_belongs_to_3", Config{Company: false, Manager: true}),
-// 		*GetUser("create_with_belongs_to_4", Config{Company: true, Manager: true}),
-// 	}
+func TestBulkCreateWithAssociations(t *testing.T) {
+	users := []User{
+		*GetUser("bulk_1", Config{Account: true, Pets: 2, Toys: 3, Company: true, Manager: true, Team: 0, Languages: 1, Friends: 1}),
+		*GetUser("bulk_2", Config{Account: false, Pets: 2, Toys: 4, Company: false, Manager: false, Team: 1, Languages: 3, Friends: 5}),
+		*GetUser("bulk_3", Config{Account: true, Pets: 0, Toys: 3, Company: true, Manager: false, Team: 4, Languages: 0, Friends: 1}),
+		*GetUser("bulk_4", Config{Account: true, Pets: 3, Toys: 0, Company: false, Manager: true, Team: 0, Languages: 3, Friends: 0}),
+		*GetUser("bulk_5", Config{Account: false, Pets: 0, Toys: 3, Company: true, Manager: false, Team: 1, Languages: 3, Friends: 1}),
+		*GetUser("bulk_6", Config{Account: true, Pets: 4, Toys: 3, Company: false, Manager: true, Team: 1, Languages: 3, Friends: 0}),
+		*GetUser("bulk_7", Config{Account: true, Pets: 1, Toys: 3, Company: true, Manager: true, Team: 4, Languages: 3, Friends: 1}),
+		*GetUser("bulk_8", Config{Account: false, Pets: 0, Toys: 0, Company: false, Manager: false, Team: 0, Languages: 0, Friends: 0}),
+	}
 
-// 	if err := DB.Create(&users).Error; err != nil {
-// 		t.Fatalf("errors happened when create: %v", err)
-// 	}
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
 
-// 	var userIDs []uint
-// 	for _, user := range users {
-// 		userIDs = append(userIDs, user.ID)
-// 		CheckUser(t, user, user)
-// 	}
+	var userIDs []uint
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID)
+		CheckUser(t, user, user)
+	}
 
-// 	var users2 []User
-// 	DB.Preload("Company").Preload("Manager").Find(&users2, "id IN ?", userIDs)
-// 	for idx, user := range users2 {
-// 		CheckUser(t, user, users[idx])
-// 	}
-// }
+	var users2 []User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").Find(&users2, "id IN ?", userIDs)
+	for idx, user := range users2 {
+		CheckUser(t, user, users[idx])
+	}
+}
 
 // func TestBulkCreatePtrDataWithBelongsTo(t *testing.T) {
 // 	users := []*User{

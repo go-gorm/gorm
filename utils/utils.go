@@ -41,16 +41,15 @@ func CheckTruth(val interface{}) bool {
 	return !reflect.ValueOf(val).IsZero()
 }
 
-func ToStringKey(values ...reflect.Value) string {
+func ToStringKey(values ...interface{}) string {
 	results := make([]string, len(values))
 
 	for idx, value := range values {
-		rv := reflect.Indirect(value).Interface()
-		if valuer, ok := rv.(driver.Valuer); ok {
-			rv, _ = valuer.Value()
+		if valuer, ok := value.(driver.Valuer); ok {
+			value, _ = valuer.Value()
 		}
 
-		switch v := rv.(type) {
+		switch v := value.(type) {
 		case string:
 			results[idx] = v
 		case []byte:
@@ -58,7 +57,7 @@ func ToStringKey(values ...reflect.Value) string {
 		case uint:
 			results[idx] = strconv.FormatUint(uint64(v), 10)
 		default:
-			results[idx] = fmt.Sprint(v)
+			results[idx] = fmt.Sprint(reflect.Indirect(reflect.ValueOf(v)).Interface())
 		}
 	}
 

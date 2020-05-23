@@ -89,9 +89,9 @@ func GetRelationsValues(reflectValue reflect.Value, rels []*Relationship) (refle
 // GetIdentityFieldValuesMap get identity map from fields
 func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map[string][]reflect.Value, [][]interface{}) {
 	var (
-		fieldValues = make([]reflect.Value, len(fields))
-		results     = [][]interface{}{}
-		dataResults = map[string][]reflect.Value{}
+		results       = [][]interface{}{}
+		dataResults   = map[string][]reflect.Value{}
+		notZero, zero bool
 	)
 
 	switch reflectValue.Kind() {
@@ -99,28 +99,33 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 		results = [][]interface{}{make([]interface{}, len(fields))}
 
 		for idx, field := range fields {
-			fieldValues[idx] = field.ReflectValueOf(reflectValue)
-			results[0][idx] = fieldValues[idx].Interface()
+			results[0][idx], zero = field.ValueOf(reflectValue)
+			notZero = notZero || !zero
 		}
 
-		dataResults[utils.ToStringKey(fieldValues...)] = []reflect.Value{reflectValue}
+		if !notZero {
+			return nil, nil
+		}
+
+		dataResults[utils.ToStringKey(results[0]...)] = []reflect.Value{reflectValue}
 	case reflect.Slice, reflect.Array:
+		fieldValues := make([]interface{}, len(fields))
+
 		for i := 0; i < reflectValue.Len(); i++ {
+			notZero = false
 			for idx, field := range fields {
-				fieldValues[idx] = field.ReflectValueOf(reflectValue.Index(i))
+				fieldValues[idx], zero = field.ValueOf(reflectValue.Index(idx))
+				notZero = notZero || !zero
 			}
 
-			dataKey := utils.ToStringKey(fieldValues...)
-			if _, ok := dataResults[dataKey]; !ok {
-				result := make([]interface{}, len(fieldValues))
-				for idx, fieldValue := range fieldValues {
-					result[idx] = fieldValue.Interface()
+			if notZero {
+				dataKey := utils.ToStringKey(fieldValues...)
+				if _, ok := dataResults[dataKey]; !ok {
+					results = append(results, fieldValues[:])
+					dataResults[dataKey] = []reflect.Value{reflectValue.Index(i)}
+				} else {
+					dataResults[dataKey] = append(dataResults[dataKey], reflectValue.Index(i))
 				}
-				results = append(results, result)
-
-				dataResults[dataKey] = []reflect.Value{reflectValue.Index(i)}
-			} else {
-				dataResults[dataKey] = append(dataResults[dataKey], reflectValue.Index(i))
 			}
 		}
 	}

@@ -276,7 +276,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.Session(&gorm.Session{}).Debug().Create(joins.Interface())
+				db.Session(&gorm.Session{}).Create(joins.Interface())
 			}
 		}
 	}
