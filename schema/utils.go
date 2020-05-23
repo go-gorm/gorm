@@ -109,12 +109,11 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 
 		dataResults[utils.ToStringKey(results[0]...)] = []reflect.Value{reflectValue}
 	case reflect.Slice, reflect.Array:
-		fieldValues := make([]interface{}, len(fields))
-
 		for i := 0; i < reflectValue.Len(); i++ {
+			fieldValues := make([]interface{}, len(fields))
 			notZero = false
 			for idx, field := range fields {
-				fieldValues[idx], zero = field.ValueOf(reflectValue.Index(idx))
+				fieldValues[idx], zero = field.ValueOf(reflectValue.Index(i))
 				notZero = notZero || !zero
 			}
 

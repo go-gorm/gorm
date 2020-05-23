@@ -66,6 +66,15 @@ func GetUser(name string, config Config) *User {
 }
 
 func CheckPet(t *testing.T, pet Pet, expect Pet) {
+	if pet.ID != 0 {
+		var newPet Pet
+		if err := DB.Where("id = ?", pet.ID).First(&newPet).Error; err != nil {
+			t.Fatalf("errors happened when query: %v", err)
+		} else {
+			AssertObjEqual(t, newPet, pet, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Name")
+		}
+	}
+
 	AssertObjEqual(t, pet, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Name")
 
 	AssertObjEqual(t, pet.Toy, expect.Toy, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "OwnerID", "OwnerType")

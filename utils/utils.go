@@ -3,6 +3,7 @@ package utils
 import (
 	"database/sql/driver"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -11,8 +12,13 @@ import (
 	"unicode"
 )
 
-var goSrcRegexp = regexp.MustCompile(`jinzhu/gorm(@.*)?/.*.go`)
-var goTestRegexp = regexp.MustCompile(`jinzhu/gorm(@.*)?/.*test.go`)
+var goSrcRegexp, goTestRegexp *regexp.Regexp
+
+func init() {
+	_, file, _, _ := runtime.Caller(0)
+	goSrcRegexp = regexp.MustCompile(filepath.Join(filepath.Dir(filepath.Dir(file)), ".*.go"))
+	goTestRegexp = regexp.MustCompile(filepath.Join(filepath.Dir(filepath.Dir(file)), ".*test.go"))
+}
 
 func FileWithLineNum() string {
 	for i := 2; i < 15; i++ {
