@@ -29,6 +29,15 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 			}
 		}
 
+		if got == expect {
+			return
+		}
+
+		if reflect.Indirect(reflect.ValueOf(got)).IsValid() != reflect.Indirect(reflect.ValueOf(expect)).IsValid() {
+			t.Errorf("expect: %+v, got %+v", expect, got)
+			return
+		}
+
 		if got != nil {
 			got = reflect.Indirect(reflect.ValueOf(got)).Interface()
 		}

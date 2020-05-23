@@ -7,7 +7,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	var user = GetUser("create", Config{})
+	var user = *GetUser("create", Config{})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -27,164 +27,103 @@ func TestCreate(t *testing.T) {
 
 	var newUser User
 	if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
-		t.Errorf("errors happened when query: %v", err)
+		t.Fatalf("errors happened when query: %v", err)
 	} else {
-		AssertObjEqual(t, newUser, user, "Name", "Age", "Birthday")
+		CheckUser(t, newUser, user)
 	}
 }
 
-func TestCreateWithBelongsToAssociations(t *testing.T) {
-	check := func(t *testing.T, user User, old User) {
-		if old.Company.Name != "" {
-			if user.CompanyID == nil {
-				t.Errorf("Company's foreign key should be saved")
-			} else {
-				var company Company
-				DB.First(&company, "id = ?", *user.CompanyID)
-				if company.Name != old.Company.Name {
-					t.Errorf("Company's name should be same")
-				} else if user.Company.Name != old.Company.Name {
-					t.Errorf("Company's name should be same")
-				}
-			}
-		} else if user.CompanyID != nil {
-			t.Errorf("Company should not be created for zero value, got: %+v", user.CompanyID)
-		}
+func TestCreateWithAssociations(t *testing.T) {
+	var user = *GetUser("create_with_belongs_to", Config{
+		Account:   true,
+		Pets:      2,
+		Toys:      3,
+		Company:   true,
+		Manager:   true,
+		Team:      4,
+		Languages: 3,
+		Friends:   1,
+	})
 
-		if old.Manager != nil {
-			if user.ManagerID == nil {
-				t.Errorf("Manager's foreign key should be saved")
-			} else {
-				var manager User
-				DB.First(&manager, "id = ?", *user.ManagerID)
-				if manager.Name != user.Manager.Name {
-					t.Errorf("Manager's name should be same")
-				} else if user.Manager.Name != old.Manager.Name {
-					t.Errorf("Manager's name should be same")
-				}
-			}
-		} else if user.ManagerID != nil {
-			t.Errorf("Manager should not be created for zero value, got: %+v", user.ManagerID)
-		}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
 	}
 
-	t.Run("Struct", func(t *testing.T) {
-		var user = User{
-			Name:     "create",
-			Age:      18,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association"},
-			Manager:  &User{Name: "manager-belongs-to-association"},
-		}
+	CheckUser(t, user, user)
 
-		if err := DB.Create(&user).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		check(t, user, user)
-
-		var user2 User
-		DB.Preload("Company").Preload("Manager").Find(&user2, "id = ?", user.ID)
-		check(t, user2, user)
-	})
-
-	t.Run("BulkInsert", func(t *testing.T) {
-		var users = []User{{
-			Name:     "create-1",
-			Age:      18,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-1"},
-			Manager:  &User{Name: "manager-belongs-to-association-1"},
-		}, {
-			Name:     "create-2",
-			Age:      28,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-2"},
-		}, {
-			Name:     "create-3",
-			Age:      38,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-3"},
-			Manager:  &User{Name: "manager-belongs-to-association-3"},
-		}}
-
-		if err := DB.Create(&users).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		var userIDs []uint
-		for _, user := range users {
-			userIDs = append(userIDs, user.ID)
-			check(t, user, user)
-		}
-
-		t.Run("Preload", func(t *testing.T) {
-			var users2 []User
-			DB.Preload("Company").Preload("Manager").Find(&users2, "id IN ?", userIDs)
-			for idx, user := range users2 {
-				check(t, user, users[idx])
-			}
-		})
-	})
-
-	t.Run("BulkInsertPtrData", func(t *testing.T) {
-		var users = []*User{{
-			Name:     "create-1",
-			Age:      18,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-1"},
-			Manager:  &User{Name: "manager-belongs-to-association-1"},
-		}, {
-			Name:     "create-2",
-			Age:      28,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-2"},
-		}, {
-			Name:     "create-3",
-			Age:      38,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-3"},
-			Manager:  &User{Name: "manager-belongs-to-association-3"},
-		}}
-
-		if err := DB.Create(&users).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		for _, user := range users {
-			check(t, *user, *user)
-		}
-	})
-
-	t.Run("BulkInsertWithoutPtr", func(t *testing.T) {
-		var users = []*User{{
-			Name:     "create-1",
-			Age:      18,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-1"},
-			Manager:  &User{Name: "manager-belongs-to-association-1"},
-		}, {
-			Name:     "create-2",
-			Age:      28,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-2"},
-		}, {
-			Name:     "create-3",
-			Age:      38,
-			Birthday: Now(),
-			Company:  Company{Name: "company-belongs-to-association-3"},
-			Manager:  &User{Name: "manager-belongs-to-association-3"},
-		}}
-
-		if err := DB.Create(users).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		for _, user := range users {
-			check(t, *user, *user)
-		}
-	})
+	var user2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Find(&user2, "id = ?", user.ID)
+	CheckUser(t, user2, user)
 }
+
+// func TestBulkCreateWithBelongsTo(t *testing.T) {
+// 	users := []User{
+// 		*GetUser("create_with_belongs_to_1", Config{Company: true, Manager: true}),
+// 		*GetUser("create_with_belongs_to_2", Config{Company: true, Manager: false}),
+// 		*GetUser("create_with_belongs_to_3", Config{Company: false, Manager: true}),
+// 		*GetUser("create_with_belongs_to_4", Config{Company: true, Manager: true}),
+// 	}
+
+// 	if err := DB.Create(&users).Error; err != nil {
+// 		t.Fatalf("errors happened when create: %v", err)
+// 	}
+
+// 	var userIDs []uint
+// 	for _, user := range users {
+// 		userIDs = append(userIDs, user.ID)
+// 		CheckUser(t, user, user)
+// 	}
+
+// 	var users2 []User
+// 	DB.Preload("Company").Preload("Manager").Find(&users2, "id IN ?", userIDs)
+// 	for idx, user := range users2 {
+// 		CheckUser(t, user, users[idx])
+// 	}
+// }
+
+// func TestBulkCreatePtrDataWithBelongsTo(t *testing.T) {
+// 	users := []*User{
+// 		GetUser("create_with_belongs_to_1", Config{Company: true, Manager: true}),
+// 		GetUser("create_with_belongs_to_2", Config{Company: true, Manager: false}),
+// 		GetUser("create_with_belongs_to_3", Config{Company: false, Manager: true}),
+// 		GetUser("create_with_belongs_to_4", Config{Company: true, Manager: true}),
+// 	}
+
+// 	if err := DB.Create(&users).Error; err != nil {
+// 		t.Fatalf("errors happened when create: %v", err)
+// 	}
+
+// 	var userIDs []uint
+// 	for _, user := range users {
+// 		userIDs = append(userIDs, user.ID)
+// 		CheckUser(t, *user, *user)
+// 	}
+
+// 	var users2 []User
+// 	DB.Preload("Company").Preload("Manager").Find(&users2, "id IN ?", userIDs)
+// 	for idx, user := range users2 {
+// 		CheckUser(t, user, *users[idx])
+// 	}
+// }
+
+// func TestBulkCreateWithoutPtrWithBelongsTo(t *testing.T) {
+// 	users := []*User{
+// 		GetUser("create_with_belongs_to_1", Config{Company: true, Manager: true}),
+// 		GetUser("create_with_belongs_to_2", Config{Company: true, Manager: false}),
+// 		GetUser("create_with_belongs_to_3", Config{Company: false, Manager: true}),
+// 		GetUser("create_with_belongs_to_4", Config{Company: true, Manager: true}),
+// 	}
+
+// 	if err := DB.Create(&users).Error; err != nil {
+// 		t.Fatalf("errors happened when create: %v", err)
+// 	}
+
+// 	var userIDs []uint
+// 	for _, user := range users {
+// 		userIDs = append(userIDs, user.ID)
+// 		CheckUser(t, *user, *user)
+// 	}
+// }
 
 // func TestCreateHasOneAssociations(t *testing.T, db *gorm.DB) {
 // 	check := func(t *testing.T, user User, old User) {

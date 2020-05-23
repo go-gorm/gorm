@@ -542,7 +542,11 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 	}
 
 	for _, value := range values {
-		parseDependence(value, true)
+		if v, ok := value.(string); ok {
+			results = append(results, v)
+		} else {
+			parseDependence(value, true)
+		}
 	}
 
 	for _, name := range modelNames {
