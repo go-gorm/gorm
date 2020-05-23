@@ -234,7 +234,6 @@ func SaveAfterAssociations(db *gorm.DB) {
 						ref.ForeignKey.Set(joinValue, fv)
 					}
 				}
-
 				joins = reflect.Append(joins, joinValue)
 			}
 
@@ -277,7 +276,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.Session(&gorm.Session{}).Create(joins.Interface())
+				db.Session(&gorm.Session{}).Debug().Create(joins.Interface())
 			}
 		}
 	}

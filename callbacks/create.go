@@ -56,25 +56,27 @@ func Create(config *Config) func(db *gorm.DB) {
 
 			if err == nil {
 				if db.Statement.Schema != nil {
-					if insertID, err := result.LastInsertId(); err == nil {
-						switch db.Statement.ReflectValue.Kind() {
-						case reflect.Slice, reflect.Array:
-							if config.LastInsertIDReversed {
-								for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-									insertID--
+					if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
+						if insertID, err := result.LastInsertId(); err == nil {
+							switch db.Statement.ReflectValue.Kind() {
+							case reflect.Slice, reflect.Array:
+								if config.LastInsertIDReversed {
+									for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+										insertID--
+									}
+								} else {
+									for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+										insertID++
+									}
 								}
-							} else {
-								for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-									insertID++
-								}
+							case reflect.Struct:
+								db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
 							}
-						case reflect.Struct:
-							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+						} else {
+							db.AddError(err)
 						}
-					} else {
-						db.AddError(err)
 					}
 				}
 				db.RowsAffected, _ = result.RowsAffected()
