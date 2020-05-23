@@ -83,7 +83,13 @@ func (p *processor) Execute(db *DB) {
 				db.AddError(err)
 			}
 		}
-		stmt.ReflectValue = reflect.Indirect(reflect.ValueOf(stmt.Dest))
+
+		if stmt.Dest != nil {
+			stmt.ReflectValue = reflect.Indirect(reflect.ValueOf(stmt.Dest))
+			if !stmt.ReflectValue.IsValid() {
+				db.AddError(fmt.Errorf("invalid value"))
+			}
+		}
 	}
 
 	for _, f := range p.fns {

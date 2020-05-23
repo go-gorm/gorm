@@ -26,6 +26,8 @@ func (db *DB) Association(column string) *Association {
 		if association.Relationship == nil {
 			association.Error = fmt.Errorf("%w: %v", ErrUnsupportedRelation, column)
 		}
+
+		db.Statement.ReflectValue = reflect.Indirect(reflect.ValueOf(db.Statement.Model))
 	} else {
 		association.Error = err
 	}
@@ -36,8 +38,8 @@ func (db *DB) Association(column string) *Association {
 func (association *Association) Find(out interface{}, conds ...interface{}) error {
 	if association.Error == nil {
 		var (
-			tx         = association.DB
-			queryConds = association.Relationship.ToQueryConditions(tx.Statement.ReflectValue)
+			queryConds = association.Relationship.ToQueryConditions(association.DB.Statement.ReflectValue)
+			tx         = association.DB.Model(out).Table("")
 		)
 
 		if association.Relationship.JoinTable != nil {

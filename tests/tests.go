@@ -20,4 +20,5 @@ func RunTestsSuit(t *testing.T, db *gorm.DB) {
 
 	TestGroupBy(t, db)
 	TestJoins(t, db)
+	TestAssociations(t, db)
 }
