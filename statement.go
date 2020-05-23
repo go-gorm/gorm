@@ -147,8 +147,24 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString("(NULL)")
 			}
 		default:
-			stmt.Vars = append(stmt.Vars, v)
-			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+			switch rv := reflect.ValueOf(v); rv.Kind() {
+			case reflect.Slice, reflect.Array:
+				if rv.Len() == 0 {
+					writer.WriteString("(NULL)")
+				} else {
+					writer.WriteByte('(')
+					for i := 0; i < rv.Len(); i++ {
+						if i > 0 {
+							writer.WriteByte(',')
+						}
+						stmt.AddVar(writer, rv.Index(i).Interface())
+					}
+					writer.WriteByte(')')
+				}
+			default:
+				stmt.Vars = append(stmt.Vars, v)
+				stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+			}
 		}
 	}
 }

@@ -13,7 +13,7 @@ func Now() *time.Time {
 }
 
 func RunTestsSuit(t *testing.T, db *gorm.DB) {
-	TestCreate(t, db)
+	// TestCreate(t, db)
 	TestFind(t, db)
 	TestUpdate(t, db)
 	TestDelete(t, db)
