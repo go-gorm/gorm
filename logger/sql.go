@@ -53,7 +53,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 			} else {
 				rv := reflect.ValueOf(v)
 
-				if !rv.IsValid() {
+				if !rv.IsValid() || rv.IsNil() {
 					vars[idx] = "NULL"
 				} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
 					convertParams(reflect.Indirect(rv).Interface(), idx)

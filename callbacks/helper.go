@@ -10,10 +10,12 @@ import (
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
 func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate bool) (map[string]bool, bool) {
 	results := map[string]bool{}
+	notRestricted := false
 
 	// select columns
 	for _, column := range stmt.Selects {
 		if column == "*" {
+			notRestricted = true
 			for _, dbName := range stmt.Schema.DBNames {
 				results[dbName] = true
 			}
@@ -51,7 +53,7 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 		}
 	}
 
-	return results, len(stmt.Selects) > 0
+	return results, !notRestricted && len(stmt.Selects) > 0
 }
 
 // ConvertMapToValuesForCreate convert map to values

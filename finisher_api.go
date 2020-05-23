@@ -35,6 +35,9 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(where)
 	}
 
+	if len(tx.Statement.Selects) == 0 {
+		tx.Statement.Selects = append(tx.Statement.Selects, "*")
+	}
 	tx.callbacks.Update().Execute(tx)
 	return
 }
