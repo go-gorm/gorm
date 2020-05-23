@@ -22,7 +22,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	)
 
 	if len(rels) > 1 {
-		reflectValue = schema.GetRelationsValues(reflectValue, rels[:len(rels)])
+		reflectValue = schema.GetRelationsValues(reflectValue, rels[:len(rels)-1])
 	}
 
 	if rel.JoinTable != nil {
@@ -107,9 +107,9 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 				rel.Field.Set(data, reflectResults.Index(i).Interface())
 			case reflect.Slice, reflect.Array:
 				if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
-					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i).Addr()).Interface())
-				} else {
 					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i)).Interface())
+				} else {
+					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i).Elem()).Interface())
 				}
 			}
 		}

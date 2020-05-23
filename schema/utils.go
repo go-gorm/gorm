@@ -55,17 +55,21 @@ func removeSettingFromTag(tag reflect.StructTag, name string) reflect.StructTag 
 // GetRelationsValues get relations's values from a reflect value
 func GetRelationsValues(reflectValue reflect.Value, rels []*Relationship) (reflectResults reflect.Value) {
 	for _, rel := range rels {
-		reflectResults = reflect.MakeSlice(reflect.SliceOf(rel.FieldSchema.ModelType), 0, 0)
+		reflectResults = reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.FieldSchema.ModelType)), 0, 0)
 
 		appendToResults := func(value reflect.Value) {
 			if _, isZero := rel.Field.ValueOf(value); !isZero {
 				result := reflect.Indirect(rel.Field.ReflectValueOf(value))
 				switch result.Kind() {
 				case reflect.Struct:
-					reflectResults = reflect.Append(reflectResults, result)
+					reflectResults = reflect.Append(reflectResults, result.Addr())
 				case reflect.Slice, reflect.Array:
-					for i := 0; i < value.Len(); i++ {
-						reflectResults = reflect.Append(reflectResults, reflect.Indirect(value.Index(i)))
+					for i := 0; i < result.Len(); i++ {
+						if result.Index(i).Kind() == reflect.Ptr {
+							reflectResults = reflect.Append(reflectResults, result.Index(i))
+						} else {
+							reflectResults = reflect.Append(reflectResults, result.Index(i).Addr())
+						}
 					}
 				}
 			}
