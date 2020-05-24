@@ -278,6 +278,39 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 	return err
 }
 
+func (stmt *Statement) clone() *Statement {
+	newStmt := &Statement{
+		DB:                   stmt.DB,
+		Table:                stmt.Table,
+		Model:                stmt.Model,
+		Dest:                 stmt.Dest,
+		ReflectValue:         stmt.ReflectValue,
+		Clauses:              map[string]clause.Clause{},
+		Selects:              stmt.Selects,
+		Omits:                stmt.Omits,
+		Joins:                map[string][]interface{}{},
+		Preloads:             map[string][]interface{}{},
+		ConnPool:             stmt.ConnPool,
+		Schema:               stmt.Schema,
+		Context:              stmt.Context,
+		RaiseErrorOnNotFound: stmt.RaiseErrorOnNotFound,
+	}
+
+	for k, c := range stmt.Clauses {
+		newStmt.Clauses[k] = c
+	}
+
+	for k, p := range stmt.Preloads {
+		newStmt.Preloads[k] = p
+	}
+
+	for k, j := range stmt.Joins {
+		newStmt.Joins[k] = j
+	}
+
+	return newStmt
+}
+
 func (stmt *Statement) reinit() {
 	// stmt.Table = ""
 	// stmt.Model = nil

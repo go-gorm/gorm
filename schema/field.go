@@ -372,19 +372,24 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	recoverFunc := func(value reflect.Value, v interface{}, setter func(reflect.Value, interface{}) error) (err error) {
-		reflectV := reflect.ValueOf(v)
-		if reflectV.Type().ConvertibleTo(field.FieldType) {
-			field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-		} else if valuer, ok := v.(driver.Valuer); ok {
-			if v, err = valuer.Value(); err == nil {
-				return setter(value, v)
-			}
-		} else if field.FieldType.Kind() == reflect.Ptr && reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-			field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
-		} else if reflectV.Kind() == reflect.Ptr {
-			return field.Set(value, reflectV.Elem().Interface())
+		if v == nil {
+			field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 		} else {
-			return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+			reflectV := reflect.ValueOf(v)
+
+			if reflectV.Type().ConvertibleTo(field.FieldType) {
+				field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
+			} else if valuer, ok := v.(driver.Valuer); ok {
+				if v, err = valuer.Value(); err == nil {
+					return setter(value, v)
+				}
+			} else if field.FieldType.Kind() == reflect.Ptr && reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+				field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+			} else if reflectV.Kind() == reflect.Ptr {
+				return field.Set(value, reflectV.Elem().Interface())
+			} else {
+				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+			}
 		}
 		return err
 	}

@@ -387,6 +387,7 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 
 	_, foreignValues := GetIdentityFieldValuesMap(reflectValue, foreignFields)
 	column, values := ToQueryValues(relForeignKeys, foreignValues)
+
 	conds = append(conds, clause.IN{Column: column, Values: values})
 	return
 }

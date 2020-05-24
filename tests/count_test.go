@@ -33,7 +33,7 @@ func TestCount(t *testing.T) {
 
 	var count3 int64
 	if err := DB.Model(&User{}).Where("name in ?", []string{user2.Name, user2.Name, user3.Name}).Group("id").Count(&count3).Error; err != nil {
-		t.Errorf("No error should happen when count with group, but got %v", err)
+		t.Errorf("Error happened when count with group, but got %v", err)
 	}
 
 	if count3 != 2 {

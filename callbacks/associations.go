@@ -73,8 +73,8 @@ func SaveBeforeAssociations(db *gorm.DB) {
 
 					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
 						db.Session(&gorm.Session{}).Create(rv.Interface())
-						setupReferences(db.Statement.ReflectValue, rv)
 					}
+					setupReferences(db.Statement.ReflectValue, rv)
 				}
 			}
 		}

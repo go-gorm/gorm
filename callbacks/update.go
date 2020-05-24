@@ -7,6 +7,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func BeforeUpdate(db *gorm.DB) {
@@ -91,8 +92,27 @@ func AfterUpdate(db *gorm.DB) {
 
 // ConvertToAssignments convert to update assignments
 func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
-	selectColumns, restricted := SelectAndOmitColumns(stmt, false, true)
-	reflectModelValue := reflect.ValueOf(stmt.Model)
+	var (
+		selectColumns, restricted = SelectAndOmitColumns(stmt, false, true)
+		reflectModelValue         = reflect.Indirect(reflect.ValueOf(stmt.Model))
+		assignValue               func(field *schema.Field, value interface{})
+	)
+
+	switch reflectModelValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		assignValue = func(field *schema.Field, value interface{}) {
+			for i := 0; i < reflectModelValue.Len(); i++ {
+				field.Set(reflectModelValue.Index(i), value)
+			}
+		}
+	case reflect.Struct:
+		assignValue = func(field *schema.Field, value interface{}) {
+			field.Set(reflectModelValue, value)
+		}
+	default:
+		assignValue = func(field *schema.Field, value interface{}) {
+		}
+	}
 
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
@@ -111,7 +131,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						value[k] = time.Now()
 					}
 					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
-					field.Set(reflectModelValue, value[k])
+					assignValue(field, value[k])
 				}
 			} else if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
 				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: value[k]})
@@ -122,7 +142,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
 				now := time.Now()
 				set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
-				field.Set(reflectModelValue, now)
+				assignValue(field, now)
 			}
 		}
 	default:
@@ -140,7 +160,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 						if ok || !isZero {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
-							field.Set(reflectModelValue, value)
+							assignValue(field, value)
 						}
 					}
 				} else {

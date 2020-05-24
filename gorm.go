@@ -105,11 +105,12 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 func (db *DB) Session(config *Session) *DB {
 	var (
 		tx       = db.getInstance()
+		stmt     = tx.Statement.clone()
 		txConfig = *tx.Config
 	)
 
 	if config.Context != nil {
-		tx.Statement.Context = config.Context
+		stmt.Context = config.Context
 	}
 
 	if config.Logger != nil {
@@ -120,9 +121,11 @@ func (db *DB) Session(config *Session) *DB {
 		txConfig.NowFunc = config.NowFunc
 	}
 
-	tx.Config = &txConfig
-	tx.clone = true
-	return tx
+	return &DB{
+		Config:    &txConfig,
+		Statement: stmt,
+		clone:     true,
+	}
 }
 
 // WithContext change current instance db's context to ctx

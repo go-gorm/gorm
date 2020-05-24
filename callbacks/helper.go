@@ -22,7 +22,7 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 			break
 		}
 
-		if field := stmt.Schema.LookUpField(column); field != nil {
+		if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
 			results[field.DBName] = true
 		} else {
 			results[column] = true
