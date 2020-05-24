@@ -73,6 +73,7 @@ func (cs *callbacks) Raw() *processor {
 
 func (p *processor) Execute(db *DB) {
 	curTime := time.Now()
+	db.RowsAffected = 0
 	if stmt := db.Statement; stmt != nil {
 		if stmt.Model == nil {
 			stmt.Model = stmt.Dest
@@ -102,7 +103,7 @@ func (p *processor) Execute(db *DB) {
 		}, db.Error)
 
 		stmt.reinit()
-		db.Config.statementPool.Put(stmt)
+		// db.Config.statementPool.Put(stmt)
 	}
 }
 

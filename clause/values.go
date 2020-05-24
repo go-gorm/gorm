@@ -41,8 +41,5 @@ func (values Values) Build(builder Builder) {
 // MergeClause merge values clauses
 func (values Values) MergeClause(clause *Clause) {
 	clause.Name = ""
-	if v, ok := clause.Expression.(Values); ok {
-		values.Values = append(v.Values, values.Values...)
-	}
 	clause.Expression = values
 }

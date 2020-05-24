@@ -247,11 +247,12 @@ func (association *Association) Clear() error {
 	return association.Replace()
 }
 
-func (association *Association) Count() (count int) {
+func (association *Association) Count() (count int64) {
 	if association.Error == nil {
 		var (
-			tx    = association.DB
-			conds = association.Relationship.ToQueryConditions(tx.Statement.ReflectValue)
+			conds      = association.Relationship.ToQueryConditions(association.DB.Statement.ReflectValue)
+			modelValue = reflect.New(association.Relationship.FieldSchema.ModelType).Interface()
+			tx         = association.DB.Model(modelValue)
 		)
 
 		if association.Relationship.JoinTable != nil {

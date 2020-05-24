@@ -145,8 +145,19 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) Count(value interface{}) (tx *DB) {
+func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
+	if len(tx.Statement.Selects) == 0 {
+		tx.Statement.Selects = []string{"count(1)"}
+	}
+	if tx.Statement.Model == nil {
+		tx.Statement.Model = tx.Statement.Dest
+	}
+	tx.Statement.Dest = count
+	tx.callbacks.Query().Execute(tx)
+	if db.RowsAffected != 1 {
+		*count = db.RowsAffected
+	}
 	return
 }
 

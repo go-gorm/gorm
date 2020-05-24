@@ -63,6 +63,8 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
 			stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
+		} else if v.Raw {
+			writer.WriteString(v.Name)
 		} else {
 			stmt.DB.Dialector.QuoteTo(writer, v.Name)
 		}
@@ -85,6 +87,8 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			if stmt.Schema != nil && stmt.Schema.PrioritizedPrimaryField != nil {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
 			}
+		} else if v.Raw {
+			writer.WriteString(v.Name)
 		} else {
 			stmt.DB.Dialector.QuoteTo(writer, v.Name)
 		}
@@ -275,33 +279,33 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 }
 
 func (stmt *Statement) reinit() {
-	stmt.Table = ""
-	stmt.Model = nil
-	stmt.Selects = nil
-	stmt.Omits = nil
-	stmt.ConnPool = stmt.DB.Config.ConnPool
-	stmt.Schema = nil
-	stmt.Context = context.Background()
-	stmt.RaiseErrorOnNotFound = false
+	// stmt.Table = ""
+	// stmt.Model = nil
+	// stmt.Selects = nil
+	// stmt.Omits = nil
+	// stmt.ConnPool = stmt.DB.Config.ConnPool
+	// stmt.Context = context.Background()
+	// stmt.RaiseErrorOnNotFound = false
 
+	// for k := range stmt.Clauses {
+	// 	delete(stmt.Clauses, k)
+	// }
+
+	// for k := range stmt.Joins {
+	// 	delete(stmt.Joins, k)
+	// }
+
+	// for k := range stmt.Preloads {
+	// 	delete(stmt.Preloads, k)
+	// }
+
+	// stmt.Settings.Range(func(k, _ interface{}) bool {
+	// 	stmt.Settings.Delete(k)
+	// 	return true
+	// })
+
+	stmt.Schema = nil
 	stmt.SQL.Reset()
 	stmt.Vars = nil
 	stmt.NamedVars = nil
-
-	for k := range stmt.Clauses {
-		delete(stmt.Clauses, k)
-	}
-
-	for k := range stmt.Joins {
-		delete(stmt.Joins, k)
-	}
-
-	for k := range stmt.Preloads {
-		delete(stmt.Preloads, k)
-	}
-
-	stmt.Settings.Range(func(k, _ interface{}) bool {
-		stmt.Settings.Delete(k)
-		return true
-	})
 }

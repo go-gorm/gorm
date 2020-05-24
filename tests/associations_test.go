@@ -21,4 +21,12 @@ func TestAssociationForBelongsTo(t *testing.T) {
 	user2.Manager = &User{}
 	DB.Model(&user2).Association("Manager").Find(user2.Manager)
 	CheckUser(t, user2, user)
+
+	if count := DB.Model(&user).Association("Company").Count(); count != 1 {
+		t.Errorf("invalid company count, got %v", count)
+	}
+
+	if count := DB.Model(&user).Association("Manager").Count(); count != 1 {
+		t.Errorf("invalid manager count, got %v", count)
+	}
 }

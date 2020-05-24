@@ -49,6 +49,11 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			}
 			*dest = append(*dest, v)
 		}
+	case *int, *int64, *uint, *uint64:
+		for rows.Next() {
+			db.RowsAffected++
+			rows.Scan(dest)
+		}
 	default:
 		switch db.Statement.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:

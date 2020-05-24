@@ -21,6 +21,11 @@ func Query(db *gorm.DB) {
 					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
 						Name: f.DBName,
 					})
+				} else {
+					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+						Name: name,
+						Raw:  true,
+					})
 				}
 			}
 		}
@@ -85,7 +90,7 @@ func Query(db *gorm.DB) {
 			db.Statement.AddClauseIfNotExists(clause.From{})
 		}
 
-		db.Statement.AddClauseIfNotExists(clauseSelect)
+		db.Statement.AddClause(clauseSelect)
 		db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
 	}
 
