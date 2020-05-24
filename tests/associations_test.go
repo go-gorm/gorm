@@ -164,20 +164,49 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 
 	// Find
 	var companies []Company
-	if DB.Model(users).Association("Company").Find(&companies); len(companies) != 3 {
+	if DB.Model(&users).Association("Company").Find(&companies); len(companies) != 3 {
 		t.Errorf("companies count should be %v, but got %v", 3, len(companies))
 	}
 
 	var managers []User
-	if DB.Model(users).Association("Manager").Find(&managers); len(managers) != 2 {
+	if DB.Model(&users).Association("Manager").Find(&managers); len(managers) != 2 {
 		t.Errorf("managers count should be %v, but got %v", 2, len(managers))
 	}
 
 	// Append
+	DB.Model(&users).Association("Company").Append(
+		&Company{Name: "company-slice-append-1"},
+		&Company{Name: "company-slice-append-2"},
+		&Company{Name: "company-slice-append-3"},
+	)
 
-	// Replace
+	AssertAssociationCount(t, users, "Company", 3, "After Append")
+
+	DB.Model(&users).Association("Manager").Append(
+		GetUser("manager-slice-belongs-to-1", Config{}),
+		GetUser("manager-slice-belongs-to-2", Config{}),
+		GetUser("manager-slice-belongs-to-3", Config{}),
+	)
+	AssertAssociationCount(t, users, "Manager", 3, "After Append")
+
+	if err := DB.Model(&users).Association("Manager").Append(
+		GetUser("manager-slice-belongs-to-test-1", Config{}),
+	).Error; err == nil {
+		t.Errorf("unmatched length when update user's manager")
+	}
+
+	// Replace -> same as append
 
 	// Delete
+	if err := DB.Model(&users).Association("Company").Delete(&users[0].Company); err != nil {
+		t.Errorf("no error should happend when deleting company, but got %v", err)
+	}
+
+	if users[0].CompanyID != nil || users[0].Company.ID != 0 {
+		t.Errorf("users[0]'s company should be deleted'")
+	}
+
+	AssertAssociationCount(t, users, "Company", 2, "After Delete")
 
 	// Clear
 	DB.Model(&users).Association("Company").Clear()
@@ -185,4 +214,22 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 
 	DB.Model(&users).Association("Manager").Clear()
 	AssertAssociationCount(t, users, "Manager", 0, "After Clear")
+
+	// shared company
+	company := Company{Name: "shared"}
+	if err := DB.Model(&users[0]).Association("Company").Append(&company); err != nil {
+		t.Errorf("Error happened when append company to user, got %v", err)
+	}
+
+	if err := DB.Model(&users[1]).Association("Company").Append(&company); err != nil {
+		t.Errorf("Error happened when append company to user, got %v", err)
+	}
+
+	if users[0].CompanyID == nil || users[1].CompanyID == nil || *users[0].CompanyID != *users[1].CompanyID {
+		t.Errorf("user's company id should exists and equal, but its: %v, %v", users[0].CompanyID, users[1].CompanyID)
+	}
+
+	DB.Model(&users[0]).Association("Company").Delete(&company)
+	AssertAssociationCount(t, users[0], "Company", 0, "After Delete")
+	AssertAssociationCount(t, users[1], "Company", 1, "After other user Delete")
 }

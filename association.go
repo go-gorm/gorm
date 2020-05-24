@@ -195,6 +195,8 @@ func (association *Association) Delete(values ...interface{}) error {
 					foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
 					updateAttrs[ref.ForeignKey.DBName] = nil
 				}
+			} else {
+				tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryKey})
 			}
 		}
 
@@ -208,6 +210,15 @@ func (association *Association) Delete(values ...interface{}) error {
 			conds := rel.ToQueryConditions(reflectValue)
 			tx.Model(modelValue).Clauses(clause.Where{Exprs: conds}).UpdateColumns(updateAttrs)
 		case schema.BelongsTo:
+			primaryKeys := []string{}
+			for _, field := range rel.Schema.PrimaryFields {
+				primaryKeys = append(primaryKeys, field.DBName)
+			}
+			_, queryValues := schema.GetIdentityFieldValuesMap(reflectValue, rel.Schema.PrimaryFields)
+			if column, values := schema.ToQueryValues(primaryKeys, queryValues); len(values) > 0 {
+				tx.Where(clause.IN{Column: column, Values: values})
+			}
+
 			modelValue := reflect.New(rel.Schema.ModelType).Interface()
 			tx.Model(modelValue).UpdateColumns(updateAttrs)
 		case schema.Many2Many:
@@ -353,7 +364,6 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	}
 
 	selectedColumns := []string{association.Relationship.Name}
-	hasZero := false
 	for _, ref := range association.Relationship.References {
 		if !ref.OwnPrimaryKey {
 			selectedColumns = append(selectedColumns, ref.ForeignKey.Name)
@@ -375,13 +385,16 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				break
 			}
 			association.Error = errors.New("invalid association values, length doesn't match")
+			return
 		}
 
 		for i := 0; i < reflectValue.Len(); i++ {
 			appendToRelations(reflectValue.Index(i), reflect.Indirect(reflect.ValueOf(values[i])), clear)
 
-			if !hasZero {
-				_, hasZero = association.DB.Statement.Schema.PrioritizedPrimaryField.ValueOf(reflectValue.Index(i))
+			if len(values) > 0 {
+				// TODO support save slice data, sql with case
+				err := association.DB.Session(&Session{}).Select(selectedColumns).Model(nil).Save(reflectValue.Index(i).Addr().Interface()).Error
+				association.DB.AddError(err)
 			}
 		}
 	case reflect.Struct:
@@ -399,13 +412,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			appendToRelations(reflectValue, rv, clear && idx == 0)
 		}
 
-		_, hasZero = association.DB.Statement.Schema.PrioritizedPrimaryField.ValueOf(reflectValue)
-	}
-
-	if len(values) > 0 {
-		if hasZero {
-			association.DB.Create(reflectValue.Addr().Interface())
-		} else {
+		if len(values) > 0 {
 			association.DB.Select(selectedColumns).Model(nil).Save(reflectValue.Addr().Interface())
 		}
 	}
