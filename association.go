@@ -381,7 +381,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				for i := 0; i < reflectValue.Len(); i++ {
 					association.Relationship.Field.Set(reflectValue.Index(i), reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
 					for _, ref := range association.Relationship.References {
-						if !ref.OwnPrimaryKey {
+						if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
 							ref.ForeignKey.Set(reflectValue.Index(i), reflect.Zero(ref.ForeignKey.FieldType).Interface())
 						}
 					}
