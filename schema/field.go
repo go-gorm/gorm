@@ -603,32 +603,40 @@ func (field *Field) setupValuerAndSetter() {
 			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
 				// struct scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().ConvertibleTo(field.FieldType) {
-						field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-					} else if valuer, ok := v.(driver.Valuer); ok {
-						if v, err = valuer.Value(); err == nil {
+					if v == nil {
+						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else {
+						reflectV := reflect.ValueOf(v)
+						if reflectV.Type().ConvertibleTo(field.FieldType) {
+							field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
+						} else if valuer, ok := v.(driver.Valuer); ok {
+							if v, err = valuer.Value(); err == nil {
+								err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
+							}
+						} else {
 							err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 						}
-					} else {
-						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}
 			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().ConvertibleTo(field.FieldType) {
-						field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-					} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-						field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
-					} else if valuer, ok := v.(driver.Valuer); ok {
-						if v, err = valuer.Value(); err == nil {
+					if v == nil {
+						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else {
+						reflectV := reflect.ValueOf(v)
+						if reflectV.Type().ConvertibleTo(field.FieldType) {
+							field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
+						} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+							field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+						} else if valuer, ok := v.(driver.Valuer); ok {
+							if v, err = valuer.Value(); err == nil {
+								err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)
+							}
+						} else {
 							err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)
 						}
-					} else {
-						err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}

@@ -97,28 +97,34 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 		case schema.HasOne, schema.HasMany:
 			var (
-				primaryFields []*schema.Field
-				foreignKeys   []string
-				updateMap     = map[string]interface{}{}
-				modelValue    = reflect.New(rel.FieldSchema.ModelType).Interface()
+				tx             = association.DB
+				primaryFields  []*schema.Field
+				foreignKeys    []string
+				updateMap      = map[string]interface{}{}
+				relPrimaryKeys = []string{}
+				relValues      = schema.GetRelationsValues(reflectValue, []*schema.Relationship{rel})
+				modelValue     = reflect.New(rel.FieldSchema.ModelType).Interface()
 			)
-			if rel.Type == schema.BelongsTo {
-				modelValue = reflect.New(rel.Schema.ModelType).Interface()
+
+			for _, field := range rel.FieldSchema.PrimaryFields {
+				relPrimaryKeys = append(relPrimaryKeys, field.DBName)
+			}
+			if _, qvs := schema.GetIdentityFieldValuesMap(relValues, rel.FieldSchema.PrimaryFields); len(qvs) > 0 {
+				if column, values := schema.ToQueryValues(relPrimaryKeys, qvs); len(values) > 0 {
+					tx = tx.Not(clause.IN{Column: column, Values: values})
+				}
 			}
 
 			for _, ref := range rel.References {
 				if ref.OwnPrimaryKey {
 					primaryFields = append(primaryFields, ref.PrimaryKey)
-				} else {
 					foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
 					updateMap[ref.ForeignKey.DBName] = nil
 				}
 			}
-
-			_, values := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
-			if len(values) == 0 {
-				column, queryValues := schema.ToQueryValues(foreignKeys, values)
-				association.DB.Model(modelValue).Where(clause.IN{Column: column, Values: queryValues}).UpdateColumns(updateMap)
+			if _, qvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields); len(qvs) > 0 {
+				column, values := schema.ToQueryValues(foreignKeys, qvs)
+				tx.Model(modelValue).Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap)
 			}
 		case schema.Many2Many:
 			var primaryFields, relPrimaryFields []*schema.Field
@@ -413,7 +419,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 		}
 
 		if len(values) > 0 {
-			association.DB.Select(selectedColumns).Model(nil).Save(reflectValue.Addr().Interface())
+			association.DB.Session(&Session{}).Select(selectedColumns).Model(nil).Save(reflectValue.Addr().Interface())
 		}
 	}
 

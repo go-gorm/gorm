@@ -45,7 +45,11 @@ func BeforeUpdate(db *gorm.DB) {
 
 func Update(db *gorm.DB) {
 	db.Statement.AddClauseIfNotExists(clause.Update{})
-	db.Statement.AddClause(ConvertToAssignments(db.Statement))
+	if set := ConvertToAssignments(db.Statement); len(set) != 0 {
+		db.Statement.AddClause(set)
+	} else {
+		return
+	}
 	db.Statement.Build("UPDATE", "SET", "WHERE")
 
 	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
@@ -198,5 +202,6 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 		}
 	}
+
 	return
 }

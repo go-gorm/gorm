@@ -233,3 +233,79 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 	AssertAssociationCount(t, users[0], "Company", 0, "After Delete")
 	AssertAssociationCount(t, users[1], "Company", 1, "After other user Delete")
 }
+
+func TestHasOneAssociation(t *testing.T) {
+	var user = *GetUser("hasone", Config{Account: true})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	// Find
+	var user2 User
+	DB.Find(&user2, "id = ?", user.ID)
+	DB.Model(&user2).Association("Account").Find(&user2.Account)
+	CheckUser(t, user2, user)
+
+	// Count
+	AssertAssociationCount(t, user, "Account", 1, "")
+
+	// Append
+	var account = Account{Number: "account-has-one-append"}
+
+	if err := DB.Model(&user2).Association("Account").Append(&account); err != nil {
+		t.Fatalf("Error happened when append account, got %v", err)
+	}
+
+	if account.ID == 0 {
+		t.Fatalf("Account's ID should be created")
+	}
+
+	user.Account = account
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Account", 1, "AfterAppend")
+
+	// Replace
+	var account2 = Account{Number: "account-has-one-replace"}
+
+	if err := DB.Model(&user2).Association("Account").Replace(&account2); err != nil {
+		t.Fatalf("Error happened when append Account, got %v", err)
+	}
+
+	if account2.ID == 0 {
+		t.Fatalf("account2's ID should be created")
+	}
+
+	user.Account = account2
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user2, "Account", 1, "AfterReplace")
+
+	// Delete
+	if err := DB.Model(&user2).Association("Account").Delete(&Company{}); err != nil {
+		t.Fatalf("Error happened when delete account, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Account", 1, "after delete non-existing data")
+
+	if err := DB.Model(&user2).Association("Account").Delete(&account2); err != nil {
+		t.Fatalf("Error happened when delete Account, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Account", 0, "after delete")
+
+	// Prepare Data for Clear
+	if err := DB.Model(&user2).Association("Account").Append(&account); err != nil {
+		t.Fatalf("Error happened when append Account, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Account", 1, "after prepare data")
+
+	// Clear
+	if err := DB.Model(&user2).Association("Account").Clear(); err != nil {
+		t.Errorf("Error happened when clear Account, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Account", 0, "after clear")
+}

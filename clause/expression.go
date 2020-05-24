@@ -55,9 +55,11 @@ func (in IN) NegationBuild(builder Builder) {
 	switch len(in.Values) {
 	case 0:
 	case 1:
+		builder.WriteQuoted(in.Column)
 		builder.WriteString(" <> ")
 		builder.AddVar(builder, in.Values...)
 	default:
+		builder.WriteQuoted(in.Column)
 		builder.WriteString(" NOT IN (")
 		builder.AddVar(builder, in.Values...)
 		builder.WriteByte(')')
