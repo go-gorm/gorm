@@ -285,7 +285,7 @@ func TestHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, user2, "Account", 1, "AfterReplace")
 
 	// Delete
-	if err := DB.Model(&user2).Association("Account").Delete(&Company{}); err != nil {
+	if err := DB.Model(&user2).Association("Account").Delete(&Account{}); err != nil {
 		t.Fatalf("Error happened when delete account, got %v", err)
 	}
 	AssertAssociationCount(t, user2, "Account", 1, "after delete non-existing data")
@@ -308,4 +308,80 @@ func TestHasOneAssociation(t *testing.T) {
 	}
 
 	AssertAssociationCount(t, user2, "Account", 0, "after clear")
+}
+
+func TestPolymorphicHasOneAssociation(t *testing.T) {
+	var pet = Pet{Name: "hasone", Toy: Toy{Name: "toy-has-one"}}
+
+	if err := DB.Create(&pet).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckPet(t, pet, pet)
+
+	// Find
+	var pet2 Pet
+	DB.Find(&pet2, "id = ?", pet.ID)
+	DB.Model(&pet2).Association("Toy").Find(&pet2.Toy)
+	CheckPet(t, pet2, pet)
+
+	// Count
+	AssertAssociationCount(t, pet, "Toy", 1, "")
+
+	// Append
+	var toy = Toy{Name: "toy-has-one-append"}
+
+	if err := DB.Model(&pet2).Association("Toy").Append(&toy); err != nil {
+		t.Fatalf("Error happened when append toy, got %v", err)
+	}
+
+	if toy.ID == 0 {
+		t.Fatalf("Toy's ID should be created")
+	}
+
+	pet.Toy = toy
+	CheckPet(t, pet2, pet)
+
+	AssertAssociationCount(t, pet, "Toy", 1, "AfterAppend")
+
+	// Replace
+	var toy2 = Toy{Name: "toy-has-one-replace"}
+
+	if err := DB.Model(&pet2).Association("Toy").Replace(&toy2); err != nil {
+		t.Fatalf("Error happened when append Toy, got %v", err)
+	}
+
+	if toy2.ID == 0 {
+		t.Fatalf("toy2's ID should be created")
+	}
+
+	pet.Toy = toy2
+	CheckPet(t, pet2, pet)
+
+	AssertAssociationCount(t, pet2, "Toy", 1, "AfterReplace")
+
+	// Delete
+	if err := DB.Model(&pet2).Association("Toy").Delete(&Toy{}); err != nil {
+		t.Fatalf("Error happened when delete toy, got %v", err)
+	}
+	AssertAssociationCount(t, pet2, "Toy", 1, "after delete non-existing data")
+
+	if err := DB.Model(&pet2).Association("Toy").Delete(&toy2); err != nil {
+		t.Fatalf("Error happened when delete Toy, got %v", err)
+	}
+	AssertAssociationCount(t, pet2, "Toy", 0, "after delete")
+
+	// Prepare Data for Clear
+	if err := DB.Model(&pet2).Association("Toy").Append(&toy); err != nil {
+		t.Fatalf("Error happened when append Toy, got %v", err)
+	}
+
+	AssertAssociationCount(t, pet2, "Toy", 1, "after prepare data")
+
+	// Clear
+	if err := DB.Model(&pet2).Association("Toy").Clear(); err != nil {
+		t.Errorf("Error happened when clear Toy, got %v", err)
+	}
+
+	AssertAssociationCount(t, pet2, "Toy", 0, "after clear")
 }

@@ -179,9 +179,9 @@ func (association *Association) Replace(values ...interface{}) error {
 func (association *Association) Delete(values ...interface{}) error {
 	if association.Error == nil {
 		var (
-			tx               = association.DB
+			reflectValue     = association.DB.Statement.ReflectValue
 			rel              = association.Relationship
-			reflectValue     = tx.Statement.ReflectValue
+			tx               = association.DB
 			relFields        []*schema.Field
 			foreignKeyFields []*schema.Field
 			foreignKeys      []string
@@ -201,14 +201,12 @@ func (association *Association) Delete(values ...interface{}) error {
 					foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
 					updateAttrs[ref.ForeignKey.DBName] = nil
 				}
-			} else {
-				tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryKey})
 			}
 		}
 
 		relValuesMap, relQueryValues := schema.GetIdentityFieldValuesMapFromValues(values, relFields)
 		column, values := schema.ToQueryValues(foreignKeys, relQueryValues)
-		tx.Where(clause.IN{Column: column, Values: values})
+		tx = tx.Session(&Session{}).Where(clause.IN{Column: column, Values: values})
 
 		switch rel.Type {
 		case schema.HasOne, schema.HasMany:
@@ -407,7 +405,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 		if clear && len(values) == 0 {
 			association.Relationship.Field.Set(reflectValue, reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
 			for _, ref := range association.Relationship.References {
-				if !ref.OwnPrimaryKey {
+				if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
 					ref.ForeignKey.Set(reflectValue, reflect.Zero(ref.ForeignKey.FieldType).Interface())
 				}
 			}
