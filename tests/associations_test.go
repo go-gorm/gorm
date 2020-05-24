@@ -6,7 +6,26 @@ import (
 	. "github.com/jinzhu/gorm/tests"
 )
 
-func TestAssociationForBelongsTo(t *testing.T) {
+func AssertAssociationCount(t *testing.T, data interface{}, name string, result int64, reason string) {
+	if count := DB.Model(data).Association(name).Count(); count != result {
+		t.Errorf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+	}
+
+	var newUser User
+	if user, ok := data.(User); ok {
+		DB.Find(&newUser, "id = ?", user.ID)
+	} else if user, ok := data.(*User); ok {
+		DB.Find(&newUser, "id = ?", user.ID)
+	}
+
+	if newUser.ID != 0 {
+		if count := DB.Model(&newUser).Association(name).Count(); count != result {
+			t.Errorf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+		}
+	}
+}
+
+func TestBelongsToAssociation(t *testing.T) {
 	var user = *GetUser("belongs-to", Config{Company: true, Manager: true})
 
 	if err := DB.Create(&user).Error; err != nil {
@@ -24,13 +43,8 @@ func TestAssociationForBelongsTo(t *testing.T) {
 	CheckUser(t, user2, user)
 
 	// Count
-	if count := DB.Model(&user).Association("Company").Count(); count != 1 {
-		t.Errorf("invalid company count, got %v", count)
-	}
-
-	if count := DB.Model(&user).Association("Manager").Count(); count != 1 {
-		t.Errorf("invalid manager count, got %v", count)
-	}
+	AssertAssociationCount(t, user, "Company", 1, "")
+	AssertAssociationCount(t, user, "Manager", 1, "")
 
 	// Append
 	var company = Company{Name: "company-belongs-to-append"}
@@ -58,6 +72,9 @@ func TestAssociationForBelongsTo(t *testing.T) {
 	user.ManagerID = &manager.ID
 	CheckUser(t, user2, user)
 
+	AssertAssociationCount(t, user2, "Company", 1, "AfterAppend")
+	AssertAssociationCount(t, user2, "Manager", 1, "AfterAppend")
+
 	// Replace
 	var company2 = Company{Name: "company-belongs-to-replace"}
 	var manager2 = GetUser("manager-belongs-to-replace", Config{})
@@ -84,40 +101,31 @@ func TestAssociationForBelongsTo(t *testing.T) {
 	user.ManagerID = &manager2.ID
 	CheckUser(t, user2, user)
 
+	AssertAssociationCount(t, user2, "Company", 1, "AfterReplace")
+	AssertAssociationCount(t, user2, "Manager", 1, "AfterReplace")
+
 	// Delete
 	if err := DB.Model(&user2).Association("Company").Delete(&Company{}); err != nil {
 		t.Fatalf("Error happened when delete Company, got %v", err)
 	}
-
-	if count := DB.Model(&user2).Association("Company").Count(); count != 1 {
-		t.Errorf("Invalid company count after delete non-existing association, got %v", count)
-	}
+	AssertAssociationCount(t, user2, "Company", 1, "after delete non-existing data")
 
 	if err := DB.Model(&user2).Association("Company").Delete(&company2); err != nil {
 		t.Fatalf("Error happened when delete Company, got %v", err)
 	}
-
-	if count := DB.Model(&user2).Association("Company").Count(); count != 0 {
-		t.Errorf("Invalid company count after delete, got %v", count)
-	}
+	AssertAssociationCount(t, user2, "Company", 0, "after delete")
 
 	if err := DB.Model(&user2).Association("Manager").Delete(&User{}); err != nil {
 		t.Fatalf("Error happened when delete Manager, got %v", err)
 	}
-
-	if count := DB.Model(&user2).Association("Manager").Count(); count != 1 {
-		t.Errorf("Invalid manager count after delete non-existing association, got %v", count)
-	}
+	AssertAssociationCount(t, user2, "Manager", 1, "after delete non-existing data")
 
 	if err := DB.Model(&user2).Association("Manager").Delete(manager2); err != nil {
 		t.Fatalf("Error happened when delete Manager, got %v", err)
 	}
+	AssertAssociationCount(t, user2, "Manager", 0, "after delete")
 
-	if count := DB.Model(&user2).Association("Manager").Count(); count != 0 {
-		t.Errorf("Invalid manager count after delete, got %v", count)
-	}
-
-	// Prepare Data
+	// Prepare Data for Clear
 	if err := DB.Model(&user2).Association("Company").Append(&company); err != nil {
 		t.Fatalf("Error happened when append Company, got %v", err)
 	}
@@ -126,13 +134,8 @@ func TestAssociationForBelongsTo(t *testing.T) {
 		t.Fatalf("Error happened when append Manager, got %v", err)
 	}
 
-	if count := DB.Model(&user2).Association("Company").Count(); count != 1 {
-		t.Errorf("Invalid company count after append, got %v", count)
-	}
-
-	if count := DB.Model(&user2).Association("Manager").Count(); count != 1 {
-		t.Errorf("Invalid manager count after append, got %v", count)
-	}
+	AssertAssociationCount(t, user2, "Company", 1, "after prepare data")
+	AssertAssociationCount(t, user2, "Manager", 1, "after prepare data")
 
 	// Clear
 	if err := DB.Model(&user2).Association("Company").Clear(); err != nil {
@@ -143,11 +146,43 @@ func TestAssociationForBelongsTo(t *testing.T) {
 		t.Errorf("Error happened when clear Manager, got %v", err)
 	}
 
-	if count := DB.Model(&user2).Association("Company").Count(); count != 0 {
-		t.Errorf("Invalid company count after clear, got %v", count)
+	AssertAssociationCount(t, user2, "Company", 0, "after clear")
+	AssertAssociationCount(t, user2, "Manager", 0, "after clear")
+}
+
+func TestBelongsToAssociationForSlice(t *testing.T) {
+	var users = []User{
+		*GetUser("slice-belongs-to-1", Config{Company: true, Manager: true}),
+		*GetUser("slice-belongs-to-2", Config{Company: true, Manager: false}),
+		*GetUser("slice-belongs-to-3", Config{Company: true, Manager: true}),
 	}
 
-	if count := DB.Model(&user2).Association("Manager").Count(); count != 0 {
-		t.Errorf("Invalid manager count after clear, got %v", count)
+	DB.Create(&users)
+
+	AssertAssociationCount(t, users, "Company", 3, "")
+	AssertAssociationCount(t, users, "Manager", 2, "")
+
+	// Find
+	var companies []Company
+	if DB.Model(users).Association("Company").Find(&companies); len(companies) != 3 {
+		t.Errorf("companies count should be %v, but got %v", 3, len(companies))
 	}
+
+	var managers []User
+	if DB.Model(users).Association("Manager").Find(&managers); len(managers) != 2 {
+		t.Errorf("managers count should be %v, but got %v", 2, len(managers))
+	}
+
+	// Append
+
+	// Replace
+
+	// Delete
+
+	// Clear
+	DB.Model(&users).Association("Company").Clear()
+	AssertAssociationCount(t, users, "Company", 0, "After Clear")
+
+	DB.Model(&users).Association("Manager").Clear()
+	AssertAssociationCount(t, users, "Manager", 0, "After Clear")
 }

@@ -173,10 +173,28 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	}
 
 	if stmt.Dest != stmt.Model {
-		reflectValue := reflect.ValueOf(stmt.Model)
-		for _, field := range stmt.Schema.PrimaryFields {
-			if value, isZero := field.ValueOf(reflectValue); !isZero {
-				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+		reflectValue := reflect.Indirect(reflect.ValueOf(stmt.Model))
+		switch reflectValue.Kind() {
+		case reflect.Slice, reflect.Array:
+			var priamryKeyExprs []clause.Expression
+			for i := 0; i < reflectValue.Len(); i++ {
+				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
+				var notZero bool
+				for idx, field := range stmt.Schema.PrimaryFields {
+					value, isZero := field.ValueOf(reflectValue.Index(i))
+					exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
+					notZero = notZero || !isZero
+				}
+				if notZero {
+					priamryKeyExprs = append(priamryKeyExprs, clause.And(exprs...))
+				}
+			}
+			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(priamryKeyExprs...)}})
+		case reflect.Struct:
+			for _, field := range stmt.Schema.PrimaryFields {
+				if value, isZero := field.ValueOf(reflectValue); !isZero {
+					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+				}
 			}
 		}
 	}

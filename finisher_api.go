@@ -23,12 +23,17 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 	if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 		where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
-		reflectValue := reflect.ValueOf(value)
-		for idx, pf := range tx.Statement.Schema.PrimaryFields {
-			if pv, isZero := pf.ValueOf(reflectValue); isZero {
-				tx.callbacks.Create().Execute(tx)
-				where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
-				return
+		reflectValue := reflect.Indirect(reflect.ValueOf(value))
+		switch reflectValue.Kind() {
+		case reflect.Slice, reflect.Array:
+			tx.AddError(ErrPtrStructSupported)
+		case reflect.Struct:
+			for idx, pf := range tx.Statement.Schema.PrimaryFields {
+				if pv, isZero := pf.ValueOf(reflectValue); isZero {
+					tx.callbacks.Create().Execute(tx)
+					where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
+					return
+				}
 			}
 		}
 

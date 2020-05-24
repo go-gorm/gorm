@@ -366,6 +366,11 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			if clear && len(values) == 0 {
 				for i := 0; i < reflectValue.Len(); i++ {
 					association.Relationship.Field.Set(reflectValue.Index(i), reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
+					for _, ref := range association.Relationship.References {
+						if !ref.OwnPrimaryKey {
+							ref.ForeignKey.Set(reflectValue.Index(i), reflect.Zero(ref.ForeignKey.FieldType).Interface())
+						}
+					}
 				}
 				break
 			}
@@ -382,6 +387,11 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	case reflect.Struct:
 		if clear && len(values) == 0 {
 			association.Relationship.Field.Set(reflectValue, reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
+			for _, ref := range association.Relationship.References {
+				if !ref.OwnPrimaryKey {
+					ref.ForeignKey.Set(reflectValue, reflect.Zero(ref.ForeignKey.FieldType).Interface())
+				}
+			}
 		}
 
 		for idx, value := range values {
@@ -392,10 +402,12 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 		_, hasZero = association.DB.Statement.Schema.PrioritizedPrimaryField.ValueOf(reflectValue)
 	}
 
-	if hasZero {
-		association.DB.Save(reflectValue.Addr().Interface())
-	} else {
-		association.DB.Select(selectedColumns).Save(reflectValue.Addr().Interface())
+	if len(values) > 0 {
+		if hasZero {
+			association.DB.Create(reflectValue.Addr().Interface())
+		} else {
+			association.DB.Select(selectedColumns).Model(nil).Save(reflectValue.Addr().Interface())
+		}
 	}
 
 	for _, assignBack := range assignBacks {

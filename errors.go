@@ -19,4 +19,6 @@ var (
 	ErrMissingWhereClause = errors.New("missing WHERE clause while deleting")
 	// ErrUnsupportedRelation unsupported relations
 	ErrUnsupportedRelation = errors.New("unsupported relations")
+	// ErrPtrStructSupported only ptr of struct supported
+	ErrPtrStructSupported = errors.New("only ptr of struct supported")
 )
