@@ -786,7 +786,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Languages", 2, "")
 
 	// Append
-	var language = Language{Code: "language-has-many-append", Name: "language-has-many-append"}
+	var language = Language{Code: "language-many2many-append", Name: "language-many2many-append"}
 	DB.Create(&language)
 
 	if err := DB.Model(&user2).Association("Languages").Append(&language); err != nil {
@@ -799,8 +799,8 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Languages", 3, "AfterAppend")
 
 	var languages = []Language{
-		{Code: "language-has-many-append-1-1", Name: "language-has-many-append-1-1"},
-		{Code: "language-has-many-append-2-1", Name: "language-has-many-append-2-1"},
+		{Code: "language-many2many-append-1-1", Name: "language-many2many-append-1-1"},
+		{Code: "language-many2many-append-2-1", Name: "language-many2many-append-2-1"},
 	}
 	DB.Create(&languages)
 
@@ -815,7 +815,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Languages", 5, "AfterAppendSlice")
 
 	// Replace
-	var language2 = Language{Code: "language-has-many-replace", Name: "language-has-many-replace"}
+	var language2 = Language{Code: "language-many2many-replace", Name: "language-many2many-replace"}
 	DB.Create(&language2)
 
 	if err := DB.Model(&user2).Association("Languages").Replace(&language2); err != nil {
@@ -851,4 +851,74 @@ func TestMany2ManyAssociation(t *testing.T) {
 	}
 
 	AssertAssociationCount(t, user2, "Languages", 0, "after clear")
+}
+
+func TestMany2ManyAssociationForSlice(t *testing.T) {
+	var users = []User{
+		*GetUser("slice-many2many-1", Config{Languages: 2}),
+		*GetUser("slice-many2many-2", Config{Languages: 0}),
+		*GetUser("slice-many2many-3", Config{Languages: 4}),
+	}
+
+	DB.Create(&users)
+
+	// Count
+	AssertAssociationCount(t, users, "Languages", 6, "")
+
+	// Find
+	var languages []Language
+	if DB.Model(&users).Association("Languages").Find(&languages); len(languages) != 6 {
+		t.Errorf("languages count should be %v, but got %v", 6, len(languages))
+	}
+
+	// Append
+	var languages1 = []Language{
+		{Code: "language-many2many-append-1", Name: "language-many2many-append-1"},
+	}
+	var languages2 = []Language{}
+	var languages3 = []Language{
+		{Code: "language-many2many-append-3-1", Name: "language-many2many-append-3-1"},
+		{Code: "language-many2many-append-3-2", Name: "language-many2many-append-3-2"},
+	}
+	DB.Create(&languages1)
+	DB.Create(&languages3)
+
+	DB.Model(&users).Association("Languages").Append(&languages1, &languages2, &languages3)
+
+	AssertAssociationCount(t, users, "Languages", 9, "After Append")
+
+	languages2_1 := []*Language{
+		{Code: "language-slice-replace-1-1", Name: "language-slice-replace-1-1"},
+		{Code: "language-slice-replace-1-2", Name: "language-slice-replace-1-2"},
+	}
+	languages2_2 := []*Language{
+		{Code: "language-slice-replace-2-1", Name: "language-slice-replace-2-1"},
+		{Code: "language-slice-replace-2-2", Name: "language-slice-replace-2-2"},
+	}
+	languages2_3 := &Language{Code: "language-slice-replace-3", Name: "language-slice-replace-3"}
+	DB.Create(&languages2_1)
+	DB.Create(&languages2_2)
+	DB.Create(&languages2_3)
+
+	// Replace
+	DB.Model(&users).Association("Languages").Replace(&languages2_1, &languages2_2, languages2_3)
+
+	AssertAssociationCount(t, users, "Languages", 5, "After Replace")
+
+	// Delete
+	if err := DB.Model(&users).Association("Languages").Delete(&users[2].Languages); err != nil {
+		t.Errorf("no error should happend when deleting language, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Languages", 4, "after delete")
+
+	if err := DB.Model(&users).Association("Languages").Delete(users[0].Languages[0], users[1].Languages[1]); err != nil {
+		t.Errorf("no error should happend when deleting language, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Languages", 2, "after delete")
+
+	// Clear
+	DB.Model(&users).Association("Languages").Clear()
+	AssertAssociationCount(t, users, "Languages", 0, "After Clear")
 }

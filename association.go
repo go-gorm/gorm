@@ -340,11 +340,16 @@ func (association *Association) Count() (count int64) {
 	return
 }
 
+type assignBack struct {
+	Source reflect.Value
+	Index  int
+	Dest   reflect.Value
+}
+
 func (association *Association) saveAssociation(clear bool, values ...interface{}) {
 	var (
 		reflectValue = association.DB.Statement.ReflectValue
-		assignBacks  = [][2]reflect.Value{}
-		assignBack   = association.Relationship.Field.FieldType.Kind() == reflect.Struct
+		assignBacks  []assignBack
 	)
 
 	appendToRelations := func(source, rv reflect.Value, clear bool) {
@@ -354,14 +359,14 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			case reflect.Slice, reflect.Array:
 				if rv.Len() > 0 {
 					association.Error = association.Relationship.Field.Set(source, rv.Index(0).Addr().Interface())
-					if assignBack {
-						assignBacks = append(assignBacks, [2]reflect.Value{source, rv.Index(0)})
+					if association.Relationship.Field.FieldType.Kind() == reflect.Struct {
+						assignBacks = append(assignBacks, assignBack{Source: source, Dest: rv.Index(0)})
 					}
 				}
 			case reflect.Struct:
 				association.Error = association.Relationship.Field.Set(source, rv.Addr().Interface())
-				if assignBack {
-					assignBacks = append(assignBacks, [2]reflect.Value{source, rv})
+				if association.Relationship.Field.FieldType.Kind() == reflect.Struct {
+					assignBacks = append(assignBacks, assignBack{Source: source, Dest: rv})
 				}
 			}
 		case schema.HasMany, schema.Many2Many:
@@ -378,6 +383,14 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					fieldValue = reflect.Append(fieldValue, ev.Elem())
 				} else {
 					association.Error = fmt.Errorf("unsupported data type: %v for relation %v", ev.Type(), association.Relationship.Name)
+				}
+
+				if association.Relationship.Field.IndirectFieldType.Elem().Kind() == reflect.Struct {
+					assignBacks = append(assignBacks, assignBack{
+						Source: source,
+						Index:  fieldValue.Len(),
+						Dest:   ev,
+					})
 				}
 			}
 
@@ -451,6 +464,11 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	}
 
 	for _, assignBack := range assignBacks {
-		reflect.Indirect(assignBack[1]).Set(association.Relationship.Field.ReflectValueOf(assignBack[0]))
+		fieldValue := reflect.Indirect(association.Relationship.Field.ReflectValueOf(assignBack.Source))
+		if assignBack.Index > 0 {
+			reflect.Indirect(assignBack.Dest).Set(fieldValue.Index(assignBack.Index - 1))
+		} else {
+			reflect.Indirect(assignBack.Dest).Set(fieldValue)
+		}
 	}
 }
