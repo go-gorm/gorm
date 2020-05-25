@@ -87,6 +87,9 @@ func (p *processor) Execute(db *DB) {
 
 		if stmt.Dest != nil {
 			stmt.ReflectValue = reflect.Indirect(reflect.ValueOf(stmt.Dest))
+			for stmt.ReflectValue.Kind() == reflect.Ptr {
+				stmt.ReflectValue = stmt.ReflectValue.Elem()
+			}
 			if !stmt.ReflectValue.IsValid() {
 				db.AddError(fmt.Errorf("invalid value"))
 			}

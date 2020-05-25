@@ -185,6 +185,7 @@ func (association *Association) Delete(values ...interface{}) error {
 			primaryFields, foreignFields []*schema.Field
 			foreignKeys                  []string
 			updateAttrs                  = map[string]interface{}{}
+			conds                        []clause.Expression
 		)
 
 		for _, ref := range rel.References {
@@ -193,6 +194,8 @@ func (association *Association) Delete(values ...interface{}) error {
 				foreignFields = append(foreignFields, ref.ForeignKey)
 				foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
 				updateAttrs[ref.ForeignKey.DBName] = nil
+			} else {
+				conds = append(conds, clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
 			}
 		}
 
@@ -205,12 +208,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			)
 
 			column, values := schema.ToQueryValues(foreignKeys, queryValues)
+			conds = append(conds, clause.IN{Column: column, Values: values})
 			relColumn, relValues := schema.ToQueryValues(rel.FieldSchema.PrimaryFieldDBNames, relQueryValues)
+			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
-			tx.Session(&Session{}).Model(modelValue).Clauses(
-				clause.IN{Column: column, Values: values},
-				clause.IN{Column: relColumn, Values: relValues},
-			).UpdateColumns(updateAttrs)
+			tx.Session(&Session{}).Model(modelValue).Clauses(conds...).UpdateColumns(updateAttrs)
 		case schema.BelongsTo:
 			var (
 				modelValue        = reflect.New(rel.Schema.ModelType).Interface()
@@ -219,12 +221,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			)
 
 			column, values := schema.ToQueryValues(rel.Schema.PrimaryFieldDBNames, queryValues)
+			conds = append(conds, clause.IN{Column: column, Values: values})
 			relColumn, relValues := schema.ToQueryValues(foreignKeys, relQueryValues)
+			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
-			tx.Session(&Session{}).Model(modelValue).Clauses(
-				clause.IN{Column: column, Values: values},
-				clause.IN{Column: relColumn, Values: relValues},
-			).UpdateColumns(updateAttrs)
+			tx.Session(&Session{}).Model(modelValue).Clauses(conds...).UpdateColumns(updateAttrs)
 		case schema.Many2Many:
 			modelValue := reflect.New(rel.JoinTable.ModelType).Interface()
 			conds := rel.ToQueryConditions(reflectValue)

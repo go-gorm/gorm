@@ -125,7 +125,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
 							elems = reflect.Append(elems, rv)
 						} else {
-							db.Session(&gorm.Session{}).Save(rv.Interface())
+							db.Session(&gorm.Session{}).Save(rv.Addr().Interface())
 						}
 					}
 				}
@@ -192,7 +192,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 								elems = reflect.Append(elems, elem.Addr())
 							}
 						} else {
-							db.Session(&gorm.Session{}).Save(elem.Interface())
+							db.Session(&gorm.Session{}).Save(elem.Addr().Interface())
 						}
 					}
 				}
