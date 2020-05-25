@@ -1073,3 +1073,138 @@ func TestMany2ManyAssociationForSlice(t *testing.T) {
 	DB.Model(&users).Association("Languages").Clear()
 	AssertAssociationCount(t, users, "Languages", 0, "After Clear")
 }
+
+func TestSingleTableMany2ManyAssociation(t *testing.T) {
+	var user = *GetUser("many2many", Config{Friends: 2})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	// Find
+	var user2 User
+	DB.Find(&user2, "id = ?", user.ID)
+	DB.Model(&user2).Association("Friends").Find(&user2.Friends)
+
+	CheckUser(t, user2, user)
+
+	// Count
+	AssertAssociationCount(t, user, "Friends", 2, "")
+
+	// Append
+	var friend = *GetUser("friend", Config{})
+
+	if err := DB.Model(&user2).Association("Friends").Append(&friend); err != nil {
+		t.Fatalf("Error happened when append account, got %v", err)
+	}
+
+	user.Friends = append(user.Friends, &friend)
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Friends", 3, "AfterAppend")
+
+	var friends = []*User{GetUser("friend-append-1", Config{}), GetUser("friend-append-2", Config{})}
+
+	if err := DB.Model(&user2).Association("Friends").Append(&friends); err != nil {
+		t.Fatalf("Error happened when append friend, got %v", err)
+	}
+
+	user.Friends = append(user.Friends, friends...)
+
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Friends", 5, "AfterAppendSlice")
+
+	// Replace
+	var friend2 = *GetUser("friend-replace-2", Config{})
+
+	if err := DB.Model(&user2).Association("Friends").Replace(&friend2); err != nil {
+		t.Fatalf("Error happened when append friend, got %v", err)
+	}
+
+	user.Friends = []*User{&friend2}
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user2, "Friends", 1, "AfterReplace")
+
+	// Delete
+	if err := DB.Model(&user2).Association("Friends").Delete(&User{}); err != nil {
+		t.Fatalf("Error happened when delete friend, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Friends", 1, "after delete non-existing data")
+
+	if err := DB.Model(&user2).Association("Friends").Delete(&friend2); err != nil {
+		t.Fatalf("Error happened when delete Friends, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Friends", 0, "after delete")
+
+	// Prepare Data for Clear
+	if err := DB.Model(&user2).Association("Friends").Append(&friend); err != nil {
+		t.Fatalf("Error happened when append Friends, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Friends", 1, "after prepare data")
+
+	// Clear
+	if err := DB.Model(&user2).Association("Friends").Clear(); err != nil {
+		t.Errorf("Error happened when clear Friends, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Friends", 0, "after clear")
+}
+
+func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
+	var users = []User{
+		*GetUser("slice-many2many-1", Config{Team: 2}),
+		*GetUser("slice-many2many-2", Config{Team: 0}),
+		*GetUser("slice-many2many-3", Config{Team: 4}),
+	}
+
+	DB.Create(&users)
+
+	// Count
+	AssertAssociationCount(t, users, "Team", 6, "")
+
+	// Find
+	var teams []User
+	if DB.Model(&users).Association("Team").Find(&teams); len(teams) != 6 {
+		t.Errorf("teams count should be %v, but got %v", 6, len(teams))
+	}
+
+	// Append
+	var teams1 = []User{*GetUser("friend-append-1", Config{})}
+	var teams2 = []User{}
+	var teams3 = []*User{GetUser("friend-append-3-1", Config{}), GetUser("friend-append-3-2", Config{})}
+
+	DB.Model(&users).Association("Team").Append(&teams1, &teams2, &teams3)
+
+	AssertAssociationCount(t, users, "Team", 9, "After Append")
+
+	var teams2_1 = []User{*GetUser("friend-replace-1", Config{}), *GetUser("friend-replace-2", Config{})}
+	var teams2_2 = []User{*GetUser("friend-replace-2-1", Config{}), *GetUser("friend-replace-2-2", Config{})}
+	var teams2_3 = GetUser("friend-replace-3-1", Config{})
+
+	// Replace
+	DB.Model(&users).Association("Team").Replace(&teams2_1, &teams2_2, teams2_3)
+
+	AssertAssociationCount(t, users, "Team", 5, "After Replace")
+
+	// Delete
+	if err := DB.Model(&users).Association("Team").Delete(&users[2].Team); err != nil {
+		t.Errorf("no error should happend when deleting team, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Team", 4, "after delete")
+
+	if err := DB.Model(&users).Association("Team").Delete(users[0].Team[0], users[1].Team[1]); err != nil {
+		t.Errorf("no error should happend when deleting team, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Team", 2, "after delete")
+
+	// Clear
+	DB.Model(&users).Association("Team").Clear()
+	AssertAssociationCount(t, users, "Team", 0, "After Clear")
+}

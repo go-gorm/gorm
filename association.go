@@ -422,9 +422,11 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			if clear && len(values) == 0 {
 				for i := 0; i < reflectValue.Len(); i++ {
 					association.Relationship.Field.Set(reflectValue.Index(i), reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
-					for _, ref := range association.Relationship.References {
-						if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
-							ref.ForeignKey.Set(reflectValue.Index(i), reflect.Zero(ref.ForeignKey.FieldType).Interface())
+					if association.Relationship.JoinTable == nil {
+						for _, ref := range association.Relationship.References {
+							if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
+								ref.ForeignKey.Set(reflectValue.Index(i), reflect.Zero(ref.ForeignKey.FieldType).Interface())
+							}
 						}
 					}
 				}
@@ -446,9 +448,11 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	case reflect.Struct:
 		if clear && len(values) == 0 {
 			association.Relationship.Field.Set(reflectValue, reflect.New(association.Relationship.Field.IndirectFieldType).Interface())
-			for _, ref := range association.Relationship.References {
-				if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
-					ref.ForeignKey.Set(reflectValue, reflect.Zero(ref.ForeignKey.FieldType).Interface())
+			if association.Relationship.JoinTable == nil {
+				for _, ref := range association.Relationship.References {
+					if !ref.OwnPrimaryKey && ref.PrimaryValue == "" {
+						ref.ForeignKey.Set(reflectValue, reflect.Zero(ref.ForeignKey.FieldType).Interface())
+					}
 				}
 			}
 		}
