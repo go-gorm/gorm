@@ -21,4 +21,6 @@ var (
 	ErrUnsupportedRelation = errors.New("unsupported relations")
 	// ErrPtrStructSupported only ptr of struct supported
 	ErrPtrStructSupported = errors.New("only ptr of struct supported")
+	// ErrorPrimaryKeyRequired primary keys required
+	ErrorPrimaryKeyRequired = errors.New("primary key required")
 )

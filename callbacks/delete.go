@@ -5,6 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func BeforeDelete(db *gorm.DB) {
@@ -37,13 +38,22 @@ func Delete(db *gorm.DB) {
 		db.Statement.AddClauseIfNotExists(clause.Delete{})
 
 		values := []reflect.Value{db.Statement.ReflectValue}
-		if db.Statement.Dest != db.Statement.Model {
+		if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
 			values = append(values, reflect.ValueOf(db.Statement.Model))
 		}
-		for _, field := range db.Statement.Schema.PrimaryFields {
-			for _, value := range values {
-				if value, isZero := field.ValueOf(value); !isZero {
-					db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+
+		if db.Statement.Schema != nil {
+			_, queryValues := schema.GetIdentityFieldValuesMap(db.Statement.ReflectValue, db.Statement.Schema.PrimaryFields)
+			column, values := schema.ToQueryValues(db.Statement.Schema.PrimaryFieldDBNames, queryValues)
+
+			if len(values) > 0 {
+				db.Where(clause.IN{Column: column, Values: values})
+			} else if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
+				_, queryValues = schema.GetIdentityFieldValuesMap(reflect.ValueOf(db.Statement.Model), db.Statement.Schema.PrimaryFields)
+				column, values = schema.ToQueryValues(db.Statement.Schema.PrimaryFieldDBNames, queryValues)
+
+				if len(values) > 0 {
+					db.Where(clause.IN{Column: column, Values: values})
 				}
 			}
 		}

@@ -128,49 +128,40 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 		case schema.Many2Many:
 			var primaryFields, relPrimaryFields []*schema.Field
-			var foreignKeys, relForeignKeys []string
-			modelValue := reflect.New(rel.JoinTable.ModelType).Interface()
-			conds := []clause.Expression{}
+			var joinPrimaryKeys, joinRelPrimaryKeys []string
+			var conds []clause.Expression
 
 			for _, ref := range rel.References {
-				if ref.OwnPrimaryKey {
-					primaryFields = append(primaryFields, ref.PrimaryKey)
-					foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
-				} else if ref.PrimaryValue != "" {
-					conds = append(conds, clause.Eq{
-						Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
-						Value:  ref.PrimaryValue,
-					})
+				if ref.PrimaryValue == "" {
+					if ref.OwnPrimaryKey {
+						primaryFields = append(primaryFields, ref.PrimaryKey)
+						joinPrimaryKeys = append(joinPrimaryKeys, ref.ForeignKey.DBName)
+					} else {
+						relPrimaryFields = append(relPrimaryFields, ref.PrimaryKey)
+						joinRelPrimaryKeys = append(joinRelPrimaryKeys, ref.ForeignKey.DBName)
+					}
 				} else {
-					relPrimaryFields = append(relPrimaryFields, ref.PrimaryKey)
-					relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
+					conds = append(conds, clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
 				}
 			}
 
-			generateConds := func(rv reflect.Value) {
-				_, values := schema.GetIdentityFieldValuesMap(rv, primaryFields)
-				column, queryValues := schema.ToQueryValues(foreignKeys, values)
+			var (
+				modelValue        = reflect.New(rel.JoinTable.ModelType).Interface()
+				_, queryValues    = schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
+				_, relQueryValues = schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)
+			)
 
-				relValue := rel.Field.ReflectValueOf(rv)
-				_, relValues := schema.GetIdentityFieldValuesMap(relValue, relPrimaryFields)
-				relColumn, relQueryValues := schema.ToQueryValues(relForeignKeys, relValues)
-
-				conds = append(conds, clause.And(
-					clause.IN{Column: column, Values: queryValues},
-					clause.Not(clause.IN{Column: relColumn, Values: relQueryValues}),
-				))
+			if column, values := schema.ToQueryValues(joinPrimaryKeys, queryValues); len(values) > 0 {
+				conds = append(conds, clause.IN{Column: column, Values: values})
+			} else {
+				return ErrorPrimaryKeyRequired
 			}
 
-			switch reflectValue.Kind() {
-			case reflect.Struct:
-				generateConds(reflectValue)
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < reflectValue.Len(); i++ {
-					generateConds(reflectValue.Index(i))
-				}
+			if relColumn, relValues := schema.ToQueryValues(joinRelPrimaryKeys, relQueryValues); len(relValues) > 0 {
+				conds = append(conds, clause.Not(clause.IN{Column: relColumn, Values: relValues}))
 			}
 
-			association.DB.Where(conds).Delete(modelValue)
+			association.DB.Where(clause.Where{Exprs: conds}).Model(nil).Delete(modelValue)
 		}
 	}
 	return association.Error
@@ -227,9 +218,39 @@ func (association *Association) Delete(values ...interface{}) error {
 
 			tx.Session(&Session{}).Model(modelValue).Clauses(conds...).UpdateColumns(updateAttrs)
 		case schema.Many2Many:
-			modelValue := reflect.New(rel.JoinTable.ModelType).Interface()
-			conds := rel.ToQueryConditions(reflectValue)
-			tx.Clauses(clause.Where{Exprs: conds}).Delete(modelValue)
+			var primaryFields, relPrimaryFields []*schema.Field
+			var joinPrimaryKeys, joinRelPrimaryKeys []string
+
+			for _, ref := range rel.References {
+				if ref.PrimaryValue == "" {
+					if ref.OwnPrimaryKey {
+						primaryFields = append(primaryFields, ref.PrimaryKey)
+						joinPrimaryKeys = append(joinPrimaryKeys, ref.ForeignKey.DBName)
+					} else {
+						relPrimaryFields = append(relPrimaryFields, ref.PrimaryKey)
+						joinRelPrimaryKeys = append(joinRelPrimaryKeys, ref.ForeignKey.DBName)
+					}
+				} else {
+					conds = append(conds, clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
+				}
+			}
+
+			var (
+				modelValue        = reflect.New(rel.JoinTable.ModelType).Interface()
+				_, queryValues    = schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
+				_, relQueryValues = schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)
+			)
+
+			if column, values := schema.ToQueryValues(joinPrimaryKeys, queryValues); len(values) > 0 {
+				conds = append(conds, clause.IN{Column: column, Values: values})
+			} else {
+				return ErrorPrimaryKeyRequired
+			}
+
+			relColumn, relValues := schema.ToQueryValues(joinRelPrimaryKeys, relQueryValues)
+			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
+
+			tx.Where(clause.Where{Exprs: conds}).Model(nil).Delete(modelValue)
 		}
 
 		relValuesMap, _ := schema.GetIdentityFieldValuesMapFromValues(values, rel.FieldSchema.PrimaryFields)

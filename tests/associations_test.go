@@ -641,7 +641,6 @@ func TestPolymorphicHasManyAssociation(t *testing.T) {
 	if err := DB.Model(&user2).Association("Toys").Append(&toy); err != nil {
 		t.Fatalf("Error happened when append account, got %v", err)
 	}
-	return
 
 	if toy.ID == 0 {
 		t.Fatalf("Toy's ID should be created")
