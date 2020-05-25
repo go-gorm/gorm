@@ -467,3 +467,152 @@ func TestPolymorphicHasOneAssociationForSlice(t *testing.T) {
 	DB.Model(&pets).Association("Toy").Clear()
 	AssertAssociationCount(t, pets, "Toy", 0, "After Clear")
 }
+
+func TestHasManyAssociation(t *testing.T) {
+	var user = *GetUser("hasmany", Config{Pets: 2})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	// Find
+	var user2 User
+	DB.Find(&user2, "id = ?", user.ID)
+	DB.Model(&user2).Association("Pets").Find(&user2.Pets)
+	CheckUser(t, user2, user)
+
+	// Count
+	AssertAssociationCount(t, user, "Pets", 2, "")
+
+	// Append
+	var pet = Pet{Name: "pet-has-many-append"}
+
+	if err := DB.Model(&user2).Association("Pets").Append(&pet); err != nil {
+		t.Fatalf("Error happened when append account, got %v", err)
+	}
+
+	if pet.ID == 0 {
+		t.Fatalf("Pet's ID should be created")
+	}
+
+	user.Pets = append(user.Pets, &pet)
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Pets", 3, "AfterAppend")
+
+	var pets = []Pet{{Name: "pet-has-many-append-1-1"}, {Name: "pet-has-many-append-1-1"}}
+
+	if err := DB.Model(&user2).Association("Pets").Append(&pets); err != nil {
+		t.Fatalf("Error happened when append pet, got %v", err)
+	}
+
+	for _, pet := range pets {
+		var pet = pet
+		if pet.ID == 0 {
+			t.Fatalf("Pet's ID should be created")
+		}
+
+		user.Pets = append(user.Pets, &pet)
+	}
+
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Pets", 5, "AfterAppendSlice")
+
+	// Replace
+	var pet2 = Pet{Name: "pet-has-many-replace"}
+
+	if err := DB.Model(&user2).Association("Pets").Replace(&pet2); err != nil {
+		t.Fatalf("Error happened when append pet, got %v", err)
+	}
+
+	if pet2.ID == 0 {
+		t.Fatalf("pet2's ID should be created")
+	}
+
+	user.Pets = []*Pet{&pet2}
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user2, "Pets", 1, "AfterReplace")
+
+	// Delete
+	if err := DB.Model(&user2).Association("Pets").Delete(&Pet{}); err != nil {
+		t.Fatalf("Error happened when delete pet, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Pets", 1, "after delete non-existing data")
+
+	if err := DB.Model(&user2).Association("Pets").Delete(&pet2); err != nil {
+		t.Fatalf("Error happened when delete Pets, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Pets", 0, "after delete")
+
+	// Prepare Data for Clear
+	if err := DB.Model(&user2).Association("Pets").Append(&pet); err != nil {
+		t.Fatalf("Error happened when append Pets, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Pets", 1, "after prepare data")
+
+	// Clear
+	if err := DB.Model(&user2).Association("Pets").Clear(); err != nil {
+		t.Errorf("Error happened when clear Pets, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Pets", 0, "after clear")
+}
+
+func TestHasManyAssociationForSlice(t *testing.T) {
+	var users = []User{
+		*GetUser("slice-hasmany-1", Config{Pets: 2}),
+		*GetUser("slice-hasmany-2", Config{Pets: 0}),
+		*GetUser("slice-hasmany-3", Config{Pets: 4}),
+	}
+
+	DB.Create(&users)
+
+	// Count
+	AssertAssociationCount(t, users, "Pets", 6, "")
+
+	// Find
+	var pets []Pet
+	if DB.Model(&users).Association("Pets").Find(&pets); len(pets) != 6 {
+		t.Errorf("pets count should be %v, but got %v", 6, len(pets))
+	}
+
+	// Append
+	DB.Model(&users).Association("Pets").Append(
+		&Pet{Name: "pet-slice-append-1"},
+		[]*Pet{{Name: "pet-slice-append-2-1"}, {Name: "pet-slice-append-2-2"}},
+		&Pet{Name: "pet-slice-append-3"},
+	)
+
+	AssertAssociationCount(t, users, "Pets", 10, "After Append")
+
+	// Replace -> same as append
+	DB.Model(&users).Association("Pets").Replace(
+		[]*Pet{{Name: "pet-slice-replace-1-1"}, {Name: "pet-slice-replace-1-2"}},
+		[]*Pet{{Name: "pet-slice-replace-2-1"}, {Name: "pet-slice-replace-2-2"}},
+		&Pet{Name: "pet-slice-replace-3"},
+	)
+
+	AssertAssociationCount(t, users, "Pets", 5, "After Append")
+
+	// Delete
+	if err := DB.Model(&users).Association("Pets").Delete(&users[2].Pets); err != nil {
+		t.Errorf("no error should happend when deleting pet, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Pets", 4, "after delete")
+
+	if err := DB.Debug().Model(&users).Association("Pets").Delete(users[0].Pets[0], users[1].Pets[1]); err != nil {
+		t.Errorf("no error should happend when deleting pet, but got %v", err)
+	}
+
+	AssertAssociationCount(t, users, "Pets", 2, "after delete")
+
+	// Clear
+	DB.Model(&users).Association("Pets").Clear()
+	AssertAssociationCount(t, users, "Pets", 0, "After Clear")
+}

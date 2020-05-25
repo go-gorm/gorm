@@ -22,6 +22,7 @@ type Schema struct {
 	PrioritizedPrimaryField   *Field
 	DBNames                   []string
 	PrimaryFields             []*Field
+	PrimaryFieldDBNames       []string
 	Fields                    []*Field
 	FieldsByName              map[string]*Field
 	FieldsByDBName            map[string]*Field
@@ -163,6 +164,10 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			schema.PrioritizedPrimaryField = f
 			schema.PrimaryFields = append(schema.PrimaryFields, f)
 		}
+	}
+
+	for _, field := range schema.PrimaryFields {
+		schema.PrimaryFieldDBNames = append(schema.PrimaryFieldDBNames, field.DBName)
 	}
 
 	schema.FieldsWithDefaultDBValue = map[string]*Field{}
