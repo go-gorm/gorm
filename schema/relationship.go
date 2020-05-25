@@ -355,7 +355,7 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 		for _, ref := range rel.References {
 			if ref.OwnPrimaryKey {
 				foreignFields = append(foreignFields, ref.PrimaryKey)
-				relForeignKeys = append(relForeignKeys, ref.PrimaryKey.DBName)
+				relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
 			} else if ref.PrimaryValue != "" {
 				conds = append(conds, clause.Eq{
 					Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},

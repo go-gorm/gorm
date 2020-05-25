@@ -51,7 +51,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			})
 			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
-			db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
+			db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
 			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 			if err == nil {
@@ -93,7 +93,7 @@ func CreateWithReturning(db *gorm.DB) {
 	})
 	db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
-	db.Statement.Build("INSERT", "VALUES", "ON_CONFLICT")
+	db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
 
 	if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
 		db.Statement.WriteString(" RETURNING ")

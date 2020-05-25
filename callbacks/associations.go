@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/schema"
 	"github.com/jinzhu/gorm/utils"
 )
@@ -282,7 +283,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.Session(&gorm.Session{}).Create(joins.Interface())
+				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface())
 			}
 		}
 	}

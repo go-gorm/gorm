@@ -766,3 +766,90 @@ func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 	DB.Model(&users).Association("Toys").Clear()
 	AssertAssociationCount(t, users, "Toys", 0, "After Clear")
 }
+
+func TestMany2ManyAssociation(t *testing.T) {
+	var user = *GetUser("many2many", Config{Languages: 2})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	// Find
+	var user2 User
+	DB.Find(&user2, "id = ?", user.ID)
+	DB.Model(&user2).Association("Languages").Find(&user2.Languages)
+
+	CheckUser(t, user2, user)
+
+	// Count
+	AssertAssociationCount(t, user, "Languages", 2, "")
+
+	// Append
+	var language = Language{Code: "language-has-many-append", Name: "language-has-many-append"}
+	DB.Create(&language)
+
+	if err := DB.Model(&user2).Association("Languages").Append(&language); err != nil {
+		t.Fatalf("Error happened when append account, got %v", err)
+	}
+
+	user.Languages = append(user.Languages, language)
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Languages", 3, "AfterAppend")
+
+	var languages = []Language{
+		{Code: "language-has-many-append-1-1", Name: "language-has-many-append-1-1"},
+		{Code: "language-has-many-append-2-1", Name: "language-has-many-append-2-1"},
+	}
+	DB.Create(&languages)
+
+	if err := DB.Model(&user2).Association("Languages").Append(&languages); err != nil {
+		t.Fatalf("Error happened when append language, got %v", err)
+	}
+
+	user.Languages = append(user.Languages, languages...)
+
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user, "Languages", 5, "AfterAppendSlice")
+
+	// Replace
+	var language2 = Language{Code: "language-has-many-replace", Name: "language-has-many-replace"}
+	DB.Create(&language2)
+
+	if err := DB.Model(&user2).Association("Languages").Replace(&language2); err != nil {
+		t.Fatalf("Error happened when append language, got %v", err)
+	}
+
+	user.Languages = []Language{language2}
+	CheckUser(t, user2, user)
+
+	AssertAssociationCount(t, user2, "Languages", 1, "AfterReplace")
+
+	// Delete
+	if err := DB.Model(&user2).Association("Languages").Delete(&Language{}); err != nil {
+		t.Fatalf("Error happened when delete language, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Languages", 1, "after delete non-existing data")
+
+	if err := DB.Model(&user2).Association("Languages").Delete(&language2); err != nil {
+		t.Fatalf("Error happened when delete Languages, got %v", err)
+	}
+	AssertAssociationCount(t, user2, "Languages", 0, "after delete")
+
+	// Prepare Data for Clear
+	if err := DB.Model(&user2).Association("Languages").Append(&language); err != nil {
+		t.Fatalf("Error happened when append Languages, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Languages", 1, "after prepare data")
+
+	// Clear
+	if err := DB.Model(&user2).Association("Languages").Clear(); err != nil {
+		t.Errorf("Error happened when clear Languages, got %v", err)
+	}
+
+	AssertAssociationCount(t, user2, "Languages", 0, "after clear")
+}
