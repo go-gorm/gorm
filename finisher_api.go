@@ -48,7 +48,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 }
 
 // First find first record that match given conditions, order by primary key
-func (db *DB) First(out interface{}, conds ...interface{}) (tx *DB) {
+func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
@@ -56,25 +56,25 @@ func (db *DB) First(out interface{}, conds ...interface{}) (tx *DB) {
 		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
-	tx.Statement.Dest = out
+	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return
 }
 
 // Take return a record that match given conditions, the order will depend on the database implementation
-func (db *DB) Take(out interface{}, conds ...interface{}) (tx *DB) {
+func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1)
 	if len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
-	tx.Statement.Dest = out
+	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return
 }
 
 // Last find last record that match given conditions, order by primary key
-func (db *DB) Last(out interface{}, conds ...interface{}) (tx *DB) {
+func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 		Desc:   true,
@@ -83,28 +83,28 @@ func (db *DB) Last(out interface{}, conds ...interface{}) (tx *DB) {
 		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
-	tx.Statement.Dest = out
+	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return
 }
 
 // Find find records that match given conditions
-func (db *DB) Find(out interface{}, conds ...interface{}) (tx *DB) {
+func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
 	}
-	tx.Statement.Dest = out
+	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return
 }
 
-func (db *DB) FirstOrInit(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) FirstOrInit(dest interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
 
-func (db *DB) FirstOrCreate(out interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) FirstOrCreate(dest interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	return
 }
@@ -181,6 +181,8 @@ func (db *DB) Rows() (*sql.Rows, error) {
 // Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Dest = dest
+	tx.callbacks.Query().Execute(tx)
 	return
 }
 
