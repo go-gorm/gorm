@@ -1,15 +1,14 @@
-package callbacks
+package gorm
 
 import (
 	"database/sql"
 	"reflect"
 	"strings"
 
-	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/schema"
 )
 
-func Scan(rows *sql.Rows, db *gorm.DB) {
+func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
 
@@ -19,7 +18,7 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			values[idx] = new(interface{})
 		}
 
-		if rows.Next() {
+		if initialized || rows.Next() {
 			db.RowsAffected++
 			rows.Scan(values...)
 		}
@@ -39,7 +38,8 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			values[idx] = new(interface{})
 		}
 
-		for rows.Next() {
+		for initialized || rows.Next() {
+			initialized = false
 			db.RowsAffected++
 			rows.Scan(values...)
 
@@ -50,7 +50,8 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 			*dest = append(*dest, v)
 		}
 	case *int, *int64, *uint, *uint64:
-		for rows.Next() {
+		for initialized || rows.Next() {
+			initialized = false
 			db.RowsAffected++
 			rows.Scan(dest)
 		}
@@ -78,7 +79,8 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 				}
 			}
 
-			for rows.Next() {
+			for initialized || rows.Next() {
+				initialized = false
 				elem := reflect.New(db.Statement.Schema.ModelType).Elem()
 				for idx, field := range fields {
 					if field != nil {
@@ -118,7 +120,7 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 				}
 			}
 
-			if rows.Next() {
+			if initialized || rows.Next() {
 				db.RowsAffected++
 				if err := rows.Scan(values...); err != nil {
 					db.AddError(err)
@@ -128,6 +130,6 @@ func Scan(rows *sql.Rows, db *gorm.DB) {
 	}
 
 	if db.RowsAffected == 0 && db.Statement.RaiseErrorOnNotFound {
-		db.AddError(gorm.ErrRecordNotFound)
+		db.AddError(ErrRecordNotFound)
 	}
 }

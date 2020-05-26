@@ -186,8 +186,13 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) ScanRows(rows *sql.Rows, result interface{}) error {
-	return nil
+func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
+	tx := db.getInstance()
+	tx.Error = tx.Statement.Parse(dest)
+	tx.Statement.Dest = dest
+	tx.Statement.ReflectValue = reflect.Indirect(reflect.ValueOf(dest))
+	Scan(rows, tx, true)
+	return tx.Error
 }
 
 // Transaction start a transaction as a block, return error will rollback, otherwise to commit.

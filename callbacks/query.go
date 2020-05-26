@@ -105,7 +105,7 @@ func Query(db *gorm.DB) {
 	}
 	defer rows.Close()
 
-	Scan(rows, db)
+	gorm.Scan(rows, db, false)
 }
 
 func Preload(db *gorm.DB) {
