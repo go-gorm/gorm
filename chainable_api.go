@@ -224,13 +224,15 @@ func (db *DB) Preload(query string, args ...interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
+func (db *DB) Attrs(attrs ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.attrs = attrs
 	return
 }
 
-func (db *DB) Attrs(attrs ...interface{}) (tx *DB) {
+func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.assigns = attrs
 	return
 }
 

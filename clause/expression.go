@@ -171,14 +171,3 @@ func (like Like) NegationBuild(builder Builder) {
 	builder.WriteString(" NOT LIKE ")
 	builder.AddVar(builder, like.Value)
 }
-
-// Map
-type Map map[interface{}]interface{}
-
-func (m Map) Build(builder Builder) {
-	// TODO
-}
-
-func (m Map) NegationBuild(builder Builder) {
-	// TODO
-}

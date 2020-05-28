@@ -34,6 +34,8 @@ type Statement struct {
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	NamedVars            []sql.NamedArg
+	attrs                []interface{}
+	assigns              []interface{}
 }
 
 // StatementModifier statement modifier interface
@@ -195,7 +197,7 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 }
 
 // BuildCondtion build condition
-func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conditions []clause.Expression) {
+func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conds []clause.Expression) {
 	if sql, ok := query.(string); ok {
 		if i, err := strconv.Atoi(sql); err == nil {
 			query = i
@@ -212,42 +214,53 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 
 		switch v := arg.(type) {
 		case clause.Expression:
-			conditions = append(conditions, v)
+			conds = append(conds, v)
 		case *DB:
 			if v.Statement == nil {
 				if cs, ok := v.Statement.Clauses["WHERE"]; ok {
-					conditions = append(conditions, cs.Expression)
+					conds = append(conds, cs.Expression)
 				}
 			}
 		case map[interface{}]interface{}:
-			var clauseMap = clause.Map{}
 			for i, j := range v {
-				clauseMap[i] = j
+				conds = append(conds, clause.Eq{Column: i, Value: j})
 			}
-			conditions = append(conditions, clauseMap)
 		case map[string]string:
-			var clauseMap = clause.Map{}
 			for i, j := range v {
-				clauseMap[i] = j
+				conds = append(conds, clause.Eq{Column: i, Value: j})
 			}
-			conditions = append(conditions, clauseMap)
 		case map[string]interface{}:
-			var clauseMap = clause.Map{}
 			for i, j := range v {
-				clauseMap[i] = j
+				conds = append(conds, clause.Eq{Column: i, Value: j})
 			}
-			conditions = append(conditions, clauseMap)
 		default:
-			// TODO check is struct
-			// struct, slice -> ids
+			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
+			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+				switch reflectValue.Kind() {
+				case reflect.Struct:
+					for _, field := range s.FieldsByDBName {
+						if v, isZero := field.ValueOf(reflectValue); !isZero {
+							conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+						}
+					}
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < reflectValue.Len(); i++ {
+						for _, field := range s.FieldsByDBName {
+							if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
+								conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 
-	if len(conditions) == 0 {
-		conditions = append(conditions, clause.IN{Column: clause.PrimaryColumn, Values: args})
+	if len(conds) == 0 {
+		conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
 	}
 
-	return conditions
+	return
 }
 
 // Build build sql with clauses names
@@ -337,7 +350,7 @@ func (stmt *Statement) reinit() {
 	// 	return true
 	// })
 
-	stmt.Schema = nil
+	// stmt.Schema = nil
 	stmt.SQL.Reset()
 	stmt.Vars = nil
 	stmt.NamedVars = nil

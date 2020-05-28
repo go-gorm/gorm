@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"database/sql"
+	"errors"
 	"reflect"
 	"strings"
 
@@ -99,13 +100,56 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) FirstOrInit(dest interface{}, where ...interface{}) (tx *DB) {
+func (tx *DB) assignExprsToValue(exprs []clause.Expression) {
+	for _, expr := range exprs {
+		if eq, ok := expr.(clause.Eq); ok {
+			switch column := eq.Column.(type) {
+			case string:
+				if field := tx.Statement.Schema.LookUpField(column); field != nil {
+					field.Set(tx.Statement.ReflectValue, eq.Value)
+				}
+			case clause.Column:
+				if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
+					field.Set(tx.Statement.ReflectValue, eq.Value)
+				}
+			default:
+			}
+		}
+	}
+}
+
+func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	if tx = tx.First(dest, conds...); errors.Is(tx.Error, ErrRecordNotFound) {
+		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
+			if where, ok := c.Expression.(clause.Where); ok {
+				tx.assignExprsToValue(where.Exprs)
+			}
+		}
+
+		// initialize with attrs, conds
+		if len(tx.Statement.attrs) > 0 {
+			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:])
+			tx.assignExprsToValue(exprs)
+		}
+		tx.Error = nil
+	}
+
+	// initialize with attrs, conds
+	if len(tx.Statement.assigns) > 0 {
+		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:])
+		tx.assignExprsToValue(exprs)
+	}
 	return
 }
 
 func (db *DB) FirstOrCreate(dest interface{}, where ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+	// if err := tx.First(dest, conds...).Error; errors.Is(err, ErrRecordNotFound) {
+	// 	// initialize with attrs, conds
+	// }
+
+	// assign dest
 	return
 }
 
