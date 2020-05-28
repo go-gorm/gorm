@@ -46,12 +46,21 @@ func Create(config *Config) func(db *gorm.DB) {
 		return CreateWithReturning
 	} else {
 		return func(db *gorm.DB) {
-			db.Statement.AddClauseIfNotExists(clause.Insert{
-				Table: clause.Table{Name: db.Statement.Table},
-			})
-			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+			if db.Statement.Schema != nil && !db.Statement.Unscoped {
+				for _, c := range db.Statement.Schema.CreateClauses {
+					db.Statement.AddClause(c)
+				}
+			}
 
-			db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+			if db.Statement.SQL.String() == "" {
+				db.Statement.AddClauseIfNotExists(clause.Insert{
+					Table: clause.Table{Name: db.Statement.Table},
+				})
+				db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+
+				db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+			}
+
 			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 			if err == nil {
@@ -88,12 +97,20 @@ func Create(config *Config) func(db *gorm.DB) {
 }
 
 func CreateWithReturning(db *gorm.DB) {
-	db.Statement.AddClauseIfNotExists(clause.Insert{
-		Table: clause.Table{Name: db.Statement.Table},
-	})
-	db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+	if db.Statement.Schema != nil && !db.Statement.Unscoped {
+		for _, c := range db.Statement.Schema.CreateClauses {
+			db.Statement.AddClause(c)
+		}
+	}
 
-	db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+	if db.Statement.SQL.String() == "" {
+		db.Statement.AddClauseIfNotExists(clause.Insert{
+			Table: clause.Table{Name: db.Statement.Table},
+		})
+		db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+
+		db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+	}
 
 	if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
 		db.Statement.WriteString(" RETURNING ")

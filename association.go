@@ -44,11 +44,7 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 			tx         = association.DB.Model(out)
 		)
 
-		if association.Relationship.JoinTable != nil {
-			for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
-				tx.Clauses(queryClause)
-			}
-
+		if association.Relationship.JoinTable != nil && !tx.Statement.Unscoped {
 			tx.Clauses(clause.From{Joins: []clause.Join{{
 				Table: clause.Table{Name: association.Relationship.JoinTable.Table},
 				ON:    clause.Where{Exprs: queryConds},
@@ -317,8 +313,10 @@ func (association *Association) Count() (count int64) {
 		)
 
 		if association.Relationship.JoinTable != nil {
-			for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
-				tx.Clauses(queryClause)
+			if !tx.Statement.Unscoped {
+				for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
+					tx.Clauses(queryClause)
+				}
 			}
 
 			tx.Clauses(clause.From{Joins: []clause.Join{{

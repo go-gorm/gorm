@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -34,26 +35,30 @@ func BeforeDelete(db *gorm.DB) {
 }
 
 func Delete(db *gorm.DB) {
+	if db.Statement.Schema != nil && !db.Statement.Unscoped {
+		for _, c := range db.Statement.Schema.DeleteClauses {
+			db.Statement.AddClause(c)
+			fmt.Println(db.Statement.SQL.String())
+		}
+	}
+
 	if db.Statement.SQL.String() == "" {
 		db.Statement.AddClauseIfNotExists(clause.Delete{})
-
-		values := []reflect.Value{db.Statement.ReflectValue}
-		if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
-			values = append(values, reflect.ValueOf(db.Statement.Model))
-		}
 
 		if db.Statement.Schema != nil {
 			_, queryValues := schema.GetIdentityFieldValuesMap(db.Statement.ReflectValue, db.Statement.Schema.PrimaryFields)
 			column, values := schema.ToQueryValues(db.Statement.Schema.PrimaryFieldDBNames, queryValues)
 
 			if len(values) > 0 {
-				db.Where(clause.IN{Column: column, Values: values})
-			} else if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
+				db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
+			}
+
+			if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
 				_, queryValues = schema.GetIdentityFieldValuesMap(reflect.ValueOf(db.Statement.Model), db.Statement.Schema.PrimaryFields)
 				column, values = schema.ToQueryValues(db.Statement.Schema.PrimaryFieldDBNames, queryValues)
 
 				if len(values) > 0 {
-					db.Where(clause.IN{Column: column, Values: values})
+					db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
 				}
 			}
 		}

@@ -19,6 +19,7 @@ type Statement struct {
 	*DB
 	Table                string
 	Model                interface{}
+	Unscoped             bool
 	Dest                 interface{}
 	ReflectValue         reflect.Value
 	Clauses              map[string]clause.Clause

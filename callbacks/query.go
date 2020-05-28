@@ -12,6 +12,12 @@ import (
 )
 
 func Query(db *gorm.DB) {
+	if db.Statement.Schema != nil && !db.Statement.Unscoped {
+		for _, c := range db.Statement.Schema.QueryClauses {
+			db.Statement.AddClause(c)
+		}
+	}
+
 	if db.Statement.SQL.String() == "" {
 		clauseSelect := clause.Select{}
 

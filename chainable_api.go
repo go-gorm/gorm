@@ -238,6 +238,7 @@ func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 
 func (db *DB) Unscoped() (tx *DB) {
 	tx = db.getInstance()
+	tx.Statement.Unscoped = true
 	return
 }
 

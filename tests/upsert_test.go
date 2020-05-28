@@ -12,6 +12,7 @@ func TestFindOrInitialize(t *testing.T) {
 	if err := DB.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user1).Error; err != nil {
 		t.Errorf("no error should happen when FirstOrInit, but got %v", err)
 	}
+
 	if user1.Name != "find or init" || user1.ID != 0 || user1.Age != 33 {
 		t.Errorf("user should be initialized with search value")
 	}
@@ -55,7 +56,10 @@ func TestFindOrInitialize(t *testing.T) {
 
 func TestFindOrCreate(t *testing.T) {
 	var user1, user2, user3, user4, user5, user6, user7, user8 User
-	DB.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1)
+	if err := DB.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1).Error; err != nil {
+		t.Errorf("no error should happen when FirstOrInit, but got %v", err)
+	}
+
 	if user1.Name != "find or create" || user1.ID == 0 || user1.Age != 33 {
 		t.Errorf("user should be created with search value")
 	}
