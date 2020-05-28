@@ -203,6 +203,8 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 			query = i
 		} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
 			return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
+		} else if len(args) == 1 {
+			return []clause.Expression{clause.Eq{Column: sql, Value: args[0]}}
 		}
 	}
 
@@ -238,16 +240,24 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
 				switch reflectValue.Kind() {
 				case reflect.Struct:
-					for _, field := range s.FieldsByDBName {
+					for _, field := range s.Fields {
 						if v, isZero := field.ValueOf(reflectValue); !isZero {
-							conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+							if field.DBName == "" {
+								conds = append(conds, clause.Eq{Column: field.Name, Value: v})
+							} else {
+								conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+							}
 						}
 					}
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
-						for _, field := range s.FieldsByDBName {
+						for _, field := range s.Fields {
 							if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
-								conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+								if field.DBName == "" {
+									conds = append(conds, clause.Eq{Column: field.Name, Value: v})
+								} else {
+									conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+								}
 							}
 						}
 					}

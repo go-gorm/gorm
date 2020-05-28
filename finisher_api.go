@@ -129,7 +129,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		// initialize with attrs, conds
 		if len(tx.Statement.attrs) > 0 {
-			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:])
+			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
 			tx.assignExprsToValue(exprs)
 		}
 		tx.Error = nil
@@ -137,19 +137,54 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 	// initialize with attrs, conds
 	if len(tx.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:])
+		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
 		tx.assignExprsToValue(exprs)
 	}
 	return
 }
 
-func (db *DB) FirstOrCreate(dest interface{}, where ...interface{}) (tx *DB) {
+func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	// if err := tx.First(dest, conds...).Error; errors.Is(err, ErrRecordNotFound) {
-	// 	// initialize with attrs, conds
-	// }
+	if err := tx.First(dest, conds...).Error; errors.Is(err, ErrRecordNotFound) {
+		tx.Error = nil
 
-	// assign dest
+		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
+			if where, ok := c.Expression.(clause.Where); ok {
+				tx.assignExprsToValue(where.Exprs)
+			}
+		}
+
+		// initialize with attrs, conds
+		if len(tx.Statement.attrs) > 0 {
+			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
+			tx.assignExprsToValue(exprs)
+		}
+
+		// initialize with attrs, conds
+		if len(tx.Statement.assigns) > 0 {
+			exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+			tx.assignExprsToValue(exprs)
+		}
+
+		return tx.Create(dest)
+	} else if len(tx.Statement.assigns) > 0 {
+		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:])
+		assigns := map[string]interface{}{}
+		for _, expr := range exprs {
+			if eq, ok := expr.(clause.Eq); ok {
+				switch column := eq.Column.(type) {
+				case string:
+					assigns[column] = eq.Value
+				case clause.Column:
+					assigns[column.Name] = eq.Value
+				default:
+				}
+			}
+		}
+
+		return tx.Model(dest).Updates(assigns)
+	}
+
 	return
 }
 
@@ -306,4 +341,8 @@ func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 	clause.Expr{SQL: sql, Vars: values}.Build(tx.Statement)
 	tx.callbacks.Raw().Execute(tx)
 	return
+}
+
+func (db *DB) RecordNotFound() bool {
+	return errors.Is(db.Error, ErrRecordNotFound)
 }
