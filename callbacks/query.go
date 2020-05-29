@@ -51,29 +51,33 @@ func Query(db *gorm.DB) {
 
 			for name, conds := range db.Statement.Joins {
 				if relation, ok := db.Statement.Schema.Relationships.Relations[name]; ok {
+					tableAliasName := relation.Name
+
 					for _, s := range relation.FieldSchema.DBNames {
 						clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-							Table: relation.Name,
+							Table: tableAliasName,
 							Name:  s,
-							Alias: relation.Name + "__" + s,
+							Alias: tableAliasName + "__" + s,
 						})
 					}
 
 					var exprs []clause.Expression
 					for _, ref := range relation.References {
 						if ref.OwnPrimaryKey {
-							exprs = append(exprs, clause.Expr{
-								SQL: fmt.Sprintf("%s.%s = %s.%s", db.Statement.Schema.Table, ref.PrimaryKey.DBName, relation.Name, ref.ForeignKey.DBName),
+							exprs = append(exprs, clause.Eq{
+								Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.PrimaryKey.DBName},
+								Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
 							})
 						} else {
 							if ref.PrimaryValue == "" {
-								exprs = append(exprs, clause.Expr{
-									SQL: fmt.Sprintf("%s.%s = %s.%s", db.Statement.Schema.Table, ref.ForeignKey.DBName, relation.Name, ref.PrimaryKey.DBName),
+								exprs = append(exprs, clause.Eq{
+									Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.ForeignKey.DBName},
+									Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
 								})
 							} else {
-								exprs = append(exprs, clause.Expr{
-									SQL:  fmt.Sprintf("%s.%s = ?", relation.Name, ref.PrimaryKey.DBName),
-									Vars: []interface{}{ref.PrimaryValue},
+								exprs = append(exprs, clause.Eq{
+									Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+									Value:  ref.PrimaryValue,
 								})
 							}
 						}
@@ -81,7 +85,7 @@ func Query(db *gorm.DB) {
 
 					joins = append(joins, clause.Join{
 						Type:  clause.LeftJoin,
-						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: relation.Name},
+						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
 						ON:    clause.Where{Exprs: exprs},
 					})
 				} else {
