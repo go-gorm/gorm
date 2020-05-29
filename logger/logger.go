@@ -78,7 +78,7 @@ func New(writer Writer, config Config) Interface {
 		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + Blue + "[rows:%d]" + Reset + " %s"
 	}
 
-	return logger{
+	return &logger{
 		Writer:       writer,
 		Config:       config,
 		infoStr:      infoStr,
@@ -98,7 +98,7 @@ type logger struct {
 }
 
 // LogMode log mode
-func (l logger) LogMode(level LogLevel) Interface {
+func (l *logger) LogMode(level LogLevel) Interface {
 	l.LogLevel = level
 	return l
 }

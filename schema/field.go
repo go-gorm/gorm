@@ -353,9 +353,6 @@ func (field *Field) setupValuerAndSetter() {
 		if field.FieldType.Kind() == reflect.Ptr {
 			field.ReflectValueOf = func(value reflect.Value) reflect.Value {
 				fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
-				if fieldValue.IsNil() {
-					fieldValue.Set(reflect.New(field.FieldType.Elem()))
-				}
 				return fieldValue
 			}
 		} else {
@@ -406,7 +403,14 @@ func (field *Field) setupValuerAndSetter() {
 					return setter(value, v)
 				}
 			} else if field.FieldType.Kind() == reflect.Ptr && reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-				field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+				fieldValue := field.ReflectValueOf(value)
+				if fieldValue.IsNil() {
+					if v == nil {
+						return nil
+					}
+					fieldValue.Set(reflect.New(field.FieldType.Elem()))
+				}
+				fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
 			} else if reflectV.Kind() == reflect.Ptr {
 				return field.Set(value, reflectV.Elem().Interface())
 			} else {
@@ -607,12 +611,26 @@ func (field *Field) setupValuerAndSetter() {
 			field.Set = func(value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
 				case time.Time:
-					field.ReflectValueOf(value).Elem().Set(reflect.ValueOf(v))
+					fieldValue := field.ReflectValueOf(value)
+					if fieldValue.IsNil() {
+						if v == nil {
+							return nil
+						}
+						fieldValue.Set(reflect.New(field.FieldType.Elem()))
+					}
+					fieldValue.Elem().Set(reflect.ValueOf(v))
 				case *time.Time:
 					field.ReflectValueOf(value).Set(reflect.ValueOf(v))
 				case string:
 					if t, err := now.Parse(data); err == nil {
-						field.ReflectValueOf(value).Elem().Set(reflect.ValueOf(t))
+						fieldValue := field.ReflectValueOf(value)
+						if fieldValue.IsNil() {
+							if v == "" {
+								return nil
+							}
+							fieldValue.Set(reflect.New(field.FieldType.Elem()))
+						}
+						fieldValue.Elem().Set(reflect.ValueOf(t))
 					} else {
 						return fmt.Errorf("failed to set string %v to time.Time field %v, failed to parse it as time, got error %v", v, field.Name, err)
 					}
@@ -651,7 +669,14 @@ func (field *Field) setupValuerAndSetter() {
 						if reflectV.Type().ConvertibleTo(field.FieldType) {
 							field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
 						} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-							field.ReflectValueOf(value).Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+							fieldValue := field.ReflectValueOf(value)
+							if fieldValue.IsNil() {
+								if v == nil {
+									return nil
+								}
+								fieldValue.Set(reflect.New(field.FieldType.Elem()))
+							}
+							fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
 						} else if valuer, ok := v.(driver.Valuer); ok {
 							if v, err = valuer.Value(); err == nil {
 								err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)

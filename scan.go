@@ -87,6 +87,10 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 						values[idx] = field.ReflectValueOf(elem).Addr().Interface()
 					} else if joinFields[idx][0] != nil {
 						relValue := joinFields[idx][0].ReflectValueOf(elem)
+						if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+							relValue.Set(reflect.New(relValue.Type().Elem()))
+						}
+
 						values[idx] = joinFields[idx][1].ReflectValueOf(relValue).Addr().Interface()
 					}
 				}
@@ -110,6 +114,10 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
 						relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
 						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+								relValue.Set(reflect.New(relValue.Type().Elem()))
+							}
+
 							values[idx] = field.ReflectValueOf(relValue).Addr().Interface()
 							continue
 						}

@@ -101,7 +101,11 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		}
 
 		for _, data := range identityMap[utils.ToStringKey(fieldValues...)] {
-			reflectFieldValue := reflect.Indirect(rel.Field.ReflectValueOf(data))
+			reflectFieldValue := rel.Field.ReflectValueOf(data)
+			if reflectFieldValue.Kind() == reflect.Ptr && reflectFieldValue.IsNil() {
+				reflectFieldValue.Set(reflect.New(rel.Field.FieldType.Elem()))
+			}
+			reflectFieldValue = reflect.Indirect(reflectFieldValue)
 			switch reflectFieldValue.Kind() {
 			case reflect.Struct:
 				rel.Field.Set(data, reflectResults.Index(i).Interface())
