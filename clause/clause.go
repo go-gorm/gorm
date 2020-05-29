@@ -8,9 +8,7 @@ type Interface interface {
 }
 
 // ClauseBuilder clause builder, allows to custmize how to build clause
-type ClauseBuilder interface {
-	Build(Clause, Builder)
-}
+type ClauseBuilder func(Clause, Builder)
 
 type Writer interface {
 	WriteByte(byte) error
@@ -38,7 +36,7 @@ type Clause struct {
 // Build build clause
 func (c Clause) Build(builder Builder) {
 	if c.Builder != nil {
-		c.Builder.Build(c, builder)
+		c.Builder(c, builder)
 	} else {
 		builders := c.BeforeExpressions
 		if c.Name != "" {

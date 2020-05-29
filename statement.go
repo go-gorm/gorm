@@ -286,7 +286,7 @@ func (stmt *Statement) Build(clauses ...string) {
 
 			firstClauseWritten = true
 			if b, ok := stmt.DB.ClauseBuilders[name]; ok {
-				b.Build(c, stmt)
+				b(c, stmt)
 			} else {
 				c.Build(stmt)
 			}

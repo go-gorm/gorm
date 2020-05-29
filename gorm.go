@@ -95,6 +95,10 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 
 	db.callbacks = initializeCallbacks(db)
 
+	if config.ClauseBuilders == nil {
+		config.ClauseBuilders = map[string]clause.ClauseBuilder{}
+	}
+
 	if dialector != nil {
 		err = dialector.Initialize(db)
 	}

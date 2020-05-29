@@ -26,7 +26,41 @@ func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{})
 	db.ConnPool, err = sql.Open("mysql", dialector.DSN)
+
+	for k, v := range dialector.ClauseBuilders() {
+		db.ClauseBuilders[k] = v
+	}
 	return
+}
+
+func (dialector Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
+	return map[string]clause.ClauseBuilder{
+		"ON CONFLICT": func(c clause.Clause, builder clause.Builder) {
+			if onConflict, ok := c.Expression.(clause.OnConflict); ok {
+				builder.WriteString("ON DUPLICATE KEY UPDATE ")
+				if len(onConflict.DoUpdates) == 0 {
+					if s := builder.(*gorm.Statement).Schema; s != nil {
+						var column clause.Column
+						onConflict.DoNothing = false
+
+						if s.PrioritizedPrimaryField != nil {
+							column = clause.Column{Name: s.PrioritizedPrimaryField.DBName}
+						} else {
+							for _, field := range s.FieldsByDBName {
+								column = clause.Column{Name: field.DBName}
+								break
+							}
+						}
+						onConflict.DoUpdates = []clause.Assignment{{Column: column, Value: column}}
+					}
+				}
+
+				onConflict.DoUpdates.Build(builder)
+			} else {
+				c.Build(builder)
+			}
+		},
+	}
 }
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
