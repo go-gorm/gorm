@@ -1,7 +1,6 @@
 package callbacks
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/jinzhu/gorm"
@@ -38,7 +37,6 @@ func Delete(db *gorm.DB) {
 	if db.Statement.Schema != nil && !db.Statement.Unscoped {
 		for _, c := range db.Statement.Schema.DeleteClauses {
 			db.Statement.AddClause(c)
-			fmt.Println(db.Statement.SQL.String())
 		}
 	}
 

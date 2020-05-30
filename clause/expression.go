@@ -1,5 +1,7 @@
 package clause
 
+import "reflect"
+
 // Expression expression interface
 type Expression interface {
 	Build(builder Builder)
@@ -18,12 +20,36 @@ type Expr struct {
 
 // Build build raw expression
 func (expr Expr) Build(builder Builder) {
-	var idx int
+	var (
+		afterParenthesis bool
+		idx              int
+	)
+
 	for _, v := range []byte(expr.SQL) {
 		if v == '?' {
-			builder.AddVar(builder, expr.Vars[idx])
+			if afterParenthesis {
+				switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < rv.Len(); i++ {
+						if i > 0 {
+							builder.WriteByte(',')
+						}
+						builder.AddVar(builder, rv.Index(i).Interface())
+					}
+				default:
+					builder.AddVar(builder, expr.Vars[idx])
+				}
+			} else {
+				builder.AddVar(builder, expr.Vars[idx])
+			}
+
 			idx++
 		} else {
+			if v == '(' {
+				afterParenthesis = true
+			} else {
+				afterParenthesis = false
+			}
 			builder.WriteByte(v)
 		}
 	}
