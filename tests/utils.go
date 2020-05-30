@@ -26,7 +26,7 @@ type Config struct {
 
 func GetUser(name string, config Config) *User {
 	var (
-		birthday = time.Now()
+		birthday = time.Now().Round(time.Second)
 		user     = User{
 			Name:     name,
 			Age:      18,

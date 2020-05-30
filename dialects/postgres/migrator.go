@@ -80,6 +80,25 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 	})
 }
 
+func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		return m.DB.Exec(
+			"ALTER INDEX ? RENAME TO ?",
+			clause.Column{Name: oldName}, clause.Column{Name: newName},
+		).Error
+	})
+}
+
+func (m Migrator) DropIndex(value interface{}, name string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
+		return m.DB.Exec("DROP INDEX ?", clause.Column{Name: name}).Error
+	})
+}
+
 func (m Migrator) HasTable(value interface{}) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {

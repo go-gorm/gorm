@@ -28,7 +28,8 @@ const (
 type LogLevel int
 
 const (
-	Error LogLevel = iota + 1
+	Silent LogLevel = iota + 1
+	Error
 	Warn
 	Info
 )
@@ -129,7 +130,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 	if l.LogLevel > 0 {
 		elapsed := time.Now().Sub(begin)
 		switch {
-		case err != nil:
+		case err != nil && l.LogLevel >= Error:
 			sql, rows := fc()
 			l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= Warn:

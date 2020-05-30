@@ -8,21 +8,21 @@ import (
 )
 
 type Animal struct {
-	Counter    uint64    `gorm:"primary_key:yes"`
-	Name       string    `gorm:"DEFAULT:'galeone'"`
-	From       string    //test reserved sql keyword as field name
-	Age        time.Time `gorm:"DEFAULT:current_timestamp"`
-	unexported string    // unexported value
+	Counter    uint64 `gorm:"primary_key:yes"`
+	Name       string `gorm:"DEFAULT:'galeone'"`
+	From       string //test reserved sql keyword as field name
+	Age        *time.Time
+	unexported string // unexported value
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
 
-func init() {
-	DB.Migrator().DropTable(&Animal{})
-	DB.AutoMigrate(&Animal{})
-}
-
 func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
+	DB.Migrator().DropTable(&Animal{})
+	if err := DB.AutoMigrate(&Animal{}); err != nil {
+		t.Fatalf("no error should happen when migrate but got %v", err)
+	}
+
 	animal := Animal{Name: "Ferdinand"}
 	DB.Save(&animal)
 	updatedAt1 := animal.UpdatedAt

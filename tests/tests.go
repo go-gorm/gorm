@@ -61,7 +61,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	if debug := os.Getenv("DEBUG"); debug == "true" {
 		db.Logger.LogMode(logger.Info)
 	} else if debug == "false" {
-		db.Logger.LogMode(logger.Error)
+		db.Logger.LogMode(logger.Silent)
 	}
 
 	return

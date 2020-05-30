@@ -116,8 +116,10 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		return "double"
 	case schema.String:
 		size := field.Size
-		if field.PrimaryKey && size == 0 {
-			size = 256
+		if size == 0 {
+			if field.PrimaryKey || field.HasDefaultValue {
+				size = 256
+			}
 		}
 
 		if size >= 65536 && size <= int(math.Pow(2, 24)) {

@@ -30,8 +30,5 @@ func (set Set) Build(builder Builder) {
 
 // MergeClause merge assignments clauses
 func (set Set) MergeClause(clause *Clause) {
-	if v, ok := clause.Expression.(Set); ok {
-		set = append(v, set...)
-	}
 	clause.Expression = set
 }

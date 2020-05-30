@@ -47,25 +47,32 @@ func (m Migrator) DataTypeOf(field *schema.Field) string {
 	return m.Dialector.DataTypeOf(field)
 }
 
-func (m Migrator) FullDataTypeOf(field *schema.Field) string {
-	dataType := m.DataTypeOf(field)
+func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
+	expr.SQL = m.DataTypeOf(field)
 
 	if field.AutoIncrement {
-		dataType += " AUTO_INCREMENT"
+		expr.SQL += " AUTO_INCREMENT"
 	}
 
 	if field.NotNull {
-		dataType += " NOT NULL"
+		expr.SQL += " NOT NULL"
 	}
 
 	if field.Unique {
-		dataType += " UNIQUE"
+		expr.SQL += " UNIQUE"
 	}
 
 	if field.HasDefaultValue {
-		dataType += " DEFAULT " + field.DefaultValue
+		if field.DataType == schema.String {
+			defaultStmt := &gorm.Statement{Vars: []interface{}{field.DefaultValue}}
+			m.Dialector.BindVarTo(defaultStmt, defaultStmt, field.DefaultValue)
+			expr.SQL += " DEFAULT " + m.Dialector.Explain(defaultStmt.SQL.String(), field.DefaultValue)
+		} else {
+			expr.SQL += " DEFAULT " + field.DefaultValue
+		}
 	}
-	return dataType
+
+	return
 }
 
 // AutoMigrate
@@ -138,7 +145,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				field := stmt.Schema.FieldsByDBName[dbName]
 				createTableSQL += fmt.Sprintf("? ?")
 				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(field.DBDataType), "PRIMARY KEY")
-				values = append(values, clause.Column{Name: dbName}, clause.Expr{SQL: m.FullDataTypeOf(field)})
+				values = append(values, clause.Column{Name: dbName}, m.FullDataTypeOf(field))
 				createTableSQL += ","
 			}
 
@@ -229,7 +236,7 @@ func (m Migrator) AddColumn(value interface{}, field string) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? ADD ? ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, clause.Expr{SQL: m.FullDataTypeOf(field)},
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.FullDataTypeOf(field),
 			).Error
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)

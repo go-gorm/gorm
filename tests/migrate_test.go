@@ -30,44 +30,86 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestIndexes(t *testing.T) {
-	type User struct {
+	type IndexStruct struct {
 		gorm.Model
-		Name string `gorm:"index"`
+		Name string `gorm:"size:255;index"`
 	}
 
-	if err := DB.Migrator().CreateIndex(&User{}, "Name"); err != nil {
+	DB.Migrator().DropTable(&IndexStruct{})
+	DB.AutoMigrate(&IndexStruct{})
+
+	if err := DB.Migrator().DropIndex(&IndexStruct{}, "Name"); err != nil {
+		t.Errorf("Failed to drop index for user's name, got err %v", err)
+	}
+
+	if err := DB.Migrator().CreateIndex(&IndexStruct{}, "Name"); err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
-	if !DB.Migrator().HasIndex(&User{}, "Name") {
+	if !DB.Migrator().HasIndex(&IndexStruct{}, "Name") {
 		t.Errorf("Failed to find index for user's name")
 	}
 
-	if err := DB.Migrator().DropIndex(&User{}, "Name"); err != nil {
+	if err := DB.Migrator().DropIndex(&IndexStruct{}, "Name"); err != nil {
 		t.Errorf("Failed to drop index for user's name, got err %v", err)
 	}
 
-	if DB.Migrator().HasIndex(&User{}, "Name") {
+	if DB.Migrator().HasIndex(&IndexStruct{}, "Name") {
 		t.Errorf("Should not find index for user's name after delete")
 	}
 
-	if err := DB.Migrator().CreateIndex(&User{}, "Name"); err != nil {
+	if err := DB.Migrator().CreateIndex(&IndexStruct{}, "Name"); err != nil {
 		t.Errorf("Got error when tried to create index: %+v", err)
 	}
 
-	if err := DB.Migrator().RenameIndex(&User{}, "idx_users_name", "idx_users_name_1"); err != nil {
+	if err := DB.Migrator().RenameIndex(&IndexStruct{}, "idx_index_structs_name", "idx_users_name_1"); err != nil {
 		t.Errorf("no error should happen when rename index, but got %v", err)
 	}
 
-	if !DB.Migrator().HasIndex(&User{}, "idx_users_name_1") {
+	if !DB.Migrator().HasIndex(&IndexStruct{}, "idx_users_name_1") {
 		t.Errorf("Should find index for user's name after rename")
 	}
 
-	if err := DB.Migrator().DropIndex(&User{}, "idx_users_name_1"); err != nil {
+	if err := DB.Migrator().DropIndex(&IndexStruct{}, "idx_users_name_1"); err != nil {
 		t.Errorf("Failed to drop index for user's name, got err %v", err)
 	}
 
-	if DB.Migrator().HasIndex(&User{}, "idx_users_name_1") {
+	if DB.Migrator().HasIndex(&IndexStruct{}, "idx_users_name_1") {
 		t.Errorf("Should not find index for user's name after delete")
+	}
+}
+
+func TestColumns(t *testing.T) {
+	type ColumnStruct struct {
+		gorm.Model
+		Name string
+	}
+
+	DB.Migrator().DropTable(&ColumnStruct{})
+
+	if err := DB.AutoMigrate(&ColumnStruct{}); err != nil {
+		t.Errorf("Failed to migrate, got %v", err)
+	}
+
+	type NewColumnStruct struct {
+		gorm.Model
+		Name    string
+		NewName string
+	}
+
+	if err := DB.Table("column_structs").Migrator().AddColumn(&NewColumnStruct{}, "NewName"); err != nil {
+		t.Errorf("Failed to add column, got %v", err)
+	}
+
+	if !DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "NewName") {
+		t.Errorf("Failed to find added column")
+	}
+
+	if err := DB.Table("column_structs").Migrator().DropColumn(&NewColumnStruct{}, "NewName"); err != nil {
+		t.Errorf("Failed to add column, got %v", err)
+	}
+
+	if DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "NewName") {
+		t.Errorf("Found deleted column")
 	}
 }
