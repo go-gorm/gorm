@@ -26,8 +26,36 @@ func Open(dsn string) gorm.Dialector {
 func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{})
+	db.Callback().Create().Replace("gorm:create", Create)
 	db.ConnPool, err = sql.Open("sqlserver", dialector.DSN)
+
+	for k, v := range dialector.ClauseBuilders() {
+		db.ClauseBuilders[k] = v
+	}
 	return
+}
+
+func (dialector Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
+	return map[string]clause.ClauseBuilder{
+		"LIMIT": func(c clause.Clause, builder clause.Builder) {
+			if limit, ok := c.Expression.(clause.Limit); ok {
+				if limit.Offset > 0 {
+					builder.WriteString("OFFSET ")
+					builder.WriteString(strconv.Itoa(limit.Offset))
+					builder.WriteString("ROWS")
+				}
+
+				if limit.Limit > 0 {
+					if limit.Offset == 0 {
+						builder.WriteString(" OFFSET 0 ROWS")
+					}
+					builder.WriteString(" FETCH NEXT ")
+					builder.WriteString(strconv.Itoa(limit.Limit))
+					builder.WriteString(" ROWS ONLY")
+				}
+			}
+		},
+	}
 }
 
 func (dialector Dialector) Migrator(db *gorm.DB) gorm.Migrator {
