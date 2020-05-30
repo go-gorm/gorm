@@ -1,7 +1,10 @@
 package mssql
 
 import (
+	"fmt"
+
 	"github.com/jinzhu/gorm"
+	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/migrator"
 )
 
@@ -20,6 +23,24 @@ func (m Migrator) HasTable(value interface{}) bool {
 	return count > 0
 }
 
+func (m Migrator) HasColumn(value interface{}, field string) bool {
+	var count int64
+	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		currentDatabase := m.DB.Migrator().CurrentDatabase()
+		name := field
+		if field := stmt.Schema.LookUpField(field); field != nil {
+			name = field.DBName
+		}
+
+		return m.DB.Raw(
+			"SELECT count(*) FROM INFORMATION_SCHEMA.columns WHERE table_catalog = ? AND table_name = ? AND column_name = ?",
+			currentDatabase, stmt.Table, name,
+		).Row().Scan(&count)
+	})
+
+	return count > 0
+}
+
 func (m Migrator) HasIndex(value interface{}, name string) bool {
 	var count int
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
@@ -33,6 +54,16 @@ func (m Migrator) HasIndex(value interface{}, name string) bool {
 		).Row().Scan(&count)
 	})
 	return count > 0
+}
+
+func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+
+		return m.DB.Exec(
+			"sp_rename @objname = ?, @newname = ?, @objtype = 'INDEX';",
+			fmt.Sprintf("%s.%s", stmt.Table, oldName), clause.Column{Name: newName},
+		).Error
+	})
 }
 
 func (m Migrator) HasConstraint(value interface{}, name string) bool {

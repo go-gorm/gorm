@@ -2,7 +2,6 @@ package mssql
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -81,15 +80,6 @@ func (dialector Dialector) QuoteTo(writer clause.Writer, str string) {
 var numericPlaceholder = regexp.MustCompile("@p(\\d+)")
 
 func (dialector Dialector) Explain(sql string, vars ...interface{}) string {
-	for idx, v := range vars {
-		if valuer, ok := v.(driver.Valuer); ok {
-			v, _ = valuer.Value()
-		}
-
-		if v, ok := v.(bool); ok {
-			vars[idx] = strconv.FormatBool(v)
-		}
-	}
 	return logger.ExplainSQL(sql, numericPlaceholder, `'`, vars...)
 }
 

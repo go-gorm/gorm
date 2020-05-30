@@ -3,7 +3,6 @@ package callbacks
 import (
 	"reflect"
 	"sort"
-	"time"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
@@ -152,7 +151,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		if !stmt.DisableUpdateTime {
 			for _, field := range stmt.Schema.FieldsByDBName {
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
-					now := time.Now()
+					now := stmt.DB.NowFunc()
 					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 					assignValue(field, now)
 				}
@@ -168,7 +167,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						value, isZero := field.ValueOf(stmt.ReflectValue)
 						if !stmt.DisableUpdateTime {
 							if field.AutoUpdateTime > 0 {
-								value = time.Now()
+								value = stmt.DB.NowFunc()
 								isZero = false
 							}
 						}
