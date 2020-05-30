@@ -119,7 +119,9 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 	case reflect.Struct:
 		assignValue = func(field *schema.Field, value interface{}) {
-			field.Set(reflectModelValue, value)
+			if reflectModelValue.CanAddr() {
+				field.Set(reflectModelValue, value)
+			}
 		}
 	default:
 		assignValue = func(field *schema.Field, value interface{}) {

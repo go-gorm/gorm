@@ -18,7 +18,7 @@ func TestUpdate(t *testing.T) {
 		lastUpdatedAt time.Time
 	)
 
-	checkUpdatedTime := func(name string, n time.Time) {
+	checkUpdatedAtChanged := func(name string, n time.Time) {
 		if n.UnixNano() == lastUpdatedAt.UnixNano() {
 			t.Errorf("%v: user's updated at should be changed, but got %v, was %v", name, n, lastUpdatedAt)
 		}
@@ -52,7 +52,7 @@ func TestUpdate(t *testing.T) {
 	} else if user.Age != 10 {
 		t.Errorf("Age should equals to 10, but got %v", user.Age)
 	}
-	checkUpdatedTime("Update", user.UpdatedAt)
+	checkUpdatedAtChanged("Update", user.UpdatedAt)
 	checkOtherData("Update")
 
 	var result User
@@ -70,7 +70,7 @@ func TestUpdate(t *testing.T) {
 	} else if user.Active != true {
 		t.Errorf("Active should be true, but got %v", user.Active)
 	}
-	checkUpdatedTime("Updates with map", user.UpdatedAt)
+	checkUpdatedAtChanged("Updates with map", user.UpdatedAt)
 	checkOtherData("Updates with map")
 
 	var result2 User
@@ -85,7 +85,7 @@ func TestUpdate(t *testing.T) {
 	} else if user.Age != 2 {
 		t.Errorf("Age should equals to 2, but got %v", user.Age)
 	}
-	checkUpdatedTime("Updates with struct", user.UpdatedAt)
+	checkUpdatedAtChanged("Updates with struct", user.UpdatedAt)
 	checkOtherData("Updates with struct")
 
 	var result3 User
@@ -104,7 +104,7 @@ func TestUpdate(t *testing.T) {
 	} else if user.Active != false {
 		t.Errorf("Active should equals to false, but got %v", user.Active)
 	}
-	checkUpdatedTime("Save", user.UpdatedAt)
+	checkUpdatedAtChanged("Save", user.UpdatedAt)
 	checkOtherData("Save")
 
 	var result4 User
@@ -113,114 +113,4 @@ func TestUpdate(t *testing.T) {
 	} else {
 		CheckUser(t, result4, *user)
 	}
-}
-
-func TestUpdateBelongsTo(t *testing.T) {
-	var user = *GetUser("update-belongs-to", Config{})
-
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
-	}
-
-	user.Company = Company{Name: "company-belongs-to-association"}
-	user.Manager = &User{Name: "manager-belongs-to-association"}
-	if err := DB.Save(&user).Error; err != nil {
-		t.Fatalf("errors happened when update: %v", err)
-	}
-
-	var user2 User
-	DB.Preload("Company").Preload("Manager").Find(&user2, "id = ?", user.ID)
-	CheckUser(t, user2, user)
-}
-
-func TestUpdateHasOne(t *testing.T) {
-	var user = *GetUser("update-has-one", Config{})
-
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
-	}
-
-	user.Account = Account{Number: "account-has-one-association"}
-
-	if err := DB.Save(&user).Error; err != nil {
-		t.Fatalf("errors happened when update: %v", err)
-	}
-
-	var user2 User
-	DB.Preload("Account").Find(&user2, "id = ?", user.ID)
-	CheckUser(t, user2, user)
-
-	t.Run("Polymorphic", func(t *testing.T) {
-		var pet = Pet{Name: "create"}
-
-		if err := DB.Create(&pet).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		pet.Toy = Toy{Name: "Update-HasOneAssociation-Polymorphic"}
-
-		if err := DB.Save(&pet).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		var pet2 Pet
-		DB.Preload("Toy").Find(&pet2, "id = ?", pet.ID)
-		CheckPet(t, pet2, pet)
-	})
-}
-
-func TestUpdateHasManyAssociations(t *testing.T) {
-	var user = *GetUser("update-has-many", Config{})
-
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
-	}
-
-	user.Pets = []*Pet{{Name: "pet1"}, {Name: "pet2"}}
-	if err := DB.Save(&user).Error; err != nil {
-		t.Fatalf("errors happened when update: %v", err)
-	}
-
-	var user2 User
-	DB.Preload("Pets").Find(&user2, "id = ?", user.ID)
-	CheckUser(t, user2, user)
-
-	t.Run("Polymorphic", func(t *testing.T) {
-		var user = *GetUser("update-has-many", Config{})
-
-		if err := DB.Create(&user).Error; err != nil {
-			t.Fatalf("errors happened when create: %v", err)
-		}
-
-		user.Toys = []Toy{{Name: "toy1"}, {Name: "toy2"}}
-		if err := DB.Save(&user).Error; err != nil {
-			t.Fatalf("errors happened when update: %v", err)
-		}
-
-		var user2 User
-		DB.Preload("Toys").Find(&user2, "id = ?", user.ID)
-		CheckUser(t, user2, user)
-	})
-}
-
-func TestUpdateMany2ManyAssociations(t *testing.T) {
-	var user = *GetUser("update-many2many", Config{})
-
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
-	}
-
-	user.Languages = []Language{{Code: "zh-CN", Name: "Chinese"}, {Code: "en", Name: "English"}}
-	for _, lang := range user.Languages {
-		DB.Create(&lang)
-	}
-	user.Friends = []*User{{Name: "friend-1"}, {Name: "friend-2"}}
-
-	if err := DB.Save(&user).Error; err != nil {
-		t.Fatalf("errors happened when update: %v", err)
-	}
-
-	var user2 User
-	DB.Preload("Languages").Preload("Friends").Find(&user2, "id = ?", user.ID)
-	CheckUser(t, user2, user)
 }

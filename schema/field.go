@@ -231,6 +231,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.String:
 		field.DataType = String
 		if field.HasDefaultValue {
+			field.DefaultValue = strings.Trim(field.DefaultValue, "'")
+			field.DefaultValue = strings.Trim(field.DefaultValue, "\"")
 			field.DefaultValueInterface = field.DefaultValue
 		}
 	case reflect.Struct:
