@@ -4,8 +4,48 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jinzhu/gorm/clause"
 	. "github.com/jinzhu/gorm/tests"
 )
+
+func TestUpsert(t *testing.T) {
+	lang := Language{Code: "upsert", Name: "Upsert"}
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang)
+
+	lang2 := Language{Code: "upsert", Name: "Upsert"}
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang2)
+
+	var langs []Language
+	if err := DB.Find(&langs, "code = ?", lang.Code).Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs) != 1 {
+		t.Errorf("should only find only 1 languages, but got %+v", langs)
+	}
+}
+
+func TestUpsertSlice(t *testing.T) {
+	langs := []Language{
+		{Code: "upsert-slice1", Name: "Upsert-slice1"},
+		{Code: "upsert-slice2", Name: "Upsert-slice2"},
+		{Code: "upsert-slice3", Name: "Upsert-slice3"},
+	}
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&langs)
+
+	var langs2 []Language
+	if err := DB.Find(&langs2, "code LIKE ?", "upsert-slice%").Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs2) != 3 {
+		t.Errorf("should only find only 3 languages, but got %+v", langs2)
+	}
+
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&langs)
+	var langs3 []Language
+	if err := DB.Find(&langs3, "code LIKE ?", "upsert-slice%").Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs3) != 3 {
+		t.Errorf("should only find only 3 languages, but got %+v", langs3)
+	}
+}
 
 func TestFindOrInitialize(t *testing.T) {
 	var user1, user2, user3, user4, user5, user6 User

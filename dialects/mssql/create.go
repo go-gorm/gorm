@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/callbacks"
 	"github.com/jinzhu/gorm/clause"
+	"github.com/jinzhu/gorm/schema"
 )
 
 func Create(db *gorm.DB) {
@@ -85,6 +86,7 @@ func Create(db *gorm.DB) {
 			values := db.Statement.Schema.PrioritizedPrimaryField.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
 
 			if rows.Next() {
+				db.RowsAffected++
 				err = rows.Scan(values)
 			}
 		}
@@ -95,6 +97,16 @@ func Create(db *gorm.DB) {
 
 func MergeCreate(db *gorm.DB, onConflict clause.OnConflict) {
 	values := callbacks.ConvertToCreateValues(db.Statement)
+	setIdentityInsert := false
+
+	if field := db.Statement.Schema.PrioritizedPrimaryField; field != nil {
+		if field.DataType == schema.Int || field.DataType == schema.Uint {
+			setIdentityInsert = true
+			db.Statement.WriteString("SET IDENTITY_INSERT ")
+			db.Statement.WriteQuoted(db.Statement.Table)
+			db.Statement.WriteString("ON;")
+		}
+	}
 
 	db.Statement.WriteString("MERGE INTO ")
 	db.Statement.WriteQuoted(db.Statement.Table)
@@ -156,6 +168,12 @@ func MergeCreate(db *gorm.DB, onConflict clause.OnConflict) {
 	db.Statement.WriteString(")")
 	outputInserted(db)
 	db.Statement.WriteString(";")
+
+	if setIdentityInsert {
+		db.Statement.WriteString("SET IDENTITY_INSERT ")
+		db.Statement.WriteQuoted(db.Statement.Table)
+		db.Statement.WriteString("OFF;")
+	}
 }
 
 func outputInserted(db *gorm.DB) {
