@@ -2,6 +2,7 @@ package mssql
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -80,6 +81,15 @@ func (dialector Dialector) QuoteTo(writer clause.Writer, str string) {
 var numericPlaceholder = regexp.MustCompile("@p(\\d+)")
 
 func (dialector Dialector) Explain(sql string, vars ...interface{}) string {
+	for idx, v := range vars {
+		if valuer, ok := v.(driver.Valuer); ok {
+			v, _ = valuer.Value()
+		}
+
+		if v, ok := v.(bool); ok {
+			vars[idx] = strconv.FormatBool(v)
+		}
+	}
 	return logger.ExplainSQL(sql, numericPlaceholder, `'`, vars...)
 }
 
@@ -103,7 +113,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		}
 		return sqlType
 	case schema.Float:
-		return "decimal"
+		return "float"
 	case schema.String:
 		size := field.Size
 		if field.PrimaryKey && size == 0 {
@@ -116,7 +126,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 	case schema.Time:
 		return "datetimeoffset"
 	case schema.Bytes:
-		return "binary"
+		return "varbinary(MAX)"
 	}
 
 	return ""

@@ -121,6 +121,11 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 			expect = reflect.Indirect(reflect.ValueOf(expect)).Interface()
 		}
 
+		if reflect.ValueOf(got).IsValid() != reflect.ValueOf(expect).IsValid() {
+			t.Errorf("%v: expect: %+v, got %+v", utils.FileWithLineNum(), expect, got)
+			return
+		}
+
 		if reflect.ValueOf(got).Type().ConvertibleTo(reflect.ValueOf(expect).Type()) {
 			got = reflect.ValueOf(got).Convert(reflect.ValueOf(expect).Type()).Interface()
 			isEqual()

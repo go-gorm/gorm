@@ -20,7 +20,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 		if initialized || rows.Next() {
 			db.RowsAffected++
-			rows.Scan(values...)
+			db.AddError(rows.Scan(values...))
 		}
 
 		mapValue, ok := dest.(map[string]interface{})
@@ -41,7 +41,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 		for initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
-			rows.Scan(values...)
+			db.AddError(rows.Scan(values...))
 
 			v := map[string]interface{}{}
 			for idx, column := range columns {
@@ -53,7 +53,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 		for initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
-			rows.Scan(dest)
+			db.AddError(rows.Scan(dest))
 		}
 	default:
 		switch db.Statement.ReflectValue.Kind() {
@@ -96,9 +96,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 
 				db.RowsAffected++
-				if err := rows.Scan(values...); err != nil {
-					db.AddError(err)
-				}
+				db.AddError(rows.Scan(values...))
 
 				if isPtr {
 					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem.Addr()))
@@ -130,9 +128,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			if initialized || rows.Next() {
 				db.RowsAffected++
-				if err := rows.Scan(values...); err != nil {
-					db.AddError(err)
-				}
+				db.AddError(rows.Scan(values...))
 			}
 		}
 	}

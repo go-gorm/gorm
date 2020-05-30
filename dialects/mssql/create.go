@@ -87,7 +87,7 @@ func Create(db *gorm.DB) {
 
 			if rows.Next() {
 				db.RowsAffected++
-				err = rows.Scan(values)
+				db.AddError(rows.Scan(values))
 			}
 		}
 	} else {

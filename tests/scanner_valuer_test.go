@@ -103,6 +103,9 @@ func (data *EncryptedData) Scan(value interface{}) error {
 
 		*data = b[3:]
 		return nil
+	} else if s, ok := value.(string); ok {
+		*data = []byte(s)[3:]
+		return nil
 	}
 
 	return errors.New("Bytes expected")
