@@ -112,7 +112,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		if size > 0 && size <= 4000 {
 			return fmt.Sprintf("nvarchar(%d)", size)
 		}
-		return "ntext"
+		return "nvarchar(MAX)"
 	case schema.Time:
 		return "datetimeoffset"
 	case schema.Bytes:
