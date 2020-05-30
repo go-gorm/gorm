@@ -146,6 +146,9 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		case clause.Expr:
 			writer.WriteString(v.SQL)
 			stmt.Vars = append(stmt.Vars, v.Vars...)
+		case driver.Valuer:
+			stmt.Vars = append(stmt.Vars, v)
+			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
 		case []interface{}:
 			if len(v) > 0 {
 				writer.WriteByte('(')

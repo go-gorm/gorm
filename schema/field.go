@@ -207,7 +207,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DBDataType = val
 	}
 
-	switch fieldValue.Elem().Kind() {
+	switch reflect.Indirect(fieldValue).Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
 		if field.HasDefaultValue {

@@ -57,6 +57,9 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 					vars[idx] = "NULL"
 				} else if rv.Kind() == reflect.Ptr && rv.IsNil() {
 					vars[idx] = "NULL"
+				} else if valuer, ok := v.(driver.Valuer); ok {
+					v, _ = valuer.Value()
+					convertParams(v, idx)
 				} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
 					convertParams(reflect.Indirect(rv).Interface(), idx)
 				} else {
@@ -74,10 +77,6 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, v
 	}
 
 	for idx, v := range vars {
-		if valuer, ok := v.(driver.Valuer); ok {
-			v, _ = valuer.Value()
-		}
-
 		convertParams(v, idx)
 	}
 

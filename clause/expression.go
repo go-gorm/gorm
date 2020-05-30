@@ -1,6 +1,9 @@
 package clause
 
-import "reflect"
+import (
+	"database/sql/driver"
+	"reflect"
+)
 
 // Expression expression interface
 type Expression interface {
@@ -28,16 +31,20 @@ func (expr Expr) Build(builder Builder) {
 	for _, v := range []byte(expr.SQL) {
 		if v == '?' {
 			if afterParenthesis {
-				switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
-				case reflect.Slice, reflect.Array:
-					for i := 0; i < rv.Len(); i++ {
-						if i > 0 {
-							builder.WriteByte(',')
-						}
-						builder.AddVar(builder, rv.Index(i).Interface())
-					}
-				default:
+				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
 					builder.AddVar(builder, expr.Vars[idx])
+				} else {
+					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
+					case reflect.Slice, reflect.Array:
+						for i := 0; i < rv.Len(); i++ {
+							if i > 0 {
+								builder.WriteByte(',')
+							}
+							builder.AddVar(builder, rv.Index(i).Interface())
+						}
+					default:
+						builder.AddVar(builder, expr.Vars[idx])
+					}
 				}
 			} else {
 				builder.AddVar(builder, expr.Vars[idx])

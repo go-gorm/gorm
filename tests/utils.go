@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"database/sql/driver"
+	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -89,18 +91,26 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 				if curTime.Round(time.Second).Format(format) != expect.(time.Time).Round(time.Second).Format(format) {
 					t.Errorf("%v: expect: %v, got %v after time round", utils.FileWithLineNum(), expect.(time.Time).Round(time.Second).Format(format), curTime.Round(time.Second).Format(format))
 				}
-			} else if got != expect {
+			} else if fmt.Sprint(got) != fmt.Sprint(expect) {
 				t.Errorf("%v: expect: %#v, got %#v", utils.FileWithLineNum(), expect, got)
 			}
 		}
 
-		if got == expect {
+		if fmt.Sprint(got) == fmt.Sprint(expect) {
 			return
 		}
 
 		if reflect.Indirect(reflect.ValueOf(got)).IsValid() != reflect.Indirect(reflect.ValueOf(expect)).IsValid() {
 			t.Errorf("%v: expect: %+v, got %+v", utils.FileWithLineNum(), expect, got)
 			return
+		}
+
+		if valuer, ok := got.(driver.Valuer); ok {
+			got, _ = valuer.Value()
+		}
+
+		if valuer, ok := expect.(driver.Valuer); ok {
+			expect, _ = valuer.Value()
 		}
 
 		if got != nil {
