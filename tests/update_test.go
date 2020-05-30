@@ -159,3 +159,55 @@ func TestUpdates(t *testing.T) {
 	user3.Age += 100
 	AssertEqual(t, user4.UpdatedAt, user3.UpdatedAt)
 }
+
+func TestUpdateColumn(t *testing.T) {
+	var users = []*User{
+		GetUser("update_column_01", Config{}),
+		GetUser("update_column_02", Config{}),
+	}
+
+	DB.Create(&users)
+	lastUpdatedAt := users[1].UpdatedAt
+
+	// update with map
+	DB.Model(users[1]).UpdateColumns(map[string]interface{}{"name": "update_column_02_newname", "age": 100})
+	if users[1].Name != "update_column_02_newname" || users[1].Age != 100 {
+		t.Errorf("user 2 should be updated with update column")
+	}
+	AssertEqual(t, lastUpdatedAt.UnixNano(), users[1].UpdatedAt.UnixNano())
+
+	// user2 should not be updated
+	var user1, user2 User
+	DB.First(&user1, users[0].ID)
+	DB.First(&user2, users[1].ID)
+	CheckUser(t, user1, *users[0])
+	CheckUser(t, user2, *users[1])
+
+	DB.Model(users[1]).UpdateColumn("name", "update_column_02_newnew")
+	AssertEqual(t, lastUpdatedAt.UnixNano(), users[1].UpdatedAt.UnixNano())
+
+	if users[1].Name != "update_column_02_newnew" {
+		t.Errorf("user 2's name should be updated, but got %v", users[1].Name)
+	}
+
+	DB.Model(users[1]).UpdateColumn("age", gorm.Expr("age + 100 - 50"))
+	var user3 User
+	DB.First(&user3, users[1].ID)
+
+	users[1].Age += 50
+	CheckUser(t, user3, *users[1])
+
+	// update with struct
+	DB.Model(users[1]).UpdateColumns(User{Name: "update_column_02_newnew2", Age: 200})
+	if users[1].Name != "update_column_02_newnew2" || users[1].Age != 200 {
+		t.Errorf("user 2 should be updated with update column")
+	}
+	AssertEqual(t, lastUpdatedAt.UnixNano(), users[1].UpdatedAt.UnixNano())
+
+	// user2 should not be updated
+	var user5, user6 User
+	DB.First(&user5, users[0].ID)
+	DB.First(&user6, users[1].ID)
+	CheckUser(t, user5, *users[0])
+	CheckUser(t, user6, *users[1])
+}

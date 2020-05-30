@@ -141,9 +141,6 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		for _, k := range keys {
 			if field := stmt.Schema.LookUpField(k); field != nil {
 				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					if field.AutoUpdateTime > 0 {
-						value[k] = time.Now()
-					}
 					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
 					assignValue(field, value[k])
 				}
@@ -152,11 +149,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 		}
 
-		for _, field := range stmt.Schema.FieldsByDBName {
-			if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
-				now := time.Now()
-				set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
-				assignValue(field, now)
+		if !stmt.DisableUpdateTime {
+			for _, field := range stmt.Schema.FieldsByDBName {
+				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
+					now := time.Now()
+					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
+					assignValue(field, now)
+				}
 			}
 		}
 	default:
@@ -167,9 +166,11 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 				if !field.PrimaryKey || (!stmt.ReflectValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						value, isZero := field.ValueOf(stmt.ReflectValue)
-						if field.AutoUpdateTime > 0 {
-							value = time.Now()
-							isZero = false
+						if !stmt.DisableUpdateTime {
+							if field.AutoUpdateTime > 0 {
+								value = time.Now()
+								isZero = false
+							}
 						}
 
 						if ok || !isZero {
