@@ -9,16 +9,8 @@ for dialect in "${dialects[@]}" ; do
   then
     if [ "$GORM_VERBOSE" = "" ]
     then
-      cd dialects/${dialect}
-      DEBUG=false GORM_DIALECT=${dialect} go test -race ./...
-      cd ../..
-
       DEBUG=false GORM_DIALECT=${dialect} go test -race ./...
     else
-      cd dialects/${dialect}
-      DEBUG=false GORM_DIALECT=${dialect} go test -race ./...
-      cd ../..
-
       DEBUG=false GORM_DIALECT=${dialect} go test -race -v ./...
     fi
   fi

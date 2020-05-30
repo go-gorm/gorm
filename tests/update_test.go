@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	. "github.com/jinzhu/gorm/tests"
 )
 
@@ -113,4 +114,48 @@ func TestUpdate(t *testing.T) {
 	} else {
 		CheckUser(t, result4, *user)
 	}
+}
+
+func TestUpdates(t *testing.T) {
+	var users = []*User{
+		GetUser("updates_01", Config{}),
+		GetUser("updates_02", Config{}),
+	}
+
+	DB.Create(&users)
+	lastUpdatedAt := users[0].UpdatedAt
+
+	// update with map
+	DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100})
+	if users[0].Name != "updates_01_newname" || users[0].Age != 100 {
+		t.Errorf("Record should be updated also with map")
+	}
+
+	if users[0].UpdatedAt.UnixNano() == lastUpdatedAt.UnixNano() {
+		t.Errorf("User's updated at should be changed, but got %v, was %v", users[0].UpdatedAt.UnixNano(), lastUpdatedAt)
+	}
+
+	// user2 should not be updated
+	var user1, user2 User
+	DB.First(&user1, users[0].ID)
+	DB.First(&user2, users[1].ID)
+	CheckUser(t, user1, *users[0])
+	CheckUser(t, user2, *users[1])
+
+	// update with struct
+	DB.Table("users").Where("name in ?", []string{users[1].Name}).Updates(User{Name: "updates_02_newname"})
+
+	var user3 User
+	if DB.First(&user3, "name = ?", "updates_02_newname").RecordNotFound() {
+		t.Errorf("User2's name should be updated")
+	}
+	AssertEqual(t, user2.UpdatedAt, user3.UpdatedAt)
+
+	// update with gorm exprs
+	DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)})
+	var user4 User
+	DB.First(&user4, user3.ID)
+
+	user3.Age += 100
+	AssertEqual(t, user4.UpdatedAt, user3.UpdatedAt)
 }

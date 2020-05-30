@@ -164,7 +164,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, field := range stmt.Schema.FieldsByDBName {
-				if !field.PrimaryKey || stmt.Dest != stmt.Model {
+				if !field.PrimaryKey || (!stmt.ReflectValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						value, isZero := field.ValueOf(stmt.ReflectValue)
 						if field.AutoUpdateTime > 0 {
@@ -186,7 +186,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 	}
 
-	if stmt.Dest != stmt.Model {
+	if !stmt.ReflectValue.CanAddr() || stmt.Dest != stmt.Model {
 		reflectValue := reflect.Indirect(reflect.ValueOf(stmt.Model))
 		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:

@@ -189,3 +189,7 @@ func (db *DB) getInstance() *DB {
 
 	return db
 }
+
+func Expr(expr string, args ...interface{}) clause.Expr {
+	return clause.Expr{SQL: expr, Vars: args}
+}
