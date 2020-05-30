@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/jinzhu/gorm/clause"
@@ -32,17 +33,6 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 		return m.DB.Raw(
 			"SELECT count(*) FROM sqlite_master WHERE type = ? AND tbl_name = ? AND (sql LIKE ? OR sql LIKE ? OR sql LIKE ?)",
 			"table", stmt.Table, `%"`+name+`" %`, `%`+name+` %`, "%`"+name+"`%",
-		).Row().Scan(&count)
-	})
-	return count > 0
-}
-
-func (m Migrator) HasIndex(value interface{}, name string) bool {
-	var count int
-	m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		return m.DB.Raw(
-			"SELECT count(*) FROM sqlite_master WHERE type = ? AND tbl_name = ? AND sql LIKE ?",
-			"index", stmt.Table, "%INDEX "+name+" ON%",
 		).Row().Scan(&count)
 	})
 	return count > 0
@@ -83,10 +73,7 @@ func (m Migrator) BuildIndexOptions(opts []schema.IndexOption, stmt *gorm.Statem
 
 func (m Migrator) CreateIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		err := fmt.Errorf("failed to create index with name %v", name)
-		indexes := stmt.Schema.ParseIndexes()
-
-		if idx, ok := indexes[name]; ok {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
 			opts := m.BuildIndexOptions(idx.Fields, stmt)
 			values := []interface{}{clause.Column{Name: idx.Name}, clause.Table{Name: stmt.Table}, opts}
 
@@ -106,17 +93,44 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 			}
 
 			return m.DB.Exec(createIndexSQL, values...).Error
-		} else if field := stmt.Schema.LookUpField(name); field != nil {
-			for _, idx := range indexes {
-				for _, idxOpt := range idx.Fields {
-					if idxOpt.Field == field {
-						if err = m.CreateIndex(value, idx.Name); err != nil {
-							return err
-						}
-					}
-				}
-			}
 		}
-		return err
+
+		return fmt.Errorf("failed to create index with name %v", name)
+	})
+}
+
+func (m Migrator) HasIndex(value interface{}, name string) bool {
+	var count int
+	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
+		m.DB.Raw(
+			"SELECT count(*) FROM sqlite_master WHERE type = ? AND tbl_name = ? AND name = ?", "index", stmt.Table, name,
+		).Row().Scan(&count)
+		return nil
+	})
+	return count > 0
+}
+
+func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		var sql string
+		m.DB.Raw("SELECT sql FROM sqlite_master WHERE type = ? AND tbl_name = ? AND name = ?", "index", stmt.Table, oldName).Row().Scan(&sql)
+		if sql != "" {
+			return m.DB.Exec(strings.Replace(sql, oldName, newName, 1)).Error
+		}
+		return fmt.Errorf("failed to find index with name %v", oldName)
+	})
+}
+
+func (m Migrator) DropIndex(value interface{}, name string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
+		return m.DB.Exec("DROP INDEX ?", clause.Column{Name: name}).Error
 	})
 }

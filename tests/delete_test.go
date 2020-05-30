@@ -46,3 +46,21 @@ func TestDelete(t *testing.T) {
 		}
 	}
 }
+
+func TestInlineCondDelete(t *testing.T) {
+	user1 := *GetUser("inline_delete_1", Config{})
+	user2 := *GetUser("inline_delete_2", Config{})
+	DB.Save(&user1).Save(&user2)
+
+	if DB.Delete(&User{}, user1.ID).Error != nil {
+		t.Errorf("No error should happen when delete a record")
+	} else if !DB.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
+		t.Errorf("User can't be found after delete")
+	}
+
+	if err := DB.Delete(&User{}, "name = ?", user2.Name).Error; err != nil {
+		t.Errorf("No error should happen when delete a record, err=%s", err)
+	} else if !DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
+		t.Errorf("User can't be found after delete")
+	}
+}

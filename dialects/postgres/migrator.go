@@ -37,11 +37,15 @@ func (m Migrator) BuildIndexOptions(opts []schema.IndexOption, stmt *gorm.Statem
 	return
 }
 
-func (m Migrator) HasIndex(value interface{}, indexName string) bool {
+func (m Migrator) HasIndex(value interface{}, name string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
 		return m.DB.Raw(
-			"SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ? AND schemaname = CURRENT_SCHEMA()", stmt.Table, indexName,
+			"SELECT count(*) FROM pg_indexes WHERE tablename = ? AND indexname = ? AND schemaname = CURRENT_SCHEMA()", stmt.Table, name,
 		).Row().Scan(&count)
 	})
 
@@ -50,10 +54,7 @@ func (m Migrator) HasIndex(value interface{}, indexName string) bool {
 
 func (m Migrator) CreateIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		err := fmt.Errorf("failed to create index with name %v", name)
-		indexes := stmt.Schema.ParseIndexes()
-
-		if idx, ok := indexes[name]; ok {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
 			opts := m.BuildIndexOptions(idx.Fields, stmt)
 			values := []interface{}{clause.Column{Name: idx.Name}, clause.Table{Name: stmt.Table}, opts}
 
@@ -73,18 +74,9 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 			}
 
 			return m.DB.Exec(createIndexSQL, values...).Error
-		} else if field := stmt.Schema.LookUpField(name); field != nil {
-			for _, idx := range indexes {
-				for _, idxOpt := range idx.Fields {
-					if idxOpt.Field == field {
-						if err = m.CreateIndex(value, idx.Name); err != nil {
-							return err
-						}
-					}
-				}
-			}
 		}
-		return err
+
+		return fmt.Errorf("failed to create index with name %v", name)
 	})
 }
 

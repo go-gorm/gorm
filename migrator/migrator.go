@@ -418,10 +418,7 @@ type BuildIndexOptionsInterface interface {
 
 func (m Migrator) CreateIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		err := fmt.Errorf("failed to create index with name %v", name)
-		indexes := stmt.Schema.ParseIndexes()
-
-		if idx, ok := indexes[name]; ok {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
 			opts := m.DB.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt)
 			values := []interface{}{clause.Column{Name: idx.Name}, clause.Table{Name: stmt.Table}, opts}
 
@@ -441,23 +438,18 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 			}
 
 			return m.DB.Exec(createIndexSQL, values...).Error
-		} else if field := stmt.Schema.LookUpField(name); field != nil {
-			for _, idx := range indexes {
-				for _, idxOpt := range idx.Fields {
-					if idxOpt.Field == field {
-						if err = m.CreateIndex(value, idx.Name); err != nil {
-							return err
-						}
-					}
-				}
-			}
 		}
-		return err
+
+		return fmt.Errorf("failed to create index with name %v", name)
 	})
 }
 
 func (m Migrator) DropIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
 		return m.DB.Exec("DROP INDEX ? ON ?", clause.Column{Name: name}, clause.Table{Name: stmt.Table}).Error
 	})
 }
@@ -466,6 +458,10 @@ func (m Migrator) HasIndex(value interface{}, name string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		currentDatabase := m.DB.Migrator().CurrentDatabase()
+		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			name = idx.Name
+		}
+
 		return m.DB.Raw(
 			"SELECT count(*) FROM information_schema.statistics WHERE table_schema = ? AND table_name = ? AND index_name = ?",
 			currentDatabase, stmt.Table, name,

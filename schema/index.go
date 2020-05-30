@@ -52,6 +52,23 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 	return indexes
 }
 
+func (schema *Schema) LookIndex(name string) *Index {
+	indexes := schema.ParseIndexes()
+	for _, index := range indexes {
+		if index.Name == name {
+			return &index
+		}
+
+		for _, field := range index.Fields {
+			if field.Name == name {
+				return &index
+			}
+		}
+	}
+
+	return nil
+}
+
 func parseFieldIndexes(field *Field) (indexes []Index) {
 	for _, value := range strings.Split(field.Tag.Get("gorm"), ";") {
 		if value != "" {
