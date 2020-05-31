@@ -60,6 +60,13 @@ func (dialector Dialector) ClauseBuilders() map[string]clause.ClauseBuilder {
 				c.Build(builder)
 			}
 		},
+		"VALUES": func(c clause.Clause, builder clause.Builder) {
+			if values, ok := c.Expression.(clause.Values); ok && len(values.Columns) == 0 {
+				builder.WriteString("VALUES()")
+				return
+			}
+			c.Build(builder)
+		},
 	}
 }
 

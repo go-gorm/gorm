@@ -9,8 +9,10 @@ import (
 func TestCreate(t *testing.T) {
 	var user = *GetUser("create", Config{})
 
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
+	if results := DB.Create(&user); results.Error != nil {
+		t.Fatalf("errors happened when create: %v", results.Error)
+	} else if results.RowsAffected != 1 {
+		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
 	}
 
 	if user.ID == 0 {
@@ -68,8 +70,10 @@ func TestBulkCreateWithAssociations(t *testing.T) {
 		*GetUser("bulk_8", Config{Account: false, Pets: 0, Toys: 0, Company: false, Manager: false, Team: 0, Languages: 0, Friends: 0}),
 	}
 
-	if err := DB.Create(&users).Error; err != nil {
-		t.Fatalf("errors happened when create: %v", err)
+	if results := DB.Create(&users); results.Error != nil {
+		t.Fatalf("errors happened when create: %v", results.Error)
+	} else if results.RowsAffected != int64(len(users)) {
+		t.Fatalf("rows affected expects: %v, got %v", len(users), results.RowsAffected)
 	}
 
 	var userIDs []uint
@@ -181,4 +185,19 @@ func TestPolymorphicHasOne(t *testing.T) {
 			CheckPet(t, *pet, *pet)
 		}
 	})
+}
+
+func TestCreateEmptyStrut(t *testing.T) {
+	type EmptyStruct struct {
+		ID uint
+	}
+	DB.Migrator().DropTable(&EmptyStruct{})
+
+	if err := DB.AutoMigrate(&EmptyStruct{}); err != nil {
+		t.Errorf("no error should happen when auto migrate, but got %v", err)
+	}
+
+	if err := DB.Create(&EmptyStruct{}).Error; err != nil {
+		t.Errorf("No error should happen when creating user, but got %v", err)
+	}
 }

@@ -153,6 +153,7 @@ func CreateWithReturning(db *gorm.DB) {
 				}
 
 				if rows.Next() {
+					db.RowsAffected++
 					err = rows.Scan(values...)
 				}
 			}
