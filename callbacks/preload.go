@@ -34,7 +34,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 				joinForeignFields = append(joinForeignFields, ref.ForeignKey)
 				foreignFields = append(foreignFields, ref.PrimaryKey)
 			} else if ref.PrimaryValue != "" {
-				tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
+				tx = tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
 			} else {
 				joinRelForeignFields = append(joinRelForeignFields, ref.ForeignKey)
 				relForeignKeys = append(relForeignKeys, ref.PrimaryKey.DBName)
@@ -76,7 +76,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 				relForeignFields = append(relForeignFields, ref.ForeignKey)
 				foreignFields = append(foreignFields, ref.PrimaryKey)
 			} else if ref.PrimaryValue != "" {
-				tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
+				tx = tx.Where(clause.Eq{Column: ref.ForeignKey.DBName, Value: ref.PrimaryValue})
 			} else {
 				relForeignKeys = append(relForeignKeys, ref.PrimaryKey.DBName)
 				relForeignFields = append(relForeignFields, ref.PrimaryKey)
