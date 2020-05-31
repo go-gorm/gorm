@@ -9,20 +9,21 @@ import (
 )
 
 func BeforeCreate(db *gorm.DB) {
-	if db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
+	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
+		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
 			var ok bool
 			if db.Statement.Schema.BeforeSave {
 				if i, ok := value.(gorm.BeforeSaveInterface); ok {
 					ok = true
-					i.BeforeSave(db)
+					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeCreate {
 				if i, ok := value.(gorm.BeforeCreateInterface); ok {
 					ok = true
-					i.BeforeCreate(db)
+					db.AddError(i.BeforeCreate(tx))
 				}
 			}
 			return ok
@@ -31,7 +32,7 @@ func BeforeCreate(db *gorm.DB) {
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					callMethod(db.Statement.ReflectValue.Index(i).Interface())
 				}
 			case reflect.Struct:
@@ -46,48 +47,127 @@ func Create(config *Config) func(db *gorm.DB) {
 		return CreateWithReturning
 	} else {
 		return func(db *gorm.DB) {
-			if db.Statement.Schema != nil && !db.Statement.Unscoped {
-				for _, c := range db.Statement.Schema.CreateClauses {
-					db.Statement.AddClause(c)
-				}
-			}
-
-			if db.Statement.SQL.String() == "" {
-				db.Statement.AddClauseIfNotExists(clause.Insert{
-					Table: clause.Table{Name: db.Statement.Table},
-				})
-				db.Statement.AddClause(ConvertToCreateValues(db.Statement))
-
-				db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
-			}
-
-			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-			if err == nil {
-				if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil {
-					if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
-						if insertID, err := result.LastInsertId(); err == nil {
-							switch db.Statement.ReflectValue.Kind() {
-							case reflect.Slice, reflect.Array:
-								if config.LastInsertIDReversed {
-									for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-										insertID--
-									}
-								} else {
-									for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-										insertID++
-									}
-								}
-							case reflect.Struct:
-								db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
-							}
-						} else {
-							db.AddError(err)
-						}
+			if db.Error == nil {
+				if db.Statement.Schema != nil && !db.Statement.Unscoped {
+					for _, c := range db.Statement.Schema.CreateClauses {
+						db.Statement.AddClause(c)
 					}
 				}
+
+				if db.Statement.SQL.String() == "" {
+					db.Statement.AddClauseIfNotExists(clause.Insert{
+						Table: clause.Table{Name: db.Statement.Table},
+					})
+					db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+
+					db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+				}
+
+				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+				if err == nil {
+					if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil {
+						if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
+							if insertID, err := result.LastInsertId(); err == nil {
+								switch db.Statement.ReflectValue.Kind() {
+								case reflect.Slice, reflect.Array:
+									if config.LastInsertIDReversed {
+										for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+											insertID--
+										}
+									} else {
+										for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+											insertID++
+										}
+									}
+								case reflect.Struct:
+									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+								}
+							} else {
+								db.AddError(err)
+							}
+						}
+					}
+					db.RowsAffected, _ = result.RowsAffected()
+				} else {
+					db.AddError(err)
+				}
+			}
+		}
+	}
+}
+
+func CreateWithReturning(db *gorm.DB) {
+	if db.Error == nil {
+		if db.Statement.Schema != nil && !db.Statement.Unscoped {
+			for _, c := range db.Statement.Schema.CreateClauses {
+				db.Statement.AddClause(c)
+			}
+		}
+
+		if db.Statement.SQL.String() == "" {
+			db.Statement.AddClauseIfNotExists(clause.Insert{
+				Table: clause.Table{Name: db.Statement.Table},
+			})
+			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
+
+			db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+		}
+
+		if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
+			db.Statement.WriteString(" RETURNING ")
+
+			var (
+				idx    int
+				fields = make([]*schema.Field, len(sch.FieldsWithDefaultDBValue))
+				values = make([]interface{}, len(sch.FieldsWithDefaultDBValue))
+			)
+
+			for dbName, field := range sch.FieldsWithDefaultDBValue {
+				if idx != 0 {
+					db.Statement.WriteByte(',')
+				}
+
+				fields[idx] = field
+				db.Statement.WriteQuoted(dbName)
+				idx++
+			}
+
+			rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+			if err == nil {
+				defer rows.Close()
+
+				switch db.Statement.ReflectValue.Kind() {
+				case reflect.Slice, reflect.Array:
+					for rows.Next() {
+						for idx, field := range fields {
+							values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+						}
+						if err := rows.Scan(values...); err != nil {
+							db.AddError(err)
+						}
+						db.RowsAffected++
+					}
+				case reflect.Struct:
+					for idx, field := range fields {
+						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+					}
+
+					if rows.Next() {
+						db.RowsAffected++
+						err = rows.Scan(values...)
+					}
+				}
+			}
+
+			if err != nil {
+				db.AddError(err)
+			}
+		} else {
+			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
 				db.RowsAffected, _ = result.RowsAffected()
 			} else {
 				db.AddError(err)
@@ -96,96 +176,22 @@ func Create(config *Config) func(db *gorm.DB) {
 	}
 }
 
-func CreateWithReturning(db *gorm.DB) {
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
-		for _, c := range db.Statement.Schema.CreateClauses {
-			db.Statement.AddClause(c)
-		}
-	}
-
-	if db.Statement.SQL.String() == "" {
-		db.Statement.AddClauseIfNotExists(clause.Insert{
-			Table: clause.Table{Name: db.Statement.Table},
-		})
-		db.Statement.AddClause(ConvertToCreateValues(db.Statement))
-
-		db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
-	}
-
-	if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
-		db.Statement.WriteString(" RETURNING ")
-
-		var (
-			idx    int
-			fields = make([]*schema.Field, len(sch.FieldsWithDefaultDBValue))
-			values = make([]interface{}, len(sch.FieldsWithDefaultDBValue))
-		)
-
-		for dbName, field := range sch.FieldsWithDefaultDBValue {
-			if idx != 0 {
-				db.Statement.WriteByte(',')
-			}
-
-			fields[idx] = field
-			db.Statement.WriteQuoted(dbName)
-			idx++
-		}
-
-		rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-		if err == nil {
-			defer rows.Close()
-
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for rows.Next() {
-					for idx, field := range fields {
-						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
-					}
-					if err := rows.Scan(values...); err != nil {
-						db.AddError(err)
-					}
-					db.RowsAffected++
-				}
-			case reflect.Struct:
-				for idx, field := range fields {
-					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
-				}
-
-				if rows.Next() {
-					db.RowsAffected++
-					err = rows.Scan(values...)
-				}
-			}
-		}
-
-		if err != nil {
-			db.AddError(err)
-		}
-	} else {
-		if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
-			db.RowsAffected, _ = result.RowsAffected()
-		} else {
-			db.AddError(err)
-		}
-	}
-}
-
 func AfterCreate(db *gorm.DB) {
-	if db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
+	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
+		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
 			var ok bool
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(gorm.AfterSaveInterface); ok {
 					ok = true
-					i.AfterSave(db)
+					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterCreate {
 				if i, ok := value.(gorm.AfterCreateInterface); ok {
 					ok = true
-					i.AfterCreate(db)
+					db.AddError(i.AfterCreate(tx))
 				}
 			}
 			return ok
@@ -194,7 +200,7 @@ func AfterCreate(db *gorm.DB) {
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					callMethod(db.Statement.ReflectValue.Index(i).Interface())
 				}
 			case reflect.Struct:

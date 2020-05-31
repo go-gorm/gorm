@@ -10,20 +10,21 @@ import (
 )
 
 func BeforeUpdate(db *gorm.DB) {
-	if db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
+	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
+		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
 			var ok bool
 			if db.Statement.Schema.BeforeSave {
 				if i, ok := value.(gorm.BeforeSaveInterface); ok {
 					ok = true
-					i.BeforeSave(db)
+					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeUpdate {
 				if i, ok := value.(gorm.BeforeUpdateInterface); ok {
 					ok = true
-					i.BeforeUpdate(db)
+					db.AddError(i.BeforeUpdate(tx))
 				}
 			}
 			return ok
@@ -32,7 +33,7 @@ func BeforeUpdate(db *gorm.DB) {
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					callMethod(db.Statement.ReflectValue.Index(i).Interface())
 				}
 			case reflect.Struct:
@@ -43,51 +44,54 @@ func BeforeUpdate(db *gorm.DB) {
 }
 
 func Update(db *gorm.DB) {
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
-		for _, c := range db.Statement.Schema.UpdateClauses {
-			db.Statement.AddClause(c)
+	if db.Error == nil {
+		if db.Statement.Schema != nil && !db.Statement.Unscoped {
+			for _, c := range db.Statement.Schema.UpdateClauses {
+				db.Statement.AddClause(c)
+			}
 		}
-	}
 
-	if db.Statement.SQL.String() == "" {
-		db.Statement.AddClauseIfNotExists(clause.Update{})
-		if set := ConvertToAssignments(db.Statement); len(set) != 0 {
-			db.Statement.AddClause(set)
-		} else {
+		if db.Statement.SQL.String() == "" {
+			db.Statement.AddClauseIfNotExists(clause.Update{})
+			if set := ConvertToAssignments(db.Statement); len(set) != 0 {
+				db.Statement.AddClause(set)
+			} else {
+				return
+			}
+			db.Statement.Build("UPDATE", "SET", "WHERE")
+		}
+
+		if _, ok := db.Statement.Clauses["WHERE"]; !ok {
+			db.AddError(gorm.ErrMissingWhereClause)
 			return
 		}
-		db.Statement.Build("UPDATE", "SET", "WHERE")
-	}
 
-	if _, ok := db.Statement.Clauses["WHERE"]; !ok {
-		db.AddError(gorm.ErrMissingWhereClause)
-		return
-	}
+		result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-	if err == nil {
-		db.RowsAffected, _ = result.RowsAffected()
-	} else {
-		db.AddError(err)
+		if err == nil {
+			db.RowsAffected, _ = result.RowsAffected()
+		} else {
+			db.AddError(err)
+		}
 	}
 }
 
 func AfterUpdate(db *gorm.DB) {
-	if db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
+	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
+		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
 			var ok bool
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(gorm.AfterSaveInterface); ok {
 					ok = true
-					i.AfterSave(db)
+					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterUpdate {
 				if i, ok := value.(gorm.AfterUpdateInterface); ok {
 					ok = true
-					i.AfterUpdate(db)
+					db.AddError(i.AfterUpdate(tx))
 				}
 			}
 			return ok
@@ -96,7 +100,7 @@ func AfterUpdate(db *gorm.DB) {
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					callMethod(db.Statement.ReflectValue.Index(i).Interface())
 				}
 			case reflect.Struct:

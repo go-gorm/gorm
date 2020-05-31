@@ -40,14 +40,15 @@ type DB struct {
 	Error        error
 	RowsAffected int64
 	Statement    *Statement
-	clone        bool
+	clone        int
 }
 
 // Session session config when create session with Session() method
 type Session struct {
-	Context context.Context
-	Logger  logger.Interface
-	NowFunc func() time.Time
+	WithConditions bool
+	Context        context.Context
+	Logger         logger.Interface
+	NowFunc        func() time.Time
 }
 
 // Open initialize db session based on dialector
@@ -76,10 +77,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.cacheStore = &sync.Map{}
 	}
 
-	db = &DB{
-		Config: config,
-		clone:  true,
-	}
+	db = &DB{Config: config, clone: 1}
 
 	db.callbacks = initializeCallbacks(db)
 
@@ -96,38 +94,54 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 // Session create new db session
 func (db *DB) Session(config *Session) *DB {
 	var (
-		tx       = db.getInstance()
-		stmt     = tx.Statement.clone()
-		txConfig = *tx.Config
+		txConfig = *db.Config
+		tx       = &DB{
+			Config:    &txConfig,
+			Statement: db.Statement,
+			clone:     1,
+		}
 	)
 
 	if config.Context != nil {
-		stmt.Context = config.Context
+		if tx.Statement != nil {
+			tx.Statement = tx.Statement.clone()
+		} else {
+			tx.Statement = &Statement{
+				DB:       tx,
+				Clauses:  map[string]clause.Clause{},
+				ConnPool: tx.ConnPool,
+			}
+		}
+
+		tx.Statement.Context = config.Context
+	}
+
+	if config.WithConditions {
+		tx.clone = 3
 	}
 
 	if config.Logger != nil {
-		txConfig.Logger = config.Logger
+		tx.Config.Logger = config.Logger
 	}
 
 	if config.NowFunc != nil {
-		txConfig.NowFunc = config.NowFunc
+		tx.Config.NowFunc = config.NowFunc
 	}
 
-	return &DB{
-		Config:    &txConfig,
-		Statement: stmt,
-		clone:     true,
-	}
+	return tx
 }
 
 // WithContext change current instance db's context to ctx
 func (db *DB) WithContext(ctx context.Context) *DB {
-	return db.Session(&Session{Context: ctx})
+	return db.Session(&Session{WithConditions: true, Context: ctx})
 }
 
 // Debug start debug mode
 func (db *DB) Debug() (tx *DB) {
-	return db.Session(&Session{Logger: db.Logger.LogMode(logger.Info)})
+	return db.Session(&Session{
+		WithConditions: true,
+		Logger:         db.Logger.LogMode(logger.Info),
+	})
 }
 
 // Set store value with key into current db instance's context
@@ -141,6 +155,21 @@ func (db *DB) Set(key string, value interface{}) *DB {
 func (db *DB) Get(key string) (interface{}, bool) {
 	if db.Statement != nil {
 		return db.Statement.Settings.Load(key)
+	}
+	return nil, false
+}
+
+// InstanceSet store value with key into current db instance's context
+func (db *DB) InstanceSet(key string, value interface{}) *DB {
+	tx := db.getInstance()
+	tx.Statement.Settings.Store(fmt.Sprintf("%p", tx.Statement)+key, value)
+	return tx
+}
+
+// InstanceGet get value with key from current db instance's context
+func (db *DB) InstanceGet(key string) (interface{}, bool) {
+	if db.Statement != nil {
+		return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 	}
 	return nil, false
 }
@@ -166,18 +195,37 @@ func (db *DB) AddError(err error) error {
 }
 
 func (db *DB) getInstance() *DB {
-	if db.clone {
-		stmt := &Statement{DB: db, Clauses: map[string]clause.Clause{}}
+	if db.clone > 0 {
+		tx := &DB{Config: db.Config}
 
-		if db.Statement != nil {
-			stmt.Context = db.Statement.Context
-			stmt.ConnPool = db.Statement.ConnPool
-		} else {
-			stmt.Context = context.Background()
-			stmt.ConnPool = db.ConnPool
+		switch db.clone {
+		case 1: // clone with new statement
+		case 2: // with old statement, generate new statement for future call, used to pass to callbacks
+			db.clone = 1
+			tx.Statement = db.Statement
+		case 3: // with clone statement
+			if db.Statement != nil {
+				tx.Statement = db.Statement.clone()
+				tx.Statement.DB = tx
+			}
 		}
 
-		return &DB{Config: db.Config, Statement: stmt}
+		if tx.Statement == nil {
+			tx.Statement = &Statement{
+				DB:      tx,
+				Clauses: map[string]clause.Clause{},
+			}
+		}
+
+		if db.Statement != nil {
+			tx.Statement.Context = db.Statement.Context
+			tx.Statement.ConnPool = db.Statement.ConnPool
+		} else {
+			tx.Statement.Context = context.Background()
+			tx.Statement.ConnPool = db.ConnPool
+		}
+
+		return tx
 	}
 
 	return db

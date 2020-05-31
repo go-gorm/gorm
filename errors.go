@@ -16,7 +16,7 @@ var (
 	// ErrNotImplemented not implemented
 	ErrNotImplemented = errors.New("not implemented")
 	// ErrMissingWhereClause missing where clause
-	ErrMissingWhereClause = errors.New("missing WHERE clause while deleting")
+	ErrMissingWhereClause = errors.New("WHERE conditions required")
 	// ErrUnsupportedRelation unsupported relations
 	ErrUnsupportedRelation = errors.New("unsupported relations")
 	// ErrPtrStructSupported only ptr of struct supported

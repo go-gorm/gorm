@@ -12,10 +12,12 @@ import (
 type UserWithCallback struct {
 }
 
-func (UserWithCallback) BeforeSave(*gorm.DB) {
+func (UserWithCallback) BeforeSave(*gorm.DB) error {
+	return nil
 }
 
-func (UserWithCallback) AfterCreate(*gorm.DB) {
+func (UserWithCallback) AfterCreate(*gorm.DB) error {
+	return nil
 }
 
 func TestCallback(t *testing.T) {

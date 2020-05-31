@@ -12,24 +12,26 @@ import (
 )
 
 func Query(db *gorm.DB) {
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
-		for _, c := range db.Statement.Schema.QueryClauses {
-			db.Statement.AddClause(c)
+	if db.Error == nil {
+		if db.Statement.Schema != nil && !db.Statement.Unscoped {
+			for _, c := range db.Statement.Schema.QueryClauses {
+				db.Statement.AddClause(c)
+			}
 		}
-	}
 
-	if db.Statement.SQL.String() == "" {
-		BuildQuerySQL(db)
-	}
+		if db.Statement.SQL.String() == "" {
+			BuildQuerySQL(db)
+		}
 
-	rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-	if err != nil {
-		db.AddError(err)
-		return
-	}
-	defer rows.Close()
+		rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+		if err != nil {
+			db.AddError(err)
+			return
+		}
+		defer rows.Close()
 
-	gorm.Scan(rows, db, false)
+		gorm.Scan(rows, db, false)
+	}
 }
 
 func BuildQuerySQL(db *gorm.DB) {
@@ -129,50 +131,53 @@ func BuildQuerySQL(db *gorm.DB) {
 }
 
 func Preload(db *gorm.DB) {
-	if len(db.Statement.Preloads) > 0 {
-		preloadMap := map[string][]string{}
-		for name := range db.Statement.Preloads {
-			preloadFields := strings.Split(name, ".")
-			for idx := range preloadFields {
-				preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
-			}
-		}
-
-		preloadNames := make([]string, len(preloadMap))
-		idx := 0
-		for key := range preloadMap {
-			preloadNames[idx] = key
-			idx++
-		}
-		sort.Strings(preloadNames)
-
-		for _, name := range preloadNames {
-			var (
-				curSchema     = db.Statement.Schema
-				preloadFields = preloadMap[name]
-				rels          = make([]*schema.Relationship, len(preloadFields))
-			)
-
-			for idx, preloadField := range preloadFields {
-				if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
-					rels[idx] = rel
-					curSchema = rel.FieldSchema
-				} else {
-					db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
+	if db.Error == nil {
+		if len(db.Statement.Preloads) > 0 {
+			preloadMap := map[string][]string{}
+			for name := range db.Statement.Preloads {
+				preloadFields := strings.Split(name, ".")
+				for idx := range preloadFields {
+					preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
 				}
 			}
 
-			preload(db, rels, db.Statement.Preloads[name])
+			preloadNames := make([]string, len(preloadMap))
+			idx := 0
+			for key := range preloadMap {
+				preloadNames[idx] = key
+				idx++
+			}
+			sort.Strings(preloadNames)
+
+			for _, name := range preloadNames {
+				var (
+					curSchema     = db.Statement.Schema
+					preloadFields = preloadMap[name]
+					rels          = make([]*schema.Relationship, len(preloadFields))
+				)
+
+				for idx, preloadField := range preloadFields {
+					if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
+						rels[idx] = rel
+						curSchema = rel.FieldSchema
+					} else {
+						db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
+					}
+				}
+
+				preload(db, rels, db.Statement.Preloads[name])
+			}
 		}
 	}
 }
 
 func AfterQuery(db *gorm.DB) {
-	if db.Statement.Schema != nil && db.Statement.Schema.AfterFind {
+	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterFind {
+		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
 			if db.Statement.Schema.AfterFind {
 				if i, ok := value.(gorm.AfterFindInterface); ok {
-					i.AfterFind(db)
+					db.AddError(i.AfterFind(tx))
 					return true
 				}
 			}
@@ -182,7 +187,7 @@ func AfterQuery(db *gorm.DB) {
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				for i := 0; i <= db.Statement.ReflectValue.Len(); i++ {
+				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					callMethod(db.Statement.ReflectValue.Index(i).Interface())
 				}
 			case reflect.Struct:

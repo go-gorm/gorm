@@ -10,7 +10,7 @@ import (
 )
 
 func SaveBeforeAssociations(db *gorm.DB) {
-	if db.Statement.Schema != nil {
+	if db.Error == nil && db.Statement.Schema != nil {
 		selectColumns, restricted := SelectAndOmitColumns(db.Statement, true, false)
 
 		// Save Belongs To associations
@@ -83,7 +83,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 }
 
 func SaveAfterAssociations(db *gorm.DB) {
-	if db.Statement.Schema != nil {
+	if db.Error == nil && db.Statement.Schema != nil {
 		selectColumns, restricted := SelectAndOmitColumns(db.Statement, true, false)
 
 		// Save Has One associations
