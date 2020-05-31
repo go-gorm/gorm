@@ -243,14 +243,15 @@ func (m Migrator) AddColumn(value interface{}, field string) error {
 	})
 }
 
-func (m Migrator) DropColumn(value interface{}, field string) error {
+func (m Migrator) DropColumn(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		if field := stmt.Schema.LookUpField(field); field != nil {
-			return m.DB.Exec(
-				"ALTER TABLE ? DROP COLUMN ?", clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName},
-			).Error
+		if field := stmt.Schema.LookUpField(name); field != nil {
+			name = field.DBName
 		}
-		return fmt.Errorf("failed to look up field with name: %s", field)
+
+		return m.DB.Exec(
+			"ALTER TABLE ? DROP COLUMN ?", clause.Table{Name: stmt.Table}, clause.Column{Name: name},
+		).Error
 	})
 }
 
@@ -284,16 +285,20 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 	return count > 0
 }
 
-func (m Migrator) RenameColumn(value interface{}, oldName, field string) error {
+func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		if field := stmt.Schema.LookUpField(field); field != nil {
-			oldName = m.DB.NamingStrategy.ColumnName(stmt.Table, oldName)
-			return m.DB.Exec(
-				"ALTER TABLE ? RENAME COLUMN ? TO ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: oldName}, clause.Column{Name: field.DBName},
-			).Error
+		if field := stmt.Schema.LookUpField(oldName); field != nil {
+			oldName = field.DBName
 		}
-		return fmt.Errorf("failed to look up field with name: %s", field)
+
+		if field := stmt.Schema.LookUpField(newName); field != nil {
+			newName = field.DBName
+		}
+
+		return m.DB.Exec(
+			"ALTER TABLE ? RENAME COLUMN ? TO ?",
+			clause.Table{Name: stmt.Table}, clause.Column{Name: oldName}, clause.Column{Name: newName},
+		).Error
 	})
 }
 

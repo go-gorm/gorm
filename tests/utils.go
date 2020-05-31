@@ -88,8 +88,8 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 			if curTime, ok := got.(time.Time); ok {
 				format := "2006-01-02T15:04:05Z07:00"
 
-				if curTime.Round(time.Second).Format(format) != expect.(time.Time).Round(time.Second).Format(format) {
-					t.Errorf("%v: expect: %v, got %v after time round", utils.FileWithLineNum(), expect.(time.Time).Round(time.Second).Format(format), curTime.Round(time.Second).Format(format))
+				if curTime.Round(time.Second).Format(format) != expect.(time.Time).Round(time.Second).Format(format) && curTime.Truncate(time.Second).Format(format) != expect.(time.Time).Truncate(time.Second).Format(format) {
+					t.Errorf("%v: expect: %v, got %v after time round", utils.FileWithLineNum(), expect.(time.Time), curTime)
 				}
 			} else if fmt.Sprint(got) != fmt.Sprint(expect) {
 				t.Errorf("%v: expect: %#v, got %#v", utils.FileWithLineNum(), expect, got)

@@ -41,6 +41,23 @@ func (m Migrator) HasColumn(value interface{}, field string) bool {
 	return count > 0
 }
 
+func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error {
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if field := stmt.Schema.LookUpField(oldName); field != nil {
+			oldName = field.DBName
+		}
+
+		if field := stmt.Schema.LookUpField(newName); field != nil {
+			newName = field.DBName
+		}
+
+		return m.DB.Exec(
+			"sp_rename @objname = ?, @newname = ?, @objtype = 'COLUMN';",
+			fmt.Sprintf("%s.%s", stmt.Table, oldName), clause.Column{Name: newName},
+		).Error
+	})
+}
+
 func (m Migrator) HasIndex(value interface{}, name string) bool {
 	var count int
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {

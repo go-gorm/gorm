@@ -66,7 +66,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	}
 
 	if config.NowFunc == nil {
-		config.NowFunc = func() time.Time { return time.Now().Local().Round(time.Second) }
+		config.NowFunc = func() time.Time { return time.Now().Local() }
 	}
 
 	if dialector != nil {
