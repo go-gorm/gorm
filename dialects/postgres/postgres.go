@@ -89,7 +89,7 @@ func (dialector Dialector) DataTypeOf(field *schema.Field) string {
 		}
 		return "text"
 	case schema.Time:
-		return "timestamp with time zone"
+		return "timestamptz"
 	case schema.Bytes:
 		return "bytea"
 	}

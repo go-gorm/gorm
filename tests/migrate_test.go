@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,6 +123,31 @@ func TestColumns(t *testing.T) {
 
 	if err := DB.AutoMigrate(&ColumnStruct{}); err != nil {
 		t.Errorf("Failed to migrate, got %v", err)
+	}
+
+	type ColumnStruct2 struct {
+		gorm.Model
+		Name string `gorm:"size:100"`
+	}
+
+	if err := DB.Table("column_structs").Migrator().AlterColumn(&ColumnStruct2{}, "Name"); err != nil {
+		t.Fatalf("no error should happend when alter column, but got %v", err)
+	}
+
+	if columnTypes, err := DB.Migrator().ColumnTypes(&ColumnStruct{}); err != nil {
+		t.Fatalf("no error should returns for ColumnTypes")
+	} else {
+		stmt := &gorm.Statement{DB: DB}
+		stmt.Parse(&ColumnStruct2{})
+
+		for _, columnType := range columnTypes {
+			if columnType.Name() == "name" {
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Errorf("column type should be correct, name: %v, length: %v, expects: %v", columnType.Name(), columnType.DatabaseTypeName(), dataType)
+				}
+			}
+		}
 	}
 
 	type NewColumnStruct struct {
