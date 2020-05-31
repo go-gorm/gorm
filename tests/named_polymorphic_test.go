@@ -20,7 +20,7 @@ func TestNamedPolymorphic(t *testing.T) {
 	DB.Save(&hamster)
 
 	hamster2 := Hamster{}
-	DB.Debug().Preload("PreferredToy").Preload("OtherToy").Find(&hamster2, hamster.Id)
+	DB.Preload("PreferredToy").Preload("OtherToy").Find(&hamster2, hamster.Id)
 
 	if hamster2.PreferredToy.ID != hamster.PreferredToy.ID || hamster2.PreferredToy.Name != hamster.PreferredToy.Name {
 		t.Errorf("Hamster's preferred toy failed to preload")
