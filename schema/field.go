@@ -298,6 +298,14 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				ef.DBName = prefix + ef.DBName
 			}
 
+			if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
+				ef.PrimaryKey = true
+			} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
+				ef.PrimaryKey = true
+			} else {
+				ef.PrimaryKey = false
+			}
+
 			for k, v := range field.TagSettings {
 				ef.TagSettings[k] = v
 			}
