@@ -31,7 +31,7 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 
 	// omit columns
 	for _, omit := range stmt.Omits {
-		if field := stmt.Schema.LookUpField(omit); field != nil {
+		if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
 			results[field.DBName] = false
 		} else {
 			results[omit] = false

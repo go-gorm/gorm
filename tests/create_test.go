@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -229,7 +228,6 @@ func TestCreateWithNowFuncOverride(t *testing.T) {
 
 	NEW := DB.Session(&gorm.Session{
 		NowFunc: func() time.Time {
-			fmt.Println("11iiiin")
 			return curTime
 		},
 	})
@@ -262,4 +260,35 @@ func TestCreateWithNoGORMPrimayKey(t *testing.T) {
 	if err != nil {
 		t.Errorf("No error should happen when create a record without a GORM primary key. But in the database this primary key exists and is the union of 2 or more fields\n But got: %s", err)
 	}
+}
+
+func TestSelectWithCreate(t *testing.T) {
+	user := *GetUser("select_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Select("Account", "Toys", "Manager", "ManagerID", "Languages", "Name", "CreatedAt", "UpdatedAt", "Age", "Active").Create(&user)
+
+	var user2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&user2, user.ID)
+
+	user.Birthday = nil
+	user.Pets = nil
+	user.Company = Company{}
+	user.Team = nil
+	user.Friends = nil
+
+	CheckUser(t, user2, user)
+}
+
+func TestOmitWithCreate(t *testing.T) {
+	user := *GetUser("omit_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Omit("Account", "Toys", "Manager", "Birthday").Create(&user)
+
+	var user2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&user2, user.ID)
+
+	user.Birthday = nil
+	user.Account = Account{}
+	user.Toys = nil
+	user.Manager = nil
+
+	CheckUser(t, user2, user)
 }
