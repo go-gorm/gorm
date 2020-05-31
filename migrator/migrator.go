@@ -227,8 +227,31 @@ func (m Migrator) HasTable(value interface{}) bool {
 	return count > 0
 }
 
-func (m Migrator) RenameTable(oldName, newName string) error {
-	return m.DB.Exec("RENAME TABLE ? TO ?", oldName, newName).Error
+func (m Migrator) RenameTable(oldName, newName interface{}) error {
+	var oldTable, newTable string
+	if v, ok := oldName.(string); ok {
+		oldTable = v
+	} else {
+		stmt := &gorm.Statement{DB: m.DB}
+		if err := stmt.Parse(oldName); err == nil {
+			oldTable = stmt.Table
+		} else {
+			return err
+		}
+	}
+
+	if v, ok := newName.(string); ok {
+		newTable = v
+	} else {
+		stmt := &gorm.Statement{DB: m.DB}
+		if err := stmt.Parse(newName); err == nil {
+			newTable = stmt.Table
+		} else {
+			return err
+		}
+	}
+
+	return m.DB.Exec("ALTER TABLE ? RENAME TO ?", clause.Table{Name: oldTable}, clause.Table{Name: newTable}).Error
 }
 
 func (m Migrator) AddColumn(value interface{}, field string) error {

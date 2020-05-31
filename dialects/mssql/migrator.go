@@ -23,6 +23,36 @@ func (m Migrator) HasTable(value interface{}) bool {
 	return count > 0
 }
 
+func (m Migrator) RenameTable(oldName, newName interface{}) error {
+	var oldTable, newTable string
+	if v, ok := oldName.(string); ok {
+		oldTable = v
+	} else {
+		stmt := &gorm.Statement{DB: m.DB}
+		if err := stmt.Parse(oldName); err == nil {
+			oldTable = stmt.Table
+		} else {
+			return err
+		}
+	}
+
+	if v, ok := newName.(string); ok {
+		newTable = v
+	} else {
+		stmt := &gorm.Statement{DB: m.DB}
+		if err := stmt.Parse(newName); err == nil {
+			newTable = stmt.Table
+		} else {
+			return err
+		}
+	}
+
+	return m.DB.Exec(
+		"sp_rename @objname = ?, @newname = ?;",
+		clause.Table{Name: oldTable}, clause.Table{Name: newTable},
+	).Error
+}
+
 func (m Migrator) HasColumn(value interface{}, field string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {

@@ -27,7 +27,7 @@ type Migrator interface {
 	CreateTable(dst ...interface{}) error
 	DropTable(dst ...interface{}) error
 	HasTable(dst interface{}) bool
-	RenameTable(oldName, newName string) error
+	RenameTable(oldName, newName interface{}) error
 
 	// Columns
 	AddColumn(dst interface{}, field string) error
