@@ -196,7 +196,7 @@ func (stmt *Statement) AddClause(v clause.Interface) {
 
 // AddClauseIfNotExists add clause if not exists
 func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
-	if _, ok := stmt.Clauses[v.Name()]; !ok {
+	if c, ok := stmt.Clauses[v.Name()]; !ok && c.Expression == nil {
 		stmt.AddClause(v)
 	}
 }
@@ -248,9 +248,9 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 					for _, field := range s.Fields {
 						if v, isZero := field.ValueOf(reflectValue); !isZero {
 							if field.DBName == "" {
-								conds = append(conds, clause.Eq{Column: field.Name, Value: v})
+								conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 							} else {
-								conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+								conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
 							}
 						}
 					}
@@ -259,9 +259,9 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 						for _, field := range s.Fields {
 							if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
 								if field.DBName == "" {
-									conds = append(conds, clause.Eq{Column: field.Name, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 								} else {
-									conds = append(conds, clause.Eq{Column: field.DBName, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
 								}
 							}
 						}

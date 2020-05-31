@@ -4,6 +4,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/jinzhu/gorm"
 	. "github.com/jinzhu/gorm/tests"
 )
 
@@ -51,5 +52,56 @@ func TestJoinsForSlice(t *testing.T) {
 
 	for idx, user := range users {
 		CheckUser(t, user, users2[idx])
+	}
+}
+
+func TestJoinConds(t *testing.T) {
+	var user = *GetUser("joins-conds", Config{Account: true, Pets: 3})
+	DB.Save(&user)
+
+	var users1 []User
+	DB.Joins("left join pets on pets.user_id = users.id").Where("users.name = ?", user.Name).Find(&users1)
+	if len(users1) != 3 {
+		t.Errorf("should find two users using left join, but got %v", len(users1))
+	}
+
+	var users2 []User
+	DB.Joins("left join pets on pets.user_id = users.id AND pets.name = ?", user.Pets[0].Name).Where("users.name = ?", user.Name).First(&users2)
+	if len(users2) != 1 {
+		t.Errorf("should find one users using left join with conditions, but got %v", len(users2))
+	}
+
+	var users3 []User
+	DB.Joins("left join pets on pets.user_id = users.id AND pets.name = ?", user.Pets[0].Name).Joins("join accounts on accounts.user_id = users.id AND accounts.number = ?", user.Account.Number).Where("users.name = ?", user.Name).First(&users3)
+	if len(users3) != 1 {
+		t.Errorf("should find one users using multiple left join conditions, but got %v", len(users3))
+	}
+
+	var users4 []User
+	DB.Joins("left join pets on pets.user_id = users.id AND pets.name = ?", user.Pets[0].Name).Joins("join accounts on accounts.user_id = users.id AND accounts.number = ?", user.Account.Number+"non-exist").Where("users.name = ?", user.Name).First(&users4)
+	if len(users4) != 0 {
+		t.Errorf("should find no user when searching with unexisting credit card, but got %v", len(users4))
+	}
+
+	var users5 []User
+	db5 := DB.Joins("left join pets on pets.user_id = users.id AND pets.name = ?", user.Pets[0].Name).Joins("join accounts on accounts.user_id = users.id AND accounts.number = ?", user.Account.Number).Where(User{Model: gorm.Model{ID: 1}}).Where(Account{Model: gorm.Model{ID: 1}}).Not(Pet{Model: gorm.Model{ID: 1}}).Find(&users5)
+	if db5.Error != nil {
+		t.Errorf("Should not raise error for join where identical fields in different tables. Error: %s", db5.Error.Error())
+	}
+}
+
+func TestJoinsWithSelect(t *testing.T) {
+	type result struct {
+		ID   uint
+		Name string
+	}
+
+	user := *GetUser("joins_with_select", Config{Pets: 2})
+	DB.Save(&user)
+
+	var results []result
+	DB.Table("users").Select("users.id, pets.name").Joins("left join pets on pets.user_id = users.id").Where("users.name = ?", "joins_with_select").Scan(&results)
+	if len(results) != 2 || results[0].Name != user.Pets[0].Name || results[1].Name != user.Pets[1].Name {
+		t.Errorf("Should find all two pets with Join select")
 	}
 }

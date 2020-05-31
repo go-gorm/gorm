@@ -233,9 +233,10 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 
 func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
-	if len(tx.Statement.Selects) == 0 {
-		tx.Statement.Selects = []string{"count(1)"}
+	if s, ok := tx.Statement.Clauses["SELECT"].Expression.(clause.Select); !ok || len(s.Columns) == 0 {
+		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
 	}
+
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
 	}
