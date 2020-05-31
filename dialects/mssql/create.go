@@ -68,26 +68,30 @@ func Create(db *gorm.DB) {
 
 		switch db.Statement.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			for rows.Next() {
-				// for idx, field := range fields {
-				// 	values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
-				// }
+			if len(db.Statement.Schema.PrimaryFields) > 0 {
+				values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
 
-				values := db.Statement.Schema.PrioritizedPrimaryField.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
-				if err := rows.Scan(values); err != nil {
-					db.AddError(err)
+				for rows.Next() {
+					for idx, field := range db.Statement.Schema.PrimaryFields {
+						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+					}
+
+					db.RowsAffected++
+					db.AddError(rows.Scan(values...))
 				}
-				db.RowsAffected++
 			}
 		case reflect.Struct:
-			// for idx, field := range fields {
-			// 	values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
-			// }
-			values := db.Statement.Schema.PrioritizedPrimaryField.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+			if len(db.Statement.Schema.PrimaryFields) > 0 {
+				values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
 
-			if rows.Next() {
-				db.RowsAffected++
-				db.AddError(rows.Scan(values))
+				for idx, field := range db.Statement.Schema.PrimaryFields {
+					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+				}
+
+				if rows.Next() {
+					db.RowsAffected++
+					db.AddError(rows.Scan(values...))
+				}
 			}
 		}
 	} else {
@@ -177,8 +181,14 @@ func MergeCreate(db *gorm.DB, onConflict clause.OnConflict) {
 }
 
 func outputInserted(db *gorm.DB) {
-	if db.Statement.Schema.PrioritizedPrimaryField != nil {
-		db.Statement.WriteString(" OUTPUT INSERTED.")
-		db.Statement.WriteQuoted(db.Statement.Schema.PrioritizedPrimaryField.DBName)
+	if len(db.Statement.Schema.PrimaryFields) > 0 {
+		db.Statement.WriteString(" OUTPUT ")
+		for idx, field := range db.Statement.Schema.PrimaryFields {
+			if idx > 0 {
+				db.Statement.WriteString(",")
+			}
+			db.Statement.WriteString(" INSERTED.")
+			db.Statement.AddVar(db.Statement, clause.Column{Name: field.DBName})
+		}
 	}
 }

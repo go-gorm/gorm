@@ -149,7 +149,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				createTableSQL += ","
 			}
 
-			if !hasPrimaryKeyInDataType {
+			if !hasPrimaryKeyInDataType && len(stmt.Schema.PrimaryFields) > 0 {
 				createTableSQL += "PRIMARY KEY ?,"
 				primaryKeys := []interface{}{}
 				for _, field := range stmt.Schema.PrimaryFields {

@@ -64,7 +64,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 			if err == nil {
-				if db.Statement.Schema != nil {
+				if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil {
 					if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
 						if insertID, err := result.LastInsertId(); err == nil {
 							switch db.Statement.ReflectValue.Kind() {

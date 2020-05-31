@@ -245,3 +245,21 @@ func TestCreateWithNowFuncOverride(t *testing.T) {
 	AssertEqual(t, newUser.CreatedAt, curTime)
 	AssertEqual(t, newUser.UpdatedAt, curTime)
 }
+
+func TestCreateWithNoGORMPrimayKey(t *testing.T) {
+	type JoinTable struct {
+		UserID   uint
+		FriendID uint
+	}
+
+	DB.Migrator().DropTable(&JoinTable{})
+	if err := DB.AutoMigrate(&JoinTable{}); err != nil {
+		t.Errorf("no error should happen when auto migrate, but got %v", err)
+	}
+
+	jt := JoinTable{UserID: 1, FriendID: 2}
+	err := DB.Create(&jt).Error
+	if err != nil {
+		t.Errorf("No error should happen when create a record without a GORM primary key. But in the database this primary key exists and is the union of 2 or more fields\n But got: %s", err)
+	}
+}

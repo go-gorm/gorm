@@ -34,6 +34,7 @@ func TestScannerValuer(t *testing.T) {
 			{"name1", "value1"},
 			{"name2", "value2"},
 		},
+		Role: Role{Name: "admin"},
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
@@ -91,6 +92,7 @@ type ScannerValuerStruct struct {
 	Num      Num
 	Strings  StringsSlice
 	Structs  StructsSlice
+	Role     Role
 }
 
 type EncryptedData []byte
@@ -175,4 +177,25 @@ func (l *StructsSlice) Scan(input interface{}) error {
 	default:
 		return errors.New("not supported")
 	}
+}
+
+type Role struct {
+	Name string `gorm:"size:256"`
+}
+
+func (role *Role) Scan(value interface{}) error {
+	if b, ok := value.([]uint8); ok {
+		role.Name = string(b)
+	} else {
+		role.Name = value.(string)
+	}
+	return nil
+}
+
+func (role Role) Value() (driver.Value, error) {
+	return role.Name, nil
+}
+
+func (role Role) IsAdmin() bool {
+	return role.Name == "admin"
 }
