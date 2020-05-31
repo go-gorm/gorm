@@ -58,7 +58,12 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	default:
 		switch db.Statement.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			isPtr := db.Statement.ReflectValue.Type().Elem().Kind() == reflect.Ptr
+			reflectValueType := db.Statement.ReflectValue.Type().Elem()
+			isPtr := reflectValueType.Kind() == reflect.Ptr
+			if isPtr {
+				reflectValueType = reflectValueType.Elem()
+			}
+
 			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 0))
 			fields := make([]*schema.Field, len(columns))
 			joinFields := make([][2]*schema.Field, len(columns))
@@ -81,17 +86,22 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			for initialized || rows.Next() {
 				initialized = false
-				elem := reflect.New(db.Statement.Schema.ModelType).Elem()
-				for idx, field := range fields {
-					if field != nil {
-						values[idx] = field.ReflectValueOf(elem).Addr().Interface()
-					} else if joinFields[idx][0] != nil {
-						relValue := joinFields[idx][0].ReflectValueOf(elem)
-						if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-							relValue.Set(reflect.New(relValue.Type().Elem()))
-						}
+				elem := reflect.New(reflectValueType).Elem()
 
-						values[idx] = joinFields[idx][1].ReflectValueOf(relValue).Addr().Interface()
+				if reflectValueType.Kind() != reflect.Struct && len(fields) == 1 {
+					values[0] = elem.Addr().Interface()
+				} else {
+					for idx, field := range fields {
+						if field != nil {
+							values[idx] = field.ReflectValueOf(elem).Addr().Interface()
+						} else if joinFields[idx][0] != nil {
+							relValue := joinFields[idx][0].ReflectValueOf(elem)
+							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+								relValue.Set(reflect.New(relValue.Type().Elem()))
+							}
+
+							values[idx] = joinFields[idx][1].ReflectValueOf(relValue).Addr().Interface()
+						}
 					}
 				}
 

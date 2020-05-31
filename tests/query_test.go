@@ -80,3 +80,35 @@ func TestFind(t *testing.T) {
 		}
 	}
 }
+
+func TestPluck(t *testing.T) {
+	users := []*User{
+		GetUser("pluck-user1", Config{}),
+		GetUser("pluck-user2", Config{}),
+		GetUser("pluck-user3", Config{}),
+	}
+
+	DB.Create(&users)
+
+	var names []string
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name").Pluck("name", &names).Error; err != nil {
+		t.Errorf("Raise error when pluck name, got %v", err)
+	}
+
+	var ids []int
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name").Pluck("id", &ids).Error; err != nil {
+		t.Errorf("Raise error when pluck id, got %v", err)
+	}
+
+	for idx, name := range names {
+		if name != users[idx].Name {
+			t.Errorf("Unexpected result on pluck name, got %+v", names)
+		}
+	}
+
+	for idx, id := range ids {
+		if int(id) != int(users[idx].ID) {
+			t.Errorf("Unexpected result on pluck id, got %+v", ids)
+		}
+	}
+}
