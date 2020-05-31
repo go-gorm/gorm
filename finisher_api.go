@@ -273,7 +273,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 //     db.Find(&users).Pluck("age", &ages)
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Select{Columns: []clause.Column{{Name: column}}})
+	tx.Statement.AddClauseIfNotExists(clause.Select{Columns: []clause.Column{{Name: column}}})
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return

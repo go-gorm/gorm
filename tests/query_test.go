@@ -2,8 +2,10 @@ package tests_test
 
 import (
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/jinzhu/gorm/tests"
 )
@@ -81,6 +83,24 @@ func TestFind(t *testing.T) {
 	}
 }
 
+func TestFillSmallerStruct(t *testing.T) {
+	user := User{Name: "SmallerUser", Age: 100}
+	DB.Save(&user)
+	type SimpleUser struct {
+		Name      string
+		ID        int64
+		UpdatedAt time.Time
+		CreatedAt time.Time
+	}
+
+	var simpleUser SimpleUser
+	if err := DB.Table("users").Where("name = ?", user.Name).First(&simpleUser).Error; err != nil {
+		t.Fatalf("Failed to query smaller user, got error %v", err)
+	}
+
+	AssertObjEqual(t, user, simpleUser, "Name", "ID", "UpdatedAt", "CreatedAt")
+}
+
 func TestPluck(t *testing.T) {
 	users := []*User{
 		GetUser("pluck-user1", Config{}),
@@ -92,12 +112,12 @@ func TestPluck(t *testing.T) {
 
 	var names []string
 	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name").Pluck("name", &names).Error; err != nil {
-		t.Errorf("Raise error when pluck name, got %v", err)
+		t.Errorf("got error when pluck name: %v", err)
 	}
 
 	var ids []int
 	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name").Pluck("id", &ids).Error; err != nil {
-		t.Errorf("Raise error when pluck id, got %v", err)
+		t.Errorf("got error when pluck id: %v", err)
 	}
 
 	for idx, name := range names {
@@ -111,4 +131,23 @@ func TestPluck(t *testing.T) {
 			t.Errorf("Unexpected result on pluck id, got %+v", ids)
 		}
 	}
+}
+
+func TestPluckWithSelect(t *testing.T) {
+	users := []User{
+		{Name: "pluck_with_select_1", Age: 25},
+		{Name: "pluck_with_select_2", Age: 26},
+	}
+
+	DB.Create(&users)
+
+	var userAges []int
+	err := DB.Model(&User{}).Where("name like ?", "pluck_with_select%").Select("age + 1  as user_age").Pluck("user_age", &userAges).Error
+	if err != nil {
+		t.Fatalf("got error when pluck user_age: %v", err)
+	}
+
+	sort.Ints(userAges)
+
+	AssertEqual(t, userAges, []int{26, 27})
 }
