@@ -267,6 +267,16 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 	return
 }
 
+// Pluck used to query single column from a model as a map
+//     var ages []int64
+//     db.Find(&users).Pluck("age", &ages)
+func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.Dest = dest
+	tx.callbacks.Query().Execute(tx)
+	return
+}
+
 func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	tx := db.getInstance()
 	tx.Error = tx.Statement.Parse(dest)
@@ -307,7 +317,7 @@ func (db *DB) Begin(opts ...*sql.TxOptions) (tx *DB) {
 			opt = opts[0]
 		}
 
-		if tx.Statement.ConnPool, err = beginner.BeginTx(db.Statement.Context, opt); err != nil {
+		if tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt); err != nil {
 			tx.AddError(err)
 		}
 	} else {

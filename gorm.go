@@ -167,15 +167,14 @@ func (db *DB) AddError(err error) error {
 
 func (db *DB) getInstance() *DB {
 	if db.clone {
-		stmt := &Statement{
-			DB:       db,
-			ConnPool: db.ConnPool,
-			Clauses:  map[string]clause.Clause{},
-			Context:  context.Background(),
-		}
+		stmt := &Statement{DB: db, Clauses: map[string]clause.Clause{}}
 
 		if db.Statement != nil {
 			stmt.Context = db.Statement.Context
+			stmt.ConnPool = db.Statement.ConnPool
+		} else {
+			stmt.Context = context.Background()
+			stmt.ConnPool = db.ConnPool
 		}
 
 		return &DB{Config: db.Config, Statement: stmt}
