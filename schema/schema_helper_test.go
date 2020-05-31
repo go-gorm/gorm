@@ -127,7 +127,7 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 			}
 
 			if r.FieldSchema.Name != relation.FieldSchema {
-				t.Errorf("schema %v relation's schema expects %v, but got %v", s, relation.Schema, r.Schema.Name)
+				t.Errorf("schema %v field relation's schema expects %v, but got %v", s, relation.FieldSchema, r.FieldSchema.Name)
 			}
 
 			if r.Polymorphic != nil {

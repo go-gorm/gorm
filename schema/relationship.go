@@ -168,29 +168,74 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		joinTableFields []reflect.StructField
 		fieldsMap       = map[string]*Field{}
 		ownFieldsMap    = map[string]bool{} // fix self join many2many
+		joinForeignKeys = toColumns(field.TagSettings["JOINFOREIGNKEY"])
+		joinReferences  = toColumns(field.TagSettings["JOINREFERENCES"])
 	)
 
-	for _, s := range []*Schema{schema, relation.FieldSchema} {
-		for _, primaryField := range s.PrimaryFields {
-			fieldName := s.Name + primaryField.Name
-			if _, ok := fieldsMap[fieldName]; ok {
-				if field.Name != s.Name {
-					fieldName = inflection.Singular(field.Name) + primaryField.Name
-				} else {
-					fieldName = s.Name + primaryField.Name + "Reference"
-				}
-			} else {
-				ownFieldsMap[fieldName] = true
-			}
+	ownForeignFields := schema.PrimaryFields
+	refForeignFields := relation.FieldSchema.PrimaryFields
 
-			fieldsMap[fieldName] = primaryField
-			joinTableFields = append(joinTableFields, reflect.StructField{
-				Name:    fieldName,
-				PkgPath: primaryField.StructField.PkgPath,
-				Type:    primaryField.StructField.Type,
-				Tag:     removeSettingFromTag(primaryField.StructField.Tag, "column"),
-			})
+	if len(relation.foreignKeys) > 0 {
+		ownForeignFields = []*Field{}
+		for _, foreignKey := range relation.foreignKeys {
+			if field := schema.LookUpField(foreignKey); field != nil {
+				ownForeignFields = append(ownForeignFields, field)
+			} else {
+				schema.err = fmt.Errorf("invalid foreign key: %v", foreignKey)
+				return
+			}
 		}
+	}
+
+	if len(relation.primaryKeys) > 0 {
+		refForeignFields = []*Field{}
+		for _, foreignKey := range relation.primaryKeys {
+			if field := relation.FieldSchema.LookUpField(foreignKey); field != nil {
+				refForeignFields = append(refForeignFields, field)
+			} else {
+				schema.err = fmt.Errorf("invalid foreign key: %v", foreignKey)
+				return
+			}
+		}
+	}
+
+	for idx, ownField := range ownForeignFields {
+		joinFieldName := schema.Name + ownField.Name
+		if len(joinForeignKeys) > idx {
+			joinFieldName = joinForeignKeys[idx]
+		}
+
+		ownFieldsMap[joinFieldName] = true
+		fieldsMap[joinFieldName] = ownField
+		joinTableFields = append(joinTableFields, reflect.StructField{
+			Name:    joinFieldName,
+			PkgPath: ownField.StructField.PkgPath,
+			Type:    ownField.StructField.Type,
+			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column"),
+		})
+	}
+
+	for idx, relField := range refForeignFields {
+		joinFieldName := relation.FieldSchema.Name + relField.Name
+		if len(joinReferences) > idx {
+			joinFieldName = joinReferences[idx]
+		}
+
+		if _, ok := ownFieldsMap[joinFieldName]; ok {
+			if field.Name != relation.FieldSchema.Name {
+				joinFieldName = inflection.Singular(field.Name) + relField.Name
+			} else {
+				joinFieldName += "Reference"
+			}
+		}
+
+		fieldsMap[joinFieldName] = relField
+		joinTableFields = append(joinTableFields, reflect.StructField{
+			Name:    joinFieldName,
+			PkgPath: relField.StructField.PkgPath,
+			Type:    relField.StructField.Type,
+			Tag:     removeSettingFromTag(relField.StructField.Tag, "column"),
+		})
 	}
 
 	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer); err != nil {
