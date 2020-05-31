@@ -34,7 +34,7 @@ func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
 
 	var animals []Animal
 	DB.Find(&animals)
-	if count := DB.Model(Animal{}).Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
+	if count := DB.Model(Animal{}).Where("1=1").Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
 		t.Error("RowsAffected should be correct when do batch update")
 	}
 

@@ -92,16 +92,26 @@ func TestJoinConds(t *testing.T) {
 
 func TestJoinsWithSelect(t *testing.T) {
 	type result struct {
-		ID   uint
-		Name string
+		ID    uint
+		PetID uint
+		Name  string
 	}
 
 	user := *GetUser("joins_with_select", Config{Pets: 2})
 	DB.Save(&user)
 
 	var results []result
-	DB.Table("users").Select("users.id, pets.name").Joins("left join pets on pets.user_id = users.id").Where("users.name = ?", "joins_with_select").Scan(&results)
+	DB.Table("users").Select("users.id, pets.id as pet_id, pets.name").Joins("left join pets on pets.user_id = users.id").Where("users.name = ?", "joins_with_select").Scan(&results)
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].PetID > results[j].PetID
+	})
+
+	sort.Slice(results, func(i, j int) bool {
+		return user.Pets[i].ID > user.Pets[j].ID
+	})
+
 	if len(results) != 2 || results[0].Name != user.Pets[0].Name || results[1].Name != user.Pets[1].Name {
-		t.Errorf("Should find all two pets with Join select")
+		t.Errorf("Should find all two pets with Join select, got %+v", results)
 	}
 }

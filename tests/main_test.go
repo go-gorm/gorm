@@ -35,3 +35,17 @@ func TestExceptionsWithInvalidSql(t *testing.T) {
 		t.Errorf("No user should not be deleted by invalid SQL")
 	}
 }
+
+func TestSetAndGet(t *testing.T) {
+	if value, ok := DB.Set("hello", "world").Get("hello"); !ok {
+		t.Errorf("Should be able to get setting after set")
+	} else {
+		if value.(string) != "world" {
+			t.Errorf("Setted value should not be changed")
+		}
+	}
+
+	if _, ok := DB.Get("non_existing"); ok {
+		t.Errorf("Get non existing key should return error")
+	}
+}

@@ -36,10 +36,6 @@ func TestDelete(t *testing.T) {
 		}
 	}
 
-	if err := DB.Delete(&User{}).Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
-		t.Errorf("should returns missing WHERE clause while deleting error")
-	}
-
 	for _, user := range []User{users[0], users[2]} {
 		if err := DB.Where("id = ?", user.ID).First(&result).Error; err != nil {
 			t.Errorf("no error should returns when query %v, but got %v", user.ID, err)
@@ -62,5 +58,11 @@ func TestInlineCondDelete(t *testing.T) {
 		t.Errorf("No error should happen when delete a record, err=%s", err)
 	} else if !DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
 		t.Errorf("User can't be found after delete")
+	}
+}
+
+func TestBlockGlobalDelete(t *testing.T) {
+	if err := DB.Delete(&User{}).Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
+		t.Errorf("should returns missing WHERE clause while deleting error")
 	}
 }

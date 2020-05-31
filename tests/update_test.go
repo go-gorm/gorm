@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -210,4 +211,10 @@ func TestUpdateColumn(t *testing.T) {
 	DB.First(&user6, users[1].ID)
 	CheckUser(t, user5, *users[0])
 	CheckUser(t, user6, *users[1])
+}
+
+func TestBlockGlobalUpdate(t *testing.T) {
+	if err := DB.Model(&User{}).Update("name", "jinzhu").Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
+		t.Errorf("should returns missing WHERE clause while updating error, got err %v", err)
+	}
 }

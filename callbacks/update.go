@@ -59,6 +59,11 @@ func Update(db *gorm.DB) {
 		db.Statement.Build("UPDATE", "SET", "WHERE")
 	}
 
+	if _, ok := db.Statement.Clauses["WHERE"]; !ok {
+		db.AddError(gorm.ErrMissingWhereClause)
+		return
+	}
+
 	result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 	if err == nil {
