@@ -19,93 +19,7 @@ func Query(db *gorm.DB) {
 	}
 
 	if db.Statement.SQL.String() == "" {
-		clauseSelect := clause.Select{}
-
-		if len(db.Statement.Selects) > 0 {
-			for _, name := range db.Statement.Selects {
-				if f := db.Statement.Schema.LookUpField(name); f != nil {
-					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-						Name: f.DBName,
-					})
-				} else {
-					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-						Name: name,
-						Raw:  true,
-					})
-				}
-			}
-		}
-
-		// inline joins
-		if len(db.Statement.Joins) != 0 {
-			joins := []clause.Join{}
-
-			if len(db.Statement.Selects) == 0 {
-				for _, dbName := range db.Statement.Schema.DBNames {
-					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-						Table: db.Statement.Table,
-						Name:  dbName,
-					})
-				}
-			}
-
-			for name, conds := range db.Statement.Joins {
-				if relation, ok := db.Statement.Schema.Relationships.Relations[name]; ok {
-					tableAliasName := relation.Name
-
-					for _, s := range relation.FieldSchema.DBNames {
-						clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-							Table: tableAliasName,
-							Name:  s,
-							Alias: tableAliasName + "__" + s,
-						})
-					}
-
-					var exprs []clause.Expression
-					for _, ref := range relation.References {
-						if ref.OwnPrimaryKey {
-							exprs = append(exprs, clause.Eq{
-								Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.PrimaryKey.DBName},
-								Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-							})
-						} else {
-							if ref.PrimaryValue == "" {
-								exprs = append(exprs, clause.Eq{
-									Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.ForeignKey.DBName},
-									Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
-								})
-							} else {
-								exprs = append(exprs, clause.Eq{
-									Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-									Value:  ref.PrimaryValue,
-								})
-							}
-						}
-					}
-
-					joins = append(joins, clause.Join{
-						Type:  clause.LeftJoin,
-						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
-						ON:    clause.Where{Exprs: exprs},
-					})
-				} else {
-					joins = append(joins, clause.Join{
-						Expression: clause.Expr{SQL: name, Vars: conds},
-					})
-				}
-			}
-
-			db.Statement.AddClause(clause.From{Joins: joins})
-		} else {
-			db.Statement.AddClauseIfNotExists(clause.From{})
-		}
-
-		if len(clauseSelect.Columns) > 0 {
-			db.Statement.AddClause(clauseSelect)
-		} else {
-			db.Statement.AddClauseIfNotExists(clauseSelect)
-		}
-		db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
+		BuildQuerySQL(db)
 	}
 
 	rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
@@ -116,6 +30,106 @@ func Query(db *gorm.DB) {
 	defer rows.Close()
 
 	gorm.Scan(rows, db, false)
+}
+
+func BuildQuerySQL(db *gorm.DB) {
+	clauseSelect := clause.Select{}
+
+	if len(db.Statement.Selects) > 0 {
+		for _, name := range db.Statement.Selects {
+			if db.Statement.Schema == nil {
+				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+					Name: name,
+					Raw:  true,
+				})
+			} else if f := db.Statement.Schema.LookUpField(name); f != nil {
+				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+					Name: f.DBName,
+				})
+			} else {
+				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+					Name: name,
+					Raw:  true,
+				})
+			}
+		}
+	}
+
+	// inline joins
+	if len(db.Statement.Joins) != 0 {
+		joins := []clause.Join{}
+
+		if len(db.Statement.Selects) == 0 {
+			for _, dbName := range db.Statement.Schema.DBNames {
+				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+					Table: db.Statement.Table,
+					Name:  dbName,
+				})
+			}
+		}
+
+		for name, conds := range db.Statement.Joins {
+			if db.Statement.Schema == nil {
+				joins = append(joins, clause.Join{
+					Expression: clause.Expr{SQL: name, Vars: conds},
+				})
+			} else if relation, ok := db.Statement.Schema.Relationships.Relations[name]; ok {
+				tableAliasName := relation.Name
+
+				for _, s := range relation.FieldSchema.DBNames {
+					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+						Table: tableAliasName,
+						Name:  s,
+						Alias: tableAliasName + "__" + s,
+					})
+				}
+
+				var exprs []clause.Expression
+				for _, ref := range relation.References {
+					if ref.OwnPrimaryKey {
+						exprs = append(exprs, clause.Eq{
+							Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.PrimaryKey.DBName},
+							Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+						})
+					} else {
+						if ref.PrimaryValue == "" {
+							exprs = append(exprs, clause.Eq{
+								Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.ForeignKey.DBName},
+								Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
+							})
+						} else {
+							exprs = append(exprs, clause.Eq{
+								Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+								Value:  ref.PrimaryValue,
+							})
+						}
+					}
+				}
+
+				joins = append(joins, clause.Join{
+					Type:  clause.LeftJoin,
+					Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+					ON:    clause.Where{Exprs: exprs},
+				})
+			} else {
+				joins = append(joins, clause.Join{
+					Expression: clause.Expr{SQL: name, Vars: conds},
+				})
+			}
+		}
+
+		db.Statement.AddClause(clause.From{Joins: joins})
+	} else {
+		db.Statement.AddClauseIfNotExists(clause.From{})
+	}
+
+	if len(clauseSelect.Columns) > 0 {
+		db.Statement.AddClause(clauseSelect)
+	} else {
+		db.Statement.AddClauseIfNotExists(clauseSelect)
+	}
+
+	db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
 }
 
 func Preload(db *gorm.DB) {

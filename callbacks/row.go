@@ -2,15 +2,11 @@ package callbacks
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/clause"
 )
 
 func RowQuery(db *gorm.DB) {
 	if db.Statement.SQL.String() == "" {
-		db.Statement.AddClauseIfNotExists(clause.Select{})
-		db.Statement.AddClauseIfNotExists(clause.From{})
-
-		db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
+		BuildQuerySQL(db)
 	}
 
 	if _, ok := db.Get("rows"); ok {
