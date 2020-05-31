@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"reflect"
-	"time"
 
 	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/schema"
@@ -55,7 +54,7 @@ func (SoftDeleteClause) MergeClause(*clause.Clause) {
 
 func (SoftDeleteClause) ModifyStatement(stmt *Statement) {
 	if stmt.SQL.String() == "" {
-		stmt.AddClause(clause.Set{{Column: clause.Column{Name: "deleted_at"}, Value: time.Now()}})
+		stmt.AddClause(clause.Set{{Column: clause.Column{Name: "deleted_at"}, Value: stmt.DB.NowFunc()}})
 
 		if stmt.Schema != nil {
 			_, queryValues := schema.GetIdentityFieldValuesMap(stmt.ReflectValue, stmt.Schema.PrimaryFields)

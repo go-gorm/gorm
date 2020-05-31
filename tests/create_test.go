@@ -1,9 +1,13 @@
 package tests_test
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/jinzhu/gorm"
 	. "github.com/jinzhu/gorm/tests"
+	"github.com/jinzhu/now"
 )
 
 func TestCreate(t *testing.T) {
@@ -200,4 +204,44 @@ func TestCreateEmptyStrut(t *testing.T) {
 	if err := DB.Create(&EmptyStruct{}).Error; err != nil {
 		t.Errorf("No error should happen when creating user, but got %v", err)
 	}
+}
+
+func TestCreateWithExistingTimestamp(t *testing.T) {
+	user := User{Name: "CreateUserExistingTimestamp"}
+	curTime := now.MustParse("2016-01-01")
+	user.CreatedAt = curTime
+	user.UpdatedAt = curTime
+	DB.Save(&user)
+
+	AssertEqual(t, user.CreatedAt, curTime)
+	AssertEqual(t, user.UpdatedAt, curTime)
+
+	var newUser User
+	DB.First(&newUser, user.ID)
+
+	AssertEqual(t, newUser.CreatedAt, curTime)
+	AssertEqual(t, newUser.UpdatedAt, curTime)
+}
+
+func TestCreateWithNowFuncOverride(t *testing.T) {
+	user := User{Name: "CreateUserTimestampOverride"}
+	curTime := now.MustParse("2016-01-01")
+
+	NEW := DB.Session(&gorm.Session{
+		NowFunc: func() time.Time {
+			fmt.Println("11iiiin")
+			return curTime
+		},
+	})
+
+	NEW.Save(&user)
+
+	AssertEqual(t, user.CreatedAt, curTime)
+	AssertEqual(t, user.UpdatedAt, curTime)
+
+	var newUser User
+	NEW.First(&newUser, user.ID)
+
+	AssertEqual(t, newUser.CreatedAt, curTime)
+	AssertEqual(t, newUser.UpdatedAt, curTime)
 }

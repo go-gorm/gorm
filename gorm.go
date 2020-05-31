@@ -30,9 +30,8 @@ type Config struct {
 	// Dialector database dialector
 	Dialector
 
-	statementPool sync.Pool
-	callbacks     *callbacks
-	cacheStore    *sync.Map
+	callbacks  *callbacks
+	cacheStore *sync.Map
 }
 
 // DB GORM DB definition
@@ -75,17 +74,6 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 
 	if config.cacheStore == nil {
 		config.cacheStore = &sync.Map{}
-	}
-
-	config.statementPool = sync.Pool{
-		New: func() interface{} {
-			return &Statement{
-				DB:       db,
-				ConnPool: db.ConnPool,
-				Clauses:  map[string]clause.Clause{},
-				Context:  context.Background(),
-			}
-		},
 	}
 
 	db = &DB{
@@ -179,7 +167,13 @@ func (db *DB) AddError(err error) error {
 
 func (db *DB) getInstance() *DB {
 	if db.clone {
-		stmt := db.Config.statementPool.Get().(*Statement)
+		stmt := &Statement{
+			DB:       db,
+			ConnPool: db.ConnPool,
+			Clauses:  map[string]clause.Clause{},
+			Context:  context.Background(),
+		}
+
 		if db.Statement != nil {
 			stmt.Context = db.Statement.Context
 		}
