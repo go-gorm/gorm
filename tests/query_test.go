@@ -1,12 +1,14 @@
 package tests_test
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/jinzhu/gorm"
 	. "github.com/jinzhu/gorm/tests"
 )
 
@@ -115,8 +117,14 @@ func TestPluck(t *testing.T) {
 		t.Errorf("got error when pluck name: %v", err)
 	}
 
+	var names2 []string
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name desc").Pluck("name", &names2).Error; err != nil {
+		t.Errorf("got error when pluck name: %v", err)
+	}
+	AssertEqual(t, names, sort.Reverse(sort.StringSlice(names2)))
+
 	var ids []int
-	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name").Pluck("id", &ids).Error; err != nil {
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("id", &ids).Error; err != nil {
 		t.Errorf("got error when pluck id: %v", err)
 	}
 
@@ -130,6 +138,21 @@ func TestPluck(t *testing.T) {
 		if int(id) != int(users[idx].ID) {
 			t.Errorf("Unexpected result on pluck id, got %+v", ids)
 		}
+	}
+}
+
+func TestSelect(t *testing.T) {
+	user := User{Name: "SelectUser1"}
+	DB.Save(&user)
+
+	var result User
+	DB.Where("name = ?", user.Name).Select("name").Find(&result)
+	if result.ID != 0 {
+		t.Errorf("Should not have ID because only selected name, %+v", result.ID)
+	}
+
+	if user.Name != result.Name {
+		t.Errorf("Should have user Name when selected it")
 	}
 }
 
@@ -150,4 +173,176 @@ func TestPluckWithSelect(t *testing.T) {
 	sort.Ints(userAges)
 
 	AssertEqual(t, userAges, []int{26, 27})
+}
+
+func TestSelectWithVariables(t *testing.T) {
+	DB.Save(&User{Name: "select_with_variables"})
+
+	rows, _ := DB.Table("users").Where("name = ?", "select_with_variables").Select("? as fake", gorm.Expr("name")).Rows()
+
+	if !rows.Next() {
+		t.Errorf("Should have returned at least one row")
+	} else {
+		columns, _ := rows.Columns()
+		AssertEqual(t, columns, []string{"fake"})
+	}
+
+	rows.Close()
+}
+
+func TestSelectWithArrayInput(t *testing.T) {
+	DB.Save(&User{Name: "select_with_array", Age: 42})
+
+	var user User
+	DB.Select([]string{"name", "age"}).Where("age = 42 AND name = ?", "select_with_array").First(&user)
+
+	if user.Name != "select_with_array" || user.Age != 42 {
+		t.Errorf("Should have selected both age and name")
+	}
+}
+
+func TestCustomizedTypePrimaryKey(t *testing.T) {
+	type ID uint
+	type CustomizedTypePrimaryKey struct {
+		ID   ID
+		Name string
+	}
+
+	DB.Migrator().DropTable(&CustomizedTypePrimaryKey{})
+	if err := DB.AutoMigrate(&CustomizedTypePrimaryKey{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	p1 := CustomizedTypePrimaryKey{Name: "p1"}
+	p2 := CustomizedTypePrimaryKey{Name: "p2"}
+	p3 := CustomizedTypePrimaryKey{Name: "p3"}
+	DB.Create(&p1)
+	DB.Create(&p2)
+	DB.Create(&p3)
+
+	var p CustomizedTypePrimaryKey
+
+	if err := DB.First(&p, p2.ID).Error; err != nil {
+		t.Errorf("No error should returns, but got %v", err)
+	}
+
+	AssertEqual(t, p, p2)
+
+	if err := DB.First(&p, "id = ?", p2.ID).Error; err != nil {
+		t.Errorf("No error should happen when querying with customized type for primary key, got err %v", err)
+	}
+
+	AssertEqual(t, p, p2)
+}
+
+func TestStringPrimaryKeyForNumericValueStartingWithZero(t *testing.T) {
+	type AddressByZipCode struct {
+		ZipCode string `gorm:"primary_key"`
+		Address string
+	}
+
+	DB.Migrator().DropTable(&AddressByZipCode{})
+	if err := DB.AutoMigrate(&AddressByZipCode{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	address := AddressByZipCode{ZipCode: "00501", Address: "Holtsville"}
+	DB.Create(&address)
+
+	var result AddressByZipCode
+	DB.First(&result, "00501")
+
+	AssertEqual(t, result, address)
+}
+
+func TestSearchWithEmptyChain(t *testing.T) {
+	user := User{Name: "search_with_empty_chain", Age: 1}
+	DB.Create(&user)
+
+	var result User
+	if DB.Where("").Where("").First(&result).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty strings")
+	}
+
+	if DB.Where(&User{}).Where("name = ?", user.Name).First(&result).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty struct")
+	}
+
+	if DB.Where(map[string]interface{}{}).Where("name = ?", user.Name).First(&result).Error != nil {
+		t.Errorf("Should not raise any error if searching with empty map")
+	}
+}
+
+func TestLimit(t *testing.T) {
+	users := []User{
+		{Name: "LimitUser1", Age: 1},
+		{Name: "LimitUser2", Age: 10},
+		{Name: "LimitUser3", Age: 20},
+		{Name: "LimitUser4", Age: 10},
+		{Name: "LimitUser5", Age: 20},
+	}
+
+	DB.Create(&users)
+
+	var users1, users2, users3 []User
+	DB.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
+
+	if len(users1) != 3 || len(users2) != 5 || len(users3) <= 5 {
+		t.Errorf("Limit should works")
+	}
+}
+
+func TestOffset(t *testing.T) {
+	for i := 0; i < 20; i++ {
+		DB.Save(&User{Name: fmt.Sprintf("OffsetUser%v", i)})
+	}
+	var users1, users2, users3, users4 []User
+
+	DB.Limit(100).Where("name like ?", "OffsetUser%").Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
+
+	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
+		t.Errorf("Offset should work")
+	}
+}
+
+func TestSearchWithMap(t *testing.T) {
+	users := []User{
+		*GetUser("map_search_user1", Config{}),
+		*GetUser("map_search_user2", Config{}),
+		*GetUser("map_search_user3", Config{}),
+		*GetUser("map_search_user4", Config{Company: true}),
+	}
+
+	DB.Create(&users)
+
+	var user User
+	DB.First(&user, map[string]interface{}{"name": users[0].Name})
+	CheckUser(t, user, users[0])
+
+	DB.Where(map[string]interface{}{"name": users[1].Name}).First(&user)
+	CheckUser(t, user, users[1])
+
+	var results []User
+	DB.Where(map[string]interface{}{"name": users[2].Name}).Find(&results)
+	if len(results) != 1 {
+		t.Fatalf("Search all records with inline map")
+	}
+
+	CheckUser(t, results[0], users[2])
+
+	var results2 []User
+	DB.Find(&results2, map[string]interface{}{"name": users[3].Name, "company_id": nil})
+	if len(results2) != 0 {
+		t.Errorf("Search all records with inline map containing null value finding 0 records")
+	}
+
+	DB.Find(&results2, map[string]interface{}{"name": users[0].Name, "company_id": nil})
+	if len(results2) != 1 {
+		t.Errorf("Search all records with inline map containing null value finding 1 record")
+	}
+
+	DB.Find(&results2, map[string]interface{}{"name": users[3].Name, "company_id": users[3].CompanyID})
+	if len(results2) != 1 {
+		t.Errorf("Search all records with inline multiple value map")
+	}
 }

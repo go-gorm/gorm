@@ -204,12 +204,15 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 // BuildCondtion build condition
 func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conds []clause.Expression) {
 	if sql, ok := query.(string); ok {
-		if i, err := strconv.Atoi(sql); err == nil {
-			query = i
-		} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
-			return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
-		} else if len(args) == 1 {
-			return []clause.Expression{clause.Eq{Column: sql, Value: args[0]}}
+		// if it is a number, then treats it as primary key
+		if _, err := strconv.Atoi(sql); err != nil {
+			if sql == "" && len(args) == 0 {
+				return
+			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
+				return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
+			} else if len(args) == 1 {
+				return []clause.Expression{clause.Eq{Column: sql, Value: args[0]}}
+			}
 		}
 	}
 
@@ -267,12 +270,10 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 						}
 					}
 				}
+			} else if len(conds) == 0 {
+				conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
 			}
 		}
-	}
-
-	if len(conds) == 0 {
-		conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
 	}
 
 	return

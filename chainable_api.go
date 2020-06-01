@@ -111,21 +111,27 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 // Where add conditions
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(query, args...)})
+	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: conds})
+	}
 	return
 }
 
 // Not add NOT conditions
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(tx.Statement.BuildCondtion(query, args...)...)}})
+	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(conds...)}})
+	}
 	return
 }
 
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(tx.Statement.BuildCondtion(query, args...)...)}})
+	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(conds...)}})
+	}
 	return
 }
 

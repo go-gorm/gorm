@@ -80,3 +80,45 @@ func TestRaw(t *testing.T) {
 		t.Error("Raw sql to update records")
 	}
 }
+
+func TestRowsWithGroup(t *testing.T) {
+	users := []User{
+		{Name: "having_user_1", Age: 1},
+		{Name: "having_user_2", Age: 10},
+		{Name: "having_user_1", Age: 20},
+		{Name: "having_user_1", Age: 30},
+	}
+
+	DB.Create(&users)
+
+	rows, err := DB.Select("name, count(*) as total").Table("users").Group("name").Having("name IN ?", []string{users[0].Name, users[1].Name}).Rows()
+	if err != nil {
+		t.Fatalf("got error %v", err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		var total int64
+		rows.Scan(&name, &total)
+
+		if name == users[0].Name && total != 3 {
+			t.Errorf("Should have one user having name %v", users[0].Name)
+		} else if name == users[1].Name && total != 1 {
+			t.Errorf("Should have two users having name %v", users[1].Name)
+		}
+	}
+}
+
+func TestQueryRaw(t *testing.T) {
+	users := []*User{
+		GetUser("row_query_user", Config{}),
+		GetUser("row_query_user", Config{}),
+		GetUser("row_query_user", Config{}),
+	}
+	DB.Create(&users)
+
+	var user User
+	DB.Raw("select * from users WHERE id = ?", users[1].ID).First(&user)
+	CheckUser(t, user, *users[1])
+}

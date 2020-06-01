@@ -50,6 +50,47 @@ func TestScannerValuer(t *testing.T) {
 	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Num", "Strings", "Structs")
 }
 
+func TestScannerValuerWithFirstOrCreate(t *testing.T) {
+	DB.Migrator().DropTable(&ScannerValuerStruct{})
+	if err := DB.Migrator().AutoMigrate(&ScannerValuerStruct{}); err != nil {
+		t.Errorf("no error should happen when migrate scanner, valuer struct")
+	}
+
+	data := ScannerValuerStruct{
+		Name:   sql.NullString{String: "name", Valid: true},
+		Gender: &sql.NullString{String: "M", Valid: true},
+		Age:    sql.NullInt64{Int64: 18, Valid: true},
+	}
+
+	var result ScannerValuerStruct
+	tx := DB.Where(data).FirstOrCreate(&result)
+
+	if tx.RowsAffected != 1 {
+		t.Errorf("RowsAffected should be 1 after create some record")
+	}
+
+	if tx.Error != nil {
+		t.Errorf("Should not raise any error, but got %v", tx.Error)
+	}
+
+	AssertObjEqual(t, result, data, "Name", "Gender", "Age")
+
+	if err := DB.Where(data).Assign(ScannerValuerStruct{Age: sql.NullInt64{Int64: 18, Valid: true}}).FirstOrCreate(&result).Error; err != nil {
+		t.Errorf("Should not raise any error, but got %v", err)
+	}
+
+	if result.Age.Int64 != 18 {
+		t.Errorf("should update age to 18")
+	}
+
+	var result2 ScannerValuerStruct
+	if err := DB.First(&result2, result.ID).Error; err != nil {
+		t.Errorf("got error %v when query with %v", err, result.ID)
+	}
+
+	AssertObjEqual(t, result2, result, "ID", "CreatedAt", "UpdatedAt", "Name", "Gender", "Age")
+}
+
 func TestInvalidValuer(t *testing.T) {
 	DB.Migrator().DropTable(&ScannerValuerStruct{})
 	if err := DB.Migrator().AutoMigrate(&ScannerValuerStruct{}); err != nil {
