@@ -19,6 +19,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		foreignFields    []*schema.Field
 		foreignValues    [][]interface{}
 		identityMap      = map[string][]reflect.Value{}
+		inlineConds      []interface{}
 	)
 
 	if len(rels) > 1 {
@@ -64,7 +65,8 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 			}
 
 			if results, ok := joinIdentityMap[utils.ToStringKey(fieldValues...)]; ok {
-				identityMap[utils.ToStringKey(joinFieldValues...)] = results
+				joinKey := utils.ToStringKey(joinFieldValues...)
+				identityMap[joinKey] = append(identityMap[joinKey], results...)
 			}
 		}
 
@@ -92,12 +94,23 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 
 	reflectResults := rel.FieldSchema.MakeSlice().Elem()
 	column, values := schema.ToQueryValues(relForeignKeys, foreignValues)
-	tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), conds...)
+
+	for _, cond := range conds {
+		if fc, ok := cond.(func(*gorm.DB) *gorm.DB); ok {
+			tx = fc(tx)
+		} else {
+			inlineConds = append(inlineConds, cond)
+		}
+	}
+
+	tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), inlineConds...)
 
 	fieldValues := make([]interface{}, len(relForeignFields))
+
 	for i := 0; i < reflectResults.Len(); i++ {
+		elem := reflectResults.Index(i)
 		for idx, field := range relForeignFields {
-			fieldValues[idx], _ = field.ValueOf(reflectResults.Index(i))
+			fieldValues[idx], _ = field.ValueOf(elem)
 		}
 
 		for _, data := range identityMap[utils.ToStringKey(fieldValues...)] {
@@ -105,15 +118,16 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 			if reflectFieldValue.Kind() == reflect.Ptr && reflectFieldValue.IsNil() {
 				reflectFieldValue.Set(reflect.New(rel.Field.FieldType.Elem()))
 			}
+
 			reflectFieldValue = reflect.Indirect(reflectFieldValue)
 			switch reflectFieldValue.Kind() {
 			case reflect.Struct:
 				rel.Field.Set(data, reflectResults.Index(i).Interface())
 			case reflect.Slice, reflect.Array:
 				if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
-					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i)).Interface())
+					rel.Field.Set(data, reflect.Append(reflectFieldValue, elem).Interface())
 				} else {
-					rel.Field.Set(data, reflect.Append(reflectFieldValue, reflectResults.Index(i).Elem()).Interface())
+					rel.Field.Set(data, reflect.Append(reflectFieldValue, elem.Elem()).Interface())
 				}
 			}
 		}

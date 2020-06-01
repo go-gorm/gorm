@@ -95,6 +95,7 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 	var (
 		results       = [][]interface{}{}
 		dataResults   = map[string][]reflect.Value{}
+		loaded        = map[interface{}]bool{}
 		notZero, zero bool
 	)
 
@@ -114,10 +115,21 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 		dataResults[utils.ToStringKey(results[0]...)] = []reflect.Value{reflectValue}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < reflectValue.Len(); i++ {
+			elem := reflectValue.Index(i)
+			elemKey := elem.Interface()
+			if elem.Kind() != reflect.Ptr {
+				elemKey = elem.Addr().Interface()
+			}
+
+			if _, ok := loaded[elemKey]; ok {
+				continue
+			}
+			loaded[elemKey] = true
+
 			fieldValues := make([]interface{}, len(fields))
 			notZero = false
 			for idx, field := range fields {
-				fieldValues[idx], zero = field.ValueOf(reflectValue.Index(i))
+				fieldValues[idx], zero = field.ValueOf(elem)
 				notZero = notZero || !zero
 			}
 
@@ -125,9 +137,9 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 				dataKey := utils.ToStringKey(fieldValues...)
 				if _, ok := dataResults[dataKey]; !ok {
 					results = append(results, fieldValues[:])
-					dataResults[dataKey] = []reflect.Value{reflectValue.Index(i)}
+					dataResults[dataKey] = []reflect.Value{elem}
 				} else {
-					dataResults[dataKey] = append(dataResults[dataKey], reflectValue.Index(i))
+					dataResults[dataKey] = append(dataResults[dataKey], elem)
 				}
 			}
 		}
