@@ -23,6 +23,10 @@ func Open(dsn string) gorm.Dialector {
 	return &Dialector{DSN: dsn}
 }
 
+func (dialector Dialector) Name() string {
+	return "postgres"
+}
+
 func (dialector Dialector) Initialize(db *gorm.DB) (err error) {
 	// register callbacks
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{

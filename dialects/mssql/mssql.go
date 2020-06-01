@@ -19,6 +19,10 @@ type Dialector struct {
 	DSN string
 }
 
+func (dialector Dialector) Name() string {
+	return "mssql"
+}
+
 func Open(dsn string) gorm.Dialector {
 	return &Dialector{DSN: dsn}
 }

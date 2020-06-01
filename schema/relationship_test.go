@@ -197,3 +197,51 @@ func TestMany2ManyOverrideJoinForeignKey(t *testing.T) {
 		},
 	})
 }
+
+func TestMany2ManyWithMultiPrimaryKeys(t *testing.T) {
+	type Tag struct {
+		ID     uint   `gorm:"primary_key"`
+		Locale string `gorm:"primary_key"`
+		Value  string
+	}
+
+	type Blog struct {
+		ID         uint   `gorm:"primary_key"`
+		Locale     string `gorm:"primary_key"`
+		Subject    string
+		Body       string
+		Tags       []Tag `gorm:"many2many:blog_tags;"`
+		SharedTags []Tag `gorm:"many2many:shared_blog_tags;ForeignKey:id;References:id"`
+		LocaleTags []Tag `gorm:"many2many:locale_blog_tags;ForeignKey:id,locale;References:id"`
+	}
+
+	checkStructRelation(t, &Blog{},
+		Relation{
+			Name: "Tags", Type: schema.Many2Many, Schema: "Blog", FieldSchema: "Tag",
+			JoinTable: JoinTable{Name: "blog_tags", Table: "blog_tags"},
+			References: []Reference{
+				{"ID", "Blog", "BlogID", "blog_tags", "", true},
+				{"Locale", "Blog", "BlogLocale", "blog_tags", "", true},
+				{"ID", "Tag", "TagID", "blog_tags", "", false},
+				{"Locale", "Tag", "TagLocale", "blog_tags", "", false},
+			},
+		},
+		Relation{
+			Name: "SharedTags", Type: schema.Many2Many, Schema: "Blog", FieldSchema: "Tag",
+			JoinTable: JoinTable{Name: "shared_blog_tags", Table: "shared_blog_tags"},
+			References: []Reference{
+				{"ID", "Blog", "BlogID", "shared_blog_tags", "", true},
+				{"ID", "Tag", "TagID", "shared_blog_tags", "", false},
+			},
+		},
+		Relation{
+			Name: "LocaleTags", Type: schema.Many2Many, Schema: "Blog", FieldSchema: "Tag",
+			JoinTable: JoinTable{Name: "locale_blog_tags", Table: "locale_blog_tags"},
+			References: []Reference{
+				{"ID", "Blog", "BlogID", "locale_blog_tags", "", true},
+				{"Locale", "Blog", "BlogLocale", "locale_blog_tags", "", true},
+				{"ID", "Tag", "TagID", "locale_blog_tags", "", false},
+			},
+		},
+	)
+}

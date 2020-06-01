@@ -10,6 +10,7 @@ import (
 
 // Dialector GORM database dialector
 type Dialector interface {
+	Name() string
 	Initialize(*DB) error
 	Migrator(db *DB) Migrator
 	DataTypeOf(*schema.Field) string

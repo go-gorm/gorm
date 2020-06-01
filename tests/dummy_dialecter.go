@@ -10,6 +10,10 @@ import (
 type DummyDialector struct {
 }
 
+func (DummyDialector) Name() string {
+	return "dummy"
+}
+
 func (DummyDialector) Initialize(*gorm.DB) error {
 	return nil
 }

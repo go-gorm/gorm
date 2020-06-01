@@ -52,8 +52,8 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		tx.Where(clause.IN{Column: column, Values: values}).Find(joinResults.Addr().Interface())
 
 		// convert join identity map to relation identity map
-		fieldValues := make([]interface{}, len(foreignFields))
-		joinFieldValues := make([]interface{}, len(joinForeignFields))
+		fieldValues := make([]interface{}, len(joinForeignFields))
+		joinFieldValues := make([]interface{}, len(joinRelForeignFields))
 		for i := 0; i < joinResults.Len(); i++ {
 			for idx, field := range joinForeignFields {
 				fieldValues[idx], _ = field.ValueOf(joinResults.Index(i))
@@ -94,7 +94,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	column, values := schema.ToQueryValues(relForeignKeys, foreignValues)
 	tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), conds...)
 
-	fieldValues := make([]interface{}, len(foreignFields))
+	fieldValues := make([]interface{}, len(relForeignFields))
 	for i := 0; i < reflectResults.Len(); i++ {
 		for idx, field := range relForeignFields {
 			fieldValues[idx], _ = field.ValueOf(reflectResults.Index(i))
