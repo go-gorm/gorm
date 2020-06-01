@@ -25,7 +25,7 @@ func TestMigrate(t *testing.T) {
 
 	for _, m := range allModels {
 		if !DB.Migrator().HasTable(m) {
-			t.Fatalf("Failed to create table for %#v", m)
+			t.Fatalf("Failed to create table for %#v---", m)
 		}
 	}
 }

@@ -6,6 +6,11 @@ import (
 	. "github.com/jinzhu/gorm/tests"
 )
 
+func TestMain(m *testing.M) {
+	RunMigrations()
+	m.Run()
+}
+
 func TestExceptionsWithInvalidSql(t *testing.T) {
 	var columns []string
 	if DB.Where("sdsd.zaaa = ?", "sd;;;aa").Pluck("aaa", &columns).Error == nil {

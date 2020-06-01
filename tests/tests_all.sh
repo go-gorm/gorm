@@ -9,11 +9,17 @@ for dialect in "${dialects[@]}" ; do
   then
     echo "testing ${dialect}..."
 
+    race=""
     if [ "$GORM_VERBOSE" = "" ]
     then
-      DEBUG=false GORM_DIALECT=${dialect} go test -race -count=1 ./...
+      race="-race"
+    fi
+
+    if [ "$GORM_VERBOSE" = "" ]
+    then
+      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 ./...
     else
-      DEBUG=false GORM_DIALECT=${dialect} go test -race -count=1 -v ./...
+      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
     fi
   fi
 done

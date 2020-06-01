@@ -19,9 +19,7 @@ var DB *gorm.DB
 
 func init() {
 	var err error
-	if DB, err = OpenTestConnection(); err == nil {
-		RunMigrations()
-	} else {
+	if DB, err = OpenTestConnection(); err != nil {
 		log.Printf("failed to connect database, got error %v\n", err)
 		os.Exit(1)
 	}
