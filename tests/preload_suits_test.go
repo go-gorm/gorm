@@ -1167,9 +1167,8 @@ func TestNestedManyToManyPreload4(t *testing.T) {
 		}
 	)
 
+	DB.Migrator().DropTable("level1_level2", "level2_level3")
 	DB.Migrator().DropTable(&Level3{}, &Level2{}, &Level1{}, &Level4{})
-	DB.Migrator().DropTable("level1_level2")
-	DB.Migrator().DropTable("level2_level3")
 
 	dummy := Level1{
 		Value: "Level1",
@@ -1211,8 +1210,7 @@ func TestManyToManyPreloadForPointer(t *testing.T) {
 		}
 	)
 
-	DB.Migrator().DropTable(&Level2{}, &Level1{})
-	DB.Migrator().DropTable("levels")
+	DB.Migrator().DropTable("levels", &Level2{}, &Level1{})
 
 	if err := DB.AutoMigrate(&Level2{}, &Level1{}); err != nil {
 		t.Error(err)
@@ -1296,7 +1294,7 @@ func TestNilPointerSlice(t *testing.T) {
 		Level1 struct {
 			ID       uint
 			Value    string
-			Level2ID uint
+			Level2ID *uint
 			Level2   *Level2
 		}
 	)
@@ -1325,7 +1323,7 @@ func TestNilPointerSlice(t *testing.T) {
 		Level2: nil,
 	}
 	if err := DB.Save(&want2).Error; err != nil {
-		t.Error(err)
+		t.Fatalf("Got error %v", err)
 	}
 
 	var got []Level1
@@ -1481,8 +1479,7 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 		}
 	)
 
-	DB.Migrator().DropTable(&Level2{}, &Level1{})
-	DB.Migrator().DropTable("level1_level2s")
+	DB.Migrator().DropTable("level1_level2s", &Level2{}, &Level1{})
 
 	if err := DB.AutoMigrate(new(Level1), new(Level2)); err != nil {
 		t.Error(err)

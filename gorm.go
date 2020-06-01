@@ -204,6 +204,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	if relation, ok := modelSchema.Relationships.Relations[field]; ok && relation.JoinTable != nil {
 		for _, ref := range relation.References {
 			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
+				f.DataType = ref.ForeignKey.DataType
 				ref.ForeignKey = f
 			} else {
 				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)

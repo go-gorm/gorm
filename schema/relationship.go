@@ -150,6 +150,10 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.foreignKeys, schema, field.Name)
 			}
 		}
+
+		// use same data type for foreign keys
+		relation.Polymorphic.PolymorphicID.DataType = primaryKeyField.DataType
+
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryKeyField,
 			ForeignKey:    relation.Polymorphic.PolymorphicID,
@@ -246,6 +250,9 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 
 	// build references
 	for _, f := range relation.JoinTable.Fields {
+		// use same data type for foreign keys
+		f.DataType = fieldsMap[f.Name].DataType
+
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    fieldsMap[f.Name],
 			ForeignKey:    f,
@@ -326,6 +333,9 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 
 	// build references
 	for idx, foreignField := range foreignFields {
+		// use same data type for foreign keys
+		foreignField.DataType = primaryFields[idx].DataType
+
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],
 			ForeignKey:    foreignField,

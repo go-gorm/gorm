@@ -108,6 +108,19 @@ func (m Migrator) HasTable(value interface{}) bool {
 	return count > 0
 }
 
+func (m Migrator) DropTable(values ...interface{}) error {
+	values = m.ReorderModels(values, false)
+	tx := m.DB.Session(&gorm.Session{})
+	for i := len(values) - 1; i >= 0; i-- {
+		if err := m.RunWithValue(values[i], func(stmt *gorm.Statement) error {
+			return tx.Exec("DROP TABLE IF EXISTS ? CASCADE", clause.Table{Name: stmt.Table}).Error
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m Migrator) HasColumn(value interface{}, field string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {

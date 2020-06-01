@@ -203,14 +203,11 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 func (m Migrator) DropTable(values ...interface{}) error {
 	values = m.ReorderModels(values, false)
 	for i := len(values) - 1; i >= 0; i-- {
-		value := values[i]
-		if m.DB.Migrator().HasTable(value) {
-			tx := m.DB.Session(&gorm.Session{})
-			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-				return tx.Exec("DROP TABLE ?", clause.Table{Name: stmt.Table}).Error
-			}); err != nil {
-				return err
-			}
+		tx := m.DB.Session(&gorm.Session{})
+		if err := m.RunWithValue(values[i], func(stmt *gorm.Statement) error {
+			return tx.Exec("DROP TABLE IF EXISTS ?", clause.Table{Name: stmt.Table}).Error
+		}); err != nil {
+			return err
 		}
 	}
 	return nil
