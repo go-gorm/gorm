@@ -158,9 +158,11 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString("(NULL)")
 			}
 		case *DB:
-			result := v.Session(&Session{DryRun: true, WithConditions: true}).Find(nil).Statement
-			writer.WriteString(result.SQL.String())
-			stmt.Vars = append(stmt.Vars, result.Vars...)
+			subdb := v.Session(&Session{DryRun: true, WithConditions: true}).getInstance()
+			subdb.Statement.Vars = append(subdb.Statement.Vars, stmt.Vars...)
+			subdb.callbacks.Query().Execute(subdb)
+			writer.WriteString(subdb.Statement.SQL.String())
+			stmt.Vars = subdb.Statement.Vars
 		default:
 			switch rv := reflect.ValueOf(v); rv.Kind() {
 			case reflect.Slice, reflect.Array:

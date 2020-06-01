@@ -169,12 +169,12 @@ func CreateWithReturning(db *gorm.DB) {
 				if err != nil {
 					db.AddError(err)
 				}
+			}
+		} else if !db.DryRun {
+			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
+				db.RowsAffected, _ = result.RowsAffected()
 			} else {
-				if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
-					db.RowsAffected, _ = result.RowsAffected()
-				} else {
-					db.AddError(err)
-				}
+				db.AddError(err)
 			}
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/jinzhu/gorm/clause"
 	"github.com/jinzhu/gorm/schema"
@@ -44,7 +45,16 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 			tx         = association.DB.Model(out)
 		)
 
-		if association.Relationship.JoinTable != nil && !tx.Statement.Unscoped {
+		if association.Relationship.JoinTable != nil {
+			if !tx.Statement.Unscoped && len(association.Relationship.JoinTable.QueryClauses) > 0 {
+				joinStmt := Statement{DB: tx, Schema: association.Relationship.JoinTable, Table: association.Relationship.JoinTable.Table, Clauses: map[string]clause.Clause{}}
+				for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
+					joinStmt.AddClause(queryClause)
+				}
+				joinStmt.Build("WHERE", "LIMIT")
+				tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
+			}
+
 			tx.Clauses(clause.From{Joins: []clause.Join{{
 				Table: clause.Table{Name: association.Relationship.JoinTable.Table},
 				ON:    clause.Where{Exprs: queryConds},
@@ -321,10 +331,13 @@ func (association *Association) Count() (count int64) {
 		)
 
 		if association.Relationship.JoinTable != nil {
-			if !tx.Statement.Unscoped {
+			if !tx.Statement.Unscoped && len(association.Relationship.JoinTable.QueryClauses) > 0 {
+				joinStmt := Statement{DB: tx, Schema: association.Relationship.JoinTable, Table: association.Relationship.JoinTable.Table, Clauses: map[string]clause.Clause{}}
 				for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
-					tx.Clauses(queryClause)
+					joinStmt.AddClause(queryClause)
 				}
+				joinStmt.Build("WHERE", "LIMIT")
+				tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
 			}
 
 			tx.Clauses(clause.From{Joins: []clause.Join{{

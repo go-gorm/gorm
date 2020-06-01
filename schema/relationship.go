@@ -33,7 +33,7 @@ type Relationship struct {
 	Type                     RelationshipType
 	Field                    *Field
 	Polymorphic              *Polymorphic
-	References               []Reference
+	References               []*Reference
 	Schema                   *Schema
 	FieldSchema              *Schema
 	JoinTable                *Schema
@@ -139,7 +139,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 	}
 
 	if schema.err == nil {
-		relation.References = append(relation.References, Reference{
+		relation.References = append(relation.References, &Reference{
 			PrimaryValue: relation.Polymorphic.Value,
 			ForeignKey:   relation.Polymorphic.PolymorphicType,
 		})
@@ -150,7 +150,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %v", relation.foreignKeys, schema, field.Name)
 			}
 		}
-		relation.References = append(relation.References, Reference{
+		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryKeyField,
 			ForeignKey:    relation.Polymorphic.PolymorphicID,
 			OwnPrimaryKey: true,
@@ -246,7 +246,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 
 	// build references
 	for _, f := range relation.JoinTable.Fields {
-		relation.References = append(relation.References, Reference{
+		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    fieldsMap[f.Name],
 			ForeignKey:    f,
 			OwnPrimaryKey: schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name],
@@ -326,7 +326,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 
 	// build references
 	for idx, foreignField := range foreignFields {
-		relation.References = append(relation.References, Reference{
+		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],
 			ForeignKey:    foreignField,
 			OwnPrimaryKey: schema == primarySchema && guessHas,

@@ -108,6 +108,7 @@ func (db *DB) Session(config *Session) *DB {
 	if config.Context != nil {
 		if tx.Statement != nil {
 			tx.Statement = tx.Statement.clone()
+			tx.Statement.DB = tx
 		} else {
 			tx.Statement = &Statement{
 				DB:       tx,
@@ -179,6 +180,42 @@ func (db *DB) InstanceGet(key string) (interface{}, bool) {
 		return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 	}
 	return nil, false
+}
+
+func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
+	var (
+		tx                      = db.getInstance()
+		stmt                    = tx.Statement
+		modelSchema, joinSchema *schema.Schema
+	)
+
+	if err := stmt.Parse(model); err == nil {
+		modelSchema = stmt.Schema
+	} else {
+		return err
+	}
+
+	if err := stmt.Parse(joinTable); err == nil {
+		joinSchema = stmt.Schema
+	} else {
+		return err
+	}
+
+	if relation, ok := modelSchema.Relationships.Relations[field]; ok && relation.JoinTable != nil {
+		for _, ref := range relation.References {
+			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
+				ref.ForeignKey = f
+			} else {
+				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
+			}
+		}
+
+		relation.JoinTable = joinSchema
+	} else {
+		return fmt.Errorf("failed to found relation: %v", field)
+	}
+
+	return nil
 }
 
 // Callback returns callback manager
