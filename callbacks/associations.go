@@ -24,6 +24,13 @@ func SaveBeforeAssociations(db *gorm.DB) {
 					if !ref.OwnPrimaryKey {
 						pv, _ := ref.PrimaryKey.ValueOf(elem)
 						ref.ForeignKey.Set(obj, pv)
+
+						if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
+							dest[ref.ForeignKey.DBName] = pv
+							if _, ok := dest[rel.Name]; ok {
+								dest[rel.Name] = elem.Interface()
+							}
+						}
 					}
 				}
 			}

@@ -3,6 +3,7 @@ package tests
 import (
 	"database/sql/driver"
 	"fmt"
+	"go/ast"
 	"reflect"
 	"sort"
 	"strconv"
@@ -124,6 +125,37 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 		if reflect.ValueOf(got).IsValid() != reflect.ValueOf(expect).IsValid() {
 			t.Errorf("%v: expect: %+v, got %+v", utils.FileWithLineNum(), expect, got)
 			return
+		}
+
+		if reflect.ValueOf(got).Kind() == reflect.Slice {
+			if reflect.ValueOf(expect).Kind() == reflect.Slice {
+				if reflect.ValueOf(got).Len() == reflect.ValueOf(expect).Len() {
+					for i := 0; i < reflect.ValueOf(got).Len(); i++ {
+						name := fmt.Sprintf(reflect.ValueOf(got).Type().Name()+" #%v", i)
+						t.Run(name, func(t *testing.T) {
+							AssertEqual(t, reflect.ValueOf(got).Index(i).Interface(), reflect.ValueOf(expect).Index(i).Interface())
+						})
+					}
+				} else {
+					name := reflect.ValueOf(got).Type().Elem().Name()
+					t.Errorf("%v expects length: %v, got %v", name, reflect.ValueOf(expect).Len(), reflect.ValueOf(got).Len())
+				}
+				return
+			}
+		}
+
+		if reflect.ValueOf(got).Kind() == reflect.Struct {
+			if reflect.ValueOf(got).NumField() == reflect.ValueOf(expect).NumField() {
+				for i := 0; i < reflect.ValueOf(got).NumField(); i++ {
+					if fieldStruct := reflect.ValueOf(got).Type().Field(i); ast.IsExported(fieldStruct.Name) {
+						field := reflect.ValueOf(got).Field(i)
+						t.Run(fieldStruct.Name, func(t *testing.T) {
+							AssertEqual(t, field.Interface(), reflect.ValueOf(expect).Field(i).Interface())
+						})
+					}
+				}
+				return
+			}
 		}
 
 		if reflect.ValueOf(got).Type().ConvertibleTo(reflect.ValueOf(expect).Type()) {

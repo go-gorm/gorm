@@ -31,12 +31,14 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, user := range []User{users[0], users[2]} {
+		result = User{}
 		if err := DB.Where("id = ?", user.ID).First(&result).Error; err != nil {
 			t.Errorf("no error should returns when query %v, but got %v", user.ID, err)
 		}
 	}
 
 	for _, user := range []User{users[0], users[2]} {
+		result = User{}
 		if err := DB.Where("id = ?", user.ID).First(&result).Error; err != nil {
 			t.Errorf("no error should returns when query %v, but got %v", user.ID, err)
 		}

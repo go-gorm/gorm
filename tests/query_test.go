@@ -264,10 +264,12 @@ func TestSearchWithEmptyChain(t *testing.T) {
 		t.Errorf("Should not raise any error if searching with empty strings")
 	}
 
+	result = User{}
 	if DB.Where(&User{}).Where("name = ?", user.Name).First(&result).Error != nil {
 		t.Errorf("Should not raise any error if searching with empty struct")
 	}
 
+	result = User{}
 	if DB.Where(map[string]interface{}{}).Where("name = ?", user.Name).First(&result).Error != nil {
 		t.Errorf("Should not raise any error if searching with empty map")
 	}
@@ -319,6 +321,7 @@ func TestSearchWithMap(t *testing.T) {
 	DB.First(&user, map[string]interface{}{"name": users[0].Name})
 	CheckUser(t, user, users[0])
 
+	user = User{}
 	DB.Where(map[string]interface{}{"name": users[1].Name}).First(&user)
 	CheckUser(t, user, users[1])
 

@@ -9,6 +9,25 @@ import (
 	"github.com/jinzhu/gorm/schema"
 )
 
+func SetupUpdateReflectValue(db *gorm.DB) {
+	if db.Error == nil {
+		if !db.Statement.ReflectValue.CanAddr() || db.Statement.Model != db.Statement.Dest {
+			db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Model)
+			for db.Statement.ReflectValue.Kind() == reflect.Ptr {
+				db.Statement.ReflectValue = db.Statement.ReflectValue.Elem()
+			}
+
+			if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
+				for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
+					if _, ok := dest[rel.Name]; ok {
+						rel.Field.Set(db.Statement.ReflectValue, dest[rel.Name])
+					}
+				}
+			}
+		}
+	}
+}
+
 func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		tx := db.Session(&gorm.Session{})
@@ -114,21 +133,20 @@ func AfterUpdate(db *gorm.DB) {
 func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	var (
 		selectColumns, restricted = SelectAndOmitColumns(stmt, false, true)
-		reflectModelValue         = reflect.Indirect(reflect.ValueOf(stmt.Model))
 		assignValue               func(field *schema.Field, value interface{})
 	)
 
-	switch reflectModelValue.Kind() {
+	switch stmt.ReflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
 		assignValue = func(field *schema.Field, value interface{}) {
-			for i := 0; i < reflectModelValue.Len(); i++ {
-				field.Set(reflectModelValue.Index(i), value)
+			for i := 0; i < stmt.ReflectValue.Len(); i++ {
+				field.Set(stmt.ReflectValue.Index(i), value)
 			}
 		}
 	case reflect.Struct:
 		assignValue = func(field *schema.Field, value interface{}) {
-			if reflectModelValue.CanAddr() {
-				field.Set(reflectModelValue, value)
+			if stmt.ReflectValue.CanAddr() {
+				field.Set(stmt.ReflectValue, value)
 			}
 		}
 	default:
@@ -136,7 +154,12 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 	}
 
-	switch value := stmt.Dest.(type) {
+	updatingValue := reflect.ValueOf(stmt.Dest)
+	for updatingValue.Kind() == reflect.Ptr {
+		updatingValue = updatingValue.Elem()
+	}
+
+	switch value := updatingValue.Interface().(type) {
 	case map[string]interface{}:
 		set = make([]clause.Assignment, 0, len(value))
 
@@ -148,8 +171,12 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 		for _, k := range keys {
 			if field := stmt.Schema.LookUpField(k); field != nil {
-				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+				if field.DBName != "" {
+					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+						set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+						assignValue(field, value[k])
+					}
+				} else if v, ok := selectColumns[field.Name]; (ok && v) || (!ok && !restricted) {
 					assignValue(field, value[k])
 				}
 			} else if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
@@ -167,13 +194,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 		}
 	default:
-		switch stmt.ReflectValue.Kind() {
+		switch updatingValue.Kind() {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, field := range stmt.Schema.FieldsByDBName {
-				if !field.PrimaryKey || (!stmt.ReflectValue.CanAddr() || stmt.Dest != stmt.Model) {
+				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-						value, isZero := field.ValueOf(stmt.ReflectValue)
+						value, isZero := field.ValueOf(updatingValue)
 						if !stmt.DisableUpdateTime {
 							if field.AutoUpdateTime > 0 {
 								value = stmt.DB.NowFunc()
@@ -187,7 +214,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						}
 					}
 				} else {
-					if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+					if value, isZero := field.ValueOf(updatingValue); !isZero {
 						stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
 					}
 				}
@@ -195,16 +222,15 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 	}
 
-	if !stmt.ReflectValue.CanAddr() || stmt.Dest != stmt.Model {
-		reflectValue := reflect.Indirect(reflect.ValueOf(stmt.Model))
-		switch reflectValue.Kind() {
+	if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
+		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			var priamryKeyExprs []clause.Expression
-			for i := 0; i < reflectValue.Len(); i++ {
+			for i := 0; i < stmt.ReflectValue.Len(); i++ {
 				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
 				var notZero bool
 				for idx, field := range stmt.Schema.PrimaryFields {
-					value, isZero := field.ValueOf(reflectValue.Index(i))
+					value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
 					exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
 					notZero = notZero || !isZero
 				}
@@ -215,7 +241,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(priamryKeyExprs...)}})
 		case reflect.Struct:
 			for _, field := range stmt.Schema.PrimaryFields {
-				if value, isZero := field.ValueOf(reflectValue); !isZero {
+				if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
 					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
 				}
 			}

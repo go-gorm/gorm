@@ -347,6 +347,8 @@ func (field *Field) setupValuerAndSetter() {
 					if v.Type().Elem().Kind() == reflect.Struct {
 						if !v.IsNil() {
 							v = v.Elem()
+						} else {
+							return nil, true
 						}
 					} else {
 						return nil, true

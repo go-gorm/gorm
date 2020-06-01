@@ -8,7 +8,7 @@ import (
 
 func AssertAssociationCount(t *testing.T, data interface{}, name string, result int64, reason string) {
 	if count := DB.Model(data).Association(name).Count(); count != result {
-		t.Errorf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+		t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
 	}
 
 	var newUser User
@@ -20,7 +20,7 @@ func AssertAssociationCount(t *testing.T, data interface{}, name string, result 
 
 	if newUser.ID != 0 {
 		if count := DB.Model(&newUser).Association(name).Count(); count != result {
-			t.Errorf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+			t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
 		}
 	}
 }
@@ -28,6 +28,6 @@ func AssertAssociationCount(t *testing.T, data interface{}, name string, result 
 func TestInvalidAssociation(t *testing.T) {
 	var user = *GetUser("invalid", Config{Company: true, Manager: true})
 	if err := DB.Model(&user).Association("Invalid").Find(&user.Company).Error; err == nil {
-		t.Errorf("should return errors for invalid association, but got nil")
+		t.Fatalf("should return errors for invalid association, but got nil")
 	}
 }

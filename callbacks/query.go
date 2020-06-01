@@ -37,6 +37,19 @@ func Query(db *gorm.DB) {
 func BuildQuerySQL(db *gorm.DB) {
 	clauseSelect := clause.Select{}
 
+	if db.Statement.ReflectValue.Kind() == reflect.Struct {
+		var conds []clause.Expression
+		for _, primaryField := range db.Statement.Schema.PrimaryFields {
+			if v, isZero := primaryField.ValueOf(db.Statement.ReflectValue); !isZero {
+				conds = append(conds, clause.Eq{Column: clause.Column{Table: db.Statement.Table, Name: primaryField.DBName}, Value: v})
+			}
+		}
+
+		if len(conds) > 0 {
+			db.Statement.AddClause(clause.Where{Exprs: conds})
+		}
+	}
+
 	if len(db.Statement.Selects) > 0 {
 		for _, name := range db.Statement.Selects {
 			if db.Statement.Schema == nil {

@@ -86,6 +86,14 @@ func (association *Association) Replace(values ...interface{}) error {
 		case schema.BelongsTo:
 			if len(values) == 0 {
 				updateMap := map[string]interface{}{}
+				switch reflectValue.Kind() {
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < reflectValue.Len(); i++ {
+						rel.Field.Set(reflectValue.Index(i), reflect.Zero(rel.Field.FieldType).Interface())
+					}
+				case reflect.Struct:
+					rel.Field.Set(reflectValue, reflect.Zero(rel.Field.FieldType).Interface())
+				}
 
 				for _, ref := range rel.References {
 					updateMap[ref.ForeignKey.DBName] = nil

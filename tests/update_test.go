@@ -2,6 +2,8 @@ package tests_test
 
 import (
 	"errors"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -216,5 +218,306 @@ func TestUpdateColumn(t *testing.T) {
 func TestBlockGlobalUpdate(t *testing.T) {
 	if err := DB.Model(&User{}).Update("name", "jinzhu").Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
 		t.Errorf("should returns missing WHERE clause while updating error, got err %v", err)
+	}
+}
+
+func TestSelectWithUpdate(t *testing.T) {
+	user := *GetUser("select_update", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	var result User
+	DB.First(&result, user.ID)
+
+	user2 := *GetUser("select_update_new", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	result.Name = user2.Name
+	result.Age = 50
+	result.Account = user2.Account
+	result.Pets = user2.Pets
+	result.Toys = user2.Toys
+	result.Company = user2.Company
+	result.Manager = user2.Manager
+	result.Team = user2.Team
+	result.Languages = user2.Languages
+	result.Friends = user2.Friends
+
+	DB.Select("Name", "Account", "Toys", "Manager", "ManagerID", "Languages").Save(&result)
+
+	var result2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result2, user.ID)
+
+	result.Languages = append(user.Languages, result.Languages...)
+	result.Toys = append(user.Toys, result.Toys...)
+
+	sort.Slice(result.Languages, func(i, j int) bool {
+		return strings.Compare(result.Languages[i].Code, result.Languages[j].Code) > 0
+	})
+
+	sort.Slice(result.Toys, func(i, j int) bool {
+		return result.Toys[i].ID < result.Toys[j].ID
+	})
+
+	sort.Slice(result2.Languages, func(i, j int) bool {
+		return strings.Compare(result2.Languages[i].Code, result2.Languages[j].Code) > 0
+	})
+
+	sort.Slice(result2.Toys, func(i, j int) bool {
+		return result2.Toys[i].ID < result2.Toys[j].ID
+	})
+
+	AssertObjEqual(t, result2, result, "Name", "Account", "Toys", "Manager", "ManagerID", "Languages")
+}
+
+func TestSelectWithUpdateWithMap(t *testing.T) {
+	user := *GetUser("select_update_map", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	var result User
+	DB.First(&result, user.ID)
+
+	user2 := *GetUser("select_update_map_new", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	updateValues := map[string]interface{}{
+		"Name":      user2.Name,
+		"Age":       50,
+		"Account":   user2.Account,
+		"Pets":      user2.Pets,
+		"Toys":      user2.Toys,
+		"Company":   user2.Company,
+		"Manager":   user2.Manager,
+		"Team":      user2.Team,
+		"Languages": user2.Languages,
+		"Friends":   user2.Friends,
+	}
+
+	DB.Model(&result).Select("Name", "Account", "Toys", "Manager", "ManagerID", "Languages").Updates(updateValues)
+
+	var result2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result2, user.ID)
+
+	result.Languages = append(user.Languages, result.Languages...)
+	result.Toys = append(user.Toys, result.Toys...)
+
+	sort.Slice(result.Languages, func(i, j int) bool {
+		return strings.Compare(result.Languages[i].Code, result.Languages[j].Code) > 0
+	})
+
+	sort.Slice(result.Toys, func(i, j int) bool {
+		return result.Toys[i].ID < result.Toys[j].ID
+	})
+
+	sort.Slice(result2.Languages, func(i, j int) bool {
+		return strings.Compare(result2.Languages[i].Code, result2.Languages[j].Code) > 0
+	})
+
+	sort.Slice(result2.Toys, func(i, j int) bool {
+		return result2.Toys[i].ID < result2.Toys[j].ID
+	})
+
+	AssertObjEqual(t, result2, result, "Name", "Account", "Toys", "Manager", "ManagerID", "Languages")
+}
+
+func TestOmitWithUpdate(t *testing.T) {
+	user := *GetUser("omit_update", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	var result User
+	DB.First(&result, user.ID)
+
+	user2 := *GetUser("omit_update_new", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	result.Name = user2.Name
+	result.Age = 50
+	result.Account = user2.Account
+	result.Pets = user2.Pets
+	result.Toys = user2.Toys
+	result.Company = user2.Company
+	result.Manager = user2.Manager
+	result.Team = user2.Team
+	result.Languages = user2.Languages
+	result.Friends = user2.Friends
+
+	DB.Omit("Name", "Account", "Toys", "Manager", "ManagerID", "Languages").Save(&result)
+
+	var result2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result2, user.ID)
+
+	result.Pets = append(user.Pets, result.Pets...)
+	result.Team = append(user.Team, result.Team...)
+	result.Friends = append(user.Friends, result.Friends...)
+
+	sort.Slice(result.Pets, func(i, j int) bool {
+		return result.Pets[i].ID < result.Pets[j].ID
+	})
+	sort.Slice(result.Team, func(i, j int) bool {
+		return result.Team[i].ID < result.Team[j].ID
+	})
+	sort.Slice(result.Friends, func(i, j int) bool {
+		return result.Friends[i].ID < result.Friends[j].ID
+	})
+	sort.Slice(result2.Pets, func(i, j int) bool {
+		return result2.Pets[i].ID < result2.Pets[j].ID
+	})
+	sort.Slice(result2.Team, func(i, j int) bool {
+		return result2.Team[i].ID < result2.Team[j].ID
+	})
+	sort.Slice(result2.Friends, func(i, j int) bool {
+		return result2.Friends[i].ID < result2.Friends[j].ID
+	})
+
+	AssertObjEqual(t, result2, result, "Age", "Pets", "Company", "CompanyID", "Team", "Friends")
+}
+
+func TestOmitWithUpdateWithMap(t *testing.T) {
+	user := *GetUser("omit_update_map", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	var result User
+	DB.First(&result, user.ID)
+
+	user2 := *GetUser("omit_update_map_new", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	updateValues := map[string]interface{}{
+		"Name":      user2.Name,
+		"Age":       50,
+		"Account":   user2.Account,
+		"Pets":      user2.Pets,
+		"Toys":      user2.Toys,
+		"Company":   user2.Company,
+		"Manager":   user2.Manager,
+		"Team":      user2.Team,
+		"Languages": user2.Languages,
+		"Friends":   user2.Friends,
+	}
+
+	DB.Model(&result).Omit("Name", "Account", "Toys", "Manager", "ManagerID", "Languages").Updates(updateValues)
+
+	var result2 User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result2, user.ID)
+
+	result.Pets = append(user.Pets, result.Pets...)
+	result.Team = append(user.Team, result.Team...)
+	result.Friends = append(user.Friends, result.Friends...)
+
+	sort.Slice(result.Pets, func(i, j int) bool {
+		return result.Pets[i].ID < result.Pets[j].ID
+	})
+	sort.Slice(result.Team, func(i, j int) bool {
+		return result.Team[i].ID < result.Team[j].ID
+	})
+	sort.Slice(result.Friends, func(i, j int) bool {
+		return result.Friends[i].ID < result.Friends[j].ID
+	})
+	sort.Slice(result2.Pets, func(i, j int) bool {
+		return result2.Pets[i].ID < result2.Pets[j].ID
+	})
+	sort.Slice(result2.Team, func(i, j int) bool {
+		return result2.Team[i].ID < result2.Team[j].ID
+	})
+	sort.Slice(result2.Friends, func(i, j int) bool {
+		return result2.Friends[i].ID < result2.Friends[j].ID
+	})
+
+	AssertObjEqual(t, result2, result, "Age", "Pets", "Company", "CompanyID", "Team", "Friends")
+}
+
+func TestSelectWithUpdateColumn(t *testing.T) {
+	user := *GetUser("select_with_update_column", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	updateValues := map[string]interface{}{"Name": "new_name", "Age": 50}
+
+	var result User
+	DB.First(&result, user.ID)
+	DB.Model(&result).Select("Name").UpdateColumns(updateValues)
+
+	var result2 User
+	DB.First(&result2, user.ID)
+
+	if result2.Name == user.Name || result2.Age != user.Age {
+		t.Errorf("Should only update users with name column")
+	}
+}
+
+func TestOmitWithUpdateColumn(t *testing.T) {
+	user := *GetUser("omit_with_update_column", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Create(&user)
+
+	updateValues := map[string]interface{}{"Name": "new_name", "Age": 50}
+
+	var result User
+	DB.First(&result, user.ID)
+	DB.Model(&result).Omit("Name").UpdateColumns(updateValues)
+
+	var result2 User
+	DB.First(&result2, user.ID)
+
+	if result2.Name != user.Name || result2.Age == user.Age {
+		t.Errorf("Should only update users with name column")
+	}
+}
+
+func TestUpdateColumnsSkipsAssociations(t *testing.T) {
+	user := *GetUser("update_column_skips_association", Config{})
+	DB.Create(&user)
+
+	// Update a single field of the user and verify that the changed address is not stored.
+	newAge := uint(100)
+	user.Account.Number = "new_account_number"
+	db := DB.Model(&user).UpdateColumns(User{Age: newAge})
+
+	if db.RowsAffected != 1 {
+		t.Errorf("Expected RowsAffected=1 but instead RowsAffected=%v", db.RowsAffected)
+	}
+
+	// Verify that Age now=`newAge`.
+	result := &User{}
+	result.ID = user.ID
+	DB.Preload("Account").First(result)
+
+	if result.Age != newAge {
+		t.Errorf("Expected freshly queried user to have Age=%v but instead found Age=%v", newAge, result.Age)
+	}
+
+	if result.Account.Number != user.Account.Number {
+		t.Errorf("account number should not been changed, expects: %v, got %v", user.Account.Number, result.Account.Number)
+	}
+}
+
+func TestUpdatesWithBlankValues(t *testing.T) {
+	user := *GetUser("updates_with_blank_value", Config{})
+	DB.Save(&user)
+
+	var user2 User
+	user2.ID = user.ID
+	DB.Model(&user2).Updates(&User{Age: 100})
+
+	var result User
+	DB.First(&result, user.ID)
+
+	if result.Name != user.Name || result.Age != 100 {
+		t.Errorf("user's name should not be updated")
+	}
+}
+
+func TestUpdatesTableWithIgnoredValues(t *testing.T) {
+	type ElementWithIgnoredField struct {
+		Id           int64
+		Value        string
+		IgnoredField int64 `gorm:"-"`
+	}
+	DB.Migrator().DropTable(&ElementWithIgnoredField{})
+	DB.AutoMigrate(&ElementWithIgnoredField{})
+
+	elem := ElementWithIgnoredField{Value: "foo", IgnoredField: 10}
+	DB.Save(&elem)
+
+	DB.Model(&ElementWithIgnoredField{}).
+		Where("id = ?", elem.Id).
+		Updates(&ElementWithIgnoredField{Value: "bar", IgnoredField: 100})
+
+	var result ElementWithIgnoredField
+	if err := DB.First(&result, elem.Id).Error; err != nil {
+		t.Errorf("error getting an element from database: %s", err.Error())
+	}
+
+	if result.IgnoredField != 0 {
+		t.Errorf("element's ignored field should not be updated")
 	}
 }
