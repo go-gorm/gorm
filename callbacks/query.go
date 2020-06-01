@@ -23,14 +23,16 @@ func Query(db *gorm.DB) {
 			BuildQuerySQL(db)
 		}
 
-		rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-		if err != nil {
-			db.AddError(err)
-			return
-		}
-		defer rows.Close()
+		if !db.DryRun {
+			rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+			if err != nil {
+				db.AddError(err)
+				return
+			}
+			defer rows.Close()
 
-		gorm.Scan(rows, db, false)
+			gorm.Scan(rows, db, false)
+		}
 	}
 }
 

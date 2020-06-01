@@ -61,41 +61,43 @@ func Create(db *gorm.DB) {
 		}
 	}
 
-	rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+	if !db.DryRun {
+		rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-	if err == nil {
-		defer rows.Close()
+		if err == nil {
+			defer rows.Close()
 
-		switch db.Statement.ReflectValue.Kind() {
-		case reflect.Slice, reflect.Array:
-			if len(db.Statement.Schema.PrimaryFields) > 0 {
-				values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
+			switch db.Statement.ReflectValue.Kind() {
+			case reflect.Slice, reflect.Array:
+				if len(db.Statement.Schema.PrimaryFields) > 0 {
+					values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
 
-				for rows.Next() {
+					for rows.Next() {
+						for idx, field := range db.Statement.Schema.PrimaryFields {
+							values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+						}
+
+						db.RowsAffected++
+						db.AddError(rows.Scan(values...))
+					}
+				}
+			case reflect.Struct:
+				if len(db.Statement.Schema.PrimaryFields) > 0 {
+					values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
+
 					for idx, field := range db.Statement.Schema.PrimaryFields {
-						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
 					}
 
-					db.RowsAffected++
-					db.AddError(rows.Scan(values...))
+					if rows.Next() {
+						db.RowsAffected++
+						db.AddError(rows.Scan(values...))
+					}
 				}
 			}
-		case reflect.Struct:
-			if len(db.Statement.Schema.PrimaryFields) > 0 {
-				values := make([]interface{}, len(db.Statement.Schema.PrimaryFields))
-
-				for idx, field := range db.Statement.Schema.PrimaryFields {
-					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
-				}
-
-				if rows.Next() {
-					db.RowsAffected++
-					db.AddError(rows.Scan(values...))
-				}
-			}
+		} else {
+			db.AddError(err)
 		}
-	} else {
-		db.AddError(err)
 	}
 }
 

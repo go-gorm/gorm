@@ -72,12 +72,14 @@ func Delete(db *gorm.DB) {
 			db.Statement.Build("DELETE", "FROM", "WHERE")
 		}
 
-		result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+		if !db.DryRun {
+			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-		if err == nil {
-			db.RowsAffected, _ = result.RowsAffected()
-		} else {
-			db.AddError(err)
+			if err == nil {
+				db.RowsAffected, _ = result.RowsAffected()
+			} else {
+				db.AddError(err)
+			}
 		}
 	}
 }

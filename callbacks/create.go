@@ -63,36 +63,38 @@ func Create(config *Config) func(db *gorm.DB) {
 					db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
 				}
 
-				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+				if !db.DryRun {
+					result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-				if err == nil {
-					if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil {
-						if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
-							if insertID, err := result.LastInsertId(); err == nil {
-								switch db.Statement.ReflectValue.Kind() {
-								case reflect.Slice, reflect.Array:
-									if config.LastInsertIDReversed {
-										for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-											insertID--
+					if err == nil {
+						if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil {
+							if _, ok := db.Statement.Schema.FieldsWithDefaultDBValue[db.Statement.Schema.PrioritizedPrimaryField.DBName]; ok {
+								if insertID, err := result.LastInsertId(); err == nil {
+									switch db.Statement.ReflectValue.Kind() {
+									case reflect.Slice, reflect.Array:
+										if config.LastInsertIDReversed {
+											for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+												db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+												insertID--
+											}
+										} else {
+											for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+												db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+												insertID++
+											}
 										}
-									} else {
-										for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-											insertID++
-										}
+									case reflect.Struct:
+										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
 									}
-								case reflect.Struct:
-									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+								} else {
+									db.AddError(err)
 								}
-							} else {
-								db.AddError(err)
 							}
 						}
+						db.RowsAffected, _ = result.RowsAffected()
+					} else {
+						db.AddError(err)
 					}
-					db.RowsAffected, _ = result.RowsAffected()
-				} else {
-					db.AddError(err)
 				}
 			}
 		}
@@ -135,42 +137,44 @@ func CreateWithReturning(db *gorm.DB) {
 				idx++
 			}
 
-			rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+			if !db.DryRun {
+				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-			if err == nil {
-				defer rows.Close()
+				if err == nil {
+					defer rows.Close()
 
-				switch db.Statement.ReflectValue.Kind() {
-				case reflect.Slice, reflect.Array:
-					for rows.Next() {
+					switch db.Statement.ReflectValue.Kind() {
+					case reflect.Slice, reflect.Array:
+						for rows.Next() {
+							for idx, field := range fields {
+								values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+							}
+							if err := rows.Scan(values...); err != nil {
+								db.AddError(err)
+							}
+							db.RowsAffected++
+						}
+					case reflect.Struct:
 						for idx, field := range fields {
-							values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+							values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
 						}
-						if err := rows.Scan(values...); err != nil {
-							db.AddError(err)
-						}
-						db.RowsAffected++
-					}
-				case reflect.Struct:
-					for idx, field := range fields {
-						values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
-					}
 
-					if rows.Next() {
-						db.RowsAffected++
-						err = rows.Scan(values...)
+						if rows.Next() {
+							db.RowsAffected++
+							err = rows.Scan(values...)
+						}
 					}
 				}
-			}
 
-			if err != nil {
-				db.AddError(err)
-			}
-		} else {
-			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
+				if err != nil {
+					db.AddError(err)
+				}
 			} else {
-				db.AddError(err)
+				if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
+					db.RowsAffected, _ = result.RowsAffected()
+				} else {
+					db.AddError(err)
+				}
 			}
 		}
 	}

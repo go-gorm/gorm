@@ -349,3 +349,89 @@ func TestSearchWithMap(t *testing.T) {
 		t.Errorf("Search all records with inline multiple value map")
 	}
 }
+
+func TestSubQuery(t *testing.T) {
+	users := []User{
+		{Name: "subquery_1", Age: 10},
+		{Name: "subquery_2", Age: 20},
+		{Name: "subquery_3", Age: 30},
+		{Name: "subquery_4", Age: 40},
+	}
+
+	DB.Create(&users)
+
+	if err := DB.Select("*").Where("name IN (?)", DB.Select("name").Table("users").Where("name LIKE ?", "subquery_%")).Find(&users).Error; err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	if len(users) != 4 {
+		t.Errorf("Four users should be found, instead found %d", len(users))
+	}
+
+	DB.Select("*").Where("name LIKE ?", "subquery%").Where("age >= (?)", DB.
+		Select("AVG(age)").Table("users").Where("name LIKE ?", "subquery%")).Find(&users)
+
+	if len(users) != 2 {
+		t.Errorf("Two users should be found, instead found %d", len(users))
+	}
+}
+
+func TestSubQueryWithRaw(t *testing.T) {
+	users := []User{
+		{Name: "subquery_raw_1", Age: 10},
+		{Name: "subquery_raw_2", Age: 20},
+		{Name: "subquery_raw_3", Age: 30},
+		{Name: "subquery_raw_4", Age: 40},
+	}
+	DB.Create(&users)
+
+	var count int64
+	err := DB.Raw("select count(*) from (?) tmp",
+		DB.Table("users").
+			Select("name").
+			Where("age >= ? and name in (?)", 20, []string{"subquery_raw_1", "subquery_raw_3"}).
+			Group("name"),
+	).Count(&count).Error
+
+	if err != nil {
+		t.Errorf("Expected to get no errors, but got %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("Row count must be 1, instead got %d", count)
+	}
+
+	err = DB.Raw("select count(*) from (?) tmp",
+		DB.Table("users").
+			Select("name").
+			Where("name LIKE ?", "subquery_raw%").
+			Not("age <= ?", 10).Not("name IN (?)", []string{"subquery_raw_1", "subquery_raw_3"}).
+			Group("name"),
+	).Count(&count).Error
+
+	if err != nil {
+		t.Errorf("Expected to get no errors, but got %v", err)
+	}
+
+	if count != 2 {
+		t.Errorf("Row count must be 2, instead got %d", count)
+	}
+}
+
+func TestSubQueryWithHaving(t *testing.T) {
+	users := []User{
+		{Name: "subquery_having_1", Age: 10},
+		{Name: "subquery_having_2", Age: 20},
+		{Name: "subquery_having_3", Age: 30},
+		{Name: "subquery_having_4", Age: 40},
+	}
+	DB.Create(&users)
+
+	var results []User
+	DB.Select("AVG(age) as avgage").Where("name LIKE ?", "subquery_having%").Group("name").Having("AVG(age) > (?)", DB.
+		Select("AVG(age)").Where("name LIKE ?", "subquery_having%").Table("users")).Find(&results)
+
+	if len(results) != 2 {
+		t.Errorf("Two user group should be found, instead found %d", len(results))
+	}
+}

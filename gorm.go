@@ -22,6 +22,8 @@ type Config struct {
 	Logger logger.Interface
 	// NowFunc the function to be used when creating a new timestamp
 	NowFunc func() time.Time
+	// DryRun generate sql without execute
+	DryRun bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -45,6 +47,7 @@ type DB struct {
 
 // Session session config when create session with Session() method
 type Session struct {
+	DryRun         bool
 	WithConditions bool
 	Context        context.Context
 	Logger         logger.Interface
@@ -118,6 +121,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.WithConditions {
 		tx.clone = 3
+	}
+
+	if config.DryRun {
+		tx.Config.DryRun = true
 	}
 
 	if config.Logger != nil {

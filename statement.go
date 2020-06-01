@@ -157,6 +157,10 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			} else {
 				writer.WriteString("(NULL)")
 			}
+		case *DB:
+			result := v.Session(&Session{DryRun: true, WithConditions: true}).Find(nil).Statement
+			writer.WriteString(result.SQL.String())
+			stmt.Vars = append(stmt.Vars, result.Vars...)
 		default:
 			switch rv := reflect.ValueOf(v); rv.Kind() {
 			case reflect.Slice, reflect.Array:
@@ -226,7 +230,7 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 		case clause.Expression:
 			conds = append(conds, v)
 		case *DB:
-			if v.Statement == nil {
+			if v.Statement != nil {
 				if cs, ok := v.Statement.Clauses["WHERE"]; ok {
 					conds = append(conds, cs.Expression)
 				}
@@ -367,7 +371,9 @@ func (stmt *Statement) reinit() {
 	// })
 
 	// stmt.Schema = nil
-	stmt.SQL.Reset()
-	stmt.Vars = nil
-	stmt.NamedVars = nil
+	if !stmt.DB.DryRun {
+		stmt.SQL.Reset()
+		stmt.Vars = nil
+		stmt.NamedVars = nil
+	}
 }

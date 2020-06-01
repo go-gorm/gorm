@@ -80,7 +80,7 @@ func (p *processor) Execute(db *DB) {
 		}
 
 		if stmt.Model != nil {
-			if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table == "") {
+			if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.SQL.Len() == 0)) {
 				db.AddError(err)
 			}
 		}

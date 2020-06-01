@@ -22,8 +22,10 @@ func isPrintable(s []byte) bool {
 
 var convertableTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
-func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, vars ...interface{}) string {
+func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
+	var vars = make([]interface{}, len(avars))
+	copy(vars, avars)
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
