@@ -5,10 +5,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/migrator"
-	"github.com/jinzhu/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/migrator"
+	"gorm.io/gorm/schema"
 )
 
 type Migrator struct {

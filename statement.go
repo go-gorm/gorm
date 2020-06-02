@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/schema"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // Statement statement

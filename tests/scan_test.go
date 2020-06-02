@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/jinzhu/gorm/tests"
+	. "gorm.io/gorm/tests"
 )
 
 func TestScan(t *testing.T) {

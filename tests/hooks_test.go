@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jinzhu/gorm"
-	. "github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm"
+	. "gorm.io/gorm/tests"
 )
 
 type Product struct {

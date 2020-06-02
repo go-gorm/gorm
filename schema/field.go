@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jinzhu/gorm/utils"
-	"github.com/jinzhu/now"
+	"gorm.io/gorm/utils"
+	"gorm.io/now"
 )
 
 type DataType string

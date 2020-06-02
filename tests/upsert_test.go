@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/gorm/clause"
-	. "github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm/clause"
+	. "gorm.io/gorm/tests"
 )
 
 func TestUpsert(t *testing.T) {

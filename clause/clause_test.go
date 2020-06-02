@@ -6,10 +6,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/schema"
-	"github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
+	"gorm.io/gorm/tests"
 )
 
 var db, _ = gorm.Open(tests.DummyDialector{}, nil)

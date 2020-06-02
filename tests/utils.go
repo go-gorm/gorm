@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/gorm/utils"
+	"gorm.io/gorm/utils"
 )
 
 type Config struct {

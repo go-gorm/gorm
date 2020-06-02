@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/jinzhu/gorm/tests"
+	. "gorm.io/gorm/tests"
 )
 
 type Animal struct {

@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/jinzhu/gorm/logger"
-	"github.com/jinzhu/gorm/schema"
-	"github.com/jinzhu/gorm/utils"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 func initializeCallbacks(db *DB) *callbacks {

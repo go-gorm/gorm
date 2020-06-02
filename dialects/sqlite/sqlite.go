@@ -3,12 +3,12 @@ package sqlite
 import (
 	"database/sql"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/callbacks"
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/logger"
-	"github.com/jinzhu/gorm/migrator"
-	"github.com/jinzhu/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/callbacks"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/migrator"
+	"gorm.io/gorm/schema"
 	_ "github.com/mattn/go-sqlite3"
 )
 

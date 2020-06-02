@@ -3,8 +3,8 @@ package tests_test
 import (
 	"testing"
 
-	"github.com/jinzhu/gorm"
-	. "github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm"
+	. "gorm.io/gorm/tests"
 )
 
 func NameIn1And2(d *gorm.DB) *gorm.DB {

@@ -3,8 +3,8 @@ package callbacks
 import (
 	"sort"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/clause"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false

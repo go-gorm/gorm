@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/schema"
-	"github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
+	"gorm.io/gorm/tests"
 )
 
 func TestFieldValuerAndSetter(t *testing.T) {

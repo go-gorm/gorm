@@ -3,9 +3,9 @@ package callbacks
 import (
 	"reflect"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/schema"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 func BeforeDelete(db *gorm.DB) {

@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jinzhu/gorm"
-	"github.com/jinzhu/gorm/dialects/mssql"
-	"github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/jinzhu/gorm/logger"
+	"gorm.io/gorm"
+	"gorm.io/gorm/dialects/mssql"
+	"gorm.io/gorm/dialects/mysql"
+	"gorm.io/gorm/dialects/postgres"
+	"gorm.io/gorm/dialects/sqlite"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB

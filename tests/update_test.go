@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/gorm"
-	. "github.com/jinzhu/gorm/tests"
+	"gorm.io/gorm"
+	. "gorm.io/gorm/tests"
 )
 
 func TestUpdate(t *testing.T) {

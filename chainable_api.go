@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jinzhu/gorm/clause"
-	"github.com/jinzhu/gorm/utils"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/utils"
 )
 
 // Model specify the model you would like to run db operations
