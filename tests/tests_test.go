@@ -1,4 +1,4 @@
-package tests
+package tests_test
 
 import (
 	"log"
@@ -7,12 +7,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
-	"gorm.io/gorm/dialects/mssql"
-	"gorm.io/gorm/dialects/mysql"
-	"gorm.io/gorm/dialects/postgres"
-	"gorm.io/gorm/dialects/sqlite"
 	"gorm.io/gorm/logger"
+	. "gorm.io/gorm/utils/tests"
 )
 
 var DB *gorm.DB
@@ -40,17 +41,17 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 		}
 		db, err = gorm.Open(postgres.Open(dbDSN), &gorm.Config{})
-	case "mssql":
+	case "sqlserver":
 		// CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';
 		// CREATE DATABASE gorm;
 		// USE gorm;
 		// CREATE USER gorm FROM LOGIN gorm;
 		// sp_changedbowner 'gorm';
-		log.Println("testing mssql...")
+		log.Println("testing sqlserver...")
 		if dbDSN == "" {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 		}
-		db, err = gorm.Open(mssql.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(sqlserver.Open(dbDSN), &gorm.Config{})
 	default:
 		log.Println("testing sqlite3...")
 		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
@@ -89,9 +90,4 @@ func RunMigrations() {
 			os.Exit(1)
 		}
 	}
-}
-
-func Now() *time.Time {
-	now := time.Now()
-	return &now
 }

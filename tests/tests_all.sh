@@ -18,8 +18,13 @@ for dialect in "${dialects[@]}" ; do
     if [ "$GORM_VERBOSE" = "" ]
     then
       DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 ./...
+      cd tests
+      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 ./...
     else
       DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+      cd tests
+      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
     fi
+    cd ..
   fi
 done

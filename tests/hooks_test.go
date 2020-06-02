@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
 )
 
 type Product struct {

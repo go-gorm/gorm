@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
-	"gorm.io/gorm/tests"
+	"gorm.io/gorm/utils/tests"
 )
 
 var db, _ = gorm.Open(tests.DummyDialector{}, nil)

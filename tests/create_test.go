@@ -6,7 +6,7 @@ import (
 
 	"github.com/jinzhu/now"
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestCreate(t *testing.T) {

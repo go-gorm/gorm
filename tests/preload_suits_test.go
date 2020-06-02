@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
 )
 
 func toJSONString(v interface{}) []byte {
@@ -691,8 +690,8 @@ func TestNestedPreload12(t *testing.T) {
 }
 
 func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
-	if name := DB.Dialector.Name(); name == "sqlite" || name == "mssql" {
-		t.Skip("skip sqlite, mssql due to it doesn't support multiple primary keys with auto increment")
+	if name := DB.Dialector.Name(); name == "sqlite" || name == "sqlserver" {
+		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
 	type (

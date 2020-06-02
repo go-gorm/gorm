@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gorm.io/gorm/clause"
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestUpsert(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestRow(t *testing.T) {

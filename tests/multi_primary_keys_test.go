@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"sort"
 	"testing"
-
-	. "gorm.io/gorm/tests"
 )
 
 type Blog struct {
@@ -36,8 +34,8 @@ func compareTags(tags []Tag, contents []string) bool {
 }
 
 func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
-	if name := DB.Dialector.Name(); name == "sqlite" || name == "mssql" {
-		t.Skip("skip sqlite, mssql due to it doesn't support multiple primary keys with auto increment")
+	if name := DB.Dialector.Name(); name == "sqlite" || name == "sqlserver" {
+		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")
@@ -125,8 +123,8 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 }
 
 func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
-	if name := DB.Dialector.Name(); name == "sqlite" || name == "mssql" {
-		t.Skip("skip sqlite, mssql due to it doesn't support multiple primary keys with auto increment")
+	if name := DB.Dialector.Name(); name == "sqlite" || name == "sqlserver" {
+		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")
@@ -246,8 +244,8 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 }
 
 func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
-	if name := DB.Dialector.Name(); name == "sqlite" || name == "mssql" {
-		t.Skip("skip sqlite, mssql due to it doesn't support multiple primary keys with auto increment")
+	if name := DB.Dialector.Name(); name == "sqlite" || name == "sqlserver" {
+		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")

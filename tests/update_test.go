@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestUpdate(t *testing.T) {

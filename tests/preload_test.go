@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm/clause"
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestNestedPreload(t *testing.T) {

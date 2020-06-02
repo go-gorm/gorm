@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
 )
 
 func TestEmbeddedStruct(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm/schema"
-	"gorm.io/gorm/tests"
+	"gorm.io/gorm/utils/tests"
 )
 
 func TestParseSchema(t *testing.T) {

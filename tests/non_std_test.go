@@ -3,8 +3,6 @@ package tests_test
 import (
 	"testing"
 	"time"
-
-	. "gorm.io/gorm/tests"
 )
 
 type Animal struct {

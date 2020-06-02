@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "gorm.io/gorm/tests"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestCount(t *testing.T) {

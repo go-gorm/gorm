@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-	. "gorm.io/gorm/tests"
 )
 
 type Person struct {

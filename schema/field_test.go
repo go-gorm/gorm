@@ -9,7 +9,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	"gorm.io/gorm/tests"
+	"gorm.io/gorm/utils/tests"
 )
 
 func TestFieldValuerAndSetter(t *testing.T) {
