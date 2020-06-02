@@ -1299,7 +1299,6 @@ func TestNilPointerSlice(t *testing.T) {
 	)
 
 	DB.Migrator().DropTable(&Level3{}, &Level2{}, &Level1{})
-
 	if err := DB.AutoMigrate(&Level3{}, &Level2{}, &Level1{}); err != nil {
 		t.Error(err)
 	}

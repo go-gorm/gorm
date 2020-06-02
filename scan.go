@@ -14,40 +14,53 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:
-		for idx, _ := range columns {
-			values[idx] = new(interface{})
-		}
-
 		if initialized || rows.Next() {
+			for idx := range columns {
+				values[idx] = new(interface{})
+			}
+
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
-		}
 
-		mapValue, ok := dest.(map[string]interface{})
-		if ok {
-			if v, ok := dest.(*map[string]interface{}); ok {
-				mapValue = *v
+			mapValue, ok := dest.(map[string]interface{})
+			if !ok {
+				if v, ok := dest.(*map[string]interface{}); ok {
+					mapValue = *v
+				}
+			}
+
+			for idx, column := range columns {
+				if v, ok := values[idx].(*interface{}); ok {
+					if v == nil {
+						mapValue[column] = nil
+					} else {
+						mapValue[column] = *v
+					}
+				}
 			}
 		}
-
-		for idx, column := range columns {
-			mapValue[column] = *(values[idx].(*interface{}))
-		}
 	case *[]map[string]interface{}:
-		for idx, _ := range columns {
-			values[idx] = new(interface{})
-		}
-
 		for initialized || rows.Next() {
+			for idx := range columns {
+				values[idx] = new(interface{})
+			}
+
 			initialized = false
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
 
-			v := map[string]interface{}{}
+			mapValue := map[string]interface{}{}
 			for idx, column := range columns {
-				v[column] = *(values[idx].(*interface{}))
+				if v, ok := values[idx].(*interface{}); ok {
+					if v == nil {
+						mapValue[column] = nil
+					} else {
+						mapValue[column] = *v
+					}
+				}
 			}
-			*dest = append(*dest, v)
+
+			*dest = append(*dest, mapValue)
 		}
 	case *int, *int64, *uint, *uint64:
 		for initialized || rows.Next() {
@@ -85,28 +98,52 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 
 			for initialized || rows.Next() {
+				for idx := range columns {
+					values[idx] = new(interface{})
+				}
+
 				initialized = false
+				db.RowsAffected++
+
 				elem := reflect.New(reflectValueType).Elem()
 
 				if reflectValueType.Kind() != reflect.Struct && len(fields) == 1 {
+					// pluck
 					values[0] = elem.Addr().Interface()
+					db.AddError(rows.Scan(values...))
 				} else {
-					for idx, field := range fields {
-						if field != nil {
-							values[idx] = field.ReflectValueOf(elem).Addr().Interface()
-						} else if joinFields[idx][0] != nil {
-							relValue := joinFields[idx][0].ReflectValueOf(elem)
-							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-								relValue.Set(reflect.New(relValue.Type().Elem()))
-							}
+					db.AddError(rows.Scan(values...))
 
-							values[idx] = joinFields[idx][1].ReflectValueOf(relValue).Addr().Interface()
+					for idx, field := range fields {
+						if v, ok := values[idx].(*interface{}); ok {
+							if field != nil {
+								if v == nil {
+									field.Set(elem, v)
+								} else {
+									field.Set(elem, *v)
+								}
+							} else if joinFields[idx][0] != nil {
+								relValue := joinFields[idx][0].ReflectValueOf(elem)
+								if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+									if v == nil {
+										continue
+									}
+									relValue.Set(reflect.New(relValue.Type().Elem()))
+								}
+
+								if v == nil {
+									joinFields[idx][1].Set(relValue, nil)
+								} else {
+									joinFields[idx][1].Set(relValue, *v)
+								}
+							}
 						}
 					}
-				}
 
-				db.RowsAffected++
-				db.AddError(rows.Scan(values...))
+					for idx := range columns {
+						values[idx] = new(interface{})
+					}
+				}
 
 				if isPtr {
 					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem.Addr()))
@@ -115,30 +152,45 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 			}
 		case reflect.Struct:
-			for idx, column := range columns {
-				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
-					values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
-				} else if names := strings.Split(column, "__"); len(names) > 1 {
-					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
-						relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
-						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-								relValue.Set(reflect.New(relValue.Type().Elem()))
-							}
-
-							values[idx] = field.ReflectValueOf(relValue).Addr().Interface()
-							continue
-						}
-					}
-					values[idx] = &sql.RawBytes{}
-				} else {
-					values[idx] = &sql.RawBytes{}
-				}
-			}
-
 			if initialized || rows.Next() {
+				for idx := range columns {
+					values[idx] = new(interface{})
+				}
+
 				db.RowsAffected++
 				db.AddError(rows.Scan(values...))
+
+				for idx, column := range columns {
+					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
+						if v, ok := values[idx].(*interface{}); ok {
+							if v == nil {
+								field.Set(db.Statement.ReflectValue, v)
+							} else {
+								field.Set(db.Statement.ReflectValue, *v)
+							}
+						}
+					} else if names := strings.Split(column, "__"); len(names) > 1 {
+						if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
+							relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+								if v, ok := values[idx].(*interface{}); ok {
+									if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+										if v == nil {
+											continue
+										}
+										relValue.Set(reflect.New(relValue.Type().Elem()))
+									}
+
+									if v == nil {
+										field.Set(relValue, nil)
+									} else {
+										field.Set(relValue, *v)
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}

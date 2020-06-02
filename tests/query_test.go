@@ -435,3 +435,35 @@ func TestSubQueryWithHaving(t *testing.T) {
 		t.Errorf("Two user group should be found, instead found %d", len(results))
 	}
 }
+
+func TestScanNullValue(t *testing.T) {
+	user := GetUser("scan_null_value", Config{})
+	DB.Create(&user)
+
+	if err := DB.Model(&user).Update("age", nil).Error; err != nil {
+		t.Fatalf("failed to update column age for struct, got error %v", err)
+	}
+
+	var result User
+	if err := DB.First(&result, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("failed to query struct data with null age, got error %v", err)
+	}
+
+	AssertEqual(t, result, user)
+
+	users := []User{
+		*GetUser("scan_null_value_for_slice_1", Config{}),
+		*GetUser("scan_null_value_for_slice_2", Config{}),
+		*GetUser("scan_null_value_for_slice_3", Config{}),
+	}
+	DB.Create(&users)
+
+	if err := DB.Model(&users[0]).Update("age", nil).Error; err != nil {
+		t.Fatalf("failed to update column age for struct, got error %v", err)
+	}
+
+	var results []User
+	if err := DB.Find(&results, "name like ?", "scan_null_value_for_slice%").Error; err != nil {
+		t.Fatalf("failed to query slice data with null age, got error %v", err)
+	}
+}

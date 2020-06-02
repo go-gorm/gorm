@@ -1,4 +1,4 @@
-dialects=("sqlite" "mysql" "postgres" "mssql")
+dialects=("sqlite" "mysql" "postgres" "sqlserver")
 
 if [[ $(pwd) == *"gorm/tests"* ]]; then
   cd ..
@@ -10,7 +10,7 @@ for dialect in "${dialects[@]}" ; do
     echo "testing ${dialect}..."
 
     race=""
-    if [ "$GORM_VERBOSE" = "" ]
+    if [ "$GORM_DIALECT" = "sqlserver" ]
     then
       race="-race"
     fi

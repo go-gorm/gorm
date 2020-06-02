@@ -121,6 +121,11 @@ func TestFindOrCreate(t *testing.T) {
 
 	updatedAt1 := user4.UpdatedAt
 	DB.Where(&User{Name: "find or create 3"}).Assign("age", 55).FirstOrCreate(&user4)
+
+	if user4.Age != 55 {
+		t.Errorf("Failed to set change to 55, got %v", user4.Age)
+	}
+
 	if updatedAt1.Format(time.RFC3339Nano) == user4.UpdatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("UpdateAt should be changed when update values with assign")
 	}

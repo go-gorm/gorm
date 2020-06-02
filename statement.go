@@ -146,8 +146,16 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		case clause.Column, clause.Table:
 			stmt.QuoteTo(writer, v)
 		case clause.Expr:
-			writer.WriteString(v.SQL)
-			stmt.Vars = append(stmt.Vars, v.Vars...)
+			var varStr strings.Builder
+			var sql = v.SQL
+			for _, arg := range v.Vars {
+				stmt.Vars = append(stmt.Vars, arg)
+				stmt.DB.Dialector.BindVarTo(&varStr, stmt, arg)
+				sql = strings.Replace(sql, "?", varStr.String(), 1)
+				varStr.Reset()
+			}
+
+			writer.WriteString(sql)
 		case driver.Valuer:
 			stmt.Vars = append(stmt.Vars, v)
 			stmt.DB.Dialector.BindVarTo(writer, stmt, v)

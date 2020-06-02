@@ -155,12 +155,14 @@ func TestUpdates(t *testing.T) {
 	AssertEqual(t, user2.UpdatedAt, user3.UpdatedAt)
 
 	// update with gorm exprs
-	DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)})
+	if err := DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
+	}
 	var user4 User
 	DB.First(&user4, user3.ID)
 
 	user3.Age += 100
-	AssertEqual(t, user4.UpdatedAt, user3.UpdatedAt)
+	AssertObjEqual(t, user4, user3, "UpdatedAt", "Age")
 }
 
 func TestUpdateColumn(t *testing.T) {

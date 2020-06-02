@@ -402,34 +402,48 @@ func (field *Field) setupValuerAndSetter() {
 		}
 	}
 
-	recoverFunc := func(value reflect.Value, v interface{}, setter func(reflect.Value, interface{}) error) (err error) {
+	fallbackSetter := func(value reflect.Value, v interface{}, setter func(reflect.Value, interface{}) error) (err error) {
 		if v == nil {
 			field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 		} else {
 			reflectV := reflect.ValueOf(v)
-
-			if reflectV.Type().ConvertibleTo(field.FieldType) {
+			if reflectV.Type().AssignableTo(field.FieldType) {
+				field.ReflectValueOf(value).Set(reflectV)
+				return
+			} else if reflectV.Type().ConvertibleTo(field.FieldType) {
 				field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-			} else if valuer, ok := v.(driver.Valuer); ok {
-				if v, err = valuer.Value(); err == nil {
-					return setter(value, v)
-				}
-			} else if field.FieldType.Kind() == reflect.Ptr && reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+				return
+			} else if field.FieldType.Kind() == reflect.Ptr {
 				fieldValue := field.ReflectValueOf(value)
-				if fieldValue.IsNil() {
-					if v == nil {
-						return nil
+
+				if reflectV.Type().AssignableTo(field.FieldType.Elem()) {
+					if fieldValue.IsNil() {
+						fieldValue.Set(reflect.New(field.FieldType.Elem()))
 					}
-					fieldValue.Set(reflect.New(field.FieldType.Elem()))
+					fieldValue.Elem().Set(reflectV)
+					return
+				} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
+					if fieldValue.IsNil() {
+						fieldValue.Set(reflect.New(field.FieldType.Elem()))
+					}
+
+					fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+					return
 				}
-				fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+			}
+
+			if valuer, ok := v.(driver.Valuer); ok {
+				if v, err = valuer.Value(); err == nil {
+					setter(value, v)
+				}
 			} else if reflectV.Kind() == reflect.Ptr {
-				return field.Set(value, reflectV.Elem().Interface())
+				setter(value, reflectV.Elem().Interface())
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
 			}
 		}
-		return err
+
+		return
 	}
 
 	// Set
@@ -441,8 +455,17 @@ func (field *Field) setupValuerAndSetter() {
 				field.ReflectValueOf(value).SetBool(data)
 			case *bool:
 				field.ReflectValueOf(value).SetBool(*data)
+			case int64:
+				if data > 0 {
+					field.ReflectValueOf(value).SetBool(true)
+				} else {
+					field.ReflectValueOf(value).SetBool(false)
+				}
+			case string:
+				b, _ := strconv.ParseBool(data)
+				field.ReflectValueOf(value).SetBool(b)
 			default:
-				return recoverFunc(value, v, field.Set)
+				return fallbackSetter(value, v, field.Set)
 			}
 			return nil
 		}
@@ -498,7 +521,7 @@ func (field *Field) setupValuerAndSetter() {
 					field.ReflectValueOf(value).SetInt(0)
 				}
 			default:
-				return recoverFunc(value, v, field.Set)
+				return fallbackSetter(value, v, field.Set)
 			}
 			return err
 		}
@@ -538,7 +561,7 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			default:
-				return recoverFunc(value, v, field.Set)
+				return fallbackSetter(value, v, field.Set)
 			}
 			return err
 		}
@@ -578,7 +601,7 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			default:
-				return recoverFunc(value, v, field.Set)
+				return fallbackSetter(value, v, field.Set)
 			}
 			return err
 		}
@@ -594,7 +617,7 @@ func (field *Field) setupValuerAndSetter() {
 			case float64, float32:
 				field.ReflectValueOf(value).SetString(fmt.Sprintf("%."+strconv.Itoa(field.Precision)+"f", data))
 			default:
-				return recoverFunc(value, v, field.Set)
+				return fallbackSetter(value, v, field.Set)
 			}
 			return err
 		}
@@ -615,7 +638,7 @@ func (field *Field) setupValuerAndSetter() {
 						return fmt.Errorf("failed to set string %v to time.Time field %v, failed to parse it as time, got error %v", v, field.Name, err)
 					}
 				default:
-					return recoverFunc(value, v, field.Set)
+					return fallbackSetter(value, v, field.Set)
 				}
 				return nil
 			}
@@ -625,9 +648,6 @@ func (field *Field) setupValuerAndSetter() {
 				case time.Time:
 					fieldValue := field.ReflectValueOf(value)
 					if fieldValue.IsNil() {
-						if v == nil {
-							return nil
-						}
 						fieldValue.Set(reflect.New(field.FieldType.Elem()))
 					}
 					fieldValue.Elem().Set(reflect.ValueOf(v))
@@ -647,7 +667,7 @@ func (field *Field) setupValuerAndSetter() {
 						return fmt.Errorf("failed to set string %v to time.Time field %v, failed to parse it as time, got error %v", v, field.Name, err)
 					}
 				default:
-					return recoverFunc(value, v, field.Set)
+					return fallbackSetter(value, v, field.Set)
 				}
 				return nil
 			}
@@ -655,53 +675,42 @@ func (field *Field) setupValuerAndSetter() {
 			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
 				// struct scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					if v == nil {
+					if valuer, ok := v.(driver.Valuer); ok {
+						v, _ = valuer.Value()
+					}
+
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
 						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 					} else {
-						reflectV := reflect.ValueOf(v)
-						if reflectV.Type().ConvertibleTo(field.FieldType) {
-							field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-						} else if valuer, ok := v.(driver.Valuer); ok {
-							if v, err = valuer.Value(); err == nil {
-								err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
-							}
-						} else {
-							err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
-						}
+						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}
 			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					if v == nil {
+					if valuer, ok := v.(driver.Valuer); ok {
+						v, _ = valuer.Value()
+					}
+
+					reflectV := reflect.ValueOf(v)
+					if reflectV.Type().ConvertibleTo(field.FieldType) {
+						field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
+					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
 						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 					} else {
-						reflectV := reflect.ValueOf(v)
-						if reflectV.Type().ConvertibleTo(field.FieldType) {
-							field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-						} else if reflectV.Type().ConvertibleTo(field.FieldType.Elem()) {
-							fieldValue := field.ReflectValueOf(value)
-							if fieldValue.IsNil() {
-								if v == nil {
-									return nil
-								}
-								fieldValue.Set(reflect.New(field.FieldType.Elem()))
-							}
-							fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
-						} else if valuer, ok := v.(driver.Valuer); ok {
-							if v, err = valuer.Value(); err == nil {
-								err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)
-							}
-						} else {
-							err = field.ReflectValueOf(value).Interface().(sql.Scanner).Scan(v)
+						fieldValue := field.ReflectValueOf(value)
+						if fieldValue.IsNil() {
+							fieldValue.Set(reflect.New(field.FieldType.Elem()))
 						}
+						err = fieldValue.Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}
 			} else {
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					return recoverFunc(value, v, field.Set)
+					return fallbackSetter(value, v, field.Set)
 				}
 			}
 		}
