@@ -150,6 +150,7 @@ func (p *processor) compile() (err error) {
 			callbacks = append(callbacks, callback)
 		}
 	}
+	p.callbacks = callbacks
 
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
 		logger.Default.Error(context.Background(), "Got error when compile callbacks, got %v", err)
