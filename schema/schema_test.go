@@ -142,3 +142,21 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 		})
 	}
 }
+
+type CustomizeTable struct {
+}
+
+func (CustomizeTable) TableName() string {
+	return "customize"
+}
+
+func TestCustomizeTableName(t *testing.T) {
+	customize, err := schema.Parse(&CustomizeTable{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse pointer user, got error %v", err)
+	}
+
+	if customize.Table != "customize" {
+		t.Errorf("Failed to customize table with TableName method")
+	}
+}
