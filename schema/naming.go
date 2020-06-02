@@ -7,7 +7,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"gorm.io/inflection"
+	"github.com/jinzhu/inflection"
 )
 
 // Namer namer interface

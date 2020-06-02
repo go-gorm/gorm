@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/jinzhu/now"
 	"gorm.io/gorm/logger"
-	"gorm.io/now"
 )
 
 func TestExplainSQL(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jinzhu/now"
 	"gorm.io/gorm"
 	. "gorm.io/gorm/tests"
-	"gorm.io/now"
 )
 
 func TestCreate(t *testing.T) {
