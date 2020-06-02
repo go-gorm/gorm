@@ -91,6 +91,17 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	if dialector != nil {
 		err = dialector.Initialize(db)
 	}
+
+	if err == nil {
+		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
+			err = pinger.Ping()
+		}
+	}
+
+	if err != nil {
+		config.Logger.Error(context.Background(), "failed to initialize database, got error %v", err)
+	}
+
 	return
 }
 
