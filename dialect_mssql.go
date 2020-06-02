@@ -78,7 +78,7 @@ func (s *mssql) DataTypeOf(field *StructField) string {
 		case reflect.Float32, reflect.Float64:
 			sqlType = "float"
 		case reflect.String:
-			if size > 0 && size < 8000 {
+			if size > 0 && size < 4000 {
 				sqlType = fmt.Sprintf("nvarchar(%d)", size)
 			} else {
 				sqlType = "nvarchar(max)"
