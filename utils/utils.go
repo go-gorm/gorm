@@ -5,25 +5,24 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
 )
 
-var goSrcRegexp, goTestRegexp *regexp.Regexp
+var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	goSrcRegexp = regexp.MustCompile(filepath.Join(filepath.Dir(filepath.Dir(file)), ".*.go"))
-	goTestRegexp = regexp.MustCompile(filepath.Join(filepath.Dir(filepath.Dir(file)), ".*test.go"))
+	gormSourceDir = filepath.Dir(filepath.Dir(file))
 }
 
 func FileWithLineNum() string {
 	for i := 2; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		if ok && (!goSrcRegexp.MatchString(file) || goTestRegexp.MatchString(file)) {
+
+		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
 			return fmt.Sprintf("%v:%v", file, line)
 		}
 	}
