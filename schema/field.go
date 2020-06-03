@@ -247,7 +247,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int)) {
+	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
 		} else {
@@ -255,7 +255,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int)) {
+	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoUpdateTime = UnixNanosecond
 		} else {
@@ -407,6 +407,7 @@ func (field *Field) setupValuerAndSetter() {
 			field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 		} else {
 			reflectV := reflect.ValueOf(v)
+
 			if reflectV.Type().AssignableTo(field.FieldType) {
 				field.ReflectValueOf(value).Set(reflectV)
 				return
@@ -437,7 +438,11 @@ func (field *Field) setupValuerAndSetter() {
 					setter(value, v)
 				}
 			} else if reflectV.Kind() == reflect.Ptr {
-				setter(value, reflectV.Elem().Interface())
+				if reflectV.IsNil() {
+					field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+				} else {
+					setter(value, reflectV.Elem().Interface())
+				}
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
 			}
@@ -680,8 +685,14 @@ func (field *Field) setupValuerAndSetter() {
 					}
 
 					reflectV := reflect.ValueOf(v)
-					if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+					if !reflectV.IsValid() {
 						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Kind() == reflect.Ptr {
+						if reflectV.Elem().IsNil() || !reflectV.Elem().IsValid() {
+							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+						} else {
+							return field.Set(value, reflectV.Elem().Interface())
+						}
 					} else {
 						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 					}
@@ -691,14 +702,22 @@ func (field *Field) setupValuerAndSetter() {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
 					if valuer, ok := v.(driver.Valuer); ok {
-						v, _ = valuer.Value()
+						if valuer == nil {
+							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+						} else {
+							v, _ = valuer.Value()
+						}
 					}
 
 					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().ConvertibleTo(field.FieldType) {
-						field.ReflectValueOf(value).Set(reflectV.Convert(field.FieldType))
-					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
-						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					if reflectV.Type().AssignableTo(field.FieldType) {
+						field.ReflectValueOf(value).Set(reflectV)
+					} else if reflectV.Kind() == reflect.Ptr {
+						if reflectV.IsNil() {
+							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+						} else {
+							field.Set(value, reflectV.Elem().Interface())
+						}
 					} else {
 						fieldValue := field.ReflectValueOf(value)
 						if fieldValue.IsNil() {

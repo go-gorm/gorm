@@ -87,6 +87,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				} else if names := strings.Split(column, "__"); len(names) > 1 {
 					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
 						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							fields[idx] = field
 							joinFields[idx] = [2]*schema.Field{rel.Field, field}
 							continue
 						}
@@ -98,50 +99,39 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 
 			for initialized || rows.Next() {
-				for idx := range columns {
-					values[idx] = new(interface{})
-				}
-
 				initialized = false
 				db.RowsAffected++
 
 				elem := reflect.New(reflectValueType).Elem()
-
 				if reflectValueType.Kind() != reflect.Struct && len(fields) == 1 {
 					// pluck
 					values[0] = elem.Addr().Interface()
 					db.AddError(rows.Scan(values...))
 				} else {
-					db.AddError(rows.Scan(values...))
-
 					for idx, field := range fields {
-						if v, ok := values[idx].(*interface{}); ok {
-							if field != nil {
-								if v == nil {
-									field.Set(elem, v)
-								} else {
-									field.Set(elem, *v)
-								}
-							} else if joinFields[idx][0] != nil {
-								relValue := joinFields[idx][0].ReflectValueOf(elem)
-								if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-									if v == nil {
-										continue
-									}
-									relValue.Set(reflect.New(relValue.Type().Elem()))
-								}
-
-								if v == nil {
-									joinFields[idx][1].Set(relValue, nil)
-								} else {
-									joinFields[idx][1].Set(relValue, *v)
-								}
-							}
+						if field != nil {
+							values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
 						}
 					}
 
-					for idx := range columns {
-						values[idx] = new(interface{})
+					db.AddError(rows.Scan(values...))
+
+					for idx, field := range fields {
+						if joinFields[idx][0] != nil {
+							value := reflect.ValueOf(values[idx]).Elem()
+							relValue := joinFields[idx][0].ReflectValueOf(elem)
+
+							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+								if value.IsNil() {
+									continue
+								}
+								relValue.Set(reflect.New(relValue.Type().Elem()))
+							}
+
+							field.Set(relValue, values[idx])
+						} else if field != nil {
+							field.Set(elem, values[idx])
+						}
 					}
 				}
 
@@ -153,8 +143,20 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 		case reflect.Struct:
 			if initialized || rows.Next() {
-				for idx := range columns {
-					values[idx] = new(interface{})
+				for idx, column := range columns {
+					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
+						values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+					} else if names := strings.Split(column, "__"); len(names) > 1 {
+						if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
+							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+								values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+								continue
+							}
+						}
+						values[idx] = &sql.RawBytes{}
+					} else {
+						values[idx] = &sql.RawBytes{}
+					}
 				}
 
 				db.RowsAffected++
@@ -162,31 +164,21 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 				for idx, column := range columns {
 					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
-						if v, ok := values[idx].(*interface{}); ok {
-							if v == nil {
-								field.Set(db.Statement.ReflectValue, v)
-							} else {
-								field.Set(db.Statement.ReflectValue, *v)
-							}
-						}
+						field.Set(db.Statement.ReflectValue, values[idx])
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
 							relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								if v, ok := values[idx].(*interface{}); ok {
-									if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-										if v == nil {
-											continue
-										}
-										relValue.Set(reflect.New(relValue.Type().Elem()))
-									}
+								value := reflect.ValueOf(values[idx]).Elem()
 
-									if v == nil {
-										field.Set(relValue, nil)
-									} else {
-										field.Set(relValue, *v)
+								if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+									if value.IsNil() {
+										continue
 									}
+									relValue.Set(reflect.New(relValue.Type().Elem()))
 								}
+
+								field.Set(relValue, values[idx])
 							}
 						}
 					}
