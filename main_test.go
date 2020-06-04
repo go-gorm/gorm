@@ -470,6 +470,15 @@ func TestTransaction(t *testing.T) {
 	}
 }
 
+func assertPanic(t *testing.T, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	f()
+}
+
 func TestTransactionWithBlock(t *testing.T) {
 	// rollback
 	err := DB.Transaction(func(tx *gorm.DB) error {
@@ -511,20 +520,22 @@ func TestTransactionWithBlock(t *testing.T) {
 	}
 
 	// panic will rollback
-	DB.Transaction(func(tx *gorm.DB) error {
-		u3 := User{Name: "transcation-3"}
-		if err := tx.Save(&u3).Error; err != nil {
-			t.Errorf("No error should raise")
-		}
+	assertPanic(t, func() {
+		DB.Transaction(func(tx *gorm.DB) error {
+			u3 := User{Name: "transcation-3"}
+			if err := tx.Save(&u3).Error; err != nil {
+				t.Errorf("No error should raise")
+			}
 
-		if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
-			t.Errorf("Should find saved record")
-		}
+			if err := tx.First(&User{}, "name = ?", "transcation-3").Error; err != nil {
+				t.Errorf("Should find saved record")
+			}
 
-		panic("force panic")
+			panic("force panic")
+		})
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transcation-3").Error; err == nil {
 		t.Errorf("Should not find record after panic rollback")
 	}
 }
@@ -1423,6 +1434,30 @@ func TestCountWithQueryOption(t *testing.T) {
 
 	if count != 1 {
 		t.Error("Unexpected result on query count with query_option")
+	}
+}
+
+func TestQueryHint1(t *testing.T) {
+	db := DB.New()
+
+	_, err := db.Model(User{}).Raw("select 1").Rows()
+
+	if err != nil {
+		t.Error("Unexpected error on query count with query_option")
+	}
+}
+
+func TestQueryHint2(t *testing.T) {
+	type TestStruct struct {
+		ID   string `gorm:"primary_key"`
+		Name string
+	}
+	DB.DropTable(&TestStruct{})
+	DB.AutoMigrate(&TestStruct{})
+
+	data := TestStruct{ID: "uuid", Name: "hello"}
+	if err := DB.Set("gorm:query_hint", "/*master*/").Save(&data).Error; err != nil {
+		t.Error("Unexpected error on query count with query_option")
 	}
 }
 

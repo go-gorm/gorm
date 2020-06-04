@@ -23,6 +23,11 @@ type RowsQueryResult struct {
 func rowQueryCallback(scope *Scope) {
 	if result, ok := scope.InstanceGet("row_query_result"); ok {
 		scope.prepareQuerySQL()
+
+		if str, ok := scope.Get("gorm:query_hint"); ok {
+			scope.SQL = fmt.Sprint(str) + scope.SQL
+		}
+
 		if str, ok := scope.Get("gorm:query_option"); ok {
 			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}

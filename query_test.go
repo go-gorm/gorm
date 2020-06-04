@@ -457,6 +457,74 @@ func TestOffset(t *testing.T) {
 	}
 }
 
+func TestLimitAndOffsetSQL(t *testing.T) {
+	user1 := User{Name: "TestLimitAndOffsetSQL1", Age: 10}
+	user2 := User{Name: "TestLimitAndOffsetSQL2", Age: 20}
+	user3 := User{Name: "TestLimitAndOffsetSQL3", Age: 30}
+	user4 := User{Name: "TestLimitAndOffsetSQL4", Age: 40}
+	user5 := User{Name: "TestLimitAndOffsetSQL5", Age: 50}
+	if err := DB.Save(&user1).Save(&user2).Save(&user3).Save(&user4).Save(&user5).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name          string
+		limit, offset interface{}
+		users         []*User
+		ok            bool
+	}{
+		{
+			name:   "OK",
+			limit:  float64(2),
+			offset: float64(2),
+			users: []*User{
+				&User{Name: "TestLimitAndOffsetSQL3", Age: 30},
+				&User{Name: "TestLimitAndOffsetSQL2", Age: 20},
+			},
+			ok: true,
+		},
+		{
+			name:   "Limit parse error",
+			limit:  float64(1000000), // 1e+06
+			offset: float64(2),
+			ok:     false,
+		},
+		{
+			name:   "Offset parse error",
+			limit:  float64(2),
+			offset: float64(1000000), // 1e+06
+			ok:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var users []*User
+			err := DB.Where("name LIKE ?", "TestLimitAndOffsetSQL%").Order("age desc").Limit(tt.limit).Offset(tt.offset).Find(&users).Error
+			if tt.ok {
+				if err != nil {
+					t.Errorf("error expected nil, but got %v", err)
+				}
+				if len(users) != len(tt.users) {
+					t.Errorf("users length expected %d, but got %d", len(tt.users), len(users))
+				}
+				for i := range tt.users {
+					if users[i].Name != tt.users[i].Name {
+						t.Errorf("users[%d] name expected %s, but got %s", i, tt.users[i].Name, users[i].Name)
+					}
+					if users[i].Age != tt.users[i].Age {
+						t.Errorf("users[%d] age expected %d, but got %d", i, tt.users[i].Age, users[i].Age)
+					}
+				}
+			} else {
+				if err == nil {
+					t.Error("error expected not nil, but got nil")
+				}
+			}
+		})
+	}
+}
+
 func TestOr(t *testing.T) {
 	user1 := User{Name: "OrUser1", Age: 1}
 	user2 := User{Name: "OrUser2", Age: 10}
