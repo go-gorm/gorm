@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sync"
 	"time"
@@ -24,6 +25,9 @@ type Config struct {
 	NowFunc func() time.Time
 	// DryRun generate sql without execute
 	DryRun bool
+
+	// PrepareStmt executes the given query in cached statement
+	PrepareStmt bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -48,6 +52,7 @@ type DB struct {
 // Session session config when create session with Session() method
 type Session struct {
 	DryRun         bool
+	PrepareStmt    bool
 	WithConditions bool
 	Context        context.Context
 	Logger         logger.Interface
@@ -92,6 +97,22 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		err = dialector.Initialize(db)
 	}
 
+	if config.PrepareStmt {
+		db.ConnPool = &PreparedStmtDB{
+			ConnPool: db.ConnPool,
+			stmts:    map[string]*sql.Stmt{},
+		}
+	}
+
+	if db.Statement == nil {
+		db.Statement = &Statement{
+			DB:       db,
+			ConnPool: db.ConnPool,
+			Context:  context.Background(),
+			Clauses:  map[string]clause.Clause{},
+		}
+	}
+
 	if err == nil {
 		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
 			err = pinger.Ping()
@@ -129,6 +150,13 @@ func (db *DB) Session(config *Session) *DB {
 		}
 
 		tx.Statement.Context = config.Context
+	}
+
+	if config.PrepareStmt {
+		tx.Statement.ConnPool = &PreparedStmtDB{
+			ConnPool: db.Config.ConnPool,
+			stmts:    map[string]*sql.Stmt{},
+		}
 	}
 
 	if config.WithConditions {
@@ -256,6 +284,12 @@ func (db *DB) getInstance() *DB {
 
 		switch db.clone {
 		case 1: // clone with new statement
+			tx.Statement = &Statement{
+				DB:       tx,
+				ConnPool: db.Statement.ConnPool,
+				Context:  db.Statement.Context,
+				Clauses:  map[string]clause.Clause{},
+			}
 		case 2: // with old statement, generate new statement for future call, used to pass to callbacks
 			db.clone = 1
 			tx.Statement = db.Statement
@@ -264,21 +298,6 @@ func (db *DB) getInstance() *DB {
 				tx.Statement = db.Statement.clone()
 				tx.Statement.DB = tx
 			}
-		}
-
-		if tx.Statement == nil {
-			tx.Statement = &Statement{
-				DB:      tx,
-				Clauses: map[string]clause.Clause{},
-			}
-		}
-
-		if db.Statement != nil {
-			tx.Statement.Context = db.Statement.Context
-			tx.Statement.ConnPool = db.Statement.ConnPool
-		} else {
-			tx.Statement.Context = context.Background()
-			tx.Statement.ConnPool = db.ConnPool
 		}
 
 		return tx

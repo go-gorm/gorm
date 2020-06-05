@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"database/sql"
 	"errors"
 	"testing"
 
@@ -21,7 +20,7 @@ func TestTransaction(t *testing.T) {
 		t.Fatalf("Should find saved record, but got %v", err)
 	}
 
-	if sqlTx, ok := tx.Statement.ConnPool.(*sql.Tx); !ok || sqlTx == nil {
+	if sqlTx, ok := tx.Statement.ConnPool.(gorm.TxCommitter); !ok || sqlTx == nil {
 		t.Fatalf("Should return the underlying sql.Tx")
 	}
 

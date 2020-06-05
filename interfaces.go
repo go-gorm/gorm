@@ -21,8 +21,8 @@ type Dialector interface {
 
 // ConnPool db conns pool interface
 type ConnPool interface {
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
@@ -31,7 +31,11 @@ type TxBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-type TxCommiter interface {
+type ConnPoolBeginner interface {
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (ConnPool, error)
+}
+
+type TxCommitter interface {
 	Commit() error
 	Rollback() error
 }
