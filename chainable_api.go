@@ -45,6 +45,16 @@ func (db *DB) Table(name string) (tx *DB) {
 	return
 }
 
+// Distinct specify distinct fields that you want querying
+func (db *DB) Distinct(args ...interface{}) (tx *DB) {
+	tx = db
+	if len(args) > 0 {
+		tx = tx.Select(args[0], args[1:]...)
+	}
+	tx.Statement.Distinct = true
+	return tx
+}
+
 // Select specify fields that you want when querying, creating, updating
 func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()

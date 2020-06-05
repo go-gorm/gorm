@@ -23,6 +23,7 @@ type Statement struct {
 	Dest                 interface{}
 	ReflectValue         reflect.Value
 	Clauses              map[string]clause.Clause
+	Distinct             bool
 	Selects              []string // selected columns
 	Omits                []string // omit columns
 	Joins                map[string][]interface{}
@@ -331,6 +332,7 @@ func (stmt *Statement) clone() *Statement {
 		Dest:                 stmt.Dest,
 		ReflectValue:         stmt.ReflectValue,
 		Clauses:              map[string]clause.Clause{},
+		Distinct:             stmt.Distinct,
 		Selects:              stmt.Selects,
 		Omits:                stmt.Omits,
 		Joins:                map[string][]interface{}{},

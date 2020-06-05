@@ -233,13 +233,24 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 
 func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
-	if s, ok := tx.Statement.Clauses["SELECT"].Expression.(clause.Select); !ok || len(s.Columns) == 0 {
-		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
-	}
-
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
 	}
+
+	if len(tx.Statement.Selects) == 0 {
+		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
+	} else if len(tx.Statement.Selects) == 1 && !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
+		column := tx.Statement.Selects[0]
+		if tx.Statement.Parse(tx.Statement.Model) == nil {
+			if f := tx.Statement.Schema.LookUpField(column); f != nil {
+				column = f.DBName
+			}
+		}
+		tx.Statement.AddClause(clause.Select{
+			Expression: clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: column}}},
+		})
+	}
+
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
 	if db.RowsAffected != 1 {
@@ -273,9 +284,22 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 //     db.Find(&users).Pluck("age", &ages)
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClauseIfNotExists(clause.Select{Columns: []clause.Column{{Name: column}}})
-	tx.Statement.Dest = dest
-	tx.callbacks.Query().Execute(tx)
+	if tx.Statement.Model != nil {
+		if tx.Statement.Parse(tx.Statement.Model) == nil {
+			if f := tx.Statement.Schema.LookUpField(column); f != nil {
+				column = f.DBName
+			}
+		}
+
+		tx.Statement.AddClauseIfNotExists(clause.Select{
+			Distinct: tx.Statement.Distinct,
+			Columns:  []clause.Column{{Name: column}},
+		})
+		tx.Statement.Dest = dest
+		tx.callbacks.Query().Execute(tx)
+	} else {
+		tx.AddError(ErrorModelValueRequired)
+	}
 	return
 }
 

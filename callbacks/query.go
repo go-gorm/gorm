@@ -37,7 +37,7 @@ func Query(db *gorm.DB) {
 }
 
 func BuildQuerySQL(db *gorm.DB) {
-	clauseSelect := clause.Select{}
+	clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
 
 	if db.Statement.ReflectValue.Kind() == reflect.Struct {
 		var conds []clause.Expression

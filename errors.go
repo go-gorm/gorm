@@ -23,4 +23,6 @@ var (
 	ErrPtrStructSupported = errors.New("only ptr of struct supported")
 	// ErrorPrimaryKeyRequired primary keys required
 	ErrorPrimaryKeyRequired = errors.New("primary key required")
+	// ErrorModelValueRequired model value required
+	ErrorModelValueRequired = errors.New("model value required")
 )
