@@ -54,13 +54,17 @@ func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*
 		} else {
 			tests.AssertObjEqual(t, parsedField, f, "Name", "DBName", "BindNames", "DataType", "DBDataType", "PrimaryKey", "AutoIncrement", "Creatable", "Updatable", "Readable", "HasDefaultValue", "DefaultValue", "NotNull", "Unique", "Comment", "Size", "Precision", "Tag", "TagSettings")
 
-			if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
-				t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+			if f.DBName != "" {
+				if field, ok := s.FieldsByDBName[f.DBName]; !ok || parsedField != field {
+					t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+				}
 			}
 
 			for _, name := range []string{f.DBName, f.Name} {
-				if field := s.LookUpField(name); field == nil || parsedField != field {
-					t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+				if name != "" {
+					if field := s.LookUpField(name); field == nil || parsedField != field {
+						t.Errorf("schema %v failed to look up field with dbname %v", s, f.DBName)
+					}
 				}
 			}
 

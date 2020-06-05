@@ -10,7 +10,7 @@ import (
 )
 
 func SetupUpdateReflectValue(db *gorm.DB) {
-	if db.Error == nil {
+	if db.Error == nil && db.Statement.Schema != nil {
 		if !db.Statement.ReflectValue.CanAddr() || db.Statement.Model != db.Statement.Dest {
 			db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Model)
 			for db.Statement.ReflectValue.Kind() == reflect.Ptr {
@@ -172,26 +172,38 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		sort.Strings(keys)
 
 		for _, k := range keys {
-			if field := stmt.Schema.LookUpField(k); field != nil {
-				if field.DBName != "" {
-					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-						set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+			if stmt.Schema != nil {
+				if field := stmt.Schema.LookUpField(k); field != nil {
+					if field.DBName != "" {
+						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+							assignValue(field, value[k])
+						}
+					} else if v, ok := selectColumns[field.Name]; (ok && v) || (!ok && !restricted) {
 						assignValue(field, value[k])
 					}
-				} else if v, ok := selectColumns[field.Name]; (ok && v) || (!ok && !restricted) {
-					assignValue(field, value[k])
+					continue
 				}
-			} else if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
+			}
+
+			if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
 				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: value[k]})
 			}
 		}
 
-		if !stmt.DisableUpdateTime {
+		if !stmt.DisableUpdateTime && stmt.Schema != nil {
 			for _, field := range stmt.Schema.FieldsByDBName {
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
 					now := stmt.DB.NowFunc()
-					set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 					assignValue(field, now)
+
+					if field.AutoUpdateTime == schema.UnixNanosecond {
+						set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
+					} else if field.DataType == schema.Time {
+						set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
+					} else {
+						set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.Unix()})
+					}
 				}
 			}
 		}
@@ -205,7 +217,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						value, isZero := field.ValueOf(updatingValue)
 						if !stmt.DisableUpdateTime {
 							if field.AutoUpdateTime > 0 {
-								value = stmt.DB.NowFunc()
+								if field.AutoUpdateTime == schema.UnixNanosecond {
+									value = stmt.DB.NowFunc().UnixNano()
+								} else if field.DataType == schema.Time {
+									value = stmt.DB.NowFunc()
+								} else {
+									value = stmt.DB.NowFunc().Unix()
+								}
 								isZero = false
 							}
 						}

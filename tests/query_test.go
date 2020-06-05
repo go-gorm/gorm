@@ -67,22 +67,39 @@ func TestFind(t *testing.T) {
 		}
 	})
 
-	var allMap = []map[string]interface{}{}
-	if err := DB.Model(&User{}).Where("name = ?", "find").Find(&allMap).Error; err != nil {
-		t.Errorf("errors happened when query first: %v", err)
-	} else {
-		for idx, user := range users {
-			t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
-				for _, name := range []string{"Name", "Age", "Birthday"} {
-					t.Run(name, func(t *testing.T) {
-						dbName := DB.NamingStrategy.ColumnName("", name)
-						reflectValue := reflect.Indirect(reflect.ValueOf(user))
-						AssertEqual(t, allMap[idx][dbName], reflectValue.FieldByName(name).Interface())
-					})
-				}
-			})
+	t.Run("FirstPtrMap", func(t *testing.T) {
+		var first = map[string]interface{}{}
+		if err := DB.Model(&User{}).Where("name = ?", "find").First(&first).Error; err != nil {
+			t.Errorf("errors happened when query first: %v", err)
+		} else {
+			for _, name := range []string{"Name", "Age", "Birthday"} {
+				t.Run(name, func(t *testing.T) {
+					dbName := DB.NamingStrategy.ColumnName("", name)
+					reflectValue := reflect.Indirect(reflect.ValueOf(users[0]))
+					AssertEqual(t, first[dbName], reflectValue.FieldByName(name).Interface())
+				})
+			}
 		}
-	}
+	})
+
+	t.Run("FirstSliceOfMap", func(t *testing.T) {
+		var allMap = []map[string]interface{}{}
+		if err := DB.Model(&User{}).Where("name = ?", "find").Find(&allMap).Error; err != nil {
+			t.Errorf("errors happened when query first: %v", err)
+		} else {
+			for idx, user := range users {
+				t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
+					for _, name := range []string{"Name", "Age", "Birthday"} {
+						t.Run(name, func(t *testing.T) {
+							dbName := DB.NamingStrategy.ColumnName("", name)
+							reflectValue := reflect.Indirect(reflect.ValueOf(user))
+							AssertEqual(t, allMap[idx][dbName], reflectValue.FieldByName(name).Interface())
+						})
+					}
+				})
+			}
+		}
+	})
 }
 
 func TestFillSmallerStruct(t *testing.T) {

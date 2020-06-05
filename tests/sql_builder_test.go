@@ -122,3 +122,19 @@ func TestQueryRaw(t *testing.T) {
 	DB.Raw("select * from users WHERE id = ?", users[1].ID).First(&user)
 	CheckUser(t, user, *users[1])
 }
+
+func TestDryRun(t *testing.T) {
+	user := *GetUser("dry-run", Config{})
+
+	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
+
+	stmt := dryRunDB.Create(&user).Statement
+	if stmt.SQL.String() == "" || len(stmt.Vars) != 9 {
+		t.Errorf("Failed to generate sql, got %v", stmt.SQL.String())
+	}
+
+	stmt2 := dryRunDB.Find(&user, "id = ?", user.ID).Statement
+	if stmt2.SQL.String() == "" || len(stmt2.Vars) != 1 {
+		t.Errorf("Failed to generate sql, got %v", stmt2.SQL.String())
+	}
+}

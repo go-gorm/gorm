@@ -133,33 +133,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	// setup permission
-	if _, ok := field.TagSettings["-"]; ok {
-		field.Creatable = false
-		field.Updatable = false
-		field.Readable = false
-	}
-
-	if v, ok := field.TagSettings["<-"]; ok {
-		if v != "<-" {
-			if !strings.Contains(v, "create") {
-				field.Creatable = false
-			}
-
-			if !strings.Contains(v, "update") {
-				field.Updatable = false
-			}
-		}
-
-		field.Readable = false
-	}
-
-	if _, ok := field.TagSettings["->"]; ok {
-		field.Creatable = false
-		field.Updatable = false
-		field.Readable = true
-	}
-
 	if dbName, ok := field.TagSettings["COLUMN"]; ok {
 		field.DBName = dbName
 	}
@@ -273,6 +246,39 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.Size = 16
 		case reflect.Int32, reflect.Uint32, reflect.Float32:
 			field.Size = 32
+		}
+	}
+
+	// setup permission
+	if _, ok := field.TagSettings["-"]; ok {
+		field.Creatable = false
+		field.Updatable = false
+		field.Readable = false
+		field.DataType = ""
+	}
+
+	if v, ok := field.TagSettings["->"]; ok {
+		field.Creatable = false
+		field.Updatable = false
+		if strings.ToLower(v) == "false" {
+			field.Readable = false
+		} else {
+			field.Readable = true
+		}
+	}
+
+	if v, ok := field.TagSettings["<-"]; ok {
+		field.Creatable = true
+		field.Updatable = true
+
+		if v != "<-" {
+			if !strings.Contains(v, "create") {
+				field.Creatable = false
+			}
+
+			if !strings.Contains(v, "update") {
+				field.Updatable = false
+			}
 		}
 	}
 
@@ -510,14 +516,14 @@ func (field *Field) setupValuerAndSetter() {
 					return err
 				}
 			case time.Time:
-				if field.AutoCreateTime == UnixNanosecond {
+				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 					field.ReflectValueOf(value).SetInt(data.UnixNano())
 				} else {
 					field.ReflectValueOf(value).SetInt(data.Unix())
 				}
 			case *time.Time:
 				if data != nil {
-					if field.AutoCreateTime == UnixNanosecond {
+					if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 						field.ReflectValueOf(value).SetInt(data.UnixNano())
 					} else {
 						field.ReflectValueOf(value).SetInt(data.Unix())
