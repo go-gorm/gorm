@@ -10,27 +10,14 @@ import (
 
 func BeforeDelete(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.BeforeDelete {
-		tx := db.Session(&gorm.Session{})
-		callMethod := func(value interface{}) bool {
-			if db.Statement.Schema.BeforeDelete {
-				if i, ok := value.(gorm.BeforeDeleteInterface); ok {
-					db.AddError(i.BeforeDelete(tx))
-					return true
-				}
+		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
+			if i, ok := value.(gorm.BeforeDeleteInterface); ok {
+				db.AddError(i.BeforeDelete(tx))
+				return true
 			}
-			return false
-		}
 
-		if ok := callMethod(db.Statement.Dest); !ok {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
-				}
-			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Addr().Interface())
-			}
-		}
+			return false
+		})
 	}
 }
 
@@ -86,26 +73,12 @@ func Delete(db *gorm.DB) {
 
 func AfterDelete(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterDelete {
-		tx := db.Session(&gorm.Session{})
-		callMethod := func(value interface{}) bool {
-			if db.Statement.Schema.AfterDelete {
-				if i, ok := value.(gorm.AfterDeleteInterface); ok {
-					db.AddError(i.AfterDelete(tx))
-					return true
-				}
+		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
+			if i, ok := value.(gorm.AfterDeleteInterface); ok {
+				db.AddError(i.AfterDelete(tx))
+				return true
 			}
 			return false
-		}
-
-		if ok := callMethod(db.Statement.Dest); !ok {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
-				}
-			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Addr().Interface())
-			}
-		}
+		})
 	}
 }

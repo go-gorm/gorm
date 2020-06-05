@@ -26,7 +26,7 @@ type Schema struct {
 	Fields                    []*Field
 	FieldsByName              map[string]*Field
 	FieldsByDBName            map[string]*Field
-	FieldsWithDefaultDBValue  map[string]*Field // fields with default value assigned by database
+	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
 	Relationships             Relationships
 	CreateClauses             []clause.Interface
 	QueryClauses              []clause.Interface
@@ -153,23 +153,14 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 				schema.FieldsByName[field.Name] = field
 
 				if v != nil && v.PrimaryKey {
-					if schema.PrioritizedPrimaryField == v {
-						schema.PrioritizedPrimaryField = nil
-					}
-
 					for idx, f := range schema.PrimaryFields {
 						if f == v {
 							schema.PrimaryFields = append(schema.PrimaryFields[0:idx], schema.PrimaryFields[idx+1:]...)
-						} else if schema.PrioritizedPrimaryField == nil {
-							schema.PrioritizedPrimaryField = f
 						}
 					}
 				}
 
 				if field.PrimaryKey {
-					if schema.PrioritizedPrimaryField == nil {
-						schema.PrioritizedPrimaryField = field
-					}
 					schema.PrimaryFields = append(schema.PrimaryFields, field)
 				}
 			}
@@ -192,21 +183,27 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
+	if schema.PrioritizedPrimaryField == nil && len(schema.PrimaryFields) == 1 {
+		schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
+	}
+
 	for _, field := range schema.PrimaryFields {
 		schema.PrimaryFieldDBNames = append(schema.PrimaryFieldDBNames, field.DBName)
 	}
 
-	schema.FieldsWithDefaultDBValue = map[string]*Field{}
-	for db, field := range schema.FieldsByDBName {
+	for _, field := range schema.FieldsByDBName {
 		if field.HasDefaultValue && field.DefaultValueInterface == nil {
-			schema.FieldsWithDefaultDBValue[db] = field
+			schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 		}
 	}
 
-	if schema.PrioritizedPrimaryField != nil {
-		switch schema.PrioritizedPrimaryField.DataType {
+	if field := schema.PrioritizedPrimaryField; field != nil {
+		switch field.DataType {
 		case Int, Uint:
-			schema.FieldsWithDefaultDBValue[schema.PrioritizedPrimaryField.DBName] = schema.PrioritizedPrimaryField
+			if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+			}
+			field.HasDefaultValue = true
 		}
 	}
 

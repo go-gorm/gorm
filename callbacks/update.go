@@ -30,9 +30,7 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 
 func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
-		tx := db.Session(&gorm.Session{})
-		callMethod := func(value interface{}) bool {
-			var called bool
+		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
 				if i, ok := value.(gorm.BeforeSaveInterface); ok {
 					called = true
@@ -46,19 +44,9 @@ func BeforeUpdate(db *gorm.DB) {
 					db.AddError(i.BeforeUpdate(tx))
 				}
 			}
-			return called
-		}
 
-		if ok := callMethod(db.Statement.Dest); !ok {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
-				}
-			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Addr().Interface())
-			}
-		}
+			return called
+		})
 	}
 }
 
@@ -99,9 +87,7 @@ func Update(db *gorm.DB) {
 
 func AfterUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
-		tx := db.Session(&gorm.Session{})
-		callMethod := func(value interface{}) bool {
-			var called bool
+		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(gorm.AfterSaveInterface); ok {
 					called = true
@@ -116,18 +102,7 @@ func AfterUpdate(db *gorm.DB) {
 				}
 			}
 			return called
-		}
-
-		if ok := callMethod(db.Statement.Dest); !ok {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
-				}
-			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Addr().Interface())
-			}
-		}
+		})
 	}
 }
 

@@ -105,8 +105,11 @@ func (p *processor) Execute(db *DB) {
 			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
 		}, db.Error)
 
-		stmt.reinit()
-		// db.Config.statementPool.Put(stmt)
+		if !stmt.DB.DryRun {
+			stmt.SQL.Reset()
+			stmt.Vars = nil
+			stmt.NamedVars = nil
+		}
 	}
 }
 

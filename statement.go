@@ -226,6 +226,7 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 			if sql == "" && len(args) == 0 {
 				return
 			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
+				// looks like a where condition
 				return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
 			} else if len(args) == 1 {
 				return []clause.Expression{clause.Eq{Column: sql, Value: args[0]}}
@@ -242,12 +243,6 @@ func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (con
 		switch v := arg.(type) {
 		case clause.Expression:
 			conds = append(conds, v)
-		case *DB:
-			if v.Statement != nil {
-				if cs, ok := v.Statement.Clauses["WHERE"]; ok {
-					conds = append(conds, cs.Expression)
-				}
-			}
 		case map[interface{}]interface{}:
 			for i, j := range v {
 				conds = append(conds, clause.Eq{Column: i, Value: j})
@@ -326,7 +321,6 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 func (stmt *Statement) clone() *Statement {
 	newStmt := &Statement{
-		DB:                   stmt.DB,
 		Table:                stmt.Table,
 		Model:                stmt.Model,
 		Dest:                 stmt.Dest,
@@ -356,38 +350,4 @@ func (stmt *Statement) clone() *Statement {
 	}
 
 	return newStmt
-}
-
-func (stmt *Statement) reinit() {
-	// stmt.Table = ""
-	// stmt.Model = nil
-	// stmt.Selects = nil
-	// stmt.Omits = nil
-	// stmt.ConnPool = stmt.DB.Config.ConnPool
-	// stmt.Context = context.Background()
-	// stmt.RaiseErrorOnNotFound = false
-
-	// for k := range stmt.Clauses {
-	// 	delete(stmt.Clauses, k)
-	// }
-
-	// for k := range stmt.Joins {
-	// 	delete(stmt.Joins, k)
-	// }
-
-	// for k := range stmt.Preloads {
-	// 	delete(stmt.Preloads, k)
-	// }
-
-	// stmt.Settings.Range(func(k, _ interface{}) bool {
-	// 	stmt.Settings.Delete(k)
-	// 	return true
-	// })
-
-	// stmt.Schema = nil
-	if !stmt.DB.DryRun {
-		stmt.SQL.Reset()
-		stmt.Vars = nil
-		stmt.NamedVars = nil
-	}
 }

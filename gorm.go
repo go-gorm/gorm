@@ -25,9 +25,10 @@ type Config struct {
 	NowFunc func() time.Time
 	// DryRun generate sql without execute
 	DryRun bool
-
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
+	// DisableAutomaticPing
+	DisableAutomaticPing bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -93,8 +94,8 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.ClauseBuilders = map[string]clause.ClauseBuilder{}
 	}
 
-	if dialector != nil {
-		err = dialector.Initialize(db)
+	if config.Dialector != nil {
+		err = config.Dialector.Initialize(db)
 	}
 
 	if config.PrepareStmt {
@@ -104,16 +105,14 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		}
 	}
 
-	if db.Statement == nil {
-		db.Statement = &Statement{
-			DB:       db,
-			ConnPool: db.ConnPool,
-			Context:  context.Background(),
-			Clauses:  map[string]clause.Clause{},
-		}
+	db.Statement = &Statement{
+		DB:       db,
+		ConnPool: db.ConnPool,
+		Context:  context.Background(),
+		Clauses:  map[string]clause.Clause{},
 	}
 
-	if err == nil {
+	if err == nil && !config.DisableAutomaticPing {
 		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
 			err = pinger.Ping()
 		}
@@ -138,17 +137,8 @@ func (db *DB) Session(config *Session) *DB {
 	)
 
 	if config.Context != nil {
-		if tx.Statement != nil {
-			tx.Statement = tx.Statement.clone()
-			tx.Statement.DB = tx
-		} else {
-			tx.Statement = &Statement{
-				DB:       tx,
-				Clauses:  map[string]clause.Clause{},
-				ConnPool: tx.ConnPool,
-			}
-		}
-
+		tx.Statement = tx.Statement.clone()
+		tx.Statement.DB = tx
 		tx.Statement.Context = config.Context
 	}
 
@@ -160,7 +150,7 @@ func (db *DB) Session(config *Session) *DB {
 	}
 
 	if config.WithConditions {
-		tx.clone = 3
+		tx.clone = 2
 	}
 
 	if config.DryRun {
@@ -200,10 +190,7 @@ func (db *DB) Set(key string, value interface{}) *DB {
 
 // Get get value with key from current db instance's context
 func (db *DB) Get(key string) (interface{}, bool) {
-	if db.Statement != nil {
-		return db.Statement.Settings.Load(key)
-	}
-	return nil, false
+	return db.Statement.Settings.Load(key)
 }
 
 // InstanceSet store value with key into current db instance's context
@@ -215,10 +202,7 @@ func (db *DB) InstanceSet(key string, value interface{}) *DB {
 
 // InstanceGet get value with key from current db instance's context
 func (db *DB) InstanceGet(key string) (interface{}, bool) {
-	if db.Statement != nil {
-		return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
-	}
-	return nil, false
+	return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 }
 
 func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
@@ -282,22 +266,18 @@ func (db *DB) getInstance() *DB {
 	if db.clone > 0 {
 		tx := &DB{Config: db.Config}
 
-		switch db.clone {
-		case 1: // clone with new statement
+		if db.clone == 1 {
+			// clone with new statement
 			tx.Statement = &Statement{
 				DB:       tx,
 				ConnPool: db.Statement.ConnPool,
 				Context:  db.Statement.Context,
 				Clauses:  map[string]clause.Clause{},
 			}
-		case 2: // with old statement, generate new statement for future call, used to pass to callbacks
-			db.clone = 1
-			tx.Statement = db.Statement
-		case 3: // with clone statement
-			if db.Statement != nil {
-				tx.Statement = db.Statement.clone()
-				tx.Statement.DB = tx
-			}
+		} else {
+			// with clone statement
+			tx.Statement = db.Statement.clone()
+			tx.Statement.DB = tx
 		}
 
 		return tx

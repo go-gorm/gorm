@@ -188,26 +188,12 @@ func Preload(db *gorm.DB) {
 
 func AfterQuery(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterFind {
-		tx := db.Session(&gorm.Session{})
-		callMethod := func(value interface{}) bool {
-			if db.Statement.Schema.AfterFind {
-				if i, ok := value.(gorm.AfterFindInterface); ok {
-					db.AddError(i.AfterFind(tx))
-					return true
-				}
+		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
+			if i, ok := value.(gorm.AfterFindInterface); ok {
+				db.AddError(i.AfterFind(tx))
+				return true
 			}
 			return false
-		}
-
-		if ok := callMethod(db.Statement.Dest); !ok {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Slice, reflect.Array:
-				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
-				}
-			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Addr().Interface())
-			}
-		}
+		})
 	}
 }
