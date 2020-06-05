@@ -203,10 +203,10 @@ func AfterQuery(db *gorm.DB) {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
 				}
 			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Interface())
+				callMethod(db.Statement.ReflectValue.Addr().Interface())
 			}
 		}
 	}

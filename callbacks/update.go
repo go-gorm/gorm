@@ -29,34 +29,34 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 }
 
 func BeforeUpdate(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
-			var ok bool
+			var called bool
 			if db.Statement.Schema.BeforeSave {
 				if i, ok := value.(gorm.BeforeSaveInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeUpdate {
 				if i, ok := value.(gorm.BeforeUpdateInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.BeforeUpdate(tx))
 				}
 			}
-			return ok
+			return called
 		}
 
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
 				}
 			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Interface())
+				callMethod(db.Statement.ReflectValue.Addr().Interface())
 			}
 		}
 	}
@@ -98,34 +98,34 @@ func Update(db *gorm.DB) {
 }
 
 func AfterUpdate(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
-			var ok bool
+			var called bool
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(gorm.AfterSaveInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterUpdate {
 				if i, ok := value.(gorm.AfterUpdateInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.AfterUpdate(tx))
 				}
 			}
-			return ok
+			return called
 		}
 
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
 				}
 			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Interface())
+				callMethod(db.Statement.ReflectValue.Addr().Interface())
 			}
 		}
 	}
@@ -191,7 +191,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 		}
 
-		if !stmt.DisableUpdateTime && stmt.Schema != nil {
+		if !stmt.UpdatingColumn && stmt.Schema != nil {
 			for _, field := range stmt.Schema.FieldsByDBName {
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
 					now := stmt.DB.NowFunc()
@@ -215,7 +215,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						value, isZero := field.ValueOf(updatingValue)
-						if !stmt.DisableUpdateTime {
+						if !stmt.UpdatingColumn {
 							if field.AutoUpdateTime > 0 {
 								if field.AutoUpdateTime == schema.UnixNanosecond {
 									value = stmt.DB.NowFunc().UnixNano()

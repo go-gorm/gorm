@@ -3,9 +3,11 @@ package tests_test
 import (
 	"errors"
 	"reflect"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
+	. "gorm.io/gorm/utils/tests"
 )
 
 type Product struct {
@@ -98,7 +100,7 @@ func TestRunCallbacks(t *testing.T) {
 	DB.Save(&p)
 
 	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0, 0}) {
-		t.Errorf("Callbacks should be invoked successfully, %v", p.GetCallTimes())
+		t.Fatalf("Callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
@@ -114,7 +116,7 @@ func TestRunCallbacks(t *testing.T) {
 
 	var products []Product
 	DB.Find(&products, "code = ?", "unique_code")
-	if products[0].AfterFindCallTimes != 1 {
+	if products[0].AfterFindCallTimes != 2 {
 		t.Fatalf("AfterFind callbacks should work with slice, called %v", products[0].AfterFindCallTimes)
 	}
 
@@ -196,5 +198,90 @@ func TestCallbacksWithErrors(t *testing.T) {
 	DB.Delete(&p5)
 	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
 		t.Fatalf("Record shouldn't be deleted because of an error happened in after delete callback")
+	}
+}
+
+type Product2 struct {
+	gorm.Model
+	Name  string
+	Code  string
+	Price int64
+	Owner string
+}
+
+func (s Product2) BeforeCreate(tx *gorm.DB) (err error) {
+	if !strings.HasSuffix(s.Name, "_clone") {
+		newProduft := s
+		newProduft.Price *= 2
+		newProduft.Name += "_clone"
+		err = tx.Create(&newProduft).Error
+	}
+
+	if s.Name == "Invalid" {
+		return errors.New("invalid")
+	}
+
+	return nil
+}
+
+func (s *Product2) BeforeUpdate(tx *gorm.DB) (err error) {
+	tx.Statement.Where("owner != ?", "admin")
+	return
+}
+
+func TestUseDBInHooks(t *testing.T) {
+	DB.Migrator().DropTable(&Product2{})
+	DB.AutoMigrate(&Product2{})
+
+	product := Product2{Name: "Invalid", Price: 100}
+
+	if err := DB.Create(&product).Error; err == nil {
+		t.Fatalf("should returns error %v when creating product, but got nil", err)
+	}
+
+	product2 := Product2{Name: "Nice", Price: 100}
+
+	if err := DB.Create(&product2).Error; err != nil {
+		t.Fatalf("Failed to create product, got error: %v", err)
+	}
+
+	var result Product2
+	if err := DB.First(&result, "name = ?", "Nice").Error; err != nil {
+		t.Fatalf("Failed to query product, got error: %v", err)
+	}
+
+	var resultClone Product2
+	if err := DB.First(&resultClone, "name = ?", "Nice_clone").Error; err != nil {
+		t.Fatalf("Failed to find cloned product, got error: %v", err)
+	}
+
+	result.Price *= 2
+	result.Name += "_clone"
+	AssertObjEqual(t, result, resultClone, "Price", "Name")
+
+	DB.Model(&result).Update("Price", 500)
+	var result2 Product2
+	DB.First(&result2, "name = ?", "Nice")
+
+	if result2.Price != 500 {
+		t.Errorf("Failed to update product's price, expects: %v, got %v", 500, result2.Price)
+	}
+
+	product3 := Product2{Name: "Nice2", Price: 600, Owner: "admin"}
+	if err := DB.Create(&product3).Error; err != nil {
+		t.Fatalf("Failed to create product, got error: %v", err)
+	}
+
+	var result3 Product2
+	if err := DB.First(&result3, "name = ?", "Nice2").Error; err != nil {
+		t.Fatalf("Failed to query product, got error: %v", err)
+	}
+
+	DB.Model(&result3).Update("Price", 800)
+	var result4 Product2
+	DB.First(&result4, "name = ?", "Nice2")
+
+	if result4.Price != 600 {
+		t.Errorf("Admin product's price should not be changed, expects: %v, got %v", 600, result4.Price)
 	}
 }

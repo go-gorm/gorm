@@ -12,31 +12,31 @@ func BeforeCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
-			var ok bool
+			var called bool
 			if db.Statement.Schema.BeforeSave {
 				if i, ok := value.(gorm.BeforeSaveInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeCreate {
 				if i, ok := value.(gorm.BeforeCreateInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.BeforeCreate(tx))
 				}
 			}
-			return ok
+			return called
 		}
 
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
 				}
 			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Interface())
+				callMethod(db.Statement.ReflectValue.Addr().Interface())
 			}
 		}
 	}
@@ -184,31 +184,31 @@ func AfterCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		tx := db.Session(&gorm.Session{})
 		callMethod := func(value interface{}) bool {
-			var ok bool
+			var called bool
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(gorm.AfterSaveInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterCreate {
 				if i, ok := value.(gorm.AfterCreateInterface); ok {
-					ok = true
+					called = true
 					db.AddError(i.AfterCreate(tx))
 				}
 			}
-			return ok
+			return called
 		}
 
 		if ok := callMethod(db.Statement.Dest); !ok {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					callMethod(db.Statement.ReflectValue.Index(i).Interface())
+					callMethod(db.Statement.ReflectValue.Index(i).Addr().Interface())
 				}
 			case reflect.Struct:
-				callMethod(db.Statement.ReflectValue.Interface())
+				callMethod(db.Statement.ReflectValue.Addr().Interface())
 			}
 		}
 	}

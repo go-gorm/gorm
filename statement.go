@@ -33,7 +33,7 @@ type Statement struct {
 	Schema               *schema.Schema
 	Context              context.Context
 	RaiseErrorOnNotFound bool
-	DisableUpdateTime    bool
+	UpdatingColumn       bool
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	NamedVars            []sql.NamedArg
