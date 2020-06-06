@@ -220,6 +220,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
+	if dataTyper, ok := fieldValue.Interface().(GormDataTypeInterface); ok {
+		field.DataType = DataType(dataTyper.GormDataType())
+	}
+
 	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond

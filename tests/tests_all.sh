@@ -17,14 +17,21 @@ for dialect in "${dialects[@]}" ; do
 
     if [ "$GORM_VERBOSE" = "" ]
     then
-      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 ./...
-      cd tests
-      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 ./...
+      GORM_DIALECT=${dialect} go test $race -count=1 ./...
+      if [ -d tests ]
+      then
+        cd tests
+        GORM_DIALECT=${dialect} go test $race -count=1 ./...
+        cd ..
+      fi
     else
-      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
-      cd tests
-      DEBUG=false GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+      GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+      if [ -d tests ]
+      then
+        cd tests
+        GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+        cd ..
+      fi
     fi
-    cd ..
   fi
 done

@@ -24,6 +24,10 @@ type Config struct {
 	gorm.Dialector
 }
 
+type GormDataTypeInterface interface {
+	GormDBDataType(*gorm.DB, *schema.Field) string
+}
+
 func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error) error {
 	stmt := &gorm.Statement{DB: m.DB}
 	if m.DB.Statement != nil {
@@ -42,6 +46,13 @@ func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error
 func (m Migrator) DataTypeOf(field *schema.Field) string {
 	if field.DBDataType != "" {
 		return field.DBDataType
+	}
+
+	fieldValue := reflect.New(field.IndirectFieldType)
+	if dataTyper, ok := fieldValue.Interface().(GormDataTypeInterface); ok {
+		if dataType := dataTyper.GormDBDataType(m.DB, field); dataType != "" {
+			return dataType
+		}
 	}
 
 	return m.Dialector.DataTypeOf(field)

@@ -42,22 +42,6 @@ type Schema struct {
 	cacheStore                *sync.Map
 }
 
-type CreateClausesInterface interface {
-	CreateClauses() []clause.Interface
-}
-
-type QueryClausesInterface interface {
-	QueryClauses() []clause.Interface
-}
-
-type UpdateClausesInterface interface {
-	UpdateClauses() []clause.Interface
-}
-
-type DeleteClausesInterface interface {
-	DeleteClauses() []clause.Interface
-}
-
 func (schema Schema) String() string {
 	if schema.ModelType.Name() == "" {
 		return fmt.Sprintf("%v(%v)", schema.Name, schema.Table)
