@@ -2,6 +2,8 @@ package clause_test
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm/clause"
@@ -34,5 +36,22 @@ func TestSet(t *testing.T) {
 		t.Run(fmt.Sprintf("case #%v", idx), func(t *testing.T) {
 			checkBuildClauses(t, result.Clauses, result.Result, result.Vars)
 		})
+	}
+}
+
+func TestAssignments(t *testing.T) {
+	set := clause.Assignments(map[string]interface{}{
+		"name": "jinzhu",
+		"age":  18,
+	})
+
+	assignments := []clause.Assignment(set)
+
+	sort.Slice(assignments, func(i, j int) bool {
+		return strings.Compare(assignments[i].Column.Name, assignments[j].Column.Name) > 0
+	})
+
+	if len(assignments) != 2 || assignments[0].Column.Name != "name" || assignments[0].Value.(string) != "jinzhu" || assignments[1].Column.Name != "age" || assignments[1].Value.(int) != 18 {
+		t.Errorf("invalid assignments, got %v", assignments)
 	}
 }
