@@ -32,13 +32,14 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 			for idx, pf := range tx.Statement.Schema.PrimaryFields {
 				if pv, isZero := pf.ValueOf(reflectValue); isZero {
 					tx.callbacks.Create().Execute(tx)
-					where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
 					return
+				} else {
+					where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
 				}
 			}
-		}
 
-		tx.Statement.AddClause(where)
+			tx.Statement.AddClause(where)
+		}
 	}
 
 	if len(tx.Statement.Selects) == 0 {

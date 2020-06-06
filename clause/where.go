@@ -14,7 +14,7 @@ func (where Where) Name() string {
 func (where Where) Build(builder Builder) {
 	// Switch position if the first query expression is a single Or condition
 	for idx, expr := range where.Exprs {
-		if v, ok := expr.(OrConditions); (!ok && expr != nil) || len(v.Exprs) > 1 {
+		if v, ok := expr.(OrConditions); !ok || len(v.Exprs) > 1 {
 			if idx != 0 {
 				where.Exprs[0], where.Exprs[idx] = where.Exprs[idx], where.Exprs[0]
 			}
@@ -23,17 +23,15 @@ func (where Where) Build(builder Builder) {
 	}
 
 	for idx, expr := range where.Exprs {
-		if expr != nil {
-			if idx > 0 {
-				if v, ok := expr.(OrConditions); ok && len(v.Exprs) == 1 {
-					builder.WriteString(" OR ")
-				} else {
-					builder.WriteString(" AND ")
-				}
+		if idx > 0 {
+			if v, ok := expr.(OrConditions); ok && len(v.Exprs) == 1 {
+				builder.WriteString(" OR ")
+			} else {
+				builder.WriteString(" AND ")
 			}
-
-			expr.Build(builder)
 		}
+
+		expr.Build(builder)
 	}
 
 	return

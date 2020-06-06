@@ -24,42 +24,46 @@ type Builder interface {
 
 // Clause
 type Clause struct {
-	Name                 string // WHERE
-	Priority             float64
-	BeforeExpressions    []Expression
-	AfterNameExpressions []Expression
-	AfterExpressions     []Expression
-	Expression           Expression
-	Builder              ClauseBuilder
+	Name                string // WHERE
+	BeforeExpression    Expression
+	AfterNameExpression Expression
+	AfterExpression     Expression
+	Expression          Expression
+	Builder             ClauseBuilder
 }
 
 // Build build clause
 func (c Clause) Build(builder Builder) {
 	if c.Builder != nil {
 		c.Builder(c, builder)
-	} else {
-		builders := c.BeforeExpressions
+	} else if c.Expression != nil {
+		if c.BeforeExpression != nil {
+			c.BeforeExpression.Build(builder)
+			builder.WriteByte(' ')
+		}
+
 		if c.Name != "" {
-			builders = append(builders, Expr{SQL: c.Name})
+			builder.WriteString(c.Name)
+			builder.WriteByte(' ')
 		}
 
-		builders = append(builders, c.AfterNameExpressions...)
-		if c.Expression != nil {
-			builders = append(builders, c.Expression)
+		if c.AfterNameExpression != nil {
+			c.BeforeExpression.Build(builder)
+			builder.WriteByte(' ')
 		}
 
-		for idx, expr := range append(builders, c.AfterExpressions...) {
-			if idx != 0 {
-				builder.WriteByte(' ')
-			}
-			expr.Build(builder)
+		c.Expression.Build(builder)
+
+		if c.AfterExpression != nil {
+			builder.WriteByte(' ')
+			c.AfterExpression.Build(builder)
 		}
 	}
 }
 
 const (
-	PrimaryKey   string = "@@@priamry_key@@@"
-	CurrentTable string = "@@@table@@@"
+	PrimaryKey   string = "@@@py@@@" // primary key
+	CurrentTable string = "@@@ct@@@" // current table
 )
 
 var (

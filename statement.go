@@ -201,19 +201,19 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 func (stmt *Statement) AddClause(v clause.Interface) {
 	if optimizer, ok := v.(StatementModifier); ok {
 		optimizer.ModifyStatement(stmt)
+	} else {
+		c, ok := stmt.Clauses[v.Name()]
+		if !ok {
+			c.Name = v.Name()
+		}
+		v.MergeClause(&c)
+		stmt.Clauses[v.Name()] = c
 	}
-
-	c, ok := stmt.Clauses[v.Name()]
-	if !ok {
-		c.Name = v.Name()
-	}
-	v.MergeClause(&c)
-	stmt.Clauses[v.Name()] = c
 }
 
 // AddClauseIfNotExists add clause if not exists
 func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
-	if c, ok := stmt.Clauses[v.Name()]; !ok && c.Expression == nil {
+	if c, ok := stmt.Clauses[v.Name()]; !ok || c.Expression == nil {
 		stmt.AddClause(v)
 	}
 }

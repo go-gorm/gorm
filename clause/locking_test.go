@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func TestFor(t *testing.T) {
+func TestLocking(t *testing.T) {
 	results := []struct {
 		Clauses []clause.Interface
 		Result  string
