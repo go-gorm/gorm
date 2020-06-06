@@ -83,47 +83,47 @@ build:
         - script:
                 name: test sqlite
                 code: |
-                    GORM_DIALECT=sqlite $GORM_VERBOSE=true ./tests/tests_all.sh
+                    GORM_DIALECT=sqlite GORM_VERBOSE=true ./tests/tests_all.sh
 
         - script:
                 name: test mariadb
                 code: |
-                    GORM_DIALECT=mysql $GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mariadb:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+                    GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mariadb:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
         - script:
                 name: test mysql
                 code: |
-                    GORM_DIALECT=mysql $GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+                    GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
         - script:
                 name: test mysql5.7
                 code: |
-                    GORM_DIALECT=mysql $GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql57:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+                    GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql57:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
         - script:
                 name: test mysql5.6
                 code: |
-                    GORM_DIALECT=mysql $GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql56:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+                    GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(mysql56:3306)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
         - script:
                 name: test postgres
                 code: |
-                    GORM_DIALECT=postgres $GORM_VERBOSE=true GORM_DSN="host=postgres user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
+                    GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="host=postgres user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
 
         - script:
                 name: test postgres11
                 code: |
-                    GORM_DIALECT=postgres $GORM_VERBOSE=true GORM_DSN="host=postgres96 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
+                    GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="host=postgres96 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
 
         - script:
                 name: test postgres10
                 code: |
-                    GORM_DIALECT=postgres $GORM_VERBOSE=true GORM_DSN="host=postgres95 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
+                    GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="host=postgres95 user=gorm password=gorm DB.name=gorm port=5432 sslmode=disable" ./tests/tests_all.sh
 
         - script:
                 name: test mssql
                 code: |
-                    GORM_DIALECT=mssql $GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@mssql:1433?database=gorm" ./tests/tests_all.sh
+                    GORM_DIALECT=mssql GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@mssql:1433?database=gorm" ./tests/tests_all.sh
 
         - script:
                 name: codecov
