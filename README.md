@@ -4,7 +4,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 [![go report card](https://goreportcard.com/badge/gorm.io/gorm "go report card")](https://goreportcard.com/report/gorm.io/gorm)
 [![wercker status](https://app.wercker.com/status/8596cace912c9947dd9c8542ecc8cb8b/s/master "wercker status")](https://app.wercker.com/project/byKey/8596cace912c9947dd9c8542ecc8cb8b)
-[![codecov](https://codecov.io/gh/jinzhu/gorm/branch/master/graph/badge.svg)](https://codecov.io/gh/jinzhu/gorm)
+[![codecov](https://codecov.io/gh/go-gorm/gorm/branch/master/graph/badge.svg)](https://codecov.io/gh/go-gorm/gorm)
 [![Join the chat at https://gitter.im/jinzhu/gorm](https://img.shields.io/gitter/room/jinzhu/gorm.svg)](https://gitter.im/jinzhu/gorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Open Collective Backer](https://opencollective.com/gorm/tiers/backer/badge.svg?label=backer&color=brightgreen "Open Collective Backer")](https://opencollective.com/gorm)
 [![Open Collective Sponsor](https://opencollective.com/gorm/tiers/sponsor/badge.svg?label=sponsor&color=brightgreen "Open Collective Sponsor")](https://opencollective.com/gorm)
@@ -38,5 +38,5 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 © Jinzhu, 2013~time.Now
 
-Released under the [MIT License](https://github.com/jinzhu/gorm/blob/master/License)
+Released under the [MIT License](https://github.com/go-gorm/gorm/blob/master/License)
 
