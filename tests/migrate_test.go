@@ -131,7 +131,7 @@ func TestColumns(t *testing.T) {
 	}
 
 	if err := DB.Table("column_structs").Migrator().AlterColumn(&ColumnStruct2{}, "Name"); err != nil {
-		t.Fatalf("no error should happend when alter column, but got %v", err)
+		t.Fatalf("no error should happened when alter column, but got %v", err)
 	}
 
 	if columnTypes, err := DB.Migrator().ColumnTypes(&ColumnStruct{}); err != nil {

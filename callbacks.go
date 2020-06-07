@@ -15,12 +15,12 @@ import (
 func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
-			"create": &processor{db: db},
-			"query":  &processor{db: db},
-			"update": &processor{db: db},
-			"delete": &processor{db: db},
-			"row":    &processor{db: db},
-			"raw":    &processor{db: db},
+			"create": {db: db},
+			"query":  {db: db},
+			"update": {db: db},
+			"delete": {db: db},
+			"row":    {db: db},
+			"raw":    {db: db},
 		},
 	}
 }

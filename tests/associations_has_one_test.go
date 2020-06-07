@@ -113,7 +113,7 @@ func TestHasOneAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Account").Delete(&users[0].Account); err != nil {
-		t.Errorf("no error should happend when deleting account, but got %v", err)
+		t.Errorf("no error should happened when deleting account, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Account", 2, "after delete")
@@ -230,7 +230,7 @@ func TestPolymorphicHasOneAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&pets).Association("Toy").Delete(&pets[0].Toy); err != nil {
-		t.Errorf("no error should happend when deleting toy, but got %v", err)
+		t.Errorf("no error should happened when deleting toy, but got %v", err)
 	}
 
 	AssertAssociationCount(t, pets, "Toy", 2, "after delete")

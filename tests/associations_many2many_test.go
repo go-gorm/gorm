@@ -147,13 +147,13 @@ func TestMany2ManyAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Languages").Delete(&users[2].Languages); err != nil {
-		t.Errorf("no error should happend when deleting language, but got %v", err)
+		t.Errorf("no error should happened when deleting language, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Languages", 4, "after delete")
 
 	if err := DB.Model(&users).Association("Languages").Delete(users[0].Languages[0], users[1].Languages[1]); err != nil {
-		t.Errorf("no error should happend when deleting language, but got %v", err)
+		t.Errorf("no error should happened when deleting language, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Languages", 2, "after delete")
@@ -282,13 +282,13 @@ func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Team").Delete(&users[2].Team); err != nil {
-		t.Errorf("no error should happend when deleting team, but got %v", err)
+		t.Errorf("no error should happened when deleting team, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Team", 4, "after delete")
 
 	if err := DB.Model(&users).Association("Team").Delete(users[0].Team[0], users[1].Team[1]); err != nil {
-		t.Errorf("no error should happend when deleting team, but got %v", err)
+		t.Errorf("no error should happened when deleting team, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Team", 2, "after delete")

@@ -38,7 +38,7 @@ func TestScannerValuer(t *testing.T) {
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
-		t.Errorf("No error should happend when create scanner valuer struct, but got %v", err)
+		t.Errorf("No error should happened when create scanner valuer struct, but got %v", err)
 	}
 
 	var result ScannerValuerStruct

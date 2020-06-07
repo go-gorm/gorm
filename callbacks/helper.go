@@ -62,7 +62,7 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 	selectColumns, restricted := SelectAndOmitColumns(stmt, true, false)
 
 	var keys []string
-	for k, _ := range mapValue {
+	for k := range mapValue {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

@@ -234,13 +234,13 @@ func TestHasManyAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Pets").Delete(&users[2].Pets); err != nil {
-		t.Errorf("no error should happend when deleting pet, but got %v", err)
+		t.Errorf("no error should happened when deleting pet, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Pets", 4, "after delete")
 
 	if err := DB.Model(&users).Association("Pets").Delete(users[0].Pets[0], users[1].Pets[1]); err != nil {
-		t.Errorf("no error should happend when deleting pet, but got %v", err)
+		t.Errorf("no error should happened when deleting pet, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Pets", 2, "after delete")
@@ -290,13 +290,13 @@ func TestSingleTableHasManyAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Team").Delete(&users[2].Team); err != nil {
-		t.Errorf("no error should happend when deleting pet, but got %v", err)
+		t.Errorf("no error should happened when deleting pet, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Team", 4, "after delete")
 
 	if err := DB.Model(&users).Association("Team").Delete(users[0].Team[0], users[1].Team[1]); err != nil {
-		t.Errorf("no error should happend when deleting pet, but got %v", err)
+		t.Errorf("no error should happened when deleting pet, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Team", 2, "after delete")
@@ -439,13 +439,13 @@ func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Toys").Delete(&users[2].Toys); err != nil {
-		t.Errorf("no error should happend when deleting toy, but got %v", err)
+		t.Errorf("no error should happened when deleting toy, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Toys", 4, "after delete")
 
 	if err := DB.Model(&users).Association("Toys").Delete(users[0].Toys[0], users[1].Toys[1]); err != nil {
-		t.Errorf("no error should happend when deleting toy, but got %v", err)
+		t.Errorf("no error should happened when deleting toy, but got %v", err)
 	}
 
 	AssertAssociationCount(t, users, "Toys", 2, "after delete")

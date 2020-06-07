@@ -141,7 +141,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		set = make([]clause.Assignment, 0, len(value))
 
 		var keys []string
-		for k, _ := range value {
+		for k := range value {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)

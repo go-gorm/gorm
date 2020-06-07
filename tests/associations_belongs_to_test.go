@@ -180,7 +180,7 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 
 	// Delete
 	if err := DB.Model(&users).Association("Company").Delete(&users[0].Company); err != nil {
-		t.Errorf("no error should happend when deleting company, but got %v", err)
+		t.Errorf("no error should happened when deleting company, but got %v", err)
 	}
 
 	if users[0].CompanyID != nil || users[0].Company.ID != 0 {
