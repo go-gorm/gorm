@@ -14,8 +14,14 @@ func (OnConflict) Name() string {
 // Build build onConflict clause
 func (onConflict OnConflict) Build(builder Builder) {
 	if len(onConflict.Columns) > 0 {
-		builder.WriteQuoted(onConflict.Columns) // FIXME columns
-		builder.WriteByte(' ')
+		builder.WriteByte('(')
+		for idx, column := range onConflict.Columns {
+			if idx > 0 {
+				builder.WriteByte(',')
+			}
+			builder.WriteQuoted(column)
+		}
+		builder.WriteString(`) `)
 	}
 
 	if len(onConflict.Where.Exprs) > 0 {

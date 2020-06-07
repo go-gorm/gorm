@@ -10,16 +10,36 @@ import (
 
 func TestUpsert(t *testing.T) {
 	lang := Language{Code: "upsert", Name: "Upsert"}
-	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang)
+	if err := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
 
 	lang2 := Language{Code: "upsert", Name: "Upsert"}
-	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang2)
+	if err := DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&lang2).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
 
 	var langs []Language
 	if err := DB.Find(&langs, "code = ?", lang.Code).Error; err != nil {
 		t.Errorf("no error should happen when find languages with code, but got %v", err)
 	} else if len(langs) != 1 {
 		t.Errorf("should only find only 1 languages, but got %+v", langs)
+	}
+
+	lang3 := Language{Code: "upsert", Name: "Upsert"}
+	if err := DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "code"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{"name": "upsert-new"}),
+	}).Create(&lang3).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	if err := DB.Find(&langs, "code = ?", lang.Code).Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs) != 1 {
+		t.Errorf("should only find only 1 languages, but got %+v", langs)
+	} else if langs[0].Name != "upsert-new" {
+		t.Errorf("should update name on conflict, but got name %+v", langs[0].Name)
 	}
 }
 

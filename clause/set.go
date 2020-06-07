@@ -47,7 +47,7 @@ func Assignments(values map[string]interface{}) Set {
 
 	for _, key := range keys {
 		assignments = append(assignments, Assignment{
-			Column: Column{Table: CurrentTable, Name: key},
+			Column: Column{Name: key},
 			Value:  values[key],
 		})
 	}
