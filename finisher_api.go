@@ -389,7 +389,3 @@ func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 	tx.callbacks.Raw().Execute(tx)
 	return
 }
-
-func (db *DB) RecordNotFound() bool {
-	return errors.Is(db.Error, ErrRecordNotFound)
-}

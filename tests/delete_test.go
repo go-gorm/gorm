@@ -52,13 +52,13 @@ func TestInlineCondDelete(t *testing.T) {
 
 	if DB.Delete(&User{}, user1.ID).Error != nil {
 		t.Errorf("No error should happen when delete a record")
-	} else if !DB.Where("name = ?", user1.Name).First(&User{}).RecordNotFound() {
+	} else if err := DB.Where("name = ?", user1.Name).First(&User{}).Error; !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("User can't be found after delete")
 	}
 
 	if err := DB.Delete(&User{}, "name = ?", user2.Name).Error; err != nil {
 		t.Errorf("No error should happen when delete a record, err=%s", err)
-	} else if !DB.Where("name = ?", user2.Name).First(&User{}).RecordNotFound() {
+	} else if err := DB.Where("name = ?", user2.Name).First(&User{}).Error; !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("User can't be found after delete")
 	}
 }

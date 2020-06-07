@@ -149,7 +149,7 @@ func TestUpdates(t *testing.T) {
 	DB.Table("users").Where("name in ?", []string{users[1].Name}).Updates(User{Name: "updates_02_newname"})
 
 	var user3 User
-	if DB.First(&user3, "name = ?", "updates_02_newname").RecordNotFound() {
+	if err := DB.First(&user3, "name = ?", "updates_02_newname").Error; err != nil {
 		t.Errorf("User2's name should be updated")
 	}
 	AssertEqual(t, user2.UpdatedAt, user3.UpdatedAt)

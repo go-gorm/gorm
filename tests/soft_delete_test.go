@@ -1,8 +1,10 @@
 package tests_test
 
 import (
+	"errors"
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -22,7 +24,7 @@ func TestSoftDelete(t *testing.T) {
 	}
 
 	DB.Unscoped().Delete(&user)
-	if !DB.Unscoped().First(&User{}, "name = ?", user.Name).RecordNotFound() {
+	if err := DB.Unscoped().First(&User{}, "name = ?", user.Name).Error; !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("Can't find permanently deleted record")
 	}
 }
