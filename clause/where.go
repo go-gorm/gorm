@@ -40,7 +40,9 @@ func (where Where) Build(builder Builder) {
 // MergeClause merge where clauses
 func (where Where) MergeClause(clause *Clause) {
 	if w, ok := clause.Expression.(Where); ok {
-		where.Exprs = append(w.Exprs, where.Exprs...)
+		copiedExpressions := make([]Expression, len(w.Exprs))
+		copy(copiedExpressions, w.Exprs)
+		where.Exprs = append(copiedExpressions, where.Exprs...)
 	}
 
 	clause.Expression = where

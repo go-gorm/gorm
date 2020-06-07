@@ -40,7 +40,9 @@ func (orderBy OrderBy) MergeClause(clause *Clause) {
 			}
 		}
 
-		orderBy.Columns = append(v.Columns, orderBy.Columns...)
+		copiedColumns := make([]OrderByColumn, len(v.Columns))
+		copy(copiedColumns, v.Columns)
+		orderBy.Columns = append(copiedColumns, orderBy.Columns...)
 	}
 
 	clause.Expression = orderBy

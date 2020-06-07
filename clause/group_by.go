@@ -30,8 +30,13 @@ func (groupBy GroupBy) Build(builder Builder) {
 // MergeClause merge group by clause
 func (groupBy GroupBy) MergeClause(clause *Clause) {
 	if v, ok := clause.Expression.(GroupBy); ok {
-		groupBy.Columns = append(v.Columns, groupBy.Columns...)
-		groupBy.Having = append(v.Having, groupBy.Having...)
+		copiedColumns := make([]Column, len(v.Columns))
+		copy(copiedColumns, v.Columns)
+		groupBy.Columns = append(copiedColumns, groupBy.Columns...)
+
+		copiedHaving := make([]Expression, len(v.Having))
+		copy(copiedHaving, v.Having)
+		groupBy.Having = append(copiedHaving, groupBy.Having...)
 	}
 	clause.Expression = groupBy
 }
