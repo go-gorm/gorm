@@ -3,8 +3,8 @@ package utils
 import (
 	"database/sql/driver"
 	"fmt"
-	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,7 +15,7 @@ var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	gormSourceDir = filepath.Dir(filepath.Dir(file))
+	gormSourceDir = regexp.MustCompile("utils.utils\\.go").ReplaceAllString(file, "")
 }
 
 func FileWithLineNum() string {
@@ -23,7 +23,7 @@ func FileWithLineNum() string {
 		_, file, line, ok := runtime.Caller(i)
 
 		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
-			return fmt.Sprintf("%v:%v", file, line)
+			return file + ":" + strconv.FormatInt(int64(line), 10)
 		}
 	}
 	return ""
