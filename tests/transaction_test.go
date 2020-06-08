@@ -10,13 +10,13 @@ import (
 
 func TestTransaction(t *testing.T) {
 	tx := DB.Begin()
-	user := *GetUser("transcation", Config{})
+	user := *GetUser("transaction", Config{})
 
 	if err := tx.Save(&user).Error; err != nil {
 		t.Fatalf("No error should raise, but got %v", err)
 	}
 
-	if err := tx.First(&User{}, "name = ?", "transcation").Error; err != nil {
+	if err := tx.First(&User{}, "name = ?", "transaction").Error; err != nil {
 		t.Fatalf("Should find saved record, but got %v", err)
 	}
 
@@ -26,23 +26,23 @@ func TestTransaction(t *testing.T) {
 
 	tx.Rollback()
 
-	if err := DB.First(&User{}, "name = ?", "transcation").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transaction").Error; err == nil {
 		t.Fatalf("Should not find record after rollback, but got %v", err)
 	}
 
 	tx2 := DB.Begin()
-	user2 := *GetUser("transcation-2", Config{})
+	user2 := *GetUser("transaction-2", Config{})
 	if err := tx2.Save(&user2).Error; err != nil {
 		t.Fatalf("No error should raise, but got %v", err)
 	}
 
-	if err := tx2.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := tx2.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Fatalf("Should find saved record, but got %v", err)
 	}
 
 	tx2.Commit()
 
-	if err := DB.First(&User{}, "name = ?", "transcation-2").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Fatalf("Should be able to find committed record, but got %v", err)
 	}
 }
@@ -59,7 +59,7 @@ func TestTransactionWithBlock(t *testing.T) {
 
 	// rollback
 	err := DB.Transaction(func(tx *gorm.DB) error {
-		user := *GetUser("transcation-block", Config{})
+		user := *GetUser("transaction-block", Config{})
 		if err := tx.Save(&user).Error; err != nil {
 			t.Fatalf("No error should raise")
 		}
@@ -75,13 +75,13 @@ func TestTransactionWithBlock(t *testing.T) {
 		t.Fatalf("Transaction return error will equal the block returns error")
 	}
 
-	if err := DB.First(&User{}, "name = ?", "transcation-block").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-block").Error; err == nil {
 		t.Fatalf("Should not find record after rollback")
 	}
 
 	// commit
 	DB.Transaction(func(tx *gorm.DB) error {
-		user := *GetUser("transcation-block-2", Config{})
+		user := *GetUser("transaction-block-2", Config{})
 		if err := tx.Save(&user).Error; err != nil {
 			t.Fatalf("No error should raise")
 		}
@@ -92,14 +92,14 @@ func TestTransactionWithBlock(t *testing.T) {
 		return nil
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation-block-2").Error; err != nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-block-2").Error; err != nil {
 		t.Fatalf("Should be able to find committed record")
 	}
 
 	// panic will rollback
 	assertPanic(func() {
 		DB.Transaction(func(tx *gorm.DB) error {
-			user := *GetUser("transcation-block-3", Config{})
+			user := *GetUser("transaction-block-3", Config{})
 			if err := tx.Save(&user).Error; err != nil {
 				t.Fatalf("No error should raise")
 			}
@@ -112,14 +112,14 @@ func TestTransactionWithBlock(t *testing.T) {
 		})
 	})
 
-	if err := DB.First(&User{}, "name = ?", "transcation-block-3").Error; err == nil {
+	if err := DB.First(&User{}, "name = ?", "transaction-block-3").Error; err == nil {
 		t.Fatalf("Should not find record after panic rollback")
 	}
 }
 
 func TestTransactionRaiseErrorOnRollbackAfterCommit(t *testing.T) {
 	tx := DB.Begin()
-	user := User{Name: "transcation"}
+	user := User{Name: "transaction"}
 	if err := tx.Save(&user).Error; err != nil {
 		t.Fatalf("No error should raise")
 	}
