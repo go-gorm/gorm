@@ -15,17 +15,17 @@ func TestWhereCloneCorruption(t *testing.T) {
 			for w := 0; w < whereCount; w++ {
 				s = s.clone()
 				s.AddClause(clause.Where{
-					Exprs: s.BuildCondtion(fmt.Sprintf("where%d", w)),
+					Exprs: s.BuildCondition(fmt.Sprintf("where%d", w)),
 				})
 			}
 
 			s1 := s.clone()
 			s1.AddClause(clause.Where{
-				Exprs: s.BuildCondtion("FINAL1"),
+				Exprs: s.BuildCondition("FINAL1"),
 			})
 			s2 := s.clone()
 			s2.AddClause(clause.Where{
-				Exprs: s.BuildCondtion("FINAL2"),
+				Exprs: s.BuildCondition("FINAL2"),
 			})
 
 			if reflect.DeepEqual(s1.Clauses["WHERE"], s2.Clauses["WHERE"]) {

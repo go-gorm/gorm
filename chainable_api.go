@@ -33,7 +33,7 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	}
 
 	if len(whereConds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(whereConds[0], whereConds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(whereConds[0], whereConds[1:]...)})
 	}
 	return
 }
@@ -121,7 +121,7 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 // Where add conditions
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: conds})
 	}
 	return
@@ -130,7 +130,7 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 // Not add NOT conditions
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(conds...)}})
 	}
 	return
@@ -139,7 +139,7 @@ func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	if conds := tx.Statement.BuildCondtion(query, args...); len(conds) > 0 {
+	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(conds...)}})
 	}
 	return
@@ -170,7 +170,7 @@ func (db *DB) Group(name string) (tx *DB) {
 func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.AddClause(clause.GroupBy{
-		Having: tx.Statement.BuildCondtion(query, args...),
+		Having: tx.Statement.BuildCondition(query, args...),
 	})
 	return
 }
