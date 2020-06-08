@@ -42,6 +42,7 @@ func Create(config *Config) func(db *gorm.DB) {
 				}
 
 				if db.Statement.SQL.String() == "" {
+					db.Statement.SQL.Grow(180)
 					db.Statement.AddClauseIfNotExists(clause.Insert{
 						Table: clause.Table{Name: db.Statement.Table},
 					})
@@ -211,6 +212,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
 
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
+			stmt.SQL.Grow(stmt.ReflectValue.Len() * 15)
 			values.Values = make([][]interface{}, stmt.ReflectValue.Len())
 			defaultValueFieldsHavingValue := map[string][]interface{}{}
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {

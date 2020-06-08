@@ -59,6 +59,7 @@ func Update(db *gorm.DB) {
 		}
 
 		if db.Statement.SQL.String() == "" {
+			db.Statement.SQL.Grow(180)
 			db.Statement.AddClauseIfNotExists(clause.Update{})
 			if set := ConvertToAssignments(db.Statement); len(set) != 0 {
 				db.Statement.AddClause(set)

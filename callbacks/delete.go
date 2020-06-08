@@ -30,6 +30,7 @@ func Delete(db *gorm.DB) {
 		}
 
 		if db.Statement.SQL.String() == "" {
+			db.Statement.SQL.Grow(100)
 			db.Statement.AddClauseIfNotExists(clause.Delete{})
 
 			if db.Statement.Schema != nil {
