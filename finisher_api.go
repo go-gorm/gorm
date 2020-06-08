@@ -55,7 +55,7 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -67,7 +67,7 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance().Limit(1)
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -82,7 +82,7 @@ func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 		Desc:   true,
 	})
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -94,7 +94,7 @@ func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
 	}
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
@@ -130,7 +130,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		// initialize with attrs, conds
 		if len(tx.Statement.attrs) > 0 {
-			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
+			exprs := tx.Statement.BuildCondition(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
 			tx.assignExprsToValue(exprs)
 		}
 		tx.Error = nil
@@ -138,7 +138,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 	// initialize with attrs, conds
 	if len(tx.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+		exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
 		tx.assignExprsToValue(exprs)
 	}
 	return
@@ -157,19 +157,19 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		// initialize with attrs, conds
 		if len(tx.Statement.attrs) > 0 {
-			exprs := tx.Statement.BuildCondtion(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
+			exprs := tx.Statement.BuildCondition(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
 			tx.assignExprsToValue(exprs)
 		}
 
 		// initialize with attrs, conds
 		if len(tx.Statement.assigns) > 0 {
-			exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+			exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
 			tx.assignExprsToValue(exprs)
 		}
 
 		return tx.Create(dest)
 	} else if len(tx.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondtion(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+		exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
 		assigns := map[string]interface{}{}
 		for _, expr := range exprs {
 			if eq, ok := expr.(clause.Eq); ok {
@@ -225,7 +225,7 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondtion(conds[0], conds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
 	}
 	tx.Statement.Dest = value
 	tx.callbacks.Delete().Execute(tx)

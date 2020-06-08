@@ -218,8 +218,8 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 	}
 }
 
-// BuildCondtion build condition
-func (stmt Statement) BuildCondtion(query interface{}, args ...interface{}) (conds []clause.Expression) {
+// BuildCondition build condition
+func (stmt Statement) BuildCondition(query interface{}, args ...interface{}) (conds []clause.Expression) {
 	if sql, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
 		if _, err := strconv.Atoi(sql); err != nil {
