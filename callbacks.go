@@ -73,26 +73,26 @@ func (cs *callbacks) Raw() *processor {
 
 func (p *processor) Execute(db *DB) {
 	curTime := time.Now()
+	stmt := db.Statement
 	db.RowsAffected = 0
-	if stmt := db.Statement; stmt != nil {
-		if stmt.Model == nil {
-			stmt.Model = stmt.Dest
-		}
 
-		if stmt.Model != nil {
-			if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.SQL.Len() == 0)) {
-				db.AddError(err)
-			}
-		}
+	if stmt.Model == nil {
+		stmt.Model = stmt.Dest
+	}
 
-		if stmt.Dest != nil {
-			stmt.ReflectValue = reflect.Indirect(reflect.ValueOf(stmt.Dest))
-			for stmt.ReflectValue.Kind() == reflect.Ptr {
-				stmt.ReflectValue = stmt.ReflectValue.Elem()
-			}
-			if !stmt.ReflectValue.IsValid() {
-				db.AddError(fmt.Errorf("invalid value"))
-			}
+	if stmt.Model != nil {
+		if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.SQL.Len() == 0)) {
+			db.AddError(err)
+		}
+	}
+
+	if stmt.Dest != nil {
+		stmt.ReflectValue = reflect.ValueOf(stmt.Dest)
+		for stmt.ReflectValue.Kind() == reflect.Ptr {
+			stmt.ReflectValue = stmt.ReflectValue.Elem()
+		}
+		if !stmt.ReflectValue.IsValid() {
+			db.AddError(fmt.Errorf("invalid value"))
 		}
 	}
 
@@ -100,16 +100,14 @@ func (p *processor) Execute(db *DB) {
 		f(db)
 	}
 
-	if stmt := db.Statement; stmt != nil {
-		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
-			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
-		}, db.Error)
+	db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
+		return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
+	}, db.Error)
 
-		if !stmt.DB.DryRun {
-			stmt.SQL.Reset()
-			stmt.Vars = nil
-			stmt.NamedVars = nil
-		}
+	if !stmt.DB.DryRun {
+		stmt.SQL.Reset()
+		stmt.Vars = nil
+		stmt.NamedVars = nil
 	}
 }
 
