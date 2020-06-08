@@ -14,6 +14,7 @@ type Hamster struct {
 }
 
 func TestNamedPolymorphic(t *testing.T) {
+	DB.Migrator().DropTable(&Hamster{})
 	DB.AutoMigrate(&Hamster{})
 
 	hamster := Hamster{Name: "Mr. Hammond", PreferredToy: Toy{Name: "bike"}, OtherToy: Toy{Name: "treadmill"}}

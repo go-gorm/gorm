@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	
+
 	"gorm.io/gorm/clause"
 )
 
@@ -34,4 +34,3 @@ func TestWhereCloneCorruption(t *testing.T) {
 		})
 	}
 }
-
