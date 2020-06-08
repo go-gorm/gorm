@@ -53,38 +53,28 @@ func BuildQuerySQL(db *gorm.DB) {
 	}
 
 	if len(db.Statement.Selects) > 0 {
-		for _, name := range db.Statement.Selects {
+		clauseSelect.Columns = make([]clause.Column, len(db.Statement.Selects))
+		for idx, name := range db.Statement.Selects {
 			if db.Statement.Schema == nil {
-				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-					Name: name,
-					Raw:  true,
-				})
+				clauseSelect.Columns[idx] = clause.Column{Name: name, Raw: true}
 			} else if f := db.Statement.Schema.LookUpField(name); f != nil {
-				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-					Name: f.DBName,
-				})
+				clauseSelect.Columns[idx] = clause.Column{Name: f.DBName}
 			} else {
-				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-					Name: name,
-					Raw:  true,
-				})
+				clauseSelect.Columns[idx] = clause.Column{Name: name, Raw: true}
 			}
 		}
 	}
 
 	// inline joins
 	if len(db.Statement.Joins) != 0 {
-		joins := []clause.Join{}
-
 		if len(db.Statement.Selects) == 0 {
-			for _, dbName := range db.Statement.Schema.DBNames {
-				clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-					Table: db.Statement.Table,
-					Name:  dbName,
-				})
+			clauseSelect.Columns = make([]clause.Column, len(db.Statement.Schema.DBNames))
+			for idx, dbName := range db.Statement.Schema.DBNames {
+				clauseSelect.Columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
 			}
 		}
 
+		joins := []clause.Join{}
 		for name, conds := range db.Statement.Joins {
 			if db.Statement.Schema == nil {
 				joins = append(joins, clause.Join{
@@ -101,24 +91,24 @@ func BuildQuerySQL(db *gorm.DB) {
 					})
 				}
 
-				var exprs []clause.Expression
-				for _, ref := range relation.References {
+				exprs := make([]clause.Expression, len(relation.References))
+				for idx, ref := range relation.References {
 					if ref.OwnPrimaryKey {
-						exprs = append(exprs, clause.Eq{
+						exprs[idx] = clause.Eq{
 							Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.PrimaryKey.DBName},
 							Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-						})
+						}
 					} else {
 						if ref.PrimaryValue == "" {
-							exprs = append(exprs, clause.Eq{
+							exprs[idx] = clause.Eq{
 								Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.ForeignKey.DBName},
 								Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
-							})
+							}
 						} else {
-							exprs = append(exprs, clause.Eq{
+							exprs[idx] = clause.Eq{
 								Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
 								Value:  ref.PrimaryValue,
-							})
+							}
 						}
 					}
 				}
@@ -146,42 +136,40 @@ func BuildQuerySQL(db *gorm.DB) {
 }
 
 func Preload(db *gorm.DB) {
-	if db.Error == nil {
-		if len(db.Statement.Preloads) > 0 {
-			preloadMap := map[string][]string{}
-			for name := range db.Statement.Preloads {
-				preloadFields := strings.Split(name, ".")
-				for idx := range preloadFields {
-					preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
+	if db.Error == nil && len(db.Statement.Preloads) > 0 {
+		preloadMap := map[string][]string{}
+		for name := range db.Statement.Preloads {
+			preloadFields := strings.Split(name, ".")
+			for idx := range preloadFields {
+				preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
+			}
+		}
+
+		preloadNames := make([]string, len(preloadMap))
+		idx := 0
+		for key := range preloadMap {
+			preloadNames[idx] = key
+			idx++
+		}
+		sort.Strings(preloadNames)
+
+		for _, name := range preloadNames {
+			var (
+				curSchema     = db.Statement.Schema
+				preloadFields = preloadMap[name]
+				rels          = make([]*schema.Relationship, len(preloadFields))
+			)
+
+			for idx, preloadField := range preloadFields {
+				if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
+					rels[idx] = rel
+					curSchema = rel.FieldSchema
+				} else {
+					db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
 				}
 			}
 
-			preloadNames := make([]string, len(preloadMap))
-			idx := 0
-			for key := range preloadMap {
-				preloadNames[idx] = key
-				idx++
-			}
-			sort.Strings(preloadNames)
-
-			for _, name := range preloadNames {
-				var (
-					curSchema     = db.Statement.Schema
-					preloadFields = preloadMap[name]
-					rels          = make([]*schema.Relationship, len(preloadFields))
-				)
-
-				for idx, preloadField := range preloadFields {
-					if rel := curSchema.Relationships.Relations[preloadField]; rel != nil {
-						rels[idx] = rel
-						curSchema = rel.FieldSchema
-					} else {
-						db.AddError(fmt.Errorf("%v: %w", name, gorm.ErrUnsupportedRelation))
-					}
-				}
-
-				preload(db, rels, db.Statement.Preloads[name])
-			}
+			preload(db, rels, db.Statement.Preloads[name])
 		}
 	}
 }

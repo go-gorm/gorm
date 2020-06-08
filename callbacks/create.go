@@ -192,19 +192,22 @@ func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
 		return ConvertSliceOfMapToValuesForCreate(stmt, value)
 	default:
 		var (
-			values                    = clause.Values{}
+			values                    = clause.Values{Columns: make([]clause.Column, len(stmt.Schema.DBNames))}
 			selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
 			curTime                   = stmt.DB.NowFunc()
 			isZero                    = false
 		)
 
+		var columns int
 		for _, db := range stmt.Schema.DBNames {
 			if field := stmt.Schema.FieldsByDBName[db]; !field.HasDefaultValue || field.DefaultValueInterface != nil {
 				if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
-					values.Columns = append(values.Columns, clause.Column{Name: db})
+					values.Columns[columns] = clause.Column{Name: db}
+					columns++
 				}
 			}
 		}
+		values.Columns = values.Columns[:columns]
 
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:

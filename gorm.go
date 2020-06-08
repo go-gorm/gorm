@@ -205,51 +205,9 @@ func (db *DB) InstanceGet(key string) (interface{}, bool) {
 	return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 }
 
-func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
-	var (
-		tx                      = db.getInstance()
-		stmt                    = tx.Statement
-		modelSchema, joinSchema *schema.Schema
-	)
-
-	if err := stmt.Parse(model); err == nil {
-		modelSchema = stmt.Schema
-	} else {
-		return err
-	}
-
-	if err := stmt.Parse(joinTable); err == nil {
-		joinSchema = stmt.Schema
-	} else {
-		return err
-	}
-
-	if relation, ok := modelSchema.Relationships.Relations[field]; ok && relation.JoinTable != nil {
-		for _, ref := range relation.References {
-			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
-				f.DataType = ref.ForeignKey.DataType
-				ref.ForeignKey = f
-			} else {
-				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
-			}
-		}
-
-		relation.JoinTable = joinSchema
-	} else {
-		return fmt.Errorf("failed to found relation: %v", field)
-	}
-
-	return nil
-}
-
 // Callback returns callback manager
 func (db *DB) Callback() *callbacks {
 	return db.callbacks
-}
-
-// AutoMigrate run auto migration for given models
-func (db *DB) AutoMigrate(dst ...interface{}) error {
-	return db.Migrator().AutoMigrate(dst...)
 }
 
 // AddError add error to db
@@ -288,4 +246,41 @@ func (db *DB) getInstance() *DB {
 
 func Expr(expr string, args ...interface{}) clause.Expr {
 	return clause.Expr{SQL: expr, Vars: args}
+}
+
+func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
+	var (
+		tx                      = db.getInstance()
+		stmt                    = tx.Statement
+		modelSchema, joinSchema *schema.Schema
+	)
+
+	if err := stmt.Parse(model); err == nil {
+		modelSchema = stmt.Schema
+	} else {
+		return err
+	}
+
+	if err := stmt.Parse(joinTable); err == nil {
+		joinSchema = stmt.Schema
+	} else {
+		return err
+	}
+
+	if relation, ok := modelSchema.Relationships.Relations[field]; ok && relation.JoinTable != nil {
+		for _, ref := range relation.References {
+			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
+				f.DataType = ref.ForeignKey.DataType
+				ref.ForeignKey = f
+			} else {
+				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
+			}
+		}
+
+		relation.JoinTable = joinSchema
+	} else {
+		return fmt.Errorf("failed to found relation: %v", field)
+	}
+
+	return nil
 }

@@ -140,7 +140,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	case map[string]interface{}:
 		set = make([]clause.Assignment, 0, len(value))
 
-		var keys []string
+		keys := make([]string, 0, len(value))
 		for k := range value {
 			keys = append(keys, k)
 		}

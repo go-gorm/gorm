@@ -9,6 +9,11 @@ func (db *DB) Migrator() Migrator {
 	return db.Dialector.Migrator(db)
 }
 
+// AutoMigrate run auto migration for given models
+func (db *DB) AutoMigrate(dst ...interface{}) error {
+	return db.Migrator().AutoMigrate(dst...)
+}
+
 // ViewOption view option
 type ViewOption struct {
 	Replace     bool

@@ -71,20 +71,27 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	default:
 		switch db.Statement.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			reflectValueType := db.Statement.ReflectValue.Type().Elem()
-			isPtr := reflectValueType.Kind() == reflect.Ptr
+			var (
+				reflectValueType = db.Statement.ReflectValue.Type().Elem()
+				isPtr            = reflectValueType.Kind() == reflect.Ptr
+				fields           = make([]*schema.Field, len(columns))
+				joinFields       [][2]*schema.Field
+			)
+
 			if isPtr {
 				reflectValueType = reflectValueType.Elem()
 			}
 
 			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 0))
-			fields := make([]*schema.Field, len(columns))
-			joinFields := make([][2]*schema.Field, len(columns))
 
 			for idx, column := range columns {
 				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
 					fields[idx] = field
 				} else if names := strings.Split(column, "__"); len(names) > 1 {
+					if len(joinFields) == 0 {
+						joinFields = make([][2]*schema.Field, len(columns))
+					}
+
 					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
 						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
 							fields[idx] = field
@@ -98,26 +105,26 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 			}
 
+			// pluck values into slice of data
+			isPluck := len(fields) == 1 && reflectValueType.Kind() != reflect.Struct
 			for initialized || rows.Next() {
 				initialized = false
 				db.RowsAffected++
 
 				elem := reflect.New(reflectValueType).Elem()
-				if reflectValueType.Kind() != reflect.Struct && len(fields) == 1 {
-					// pluck
-					values[0] = elem.Addr().Interface()
-					db.AddError(rows.Scan(values...))
+				if isPluck {
+					db.AddError(rows.Scan(elem.Addr().Interface()))
 				} else {
 					for idx, field := range fields {
 						if field != nil {
-							values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
 						}
 					}
 
 					db.AddError(rows.Scan(values...))
 
 					for idx, field := range fields {
-						if joinFields[idx][0] != nil {
+						if len(joinFields) != 0 && joinFields[idx][0] != nil {
 							value := reflect.ValueOf(values[idx]).Elem()
 							relValue := joinFields[idx][0].ReflectValueOf(elem)
 
@@ -145,11 +152,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			if initialized || rows.Next() {
 				for idx, column := range columns {
 					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
-						values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+						values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
 								continue
 							}
 						}

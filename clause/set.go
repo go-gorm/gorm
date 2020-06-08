@@ -38,20 +38,15 @@ func (set Set) MergeClause(clause *Clause) {
 }
 
 func Assignments(values map[string]interface{}) Set {
-	var keys []string
-	var assignments []Assignment
-
+	keys := make([]string, 0, len(values))
 	for key := range values {
 		keys = append(keys, key)
 	}
-
 	sort.Strings(keys)
 
-	for _, key := range keys {
-		assignments = append(assignments, Assignment{
-			Column: Column{Name: key},
-			Value:  values[key],
-		})
+	assignments := make([]Assignment, len(keys))
+	for idx, key := range keys {
+		assignments[idx] = Assignment{Column: Column{Name: key}, Value: values[key]}
 	}
 	return assignments
 }

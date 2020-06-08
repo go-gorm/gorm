@@ -63,7 +63,7 @@ func (stmt *Statement) WriteQuoted(value interface{}) error {
 }
 
 // QuoteTo write quoted value to writer
-func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
+func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	switch v := field.(type) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
@@ -109,7 +109,7 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	case []string:
 		writer.WriteByte('(')
 		for idx, d := range v {
-			if idx != 0 {
+			if idx > 0 {
 				writer.WriteString(",")
 			}
 			stmt.DB.Dialector.QuoteTo(writer, d)
@@ -121,7 +121,7 @@ func (stmt Statement) QuoteTo(writer clause.Writer, field interface{}) {
 }
 
 // Quote returns quoted value
-func (stmt Statement) Quote(field interface{}) string {
+func (stmt *Statement) Quote(field interface{}) string {
 	var builder strings.Builder
 	stmt.QuoteTo(&builder, field)
 	return builder.String()
@@ -219,7 +219,7 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 }
 
 // BuildCondition build condition
-func (stmt Statement) BuildCondition(query interface{}, args ...interface{}) (conds []clause.Expression) {
+func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (conds []clause.Expression) {
 	if sql, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
 		if _, err := strconv.Atoi(sql); err != nil {
