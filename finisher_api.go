@@ -22,13 +22,14 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = value
 
-	if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
-		where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
-		reflectValue := reflect.Indirect(reflect.ValueOf(value))
-		switch reflectValue.Kind() {
-		case reflect.Slice, reflect.Array:
-			tx.AddError(ErrPtrStructSupported)
-		case reflect.Struct:
+	reflectValue := reflect.Indirect(reflect.ValueOf(value))
+	switch reflectValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		tx.Statement.UpdatingColumn = true
+		tx.callbacks.Create().Execute(tx)
+	case reflect.Struct:
+		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
+			where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
 			for idx, pf := range tx.Statement.Schema.PrimaryFields {
 				if pv, isZero := pf.ValueOf(reflectValue); isZero {
 					tx.callbacks.Create().Execute(tx)
@@ -40,12 +41,16 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 			tx.Statement.AddClause(where)
 		}
+
+		fallthrough
+	default:
+		if len(tx.Statement.Selects) == 0 {
+			tx.Statement.Selects = append(tx.Statement.Selects, "*")
+		}
+
+		tx.callbacks.Update().Execute(tx)
 	}
 
-	if len(tx.Statement.Selects) == 0 {
-		tx.Statement.Selects = append(tx.Statement.Selects, "*")
-	}
-	tx.callbacks.Update().Execute(tx)
 	return
 }
 

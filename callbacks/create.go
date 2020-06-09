@@ -185,19 +185,19 @@ func AfterCreate(db *gorm.DB) {
 }
 
 // ConvertToCreateValues convert to create values
-func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
+func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
-		return ConvertMapToValuesForCreate(stmt, value)
+		values = ConvertMapToValuesForCreate(stmt, value)
 	case []map[string]interface{}:
-		return ConvertSliceOfMapToValuesForCreate(stmt, value)
+		values = ConvertSliceOfMapToValuesForCreate(stmt, value)
 	default:
 		var (
-			values                    = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
 			selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
 			curTime                   = stmt.DB.NowFunc()
 			isZero                    bool
 		)
+		values = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
 
 		for _, db := range stmt.Schema.DBNames {
 			if field := stmt.Schema.FieldsByDBName[db]; !field.HasDefaultValue || field.DefaultValueInterface != nil {
@@ -274,7 +274,30 @@ func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
 				}
 			}
 		}
-
-		return values
 	}
+
+	if stmt.UpdatingColumn {
+		if stmt.Schema != nil {
+			columns := make([]string, 0, len(stmt.Schema.DBNames)-1)
+			for _, name := range stmt.Schema.DBNames {
+				if field := stmt.Schema.LookUpField(name); field != nil {
+					if !field.PrimaryKey && !field.HasDefaultValue && field.AutoCreateTime == 0 {
+						columns = append(columns, name)
+					}
+				}
+			}
+
+			onConflict := clause.OnConflict{
+				Columns:   make([]clause.Column, len(stmt.Schema.PrimaryFieldDBNames)),
+				DoUpdates: clause.AssignmentColumns(columns),
+			}
+
+			for idx, field := range stmt.Schema.PrimaryFields {
+				onConflict.Columns[idx] = clause.Column{Name: field.DBName}
+			}
+			stmt.AddClause(onConflict)
+		}
+	}
+
+	return values
 }

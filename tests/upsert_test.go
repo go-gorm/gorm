@@ -90,6 +90,23 @@ func TestUpsertSlice(t *testing.T) {
 	}
 }
 
+func TestUpsertWithSave(t *testing.T) {
+	langs := []Language{
+		{Code: "upsert-save-1", Name: "Upsert-save-1"},
+		{Code: "upsert-save-2", Name: "Upsert-save-2"},
+	}
+	if err := DB.Save(&langs).Error; err != nil {
+		t.Errorf("Failed to create, got error %v", err)
+	}
+
+	for _, lang := range langs {
+		var result Language
+		if err := DB.First(&result, "code = ?", lang.Code).Error; err != nil {
+			t.Errorf("Failed to query lang, got error %v", err)
+		}
+	}
+}
+
 func TestFindOrInitialize(t *testing.T) {
 	var user1, user2, user3, user4, user5, user6 User
 	if err := DB.Where(&User{Name: "find or init", Age: 33}).FirstOrInit(&user1).Error; err != nil {
