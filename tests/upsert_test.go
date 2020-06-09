@@ -65,6 +65,29 @@ func TestUpsertSlice(t *testing.T) {
 	} else if len(langs3) != 3 {
 		t.Errorf("should only find only 3 languages, but got %+v", langs3)
 	}
+
+	for idx, lang := range langs {
+		lang.Name = lang.Name + "_new"
+		langs[idx] = lang
+	}
+
+	if err := DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "code"}},
+		DoUpdates: clause.AssignmentColumns([]string{"name"}),
+	}).Create(&langs).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	for _, lang := range langs {
+		var results []Language
+		if err := DB.Find(&results, "code = ?", lang.Code).Error; err != nil {
+			t.Errorf("no error should happen when find languages with code, but got %v", err)
+		} else if len(results) != 1 {
+			t.Errorf("should only find only 1 languages, but got %+v", langs)
+		} else if results[0].Name != lang.Name {
+			t.Errorf("should update name on conflict, but got name %+v", results[0].Name)
+		}
+	}
 }
 
 func TestFindOrInitialize(t *testing.T) {

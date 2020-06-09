@@ -50,3 +50,11 @@ func Assignments(values map[string]interface{}) Set {
 	}
 	return assignments
 }
+
+func AssignmentColumns(values []string) Set {
+	assignments := make([]Assignment, len(values))
+	for idx, value := range values {
+		assignments[idx] = Assignment{Column: Column{Name: value}, Value: Column{Table: "excluded", Name: value}}
+	}
+	return assignments
+}
