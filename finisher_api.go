@@ -289,16 +289,16 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 				column = f.DBName
 			}
 		}
-
-		tx.Statement.AddClauseIfNotExists(clause.Select{
-			Distinct: tx.Statement.Distinct,
-			Columns:  []clause.Column{{Name: column}},
-		})
-		tx.Statement.Dest = dest
-		tx.callbacks.Query().Execute(tx)
-	} else {
+	} else if tx.Statement.Table == "" {
 		tx.AddError(ErrorModelValueRequired)
 	}
+
+	tx.Statement.AddClauseIfNotExists(clause.Select{
+		Distinct: tx.Statement.Distinct,
+		Columns:  []clause.Column{{Name: column}},
+	})
+	tx.Statement.Dest = dest
+	tx.callbacks.Query().Execute(tx)
 	return
 }
 

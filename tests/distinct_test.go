@@ -21,7 +21,7 @@ func TestDistinct(t *testing.T) {
 	}
 
 	var names []string
-	DB.Model(&User{}).Where("name like ?", "distinct%").Order("name").Pluck("Name", &names)
+	DB.Table("users").Where("name like ?", "distinct%").Order("name").Pluck("name", &names)
 	AssertEqual(t, names, []string{"distinct", "distinct", "distinct", "distinct-2", "distinct-3"})
 
 	var names1 []string

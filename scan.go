@@ -84,24 +84,26 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 0))
 
-			for idx, column := range columns {
-				if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
-					fields[idx] = field
-				} else if names := strings.Split(column, "__"); len(names) > 1 {
-					if len(joinFields) == 0 {
-						joinFields = make([][2]*schema.Field, len(columns))
-					}
-
-					if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
-						if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-							fields[idx] = field
-							joinFields[idx] = [2]*schema.Field{rel.Field, field}
-							continue
+			if db.Statement.Schema != nil {
+				for idx, column := range columns {
+					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
+						fields[idx] = field
+					} else if names := strings.Split(column, "__"); len(names) > 1 {
+						if len(joinFields) == 0 {
+							joinFields = make([][2]*schema.Field, len(columns))
 						}
+
+						if rel, ok := db.Statement.Schema.Relationships.Relations[names[0]]; ok {
+							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+								fields[idx] = field
+								joinFields[idx] = [2]*schema.Field{rel.Field, field}
+								continue
+							}
+						}
+						values[idx] = &sql.RawBytes{}
+					} else {
+						values[idx] = &sql.RawBytes{}
 					}
-					values[idx] = &sql.RawBytes{}
-				} else {
-					values[idx] = &sql.RawBytes{}
 				}
 			}
 
