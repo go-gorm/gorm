@@ -2,7 +2,7 @@
 
 The fantastic ORM library for Golang, aims to be developer friendly.
 
-[![go report card](https://goreportcard.com/badge/gorm.io/gorm "go report card")](https://goreportcard.com/report/gorm.io/gorm)
+[![go report card](https://goreportcard.com/badge/github.com/go-gorm/gorm "go report card")](https://goreportcard.com/report/github.com/go-gorm/gorm)
 [![wercker status](https://app.wercker.com/status/55136410c77335a6289ebd58b2f70125/s/master "wercker status")](https://app.wercker.com/project/byKey/55136410c77335a6289ebd58b2f70125)
 [![Join the chat at https://gitter.im/jinzhu/gorm](https://img.shields.io/gitter/room/jinzhu/gorm.svg)](https://gitter.im/jinzhu/gorm?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Open Collective Backer](https://opencollective.com/gorm/tiers/backer/badge.svg?label=backer&color=brightgreen "Open Collective Backer")](https://opencollective.com/gorm)

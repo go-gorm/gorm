@@ -196,7 +196,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) clause.Values {
 			values                    = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
 			selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
 			curTime                   = stmt.DB.NowFunc()
-			isZero                    = false
+			isZero                    bool
 		)
 
 		for _, db := range stmt.Schema.DBNames {
