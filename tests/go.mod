@@ -7,7 +7,7 @@ require (
 	gorm.io/driver/mysql v0.0.0-20200609004954-b8310c61c3f2
 	gorm.io/driver/postgres v0.0.0-20200602015520-15fcc29eb286
 	gorm.io/driver/sqlite v1.0.0
-	gorm.io/driver/sqlserver v0.0.0-20200609005334-d550a0be1cfb
+	gorm.io/driver/sqlserver v0.0.0-20200610030356-9c9aea39e1c1
 	gorm.io/gorm v0.0.0-00010101000000-000000000000
 )
 
