@@ -186,7 +186,7 @@ func (mssql) DefaultValueStr() string {
 
 func (mssql) FormatDate(e *expr, format string) *expr {
 	mapping := map[rune]string{
-		'y': "YYYY",
+		'y': "yyyy",
 		'm': "MM",
 		'd': "dd",
 		'h': "HH",
