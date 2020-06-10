@@ -278,11 +278,11 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 	if stmt.UpdatingColumn {
 		if stmt.Schema != nil {
-			columns := make([]string, 0, len(stmt.Schema.DBNames)-1)
-			for _, name := range stmt.Schema.DBNames {
-				if field := stmt.Schema.LookUpField(name); field != nil {
+			columns := make([]string, 0, len(values.Columns)-1)
+			for _, column := range values.Columns {
+				if field := stmt.Schema.LookUpField(column.Name); field != nil {
 					if !field.PrimaryKey && !field.HasDefaultValue && field.AutoCreateTime == 0 {
-						columns = append(columns, name)
+						columns = append(columns, column.Name)
 					}
 				}
 			}

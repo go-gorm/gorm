@@ -95,6 +95,7 @@ func TestUpsertWithSave(t *testing.T) {
 		{Code: "upsert-save-1", Name: "Upsert-save-1"},
 		{Code: "upsert-save-2", Name: "Upsert-save-2"},
 	}
+
 	if err := DB.Save(&langs).Error; err != nil {
 		t.Errorf("Failed to create, got error %v", err)
 	}
@@ -103,8 +104,52 @@ func TestUpsertWithSave(t *testing.T) {
 		var result Language
 		if err := DB.First(&result, "code = ?", lang.Code).Error; err != nil {
 			t.Errorf("Failed to query lang, got error %v", err)
+		} else {
+			AssertEqual(t, result, lang)
 		}
 	}
+
+	for idx, lang := range langs {
+		lang.Name += "_new"
+		langs[idx] = lang
+	}
+
+	if err := DB.Save(&langs).Error; err != nil {
+		t.Errorf("Failed to upsert, got error %v", err)
+	}
+
+	for _, lang := range langs {
+		var result Language
+		if err := DB.First(&result, "code = ?", lang.Code).Error; err != nil {
+			t.Errorf("Failed to query lang, got error %v", err)
+		} else {
+			AssertEqual(t, result, lang)
+		}
+	}
+
+	// lang := Language{Code: "upsert-save-3", Name: "Upsert-save-3"}
+	// if err := DB.Save(&lang).Error; err != nil {
+	// 	t.Errorf("Failed to create, got error %v", err)
+	// }
+
+	// var result Language
+	// if err := DB.First(&result, "code = ?", lang.Code).Error; err != nil {
+	// 	t.Errorf("Failed to query lang, got error %v", err)
+	// } else {
+	// 	AssertEqual(t, result, lang)
+	// }
+
+	// lang.Name += "_new"
+	// if err := DB.Save(&lang).Error; err != nil {
+	// 	t.Errorf("Failed to create, got error %v", err)
+	// }
+
+	// var result2 Language
+	// if err := DB.First(&result2, "code = ?", lang.Code).Error; err != nil {
+	// 	t.Errorf("Failed to query lang, got error %v", err)
+	// } else {
+	// 	AssertEqual(t, result2, lang)
+	// }
 }
 
 func TestFindOrInitialize(t *testing.T) {
