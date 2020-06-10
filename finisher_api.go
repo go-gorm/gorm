@@ -106,6 +106,30 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	return
 }
 
+// FindInBatches find records in batches
+func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) (tx *DB) {
+	tx = db.Session(&Session{WithConditions: true})
+	rowsAffected := int64(0)
+	batch := 0
+
+	for {
+		result := tx.Limit(batchSize).Offset(batch * batchSize).Find(dest)
+		rowsAffected += result.RowsAffected
+		batch++
+
+		if result.Error == nil && result.RowsAffected != 0 {
+			tx.AddError(fc(result, batch))
+		}
+
+		if tx.Error != nil || int(result.RowsAffected) < batchSize {
+			break
+		}
+	}
+
+	tx.RowsAffected = rowsAffected
+	return
+}
+
 func (tx *DB) assignExprsToValue(exprs []clause.Expression) {
 	for _, expr := range exprs {
 		if eq, ok := expr.(clause.Eq); ok {

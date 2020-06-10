@@ -102,6 +102,44 @@ func TestFind(t *testing.T) {
 	})
 }
 
+func TestFindInBatches(t *testing.T) {
+	var users = []User{
+		*GetUser("find_in_batches", Config{}),
+		*GetUser("find_in_batches", Config{}),
+		*GetUser("find_in_batches", Config{}),
+		*GetUser("find_in_batches", Config{}),
+		*GetUser("find_in_batches", Config{}),
+		*GetUser("find_in_batches", Config{}),
+	}
+
+	DB.Create(&users)
+
+	var (
+		results    []User
+		totalBatch int
+	)
+
+	if result := DB.Where("name = ?", users[0].Name).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
+		totalBatch += batch
+
+		if tx.RowsAffected != 2 {
+			t.Errorf("Incorrect affected rows, expects: 2, got %v", tx.RowsAffected)
+		}
+
+		if len(results) != 2 {
+			t.Errorf("Incorrect users length, expects: 2, got %v", len(results))
+		}
+
+		return nil
+	}); result.Error != nil || result.RowsAffected != 6 {
+		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	if totalBatch != 6 {
+		t.Errorf("incorrect total batch, expects: %v, got %v", 6, totalBatch)
+	}
+}
+
 func TestFillSmallerStruct(t *testing.T) {
 	user := User{Name: "SmallerUser", Age: 100}
 	DB.Save(&user)
