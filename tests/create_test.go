@@ -190,7 +190,7 @@ func TestPolymorphicHasOne(t *testing.T) {
 	})
 }
 
-func TestCreateEmptyStrut(t *testing.T) {
+func TestCreateEmptyStruct(t *testing.T) {
 	type EmptyStruct struct {
 		ID uint
 	}
@@ -244,7 +244,7 @@ func TestCreateWithNowFuncOverride(t *testing.T) {
 	AssertEqual(t, newUser.UpdatedAt, curTime)
 }
 
-func TestCreateWithNoGORMPrimayKey(t *testing.T) {
+func TestCreateWithNoGORMPrimaryKey(t *testing.T) {
 	type JoinTable struct {
 		UserID   uint
 		FriendID uint
