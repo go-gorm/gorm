@@ -203,6 +203,11 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			createTableSQL = strings.TrimSuffix(createTableSQL, ",")
 
 			createTableSQL += ")"
+
+			if tableOption, ok := m.DB.Get("gorm:table_options"); ok {
+				createTableSQL += fmt.Sprint(tableOption)
+			}
+
 			return tx.Exec(createTableSQL, values...).Error
 		}); err != nil {
 			return err
