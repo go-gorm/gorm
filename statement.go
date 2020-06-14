@@ -202,12 +202,11 @@ func (stmt *Statement) AddClause(v clause.Interface) {
 	if optimizer, ok := v.(StatementModifier); ok {
 		optimizer.ModifyStatement(stmt)
 	} else {
-		c, ok := stmt.Clauses[v.Name()]
-		if !ok {
-			c.Name = v.Name()
-		}
+		name := v.Name()
+		c, _ := stmt.Clauses[name]
+		c.Name = name
 		v.MergeClause(&c)
-		stmt.Clauses[v.Name()] = c
+		stmt.Clauses[name] = c
 	}
 }
 

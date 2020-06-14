@@ -48,7 +48,7 @@ func (c Clause) Build(builder Builder) {
 		}
 
 		if c.AfterNameExpression != nil {
-			c.BeforeExpression.Build(builder)
+			c.AfterNameExpression.Build(builder)
 			builder.WriteByte(' ')
 		}
 

@@ -27,6 +27,8 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	for _, cond := range conds {
 		if c, ok := cond.(clause.Interface); ok {
 			tx.Statement.AddClause(c)
+		} else if optimizer, ok := cond.(StatementModifier); ok {
+			optimizer.ModifyStatement(tx.Statement)
 		} else {
 			whereConds = append(whereConds, cond)
 		}
