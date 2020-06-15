@@ -216,7 +216,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	return db
 }
 
-// Update update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
+// Update update attributes with callbacks, refer: https://gorm.io/docs/update.html#Update-Changed-Fields
 func (db *DB) Update(column string, value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = map[string]interface{}{column: value}
@@ -224,7 +224,7 @@ func (db *DB) Update(column string, value interface{}) (tx *DB) {
 	return
 }
 
-// Updates update attributes with callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
+// Updates update attributes with callbacks, refer: https://gorm.io/docs/update.html#Update-Changed-Fields
 func (db *DB) Updates(values interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = values
