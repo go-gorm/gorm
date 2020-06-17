@@ -1,0 +1,73 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  # Label of the container job
+  containerTest:
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Docker Hub image that `container-job` executes in
+    #container: node:10.18-jessie
+
+    # Service containers to run with `container-job`
+    services:
+      # start postgres
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_USER: gorm
+          POSTGRES_DB: gorm
+          TZ: Asia/Shanghai
+
+        ports:
+          - 9920:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # start mysql
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+
+        ports:
+          - 9910:3306
+      # start mssql
+      mssql:
+        image: mcmoe/mssqldocker:latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: LoremIpsum86
+          MSSQL_DB: gorm
+          MSSQL_USER: gorm
+          MSSQL_PASSWORD: LoremIpsum86
+        ports:
+          - 9930:1433
+    steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.13
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: show ports
+      run: netstat -lntp
+
+    - name: run tests
+      run: cd tests && ./tests_all.sh
