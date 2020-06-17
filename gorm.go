@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -218,6 +219,21 @@ func (db *DB) AddError(err error) error {
 		db.Error = fmt.Errorf("%v; %w", db.Error, err)
 	}
 	return db.Error
+}
+
+// DB returns `*sql.DB`
+func (db *DB) DB() (*sql.DB, error) {
+	connPool := db.ConnPool
+
+	if stmtDB, ok := connPool.(*PreparedStmtDB); ok {
+		connPool = stmtDB.ConnPool
+	}
+
+	if sqldb, ok := connPool.(*sql.DB); ok {
+		return sqldb, nil
+	}
+
+	return nil, errors.New("invalid db")
 }
 
 func (db *DB) getInstance() *DB {

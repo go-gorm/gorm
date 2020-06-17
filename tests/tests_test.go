@@ -24,6 +24,15 @@ func init() {
 		log.Printf("failed to connect database, got error %v\n", err)
 		os.Exit(1)
 	} else {
+		sqlDB, err := DB.DB()
+		if err == nil {
+			err = sqlDB.Ping()
+		}
+
+		if err != nil {
+			log.Printf("failed to connect database, got error %v\n", err)
+		}
+
 		RunMigrations()
 	}
 }
