@@ -44,10 +44,6 @@ func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error
 }
 
 func (m Migrator) DataTypeOf(field *schema.Field) string {
-	if field.DBDataType != "" {
-		return field.DBDataType
-	}
-
 	fieldValue := reflect.New(field.IndirectFieldType)
 	if dataTyper, ok := fieldValue.Interface().(GormDataTypeInterface); ok {
 		if dataType := dataTyper.GormDBDataType(m.DB, field); dataType != "" {
@@ -155,7 +151,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.FieldsByDBName[dbName]
 				createTableSQL += fmt.Sprintf("? ?")
-				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(field.DBDataType), "PRIMARY KEY")
+				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
 				values = append(values, clause.Column{Name: dbName}, m.FullDataTypeOf(field))
 				createTableSQL += ","
 			}

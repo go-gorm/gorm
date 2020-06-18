@@ -38,7 +38,6 @@ type Field struct {
 	DBName                string
 	BindNames             []string
 	DataType              DataType
-	DBDataType            string
 	PrimaryKey            bool
 	AutoIncrement         bool
 	Creatable             bool
@@ -104,7 +103,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	// if field is valuer, used its value or first fields as data type
-	if valuer, isValueOf := fieldValue.Interface().(driver.Valuer); isValueOf {
+	valuer, isValuer := fieldValue.Interface().(driver.Valuer)
+	if isValuer {
 		var overrideFieldValue bool
 		if v, err := valuer.Value(); v != nil && err == nil {
 			overrideFieldValue = true
@@ -176,10 +176,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.Comment = val
 	}
 
-	if val, ok := field.TagSettings["TYPE"]; ok {
-		field.DBDataType = val
-	}
-
 	switch reflect.Indirect(fieldValue).Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
@@ -227,6 +223,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = DataType(dataTyper.GormDataType())
 	}
 
+	if val, ok := field.TagSettings["TYPE"]; ok {
+		field.DataType = DataType(val)
+	}
+
 	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
@@ -254,10 +254,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		case reflect.Int32, reflect.Uint32, reflect.Float32:
 			field.Size = 32
 		}
-	}
-
-	if field.DataType == "" && field.DBDataType != "" {
-		field.DataType = String
 	}
 
 	// setup permission
@@ -293,7 +289,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if _, ok := field.TagSettings["EMBEDDED"]; ok || fieldStruct.Anonymous {
+	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer) {
 		var err error
 		field.Creatable = false
 		field.Updatable = false

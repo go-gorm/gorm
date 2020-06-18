@@ -1,6 +1,9 @@
 package tests_test
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"testing"
 
 	"gorm.io/gorm"
@@ -100,5 +103,47 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 
 	if hnPost.Title != "embedded_pointer_type" {
 		t.Errorf("Should find correct value for embedded pointer type")
+	}
+}
+
+type Content struct {
+	Content interface{} `gorm:"type:string"`
+}
+
+func (c Content) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
+func (c *Content) Scan(src interface{}) error {
+	b, ok := src.([]byte)
+	if !ok {
+		return errors.New("Embedded.Scan byte assertion failed")
+	}
+
+	var value Content
+	if err := json.Unmarshal(b, &value); err != nil {
+		return err
+	}
+
+	*c = value
+
+	return nil
+}
+
+func TestEmbeddedScanValuer(t *testing.T) {
+	type HNPost struct {
+		gorm.Model
+		Content
+	}
+
+	DB.Migrator().DropTable(&HNPost{})
+	if err := DB.Migrator().AutoMigrate(&HNPost{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	hnPost := HNPost{Content: Content{Content: "hello world"}}
+
+	if err := DB.Create(&hnPost).Error; err != nil {
+		t.Errorf("Failed to create got error %v", err)
 	}
 }
