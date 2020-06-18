@@ -203,7 +203,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	case reflect.String:
 		field.DataType = String
-		if field.HasDefaultValue {
+		isFunc := strings.Contains(field.DefaultValue, "(") &&
+			strings.Contains(field.DefaultValue, ")")
+
+		if field.HasDefaultValue && !isFunc {
 			field.DefaultValue = strings.Trim(field.DefaultValue, "'")
 			field.DefaultValue = strings.Trim(field.DefaultValue, "\"")
 			field.DefaultValueInterface = field.DefaultValue
@@ -251,6 +254,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		case reflect.Int32, reflect.Uint32, reflect.Float32:
 			field.Size = 32
 		}
+	}
+
+	if field.DataType == "" && field.DBDataType != "" {
+		field.DataType = String
 	}
 
 	// setup permission

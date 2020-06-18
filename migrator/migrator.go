@@ -74,7 +74,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 	}
 
 	if field.HasDefaultValue && field.DefaultValue != "" {
-		if field.DataType == schema.String {
+		if field.DataType == schema.String && field.DefaultValueInterface != nil {
 			defaultStmt := &gorm.Statement{Vars: []interface{}{field.DefaultValue}}
 			m.Dialector.BindVarTo(defaultStmt, defaultStmt, field.DefaultValue)
 			expr.SQL += " DEFAULT " + m.Dialector.Explain(defaultStmt.SQL.String(), field.DefaultValue)
