@@ -214,7 +214,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.DataType = Time
 		}
 	case reflect.Array, reflect.Slice:
-		if fieldValue.Type().Elem() == reflect.TypeOf(uint8(0)) {
+		if reflect.Indirect(fieldValue).Type().Elem() == reflect.TypeOf(uint8(0)) {
 			field.DataType = Bytes
 		}
 	}

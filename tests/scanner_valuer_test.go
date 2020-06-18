@@ -17,7 +17,7 @@ import (
 func TestScannerValuer(t *testing.T) {
 	DB.Migrator().DropTable(&ScannerValuerStruct{})
 	if err := DB.Migrator().AutoMigrate(&ScannerValuerStruct{}); err != nil {
-		t.Errorf("no error should happen when migrate scanner, valuer struct")
+		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
 	data := ScannerValuerStruct{
@@ -28,6 +28,7 @@ func TestScannerValuer(t *testing.T) {
 		Height:   sql.NullFloat64{Float64: 1.8888, Valid: true},
 		Birthday: sql.NullTime{Time: time.Now(), Valid: true},
 		Password: EncryptedData("pass1"),
+		Bytes:    []byte("byte"),
 		Num:      18,
 		Strings:  StringsSlice{"a", "b", "c"},
 		Structs: StructsSlice{
@@ -38,16 +39,16 @@ func TestScannerValuer(t *testing.T) {
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
-		t.Errorf("No error should happened when create scanner valuer struct, but got %v", err)
+		t.Fatalf("No error should happened when create scanner valuer struct, but got %v", err)
 	}
 
 	var result ScannerValuerStruct
 
 	if err := DB.Find(&result).Error; err != nil {
-		t.Errorf("no error should happen when query scanner, valuer struct, but got %v", err)
+		t.Fatalf("no error should happen when query scanner, valuer struct, but got %v", err)
 	}
 
-	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Num", "Strings", "Structs")
+	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Bytes", "Num", "Strings", "Structs")
 }
 
 func TestScannerValuerWithFirstOrCreate(t *testing.T) {
@@ -130,6 +131,7 @@ type ScannerValuerStruct struct {
 	Height   sql.NullFloat64
 	Birthday sql.NullTime
 	Password EncryptedData
+	Bytes    []byte
 	Num      Num
 	Strings  StringsSlice
 	Structs  StructsSlice
