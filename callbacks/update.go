@@ -137,6 +137,32 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		updatingValue = updatingValue.Elem()
 	}
 
+	if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
+		switch stmt.ReflectValue.Kind() {
+		case reflect.Slice, reflect.Array:
+			var priamryKeyExprs []clause.Expression
+			for i := 0; i < stmt.ReflectValue.Len(); i++ {
+				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
+				var notZero bool
+				for idx, field := range stmt.Schema.PrimaryFields {
+					value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
+					exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
+					notZero = notZero || !isZero
+				}
+				if notZero {
+					priamryKeyExprs = append(priamryKeyExprs, clause.And(exprs...))
+				}
+			}
+			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(priamryKeyExprs...)}})
+		case reflect.Struct:
+			for _, field := range stmt.Schema.PrimaryFields {
+				if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+				}
+			}
+		}
+	}
+
 	switch value := updatingValue.Interface().(type) {
 	case map[string]interface{}:
 		set = make([]clause.Assignment, 0, len(value))
@@ -213,32 +239,6 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					if value, isZero := field.ValueOf(updatingValue); !isZero {
 						stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
 					}
-				}
-			}
-		}
-	}
-
-	if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
-		switch stmt.ReflectValue.Kind() {
-		case reflect.Slice, reflect.Array:
-			var priamryKeyExprs []clause.Expression
-			for i := 0; i < stmt.ReflectValue.Len(); i++ {
-				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
-				var notZero bool
-				for idx, field := range stmt.Schema.PrimaryFields {
-					value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
-					exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
-					notZero = notZero || !isZero
-				}
-				if notZero {
-					priamryKeyExprs = append(priamryKeyExprs, clause.And(exprs...))
-				}
-			}
-			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(priamryKeyExprs...)}})
-		case reflect.Struct:
-			for _, field := range stmt.Schema.PrimaryFields {
-				if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
-					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
 				}
 			}
 		}

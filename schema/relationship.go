@@ -85,6 +85,10 @@ func (schema *Schema) parseRelation(field *Field) {
 	}
 
 	if relation.Type == "has" {
+		if relation.FieldSchema != relation.Schema && relation.Polymorphic == nil {
+			relation.FieldSchema.Relationships.Relations["_"+relation.Schema.Name+"_"+relation.Name] = relation
+		}
+
 		switch field.IndirectFieldType.Kind() {
 		case reflect.Struct:
 			relation.Type = HasOne
@@ -384,18 +388,24 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 		Field:    rel.Field,
 		OnUpdate: settings["ONUPDATE"],
 		OnDelete: settings["ONDELETE"],
-		Schema:   rel.Schema,
 	}
 
 	for _, ref := range rel.References {
-		if ref.PrimaryKey != nil && !ref.OwnPrimaryKey {
+		if ref.PrimaryKey != nil {
 			constraint.ForeignKeys = append(constraint.ForeignKeys, ref.ForeignKey)
 			constraint.References = append(constraint.References, ref.PrimaryKey)
-			constraint.ReferenceSchema = ref.PrimaryKey.Schema
+
+			if ref.OwnPrimaryKey {
+				constraint.Schema = ref.ForeignKey.Schema
+				constraint.ReferenceSchema = rel.Schema
+			} else {
+				constraint.Schema = rel.Schema
+				constraint.ReferenceSchema = ref.PrimaryKey.Schema
+			}
 		}
 	}
 
-	if rel.JoinTable != nil || constraint.ReferenceSchema == nil {
+	if rel.JoinTable != nil {
 		return nil
 	}
 

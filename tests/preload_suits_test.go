@@ -433,8 +433,8 @@ func TestNestedPreload9(t *testing.T) {
 		Level1 struct {
 			ID         uint
 			Value      string
-			Level2ID   uint
-			Level2_1ID uint
+			Level2ID   *uint
+			Level2_1ID *uint
 			Level0s    []Level0 `json:",omitempty"`
 		}
 		Level2 struct {

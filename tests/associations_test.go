@@ -31,3 +31,112 @@ func TestInvalidAssociation(t *testing.T) {
 		t.Fatalf("should return errors for invalid association, but got nil")
 	}
 }
+
+func TestForeignKeyConstraints(t *testing.T) {
+	type Profile struct {
+		ID       uint
+		Name     string
+		MemberID uint
+	}
+
+	type Member struct {
+		ID      uint
+		Refer   uint `gorm:"unique_index"`
+		Name    string
+		Profile Profile `gorm:"Constraint:OnUpdate:CASCADE,OnDelete:CASCADE;FOREIGNKEY:MemberID;References:Refer"`
+	}
+
+	DB.Migrator().DropTable(&Profile{}, &Member{})
+
+	if err := DB.AutoMigrate(&Profile{}, &Member{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+
+	member := Member{Refer: 1, Name: "foreign_key_constraints", Profile: Profile{Name: "my_profile"}}
+
+	DB.Create(&member)
+
+	var profile Profile
+	if err := DB.First(&profile, "id = ?", member.Profile.ID).Error; err != nil {
+		t.Fatalf("failed to find profile, got error: %v", err)
+	} else if profile.MemberID != member.ID {
+		t.Fatalf("member id is not equal: expects: %v, got: %v", member.ID, profile.MemberID)
+	}
+
+	member.Profile = Profile{}
+	DB.Model(&member).Update("Refer", 100)
+
+	var profile2 Profile
+	if err := DB.First(&profile2, "id = ?", profile.ID).Error; err != nil {
+		t.Fatalf("failed to find profile, got error: %v", err)
+	} else if profile2.MemberID != 100 {
+		t.Fatalf("member id is not equal: expects: %v, got: %v", 100, profile2.MemberID)
+	}
+
+	if r := DB.Delete(&member); r.Error != nil || r.RowsAffected != 1 {
+		t.Fatalf("Should delete member, got error: %v, affected: %v", r.Error, r.RowsAffected)
+	}
+
+	var result Member
+	if err := DB.First(&result, member.ID).Error; err == nil {
+		t.Fatalf("Should not find deleted member")
+	}
+
+	if err := DB.First(&profile2, profile.ID).Error; err == nil {
+		t.Fatalf("Should not find deleted profile")
+	}
+}
+
+func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
+	type Profile struct {
+		ID    uint
+		Name  string
+		Refer uint `gorm:"unique_index"`
+	}
+
+	type Member struct {
+		ID        uint
+		Name      string
+		ProfileID uint
+		Profile   Profile `gorm:"Constraint:OnUpdate:CASCADE,OnDelete:CASCADE;FOREIGNKEY:ProfileID;References:Refer"`
+	}
+
+	DB.Migrator().DropTable(&Profile{}, &Member{})
+
+	if err := DB.AutoMigrate(&Profile{}, &Member{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+
+	member := Member{Name: "foreign_key_constraints_belongs_to", Profile: Profile{Name: "my_profile_belongs_to", Refer: 1}}
+
+	DB.Create(&member)
+
+	var profile Profile
+	if err := DB.First(&profile, "id = ?", member.Profile.ID).Error; err != nil {
+		t.Fatalf("failed to find profile, got error: %v", err)
+	} else if profile.Refer != member.ProfileID {
+		t.Fatalf("member id is not equal: expects: %v, got: %v", profile.Refer, member.ProfileID)
+	}
+
+	DB.Model(&profile).Update("Refer", 100)
+
+	var member2 Member
+	if err := DB.First(&member2, "id = ?", member.ID).Error; err != nil {
+		t.Fatalf("failed to find member, got error: %v", err)
+	} else if member2.ProfileID != 100 {
+		t.Fatalf("member id is not equal: expects: %v, got: %v", 100, member2.ProfileID)
+	}
+
+	if r := DB.Delete(&profile); r.Error != nil || r.RowsAffected != 1 {
+		t.Fatalf("Should delete member, got error: %v, affected: %v", r.Error, r.RowsAffected)
+	}
+
+	var result Member
+	if err := DB.First(&result, member.ID).Error; err == nil {
+		t.Fatalf("Should not find deleted member")
+	}
+
+	if err := DB.First(&profile, profile.ID).Error; err == nil {
+		t.Fatalf("Should not find deleted profile")
+	}
+}

@@ -103,9 +103,11 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 				for _, rel := range stmt.Schema.Relationships.Relations {
 					if constraint := rel.ParseConstraint(); constraint != nil {
-						if !tx.Migrator().HasConstraint(value, constraint.Name) {
-							if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
-								return err
+						if constraint.Schema == stmt.Schema {
+							if !tx.Migrator().HasConstraint(value, constraint.Name) {
+								if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+									return err
+								}
 							}
 						}
 					}
@@ -177,9 +179,11 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, rel := range stmt.Schema.Relationships.Relations {
 				if constraint := rel.ParseConstraint(); constraint != nil {
-					sql, vars := buildConstraint(constraint)
-					createTableSQL += sql + ","
-					values = append(values, vars...)
+					if constraint.Schema == stmt.Schema {
+						sql, vars := buildConstraint(constraint)
+						createTableSQL += sql + ","
+						values = append(values, vars...)
+					}
 				}
 
 				// create join table
@@ -360,7 +364,7 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 	}
 
 	if constraint.OnUpdate != "" {
-		sql += " ON UPDATE  " + constraint.OnUpdate
+		sql += " ON UPDATE " + constraint.OnUpdate
 	}
 
 	var foreignKeys, references []interface{}
@@ -550,7 +554,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		dep.Parse(value)
 
 		for _, rel := range dep.Schema.Relationships.Relations {
-			if c := rel.ParseConstraint(); c != nil && c.Schema != c.ReferenceSchema {
+			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
 				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
 		}
