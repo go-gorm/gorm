@@ -4,6 +4,14 @@ if [[ $(pwd) == *"gorm/tests"* ]]; then
   cd ..
 fi
 
+if [ -d tests ]
+then
+  cd tests
+  cp go.mod go.mod.bak
+  sed '/gorm.io\/driver/d' go.mod.bak > go.mod
+  cd ..
+fi
+
 for dialect in "${dialects[@]}" ; do
   if [ "$GORM_DIALECT" = "" ] || [ "$GORM_DIALECT" = "${dialect}" ]
   then
@@ -35,3 +43,9 @@ for dialect in "${dialects[@]}" ; do
     fi
   fi
 done
+
+if [ -d tests ]
+then
+  cd tests
+  mv go.mod.bak go.mod
+fi
