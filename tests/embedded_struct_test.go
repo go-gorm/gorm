@@ -107,7 +107,7 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 }
 
 type Content struct {
-	Content interface{} `gorm:"type:string"`
+	Content interface{} `gorm:"type:String"`
 }
 
 func (c Content) Value() (driver.Value, error) {
