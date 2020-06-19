@@ -351,5 +351,10 @@ func (stmt *Statement) clone() *Statement {
 		newStmt.Joins[k] = j
 	}
 
+	stmt.Settings.Range(func(k, v interface{}) bool {
+		newStmt.Settings.Store(k, v)
+		return true
+	})
+
 	return newStmt
 }

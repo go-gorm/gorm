@@ -351,7 +351,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 		}
 	}()
 
-	err = fc(tx.Session(&Session{}))
+	err = fc(tx)
 
 	if err == nil {
 		err = tx.Commit().Error
@@ -364,7 +364,8 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 // Begin begins a transaction
 func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	var (
-		tx  = db.getInstance()
+		// clone statement
+		tx  = db.Session(&Session{WithConditions: true, Context: db.Statement.Context})
 		opt *sql.TxOptions
 		err error
 	)

@@ -7,7 +7,7 @@ import (
 func BeginTransaction(db *gorm.DB) {
 	if tx := db.Begin(); tx.Error == nil {
 		db.Statement.ConnPool = tx.Statement.ConnPool
-		tx.InstanceSet("gorm:started_transaction", true)
+		db.InstanceSet("gorm:started_transaction", true)
 	} else {
 		tx.Error = nil
 	}

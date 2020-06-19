@@ -20,6 +20,16 @@ func TestTransaction(t *testing.T) {
 		t.Fatalf("Should find saved record, but got %v", err)
 	}
 
+	user1 := *GetUser("transaction1-1", Config{})
+
+	if err := tx.Save(&user1).Error; err != nil {
+		t.Fatalf("No error should raise, but got %v", err)
+	}
+
+	if err := tx.First(&User{}, "name = ?", user1.Name).Error; err != nil {
+		t.Fatalf("Should find saved record, but got %v", err)
+	}
+
 	if sqlTx, ok := tx.Statement.ConnPool.(gorm.TxCommitter); !ok || sqlTx == nil {
 		t.Fatalf("Should return the underlying sql.Tx")
 	}
