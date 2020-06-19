@@ -27,6 +27,11 @@ type ConnPool interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
+type SavePointerDialectorInterface interface {
+	SavePoint(tx *DB, name string) error
+	RollbackTo(tx *DB, name string) error
+}
+
 type TxBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }

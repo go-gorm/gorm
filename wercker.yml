@@ -124,9 +124,3 @@ build:
                 name: test mssql
                 code: |
                     GORM_DIALECT=mssql GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@mssql:1433?database=gorm" ./tests/tests_all.sh
-
-        - script:
-                name: codecov
-                code: |
-                    go test -race -coverprofile=coverage.txt -covermode=atomic ./...
-                    bash <(curl -s https://codecov.io/bash)

@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -343,18 +344,33 @@ func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 // Transaction start a transaction as a block, return error will rollback, otherwise to commit.
 func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error) {
 	panicked := true
-	tx := db.Begin(opts...)
-	defer func() {
-		// Make sure to rollback when panic, Block error or Commit error
-		if panicked || err != nil {
-			tx.Rollback()
+
+	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
+		// nested transaction
+		db.SavePoint(fmt.Sprintf("sp%p", fc))
+		defer func() {
+			// Make sure to rollback when panic, Block error or Commit error
+			if panicked || err != nil {
+				db.RollbackTo(fmt.Sprintf("sp%p", fc))
+			}
+		}()
+
+		err = fc(db.Session(&Session{WithConditions: true}))
+	} else {
+		tx := db.Begin(opts...)
+
+		defer func() {
+			// Make sure to rollback when panic, Block error or Commit error
+			if panicked || err != nil {
+				tx.Rollback()
+			}
+		}()
+
+		err = fc(tx)
+
+		if err == nil {
+			err = tx.Commit().Error
 		}
-	}()
-
-	err = fc(tx)
-
-	if err == nil {
-		err = tx.Commit().Error
 	}
 
 	panicked = false
@@ -405,6 +421,24 @@ func (db *DB) Rollback() *DB {
 		db.AddError(committer.Rollback())
 	} else {
 		db.AddError(ErrInvalidTransaction)
+	}
+	return db
+}
+
+func (db *DB) SavePoint(name string) *DB {
+	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
+		savePointer.SavePoint(db, name)
+	} else {
+		db.AddError(ErrUnsupportedDriver)
+	}
+	return db
+}
+
+func (db *DB) RollbackTo(name string) *DB {
+	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
+		savePointer.RollbackTo(db, name)
+	} else {
+		db.AddError(ErrUnsupportedDriver)
 	}
 	return db
 }
