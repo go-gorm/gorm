@@ -66,7 +66,11 @@ func (and AndConditions) Build(builder Builder) {
 	}
 	for idx, c := range and.Exprs {
 		if idx > 0 {
-			builder.WriteString(" AND ")
+			if orConditions, ok := c.(OrConditions); ok && len(orConditions.Exprs) == 1 {
+				builder.WriteString(" OR ")
+			} else {
+				builder.WriteString(" AND ")
+			}
 		}
 		c.Build(builder)
 	}

@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -136,5 +137,29 @@ func TestDryRun(t *testing.T) {
 	stmt2 := dryRunDB.Find(&user, "id = ?", user.ID).Statement
 	if stmt2.SQL.String() == "" || len(stmt2.Vars) != 1 {
 		t.Errorf("Failed to generate sql, got %v", stmt2.SQL.String())
+	}
+}
+
+func TestGroupConditions(t *testing.T) {
+	type Pizza struct {
+		ID   uint
+		Name string
+		Size string
+	}
+	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
+
+	stmt := dryRunDB.Where(
+		DB.Where("pizza = ?", "pepperoni").Where(DB.Where("size = ?", "small").Or("size = ?", "medium")),
+	).Or(
+		DB.Where("pizza = ?", "hawaiian").Where("size = ?", "xlarge"),
+	).Find(&Pizza{}).Statement
+
+	execStmt := dryRunDB.Exec("WHERE (pizza = ? AND (size = ? OR size = ?)) OR (pizza = ? AND size = ?)", "pepperoni", "small", "medium", "hawaiian", "xlarge").Statement
+
+	result := DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	expects := DB.Dialector.Explain(execStmt.SQL.String(), execStmt.Vars...)
+
+	if !strings.HasSuffix(result, expects) {
+		t.Errorf("expects: %v, got %v", expects, result)
 	}
 }

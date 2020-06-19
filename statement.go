@@ -245,6 +245,14 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 		switch v := arg.(type) {
 		case clause.Expression:
 			conds = append(conds, v)
+		case *DB:
+			if cs, ok := v.Statement.Clauses["WHERE"]; ok {
+				if where, ok := cs.Expression.(clause.Where); ok {
+					conds = append(conds, clause.And(where.Exprs...))
+				} else if cs.Expression != nil {
+					conds = append(conds, cs.Expression)
+				}
+			}
 		case map[interface{}]interface{}:
 			for i, j := range v {
 				conds = append(conds, clause.Eq{Column: i, Value: j})

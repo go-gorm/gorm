@@ -53,6 +53,12 @@ func TestWhere(t *testing.T) {
 			}},
 			"SELECT * FROM `users` WHERE (`users`.`id` <> ? AND `age` <= ?) OR `name` <> ? AND (`score` <= ? OR `name` LIKE ?)", []interface{}{"1", 18, "jinzhu", 100, "%linus%"},
 		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{
+				Exprs: []clause.Expression{clause.And(clause.Eq{Column: "age", Value: 18}, clause.Or(clause.Neq{Column: "name", Value: "jinzhu"}))},
+			}},
+			"SELECT * FROM `users` WHERE (`age` = ? OR `name` <> ?)", []interface{}{18, "jinzhu"},
+		},
 	}
 
 	for idx, result := range results {
