@@ -9,6 +9,29 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+func TestPreloadWithAssociations(t *testing.T) {
+	var user = *GetUser("preload_with_associations", Config{
+		Account:   true,
+		Pets:      2,
+		Toys:      3,
+		Company:   true,
+		Manager:   true,
+		Team:      4,
+		Languages: 3,
+		Friends:   1,
+	})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	var user2 User
+	DB.Preload(clause.Associations).Find(&user2, "id = ?", user.ID)
+	CheckUser(t, user2, user)
+}
+
 func TestNestedPreload(t *testing.T) {
 	var user = *GetUser("nested_preload", Config{Pets: 2})
 

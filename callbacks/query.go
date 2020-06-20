@@ -140,9 +140,17 @@ func Preload(db *gorm.DB) {
 	if db.Error == nil && len(db.Statement.Preloads) > 0 {
 		preloadMap := map[string][]string{}
 		for name := range db.Statement.Preloads {
-			preloadFields := strings.Split(name, ".")
-			for idx := range preloadFields {
-				preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
+			if name == clause.Associations {
+				for _, rel := range db.Statement.Schema.Relationships.Relations {
+					if rel.Schema == db.Statement.Schema {
+						preloadMap[rel.Name] = []string{rel.Name}
+					}
+				}
+			} else {
+				preloadFields := strings.Split(name, ".")
+				for idx := range preloadFields {
+					preloadMap[strings.Join(preloadFields[:idx+1], ".")] = preloadFields[:idx+1]
+				}
 			}
 		}
 

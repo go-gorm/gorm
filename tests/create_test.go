@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/now"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -282,13 +283,30 @@ func TestOmitWithCreate(t *testing.T) {
 	user := *GetUser("omit_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
 	DB.Omit("Account", "Toys", "Manager", "Birthday").Create(&user)
 
-	var user2 User
-	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&user2, user.ID)
+	var result User
+	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result, user.ID)
 
 	user.Birthday = nil
 	user.Account = Account{}
 	user.Toys = nil
 	user.Manager = nil
 
-	CheckUser(t, user2, user)
+	CheckUser(t, result, user)
+
+	user2 := *GetUser("omit_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
+	DB.Omit(clause.Associations).Create(&user2)
+
+	var result2 User
+	DB.Preload(clause.Associations).First(&result2, user2.ID)
+
+	user2.Account = Account{}
+	user2.Toys = nil
+	user2.Manager = nil
+	user2.Company = Company{}
+	user2.Pets = nil
+	user2.Team = nil
+	user2.Languages = nil
+	user2.Friends = nil
+
+	CheckUser(t, result2, user2)
 }

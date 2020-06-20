@@ -19,10 +19,11 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 			for _, dbName := range stmt.Schema.DBNames {
 				results[dbName] = true
 			}
-			break
-		}
-
-		if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
+		} else if column == clause.Associations {
+			for _, rel := range stmt.Schema.Relationships.Relations {
+				results[rel.Name] = true
+			}
+		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
 			results[field.DBName] = true
 		} else {
 			results[column] = true
@@ -31,7 +32,11 @@ func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate boo
 
 	// omit columns
 	for _, omit := range stmt.Omits {
-		if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
+		if omit == clause.Associations {
+			for _, rel := range stmt.Schema.Relationships.Relations {
+				results[rel.Name] = false
+			}
+		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
 			results[field.DBName] = false
 		} else {
 			results[omit] = false
