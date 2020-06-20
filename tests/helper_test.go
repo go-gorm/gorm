@@ -58,7 +58,6 @@ func GetUser(name string, config Config) *User {
 	for i := 0; i < config.Languages; i++ {
 		name := name + "_locale_" + strconv.Itoa(i+1)
 		language := Language{Code: name, Name: name}
-		DB.Create(&language)
 		user.Languages = append(user.Languages, language)
 	}
 

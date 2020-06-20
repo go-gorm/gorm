@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"reflect"
+	"sort"
 	"testing"
 
 	"gorm.io/gorm"
@@ -735,7 +736,6 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 	if err := DB.Preload("Level1s").Find(&got, "value = ?", "Bob").Error; err != nil {
 		t.Error(err)
 	}
-	return
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %s; want %s", toJSONString(got), toJSONString(want))
@@ -1457,6 +1457,12 @@ func TestPrefixedPreloadDuplication(t *testing.T) {
 	err := DB.Preload("Level2.Level3.Level4s").Find(&got).Error
 	if err != nil {
 		t.Error(err)
+	}
+
+	for _, level1 := range append(got, want...) {
+		sort.Slice(level1.Level2.Level3.Level4s, func(i, j int) bool {
+			return level1.Level2.Level3.Level4s[i].ID > level1.Level2.Level3.Level4s[j].ID
+		})
 	}
 
 	if !reflect.DeepEqual(got, want) {

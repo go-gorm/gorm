@@ -52,21 +52,19 @@ func SaveBeforeAssociations(db *gorm.DB) {
 					obj := db.Statement.ReflectValue.Index(i)
 					if _, zero := rel.Field.ValueOf(obj); !zero { // check belongs to relation value
 						rv := rel.Field.ReflectValueOf(obj) // relation reflect value
-						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-							objs = append(objs, obj)
-							if isPtr {
-								elems = reflect.Append(elems, rv)
-							} else {
-								elems = reflect.Append(elems, rv.Addr())
-							}
+						objs = append(objs, obj)
+						if isPtr {
+							elems = reflect.Append(elems, rv)
 						} else {
-							setupReferences(obj, rv)
+							elems = reflect.Append(elems, rv.Addr())
 						}
 					}
 				}
 
 				if elems.Len() > 0 {
-					if db.AddError(db.Session(&gorm.Session{}).Create(elems.Interface()).Error) == nil {
+					if db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+						DoNothing: true,
+					}).Create(elems.Interface()).Error) == nil {
 						for i := 0; i < elems.Len(); i++ {
 							setupReferences(objs[i], elems.Index(i))
 						}
@@ -79,10 +77,11 @@ func SaveBeforeAssociations(db *gorm.DB) {
 						rv = rv.Addr()
 					}
 
-					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-						db.Session(&gorm.Session{}).Create(rv.Interface())
+					if db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+						DoNothing: true,
+					}).Create(rv.Interface()).Error) == nil {
+						setupReferences(db.Statement.ReflectValue, rv)
 					}
-					setupReferences(db.Statement.ReflectValue, rv)
 				}
 			}
 		}
@@ -130,16 +129,20 @@ func SaveAfterAssociations(db *gorm.DB) {
 							}
 						}
 
-						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-							elems = reflect.Append(elems, rv)
-						} else {
-							db.Session(&gorm.Session{}).Save(rv.Addr().Interface())
-						}
+						elems = reflect.Append(elems, rv)
 					}
 				}
 
 				if elems.Len() > 0 {
-					db.Session(&gorm.Session{}).Create(elems.Interface())
+					assignmentColumns := []string{}
+					for _, ref := range rel.References {
+						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
+					}
+
+					db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+						DoUpdates: clause.AssignmentColumns(assignmentColumns),
+					}).Create(elems.Interface())
 				}
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
@@ -148,6 +151,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						f = f.Addr()
 					}
 
+					assignmentColumns := []string{}
 					for _, ref := range rel.References {
 						if ref.OwnPrimaryKey {
 							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
@@ -155,13 +159,13 @@ func SaveAfterAssociations(db *gorm.DB) {
 						} else if ref.PrimaryValue != "" {
 							ref.ForeignKey.Set(f, ref.PrimaryValue)
 						}
+						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(f); isZero {
-						db.Session(&gorm.Session{}).Create(f.Interface())
-					} else {
-						db.Session(&gorm.Session{}).Save(f.Interface())
-					}
+					db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+						DoUpdates: clause.AssignmentColumns(assignmentColumns),
+					}).Create(f.Interface())
 				}
 			}
 		}
@@ -193,14 +197,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 							}
 						}
 
-						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(elem); isZero {
-							if isPtr {
-								elems = reflect.Append(elems, elem)
-							} else {
-								elems = reflect.Append(elems, elem.Addr())
-							}
+						if isPtr {
+							elems = reflect.Append(elems, elem)
 						} else {
-							db.Session(&gorm.Session{}).Save(elem.Addr().Interface())
+							elems = reflect.Append(elems, elem.Addr())
 						}
 					}
 				}
@@ -216,7 +216,15 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.Session(&gorm.Session{}).Create(elems.Interface())
+				assignmentColumns := []string{}
+				for _, ref := range rel.References {
+					assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
+				}
+
+				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+					Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+					DoUpdates: clause.AssignmentColumns(assignmentColumns),
+				}).Create(elems.Interface())
 			}
 		}
 
@@ -258,15 +266,11 @@ func SaveAfterAssociations(db *gorm.DB) {
 					for i := 0; i < f.Len(); i++ {
 						elem := f.Index(i)
 
-						if _, isZero := rel.FieldSchema.PrioritizedPrimaryField.ValueOf(elem); isZero {
-							objs = append(objs, v)
-							if isPtr {
-								elems = reflect.Append(elems, elem)
-							} else {
-								elems = reflect.Append(elems, elem.Addr())
-							}
+						objs = append(objs, v)
+						if isPtr {
+							elems = reflect.Append(elems, elem)
 						} else {
-							appendToJoins(v, elem)
+							elems = reflect.Append(elems, elem.Addr())
 						}
 					}
 				}
@@ -282,7 +286,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.Session(&gorm.Session{}).Create(elems.Interface())
+				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(elems.Interface())
 
 				for i := 0; i < elems.Len(); i++ {
 					appendToJoins(objs[i], elems.Index(i))

@@ -57,10 +57,6 @@ func (m Migrator) DataTypeOf(field *schema.Field) string {
 func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 	expr.SQL = m.DataTypeOf(field)
 
-	if field.AutoIncrement {
-		expr.SQL += " AUTO_INCREMENT"
-	}
-
 	if field.NotNull {
 		expr.SQL += " NOT NULL"
 	}

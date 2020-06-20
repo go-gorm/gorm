@@ -251,11 +251,13 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 	relation.JoinTable.Name = many2many
 	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
+	relation.JoinTable.PrimaryFields = make([]*Field, len(relation.JoinTable.Fields))
 
 	// build references
-	for _, f := range relation.JoinTable.Fields {
+	for idx, f := range relation.JoinTable.Fields {
 		// use same data type for foreign keys
 		f.DataType = fieldsMap[f.Name].DataType
+		relation.JoinTable.PrimaryFields[idx] = f
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    fieldsMap[f.Name],

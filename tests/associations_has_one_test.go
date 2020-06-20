@@ -68,6 +68,7 @@ func TestHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, user2, "Account", 0, "after delete")
 
 	// Prepare Data for Clear
+	account = Account{Number: "account-has-one-append"}
 	if err := DB.Model(&user2).Association("Account").Append(&account); err != nil {
 		t.Fatalf("Error happened when append Account, got %v", err)
 	}
@@ -185,6 +186,7 @@ func TestPolymorphicHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, pet2, "Toy", 0, "after delete")
 
 	// Prepare Data for Clear
+	toy = Toy{Name: "toy-has-one-append"}
 	if err := DB.Model(&pet2).Association("Toy").Append(&toy); err != nil {
 		t.Fatalf("Error happened when append Toy, got %v", err)
 	}

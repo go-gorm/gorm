@@ -18,6 +18,10 @@ func (DummyDialector) Initialize(*gorm.DB) error {
 	return nil
 }
 
+func (DummyDialector) DefaultValueOf(field *schema.Field) clause.Expression {
+	return clause.Expr{SQL: "DEFAULT"}
+}
+
 func (DummyDialector) Migrator(*gorm.DB) gorm.Migrator {
 	return nil
 }

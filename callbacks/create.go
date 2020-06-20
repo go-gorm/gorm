@@ -55,29 +55,44 @@ func Create(config *Config) func(db *gorm.DB) {
 					result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 					if err == nil {
-						if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-							if insertID, err := result.LastInsertId(); err == nil {
-								switch db.Statement.ReflectValue.Kind() {
-								case reflect.Slice, reflect.Array:
-									if config.LastInsertIDReversed {
-										for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-											insertID--
+						db.RowsAffected, _ = result.RowsAffected()
+						if db.RowsAffected > 0 {
+							if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+								if insertID, err := result.LastInsertId(); err == nil {
+									switch db.Statement.ReflectValue.Kind() {
+									case reflect.Slice, reflect.Array:
+										if config.LastInsertIDReversed {
+											for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i))
+												if isZero {
+													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+													insertID--
+												}
+											}
+										} else {
+											allUpdated := int(db.RowsAffected) == db.Statement.ReflectValue.Len()
+											isZero := true
+
+											for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+
+												if !allUpdated {
+													_, isZero = db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i))
+												}
+
+												if isZero {
+													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+													insertID++
+												}
+											}
 										}
-									} else {
-										for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
-											insertID++
-										}
+									case reflect.Struct:
+										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
 									}
-								case reflect.Struct:
-									db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+								} else {
+									db.AddError(err)
 								}
-							} else {
-								db.AddError(err)
 							}
 						}
-						db.RowsAffected, _ = result.RowsAffected()
 					} else {
 						db.AddError(err)
 					}
@@ -129,9 +144,19 @@ func CreateWithReturning(db *gorm.DB) {
 
 					switch db.Statement.ReflectValue.Kind() {
 					case reflect.Slice, reflect.Array:
+						c := db.Statement.Clauses["ON CONFLICT"]
+						onConflict, _ := c.Expression.(clause.OnConflict)
+
 						for rows.Next() {
+						BEGIN:
 							for idx, field := range fields {
-								values[idx] = field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected))).Addr().Interface()
+								fieldValue := field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected)))
+								if onConflict.DoNothing && !fieldValue.IsZero() {
+									db.RowsAffected++
+									goto BEGIN
+								}
+
+								values[idx] = fieldValue.Addr().Interface()
 							}
 
 							db.RowsAffected++
@@ -211,7 +236,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 		case reflect.Slice, reflect.Array:
 			stmt.SQL.Grow(stmt.ReflectValue.Len() * 15)
 			values.Values = make([][]interface{}, stmt.ReflectValue.Len())
-			defaultValueFieldsHavingValue := map[string][]interface{}{}
+			defaultValueFieldsHavingValue := map[*schema.Field][]interface{}{}
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {
 				rv := reflect.Indirect(stmt.ReflectValue.Index(i))
 				values.Values[i] = make([]interface{}, len(values.Columns))
@@ -231,20 +256,20 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						if v, isZero := field.ValueOf(rv); !isZero {
-							if len(defaultValueFieldsHavingValue[field.DBName]) == 0 {
-								defaultValueFieldsHavingValue[field.DBName] = make([]interface{}, stmt.ReflectValue.Len())
+							if len(defaultValueFieldsHavingValue[field]) == 0 {
+								defaultValueFieldsHavingValue[field] = make([]interface{}, stmt.ReflectValue.Len())
 							}
-							defaultValueFieldsHavingValue[field.DBName][i] = v
+							defaultValueFieldsHavingValue[field][i] = v
 						}
 					}
 				}
 			}
 
-			for db, vs := range defaultValueFieldsHavingValue {
-				values.Columns = append(values.Columns, clause.Column{Name: db})
+			for field, vs := range defaultValueFieldsHavingValue {
+				values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
 				for idx := range values.Values {
 					if vs[idx] == nil {
-						values.Values[idx] = append(values.Values[idx], clause.Expr{SQL: "DEFAULT"})
+						values.Values[idx] = append(values.Values[idx], stmt.Dialector.DefaultValueOf(field))
 					} else {
 						values.Values[idx] = append(values.Values[idx], vs[idx])
 					}

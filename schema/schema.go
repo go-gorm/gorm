@@ -188,6 +188,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 			}
 			field.HasDefaultValue = true
+			field.AutoIncrement = true
 		}
 	}
 

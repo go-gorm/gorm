@@ -34,6 +34,9 @@ func init() {
 		}
 
 		RunMigrations()
+		if DB.Dialector.Name() == "sqlite" {
+			DB.Exec("PRAGMA foreign_keys = ON")
+		}
 	}
 }
 
@@ -66,7 +69,6 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	default:
 		log.Println("testing sqlite3...")
 		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
-		db.Exec("PRAGMA foreign_keys = ON")
 	}
 
 	if debug := os.Getenv("DEBUG"); debug == "true" {
