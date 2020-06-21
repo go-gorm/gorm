@@ -102,7 +102,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	if config.PrepareStmt {
 		db.ConnPool = &PreparedStmtDB{
 			ConnPool: db.ConnPool,
-			stmts:    map[string]*sql.Stmt{},
+			Stmts:    map[string]*sql.Stmt{},
 		}
 	}
 
@@ -146,7 +146,7 @@ func (db *DB) Session(config *Session) *DB {
 	if config.PrepareStmt {
 		tx.Statement.ConnPool = &PreparedStmtDB{
 			ConnPool: db.Config.ConnPool,
-			stmts:    map[string]*sql.Stmt{},
+			Stmts:    map[string]*sql.Stmt{},
 		}
 	}
 
