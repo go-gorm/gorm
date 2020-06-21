@@ -15,6 +15,8 @@ func TestMigrate(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 
+	DB.Migrator().DropTable("user_speaks", "user_friends")
+
 	if err := DB.Migrator().DropTable(allModels...); err != nil {
 		t.Fatalf("Failed to drop table, got error %v", err)
 	}
@@ -27,6 +29,36 @@ func TestMigrate(t *testing.T) {
 		if !DB.Migrator().HasTable(m) {
 			t.Fatalf("Failed to create table for %#v---", m)
 		}
+	}
+
+	for _, indexes := range [][2]string{
+		{"user_speaks", "fk_user_speaks_user"},
+		{"user_speaks", "fk_user_speaks_language"},
+		{"user_friends", "fk_user_friends_user"},
+		{"user_friends", "fk_user_friends_friends"},
+		{"accounts", "fk_users_account"},
+		{"users", "fk_users_team"},
+		{"users", "fk_users_manager"},
+		{"users", "fk_users_company"},
+	} {
+		if !DB.Migrator().HasConstraint(indexes[0], indexes[1]) {
+			t.Fatalf("Failed to find index for many2many for %v %v", indexes[0], indexes[1])
+		}
+	}
+}
+
+func TestMigrateWithComment(t *testing.T) {
+	type UserWithComment struct {
+		gorm.Model
+		Name string `gorm:"size:111;index:,comment:这是一个index;comment:this is a 字段"`
+	}
+
+	if err := DB.Migrator().DropTable(&UserWithComment{}); err != nil {
+		t.Fatalf("Failed to drop table, got error %v", err)
+	}
+
+	if err := DB.AutoMigrate(&UserWithComment{}); err != nil {
+		t.Fatalf("Failed to auto migrate, but got error %v", err)
 	}
 }
 

@@ -2,6 +2,9 @@ package gorm
 
 import (
 	"database/sql"
+
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 // Migrator returns migrator
@@ -27,6 +30,7 @@ type Migrator interface {
 
 	// Database
 	CurrentDatabase() string
+	FullDataTypeOf(*schema.Field) clause.Expr
 
 	// Tables
 	CreateTable(dst ...interface{}) error

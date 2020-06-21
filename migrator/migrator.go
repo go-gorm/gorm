@@ -18,9 +18,8 @@ type Migrator struct {
 
 // Config schema config
 type Config struct {
-	CreateIndexAfterCreateTable             bool
-	AllowDeferredConstraintsWhenAutoMigrate bool
-	DB                                      *gorm.DB
+	CreateIndexAfterCreateTable bool
+	DB                          *gorm.DB
 	gorm.Dialector
 }
 
@@ -120,13 +119,13 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					if rel.JoinTable != nil {
 						joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
 						if !tx.Migrator().HasTable(rel.JoinTable.Table) {
-							defer func() {
-								errr = tx.Table(rel.JoinTable.Table).Migrator().CreateTable(joinValue)
-							}()
+							defer func(table string, joinValue interface{}) {
+								errr = tx.Table(table).Migrator().CreateTable(joinValue)
+							}(rel.JoinTable.Table, joinValue)
 						} else {
-							defer func() {
-								errr = tx.Table(rel.JoinTable.Table).Migrator().AutoMigrate(joinValue)
-							}()
+							defer func(table string, joinValue interface{}) {
+								errr = tx.Table(table).Migrator().AutoMigrate(joinValue)
+							}(rel.JoinTable.Table, joinValue)
 						}
 					}
 				}
@@ -154,7 +153,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				field := stmt.Schema.FieldsByDBName[dbName]
 				createTableSQL += fmt.Sprintf("? ?")
 				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
-				values = append(values, clause.Column{Name: dbName}, m.FullDataTypeOf(field))
+				values = append(values, clause.Column{Name: dbName}, m.DB.Migrator().FullDataTypeOf(field))
 				createTableSQL += ","
 			}
 
@@ -170,9 +169,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, idx := range stmt.Schema.ParseIndexes() {
 				if m.CreateIndexAfterCreateTable {
-					defer func() {
-						errr = tx.Migrator().CreateIndex(value, idx.Name)
-					}()
+					defer func(value interface{}, name string) {
+						errr = tx.Migrator().CreateIndex(value, name)
+					}(value, idx.Name)
 				} else {
 					createTableSQL += "INDEX ? ?,"
 					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
@@ -277,7 +276,7 @@ func (m Migrator) AddColumn(value interface{}, field string) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? ADD ? ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.FullDataTypeOf(field),
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.DB.Migrator().FullDataTypeOf(field),
 			).Error
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)
@@ -301,7 +300,7 @@ func (m Migrator) AlterColumn(value interface{}, field string) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.FullDataTypeOf(field),
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.DB.Migrator().FullDataTypeOf(field),
 			).Error
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)
@@ -436,7 +435,7 @@ func (m Migrator) HasConstraint(value interface{}, name string) bool {
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		currentDatabase := m.DB.Migrator().CurrentDatabase()
 		return m.DB.Raw(
-			"SELECT count(*) FROM INFORMATION_SCHEMA.referential_constraints WHERE constraint_schema = ? AND table_name = ? AND constraint_name = ?",
+			"SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = ? AND table_name = ? AND constraint_name = ?",
 			currentDatabase, stmt.Table, name,
 		).Row().Scan(&count)
 	})
@@ -480,11 +479,6 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 				createIndexSQL += idx.Class + " "
 			}
 			createIndexSQL += "INDEX ? ON ??"
-
-			if idx.Comment != "" {
-				values = append(values, idx.Comment)
-				createIndexSQL += " COMMENT ?"
-			}
 
 			if idx.Type != "" {
 				createIndexSQL += " USING " + idx.Type

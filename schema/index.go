@@ -53,15 +53,17 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 }
 
 func (schema *Schema) LookIndex(name string) *Index {
-	indexes := schema.ParseIndexes()
-	for _, index := range indexes {
-		if index.Name == name {
-			return &index
-		}
-
-		for _, field := range index.Fields {
-			if field.Name == name {
+	if schema != nil {
+		indexes := schema.ParseIndexes()
+		for _, index := range indexes {
+			if index.Name == name {
 				return &index
+			}
+
+			for _, field := range index.Fields {
+				if field.Name == name {
+					return &index
+				}
 			}
 		}
 	}
