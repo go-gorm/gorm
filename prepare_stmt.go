@@ -14,13 +14,19 @@ type PreparedStmtDB struct {
 
 func (db *PreparedStmtDB) prepare(query string) (*sql.Stmt, error) {
 	db.mux.RLock()
-	if stmt, ok := db.stmts[query]; ok {
-		db.mux.RUnlock()
+	stmt, ok := db.stmts[query]
+	db.mux.RUnlock()
+	if ok {
 		return stmt, nil
 	}
-	db.mux.RUnlock()
 
 	db.mux.Lock()
+	stmt, ok = db.stmts[query]
+	if ok {
+		db.mux.Unlock()
+		return stmt, nil
+	}
+
 	stmt, err := db.ConnPool.PrepareContext(context.Background(), query)
 	if err == nil {
 		db.stmts[query] = stmt
