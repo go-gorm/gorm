@@ -253,16 +253,63 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
 	relation.JoinTable.PrimaryFields = make([]*Field, len(relation.JoinTable.Fields))
 
+	relName := relation.Schema.Name
+	relRefName := relation.FieldSchema.Name
+	if relName == relRefName {
+		relRefName = relation.Field.Name
+	}
+
+	if _, ok := relation.JoinTable.Relationships.Relations[relName]; !ok {
+		relation.JoinTable.Relationships.Relations[relName] = &Relationship{
+			Name:        relName,
+			Type:        BelongsTo,
+			Schema:      relation.JoinTable,
+			FieldSchema: relation.Schema,
+		}
+	} else {
+		relation.JoinTable.Relationships.Relations[relName].References = []*Reference{}
+	}
+
+	if _, ok := relation.JoinTable.Relationships.Relations[relRefName]; !ok {
+		relation.JoinTable.Relationships.Relations[relRefName] = &Relationship{
+			Name:        relRefName,
+			Type:        BelongsTo,
+			Schema:      relation.JoinTable,
+			FieldSchema: relation.FieldSchema,
+		}
+	} else {
+		relation.JoinTable.Relationships.Relations[relRefName].References = []*Reference{}
+	}
+
 	// build references
 	for idx, f := range relation.JoinTable.Fields {
 		// use same data type for foreign keys
 		f.DataType = fieldsMap[f.Name].DataType
 		relation.JoinTable.PrimaryFields[idx] = f
+		ownPriamryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
+
+		if ownPriamryField {
+			joinRel := relation.JoinTable.Relationships.Relations[relName]
+			joinRel.Field = relation.Field
+			joinRel.References = append(joinRel.References, &Reference{
+				PrimaryKey: fieldsMap[f.Name],
+				ForeignKey: f,
+			})
+		} else {
+			joinRefRel := relation.JoinTable.Relationships.Relations[relRefName]
+			if joinRefRel.Field == nil {
+				joinRefRel.Field = relation.Field
+			}
+			joinRefRel.References = append(joinRefRel.References, &Reference{
+				PrimaryKey: fieldsMap[f.Name],
+				ForeignKey: f,
+			})
+		}
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    fieldsMap[f.Name],
 			ForeignKey:    f,
-			OwnPrimaryKey: schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name],
+			OwnPrimaryKey: ownPriamryField,
 		})
 	}
 	return

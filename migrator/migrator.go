@@ -88,7 +88,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				return err
 			}
 		} else {
-			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
+			if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
 				for _, field := range stmt.Schema.FieldsByDBName {
 					if !tx.Migrator().HasColumn(value, field.DBName) {
 						if err := tx.Migrator().AddColumn(value, field.DBName); err != nil {
@@ -120,9 +120,13 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					if rel.JoinTable != nil {
 						joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
 						if !tx.Migrator().HasTable(rel.JoinTable.Table) {
-							defer tx.Table(rel.JoinTable.Table).Migrator().CreateTable(joinValue)
+							defer func() {
+								errr = tx.Table(rel.JoinTable.Table).Migrator().CreateTable(joinValue)
+							}()
 						} else {
-							defer tx.Table(rel.JoinTable.Table).Migrator().AutoMigrate(joinValue)
+							defer func() {
+								errr = tx.Table(rel.JoinTable.Table).Migrator().AutoMigrate(joinValue)
+							}()
 						}
 					}
 				}
@@ -139,7 +143,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, false) {
 		tx := m.DB.Session(&gorm.Session{})
-		if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
 			var (
 				createTableSQL          = "CREATE TABLE ? ("
 				values                  = []interface{}{clause.Table{Name: stmt.Table}}
@@ -166,7 +170,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, idx := range stmt.Schema.ParseIndexes() {
 				if m.CreateIndexAfterCreateTable {
-					defer tx.Migrator().CreateIndex(value, idx.Name)
+					defer func() {
+						errr = tx.Migrator().CreateIndex(value, idx.Name)
+					}()
 				} else {
 					createTableSQL += "INDEX ? ?,"
 					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
@@ -186,7 +192,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				if rel.JoinTable != nil {
 					joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
 					if !tx.Migrator().HasTable(rel.JoinTable.Table) {
-						defer tx.Table(rel.JoinTable.Table).Migrator().CreateTable(joinValue)
+						defer func(table string, joinValue interface{}) {
+							errr = tx.Table(table).Migrator().CreateTable(joinValue)
+						}(rel.JoinTable.Table, joinValue)
 					}
 				}
 			}
@@ -204,7 +212,8 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				createTableSQL += fmt.Sprint(tableOption)
 			}
 
-			return tx.Exec(createTableSQL, values...).Error
+			errr = tx.Exec(createTableSQL, values...).Error
+			return errr
 		}); err != nil {
 			return err
 		}
@@ -553,6 +562,10 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
 				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
+
+			if rel.JoinTable != nil && rel.Schema != rel.FieldSchema {
+				dep.Depends = append(dep.Depends, rel.FieldSchema)
+			}
 		}
 
 		valuesMap[dep.Schema.Table] = dep
@@ -566,6 +579,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		if _, ok := orderedModelNamesMap[name]; ok {
 			return // avoid loop
 		}
+		orderedModelNamesMap[name] = true
 
 		dep := valuesMap[name]
 		for _, d := range dep.Depends {
@@ -578,7 +592,6 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		}
 
 		orderedModelNames = append(orderedModelNames, name)
-		orderedModelNamesMap[name] = true
 	}
 
 	for _, value := range values {

@@ -293,6 +293,13 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 			}
 		}
 
+		for name, rel := range relation.JoinTable.Relationships.Relations {
+			if _, ok := joinSchema.Relationships.Relations[name]; !ok {
+				rel.Schema = joinSchema
+				joinSchema.Relationships.Relations[name] = rel
+			}
+		}
+
 		relation.JoinTable = joinSchema
 	} else {
 		return fmt.Errorf("failed to found relation: %v", field)
