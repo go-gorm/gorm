@@ -30,6 +30,8 @@ type Config struct {
 	PrepareStmt bool
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
+	// DisableForeignKeyConstraintWhenMigrating
+	DisableForeignKeyConstraintWhenMigrating bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder

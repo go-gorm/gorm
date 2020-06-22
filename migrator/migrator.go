@@ -97,11 +97,13 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				}
 
 				for _, rel := range stmt.Schema.Relationships.Relations {
-					if constraint := rel.ParseConstraint(); constraint != nil {
-						if constraint.Schema == stmt.Schema {
-							if !tx.Migrator().HasConstraint(value, constraint.Name) {
-								if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
-									return err
+					if !m.DB.Config.DisableForeignKeyConstraintWhenMigrating {
+						if constraint := rel.ParseConstraint(); constraint != nil {
+							if constraint.Schema == stmt.Schema {
+								if !tx.Migrator().HasConstraint(value, constraint.Name) {
+									if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+										return err
+									}
 								}
 							}
 						}
@@ -179,11 +181,13 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			}
 
 			for _, rel := range stmt.Schema.Relationships.Relations {
-				if constraint := rel.ParseConstraint(); constraint != nil {
-					if constraint.Schema == stmt.Schema {
-						sql, vars := buildConstraint(constraint)
-						createTableSQL += sql + ","
-						values = append(values, vars...)
+				if !m.DB.DisableForeignKeyConstraintWhenMigrating {
+					if constraint := rel.ParseConstraint(); constraint != nil {
+						if constraint.Schema == stmt.Schema {
+							sql, vars := buildConstraint(constraint)
+							createTableSQL += sql + ","
+							values = append(values, vars...)
+						}
 					}
 				}
 
