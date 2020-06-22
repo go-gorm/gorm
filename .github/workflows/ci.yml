@@ -1,0 +1,157 @@
+name: ci
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  # Label of the container job
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: [ '1.14', '1.13' ]
+
+    services:
+      # start postgres
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_USER: gorm
+          POSTGRES_DB: gorm
+          TZ: Asia/Shanghai
+        ports:
+          - 9920:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres11:
+        image: postgres:11
+        env:
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_USER: gorm
+          POSTGRES_DB: gorm
+          TZ: Asia/Shanghai
+        ports:
+          - 9921:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres10:
+        image: postgres:10
+        env:
+          POSTGRES_PASSWORD: gorm
+          POSTGRES_USER: gorm
+          POSTGRES_DB: gorm
+          TZ: Asia/Shanghai
+        ports:
+          - 9922:5432
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # start mysql
+      mysql:
+        image: mysql:latest
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 9910:3306
+
+      mysql57:
+        image: mysql:5.7
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 9911:3306
+
+      mysql56:
+        image: mysql:5.6
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 9912:3306
+
+      mariadb:
+        image: mariadb:latest
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 9913:3306
+
+      # start mssql
+      mssql:
+        image: mcmoe/mssqldocker:latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: LoremIpsum86
+          MSSQL_DB: gorm
+          MSSQL_USER: gorm
+          MSSQL_PASSWORD: LoremIpsum86
+        ports:
+          - 9930:1433
+
+    steps:
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: show ports
+      run: netstat -lntp
+
+    - name: run sqlite
+      run: GORM_DIALECT=sqlite GORM_VERBOSE=true ./tests/tests_all.sh
+
+    - name: run mysql
+      run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+
+    - name: run mysql57
+      run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9911)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+
+    - name: run mysql56
+      run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9912)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+
+    - name: run mariadb
+      run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9913)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+
+    - name: run postgres
+      run: GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
+
+    - name: run postgres11
+      run: GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="user=gorm password=gorm DB.name=gorm port=9921 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
+
+    - name: run postgres10
+      run: GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="user=gorm password=gorm DB.name=gorm port=9922 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
+
+    - name: run mssql
+      run: GORM_DIALECT=mssql GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
