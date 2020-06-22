@@ -12,13 +12,15 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Overview
 
-* Full-Featured ORM (almost)
-* Associations (Has One, Has Many, Belongs To, Many To Many, Polymorphism)
+* Full-Featured ORM
+* Associations (Has One, Has Many, Belongs To, Many To Many, Polymorphism, Single-table inheritance)
 * Hooks (Before/After Create/Save/Update/Delete/Find)
-* Preloading (eager loading)
-* Transactions
+* Eager loading with `Preload`, `Joins`
+* Transactions, Nested Transactions, Save Point, RollbackTo to Saved Point
+* Context, Prepared Statment Mode, DryRun Mode
+* Batch Insert, FindInBatches, Find To Map
+* SQL Builder, Upsert, Locking, Optimizer/Index/Comment Hints
 * Composite Primary Key
-* SQL Builder
 * Auto Migrations
 * Logger
 * Extendable, write Plugins based on GORM callbacks
