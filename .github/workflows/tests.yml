@@ -1,10 +1,12 @@
-name: ci
+name: tests
 
 on:
   push:
-    branches: [ master ]
+    branches-ignore:
+      - 'gh-pages'
   pull_request:
-    branches: [ master ]
+    branches-ignore:
+      - 'gh-pages'
 
 jobs:
   # Label of the container job
