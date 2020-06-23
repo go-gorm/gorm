@@ -397,11 +397,11 @@ func (field *Field) setupValuerAndSetter() {
 	default:
 		field.ReflectValueOf = func(value reflect.Value) reflect.Value {
 			v := reflect.Indirect(value)
-			for _, idx := range field.StructField.Index {
-				if idx >= 0 {
-					v = v.Field(idx)
+			for idx, fieldIdx := range field.StructField.Index {
+				if fieldIdx >= 0 {
+					v = v.Field(fieldIdx)
 				} else {
-					v = v.Field(-idx - 1)
+					v = v.Field(-fieldIdx - 1)
 				}
 
 				if v.Kind() == reflect.Ptr {
@@ -436,7 +436,9 @@ func (field *Field) setupValuerAndSetter() {
 				fieldValue := field.ReflectValueOf(value)
 
 				if reflectV.Type().AssignableTo(field.FieldType.Elem()) {
-					if fieldValue.IsNil() {
+					if !fieldValue.IsValid() {
+						fieldValue = reflect.New(field.FieldType.Elem())
+					} else if fieldValue.IsNil() {
 						fieldValue.Set(reflect.New(field.FieldType.Elem()))
 					}
 					fieldValue.Elem().Set(reflectV)

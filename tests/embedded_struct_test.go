@@ -10,10 +10,15 @@ import (
 )
 
 func TestEmbeddedStruct(t *testing.T) {
+	type ReadOnly struct {
+		ReadOnly *bool
+	}
+
 	type BasePost struct {
 		Id    int64
 		Title string
 		URL   string
+		ReadOnly
 	}
 
 	type Author struct {
