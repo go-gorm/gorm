@@ -20,6 +20,12 @@ type Dialector interface {
 	Explain(sql string, vars ...interface{}) string
 }
 
+// Plugin GORM plugin interface
+type Plugin interface {
+	Name() string
+	Initialize(*DB) error
+}
+
 // ConnPool db conns pool interface
 type ConnPool interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
@@ -28,6 +34,7 @@ type ConnPool interface {
 	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
+// SavePointerDialectorInterface save pointer interface
 type SavePointerDialectorInterface interface {
 	SavePoint(tx *DB, name string) error
 	RollbackTo(tx *DB, name string) error

@@ -39,6 +39,8 @@ type Config struct {
 	ConnPool ConnPool
 	// Dialector database dialector
 	Dialector
+	// Plugins registered plugins
+	Plugins map[string]Plugin
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
@@ -308,4 +310,17 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	}
 
 	return nil
+}
+
+func (db *DB) Use(plugin Plugin) (err error) {
+	name := plugin.Name()
+	if _, ok := db.Plugins[name]; !ok {
+		if err = plugin.Initialize(db); err == nil {
+			db.Plugins[name] = plugin
+		}
+	} else {
+		return ErrRegistered
+	}
+
+	return err
 }

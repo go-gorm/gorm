@@ -27,4 +27,6 @@ var (
 	ErrorModelValueRequired = errors.New("model value required")
 	// ErrUnsupportedDriver unsupported driver
 	ErrUnsupportedDriver = errors.New("unsupported driver")
+	// ErrRegistered registered
+	ErrRegistered = errors.New("registered")
 )
