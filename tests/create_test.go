@@ -189,6 +189,48 @@ func TestPolymorphicHasOne(t *testing.T) {
 			CheckPet(t, *pet, *pet)
 		}
 	})
+
+	t.Run("Array", func(t *testing.T) {
+		var pets = [...]Pet{{
+			Name: "PolymorphicHasOne-Array-1",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-1"},
+		}, {
+			Name: "PolymorphicHasOne-Array-2",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-2"},
+		}, {
+			Name: "PolymorphicHasOne-Array-3",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-3"},
+		}}
+
+		if err := DB.Create(&pets).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, pet := range pets {
+			CheckPet(t, pet, pet)
+		}
+	})
+
+	t.Run("ArrayPtr", func(t *testing.T) {
+		var pets = [...]*Pet{{
+			Name: "PolymorphicHasOne-Array-1",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-1"},
+		}, {
+			Name: "PolymorphicHasOne-Array-2",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-2"},
+		}, {
+			Name: "PolymorphicHasOne-Array-3",
+			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-3"},
+		}}
+
+		if err := DB.Create(&pets).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		for _, pet := range pets {
+			CheckPet(t, *pet, *pet)
+		}
+	})
 }
 
 func TestCreateEmptyStruct(t *testing.T) {
