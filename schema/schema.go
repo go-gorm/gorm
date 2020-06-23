@@ -73,7 +73,7 @@ type Tabler interface {
 // get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
-	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Ptr {
+	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
 
