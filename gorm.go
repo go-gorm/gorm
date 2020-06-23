@@ -87,6 +87,10 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.Dialector = dialector
 	}
 
+	if config.Plugins == nil {
+		config.Plugins = map[string]Plugin{}
+	}
+
 	if config.cacheStore == nil {
 		config.cacheStore = &sync.Map{}
 	}
