@@ -175,6 +175,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 						errr = tx.Migrator().CreateIndex(value, name)
 					}(value, idx.Name)
 				} else {
+					if idx.Class != "" {
+						createTableSQL += idx.Class + " "
+					}
 					createTableSQL += "INDEX ? ?,"
 					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
 				}
