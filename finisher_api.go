@@ -268,16 +268,18 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if len(tx.Statement.Selects) == 0 {
 		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
-	} else if len(tx.Statement.Selects) == 1 && !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
-		column := tx.Statement.Selects[0]
-		if tx.Statement.Parse(tx.Statement.Model) == nil {
-			if f := tx.Statement.Schema.LookUpField(column); f != nil {
-				column = f.DBName
+	} else if !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
+		expr := clause.Expr{SQL: "count(1)"}
+
+		if len(tx.Statement.Selects) == 1 {
+			if tx.Statement.Parse(tx.Statement.Model) == nil {
+				if f := tx.Statement.Schema.LookUpField(tx.Statement.Selects[0]); f != nil {
+					expr = clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: f.DBName}}}
+				}
 			}
 		}
-		tx.Statement.AddClause(clause.Select{
-			Expression: clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: column}}},
-		})
+
+		tx.Statement.AddClause(clause.Select{Expression: expr})
 	}
 
 	tx.Statement.Dest = count
