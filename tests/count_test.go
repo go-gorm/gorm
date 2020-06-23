@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -29,6 +30,13 @@ func TestCount(t *testing.T) {
 	DB.Model(&User{}).Where("name = ?", user1.Name).Count(&count1).Or("name in ?", []string{user2.Name, user3.Name}).Count(&count2)
 	if count1 != 1 || count2 != 3 {
 		t.Errorf("multiple count in chain should works")
+	}
+
+	tx := DB.Model(&User{}).Where("name = ?", user1.Name).Session(&gorm.Session{WithConditions: true})
+	tx.Count(&count1)
+	tx.Or("name in ?", []string{user2.Name, user3.Name}).Count(&count2)
+	if count1 != 1 || count2 != 3 {
+		t.Errorf("count after new session should works")
 	}
 
 	var count3 int64

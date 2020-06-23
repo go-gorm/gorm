@@ -284,8 +284,8 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
-	if db.RowsAffected != 1 {
-		*count = db.RowsAffected
+	if tx.RowsAffected != 1 {
+		*count = tx.RowsAffected
 	}
 	return
 }
