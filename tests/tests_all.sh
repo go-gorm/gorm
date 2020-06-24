@@ -1,3 +1,5 @@
+#!/bin/bash -e
+
 dialects=("sqlite" "mysql" "postgres" "sqlserver")
 
 if [[ $(pwd) == *"gorm/tests"* ]]; then
