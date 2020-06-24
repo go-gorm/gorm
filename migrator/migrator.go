@@ -116,20 +116,6 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 							}
 						}
 					}
-
-					// create join table
-					if rel.JoinTable != nil {
-						joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-						if !tx.Migrator().HasTable(rel.JoinTable.Table) {
-							defer func(table string, joinValue interface{}) {
-								errr = tx.Table(table).Migrator().CreateTable(joinValue)
-							}(rel.JoinTable.Table, joinValue)
-						} else {
-							defer func(table string, joinValue interface{}) {
-								errr = tx.Table(table).Migrator().AutoMigrate(joinValue)
-							}(rel.JoinTable.Table, joinValue)
-						}
-					}
 				}
 				return nil
 			}); err != nil {
@@ -191,16 +177,6 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 							createTableSQL += sql + ","
 							values = append(values, vars...)
 						}
-					}
-				}
-
-				// create join table
-				if rel.JoinTable != nil {
-					joinValue := reflect.New(rel.JoinTable.ModelType).Interface()
-					if !tx.Migrator().HasTable(rel.JoinTable.Table) {
-						defer func(table string, joinValue interface{}) {
-							errr = tx.Table(table).Migrator().CreateTable(joinValue)
-						}(rel.JoinTable.Table, joinValue)
 					}
 				}
 			}
@@ -551,9 +527,10 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		orderedModelNamesMap          = map[string]bool{}
 		valuesMap                     = map[string]Dependency{}
 		insertIntoOrderedList         func(name string)
+		parseDependence               func(value interface{}, addToList bool)
 	)
 
-	parseDependence := func(value interface{}, addToList bool) {
+	parseDependence = func(value interface{}, addToList bool) {
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
@@ -564,8 +541,14 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
 
-			if rel.JoinTable != nil && rel.Schema != rel.FieldSchema {
-				dep.Depends = append(dep.Depends, rel.FieldSchema)
+			if rel.JoinTable != nil {
+				if rel.Schema != rel.FieldSchema {
+					dep.Depends = append(dep.Depends, rel.FieldSchema)
+				}
+				// append join value
+				defer func(joinValue interface{}) {
+					parseDependence(joinValue, autoAdd)
+				}(reflect.New(rel.JoinTable.ModelType).Interface())
 			}
 		}
 
