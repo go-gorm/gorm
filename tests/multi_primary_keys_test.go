@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"gorm.io/gorm"
 )
 
 type Blog struct {
@@ -11,7 +13,7 @@ type Blog struct {
 	Locale     string `gorm:"primary_key"`
 	Subject    string
 	Body       string
-	Tags       []Tag `gorm:"many2many:blog_tags;"`
+	Tags       []Tag `gorm:"many2many:blogs_tags;"`
 	SharedTags []Tag `gorm:"many2many:shared_blog_tags;ForeignKey:id;References:id"`
 	LocaleTags []Tag `gorm:"many2many:locale_blog_tags;ForeignKey:id,locale;References:id"`
 }
@@ -38,7 +40,16 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
-	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")
+	if name := DB.Dialector.Name(); name == "postgres" {
+		stmt := gorm.Statement{DB: DB}
+		stmt.Parse(&Blog{})
+		stmt.Schema.LookUpField("ID").Unique = true
+		stmt.Parse(&Tag{})
+		stmt.Schema.LookUpField("ID").Unique = true
+		// postgers only allow unique constraint matching given keys
+	}
+
+	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
 	if err := DB.AutoMigrate(&Blog{}, &Tag{}); err != nil {
 		t.Fatalf("Failed to auto migrate, got error: %v", err)
 	}
@@ -127,7 +138,11 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
-	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")
+	if name := DB.Dialector.Name(); name == "postgres" {
+		t.Skip("skip postgers due to it only allow unique constraint matching given keys")
+	}
+
+	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
 	if err := DB.AutoMigrate(&Blog{}, &Tag{}); err != nil {
 		t.Fatalf("Failed to auto migrate, got error: %v", err)
 	}
@@ -248,7 +263,11 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
-	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags")
+	if name := DB.Dialector.Name(); name == "postgres" {
+		t.Skip("skip postgers due to it only allow unique constraint matching given keys")
+	}
+
+	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
 	if err := DB.AutoMigrate(&Blog{}, &Tag{}); err != nil {
 		t.Fatalf("Failed to auto migrate, got error: %v", err)
 	}
