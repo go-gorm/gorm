@@ -33,7 +33,7 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GORM_DIALECT=sqlite GORM_VERBOSE=true ./tests/tests_all.sh
+      run: GORM_DIALECT=sqlite ./tests/tests_all.sh
 
   sqlite_windows:
     strategy:
@@ -96,7 +96,7 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+      run: GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
   postgres:
     strategy:
@@ -139,7 +139,7 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
+      run: GORM_DIALECT=postgres GORM_DSN="user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
 
   sqlserver:
     strategy:
@@ -176,4 +176,4 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GORM_DIALECT=sqlserver GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
+      run: GORM_DIALECT=sqlserver GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
