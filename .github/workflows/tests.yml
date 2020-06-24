@@ -32,7 +32,7 @@ jobs:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
-    - name: run sqlite
+    - name: Tests
       run: GORM_DIALECT=sqlite GORM_VERBOSE=true ./tests/tests_all.sh
 
   sqlite_windows:
@@ -43,22 +43,22 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
 
-      - name: go mod pakcage cache
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
+    - name: go mod pakcage cache
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
-      - name: run sqlite
-        run: cd tests && set GORM_DIALECT=sqlite && go test $race -count=1 -v ./... #run the line in widnows's CMD, default GORM_DIALECT is sqlite
+    - name: Tests
+      run: cd tests && set GORM_DIALECT=sqlite && go test $race -count=1 -v ./... #run the line in widnows's CMD, default GORM_DIALECT is sqlite
 
   mysql:
     strategy:
@@ -95,7 +95,7 @@ jobs:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
-    - name: run mysql
+    - name: Tests
       run: GORM_DIALECT=mysql GORM_VERBOSE=true GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
   postgres:
@@ -138,7 +138,7 @@ jobs:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
-    - name: run postgres
+    - name: Tests
       run: GORM_DIALECT=postgres GORM_VERBOSE=true GORM_DSN="user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
 
   sqlserver:
@@ -175,5 +175,5 @@ jobs:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
-    - name: run sqlserver
+    - name: Tests
       run: GORM_DIALECT=sqlserver GORM_VERBOSE=true GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
