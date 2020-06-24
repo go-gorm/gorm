@@ -19,27 +19,21 @@ for dialect in "${dialects[@]}" ; do
   then
     echo "testing ${dialect}..."
 
-    race=""
-    if [ "$GORM_DIALECT" = "sqlserver" ]
-    then
-      race="-race"
-    fi
-
     if [ "$GORM_VERBOSE" = "" ]
     then
-      GORM_DIALECT=${dialect} go test $race -count=1 ./...
+      GORM_DIALECT=${dialect} go test -race -count=1 ./...
       if [ -d tests ]
       then
         cd tests
-        GORM_DIALECT=${dialect} go test $race -count=1 ./...
+        GORM_DIALECT=${dialect} go test -race -count=1 ./...
         cd ..
       fi
     else
-      GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+      GORM_DIALECT=${dialect} go test -race -count=1 -v ./...
       if [ -d tests ]
       then
         cd tests
-        GORM_DIALECT=${dialect} go test $race -count=1 -v ./...
+        GORM_DIALECT=${dialect} go test -race -count=1 -v ./...
         cd ..
       fi
     fi
