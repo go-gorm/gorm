@@ -11,6 +11,7 @@ func TestGroupBy(t *testing.T) {
 		Name:     "groupby",
 		Age:      10,
 		Birthday: Now(),
+		Active:   true,
 	}, {
 		Name:     "groupby",
 		Age:      20,
@@ -19,6 +20,7 @@ func TestGroupBy(t *testing.T) {
 		Name:     "groupby",
 		Age:      30,
 		Birthday: Now(),
+		Active:   true,
 	}, {
 		Name:     "groupby1",
 		Age:      110,
@@ -27,10 +29,12 @@ func TestGroupBy(t *testing.T) {
 		Name:     "groupby1",
 		Age:      220,
 		Birthday: Now(),
+		Active:   true,
 	}, {
 		Name:     "groupby1",
 		Age:      330,
 		Birthday: Now(),
+		Active:   true,
 	}}
 
 	if err := DB.Create(&users).Error; err != nil {
@@ -53,5 +57,14 @@ func TestGroupBy(t *testing.T) {
 
 	if name != "groupby1" || total != 660 {
 		t.Errorf("name should be groupby, but got %v, total should be 660, but got %v", name, total)
+	}
+
+	var active bool
+	if err := DB.Model(&User{}).Select("name, active, sum(age)").Where("name = ? and active = ?", "groupby", true).Group("name").Group("active").Row().Scan(&name, &active, &total); err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if name != "groupby" || active != true || total != 40 {
+		t.Errorf("group by two columns, name %v, age %v, active: %v", name, total, active)
 	}
 }
