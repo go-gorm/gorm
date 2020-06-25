@@ -11,7 +11,7 @@ func TestDefaultValue(t *testing.T) {
 		gorm.Model
 		Email   string `gorm:"not null;index:,unique"`
 		Name    string `gorm:"not null;default:'foo'"`
-		Name2   string `gorm:"not null;default:'foo'"`
+		Name2   string `gorm:"size:233;not null;default:'foo'"`
 		Age     int    `gorm:"default:18"`
 		Enabled bool   `gorm:"default:true"`
 	}
