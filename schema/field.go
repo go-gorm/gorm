@@ -223,15 +223,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = DataType(dataTyper.GormDataType())
 	}
 
-	if val, ok := field.TagSettings["TYPE"]; ok {
-		switch DataType(strings.ToLower(val)) {
-		case Bool, Int, Uint, Float, String, Time, Bytes:
-			field.DataType = DataType(strings.ToLower(val))
-		default:
-			field.DataType = DataType(val)
-		}
-	}
-
 	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
@@ -245,6 +236,15 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.AutoUpdateTime = UnixNanosecond
 		} else {
 			field.AutoUpdateTime = UnixSecond
+		}
+	}
+
+	if val, ok := field.TagSettings["TYPE"]; ok {
+		switch DataType(strings.ToLower(val)) {
+		case Bool, Int, Uint, Float, String, Time, Bytes:
+			field.DataType = DataType(strings.ToLower(val))
+		default:
+			field.DataType = DataType(val)
 		}
 	}
 
