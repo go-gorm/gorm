@@ -14,3 +14,5 @@ require (
 )
 
 replace gorm.io/gorm => ../
+
+replace gorm.io/driver/sqlserver => /Users/jinzhu/Projects/sqlserver
