@@ -51,6 +51,14 @@ func TestGroupBy(t *testing.T) {
 		t.Errorf("name should be groupby, but got %v, total should be 60, but got %v", name, total)
 	}
 
+	if err := DB.Model(&User{}).Select("name, sum(age)").Where("name = ?", "groupby").Group("users.name").Row().Scan(&name, &total); err != nil {
+		t.Errorf("no error should happen, but got %v", err)
+	}
+
+	if name != "groupby" || total != 60 {
+		t.Errorf("name should be groupby, but got %v, total should be 60, but got %v", name, total)
+	}
+
 	if err := DB.Model(&User{}).Select("name, sum(age) as total").Where("name LIKE ?", "groupby%").Group("name").Having("name = ?", "groupby1").Row().Scan(&name, &total); err != nil {
 		t.Errorf("no error should happen, but got %v", err)
 	}
