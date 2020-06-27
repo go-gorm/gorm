@@ -134,8 +134,16 @@ func TestCustomizeField(t *testing.T) {
 		t.Fatalf("invalid updated result: %#v", result2)
 	}
 
+	if err := DB.Where(CustomizeFieldStruct{Name: create.Name, FieldReadonly: create.FieldReadonly, FieldIgnore: create.FieldIgnore}).First(&CustomizeFieldStruct{}).Error; err == nil {
+		t.Fatalf("Should failed to find result")
+	}
+
 	if err := DB.Table("customize_field_structs").Where("1 = 1").UpdateColumn("field_readonly", "readonly").Error; err != nil {
 		t.Fatalf("failed to update field_readonly column")
+	}
+
+	if err := DB.Where(CustomizeFieldStruct{Name: create.Name, FieldReadonly: "readonly", FieldIgnore: create.FieldIgnore}).First(&CustomizeFieldStruct{}).Error; err != nil {
+		t.Fatalf("Should find result")
 	}
 
 	var result3 CustomizeFieldStruct
