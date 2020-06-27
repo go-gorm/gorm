@@ -271,22 +271,26 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, field := range s.Fields {
-						if v, isZero := field.ValueOf(reflectValue); !isZero {
-							if field.DBName == "" {
-								conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-							} else {
-								conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+						if field.Readable {
+							if v, isZero := field.ValueOf(reflectValue); !isZero {
+								if field.DBName == "" {
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
+								} else {
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+								}
 							}
 						}
 					}
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
 						for _, field := range s.Fields {
-							if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
-								if field.DBName == "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-								} else {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+							if field.Readable {
+								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
+									if field.DBName == "" {
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
+									} else {
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+									}
 								}
 							}
 						}
