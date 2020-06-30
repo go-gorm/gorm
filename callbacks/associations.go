@@ -11,7 +11,7 @@ import (
 
 func SaveBeforeAssociations(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil {
-		selectColumns, restricted := SelectAndOmitColumns(db.Statement, true, false)
+		selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
 
 		// Save Belongs To associations
 		for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
@@ -90,7 +90,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 
 func SaveAfterAssociations(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil {
-		selectColumns, restricted := SelectAndOmitColumns(db.Statement, true, false)
+		selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
 
 		// Save Has One associations
 		for _, rel := range db.Statement.Schema.Relationships.HasOne {

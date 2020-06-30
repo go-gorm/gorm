@@ -7,64 +7,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
-func SelectAndOmitColumns(stmt *gorm.Statement, requireCreate, requireUpdate bool) (map[string]bool, bool) {
-	results := map[string]bool{}
-	notRestricted := false
-
-	// select columns
-	for _, column := range stmt.Selects {
-		if column == "*" {
-			notRestricted = true
-			for _, dbName := range stmt.Schema.DBNames {
-				results[dbName] = true
-			}
-		} else if column == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				results[rel.Name] = true
-			}
-		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
-			results[field.DBName] = true
-		} else {
-			results[column] = true
-		}
-	}
-
-	// omit columns
-	for _, omit := range stmt.Omits {
-		if omit == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				results[rel.Name] = false
-			}
-		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
-			results[field.DBName] = false
-		} else {
-			results[omit] = false
-		}
-	}
-
-	if stmt.Schema != nil {
-		for _, field := range stmt.Schema.Fields {
-			name := field.DBName
-			if name == "" {
-				name = field.Name
-			}
-
-			if requireCreate && !field.Creatable {
-				results[name] = false
-			} else if requireUpdate && !field.Updatable {
-				results[name] = false
-			}
-		}
-	}
-
-	return results, !notRestricted && len(stmt.Selects) > 0
-}
-
 // ConvertMapToValuesForCreate convert map to values
 func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]interface{}) (values clause.Values) {
 	columns := make([]string, 0, len(mapValue))
-	selectColumns, restricted := SelectAndOmitColumns(stmt, true, false)
+	selectColumns, restricted := stmt.SelectAndOmitColumns(true, false)
 
 	var keys []string
 	for k := range mapValue {
@@ -91,7 +37,7 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 	var (
 		columns                   = []string{}
 		result                    = map[string][]interface{}{}
-		selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
+		selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
 	)
 
 	for idx, mapValue := range mapValues {

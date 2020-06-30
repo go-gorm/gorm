@@ -110,7 +110,7 @@ func AfterUpdate(db *gorm.DB) {
 // ConvertToAssignments convert to update assignments
 func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	var (
-		selectColumns, restricted = SelectAndOmitColumns(stmt, false, true)
+		selectColumns, restricted = stmt.SelectAndOmitColumns(false, true)
 		assignValue               func(field *schema.Field, value interface{})
 	)
 
