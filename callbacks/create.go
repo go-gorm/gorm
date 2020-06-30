@@ -218,7 +218,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 		values = ConvertSliceOfMapToValuesForCreate(stmt, value)
 	default:
 		var (
-			selectColumns, restricted = SelectAndOmitColumns(stmt, true, false)
+			selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
 			curTime                   = stmt.DB.NowFunc()
 			isZero                    bool
 		)

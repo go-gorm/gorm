@@ -285,3 +285,84 @@ func TestUseDBInHooks(t *testing.T) {
 		t.Errorf("Admin product's price should not be changed, expects: %v, got %v", 600, result4.Price)
 	}
 }
+
+type Product3 struct {
+	gorm.Model
+	Name  string
+	Code  string
+	Price int64
+	Owner string
+}
+
+func (s Product3) BeforeCreate(tx *gorm.DB) (err error) {
+	tx.Statement.SetColumn("Price", s.Price+100)
+	return nil
+}
+
+func (s Product3) BeforeUpdate(tx *gorm.DB) (err error) {
+	if tx.Statement.Changed() {
+		tx.Statement.SetColumn("Price", s.Price+10)
+	}
+
+	if tx.Statement.Changed("Code") {
+		s.Price += 20
+		tx.Statement.SetColumn("Price", s.Price+30)
+	}
+	return nil
+}
+
+func TestSetColumn(t *testing.T) {
+	DB.Migrator().DropTable(&Product3{})
+	DB.AutoMigrate(&Product3{})
+
+	product := Product3{Name: "Product", Price: 0}
+	DB.Create(&product)
+
+	if product.Price != 100 {
+		t.Errorf("invalid price after create, got %+v", product)
+	}
+
+	DB.Model(&product).Select("code", "price").Updates(map[string]interface{}{"code": "L1212"})
+
+	if product.Price != 150 || product.Code != "L1212" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
+	// Code not changed, price should not change
+	DB.Model(&product).Updates(map[string]interface{}{"Name": "Product New"})
+
+	if product.Name != "Product New" || product.Price != 160 || product.Code != "L1212" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
+	// Code changed, but not selected, price should not change
+	DB.Model(&product).Select("Name", "Price").Updates(map[string]interface{}{"Name": "Product New2", "code": "L1213"})
+
+	if product.Name != "Product New2" || product.Price != 170 || product.Code != "L1212" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
+	// Code changed, price should changed
+	DB.Model(&product).Select("Name", "Code", "Price").Updates(map[string]interface{}{"Name": "Product New3", "code": "L1213"})
+
+	if product.Name != "Product New3" || product.Price != 220 || product.Code != "L1213" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
+	var result Product3
+	DB.First(&result, product.ID)
+
+	AssertEqual(t, result, product)
+
+	// Code changed, price not selected, price should not change
+	DB.Model(&product).Select("code").Updates(map[string]interface{}{"name": "L1214"})
+
+	if product.Price != 220 || product.Code != "L1213" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
+	var result2 Product3
+	DB.First(&result2, product.ID)
+
+	AssertEqual(t, result2, product)
+}

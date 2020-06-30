@@ -29,4 +29,6 @@ var (
 	ErrUnsupportedDriver = errors.New("unsupported driver")
 	// ErrRegistered registered
 	ErrRegistered = errors.New("registered")
+	// ErrInvalidField invalid field
+	ErrInvalidField = errors.New("invalid field")
 )
