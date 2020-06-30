@@ -162,8 +162,10 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 // Group specify the group method on the find
 func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
+
+	fields := strings.FieldsFunc(name, utils.IsChar)
 	tx.Statement.AddClause(clause.GroupBy{
-		Columns: []clause.Column{{Name: name}},
+		Columns: []clause.Column{{Name: name, Raw: len(fields) != 1}},
 	})
 	return
 }

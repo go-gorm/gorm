@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/utils"
 )
 
 // Create insert the value into database
@@ -325,9 +326,10 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 		tx.AddError(ErrorModelValueRequired)
 	}
 
+	fields := strings.FieldsFunc(column, utils.IsChar)
 	tx.Statement.AddClauseIfNotExists(clause.Select{
 		Distinct: tx.Statement.Distinct,
-		Columns:  []clause.Column{{Name: column}},
+		Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
 	})
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
