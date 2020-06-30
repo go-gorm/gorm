@@ -38,6 +38,7 @@ type Statement struct {
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	NamedVars            []sql.NamedArg
+	CurDestIndex         int
 	attrs                []interface{}
 	assigns              []interface{}
 }
@@ -379,7 +380,12 @@ func (stmt *Statement) SetColumn(name string, value interface{}) {
 		v[name] = value
 	} else if stmt.Schema != nil {
 		if field := stmt.Schema.LookUpField(name); field != nil {
-			field.Set(stmt.ReflectValue, value)
+			switch stmt.ReflectValue.Kind() {
+			case reflect.Slice, reflect.Array:
+				field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
+			case reflect.Struct:
+				field.Set(stmt.ReflectValue, value)
+			}
 		} else {
 			stmt.AddError(ErrInvalidField)
 		}
@@ -395,17 +401,20 @@ func (stmt *Statement) Changed(fields ...string) bool {
 		modelValue = modelValue.Elem()
 	}
 
+	switch modelValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		modelValue = stmt.ReflectValue.Index(stmt.CurDestIndex)
+	}
+
 	selectColumns, restricted := stmt.SelectAndOmitColumns(false, true)
 	changed := func(field *schema.Field) bool {
-		fieldValue, isZero := field.ValueOf(modelValue)
+		fieldValue, _ := field.ValueOf(modelValue)
 		if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 			if v, ok := stmt.Dest.(map[string]interface{}); ok {
 				if fv, ok := v[field.Name]; ok {
 					return !utils.AssertEqual(fv, fieldValue)
 				} else if fv, ok := v[field.DBName]; ok {
 					return !utils.AssertEqual(fv, fieldValue)
-				} else if isZero {
-					return true
 				}
 			} else {
 				changedValue, _ := field.ValueOf(stmt.ReflectValue)

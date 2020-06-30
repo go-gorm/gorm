@@ -366,3 +366,51 @@ func TestSetColumn(t *testing.T) {
 
 	AssertEqual(t, result2, product)
 }
+
+func TestHooksForSlice(t *testing.T) {
+	products := []*Product3{
+		{Name: "Product-1", Price: 100},
+		{Name: "Product-2", Price: 200},
+		{Name: "Product-3", Price: 300},
+	}
+
+	DB.Create(&products)
+
+	for idx, value := range []int64{200, 300, 400} {
+		if products[idx].Price != value {
+			t.Errorf("invalid price for product #%v, expects: %v, got %v", idx, value, products[idx].Price)
+		}
+	}
+
+	DB.Model(&products).Update("Name", "product-name")
+
+	// will set all product's price to last product's price + 10
+	for idx, value := range []int64{410, 410, 410} {
+		if products[idx].Price != value {
+			t.Errorf("invalid price for product #%v, expects: %v, got %v", idx, value, products[idx].Price)
+		}
+	}
+
+	products2 := []Product3{
+		{Name: "Product-1", Price: 100},
+		{Name: "Product-2", Price: 200},
+		{Name: "Product-3", Price: 300},
+	}
+
+	DB.Create(&products2)
+
+	for idx, value := range []int64{200, 300, 400} {
+		if products2[idx].Price != value {
+			t.Errorf("invalid price for product #%v, expects: %v, got %v", idx, value, products2[idx].Price)
+		}
+	}
+
+	DB.Model(&products2).Update("Name", "product-name")
+
+	// will set all product's price to last product's price + 10
+	for idx, value := range []int64{410, 410, 410} {
+		if products2[idx].Price != value {
+			t.Errorf("invalid price for product #%v, expects: %v, got %v", idx, value, products2[idx].Price)
+		}
+	}
+}
