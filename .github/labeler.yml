@@ -1,6 +1,0 @@
-# Add/remove 'critical' label if issue contains the words 'urgent' or 'critical'
-HasGormPlaygroundTestCase:
-  - '(github.com/go-gorm/playground/pull/\d)'
-
-NoTestCase:
-  - '(change this to your link)'
