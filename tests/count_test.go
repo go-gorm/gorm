@@ -27,6 +27,14 @@ func TestCount(t *testing.T) {
 		t.Errorf("Count() method should get correct value, expect: %v, got %v", count, len(users))
 	}
 
+	if err := DB.Model(&User{}).Where("name = ?", user1.Name).Or("name = ?", user3.Name).Count(&count).Find(&users).Error; err != nil {
+		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+
+	if count != int64(len(users)) {
+		t.Errorf("Count() method should get correct value, expect: %v, got %v", count, len(users))
+	}
+
 	DB.Model(&User{}).Where("name = ?", user1.Name).Count(&count1).Or("name in ?", []string{user2.Name, user3.Name}).Count(&count2)
 	if count1 != 1 || count2 != 3 {
 		t.Errorf("multiple count in chain should works")

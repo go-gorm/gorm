@@ -269,6 +269,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if len(tx.Statement.Selects) == 0 {
 		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
+		defer tx.Statement.AddClause(clause.Select{})
 	} else if !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
 		expr := clause.Expr{SQL: "count(1)"}
 
@@ -281,6 +282,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		}
 
 		tx.Statement.AddClause(clause.Select{Expression: expr})
+		defer tx.Statement.AddClause(clause.Select{})
 	}
 
 	tx.Statement.Dest = count
