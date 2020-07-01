@@ -3,6 +3,7 @@ package tests_test
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"testing"
@@ -144,8 +145,8 @@ func TestFillSmallerStruct(t *testing.T) {
 	user := User{Name: "SmallerUser", Age: 100}
 	DB.Save(&user)
 	type SimpleUser struct {
-		Name      string
 		ID        int64
+		Name      string
 		UpdatedAt time.Time
 		CreatedAt time.Time
 	}
@@ -156,6 +157,26 @@ func TestFillSmallerStruct(t *testing.T) {
 	}
 
 	AssertObjEqual(t, user, simpleUser, "Name", "ID", "UpdatedAt", "CreatedAt")
+
+	var simpleUser2 SimpleUser
+	if err := DB.Model(&User{}).Select("id").First(&simpleUser2, user.ID).Error; err != nil {
+		t.Fatalf("Failed to query smaller user, got error %v", err)
+	}
+
+	AssertObjEqual(t, user, simpleUser2, "ID")
+
+	var simpleUsers []SimpleUser
+	if err := DB.Model(&User{}).Select("id").Find(&simpleUsers, user.ID).Error; err != nil || len(simpleUsers) != 1 {
+		t.Fatalf("Failed to query smaller user, got error %v", err)
+	}
+
+	AssertObjEqual(t, user, simpleUsers[0], "ID")
+
+	result := DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&simpleUsers, user.ID)
+
+	if !regexp.MustCompile("SELECT .*id.*name.*updated_at.*created_at.* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should include selected names, but got %v", result.Statement.SQL.String())
+	}
 }
 
 func TestPluck(t *testing.T) {

@@ -40,7 +40,7 @@ func BuildQuerySQL(db *gorm.DB) {
 	db.Statement.SQL.Grow(100)
 	clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
 
-	if db.Statement.ReflectValue.Kind() == reflect.Struct {
+	if db.Statement.ReflectValue.Kind() == reflect.Struct && db.Statement.ReflectValue.Type() == db.Statement.Schema.ModelType {
 		var conds []clause.Expression
 		for _, primaryField := range db.Statement.Schema.PrimaryFields {
 			if v, isZero := primaryField.ValueOf(db.Statement.ReflectValue); !isZero {
@@ -62,6 +62,16 @@ func BuildQuerySQL(db *gorm.DB) {
 				clauseSelect.Columns[idx] = clause.Column{Name: f.DBName}
 			} else {
 				clauseSelect.Columns[idx] = clause.Column{Name: name, Raw: true}
+			}
+		}
+	} else if db.Statement.Schema != nil && db.Statement.ReflectValue.IsValid() && db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType {
+		stmt := gorm.Statement{DB: db}
+		// smaller struct
+		if err := stmt.Parse(db.Statement.Dest); err == nil {
+			clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
+
+			for idx, dbName := range stmt.Schema.DBNames {
+				clauseSelect.Columns[idx] = clause.Column{Name: dbName}
 			}
 		}
 	}
