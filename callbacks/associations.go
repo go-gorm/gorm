@@ -139,10 +139,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
 						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
 						DoUpdates: clause.AssignmentColumns(assignmentColumns),
-					}).Create(elems.Interface())
+					}).Create(elems.Interface()).Error)
 				}
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
@@ -162,10 +162,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
 						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
 						DoUpdates: clause.AssignmentColumns(assignmentColumns),
-					}).Create(f.Interface())
+					}).Create(f.Interface()).Error)
 				}
 			}
 		}
@@ -221,10 +221,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 					assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 				}
 
-				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
+				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
 					Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
 					DoUpdates: clause.AssignmentColumns(assignmentColumns),
-				}).Create(elems.Interface())
+				}).Create(elems.Interface()).Error)
 			}
 		}
 
@@ -286,7 +286,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(elems.Interface())
+				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(elems.Interface()).Error)
 
 				for i := 0; i < elems.Len(); i++ {
 					appendToJoins(objs[i], elems.Index(i))
@@ -294,7 +294,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface())
+				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface()).Error)
 			}
 		}
 	}

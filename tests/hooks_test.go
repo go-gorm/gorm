@@ -368,6 +368,9 @@ func TestSetColumn(t *testing.T) {
 }
 
 func TestHooksForSlice(t *testing.T) {
+	DB.Migrator().DropTable(&Product3{})
+	DB.AutoMigrate(&Product3{})
+
 	products := []*Product3{
 		{Name: "Product-1", Price: 100},
 		{Name: "Product-2", Price: 200},
@@ -412,5 +415,50 @@ func TestHooksForSlice(t *testing.T) {
 		if products2[idx].Price != value {
 			t.Errorf("invalid price for product #%v, expects: %v, got %v", idx, value, products2[idx].Price)
 		}
+	}
+}
+
+type Product4 struct {
+	gorm.Model
+	Name  string
+	Code  string
+	Price int64
+	Owner string
+	Item  ProductItem
+}
+
+type ProductItem struct {
+	gorm.Model
+	Code       string
+	Product4ID uint
+}
+
+func (pi ProductItem) BeforeCreate(*gorm.DB) error {
+	if pi.Code == "invalid" {
+		return errors.New("invalid item")
+	}
+	return nil
+}
+
+func TestFailedToSaveAssociationShouldRollback(t *testing.T) {
+	DB.Migrator().DropTable(&Product4{}, &ProductItem{})
+	DB.AutoMigrate(&Product4{}, &ProductItem{})
+
+	product := Product4{Name: "Product-1", Price: 100, Item: ProductItem{Code: "invalid"}}
+	if err := DB.Create(&product).Error; err == nil {
+		t.Errorf("should got failed to save, but error is nil")
+	}
+
+	if DB.First(&Product4{}, "name = ?", product.Name).Error == nil {
+		t.Errorf("should got RecordNotFound, but got nil")
+	}
+
+	product = Product4{Name: "Product-2", Price: 100, Item: ProductItem{Code: "valid"}}
+	if err := DB.Create(&product).Error; err != nil {
+		t.Errorf("should create product, but got error %v", err)
+	}
+
+	if err := DB.First(&Product4{}, "name = ?", product.Name).Error; err != nil {
+		t.Errorf("should find product, but got error %v", err)
 	}
 }
