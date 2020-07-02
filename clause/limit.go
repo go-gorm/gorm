@@ -18,11 +18,13 @@ func (limit Limit) Build(builder Builder) {
 	if limit.Limit > 0 {
 		builder.WriteString("LIMIT ")
 		builder.WriteString(strconv.Itoa(limit.Limit))
-
-		if limit.Offset > 0 {
-			builder.WriteString(" OFFSET ")
-			builder.WriteString(strconv.Itoa(limit.Offset))
+	}
+	if limit.Offset > 0 {
+		if limit.Limit > 0 {
+			builder.WriteString(" ")
 		}
+		builder.WriteString("OFFSET ")
+		builder.WriteString(strconv.Itoa(limit.Offset))
 	}
 }
 
