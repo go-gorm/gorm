@@ -58,6 +58,10 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 	stmt, err := db.prepare(query)
 	if err == nil {
 		return stmt.ExecContext(ctx, args...)
+	} else {
+		db.mux.Lock()
+		delete(db.Stmts, query)
+		db.mux.Unlock()
 	}
 	return nil, err
 }
@@ -66,6 +70,10 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 	stmt, err := db.prepare(query)
 	if err == nil {
 		return stmt.QueryContext(ctx, args...)
+	} else {
+		db.mux.Lock()
+		delete(db.Stmts, query)
+		db.mux.Unlock()
 	}
 	return nil, err
 }
@@ -74,6 +82,10 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 	stmt, err := db.prepare(query)
 	if err == nil {
 		return stmt.QueryRowContext(ctx, args...)
+	} else {
+		db.mux.Lock()
+		delete(db.Stmts, query)
+		db.mux.Unlock()
 	}
 	return &sql.Row{}
 }
@@ -87,6 +99,10 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 	stmt, err := tx.PreparedStmtDB.prepare(query)
 	if err == nil {
 		return tx.Tx.Stmt(stmt).ExecContext(ctx, args...)
+	} else {
+		tx.PreparedStmtDB.mux.Lock()
+		delete(tx.PreparedStmtDB.Stmts, query)
+		tx.PreparedStmtDB.mux.Unlock()
 	}
 	return nil, err
 }
@@ -95,6 +111,10 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 	stmt, err := tx.PreparedStmtDB.prepare(query)
 	if err == nil {
 		return tx.Tx.Stmt(stmt).QueryContext(ctx, args...)
+	} else {
+		tx.PreparedStmtDB.mux.Lock()
+		delete(tx.PreparedStmtDB.Stmts, query)
+		tx.PreparedStmtDB.mux.Unlock()
 	}
 	return nil, err
 }
@@ -103,6 +123,10 @@ func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, arg
 	stmt, err := tx.PreparedStmtDB.prepare(query)
 	if err == nil {
 		return tx.Tx.Stmt(stmt).QueryRowContext(ctx, args...)
+	} else {
+		tx.PreparedStmtDB.mux.Lock()
+		delete(tx.PreparedStmtDB.Stmts, query)
+		tx.PreparedStmtDB.mux.Unlock()
 	}
 	return &sql.Row{}
 }

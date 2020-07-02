@@ -5,8 +5,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"gorm.io/gorm/schema"
-	"gorm.io/gorm/utils"
 )
 
 func SaveBeforeAssociations(db *gorm.DB) {
@@ -15,7 +13,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 
 		// Save Belongs To associations
 		for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
-			if !saveAssociationCheck(db, rel, selectColumns, restricted) {
+			if v, ok := selectColumns[rel.Name]; (ok && !v) || (!ok && restricted) {
 				continue
 			}
 
@@ -94,7 +92,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 
 		// Save Has One associations
 		for _, rel := range db.Statement.Schema.Relationships.HasOne {
-			if !saveAssociationCheck(db, rel, selectColumns, restricted) {
+			if v, ok := selectColumns[rel.Name]; (ok && !v) || (!ok && restricted) {
 				continue
 			}
 
@@ -172,7 +170,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 
 		// Save Has Many associations
 		for _, rel := range db.Statement.Schema.Relationships.HasMany {
-			if !saveAssociationCheck(db, rel, selectColumns, restricted) {
+			if v, ok := selectColumns[rel.Name]; (ok && !v) || (!ok && restricted) {
 				continue
 			}
 
@@ -230,7 +228,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 
 		// Save Many2Many associations
 		for _, rel := range db.Statement.Schema.Relationships.Many2Many {
-			if !saveAssociationCheck(db, rel, selectColumns, restricted) {
+			if v, ok := selectColumns[rel.Name]; (ok && !v) || (!ok && restricted) {
 				continue
 			}
 
@@ -298,19 +296,4 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 		}
 	}
-}
-
-func saveAssociationCheck(db *gorm.DB, rel *schema.Relationship, selectColumns map[string]bool, restricted bool) bool {
-	savable := true
-	if value, ok := db.Get("gorm:save_association"); ok {
-		savable = utils.CheckTruth(value)
-	}
-
-	if savable {
-		if v, ok := selectColumns[rel.Name]; (ok && v) || (!ok && !restricted) {
-			return true
-		}
-	}
-
-	return false
 }
