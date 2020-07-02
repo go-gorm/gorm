@@ -381,6 +381,12 @@ func TestOffset(t *testing.T) {
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
 		t.Errorf("Offset should work")
 	}
+	DB.Where("name like ?", "OffsetUser%").Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
+
+	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
+		t.Errorf("Offset should work without limit.")
+	}
+
 }
 
 func TestSearchWithMap(t *testing.T) {
