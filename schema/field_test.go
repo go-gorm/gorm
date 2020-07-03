@@ -19,6 +19,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 			Model: gorm.Model{
 				ID:        10,
 				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
 				DeletedAt: gorm.DeletedAt{Time: time.Now(), Valid: true},
 			},
 			Name:     "valuer_and_setter",
@@ -34,6 +35,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 		"name":       user.Name,
 		"id":         user.ID,
 		"created_at": user.CreatedAt,
+		"updated_at": user.UpdatedAt,
 		"deleted_at": user.DeletedAt,
 		"age":        user.Age,
 		"birthday":   user.Birthday,
@@ -46,6 +48,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 		"name":       "valuer_and_setter_2",
 		"id":         2,
 		"created_at": time.Now(),
+		"updated_at": nil,
 		"deleted_at": time.Now(),
 		"age":        20,
 		"birthday":   time.Now(),
@@ -57,14 +60,17 @@ func TestFieldValuerAndSetter(t *testing.T) {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
+	newValues["updated_at"] = time.Time{}
 	checkField(t, userSchema, reflectValue, newValues)
 
 	// test valuer and other type
 	age := myint(10)
+	var nilTime *time.Time
 	newValues2 := map[string]interface{}{
 		"name":       sql.NullString{String: "valuer_and_setter_3", Valid: true},
 		"id":         &sql.NullInt64{Int64: 3, Valid: true},
 		"created_at": tests.Now(),
+		"updated_at": nilTime,
 		"deleted_at": time.Now(),
 		"age":        &age,
 		"birthday":   mytime(time.Now()),
@@ -76,6 +82,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
+	newValues2["updated_at"] = time.Time{}
 	checkField(t, userSchema, reflectValue, newValues2)
 }
 

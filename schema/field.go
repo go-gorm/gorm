@@ -655,7 +655,11 @@ func (field *Field) setupValuerAndSetter() {
 				case time.Time:
 					field.ReflectValueOf(value).Set(reflect.ValueOf(v))
 				case *time.Time:
-					field.ReflectValueOf(value).Set(reflect.ValueOf(v).Elem())
+					if data != nil {
+						field.ReflectValueOf(value).Set(reflect.ValueOf(data).Elem())
+					} else {
+						field.ReflectValueOf(value).Set(reflect.ValueOf(time.Time{}))
+					}
 				case string:
 					if t, err := now.Parse(data); err == nil {
 						field.ReflectValueOf(value).Set(reflect.ValueOf(t))
