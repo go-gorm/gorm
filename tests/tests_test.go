@@ -52,7 +52,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "postgres":
 		log.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm DB.name=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+			dbDSN = "user=gorm password=gorm DB.name=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 		}
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
