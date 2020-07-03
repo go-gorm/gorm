@@ -78,6 +78,12 @@ jobs:
           MYSQL_RANDOM_ROOT_PASSWORD: "yes"
         ports:
           - 9910:3306
+        options: >-
+          --health-cmd "mysqladmin ping -ugorm -pgorm"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
     - name: Set up Go 1.x
@@ -159,6 +165,12 @@ jobs:
           MSSQL_PASSWORD: LoremIpsum86
         ports:
           - 9930:1433
+        options: >-
+          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P LoremIpsum86 -l 30 -Q \"SELECT 1\" || exit 1"
+          --health-start-period 10s
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
     - name: Set up Go 1.x
