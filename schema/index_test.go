@@ -12,7 +12,7 @@ type UserIndex struct {
 	Name         string `gorm:"index"`
 	Name2        string `gorm:"index:idx_name,unique"`
 	Name3        string `gorm:"index:,sort:desc,collate:utf8,type:btree,length:10,where:name3 != 'jinzhu'"`
-	Name4        string `gorm:"unique_index"`
+	Name4        string `gorm:"uniqueIndex"`
 	Name5        int64  `gorm:"index:,class:FULLTEXT,comment:hello \\, world,where:age > 10"`
 	Name6        int64  `gorm:"index:profile,comment:hello \\, world,where:age > 10"`
 	Age          int64  `gorm:"index:profile,expression:ABS(age)"`

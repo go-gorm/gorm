@@ -41,7 +41,7 @@ func TestForeignKeyConstraints(t *testing.T) {
 
 	type Member struct {
 		ID      uint
-		Refer   uint `gorm:"unique_index"`
+		Refer   uint `gorm:"uniqueIndex"`
 		Name    string
 		Profile Profile `gorm:"Constraint:OnUpdate:CASCADE,OnDelete:CASCADE;FOREIGNKEY:MemberID;References:Refer"`
 	}
@@ -91,7 +91,7 @@ func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
 	type Profile struct {
 		ID    uint
 		Name  string
-		Refer uint `gorm:"unique_index"`
+		Refer uint `gorm:"uniqueIndex"`
 	}
 
 	type Member struct {

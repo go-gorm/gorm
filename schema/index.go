@@ -27,7 +27,7 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 	var indexes = map[string]Index{}
 
 	for _, field := range schema.Fields {
-		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUE_INDEX"] != "" {
+		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUEINDEX"] != "" {
 			for _, index := range parseFieldIndexes(field) {
 				idx := indexes[index.Name]
 				idx.Name = index.Name
@@ -76,7 +76,7 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 		if value != "" {
 			v := strings.Split(value, ":")
 			k := strings.TrimSpace(strings.ToUpper(v[0]))
-			if k == "INDEX" || k == "UNIQUE_INDEX" {
+			if k == "INDEX" || k == "UNIQUEINDEX" {
 				var (
 					name      string
 					tag       = strings.Join(v[1:], ":")
@@ -97,7 +97,7 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 					name = field.Schema.namer.IndexName(field.Schema.Table, field.Name)
 				}
 
-				if (k == "UNIQUE_INDEX") || settings["UNIQUE"] != "" {
+				if (k == "UNIQUEINDEX") || settings["UNIQUE"] != "" {
 					settings["CLASS"] = "UNIQUE"
 				}
 
