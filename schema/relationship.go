@@ -210,7 +210,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	for idx, ownField := range ownForeignFields {
 		joinFieldName := schema.Name + ownField.Name
 		if len(joinForeignKeys) > idx {
-			joinFieldName = joinForeignKeys[idx]
+			joinFieldName = strings.Title(joinForeignKeys[idx])
 		}
 
 		ownFieldsMap[joinFieldName] = true
@@ -226,7 +226,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	for idx, relField := range refForeignFields {
 		joinFieldName := relation.FieldSchema.Name + relField.Name
 		if len(joinReferences) > idx {
-			joinFieldName = joinReferences[idx]
+			joinFieldName = strings.Title(joinReferences[idx])
 		}
 
 		if _, ok := ownFieldsMap[joinFieldName]; ok {

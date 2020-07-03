@@ -138,8 +138,9 @@ func TestMany2ManyOverrideForeignKeyAndReferences(t *testing.T) {
 
 	type User struct {
 		gorm.Model
-		Profiles []Profile `gorm:"many2many:user_profiles;ForeignKey:Refer;JoinForeignKey:UserReferID;References:UserRefer;JoinReferences:ProfileRefer"`
-		Refer    uint
+		Profiles  []Profile `gorm:"many2many:user_profiles;ForeignKey:Refer;JoinForeignKey:UserReferID;References:UserRefer;JoinReferences:ProfileRefer"`
+		Profiles2 []Profile `gorm:"many2many:user_profiles2;ForeignKey:refer;JoinForeignKey:user_refer_id;References:user_refer;JoinReferences:profile_refer"`
+		Refer     uint
 	}
 
 	checkStructRelation(t, &User{}, Relation{
@@ -148,6 +149,13 @@ func TestMany2ManyOverrideForeignKeyAndReferences(t *testing.T) {
 		References: []Reference{
 			{"Refer", "User", "UserReferID", "user_profiles", "", true},
 			{"UserRefer", "Profile", "ProfileRefer", "user_profiles", "", false},
+		},
+	}, Relation{
+		Name: "Profiles2", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
+		JoinTable: JoinTable{Name: "user_profiles2", Table: "user_profiles2"},
+		References: []Reference{
+			{"Refer", "User", "User_refer_id", "user_profiles2", "", true},
+			{"UserRefer", "Profile", "Profile_refer", "user_profiles2", "", false},
 		},
 	})
 }
