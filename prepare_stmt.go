@@ -60,6 +60,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 		return stmt.ExecContext(ctx, args...)
 	} else {
 		db.mux.Lock()
+		stmt.Close()
 		delete(db.Stmts, query)
 		db.mux.Unlock()
 	}
@@ -72,6 +73,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 		return stmt.QueryContext(ctx, args...)
 	} else {
 		db.mux.Lock()
+		stmt.Close()
 		delete(db.Stmts, query)
 		db.mux.Unlock()
 	}
@@ -84,6 +86,7 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 		return stmt.QueryRowContext(ctx, args...)
 	} else {
 		db.mux.Lock()
+		stmt.Close()
 		delete(db.Stmts, query)
 		db.mux.Unlock()
 	}
@@ -101,6 +104,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 		return tx.Tx.Stmt(stmt).ExecContext(ctx, args...)
 	} else {
 		tx.PreparedStmtDB.mux.Lock()
+		stmt.Close()
 		delete(tx.PreparedStmtDB.Stmts, query)
 		tx.PreparedStmtDB.mux.Unlock()
 	}
@@ -113,6 +117,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 		return tx.Tx.Stmt(stmt).QueryContext(ctx, args...)
 	} else {
 		tx.PreparedStmtDB.mux.Lock()
+		stmt.Close()
 		delete(tx.PreparedStmtDB.Stmts, query)
 		tx.PreparedStmtDB.mux.Unlock()
 	}
@@ -125,6 +130,7 @@ func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, arg
 		return tx.Tx.Stmt(stmt).QueryRowContext(ctx, args...)
 	} else {
 		tx.PreparedStmtDB.mux.Lock()
+		stmt.Close()
 		delete(tx.PreparedStmtDB.Stmts, query)
 		tx.PreparedStmtDB.mux.Unlock()
 	}
