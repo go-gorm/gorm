@@ -43,6 +43,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 	}
 	checkField(t, userSchema, reflectValue, values)
 
+	var f *bool
 	// test setter
 	newValues := map[string]interface{}{
 		"name":       "valuer_and_setter_2",
@@ -52,7 +53,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 		"deleted_at": time.Now(),
 		"age":        20,
 		"birthday":   time.Now(),
-		"active":     false,
+		"active":     f,
 	}
 
 	for k, v := range newValues {
@@ -61,6 +62,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 		}
 	}
 	newValues["updated_at"] = time.Time{}
+	newValues["active"] = false
 	checkField(t, userSchema, reflectValue, newValues)
 
 	// test valuer and other type

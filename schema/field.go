@@ -479,7 +479,11 @@ func (field *Field) setupValuerAndSetter() {
 			case bool:
 				field.ReflectValueOf(value).SetBool(data)
 			case *bool:
-				field.ReflectValueOf(value).SetBool(*data)
+				if data != nil {
+					field.ReflectValueOf(value).SetBool(*data)
+				} else {
+					field.ReflectValueOf(value).SetBool(false)
+				}
 			case int64:
 				if data > 0 {
 					field.ReflectValueOf(value).SetBool(true)
