@@ -307,7 +307,7 @@ func TestCreateWithNoGORMPrimaryKey(t *testing.T) {
 
 func TestSelectWithCreate(t *testing.T) {
 	user := *GetUser("select_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
-	DB.Select("Account", "Toys", "Manager", "ManagerID", "Languages", "Name", "CreatedAt", "UpdatedAt", "Age", "Active").Create(&user)
+	DB.Select("Account", "Toys", "Manager", "ManagerID", "Languages", "Name", "CreatedAt", "Age", "Active").Create(&user)
 
 	var user2 User
 	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&user2, user.ID)

@@ -179,6 +179,45 @@ func TestFillSmallerStruct(t *testing.T) {
 	}
 }
 
+func TestNot(t *testing.T) {
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+
+	result := dryDB.Not(map[string]interface{}{"name": "jinzhu"}).Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* <> .+").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Where("name = ?", "jinzhu1").Not("name = ?", "jinzhu2").Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ AND NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Not("name = ?", "jinzhu").Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Not(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Not([]int64{1, 2}).First(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*id.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Not([]int64{}).First(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .users.\\..deleted_at. IS NULL ORDER BY").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Not(User{Name: "jinzhu", Age: 18}).First(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*users.*..*name.* <> .+ AND .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+}
+
 func TestPluck(t *testing.T) {
 	users := []*User{
 		GetUser("pluck-user1", Config{}),

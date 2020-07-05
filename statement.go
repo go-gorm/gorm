@@ -265,7 +265,18 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 			}
 		case map[string]interface{}:
 			for i, j := range v {
-				conds = append(conds, clause.Eq{Column: i, Value: j})
+				reflectValue := reflect.Indirect(reflect.ValueOf(j))
+				switch reflectValue.Kind() {
+				case reflect.Slice, reflect.Array:
+					values := make([]interface{}, reflectValue.Len())
+					for i := 0; i < reflectValue.Len(); i++ {
+						values[i] = reflectValue.Index(i).Interface()
+					}
+
+					conds = append(conds, clause.IN{Column: i, Values: values})
+				default:
+					conds = append(conds, clause.Eq{Column: i, Value: j})
+				}
 			}
 		default:
 			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
@@ -299,6 +310,21 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 					}
 				}
 			} else if len(conds) == 0 {
+				if len(args) == 1 {
+					switch reflectValue.Kind() {
+					case reflect.Slice, reflect.Array:
+						values := make([]interface{}, reflectValue.Len())
+						for i := 0; i < reflectValue.Len(); i++ {
+							values[i] = reflectValue.Index(i).Interface()
+						}
+
+						if len(values) > 0 {
+							conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: values})
+						}
+						return
+					}
+				}
+
 				conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
 			}
 		}
