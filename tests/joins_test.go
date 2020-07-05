@@ -101,6 +101,7 @@ func TestJoinsWithSelect(t *testing.T) {
 	DB.Save(&user)
 
 	var results []result
+
 	DB.Table("users").Select("users.id, pets.id as pet_id, pets.name").Joins("left join pets on pets.user_id = users.id").Where("users.name = ?", "joins_with_select").Scan(&results)
 
 	sort.Slice(results, func(i, j int) bool {

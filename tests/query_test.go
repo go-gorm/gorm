@@ -223,17 +223,17 @@ func TestOr(t *testing.T) {
 
 	result := dryDB.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*role.* = .+ OR .*role.* = .+").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where("name = ?", "jinzhu").Or(User{Name: "jinzhu 2", Age: 18}).Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*name.* AND .*age.*\\)").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where("name = ?", "jinzhu").Or(map[string]interface{}{"name": "jinzhu 2", "age": 18}).Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*age.* AND .*name.*\\)").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 }
 
@@ -426,6 +426,20 @@ func TestSearchWithEmptyChain(t *testing.T) {
 	}
 }
 
+func TestOrder(t *testing.T) {
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+
+	result := dryDB.Order("age desc, name").Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* ORDER BY age desc, name").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build Order condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Order("age desc").Order("name").Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* ORDER BY age desc,name").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build Order condition, but got %v", result.Statement.SQL.String())
+	}
+}
+
 func TestLimit(t *testing.T) {
 	users := []User{
 		{Name: "LimitUser1", Age: 1},
@@ -461,7 +475,6 @@ func TestOffset(t *testing.T) {
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
 		t.Errorf("Offset should work without limit.")
 	}
-
 }
 
 func TestSearchWithMap(t *testing.T) {

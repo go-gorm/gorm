@@ -14,7 +14,7 @@ func (s Select) Name() string {
 func (s Select) Build(builder Builder) {
 	if len(s.Columns) > 0 {
 		if s.Distinct {
-			builder.WriteString(" DISTINCT ")
+			builder.WriteString("DISTINCT ")
 		}
 
 		for idx, column := range s.Columns {
