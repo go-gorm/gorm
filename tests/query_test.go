@@ -218,6 +218,25 @@ func TestNot(t *testing.T) {
 	}
 }
 
+func TestOr(t *testing.T) {
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+
+	result := dryDB.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*role.* = .+ OR .*role.* = .+").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Where("name = ?", "jinzhu").Or(User{Name: "jinzhu 2", Age: 18}).Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*name.* AND .*age.*\\)").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Where("name = ?", "jinzhu").Or(map[string]interface{}{"name": "jinzhu 2", "age": 18}).Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*age.* AND .*name.*\\)").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+}
+
 func TestPluck(t *testing.T) {
 	users := []*User{
 		GetUser("pluck-user1", Config{}),
@@ -269,6 +288,23 @@ func TestSelect(t *testing.T) {
 	if user.Name != result.Name {
 		t.Errorf("Should have user Name when selected it")
 	}
+
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	r := dryDB.Select("name", "age").Find(&User{})
+	if !regexp.MustCompile("SELECT .*name.*,.*age.* FROM .*users.*").MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+	}
+
+	r = dryDB.Select([]string{"name", "age"}).Find(&User{})
+	if !regexp.MustCompile("SELECT .*name.*,.*age.* FROM .*users.*").MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+	}
+
+	r = dryDB.Table("users").Select("COALESCE(age,?)", 42).Find(&User{})
+	if !regexp.MustCompile("SELECT COALESCE\\(age,.*\\) FROM .*users.*").MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+	}
+	// SELECT COALESCE(age,'42') FROM users;
 }
 
 func TestPluckWithSelect(t *testing.T) {

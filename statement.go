@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -260,12 +261,24 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 				conds = append(conds, clause.Eq{Column: i, Value: j})
 			}
 		case map[string]string:
-			for i, j := range v {
-				conds = append(conds, clause.Eq{Column: i, Value: j})
+			var keys = make([]string, 0, len(v))
+			for i := range v {
+				keys = append(keys, i)
+			}
+			sort.Strings(keys)
+
+			for _, key := range keys {
+				conds = append(conds, clause.Eq{Column: key, Value: v[key]})
 			}
 		case map[string]interface{}:
-			for i, j := range v {
-				reflectValue := reflect.Indirect(reflect.ValueOf(j))
+			var keys = make([]string, 0, len(v))
+			for i := range v {
+				keys = append(keys, i)
+			}
+			sort.Strings(keys)
+
+			for _, key := range keys {
+				reflectValue := reflect.Indirect(reflect.ValueOf(v[key]))
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					values := make([]interface{}, reflectValue.Len())
@@ -273,9 +286,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 						values[i] = reflectValue.Index(i).Interface()
 					}
 
-					conds = append(conds, clause.IN{Column: i, Values: values})
+					conds = append(conds, clause.IN{Column: key, Values: values})
 				default:
-					conds = append(conds, clause.Eq{Column: i, Value: j})
+					conds = append(conds, clause.Eq{Column: key, Value: v[key]})
 				}
 			}
 		default:
