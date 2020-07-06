@@ -84,15 +84,20 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 
 		if reflect.ValueOf(got).Kind() == reflect.Struct {
 			if reflect.ValueOf(got).NumField() == reflect.ValueOf(expect).NumField() {
+				exported := false
 				for i := 0; i < reflect.ValueOf(got).NumField(); i++ {
 					if fieldStruct := reflect.ValueOf(got).Type().Field(i); ast.IsExported(fieldStruct.Name) {
+						exported = true
 						field := reflect.ValueOf(got).Field(i)
 						t.Run(fieldStruct.Name, func(t *testing.T) {
 							AssertEqual(t, field.Interface(), reflect.ValueOf(expect).Field(i).Interface())
 						})
 					}
 				}
-				return
+
+				if exported {
+					return
+				}
 			}
 		}
 

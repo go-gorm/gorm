@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/utils"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -267,6 +268,22 @@ func TestSelectWithUpdate(t *testing.T) {
 	})
 
 	AssertObjEqual(t, result2, result, "Name", "Account", "Toys", "Manager", "ManagerID", "Languages")
+
+	DB.Model(&result).Select("Name", "Age").Updates(User{Name: "update_with_select"})
+	if result.Age != 0 || result.Name != "update_with_select" {
+		t.Fatalf("Failed to update struct with select, got %+v", result)
+	}
+	AssertObjEqual(t, result, user, "UpdatedAt")
+
+	var result3 User
+	DB.First(&result3, result.ID)
+	AssertObjEqual(t, result, result3, "Name", "Age", "UpdatedAt")
+
+	DB.Model(&result).Select("Name", "Age", "UpdatedAt").Updates(User{Name: "update_with_select"})
+
+	if utils.AssertEqual(result.UpdatedAt, user.UpdatedAt) {
+		t.Fatalf("Update struct should update UpdatedAt, was %+v, got %+v", result.UpdatedAt, user.UpdatedAt)
+	}
 }
 
 func TestSelectWithUpdateWithMap(t *testing.T) {
@@ -290,7 +307,7 @@ func TestSelectWithUpdateWithMap(t *testing.T) {
 		"Friends":   user2.Friends,
 	}
 
-	DB.Model(&result).Select("Name", "Account", "Toys", "Manager", "ManagerID", "Languages").Updates(updateValues)
+	DB.Model(&result).Omit("name", "updated_at").Updates(updateValues)
 
 	var result2 User
 	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result2, user.ID)
@@ -427,10 +444,15 @@ func TestSelectWithUpdateColumn(t *testing.T) {
 
 	var result User
 	DB.First(&result, user.ID)
-	DB.Model(&result).Select("Name").UpdateColumns(updateValues)
+
+	time.Sleep(time.Second)
+	lastUpdatedAt := result.UpdatedAt
+	DB.Model(&result).Select("Name").Updates(updateValues)
 
 	var result2 User
 	DB.First(&result2, user.ID)
+
+	AssertEqual(t, lastUpdatedAt, result2.UpdatedAt)
 
 	if result2.Name == user.Name || result2.Age != user.Age {
 		t.Errorf("Should only update users with name column")
