@@ -76,9 +76,18 @@ func TestRaw(t *testing.T) {
 		t.Errorf("Raw with Rows should find one record with name 3")
 	}
 
-	DB.Exec("update users set name=? where name in (?)", "jinzhu", []string{user1.Name, user2.Name, user3.Name})
+	DB.Exec("update users set name=? where name in (?)", "jinzhu-raw", []string{user1.Name, user2.Name, user3.Name})
 	if DB.Where("name in (?)", []string{user1.Name, user2.Name, user3.Name}).First(&User{}).Error != gorm.ErrRecordNotFound {
 		t.Error("Raw sql to update records")
+	}
+
+	DB.Exec("update users set age=? where name = ?", gorm.Expr("age * ? + ?", 2, 10), "jinzhu-raw")
+
+	var age int
+	DB.Raw("select sum(age) from users where name = ?", "jinzhu-raw").Scan(&age)
+
+	if age != ((1+10+20)*2 + 30) {
+		t.Errorf("Invalid age, got %v", age)
 	}
 }
 
