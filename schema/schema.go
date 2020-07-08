@@ -187,8 +187,11 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			if !field.HasDefaultValue || field.DefaultValueInterface != nil {
 				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 			}
-			field.HasDefaultValue = true
-			field.AutoIncrement = true
+
+			if _, ok := field.TagSettings["AUTOINCREMENT"]; !ok {
+				field.HasDefaultValue = true
+				field.AutoIncrement = true
+			}
 		}
 	}
 
