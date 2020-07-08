@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -20,6 +21,7 @@ type IndexOption struct {
 	Sort       string // DESC, ASC
 	Collate    string
 	Length     int
+	priority   int
 }
 
 // ParseIndexes parse schema indexes
@@ -43,7 +45,12 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				if idx.Comment == "" {
 					idx.Comment = index.Comment
 				}
+
 				idx.Fields = append(idx.Fields, index.Fields...)
+				sort.Slice(idx.Fields, func(i, j int) bool {
+					return idx.Fields[i].priority < idx.Fields[j].priority
+				})
+
 				indexes[index.Name] = idx
 			}
 		}
@@ -101,6 +108,11 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 					settings["CLASS"] = "UNIQUE"
 				}
 
+				priority, err := strconv.Atoi(settings["PRIORITY"])
+				if err != nil {
+					priority = 10
+				}
+
 				indexes = append(indexes, Index{
 					Name:    name,
 					Class:   settings["CLASS"],
@@ -113,6 +125,7 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 						Sort:       settings["SORT"],
 						Collate:    settings["COLLATE"],
 						Length:     length,
+						priority:   priority,
 					}},
 				})
 			}

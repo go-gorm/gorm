@@ -9,8 +9,8 @@ import (
 type Hamster struct {
 	Id           int
 	Name         string
-	PreferredToy Toy `gorm:"polymorphic:Owner;polymorphic_value:hamster_preferred"`
-	OtherToy     Toy `gorm:"polymorphic:Owner;polymorphic_value:hamster_other"`
+	PreferredToy Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_preferred"`
+	OtherToy     Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_other"`
 }
 
 func TestNamedPolymorphic(t *testing.T) {

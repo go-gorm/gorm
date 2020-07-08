@@ -17,7 +17,7 @@ type UserIndex struct {
 	Name6        int64  `gorm:"index:profile,comment:hello \\, world,where:age > 10"`
 	Age          int64  `gorm:"index:profile,expression:ABS(age)"`
 	OID          int64  `gorm:"index:idx_id;index:idx_oid,unique"`
-	MemberNumber string `gorm:"index:idx_id"`
+	MemberNumber string `gorm:"index:idx_id,priority:1"`
 }
 
 func TestParseIndex(t *testing.T) {
@@ -29,18 +29,19 @@ func TestParseIndex(t *testing.T) {
 	results := map[string]schema.Index{
 		"idx_user_indices_name": {
 			Name:   "idx_user_indices_name",
-			Fields: []schema.IndexOption{{}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name"}}},
 		},
 		"idx_name": {
 			Name:   "idx_name",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2"}}},
 		},
 		"idx_user_indices_name3": {
 			Name:  "idx_user_indices_name3",
 			Type:  "btree",
 			Where: "name3 != 'jinzhu'",
 			Fields: []schema.IndexOption{{
+				Field:   &schema.Field{Name: "Name3"},
 				Sort:    "desc",
 				Collate: "utf8",
 				Length:  10,
@@ -49,31 +50,32 @@ func TestParseIndex(t *testing.T) {
 		"idx_user_indices_name4": {
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4"}}},
 		},
 		"idx_user_indices_name5": {
 			Name:    "idx_user_indices_name5",
 			Class:   "FULLTEXT",
 			Comment: "hello , world",
 			Where:   "age > 10",
-			Fields:  []schema.IndexOption{{}},
+			Fields:  []schema.IndexOption{{Field: &schema.Field{Name: "Name5"}}},
 		},
 		"profile": {
 			Name:    "profile",
 			Comment: "hello , world",
 			Where:   "age > 10",
-			Fields: []schema.IndexOption{{}, {
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name6"}}, {
+				Field:      &schema.Field{Name: "Age"},
 				Expression: "ABS(age)",
 			}},
 		},
 		"idx_id": {
 			Name:   "idx_id",
-			Fields: []schema.IndexOption{{}, {}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID"}}},
 		},
 		"idx_oid": {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID"}}},
 		},
 	}
 
@@ -96,6 +98,10 @@ func TestParseIndex(t *testing.T) {
 
 		for idx, ef := range result.Fields {
 			rf := v.Fields[idx]
+			if rf.Field.Name != ef.Field.Name {
+				t.Fatalf("index field should equal, expects %v, got %v", rf.Field.Name, ef.Field.Name)
+			}
+
 			for _, name := range []string{"Expression", "Sort", "Collate", "Length"} {
 				if reflect.ValueOf(ef).FieldByName(name).Interface() != reflect.ValueOf(rf).FieldByName(name).Interface() {
 					t.Errorf(

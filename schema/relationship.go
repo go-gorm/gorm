@@ -130,7 +130,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 		PolymorphicID:   relation.FieldSchema.FieldsByName[polymorphic+"ID"],
 	}
 
-	if value, ok := field.TagSettings["POLYMORPHIC_VALUE"]; ok {
+	if value, ok := field.TagSettings["POLYMORPHICVALUE"]; ok {
 		relation.Polymorphic.Value = strings.TrimSpace(value)
 	}
 
