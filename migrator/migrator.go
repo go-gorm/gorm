@@ -182,7 +182,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			}
 
 			for _, chk := range stmt.Schema.ParseCheckConstraints() {
-				createTableSQL += "CONSTRAINT ? CHECK ?,"
+				createTableSQL += "CONSTRAINT ? CHECK (?),"
 				values = append(values, clause.Column{Name: chk.Name}, clause.Expr{SQL: chk.Constraint})
 			}
 
@@ -371,7 +371,7 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 		checkConstraints := stmt.Schema.ParseCheckConstraints()
 		if chk, ok := checkConstraints[name]; ok {
 			return m.DB.Exec(
-				"ALTER TABLE ? ADD CONSTRAINT ? CHECK ?",
+				"ALTER TABLE ? ADD CONSTRAINT ? CHECK (?)",
 				clause.Table{Name: stmt.Table}, clause.Column{Name: chk.Name}, clause.Expr{SQL: chk.Constraint},
 			).Error
 		}
