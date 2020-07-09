@@ -1,4 +1,5 @@
 # GORM
+English丨[中文](README_zh.md)
 
 The fantastic ORM library for Golang, aims to be developer friendly.
 
@@ -9,6 +10,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 [![Open Collective Sponsor](https://opencollective.com/gorm/tiers/sponsor/badge.svg?label=sponsor&color=brightgreen "Open Collective Sponsor")](https://opencollective.com/gorm)
 [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/gorm.io/gorm?tab=doc)
+
 
 ## Overview
 
