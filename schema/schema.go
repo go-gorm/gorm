@@ -207,13 +207,13 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	cacheStore.Store(modelType, schema)
-
-	// parse relations for unidentified fields
-	for _, field := range schema.Fields {
-		if field.DataType == "" && field.Creatable {
-			if schema.parseRelation(field); schema.err != nil {
-				return schema, schema.err
+	if _, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
+		// parse relations for unidentified fields
+		for _, field := range schema.Fields {
+			if field.DataType == "" && field.Creatable {
+				if schema.parseRelation(field); schema.err != nil {
+					return schema, schema.err
+				}
 			}
 		}
 	}
