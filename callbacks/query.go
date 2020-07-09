@@ -64,14 +64,24 @@ func BuildQuerySQL(db *gorm.DB) {
 				clauseSelect.Columns[idx] = clause.Column{Name: name, Raw: true}
 			}
 		}
-	} else if db.Statement.Schema != nil && db.Statement.ReflectValue.IsValid() && db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType {
-		stmt := gorm.Statement{DB: db}
-		// smaller struct
-		if err := stmt.Parse(db.Statement.Dest); err == nil {
-			clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
+	} else if db.Statement.Schema != nil && db.Statement.ReflectValue.IsValid() {
+		smallerStruct := false
+		switch db.Statement.ReflectValue.Kind() {
+		case reflect.Struct:
+			smallerStruct = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
+		case reflect.Slice:
+			smallerStruct = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
+		}
 
-			for idx, dbName := range stmt.Schema.DBNames {
-				clauseSelect.Columns[idx] = clause.Column{Name: dbName}
+		if smallerStruct {
+			stmt := gorm.Statement{DB: db}
+			// smaller struct
+			if err := stmt.Parse(db.Statement.Dest); err == nil && stmt.Schema.ModelType != db.Statement.Schema.ModelType {
+				clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
+
+				for idx, dbName := range stmt.Schema.DBNames {
+					clauseSelect.Columns[idx] = clause.Column{Name: dbName}
+				}
 			}
 		}
 	}

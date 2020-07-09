@@ -177,6 +177,24 @@ func TestFillSmallerStruct(t *testing.T) {
 	if !regexp.MustCompile("SELECT .*id.*name.*updated_at.*created_at.* FROM .*users").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("SQL should include selected names, but got %v", result.Statement.SQL.String())
 	}
+
+	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&User{}, user.ID)
+
+	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	}
+
+	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&[]User{}, user.ID)
+
+	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	}
+
+	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&[]*User{}, user.ID)
+
+	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	}
 }
 
 func TestNot(t *testing.T) {
