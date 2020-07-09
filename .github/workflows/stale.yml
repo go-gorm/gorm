@@ -1,4 +1,4 @@
-name: "Close Missing Playground issues"
+name: "Stale"
 on:
   schedule:
   - cron: "*/10 * * * *"
@@ -13,9 +13,7 @@ jobs:
       uses: actions/stale@v3.0.7
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: "This issue has been automatically marked as stale as it missing playground pull request link, checkout [https://github.com/go-gorm/playground](https://github.com/go-gorm/playground) for details, it will be closed in 2 days if no further activity occurs."
-        stale-issue-label: "status:stale"
-        days-before-stale: 0
-        days-before-close: 2
-        remove-stale-when-updated: true
-        only-labels: "type:missing reproduction steps"
+        stale-issue-message: "This issue will be automatically closed because it is marked as GORM V1 issue, we have released the public testing GORM V2 release and its documents https://v2.gorm.io/docs/ already, the testing release has been used in some production services for a while, and going to release the final version in following weeks, we are still actively collecting feedback before it, please open a new issue for any suggestion or problem, thank you\n\n Also check out https://github.com/go-gorm/gorm/wiki/GORM-V2-Release-Note-Draft for how to use the public testing version and its changelog"
+        stale-issue-label: "status:gorm_v1"
+        days-before-stale: 30
+        days-before-close: 0
