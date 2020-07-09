@@ -58,7 +58,7 @@ func (SoftDeleteClause) ModifyStatement(stmt *Statement) {
 
 		if stmt.Schema != nil {
 			_, queryValues := schema.GetIdentityFieldValuesMap(stmt.ReflectValue, stmt.Schema.PrimaryFields)
-			column, values := schema.ToQueryValues(stmt.Schema.PrimaryFieldDBNames, queryValues)
+			column, values := schema.ToQueryValues(stmt.Schema.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
 
 			if len(values) > 0 {
 				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
@@ -66,7 +66,7 @@ func (SoftDeleteClause) ModifyStatement(stmt *Statement) {
 
 			if stmt.Dest != stmt.Model && stmt.Model != nil {
 				_, queryValues = schema.GetIdentityFieldValuesMap(reflect.ValueOf(stmt.Model), stmt.Schema.PrimaryFields)
-				column, values = schema.ToQueryValues(stmt.Schema.PrimaryFieldDBNames, queryValues)
+				column, values = schema.ToQueryValues(stmt.Schema.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
 
 				if len(values) > 0 {
 					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})

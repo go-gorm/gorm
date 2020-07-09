@@ -122,7 +122,7 @@ func (association *Association) Replace(values ...interface{}) error {
 			)
 
 			if _, rvs := schema.GetIdentityFieldValuesMap(relValues, rel.FieldSchema.PrimaryFields); len(rvs) > 0 {
-				if column, values := schema.ToQueryValues(rel.FieldSchema.PrimaryFieldDBNames, rvs); len(values) > 0 {
+				if column, values := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, rvs); len(values) > 0 {
 					tx.Not(clause.IN{Column: column, Values: values})
 				}
 			}
@@ -138,7 +138,7 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 
 			if _, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields); len(pvs) > 0 {
-				column, values := schema.ToQueryValues(foreignKeys, pvs)
+				column, values := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
 				tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap)
 			}
 		case schema.Many2Many:
@@ -164,14 +164,14 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 
 			_, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
-			if column, values := schema.ToQueryValues(joinPrimaryKeys, pvs); len(values) > 0 {
+			if column, values := schema.ToQueryValues(rel.JoinTable.Table, joinPrimaryKeys, pvs); len(values) > 0 {
 				tx.Where(clause.IN{Column: column, Values: values})
 			} else {
 				return ErrorPrimaryKeyRequired
 			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)
-			if relColumn, relValues := schema.ToQueryValues(joinRelPrimaryKeys, rvs); len(relValues) > 0 {
+			if relColumn, relValues := schema.ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs); len(relValues) > 0 {
 				tx.Where(clause.Not(clause.IN{Column: relColumn, Values: relValues}))
 			}
 
@@ -208,11 +208,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			tx := association.DB.Model(reflect.New(rel.Schema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(reflectValue, rel.Schema.PrimaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(rel.Schema.PrimaryFieldDBNames, pvs)
+			pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs)
 			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, primaryFields)
-			relColumn, relValues := schema.ToQueryValues(foreignKeys, rvs)
+			relColumn, relValues := schema.ToQueryValues(rel.Schema.Table, foreignKeys, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
 			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
@@ -220,11 +220,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			tx := association.DB.Model(reflect.New(rel.FieldSchema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(foreignKeys, pvs)
+			pcolumn, pvalues := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
 			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, rel.FieldSchema.PrimaryFields)
-			relColumn, relValues := schema.ToQueryValues(rel.FieldSchema.PrimaryFieldDBNames, rvs)
+			relColumn, relValues := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
 			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
@@ -250,11 +250,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			}
 
 			_, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(joinPrimaryKeys, pvs)
+			pcolumn, pvalues := schema.ToQueryValues(rel.JoinTable.Table, joinPrimaryKeys, pvs)
 			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)
-			relColumn, relValues := schema.ToQueryValues(joinRelPrimaryKeys, rvs)
+			relColumn, relValues := schema.ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
 			association.Error = association.DB.Where(clause.Where{Exprs: conds}).Model(nil).Delete(modelValue).Error

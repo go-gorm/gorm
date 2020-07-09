@@ -49,7 +49,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		}
 
 		joinResults := rel.JoinTable.MakeSlice().Elem()
-		column, values := schema.ToQueryValues(joinForeignKeys, joinForeignValues)
+		column, values := schema.ToQueryValues(rel.JoinTable.Table, joinForeignKeys, joinForeignValues)
 		tx.Where(clause.IN{Column: column, Values: values}).Find(joinResults.Addr().Interface())
 
 		// convert join identity map to relation identity map
@@ -93,7 +93,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	}
 
 	reflectResults := rel.FieldSchema.MakeSlice().Elem()
-	column, values := schema.ToQueryValues(relForeignKeys, foreignValues)
+	column, values := schema.ToQueryValues(rel.FieldSchema.Table, relForeignKeys, foreignValues)
 
 	for _, cond := range conds {
 		if fc, ok := cond.(func(*gorm.DB) *gorm.DB); ok {

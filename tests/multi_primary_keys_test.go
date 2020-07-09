@@ -13,7 +13,7 @@ type Blog struct {
 	Locale     string `gorm:"primary_key"`
 	Subject    string
 	Body       string
-	Tags       []Tag `gorm:"many2many:blogs_tags;"`
+	Tags       []Tag `gorm:"many2many:blog_tags;"`
 	SharedTags []Tag `gorm:"many2many:shared_blog_tags;ForeignKey:id;References:id"`
 	LocaleTags []Tag `gorm:"many2many:locale_blog_tags;ForeignKey:id,locale;References:id"`
 }
@@ -22,7 +22,7 @@ type Tag struct {
 	ID     uint   `gorm:"primary_key"`
 	Locale string `gorm:"primary_key"`
 	Value  string
-	Blogs  []*Blog `gorm:"many2many:blogs_tags"`
+	Blogs  []*Blog `gorm:"many2many:blog_tags"`
 }
 
 func compareTags(tags []Tag, contents []string) bool {

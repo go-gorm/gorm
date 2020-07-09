@@ -462,10 +462,12 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 }
 
 func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []clause.Expression) {
+	table := rel.FieldSchema.Table
 	foreignFields := []*Field{}
 	relForeignKeys := []string{}
 
 	if rel.JoinTable != nil {
+		table = rel.JoinTable.Table
 		for _, ref := range rel.References {
 			if ref.OwnPrimaryKey {
 				foreignFields = append(foreignFields, ref.PrimaryKey)
@@ -500,7 +502,7 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 	}
 
 	_, foreignValues := GetIdentityFieldValuesMap(reflectValue, foreignFields)
-	column, values := ToQueryValues(relForeignKeys, foreignValues)
+	column, values := ToQueryValues(table, relForeignKeys, foreignValues)
 
 	conds = append(conds, clause.IN{Column: column, Values: values})
 	return

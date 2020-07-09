@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
 
@@ -164,18 +165,23 @@ func GetIdentityFieldValuesMapFromValues(values []interface{}, fields []*Field) 
 }
 
 // ToQueryValues to query values
-func ToQueryValues(foreignKeys []string, foreignValues [][]interface{}) (interface{}, []interface{}) {
+func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interface{}) (interface{}, []interface{}) {
 	queryValues := make([]interface{}, len(foreignValues))
 	if len(foreignKeys) == 1 {
 		for idx, r := range foreignValues {
 			queryValues[idx] = r[0]
 		}
 
-		return foreignKeys[0], queryValues
+		return clause.Column{Table: table, Name: foreignKeys[0]}, queryValues
 	} else {
+		columns := make([]clause.Column, len(foreignKeys))
+		for idx, key := range foreignKeys {
+			columns[idx] = clause.Column{Table: table, Name: key}
+		}
+
 		for idx, r := range foreignValues {
 			queryValues[idx] = r
 		}
+		return columns, queryValues
 	}
-	return foreignKeys, queryValues
 }

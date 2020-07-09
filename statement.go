@@ -107,6 +107,15 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			writer.WriteString(" AS ")
 			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
 		}
+	case []clause.Column:
+		writer.WriteByte('(')
+		for idx, d := range v {
+			if idx > 0 {
+				writer.WriteString(",")
+			}
+			stmt.QuoteTo(writer, d)
+		}
+		writer.WriteByte(')')
 	case string:
 		stmt.DB.Dialector.QuoteTo(writer, v)
 	case []string:
