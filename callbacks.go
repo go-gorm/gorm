@@ -96,6 +96,12 @@ func (p *processor) Execute(db *DB) {
 		}
 	}
 
+	if nil != stmt.Schema {
+		if stmt.Table != stmt.Schema.Table {
+			stmt.Schema.Table = stmt.Table
+		}
+	}
+
 	for _, f := range p.fns {
 		f(db)
 	}
