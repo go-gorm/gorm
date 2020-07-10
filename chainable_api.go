@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"gorm.io/gorm/clause"
@@ -40,9 +41,19 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	return
 }
 
+var tableRegexp = regexp.MustCompile("(?i).+ AS (\\w+)\\s*$")
+
 // Table specify the table you would like to run db operations
 func (db *DB) Table(name string) (tx *DB) {
 	tx = db.getInstance()
+	if strings.Contains(name, " ") {
+		tx.Statement.FullTable = name
+		if results := tableRegexp.FindStringSubmatch(name); len(results) == 2 {
+			tx.Statement.Table = results[1]
+			return
+		}
+	}
+
 	tx.Statement.Table = name
 	return
 }

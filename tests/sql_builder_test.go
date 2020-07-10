@@ -24,6 +24,22 @@ func TestRow(t *testing.T) {
 	if age != 10 {
 		t.Errorf("Scan with Row, age expects: %v, got %v", user2.Age, age)
 	}
+
+	table := "gorm.users"
+	if DB.Dialector.Name() != "mysql" {
+		table = "users" // other databases doesn't support select with `database.table`
+	}
+
+	DB.Table(table).Where(map[string]interface{}{"name": user2.Name}).Update("age", 20)
+
+	row = DB.Table(table+" as u").Where("u.name = ?", user2.Name).Select("age").Row()
+	if err := row.Scan(&age); err != nil {
+		t.Fatalf("Failed to scan age, got %v", err)
+	}
+
+	if age != 20 {
+		t.Errorf("Scan with Row, age expects: %v, got %v", user2.Age, age)
+	}
 }
 
 func TestRows(t *testing.T) {
