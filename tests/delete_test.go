@@ -8,6 +8,19 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+func TestDeleteWithCustomTable(t *testing.T) {
+	type Entity struct{ ID int }
+
+	stmt := DB.
+		Session(&gorm.Session{DryRun: true}).
+		Table("my_entity").
+		Delete(&Entity{ID: 123}).Statement
+
+	if "my_entity" != stmt.Schema.Table {
+		t.Errorf("wrong table used. Expecting: my_table, actual: %s", stmt.Schema.Table)
+	}
+}
+
 func TestDelete(t *testing.T) {
 	var users = []User{*GetUser("delete", Config{}), *GetUser("delete", Config{}), *GetUser("delete", Config{})}
 
