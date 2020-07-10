@@ -107,7 +107,6 @@ func (p *processor) Execute(db *DB) {
 	if !stmt.DB.DryRun {
 		stmt.SQL.Reset()
 		stmt.Vars = nil
-		stmt.NamedVars = nil
 	}
 }
 

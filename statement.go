@@ -38,7 +38,6 @@ type Statement struct {
 	UpdatingColumn       bool
 	SQL                  strings.Builder
 	Vars                 []interface{}
-	NamedVars            []sql.NamedArg
 	CurDestIndex         int
 	attrs                []interface{}
 	assigns              []interface{}
@@ -148,14 +147,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 
 		switch v := v.(type) {
 		case sql.NamedArg:
-			if len(v.Name) > 0 {
-				stmt.NamedVars = append(stmt.NamedVars, v)
-				writer.WriteByte('@')
-				writer.WriteString(v.Name)
-			} else {
-				stmt.Vars = append(stmt.Vars, v.Value)
-				stmt.DB.Dialector.BindVarTo(writer, stmt, v.Value)
-			}
+			stmt.Vars = append(stmt.Vars, v.Value)
 		case clause.Column, clause.Table:
 			stmt.QuoteTo(writer, v)
 		case clause.Expr:
@@ -234,16 +226,19 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 
 // BuildCondition build condition
 func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (conds []clause.Expression) {
-	if sql, ok := query.(string); ok {
+	if s, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
-		if _, err := strconv.Atoi(sql); err != nil {
-			if sql == "" && len(args) == 0 {
+		if _, err := strconv.Atoi(s); err != nil {
+			if s == "" && len(args) == 0 {
 				return
-			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(sql, "?")) || strings.Contains(sql, "@") {
+			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(s, "?")) {
 				// looks like a where condition
-				return []clause.Expression{clause.Expr{SQL: sql, Vars: args}}
+				return []clause.Expression{clause.Expr{SQL: s, Vars: args}}
+			} else if len(args) > 0 && strings.Contains(s, "@") {
+				// looks like a named query
+				return []clause.Expression{clause.NamedExpr{SQL: s, Vars: args}}
 			} else if len(args) == 1 {
-				return []clause.Expression{clause.Eq{Column: sql, Value: args[0]}}
+				return []clause.Expression{clause.Eq{Column: s, Value: args[0]}}
 			}
 		}
 	}

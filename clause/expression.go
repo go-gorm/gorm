@@ -1,6 +1,7 @@
 package clause
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"reflect"
 )
@@ -59,6 +60,64 @@ func (expr Expr) Build(builder Builder) {
 			}
 			builder.WriteByte(v)
 		}
+	}
+}
+
+// NamedExpr raw expression for named expr
+type NamedExpr struct {
+	SQL  string
+	Vars []interface{}
+}
+
+// Build build raw expression
+func (expr NamedExpr) Build(builder Builder) {
+	var (
+		idx      int
+		inName   bool
+		namedMap = make(map[string]interface{}, len(expr.Vars))
+	)
+
+	for _, v := range expr.Vars {
+		switch value := v.(type) {
+		case sql.NamedArg:
+			namedMap[value.Name] = value.Value
+		case map[string]interface{}:
+			for k, v := range value {
+				namedMap[k] = v
+			}
+		}
+	}
+
+	name := make([]byte, 0, 10)
+
+	for _, v := range []byte(expr.SQL) {
+		if v == '@' && !inName {
+			inName = true
+			name = []byte{}
+		} else if v == ' ' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' {
+			if inName {
+				if nv, ok := namedMap[string(name)]; ok {
+					builder.AddVar(builder, nv)
+				} else {
+					builder.WriteByte('@')
+					builder.WriteString(string(name))
+				}
+				inName = false
+			}
+
+			builder.WriteByte(v)
+		} else if v == '?' {
+			builder.AddVar(builder, expr.Vars[idx])
+			idx++
+		} else if inName {
+			name = append(name, v)
+		} else {
+			builder.WriteByte(v)
+		}
+	}
+
+	if inName {
+		builder.AddVar(builder, namedMap[string(name)])
 	}
 }
 
