@@ -18,7 +18,10 @@ func TestBelongsToAssociation(t *testing.T) {
 	// Find
 	var user2 User
 	DB.Find(&user2, "id = ?", user.ID)
-	DB.Model(&user2).Association("Company").Find(&user2.Company)
+	pointerOfUser := &user2
+	if err := DB.Model(&pointerOfUser).Association("Company").Find(&user2.Company); err != nil {
+		t.Errorf("failed to query users, got error %#v", err)
+	}
 	user2.Manager = &User{}
 	DB.Model(&user2).Association("Manager").Find(user2.Manager)
 	CheckUser(t, user2, user)

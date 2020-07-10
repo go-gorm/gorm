@@ -30,7 +30,10 @@ func (db *DB) Association(column string) *Association {
 			association.Error = fmt.Errorf("%w: %v", ErrUnsupportedRelation, column)
 		}
 
-		db.Statement.ReflectValue = reflect.Indirect(reflect.ValueOf(db.Statement.Model))
+		db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Model)
+		for db.Statement.ReflectValue.Kind() == reflect.Ptr {
+			db.Statement.ReflectValue = db.Statement.ReflectValue.Elem()
+		}
 	} else {
 		association.Error = err
 	}
