@@ -33,9 +33,5 @@ func (from From) Build(builder Builder) {
 
 // MergeClause merge from clause
 func (from From) MergeClause(clause *Clause) {
-	if v, ok := clause.Expression.(From); ok {
-		from.Tables = append(v.Tables, from.Tables...)
-		from.Joins = append(v.Joins, from.Joins...)
-	}
 	clause.Expression = from
 }

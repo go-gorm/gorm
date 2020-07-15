@@ -40,6 +40,16 @@ func TestFrom(t *testing.T) {
 					Tables: []clause.Table{{Name: "users"}},
 					Joins: []clause.Join{
 						{
+							Type:  clause.RightJoin,
+							Table: clause.Table{Name: "profiles"},
+							ON: clause.Where{
+								[]clause.Expression{clause.Eq{clause.Column{Table: "profiles", Name: "email"}, clause.Column{Table: clause.CurrentTable, Name: "email"}}},
+							},
+						},
+					},
+				}, clause.From{
+					Joins: []clause.Join{
+						{
 							Type:  clause.InnerJoin,
 							Table: clause.Table{Name: "articles"},
 							ON: clause.Where{
@@ -51,19 +61,9 @@ func TestFrom(t *testing.T) {
 							Using: []string{"company_name"},
 						},
 					},
-				}, clause.From{
-					Joins: []clause.Join{
-						{
-							Type:  clause.RightJoin,
-							Table: clause.Table{Name: "profiles"},
-							ON: clause.Where{
-								[]clause.Expression{clause.Eq{clause.Column{Table: "profiles", Name: "email"}, clause.Column{Table: clause.CurrentTable, Name: "email"}}},
-							},
-						},
-					},
 				},
 			},
-			"SELECT * FROM `users` INNER JOIN `articles` ON `articles`.`id` = `users`.`id` LEFT JOIN `companies` USING (`company_name`) RIGHT JOIN `profiles` ON `profiles`.`email` = `users`.`email`", nil,
+			"SELECT * FROM `users` INNER JOIN `articles` ON `articles`.`id` = `users`.`id` LEFT JOIN `companies` USING (`company_name`)", nil,
 		},
 	}
 
