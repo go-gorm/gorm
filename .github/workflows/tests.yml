@@ -145,7 +145,7 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GORM_DIALECT=postgres GORM_DSN="user=gorm password=gorm DB.name=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
+      run: GORM_DIALECT=postgres GORM_DSN="user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh
 
   sqlserver:
     strategy:
