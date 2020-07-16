@@ -57,12 +57,13 @@ type DB struct {
 
 // Session session config when create session with Session() method
 type Session struct {
-	DryRun         bool
-	PrepareStmt    bool
-	WithConditions bool
-	Context        context.Context
-	Logger         logger.Interface
-	NowFunc        func() time.Time
+	DryRun                 bool
+	PrepareStmt            bool
+	WithConditions         bool
+	SkipDefaultTransaction bool
+	Context                context.Context
+	Logger                 logger.Interface
+	NowFunc                func() time.Time
 }
 
 // Open initialize db session based on dialector
@@ -144,6 +145,10 @@ func (db *DB) Session(config *Session) *DB {
 			clone:     1,
 		}
 	)
+
+	if config.SkipDefaultTransaction {
+		tx.Config.SkipDefaultTransaction = true
+	}
 
 	if config.Context != nil {
 		tx.Statement = tx.Statement.clone()
