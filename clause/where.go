@@ -33,8 +33,6 @@ func (where Where) Build(builder Builder) {
 
 		expr.Build(builder)
 	}
-
-	return
 }
 
 // MergeClause merge where clauses

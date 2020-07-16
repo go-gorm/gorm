@@ -25,12 +25,12 @@ const (
 
 const (
 	Bool   DataType = "bool"
-	Int             = "int"
-	Uint            = "uint"
-	Float           = "float"
-	String          = "string"
-	Time            = "time"
-	Bytes           = "bytes"
+	Int    DataType = "int"
+	Uint   DataType = "uint"
+	Float  DataType = "float"
+	String DataType = "string"
+	Time   DataType = "time"
+	Bytes  DataType = "bytes"
 )
 
 type Field struct {
@@ -455,13 +455,13 @@ func (field *Field) setupValuerAndSetter() {
 
 			if valuer, ok := v.(driver.Valuer); ok {
 				if v, err = valuer.Value(); err == nil {
-					setter(value, v)
+					err = setter(value, v)
 				}
 			} else if reflectV.Kind() == reflect.Ptr {
 				if reflectV.IsNil() {
 					field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 				} else {
-					setter(value, reflectV.Elem().Interface())
+					err = setter(value, reflectV.Elem().Interface())
 				}
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
@@ -744,7 +744,7 @@ func (field *Field) setupValuerAndSetter() {
 						if reflectV.IsNil() {
 							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 						} else {
-							field.Set(value, reflectV.Elem().Interface())
+							err = field.Set(value, reflectV.Elem().Interface())
 						}
 					} else {
 						fieldValue := field.ReflectValueOf(value)

@@ -21,7 +21,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				for _, ref := range rel.References {
 					if !ref.OwnPrimaryKey {
 						pv, _ := ref.PrimaryKey.ValueOf(elem)
-						ref.ForeignKey.Set(obj, pv)
+						db.AddError(ref.ForeignKey.Set(obj, pv))
 
 						if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
 							dest[ref.ForeignKey.DBName] = pv
@@ -121,9 +121,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 						for _, ref := range rel.References {
 							if ref.OwnPrimaryKey {
 								fv, _ := ref.PrimaryKey.ValueOf(obj)
-								ref.ForeignKey.Set(rv, fv)
+								db.AddError(ref.ForeignKey.Set(rv, fv))
 							} else if ref.PrimaryValue != "" {
-								ref.ForeignKey.Set(rv, ref.PrimaryValue)
+								db.AddError(ref.ForeignKey.Set(rv, ref.PrimaryValue))
 							}
 						}
 

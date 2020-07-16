@@ -15,7 +15,7 @@ var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	gormSourceDir = regexp.MustCompile("utils.utils\\.go").ReplaceAllString(file, "")
+	gormSourceDir = regexp.MustCompile(`utils.utils\.go`).ReplaceAllString(file, "")
 }
 
 func FileWithLineNum() string {

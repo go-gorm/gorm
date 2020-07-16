@@ -138,11 +138,11 @@ func (tx *DB) assignExprsToValue(exprs []clause.Expression) {
 			switch column := eq.Column.(type) {
 			case string:
 				if field := tx.Statement.Schema.LookUpField(column); field != nil {
-					field.Set(tx.Statement.ReflectValue, eq.Value)
+					tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
 				}
 			case clause.Column:
 				if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
-					field.Set(tx.Statement.ReflectValue, eq.Value)
+					tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
 				}
 			default:
 			}
@@ -433,7 +433,7 @@ func (db *DB) Rollback() *DB {
 
 func (db *DB) SavePoint(name string) *DB {
 	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
-		savePointer.SavePoint(db, name)
+		db.AddError(savePointer.SavePoint(db, name))
 	} else {
 		db.AddError(ErrUnsupportedDriver)
 	}
@@ -442,7 +442,7 @@ func (db *DB) SavePoint(name string) *DB {
 
 func (db *DB) RollbackTo(name string) *DB {
 	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
-		savePointer.RollbackTo(db, name)
+		db.AddError(savePointer.RollbackTo(db, name))
 	} else {
 		db.AddError(ErrUnsupportedDriver)
 	}

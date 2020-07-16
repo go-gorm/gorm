@@ -60,9 +60,8 @@ func (stmt *Statement) WriteByte(c byte) error {
 }
 
 // WriteQuoted write quoted value
-func (stmt *Statement) WriteQuoted(value interface{}) error {
+func (stmt *Statement) WriteQuoted(value interface{}) {
 	stmt.QuoteTo(&stmt.SQL, value)
-	return nil
 }
 
 // QuoteTo write quoted value to writer
@@ -215,7 +214,7 @@ func (stmt *Statement) AddClause(v clause.Interface) {
 		optimizer.ModifyStatement(stmt)
 	} else {
 		name := v.Name()
-		c, _ := stmt.Clauses[name]
+		c := stmt.Clauses[name]
 		c.Name = name
 		v.MergeClause(&c)
 		stmt.Clauses[name] = c

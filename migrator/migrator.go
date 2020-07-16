@@ -1,6 +1,7 @@
 package migrator
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -139,7 +140,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.FieldsByDBName[dbName]
-				createTableSQL += fmt.Sprintf("? ?")
+				createTableSQL += "? ?"
 				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
 				values = append(values, clause.Column{Name: dbName}, m.DB.Migrator().FullDataTypeOf(field))
 				createTableSQL += ","
@@ -534,7 +535,9 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
-		dep.Parse(value)
+		if err := dep.Parse(value); err != nil {
+			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
+		}
 
 		for _, rel := range dep.Schema.Relationships.Relations {
 			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {

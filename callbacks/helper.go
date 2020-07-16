@@ -9,7 +9,7 @@ import (
 
 // ConvertMapToValuesForCreate convert map to values
 func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]interface{}) (values clause.Values) {
-	columns := make([]string, 0, len(mapValue))
+	values.Columns = make([]clause.Column, 0, len(mapValue))
 	selectColumns, restricted := stmt.SelectAndOmitColumns(true, false)
 
 	var keys []string
@@ -25,7 +25,7 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 		}
 
 		if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
-			columns = append(columns, k)
+			values.Columns = append(values.Columns, clause.Column{Name: k})
 			values.Values[0] = append(values.Values[0], value)
 		}
 	}

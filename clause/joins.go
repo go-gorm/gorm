@@ -4,9 +4,9 @@ type JoinType string
 
 const (
 	CrossJoin JoinType = "CROSS"
-	InnerJoin          = "INNER"
-	LeftJoin           = "LEFT"
-	RightJoin          = "RIGHT"
+	InnerJoin JoinType = "INNER"
+	LeftJoin  JoinType = "LEFT"
+	RightJoin JoinType = "RIGHT"
 )
 
 // Join join clause for from

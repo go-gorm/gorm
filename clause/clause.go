@@ -18,7 +18,7 @@ type Writer interface {
 // Builder builder interface
 type Builder interface {
 	Writer
-	WriteQuoted(field interface{}) error
+	WriteQuoted(field interface{})
 	AddVar(Writer, ...interface{})
 }
 

@@ -71,9 +71,9 @@ func (schema *Schema) parseRelation(field *Field) {
 		return
 	}
 
-	if polymorphic, _ := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
+	if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
 		schema.buildPolymorphicRelation(relation, field, polymorphic)
-	} else if many2many, _ := field.TagSettings["MANY2MANY"]; many2many != "" {
+	} else if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
 		switch field.IndirectFieldType.Kind() {
@@ -312,7 +312,6 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			OwnPrimaryKey: ownPriamryField,
 		})
 	}
-	return
 }
 
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessHas bool) {
