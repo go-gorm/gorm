@@ -179,22 +179,22 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	switch reflect.Indirect(fieldValue).Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
-		if field.HasDefaultValue {
+		if field.HasDefaultValue && field.DefaultValue != "" {
 			field.DefaultValueInterface, _ = strconv.ParseBool(field.DefaultValue)
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.DataType = Int
-		if field.HasDefaultValue {
+		if field.HasDefaultValue && field.DefaultValue != "" {
 			field.DefaultValueInterface, _ = strconv.ParseInt(field.DefaultValue, 0, 64)
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.DataType = Uint
-		if field.HasDefaultValue {
+		if field.HasDefaultValue && field.DefaultValue != "" {
 			field.DefaultValueInterface, _ = strconv.ParseUint(field.DefaultValue, 0, 64)
 		}
 	case reflect.Float32, reflect.Float64:
 		field.DataType = Float
-		if field.HasDefaultValue {
+		if field.HasDefaultValue && field.DefaultValue != "" {
 			field.DefaultValueInterface, _ = strconv.ParseFloat(field.DefaultValue, 64)
 		}
 	case reflect.String:
