@@ -30,7 +30,7 @@ func FileWithLineNum() string {
 }
 
 func IsChar(c rune) bool {
-	return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*'
 }
 
 func CheckTruth(val interface{}) bool {

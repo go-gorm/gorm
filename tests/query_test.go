@@ -310,19 +310,24 @@ func TestSelect(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
 	r := dryDB.Select("name", "age").Find(&User{})
 	if !regexp.MustCompile("SELECT .*name.*,.*age.* FROM .*users.*").MatchString(r.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+		t.Fatalf("Build Select with strings, but got %v", r.Statement.SQL.String())
 	}
 
 	r = dryDB.Select([]string{"name", "age"}).Find(&User{})
 	if !regexp.MustCompile("SELECT .*name.*,.*age.* FROM .*users.*").MatchString(r.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+		t.Fatalf("Build Select with slice, but got %v", r.Statement.SQL.String())
 	}
 
 	r = dryDB.Table("users").Select("COALESCE(age,?)", 42).Find(&User{})
-	if !regexp.MustCompile("SELECT COALESCE\\(age,.*\\) FROM .*users.*").MatchString(r.Statement.SQL.String()) {
-		t.Fatalf("Build NOT condition, but got %v", r.Statement.SQL.String())
+	if !regexp.MustCompile(`SELECT COALESCE\(age,.*\) FROM .*users.*`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build Select with func, but got %v", r.Statement.SQL.String())
 	}
 	// SELECT COALESCE(age,'42') FROM users;
+
+	r = dryDB.Select("u.*").Table("users as u").First(&User{}, user.ID)
+	if !regexp.MustCompile(`SELECT u\.\* FROM .*users.*`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build Select with u.*, but got %v", r.Statement.SQL.String())
+	}
 }
 
 func TestPluckWithSelect(t *testing.T) {
