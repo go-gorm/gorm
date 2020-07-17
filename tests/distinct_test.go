@@ -1,8 +1,10 @@
 package tests_test
 
 import (
+	"regexp"
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -56,5 +58,11 @@ func TestDistinct(t *testing.T) {
 
 	if err := DB.Model(&User{}).Distinct("name").Where("name like ?", "distinct%").Count(&count).Error; err != nil || count != 3 {
 		t.Errorf("failed to query users count, got error: %v, count %v", err, count)
+	}
+
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	r := dryDB.Distinct("u.id, u.*").Table("user_speaks as s").Joins("inner join users as u on u.id = s.user_id").Where("s.language_code ='US' or s.language_code ='ES'").Find(&User{})
+	if !regexp.MustCompile(`SELECT DISTINCT u\.id, u\.\* FROM user_speaks as s inner join users as u`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build Distinct with u.*, but got %v", r.Statement.SQL.String())
 	}
 }

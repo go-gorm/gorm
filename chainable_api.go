@@ -60,11 +60,11 @@ func (db *DB) Table(name string) (tx *DB) {
 
 // Distinct specify distinct fields that you want querying
 func (db *DB) Distinct(args ...interface{}) (tx *DB) {
-	tx = db
+	tx = db.getInstance()
+	tx.Statement.Distinct = true
 	if len(args) > 0 {
 		tx = tx.Select(args[0], args[1:]...)
 	}
-	tx.Statement.Distinct = true
 	return tx
 }
 
@@ -102,6 +102,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 					tx.Statement.Selects = append(tx.Statement.Selects, arg...)
 				default:
 					tx.Statement.AddClause(clause.Select{
+						Distinct:   db.Statement.Distinct,
 						Expression: clause.Expr{SQL: v, Vars: args},
 					})
 					return
@@ -109,6 +110,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 			}
 		} else {
 			tx.Statement.AddClause(clause.Select{
+				Distinct:   db.Statement.Distinct,
 				Expression: clause.Expr{SQL: v, Vars: args},
 			})
 		}

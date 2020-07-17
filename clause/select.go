@@ -30,6 +30,14 @@ func (s Select) Build(builder Builder) {
 
 func (s Select) MergeClause(clause *Clause) {
 	if s.Expression != nil {
+		if s.Distinct {
+			if expr, ok := s.Expression.(Expr); ok {
+				expr.SQL = "DISTINCT " + expr.SQL
+				clause.Expression = expr
+				return
+			}
+		}
+
 		clause.Expression = s.Expression
 	} else {
 		clause.Expression = s
