@@ -19,7 +19,7 @@ import (
 // Statement statement
 type Statement struct {
 	*DB
-	FullTable            string
+	TableExpr            *clause.Expr
 	Table                string
 	Model                interface{}
 	Unscoped             bool
@@ -69,8 +69,8 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	switch v := field.(type) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
-			if stmt.FullTable != "" {
-				writer.WriteString(stmt.FullTable)
+			if stmt.TableExpr != nil {
+				stmt.TableExpr.Build(stmt)
 			} else {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
 			}
@@ -378,7 +378,6 @@ func (stmt *Statement) Build(clauses ...string) {
 func (stmt *Statement) Parse(value interface{}) (err error) {
 	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
 		stmt.Table = stmt.Schema.Table
-		stmt.FullTable = stmt.Schema.Table
 	}
 	return err
 }

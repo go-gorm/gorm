@@ -47,7 +47,7 @@ var tableRegexp = regexp.MustCompile(`(?i).+ AS (\w+)\s*$`)
 func (db *DB) Table(name string) (tx *DB) {
 	tx = db.getInstance()
 	if strings.Contains(name, " ") {
-		tx.Statement.FullTable = name
+		tx.Statement.TableExpr = &clause.Expr{SQL: name}
 		if results := tableRegexp.FindStringSubmatch(name); len(results) == 2 {
 			tx.Statement.Table = results[1]
 			return
