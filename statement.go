@@ -503,7 +503,7 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 			for _, dbName := range stmt.Schema.DBNames {
 				results[dbName] = true
 			}
-		} else if column == clause.Associations {
+		} else if column == clause.Associations && stmt.Schema != nil {
 			for _, rel := range stmt.Schema.Relationships.Relations {
 				results[rel.Name] = true
 			}
@@ -517,8 +517,10 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 	// omit columns
 	for _, omit := range stmt.Omits {
 		if omit == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				results[rel.Name] = false
+			if stmt.Schema != nil {
+				for _, rel := range stmt.Schema.Relationships.Relations {
+					results[rel.Name] = false
+				}
 			}
 		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
 			results[field.DBName] = false
