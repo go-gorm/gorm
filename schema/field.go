@@ -105,28 +105,30 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	// if field is valuer, used its value or first fields as data type
 	valuer, isValuer := fieldValue.Interface().(driver.Valuer)
 	if isValuer {
-		var overrideFieldValue bool
-		if v, err := valuer.Value(); v != nil && err == nil {
-			overrideFieldValue = true
-			fieldValue = reflect.ValueOf(v)
-		}
+		if _, ok := fieldValue.Interface().(GormDataTypeInterface); !ok {
+			var overrideFieldValue bool
+			if v, err := valuer.Value(); v != nil && err == nil {
+				overrideFieldValue = true
+				fieldValue = reflect.ValueOf(v)
+			}
 
-		if field.IndirectFieldType.Kind() == reflect.Struct {
-			for i := 0; i < field.IndirectFieldType.NumField(); i++ {
-				if !overrideFieldValue {
-					newFieldType := field.IndirectFieldType.Field(i).Type
-					for newFieldType.Kind() == reflect.Ptr {
-						newFieldType = newFieldType.Elem()
+			if field.IndirectFieldType.Kind() == reflect.Struct {
+				for i := 0; i < field.IndirectFieldType.NumField(); i++ {
+					if !overrideFieldValue {
+						newFieldType := field.IndirectFieldType.Field(i).Type
+						for newFieldType.Kind() == reflect.Ptr {
+							newFieldType = newFieldType.Elem()
+						}
+
+						fieldValue = reflect.New(newFieldType)
+						overrideFieldValue = true
 					}
 
-					fieldValue = reflect.New(newFieldType)
-					overrideFieldValue = true
-				}
-
-				// copy tag settings from valuer
-				for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
-					if _, ok := field.TagSettings[key]; !ok {
-						field.TagSettings[key] = value
+					// copy tag settings from valuer
+					for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
+						if _, ok := field.TagSettings[key]; !ok {
+							field.TagSettings[key] = value
+						}
 					}
 				}
 			}
