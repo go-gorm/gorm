@@ -377,6 +377,12 @@ func (stmt *Statement) Build(clauses ...string) {
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
 	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
+		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
+			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
+			stmt.Table = tables[1]
+			return
+		}
+
 		stmt.Table = stmt.Schema.Table
 	}
 	return err

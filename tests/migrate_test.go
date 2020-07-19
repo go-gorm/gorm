@@ -79,7 +79,7 @@ func TestMigrateWithUniqueIndex(t *testing.T) {
 	}
 }
 
-func TestTable(t *testing.T) {
+func TestMigrateTable(t *testing.T) {
 	type TableStruct struct {
 		gorm.Model
 		Name string
@@ -112,7 +112,7 @@ func TestTable(t *testing.T) {
 	}
 }
 
-func TestIndexes(t *testing.T) {
+func TestMigrateIndexes(t *testing.T) {
 	type IndexStruct struct {
 		gorm.Model
 		Name string `gorm:"size:255;index"`
@@ -162,7 +162,7 @@ func TestIndexes(t *testing.T) {
 	}
 }
 
-func TestColumns(t *testing.T) {
+func TestMigrateColumns(t *testing.T) {
 	type ColumnStruct struct {
 		gorm.Model
 		Name string
