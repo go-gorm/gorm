@@ -330,6 +330,21 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+func TestOmit(t *testing.T) {
+	user := User{Name: "OmitUser1", Age: 20}
+	DB.Save(&user)
+
+	var result User
+	DB.Where("name = ?", user.Name).Omit("name").Find(&result)
+	if result.ID == 0 {
+		t.Errorf("Should not have ID because only selected name, %+v", result.ID)
+	}
+
+	if result.Name != "" || result.Age != 20 {
+		t.Errorf("User Name should be omitted, got %v, Age should be ok, got %v", result.Name, result.Age)
+	}
+}
+
 func TestPluckWithSelect(t *testing.T) {
 	users := []User{
 		{Name: "pluck_with_select_1", Age: 25},
