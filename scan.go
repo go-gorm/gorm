@@ -14,9 +14,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
 
-	columns = funk.Map(columns, func(s string) string {
-		return strings.ToLower(s)
-	}).([]string)
+	if db.Workarounds.DoColumnLowerCasing {
+		columns = funk.Map(columns, func(s string) string {
+			return strings.ToLower(s)
+		}).([]string)
+	}
 
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:

@@ -32,6 +32,10 @@ type Config struct {
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
 	DisableForeignKeyConstraintWhenMigrating bool
+	// Workarounds this is for some exotic databases that requires internal changes rather than avoiding the problem by extending the dialects
+	Workarounds struct {
+		DoColumnLowerCasing bool
+	}
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
