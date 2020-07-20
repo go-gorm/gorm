@@ -38,6 +38,7 @@ type Field struct {
 	DBName                string
 	BindNames             []string
 	DataType              DataType
+	GORMDataType          DataType
 	PrimaryKey            bool
 	AutoIncrement         bool
 	Creatable             bool
@@ -221,6 +222,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
+	field.GORMDataType = field.DataType
+
 	if dataTyper, ok := fieldValue.Interface().(GormDataTypeInterface); ok {
 		field.DataType = DataType(dataTyper.GormDataType())
 	}
@@ -248,6 +251,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		default:
 			field.DataType = DataType(val)
 		}
+	}
+
+	if field.GORMDataType == "" {
+		field.GORMDataType = field.DataType
 	}
 
 	if field.Size == 0 {

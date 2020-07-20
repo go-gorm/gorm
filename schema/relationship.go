@@ -157,6 +157,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 
 		// use same data type for foreign keys
 		relation.Polymorphic.PolymorphicID.DataType = primaryKeyField.DataType
+		relation.Polymorphic.PolymorphicID.GORMDataType = primaryKeyField.GORMDataType
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryKeyField,
@@ -285,6 +286,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	for idx, f := range relation.JoinTable.Fields {
 		// use same data type for foreign keys
 		f.DataType = fieldsMap[f.Name].DataType
+		f.GORMDataType = fieldsMap[f.Name].GORMDataType
 		relation.JoinTable.PrimaryFields[idx] = f
 		ownPriamryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
 
@@ -387,6 +389,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	for idx, foreignField := range foreignFields {
 		// use same data type for foreign keys
 		foreignField.DataType = primaryFields[idx].DataType
+		foreignField.GORMDataType = primaryFields[idx].GORMDataType
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],

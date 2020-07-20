@@ -300,6 +300,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 		for _, ref := range relation.References {
 			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
 				f.DataType = ref.ForeignKey.DataType
+				f.GORMDataType = ref.ForeignKey.GORMDataType
 				ref.ForeignKey = f
 			} else {
 				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
