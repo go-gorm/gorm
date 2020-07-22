@@ -184,11 +184,11 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if field := schema.PrioritizedPrimaryField; field != nil {
 		switch field.GORMDataType {
 		case Int, Uint:
-			if !field.HasDefaultValue || field.DefaultValueInterface != nil {
-				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
-			}
-
 			if _, ok := field.TagSettings["AUTOINCREMENT"]; !ok {
+				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+					schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+				}
+
 				field.HasDefaultValue = true
 				field.AutoIncrement = true
 			}
