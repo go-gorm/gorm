@@ -149,10 +149,17 @@ func CreateWithReturning(db *gorm.DB) {
 
 						for rows.Next() {
 						BEGIN:
+							reflectValue := db.Statement.ReflectValue.Index(int(db.RowsAffected))
 							for idx, field := range fields {
-								fieldValue := field.ReflectValueOf(db.Statement.ReflectValue.Index(int(db.RowsAffected)))
+								fieldValue := field.ReflectValueOf(reflectValue)
+
 								if onConflict.DoNothing && !fieldValue.IsZero() {
 									db.RowsAffected++
+
+									if int(db.RowsAffected) >= db.Statement.ReflectValue.Len() {
+										return
+									}
+
 									goto BEGIN
 								}
 

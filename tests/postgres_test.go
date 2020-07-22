@@ -37,3 +37,36 @@ func TestPostgres(t *testing.T) {
 		t.Errorf("No error should happen, but got %v", err)
 	}
 }
+
+type Post struct {
+	ID         uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+	Title      string
+	Categories []*Category `gorm:"Many2Many:post_categories"`
+}
+
+type Category struct {
+	ID    uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4()"`
+	Title string
+	Posts []*Post `gorm:"Many2Many:post_categories"`
+}
+
+func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip()
+	}
+
+	DB.Migrator().DropTable(&Post{}, &Category{}, "post_categories")
+	DB.AutoMigrate(&Post{}, &Category{})
+
+	post := Post{
+		Title: "Hello World",
+		Categories: []*Category{
+			{Title: "Coding"},
+			{Title: "Golang"},
+		},
+	}
+
+	if err := DB.Create(&post).Error; err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+}
