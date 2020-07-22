@@ -55,6 +55,10 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 		t.Skip()
 	}
 
+	if err := DB.Exec(`create extension if not exists "uuid-ossp"`).Error; err != nil {
+		t.Fatalf("Failed to create 'uuid-ossp' extension, but got error %v", err)
+	}
+
 	DB.Migrator().DropTable(&Post{}, &Category{}, "post_categories")
 	DB.AutoMigrate(&Post{}, &Category{})
 
