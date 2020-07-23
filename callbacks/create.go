@@ -70,16 +70,8 @@ func Create(config *Config) func(db *gorm.DB) {
 												}
 											}
 										} else {
-											allUpdated := int(db.RowsAffected) == db.Statement.ReflectValue.Len()
-											isZero := true
-
 											for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-
-												if !allUpdated {
-													_, isZero = db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i))
-												}
-
-												if isZero {
+												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i)); isZero {
 													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
 													insertID++
 												}

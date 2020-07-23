@@ -352,3 +352,22 @@ func TestOmitWithCreate(t *testing.T) {
 
 	CheckUser(t, result2, user2)
 }
+
+func TestFirstOrCreateWithPrimaryKey(t *testing.T) {
+	company := Company{ID: 100, Name: "company100_with_primarykey"}
+	DB.FirstOrCreate(&company)
+
+	if company.ID != 100 {
+		t.Errorf("invalid primary key after creating, got %v", company.ID)
+	}
+
+	companies := []Company{
+		{ID: 101, Name: "company101_with_primarykey"},
+		{ID: 102, Name: "company102_with_primarykey"},
+	}
+	DB.Create(&companies)
+
+	if companies[0].ID != 101 || companies[1].ID != 102 {
+		t.Errorf("invalid primary key after creating, got %v, %v", companies[0].ID, companies[1].ID)
+	}
+}
