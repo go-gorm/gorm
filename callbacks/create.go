@@ -78,7 +78,9 @@ func Create(config *Config) func(db *gorm.DB) {
 											}
 										}
 									case reflect.Struct:
-										db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+										if insertID > 0 {
+											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+										}
 									}
 								} else {
 									db.AddError(err)
