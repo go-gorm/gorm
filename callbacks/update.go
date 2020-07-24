@@ -74,7 +74,7 @@ func Update(db *gorm.DB) {
 			return
 		}
 
-		if !db.DryRun {
+		if !db.DryRun && db.Error == nil {
 			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 			if err == nil {

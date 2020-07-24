@@ -51,7 +51,7 @@ func Create(config *Config) func(db *gorm.DB) {
 					db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
 				}
 
-				if !db.DryRun {
+				if !db.DryRun && db.Error == nil {
 					result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 					if err == nil {
@@ -130,7 +130,7 @@ func CreateWithReturning(db *gorm.DB) {
 				db.Statement.WriteQuoted(field.DBName)
 			}
 
-			if !db.DryRun {
+			if !db.DryRun && db.Error == nil {
 				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 				if err == nil {
@@ -179,7 +179,7 @@ func CreateWithReturning(db *gorm.DB) {
 					db.AddError(err)
 				}
 			}
-		} else if !db.DryRun {
+		} else if !db.DryRun && db.Error == nil {
 			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
 				db.RowsAffected, _ = result.RowsAffected()
 			} else {

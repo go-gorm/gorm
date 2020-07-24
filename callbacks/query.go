@@ -23,7 +23,7 @@ func Query(db *gorm.DB) {
 			BuildQuerySQL(db)
 		}
 
-		if !db.DryRun {
+		if !db.DryRun && db.Error == nil {
 			rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 			if err != nil {
 				db.AddError(err)
