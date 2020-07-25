@@ -15,10 +15,10 @@ var (
 	ErrMissingWhereClause = errors.New("WHERE conditions required")
 	// ErrUnsupportedRelation unsupported relations
 	ErrUnsupportedRelation = errors.New("unsupported relations")
-	// ErrorPrimaryKeyRequired primary keys required
-	ErrorPrimaryKeyRequired = errors.New("primary key required")
-	// ErrorModelValueRequired model value required
-	ErrorModelValueRequired = errors.New("model value required")
+	// ErrPrimaryKeyRequired primary keys required
+	ErrPrimaryKeyRequired = errors.New("primary key required")
+	// ErrModelValueRequired model value required
+	ErrModelValueRequired = errors.New("model value required")
 	// ErrUnsupportedDriver unsupported driver
 	ErrUnsupportedDriver = errors.New("unsupported driver")
 	// ErrRegistered registered

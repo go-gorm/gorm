@@ -170,7 +170,7 @@ func (association *Association) Replace(values ...interface{}) error {
 			if column, values := schema.ToQueryValues(rel.JoinTable.Table, joinPrimaryKeys, pvs); len(values) > 0 {
 				tx.Where(clause.IN{Column: column, Values: values})
 			} else {
-				return ErrorPrimaryKeyRequired
+				return ErrPrimaryKeyRequired
 			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)

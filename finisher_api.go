@@ -325,7 +325,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 			}
 		}
 	} else if tx.Statement.Table == "" {
-		tx.AddError(ErrorModelValueRequired)
+		tx.AddError(ErrModelValueRequired)
 	}
 
 	fields := strings.FieldsFunc(column, utils.IsChar)
