@@ -146,9 +146,9 @@ func TestFillSmallerStruct(t *testing.T) {
 	DB.Save(&user)
 	type SimpleUser struct {
 		ID        int64
-		Name      string
-		UpdatedAt time.Time
 		CreatedAt time.Time
+		UpdatedAt time.Time
+		Name      string
 	}
 
 	var simpleUser SimpleUser
@@ -174,7 +174,7 @@ func TestFillSmallerStruct(t *testing.T) {
 
 	result := DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&simpleUsers, user.ID)
 
-	if !regexp.MustCompile("SELECT .*id.*name.*updated_at.*created_at.* FROM .*users").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile("SELECT .*id.*created_at.*updated_at.*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("SQL should include selected names, but got %v", result.Statement.SQL.String())
 	}
 

@@ -162,18 +162,32 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 
 			if initialized || rows.Next() {
+				fieldsIndex := 0
+				var fieldnames []string
+				for _, f := range Schema.Fields {
+					fieldnames = append(fieldnames, f.DBName)
+				}
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
-						values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
-					} else if names := strings.Split(column, "__"); len(names) > 1 {
-						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
-								continue
+					if fieldsIndex >= len(Schema.Fields) {
+						values[idx] = &sql.RawBytes{}
+						continue
+					}
+					for _, field := range Schema.Fields[fieldsIndex:] {
+						if (field.DBName == column || field.Name == column) && field.Readable {
+							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							fieldsIndex++
+							break
+						}
+						if names := strings.Split(column, "__"); len(names) > 1 {
+							if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
+								if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+									values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+									break
+								}
 							}
 						}
-						values[idx] = &sql.RawBytes{}
-					} else {
+					}
+					if values[idx] == nil {
 						values[idx] = &sql.RawBytes{}
 					}
 				}
@@ -181,23 +195,31 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				db.RowsAffected++
 				db.AddError(rows.Scan(values...))
 
+				fieldsIndex = 0
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
-						field.Set(db.Statement.ReflectValue, values[idx])
-					} else if names := strings.Split(column, "__"); len(names) > 1 {
-						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								value := reflect.ValueOf(values[idx]).Elem()
-
-								if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-									if value.IsNil() {
-										continue
+					if fieldsIndex >= len(Schema.Fields) {
+						continue
+					}
+					for _, field := range Schema.Fields[fieldsIndex:] {
+						if (field.DBName == column || field.Name == column) && field.Readable {
+							field.Set(db.Statement.ReflectValue, values[idx])
+							fieldsIndex++
+							break
+						}
+						if names := strings.Split(column, "__"); len(names) > 1 {
+							if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
+								relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+								if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+									value := reflect.ValueOf(values[idx]).Elem()
+									if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+										if value.IsNil() {
+											break
+										}
+										relValue.Set(reflect.New(relValue.Type().Elem()))
 									}
-									relValue.Set(reflect.New(relValue.Type().Elem()))
+									field.Set(relValue, values[idx])
+									break
 								}
-
-								field.Set(relValue, values[idx])
 							}
 						}
 					}
