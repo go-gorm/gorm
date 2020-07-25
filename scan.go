@@ -163,10 +163,6 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			if initialized || rows.Next() {
 				fieldsIndex := 0
-				var fieldnames []string
-				for _, f := range Schema.Fields {
-					fieldnames = append(fieldnames, f.DBName)
-				}
 				for idx, column := range columns {
 					if fieldsIndex >= len(Schema.Fields) {
 						values[idx] = &sql.RawBytes{}
