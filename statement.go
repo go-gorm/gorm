@@ -96,7 +96,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 
 		if v.Name == clause.PrimaryKey {
 			if stmt.Schema == nil {
-				stmt.DB.AddError(ErrorModelValueRequired)
+				stmt.DB.AddError(ErrModelValueRequired)
 			} else if stmt.Schema.PrioritizedPrimaryField != nil {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
 			} else if len(stmt.Schema.DBNames) > 0 {
