@@ -7,16 +7,19 @@ import (
 )
 
 type PreparedStmtDB struct {
-	Stmts map[string]*sql.Stmt
-	mux   sync.RWMutex
+	Stmts       map[string]*sql.Stmt
+	PreparedSQL []string
+	mux         sync.RWMutex
 	ConnPool
 }
 
 func (db *PreparedStmtDB) Close() {
 	db.mux.Lock()
-	for k, stmt := range db.Stmts {
-		delete(db.Stmts, k)
-		stmt.Close()
+	for _, query := range db.PreparedSQL {
+		if stmt, ok := db.Stmts[query]; ok {
+			delete(db.Stmts, query)
+			stmt.Close()
+		}
 	}
 
 	db.mux.Unlock()
@@ -40,6 +43,7 @@ func (db *PreparedStmtDB) prepare(query string) (*sql.Stmt, error) {
 	stmt, err := db.ConnPool.PrepareContext(context.Background(), query)
 	if err == nil {
 		db.Stmts[query] = stmt
+		db.PreparedSQL = append(db.PreparedSQL, query)
 	}
 	db.mux.Unlock()
 

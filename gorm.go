@@ -108,11 +108,15 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		err = config.Dialector.Initialize(db)
 	}
 
+	preparedStmt := &PreparedStmtDB{
+		ConnPool:    db.ConnPool,
+		Stmts:       map[string]*sql.Stmt{},
+		PreparedSQL: make([]string, 0, 100),
+	}
+	db.cacheStore.Store("preparedStmt", preparedStmt)
+
 	if config.PrepareStmt {
-		db.ConnPool = &PreparedStmtDB{
-			ConnPool: db.ConnPool,
-			Stmts:    map[string]*sql.Stmt{},
-		}
+		db.ConnPool = preparedStmt
 	}
 
 	db.Statement = &Statement{
@@ -157,9 +161,13 @@ func (db *DB) Session(config *Session) *DB {
 	}
 
 	if config.PrepareStmt {
-		tx.Statement.ConnPool = &PreparedStmtDB{
-			ConnPool: db.Config.ConnPool,
-			Stmts:    map[string]*sql.Stmt{},
+		if v, ok := db.cacheStore.Load("preparedStmt"); ok {
+			preparedStmt := v.(*PreparedStmtDB)
+			tx.Statement.ConnPool = &PreparedStmtDB{
+				ConnPool: db.Config.ConnPool,
+				mux:      preparedStmt.mux,
+				Stmts:    preparedStmt.Stmts,
+			}
 		}
 	}
 
