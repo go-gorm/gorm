@@ -50,30 +50,22 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		case string:
 			vars[idx] = escaper + strings.Replace(v, escaper, "\\"+escaper, -1) + escaper
 		default:
-			if v == nil {
+			rv := reflect.ValueOf(v)
+			if v == nil || !rv.IsValid() || rv.Kind() == reflect.Ptr && rv.IsNil() {
 				vars[idx] = "NULL"
+			} else if valuer, ok := v.(driver.Valuer); ok {
+				v, _ = valuer.Value()
+				convertParams(v, idx)
+			} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
+				convertParams(reflect.Indirect(rv).Interface(), idx)
 			} else {
-				rv := reflect.ValueOf(v)
-
-				if !rv.IsValid() {
-					vars[idx] = "NULL"
-				} else if rv.Kind() == reflect.Ptr && rv.IsNil() {
-					vars[idx] = "NULL"
-				} else if valuer, ok := v.(driver.Valuer); ok {
-					v, _ = valuer.Value()
-					convertParams(v, idx)
-				} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
-					convertParams(reflect.Indirect(rv).Interface(), idx)
-				} else {
-					for _, t := range convertableTypes {
-						if rv.Type().ConvertibleTo(t) {
-							convertParams(rv.Convert(t).Interface(), idx)
-							return
-						}
+				for _, t := range convertableTypes {
+					if rv.Type().ConvertibleTo(t) {
+						convertParams(rv.Convert(t).Interface(), idx)
+						return
 					}
-
-					vars[idx] = escaper + strings.Replace(fmt.Sprint(v), escaper, "\\"+escaper, -1) + escaper
 				}
+				vars[idx] = escaper + strings.Replace(fmt.Sprint(v), escaper, "\\"+escaper, -1) + escaper
 			}
 		}
 	}
