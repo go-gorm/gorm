@@ -304,44 +304,48 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer) {
-		var err error
-		field.Creatable = false
-		field.Updatable = false
-		field.Readable = false
-		if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
-			schema.err = err
+		if reflect.Indirect(fieldValue).Kind() == reflect.Struct {
+			var err error
+			field.Creatable = false
+			field.Updatable = false
+			field.Readable = false
+			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
+				schema.err = err
+			}
+			for _, ef := range field.EmbeddedSchema.Fields {
+				ef.Schema = schema
+				ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
+				// index is negative means is pointer
+				if field.FieldType.Kind() == reflect.Struct {
+					ef.StructField.Index = append([]int{fieldStruct.Index[0]}, ef.StructField.Index...)
+				} else {
+					ef.StructField.Index = append([]int{-fieldStruct.Index[0] - 1}, ef.StructField.Index...)
+				}
+
+				if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
+					ef.DBName = prefix + ef.DBName
+				}
+
+				if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
+					ef.PrimaryKey = true
+				} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
+					ef.PrimaryKey = true
+				} else {
+					ef.PrimaryKey = false
+				}
+
+				for k, v := range field.TagSettings {
+					ef.TagSettings[k] = v
+				}
+			}
+
+			field.Schema.CreateClauses = append(field.Schema.CreateClauses, field.EmbeddedSchema.CreateClauses...)
+			field.Schema.QueryClauses = append(field.Schema.QueryClauses, field.EmbeddedSchema.QueryClauses...)
+			field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, field.EmbeddedSchema.UpdateClauses...)
+			field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, field.EmbeddedSchema.DeleteClauses...)
+		} else {
+			schema.err = fmt.Errorf("invalid embedded struct for %v's field %v, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
 		}
-		for _, ef := range field.EmbeddedSchema.Fields {
-			ef.Schema = schema
-			ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
-			// index is negative means is pointer
-			if field.FieldType.Kind() == reflect.Struct {
-				ef.StructField.Index = append([]int{fieldStruct.Index[0]}, ef.StructField.Index...)
-			} else {
-				ef.StructField.Index = append([]int{-fieldStruct.Index[0] - 1}, ef.StructField.Index...)
-			}
-
-			if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
-				ef.DBName = prefix + ef.DBName
-			}
-
-			if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
-				ef.PrimaryKey = true
-			} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
-				ef.PrimaryKey = true
-			} else {
-				ef.PrimaryKey = false
-			}
-
-			for k, v := range field.TagSettings {
-				ef.TagSettings[k] = v
-			}
-		}
-
-		field.Schema.CreateClauses = append(field.Schema.CreateClauses, field.EmbeddedSchema.CreateClauses...)
-		field.Schema.QueryClauses = append(field.Schema.QueryClauses, field.EmbeddedSchema.QueryClauses...)
-		field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, field.EmbeddedSchema.UpdateClauses...)
-		field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, field.EmbeddedSchema.DeleteClauses...)
 	}
 
 	return field
