@@ -19,8 +19,9 @@ type DataType string
 type TimeType int64
 
 const (
-	UnixSecond     TimeType = 1
-	UnixNanosecond TimeType = 2
+	UnixSecond      TimeType = 1
+	UnixMillisecond TimeType = 2
+	UnixNanosecond  TimeType = 3
 )
 
 const (
@@ -233,6 +234,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
+		} else if strings.ToUpper(v) == "MILLI" {
+			field.AutoCreateTime = UnixMillisecond
 		} else {
 			field.AutoCreateTime = UnixSecond
 		}
@@ -241,6 +244,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoUpdateTime = UnixNanosecond
+		} else if strings.ToUpper(v) == "MILLI" {
+			field.AutoUpdateTime = UnixMillisecond
 		} else {
 			field.AutoUpdateTime = UnixSecond
 		}
@@ -551,6 +556,8 @@ func (field *Field) setupValuerAndSetter() {
 			case time.Time:
 				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 					field.ReflectValueOf(value).SetInt(data.UnixNano())
+				} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
+					field.ReflectValueOf(value).SetInt(data.UnixNano() / 1e6)
 				} else {
 					field.ReflectValueOf(value).SetInt(data.Unix())
 				}
@@ -558,6 +565,8 @@ func (field *Field) setupValuerAndSetter() {
 				if data != nil {
 					if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 						field.ReflectValueOf(value).SetInt(data.UnixNano())
+					} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
+						field.ReflectValueOf(value).SetInt(data.UnixNano() / 1e6)
 					} else {
 						field.ReflectValueOf(value).SetInt(data.Unix())
 					}
