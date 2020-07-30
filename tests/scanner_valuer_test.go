@@ -258,5 +258,5 @@ func (t *EmptyTime) Scan(v interface{}) error {
 }
 
 func (t EmptyTime) Value() (driver.Value, error) {
-	return t.Time, nil
+	return time.Now() /* pass tests, mysql 8 doesn't support 0000-00-00 by default */, nil
 }
