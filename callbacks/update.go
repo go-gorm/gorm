@@ -140,7 +140,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			var priamryKeyExprs []clause.Expression
+			var primaryKeyExprs []clause.Expression
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {
 				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
 				var notZero bool
@@ -150,10 +150,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					notZero = notZero || !isZero
 				}
 				if notZero {
-					priamryKeyExprs = append(priamryKeyExprs, clause.And(exprs...))
+					primaryKeyExprs = append(primaryKeyExprs, clause.And(exprs...))
 				}
 			}
-			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(priamryKeyExprs...)}})
+			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(primaryKeyExprs...)}})
 		case reflect.Struct:
 			for _, field := range stmt.Schema.PrimaryFields {
 				if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
@@ -202,6 +202,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 						if field.AutoUpdateTime == schema.UnixNanosecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
+						} else if field.AutoUpdateTime == schema.UnixMillisecond {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano() / 1e6})
 						} else if field.GORMDataType == schema.Time {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 						} else {
@@ -223,6 +225,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							if field.AutoUpdateTime > 0 {
 								if field.AutoUpdateTime == schema.UnixNanosecond {
 									value = stmt.DB.NowFunc().UnixNano()
+								} else if field.AutoUpdateTime == schema.UnixMillisecond {
+									value = stmt.DB.NowFunc().UnixNano() / 1e6
 								} else if field.GORMDataType == schema.Time {
 									value = stmt.DB.NowFunc()
 								} else {
