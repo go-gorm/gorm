@@ -742,15 +742,16 @@ func (field *Field) setupValuerAndSetter() {
 			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+
 					if valuer, ok := v.(driver.Valuer); ok {
-						if valuer == nil {
+						if valuer == nil || reflectV.IsNil() {
 							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 						} else {
 							v, _ = valuer.Value()
 						}
 					}
 
-					reflectV := reflect.ValueOf(v)
 					if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {

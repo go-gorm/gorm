@@ -136,6 +136,8 @@ type ScannerValuerStruct struct {
 	Strings  StringsSlice
 	Structs  StructsSlice
 	Role     Role
+	UserID   *sql.NullInt64
+	User     User
 }
 
 type EncryptedData []byte
