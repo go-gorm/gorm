@@ -124,20 +124,21 @@ func TestInvalidValuer(t *testing.T) {
 
 type ScannerValuerStruct struct {
 	gorm.Model
-	Name     sql.NullString
-	Gender   *sql.NullString
-	Age      sql.NullInt64
-	Male     sql.NullBool
-	Height   sql.NullFloat64
-	Birthday sql.NullTime
-	Password EncryptedData
-	Bytes    []byte
-	Num      Num
-	Strings  StringsSlice
-	Structs  StructsSlice
-	Role     Role
-	UserID   *sql.NullInt64
-	User     User
+	Name      sql.NullString
+	Gender    *sql.NullString
+	Age       sql.NullInt64
+	Male      sql.NullBool
+	Height    sql.NullFloat64
+	Birthday  sql.NullTime
+	Password  EncryptedData
+	Bytes     []byte
+	Num       Num
+	Strings   StringsSlice
+	Structs   StructsSlice
+	Role      Role
+	UserID    *sql.NullInt64
+	User      User
+	EmptyTime EmptyTime
 }
 
 type EncryptedData []byte
@@ -243,4 +244,19 @@ func (role Role) Value() (driver.Value, error) {
 
 func (role Role) IsAdmin() bool {
 	return role.Name == "admin"
+}
+
+type EmptyTime struct {
+	time.Time
+}
+
+func (t *EmptyTime) Scan(v interface{}) error {
+	nullTime := sql.NullTime{}
+	err := nullTime.Scan(v)
+	t.Time = nullTime.Time
+	return err
+}
+
+func (t EmptyTime) Value() (driver.Value, error) {
+	return t.Time, nil
 }
