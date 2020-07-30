@@ -61,18 +61,20 @@ func TestCustomColumnAndIgnoredFieldClash(t *testing.T) {
 func TestCustomizeField(t *testing.T) {
 	type CustomizeFieldStruct struct {
 		gorm.Model
-		Name                   string
-		FieldAllowCreate       string `gorm:"<-:create"`
-		FieldAllowUpdate       string `gorm:"<-:update"`
-		FieldAllowSave         string `gorm:"<-"`
-		FieldAllowSave2        string `gorm:"<-:create,update"`
-		FieldAllowSave3        string `gorm:"->:false;<-:create"`
-		FieldReadonly          string `gorm:"->"`
-		FieldIgnore            string `gorm:"-"`
-		AutoUnixCreateTime     int64  `gorm:"autocreatetime"`
-		AutoUnixNanoCreateTime int64  `gorm:"autocreatetime:nano"`
-		AutoUnixUpdateTime     int64  `gorm:"autoupdatetime"`
-		AutoUnixNanoUpdateTime int64  `gorm:"autoupdatetime:nano"`
+		Name                    string
+		FieldAllowCreate        string `gorm:"<-:create"`
+		FieldAllowUpdate        string `gorm:"<-:update"`
+		FieldAllowSave          string `gorm:"<-"`
+		FieldAllowSave2         string `gorm:"<-:create,update"`
+		FieldAllowSave3         string `gorm:"->:false;<-:create"`
+		FieldReadonly           string `gorm:"->"`
+		FieldIgnore             string `gorm:"-"`
+		AutoUnixCreateTime      int64  `gorm:"autocreatetime"`
+		AutoUnixMilliCreateTime int64  `gorm:"autocreatetime:milli"`
+		AutoUnixNanoCreateTime  int64  `gorm:"autocreatetime:nano"`
+		AutoUnixUpdateTime      int64  `gorm:"autoupdatetime"`
+		AutoUnixMilliUpdateTime int64  `gorm:"autoupdatetime:milli"`
+		AutoUnixNanoUpdateTime  int64  `gorm:"autoupdatetime:nano"`
 	}
 
 	DB.Migrator().DropTable(&CustomizeFieldStruct{})
@@ -116,6 +118,10 @@ func TestCustomizeField(t *testing.T) {
 
 	if result.AutoUnixCreateTime != result.AutoUnixUpdateTime || result.AutoUnixCreateTime == 0 {
 		t.Fatalf("invalid create/update unix time: %#v", result)
+	}
+
+	if result.AutoUnixMilliCreateTime != result.AutoUnixMilliUpdateTime || result.AutoUnixMilliCreateTime == 0 || result.AutoUnixMilliCreateTime/result.AutoUnixCreateTime < 1e3 {
+		t.Fatalf("invalid create/update unix milli time: %#v", result)
 	}
 
 	if result.AutoUnixNanoCreateTime != result.AutoUnixNanoUpdateTime || result.AutoUnixNanoCreateTime == 0 || result.AutoUnixNanoCreateTime/result.AutoUnixCreateTime < 1e6 {
@@ -163,6 +169,8 @@ func TestCustomizeField(t *testing.T) {
 	createWithDefaultTime := generateStruct("create_with_default_time")
 	createWithDefaultTime.AutoUnixCreateTime = 100
 	createWithDefaultTime.AutoUnixUpdateTime = 100
+	createWithDefaultTime.AutoUnixMilliCreateTime = 100
+	createWithDefaultTime.AutoUnixMilliUpdateTime = 100
 	createWithDefaultTime.AutoUnixNanoCreateTime = 100
 	createWithDefaultTime.AutoUnixNanoUpdateTime = 100
 	DB.Create(&createWithDefaultTime)
@@ -172,6 +180,10 @@ func TestCustomizeField(t *testing.T) {
 
 	if createWithDefaultTimeResult.AutoUnixCreateTime != createWithDefaultTimeResult.AutoUnixUpdateTime || createWithDefaultTimeResult.AutoUnixCreateTime != 100 {
 		t.Fatalf("invalid create/update unix time: %#v", createWithDefaultTimeResult)
+	}
+
+	if createWithDefaultTimeResult.AutoUnixMilliCreateTime != createWithDefaultTimeResult.AutoUnixMilliUpdateTime || createWithDefaultTimeResult.AutoUnixMilliCreateTime != 100 {
+		t.Fatalf("invalid create/update unix milli time: %#v", createWithDefaultTimeResult)
 	}
 
 	if createWithDefaultTimeResult.AutoUnixNanoCreateTime != createWithDefaultTimeResult.AutoUnixNanoUpdateTime || createWithDefaultTimeResult.AutoUnixNanoCreateTime != 100 {
