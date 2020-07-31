@@ -13,6 +13,7 @@ func TestRemoveSettingFromTag(t *testing.T) {
 		`gorm:"column:db" other:"before:value;column:db;after:value"`:                           `gorm:"" other:"before:value;column:db;after:value"`,
 		`gorm:"before:value;column:db ;after:value" other:"before:value;column:db;after:value"`: `gorm:"before:value;after:value" other:"before:value;column:db;after:value"`,
 		`gorm:"before:value;column:db; after:value" other:"before:value;column:db;after:value"`: `gorm:"before:value; after:value" other:"before:value;column:db;after:value"`,
+		`gorm:"before:value;column; after:value" other:"before:value;column:db;after:value"`:    `gorm:"before:value; after:value" other:"before:value;column:db;after:value"`,
 	}
 
 	for k, v := range tags {
