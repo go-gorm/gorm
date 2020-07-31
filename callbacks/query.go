@@ -124,13 +124,13 @@ func BuildQuerySQL(db *gorm.DB) {
 				for idx, ref := range relation.References {
 					if ref.OwnPrimaryKey {
 						exprs[idx] = clause.Eq{
-							Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.PrimaryKey.DBName},
+							Column: clause.Column{Table: clause.CurrentTable, Name: ref.PrimaryKey.DBName},
 							Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
 						}
 					} else {
 						if ref.PrimaryValue == "" {
 							exprs[idx] = clause.Eq{
-								Column: clause.Column{Table: db.Statement.Schema.Table, Name: ref.ForeignKey.DBName},
+								Column: clause.Column{Table: clause.CurrentTable, Name: ref.ForeignKey.DBName},
 								Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
 							}
 						} else {
