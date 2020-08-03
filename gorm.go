@@ -165,7 +165,7 @@ func (db *DB) Session(config *Session) *DB {
 			preparedStmt := v.(*PreparedStmtDB)
 			tx.Statement.ConnPool = &PreparedStmtDB{
 				ConnPool: db.Config.ConnPool,
-				mux:      preparedStmt.mux,
+				Mux:      preparedStmt.Mux,
 				Stmts:    preparedStmt.Stmts,
 			}
 		}

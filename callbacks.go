@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"time"
 
 	"gorm.io/gorm/logger"
@@ -207,6 +208,9 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 		names, sorted []string
 		sortCallback  func(*callback) error
 	)
+	sort.Slice(cs, func(i, j int) bool {
+		return cs[j].before == "*" || cs[j].after == "*"
+	})
 
 	for _, c := range cs {
 		// show warning message the callback name already exists
@@ -218,7 +222,11 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 
 	sortCallback = func(c *callback) error {
 		if c.before != "" { // if defined before callback
-			if sortedIdx := getRIndex(sorted, c.before); sortedIdx != -1 {
+			if c.before == "*" && len(sorted) > 0 {
+				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
+					sorted = append([]string{c.name}, sorted...)
+				}
+			} else if sortedIdx := getRIndex(sorted, c.before); sortedIdx != -1 {
 				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
 					// if before callback already sorted, append current callback just after it
 					sorted = append(sorted[:sortedIdx], append([]string{c.name}, sorted[sortedIdx:]...)...)
@@ -232,7 +240,11 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 		}
 
 		if c.after != "" { // if defined after callback
-			if sortedIdx := getRIndex(sorted, c.after); sortedIdx != -1 {
+			if c.after == "*" && len(sorted) > 0 {
+				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
+					sorted = append(sorted, c.name)
+				}
+			} else if sortedIdx := getRIndex(sorted, c.after); sortedIdx != -1 {
 				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
 					// if after callback sorted, append current callback to last
 					sorted = append(sorted, c.name)
