@@ -134,7 +134,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
 			var (
 				createTableSQL          = "CREATE TABLE ? ("
-				values                  = []interface{}{clause.Table{Name: stmt.Table}}
+				values                  = []interface{}{clause.Table{Name: stmt.Schema.Table}}
 				hasPrimaryKeyInDataType bool
 			)
 
