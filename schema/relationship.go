@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/jinzhu/inflection"
 	"gorm.io/gorm/clause"
@@ -66,9 +67,16 @@ func (schema *Schema) parseRelation(field *Field) {
 		}
 	)
 
-	if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
-		schema.err = err
-		return
+	if field.OwnerSchema != nil {
+		if relation.FieldSchema, err = Parse(fieldValue, &sync.Map{}, schema.namer); err != nil {
+			schema.err = err
+			return
+		}
+	} else {
+		if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
+			schema.err = err
+			return
+		}
 	}
 
 	if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
@@ -78,7 +86,7 @@ func (schema *Schema) parseRelation(field *Field) {
 	} else {
 		switch field.IndirectFieldType.Kind() {
 		case reflect.Struct, reflect.Slice:
-			schema.guessRelation(relation, field, true)
+			schema.guessRelation(relation, field, guessHas)
 		default:
 			schema.err = fmt.Errorf("unsupported data type %v for %v on field %v", relation.FieldSchema, schema, field.Name)
 		}
@@ -316,21 +324,50 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 }
 
-func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessHas bool) {
+type guessLevel int
+
+const (
+	guessHas guessLevel = iota
+	guessEmbeddedHas
+	guessBelongs
+	guessEmbeddedBelongs
+)
+
+func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl guessLevel) {
 	var (
 		primaryFields, foreignFields []*Field
 		primarySchema, foreignSchema = schema, relation.FieldSchema
 	)
 
-	if !guessHas {
-		primarySchema, foreignSchema = relation.FieldSchema, schema
+	reguessOrErr := func(err string, args ...interface{}) {
+		switch gl {
+		case guessHas:
+			schema.guessRelation(relation, field, guessEmbeddedHas)
+		case guessEmbeddedHas:
+			schema.guessRelation(relation, field, guessBelongs)
+		case guessBelongs:
+			schema.guessRelation(relation, field, guessEmbeddedBelongs)
+		default:
+			schema.err = fmt.Errorf(err, args...)
+		}
 	}
 
-	reguessOrErr := func(err string, args ...interface{}) {
-		if guessHas {
-			schema.guessRelation(relation, field, false)
+	switch gl {
+	case guessEmbeddedHas:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
 		} else {
-			schema.err = fmt.Errorf(err, args...)
+			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+			return
+		}
+	case guessBelongs:
+		primarySchema, foreignSchema = relation.FieldSchema, schema
+	case guessEmbeddedBelongs:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = relation.FieldSchema, field.OwnerSchema
+		} else {
+			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+			return
 		}
 	}
 
@@ -345,8 +382,8 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 		}
 	} else {
 		for _, primaryField := range primarySchema.PrimaryFields {
-			lookUpName := schema.Name + primaryField.Name
-			if !guessHas {
+			lookUpName := primarySchema.Name + primaryField.Name
+			if gl == guessBelongs {
 				lookUpName = field.Name + primaryField.Name
 			}
 
@@ -358,7 +395,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	}
 
 	if len(foreignFields) == 0 {
-		reguessOrErr("failed to guess %v's relations with %v's field %v 1 g %v", relation.FieldSchema, schema, field.Name, guessHas)
+		reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
 		return
 	} else if len(relation.primaryKeys) > 0 {
 		for idx, primaryKey := range relation.primaryKeys {
@@ -394,11 +431,11 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],
 			ForeignKey:    foreignField,
-			OwnPrimaryKey: schema == primarySchema && guessHas,
+			OwnPrimaryKey: (schema == primarySchema && gl == guessHas) || (field.OwnerSchema == primarySchema && gl == guessEmbeddedHas),
 		})
 	}
 
-	if guessHas {
+	if gl == guessHas || gl == guessEmbeddedHas {
 		relation.Type = "has"
 	} else {
 		relation.Type = BelongsTo

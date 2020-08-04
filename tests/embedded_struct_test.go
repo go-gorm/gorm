@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestEmbeddedStruct(t *testing.T) {
@@ -150,5 +151,18 @@ func TestEmbeddedScanValuer(t *testing.T) {
 
 	if err := DB.Create(&hnPost).Error; err != nil {
 		t.Errorf("Failed to create got error %v", err)
+	}
+}
+
+func TestEmbeddedRelations(t *testing.T) {
+	type AdvancedUser struct {
+		User     `gorm:"embedded"`
+		Advanced bool
+	}
+
+	DB.Debug().Migrator().DropTable(&AdvancedUser{})
+
+	if err := DB.Debug().AutoMigrate(&AdvancedUser{}); err != nil {
+		t.Errorf("Failed to auto migrate advanced user, got error %v", err)
 	}
 }

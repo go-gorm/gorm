@@ -120,6 +120,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				}
 				return nil
 			}); err != nil {
+				fmt.Println(err)
 				return err
 			}
 		}

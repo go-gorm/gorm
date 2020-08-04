@@ -62,6 +62,7 @@ type Field struct {
 	TagSettings           map[string]string
 	Schema                *Schema
 	EmbeddedSchema        *Schema
+	OwnerSchema           *Schema
 	ReflectValueOf        func(reflect.Value) reflect.Value
 	ValueOf               func(reflect.Value) (value interface{}, zero bool)
 	Set                   func(reflect.Value, interface{}) error
@@ -321,6 +322,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			}
 			for _, ef := range field.EmbeddedSchema.Fields {
 				ef.Schema = schema
+				ef.OwnerSchema = field.EmbeddedSchema
 				ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
 				// index is negative means is pointer
 				if field.FieldType.Kind() == reflect.Struct {

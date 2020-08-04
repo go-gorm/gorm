@@ -101,8 +101,12 @@ func TestCallbacks(t *testing.T) {
 			results:   []string{"c5", "c1", "c2", "c3", "c4"},
 		},
 		{
-			callbacks: []callback{{h: c1}, {h: c2, before: "c4", after: "c5"}, {h: c3, after: "*"}, {h: c4}, {h: c5, before: "*"}},
-			results:   []string{"c5", "c1", "c2", "c4", "c3"},
+			callbacks: []callback{{h: c1}, {h: c2, before: "c4", after: "c5"}, {h: c3, before: "*"}, {h: c4}, {h: c5, before: "*"}},
+			results:   []string{"c3", "c5", "c1", "c2", "c4"},
+		},
+		{
+			callbacks: []callback{{h: c1}, {h: c2, before: "c4", after: "c5"}, {h: c3, before: "c4", after: "*"}, {h: c4, after: "*"}, {h: c5, before: "*"}},
+			results:   []string{"c5", "c1", "c2", "c3", "c4"},
 		},
 	}
 
