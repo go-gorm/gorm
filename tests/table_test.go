@@ -40,6 +40,17 @@ func TestTable(t *testing.T) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
 	}
 
+	r = dryDB.Create(&UserWithTable{}).Statement
+	if DB.Dialector.Name() != "sqlite" {
+		if !regexp.MustCompile(`INSERT INTO .gorm.\..user. (.*name.*) VALUES (.*)`).MatchString(r.Statement.SQL.String()) {
+			t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+		}
+	} else {
+		if !regexp.MustCompile(`INSERT INTO .user. (.*name.*) VALUES (.*)`).MatchString(r.Statement.SQL.String()) {
+			t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+		}
+	}
+
 	r = dryDB.Table("(?) as u", DB.Model(&User{}).Select("name")).Find(&User{}).Statement
 	if !regexp.MustCompile("SELECT \\* FROM \\(SELECT .name. FROM .users. WHERE .users.\\..deleted_at. IS NULL\\) as u WHERE .u.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
