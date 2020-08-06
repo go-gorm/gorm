@@ -43,9 +43,7 @@ func Create(config *Config) func(db *gorm.DB) {
 
 				if db.Statement.SQL.String() == "" {
 					db.Statement.SQL.Grow(180)
-					db.Statement.AddClauseIfNotExists(clause.Insert{
-						Table: clause.Table{Name: db.Statement.Table},
-					})
+					db.Statement.AddClauseIfNotExists(clause.Insert{})
 					db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
 					db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
@@ -105,9 +103,7 @@ func CreateWithReturning(db *gorm.DB) {
 		}
 
 		if db.Statement.SQL.String() == "" {
-			db.Statement.AddClauseIfNotExists(clause.Insert{
-				Table: clause.Table{Name: db.Statement.Table},
-			})
+			db.Statement.AddClauseIfNotExists(clause.Insert{})
 			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
 			db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
