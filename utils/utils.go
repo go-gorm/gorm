@@ -34,16 +34,14 @@ func IsChar(c rune) bool {
 }
 
 func CheckTruth(val interface{}) bool {
-	if v, ok := val.(bool); ok {
-		return v
+	switch val.(type) {
+	case string:
+		return "false" != strings.ToLower(val.(string))
+	case bool:
+		return val.(bool)
+	default:
+		return !reflect.ValueOf(val).IsZero()
 	}
-
-	if v, ok := val.(string); ok {
-		v = strings.ToLower(v)
-		return v != "false"
-	}
-
-	return !reflect.ValueOf(val).IsZero()
 }
 
 func ToStringKey(values ...interface{}) string {
