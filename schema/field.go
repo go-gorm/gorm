@@ -734,12 +734,15 @@ func (field *Field) setupValuerAndSetter() {
 			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
 				// struct scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+
 					if valuer, ok := v.(driver.Valuer); ok {
 						v, _ = valuer.Value()
 					}
 
-					reflectV := reflect.ValueOf(v)
-					if !reflectV.IsValid() {
+					if reflectV.Elem().Type().AssignableTo(field.FieldType) {
+						field.ReflectValueOf(value).Set(reflectV.Elem())
+					} else if !reflectV.IsValid() {
 						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr {
 						if reflectV.Elem().IsNil() || !reflectV.Elem().IsValid() {
