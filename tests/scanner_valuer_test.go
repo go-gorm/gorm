@@ -35,7 +35,9 @@ func TestScannerValuer(t *testing.T) {
 			{"name1", "value1"},
 			{"name2", "value2"},
 		},
-		Role: Role{Name: "admin"},
+		Role:             Role{Name: "admin"},
+		ExampleStruct:    ExampleStruct1{"name", "value"},
+		ExampleStructPtr: &ExampleStruct1{"name", "value"},
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
@@ -49,6 +51,14 @@ func TestScannerValuer(t *testing.T) {
 	}
 
 	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Bytes", "Num", "Strings", "Structs")
+
+	if result.ExampleStructPtr.Val != "value" {
+		t.Errorf(`ExampleStructPtr.Val should equal to "value", but got %v`, result.ExampleStructPtr.Val)
+	}
+
+	if result.ExampleStruct.Val != "value" {
+		t.Errorf(`ExampleStruct.Val should equal to "value", but got %v`, result.ExampleStruct.Val)
+	}
 }
 
 func TestScannerValuerWithFirstOrCreate(t *testing.T) {
@@ -124,21 +134,23 @@ func TestInvalidValuer(t *testing.T) {
 
 type ScannerValuerStruct struct {
 	gorm.Model
-	Name      sql.NullString
-	Gender    *sql.NullString
-	Age       sql.NullInt64
-	Male      sql.NullBool
-	Height    sql.NullFloat64
-	Birthday  sql.NullTime
-	Password  EncryptedData
-	Bytes     []byte
-	Num       Num
-	Strings   StringsSlice
-	Structs   StructsSlice
-	Role      Role
-	UserID    *sql.NullInt64
-	User      User
-	EmptyTime EmptyTime
+	Name             sql.NullString
+	Gender           *sql.NullString
+	Age              sql.NullInt64
+	Male             sql.NullBool
+	Height           sql.NullFloat64
+	Birthday         sql.NullTime
+	Password         EncryptedData
+	Bytes            []byte
+	Num              Num
+	Strings          StringsSlice
+	Structs          StructsSlice
+	Role             Role
+	UserID           *sql.NullInt64
+	User             User
+	EmptyTime        EmptyTime
+	ExampleStruct    ExampleStruct1
+	ExampleStructPtr *ExampleStruct1
 }
 
 type EncryptedData []byte
@@ -205,6 +217,31 @@ func (l *StringsSlice) Scan(input interface{}) error {
 type ExampleStruct struct {
 	Name  string
 	Value string
+}
+
+type ExampleStruct1 struct {
+	Name  string `json:"name,omitempty"`
+	Val   string `json:"val,omitempty"`
+}
+
+func (s ExampleStruct1) Value() (driver.Value, error) {
+	if len(s.Name) == 0 {
+		return nil, nil
+	}
+	//for test, has no practical meaning
+	s.Name = ""
+	return json.Marshal(s)
+}
+
+func (s *ExampleStruct1) Scan(src interface{}) error {
+	switch value := src.(type) {
+	case string:
+		return json.Unmarshal([]byte(value), s)
+	case []byte:
+		return json.Unmarshal(value, s)
+	default:
+		return errors.New("not supported")
+	}
 }
 
 type StructsSlice []ExampleStruct
