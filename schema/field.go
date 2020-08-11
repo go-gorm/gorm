@@ -311,7 +311,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer) {
+	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer && (field.Creatable || field.Updatable || field.Readable)) {
 		if reflect.Indirect(fieldValue).Kind() == reflect.Struct {
 			var err error
 			field.Creatable = false
