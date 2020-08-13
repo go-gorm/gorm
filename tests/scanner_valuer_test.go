@@ -35,7 +35,9 @@ func TestScannerValuer(t *testing.T) {
 			{"name1", "value1"},
 			{"name2", "value2"},
 		},
-		Role: Role{Name: "admin"},
+		Role:             Role{Name: "admin"},
+		ExampleStruct:    ExampleStruct{"name", "value1"},
+		ExampleStructPtr: &ExampleStruct{"name", "value2"},
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
@@ -44,10 +46,17 @@ func TestScannerValuer(t *testing.T) {
 
 	var result ScannerValuerStruct
 
-	if err := DB.Find(&result).Error; err != nil {
+	if err := DB.Find(&result, "id = ?", data.ID).Error; err != nil {
 		t.Fatalf("no error should happen when query scanner, valuer struct, but got %v", err)
 	}
 
+	if result.ExampleStructPtr.Val != "value2" {
+		t.Errorf(`ExampleStructPtr.Val should equal to "value2", but got %v`, result.ExampleStructPtr.Val)
+	}
+
+	if result.ExampleStruct.Val != "value1" {
+		t.Errorf(`ExampleStruct.Val should equal to "value1", but got %#v`, result.ExampleStruct)
+	}
 	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Bytes", "Num", "Strings", "Structs")
 }
 
@@ -58,9 +67,11 @@ func TestScannerValuerWithFirstOrCreate(t *testing.T) {
 	}
 
 	data := ScannerValuerStruct{
-		Name:   sql.NullString{String: "name", Valid: true},
-		Gender: &sql.NullString{String: "M", Valid: true},
-		Age:    sql.NullInt64{Int64: 18, Valid: true},
+		Name:             sql.NullString{String: "name", Valid: true},
+		Gender:           &sql.NullString{String: "M", Valid: true},
+		Age:              sql.NullInt64{Int64: 18, Valid: true},
+		ExampleStruct:    ExampleStruct{"name", "value1"},
+		ExampleStructPtr: &ExampleStruct{"name", "value2"},
 	}
 
 	var result ScannerValuerStruct
@@ -99,7 +110,9 @@ func TestInvalidValuer(t *testing.T) {
 	}
 
 	data := ScannerValuerStruct{
-		Password: EncryptedData("xpass1"),
+		Password:         EncryptedData("xpass1"),
+		ExampleStruct:    ExampleStruct{"name", "value1"},
+		ExampleStructPtr: &ExampleStruct{"name", "value2"},
 	}
 
 	if err := DB.Create(&data).Error; err == nil {
@@ -124,21 +137,23 @@ func TestInvalidValuer(t *testing.T) {
 
 type ScannerValuerStruct struct {
 	gorm.Model
-	Name      sql.NullString
-	Gender    *sql.NullString
-	Age       sql.NullInt64
-	Male      sql.NullBool
-	Height    sql.NullFloat64
-	Birthday  sql.NullTime
-	Password  EncryptedData
-	Bytes     []byte
-	Num       Num
-	Strings   StringsSlice
-	Structs   StructsSlice
-	Role      Role
-	UserID    *sql.NullInt64
-	User      User
-	EmptyTime EmptyTime
+	Name             sql.NullString
+	Gender           *sql.NullString
+	Age              sql.NullInt64
+	Male             sql.NullBool
+	Height           sql.NullFloat64
+	Birthday         sql.NullTime
+	Password         EncryptedData
+	Bytes            []byte
+	Num              Num
+	Strings          StringsSlice
+	Structs          StructsSlice
+	Role             Role
+	UserID           *sql.NullInt64
+	User             User
+	EmptyTime        EmptyTime
+	ExampleStruct    ExampleStruct
+	ExampleStructPtr *ExampleStruct
 }
 
 type EncryptedData []byte
@@ -203,8 +218,32 @@ func (l *StringsSlice) Scan(input interface{}) error {
 }
 
 type ExampleStruct struct {
-	Name  string
-	Value string
+	Name string
+	Val  string
+}
+
+func (ExampleStruct) GormDataType() string {
+	return "bytes"
+}
+
+func (s ExampleStruct) Value() (driver.Value, error) {
+	if len(s.Name) == 0 {
+		return nil, nil
+	}
+	// for test, has no practical meaning
+	s.Name = ""
+	return json.Marshal(s)
+}
+
+func (s *ExampleStruct) Scan(src interface{}) error {
+	switch value := src.(type) {
+	case string:
+		return json.Unmarshal([]byte(value), s)
+	case []byte:
+		return json.Unmarshal(value, s)
+	default:
+		return errors.New("not supported")
+	}
 }
 
 type StructsSlice []ExampleStruct
