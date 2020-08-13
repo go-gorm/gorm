@@ -731,40 +731,10 @@ func (field *Field) setupValuerAndSetter() {
 				return nil
 			}
 		default:
-			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
-				// struct scanner
-				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					if valuer, ok := v.(driver.Valuer); ok {
-						v, _ = valuer.Value()
-					}
-
-					reflectV := reflect.ValueOf(v)
-					if !reflectV.IsValid() {
-						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-					} else if reflectV.Kind() == reflect.Ptr {
-						if reflectV.Elem().IsNil() || !reflectV.Elem().IsValid() {
-							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							return field.Set(value, reflectV.Elem().Interface())
-						}
-					} else {
-						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
-					}
-					return
-				}
-			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
+			if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
 					reflectV := reflect.ValueOf(v)
-
-					if valuer, ok := v.(driver.Valuer); ok {
-						if valuer == nil || reflectV.IsNil() {
-							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							v, _ = valuer.Value()
-						}
-					}
-
 					if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
@@ -778,7 +748,35 @@ func (field *Field) setupValuerAndSetter() {
 						if fieldValue.IsNil() {
 							fieldValue.Set(reflect.New(field.FieldType.Elem()))
 						}
+
+						if valuer, ok := v.(driver.Valuer); ok {
+							v, _ = valuer.Value()
+						}
+
 						err = fieldValue.Interface().(sql.Scanner).Scan(v)
+					}
+					return
+				}
+			} else if _, ok := fieldValue.Interface().(sql.Scanner); ok {
+				// struct scanner
+				field.Set = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+					if !reflectV.IsValid() {
+						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Type().AssignableTo(field.FieldType) {
+						field.ReflectValueOf(value).Set(reflectV)
+					} else if reflectV.Kind() == reflect.Ptr {
+						if reflectV.IsNil() || !reflectV.IsValid() {
+							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+						} else {
+							return field.Set(value, reflectV.Elem().Interface())
+						}
+					} else {
+						if valuer, ok := v.(driver.Valuer); ok {
+							v, _ = valuer.Value()
+						}
+
+						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}
