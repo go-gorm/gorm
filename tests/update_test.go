@@ -545,3 +545,21 @@ func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 		t.Errorf("element's ignored field should not be updated")
 	}
 }
+
+func TestUpdateFromSubQuery(t *testing.T) {
+	user := *GetUser("update_from_sub_query", Config{Company: true})
+	if err := DB.Create(&user).Error; err != nil {
+		t.Errorf("failed to create user, got error: %v", err)
+	}
+
+	if err := DB.Model(&user).Update("name", DB.Model(&Company{}).Select("name").Where("companies.id = users.company_id")).Error; err != nil {
+		t.Errorf("failed to update with sub query, got error %v", err)
+	}
+
+	var result User
+	DB.First(&result, user.ID)
+
+	if result.Name != user.Company.Name {
+		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
+	}
+}

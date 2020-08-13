@@ -174,11 +174,16 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		sort.Strings(keys)
 
 		for _, k := range keys {
+			kv := value[k]
+			if _, ok := kv.(*gorm.DB); ok {
+				kv = []interface{}{kv}
+			}
+
 			if stmt.Schema != nil {
 				if field := stmt.Schema.LookUpField(k); field != nil {
 					if field.DBName != "" {
 						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: kv})
 							assignValue(field, value[k])
 						}
 					} else if v, ok := selectColumns[field.Name]; (ok && v) || (!ok && !restricted) {
@@ -189,7 +194,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 
 			if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
-				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: value[k]})
+				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: kv})
 			}
 		}
 
