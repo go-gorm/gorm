@@ -309,10 +309,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 					for _, field := range s.Fields {
 						if field.Readable {
 							if v, isZero := field.ValueOf(reflectValue); !isZero {
-								if field.DBName == "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-								} else {
+								if field.DBName != "" {
 									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+								} else if field.DataType != "" {
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 								}
 							}
 						}
@@ -322,10 +322,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 						for _, field := range s.Fields {
 							if field.Readable {
 								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
-									if field.DBName == "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-									} else {
+									if field.DBName != "" {
 										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+									} else if field.DataType != "" {
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 									}
 								}
 							}

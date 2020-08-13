@@ -103,6 +103,22 @@ func TestFind(t *testing.T) {
 	})
 }
 
+func TestQueryWithAssociation(t *testing.T) {
+	user := *GetUser("query_with_association", Config{Account: true, Pets: 2, Toys: 1, Company: true, Manager: true, Team: 2, Languages: 1, Friends: 3})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create user: %v", err)
+	}
+
+	if err := DB.Where(&user).First(&User{}).Error; err != nil {
+		t.Errorf("search with struct with association should returns no error, but got %v", err)
+	}
+
+	if err := DB.Where(user).First(&User{}).Error; err != nil {
+		t.Errorf("search with struct with association should returns no error, but got %v", err)
+	}
+}
+
 func TestFindInBatches(t *testing.T) {
 	var users = []User{
 		*GetUser("find_in_batches", Config{}),
