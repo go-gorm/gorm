@@ -392,6 +392,7 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 func (stmt *Statement) clone() *Statement {
 	newStmt := &Statement{
+		TableExpr:            stmt.TableExpr,
 		Table:                stmt.Table,
 		Model:                stmt.Model,
 		Dest:                 stmt.Dest,

@@ -562,4 +562,14 @@ func TestUpdateFromSubQuery(t *testing.T) {
 	if result.Name != user.Company.Name {
 		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
 	}
+
+	DB.Model(&user.Company).Update("Name", "new company name")
+	if err := DB.Table("users").Where("1 = 1").Update("name", DB.Table("companies").Select("name").Where("companies.id = users.company_id")).Error; err != nil {
+		t.Errorf("failed to update with sub query, got error %v", err)
+	}
+
+	DB.First(&result, user.ID)
+	if result.Name != "new company name" {
+		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
+	}
 }
