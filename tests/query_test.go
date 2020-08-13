@@ -110,6 +110,8 @@ func TestQueryWithAssociation(t *testing.T) {
 		t.Fatalf("errors happened when create user: %v", err)
 	}
 
+	user.CreatedAt = time.Time{}
+	user.UpdatedAt = time.Time{}
 	if err := DB.Where(&user).First(&User{}).Error; err != nil {
 		t.Errorf("search with struct with association should returns no error, but got %v", err)
 	}
