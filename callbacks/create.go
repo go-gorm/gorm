@@ -61,16 +61,26 @@ func Create(config *Config) func(db *gorm.DB) {
 									case reflect.Slice, reflect.Array:
 										if config.LastInsertIDReversed {
 											for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i))
+												rv := db.Statement.ReflectValue.Index(i)
+												if reflect.Indirect(rv).Kind() != reflect.Struct {
+													break
+												}
+
+												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
 												if isZero {
-													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
 													insertID--
 												}
 											}
 										} else {
 											for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i)); isZero {
-													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+												rv := db.Statement.ReflectValue.Index(i)
+												if reflect.Indirect(rv).Kind() != reflect.Struct {
+													break
+												}
+
+												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
 													insertID++
 												}
 											}
@@ -140,6 +150,10 @@ func CreateWithReturning(db *gorm.DB) {
 						for rows.Next() {
 						BEGIN:
 							reflectValue := db.Statement.ReflectValue.Index(int(db.RowsAffected))
+							if reflect.Indirect(reflectValue).Kind() != reflect.Struct {
+								break
+							}
+
 							for idx, field := range fields {
 								fieldValue := field.ReflectValueOf(reflectValue)
 

@@ -39,6 +39,45 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateFromMap(t *testing.T) {
+	if err := DB.Model(&User{}).Create(map[string]interface{}{"Name": "create_from_map", "Age": 18}).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	var result User
+	if err := DB.Where("name = ?", "create_from_map").First(&result).Error; err != nil || result.Age != 18 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	if err := DB.Model(&User{}).Create(map[string]interface{}{"name": "create_from_map_1", "age": 18}).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	var result1 User
+	if err := DB.Where("name = ?", "create_from_map_1").First(&result1).Error; err != nil || result1.Age != 18 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	datas := []map[string]interface{}{
+		{"Name": "create_from_map_2", "Age": 19},
+		{"name": "create_from_map_3", "Age": 20},
+	}
+
+	if err := DB.Model(&User{}).Create(datas).Error; err != nil {
+		t.Fatalf("failed to create data from slice of map, got error: %v", err)
+	}
+
+	var result2 User
+	if err := DB.Where("name = ?", "create_from_map_2").First(&result2).Error; err != nil || result2.Age != 19 {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
+
+	var result3 User
+	if err := DB.Where("name = ?", "create_from_map_3").First(&result3).Error; err != nil || result3.Age != 20 {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
+}
+
 func TestCreateWithAssociations(t *testing.T) {
 	var user = *GetUser("create_with_associations", Config{
 		Account:   true,
