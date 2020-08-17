@@ -317,7 +317,13 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.Creatable = false
 			field.Updatable = false
 			field.Readable = false
-			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
+
+			cacheStore := schema.cacheStore
+			if _, embedded := schema.cacheStore.Load("embedded_cache_store"); !embedded {
+				cacheStore = &sync.Map{}
+				cacheStore.Store("embedded_cache_store", true)
+			}
+			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, schema.namer); err != nil {
 				schema.err = err
 			}
 			for _, ef := range field.EmbeddedSchema.Fields {

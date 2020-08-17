@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/jinzhu/inflection"
 	"gorm.io/gorm/clause"
@@ -67,16 +66,14 @@ func (schema *Schema) parseRelation(field *Field) {
 		}
 	)
 
+	cacheStore := schema.cacheStore
 	if field.OwnerSchema != nil {
-		if relation.FieldSchema, err = Parse(fieldValue, &sync.Map{}, schema.namer); err != nil {
-			schema.err = err
-			return
-		}
-	} else {
-		if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
-			schema.err = err
-			return
-		}
+		cacheStore = field.OwnerSchema.cacheStore
+	}
+
+	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer); err != nil {
+		schema.err = err
+		return
 	}
 
 	if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {

@@ -160,3 +160,9 @@ func TestCustomizeTableName(t *testing.T) {
 		t.Errorf("Failed to customize table with TableName method")
 	}
 }
+
+func TestNestedModel(t *testing.T) {
+	if _, err := schema.Parse(&VersionUser{}, &sync.Map{}, schema.NamingStrategy{}); err != nil {
+		t.Fatalf("failed to parse nested user, got error %v", err)
+	}
+}
