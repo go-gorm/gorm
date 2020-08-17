@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -54,6 +55,25 @@ func TestTransaction(t *testing.T) {
 
 	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Fatalf("Should be able to find committed record, but got %v", err)
+	}
+}
+
+func TestCancelTransaction(t *testing.T) {
+	ctx := context.Background()
+	ctx, cancelFunc := context.WithCancel(ctx)
+	cancelFunc()
+
+	user := *GetUser("cancel_transaction", Config{})
+	DB.Create(&user)
+
+	err := DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var result User
+		tx.First(&result, user.ID)
+		return nil
+	})
+
+	if err == nil {
+		t.Fatalf("Transaction should get error when using cancelled context")
 	}
 }
 

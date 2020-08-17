@@ -445,7 +445,7 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 
 // Commit commit a transaction
 func (db *DB) Commit() *DB {
-	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
+	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil && !reflect.ValueOf(committer).IsNil() {
 		db.AddError(committer.Commit())
 	} else {
 		db.AddError(ErrInvalidTransaction)
@@ -456,7 +456,9 @@ func (db *DB) Commit() *DB {
 // Rollback rollback a transaction
 func (db *DB) Rollback() *DB {
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
-		db.AddError(committer.Rollback())
+		if !reflect.ValueOf(committer).IsNil() {
+			db.AddError(committer.Rollback())
+		}
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
