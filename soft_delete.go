@@ -24,37 +24,61 @@ func (n DeletedAt) Value() (driver.Value, error) {
 	return n.Time, nil
 }
 
-func (DeletedAt) QueryClauses() []clause.Interface {
+func (DeletedAt) QueryClauses(f *schema.Field) []clause.Interface {
 	return []clause.Interface{
 		clause.Where{Exprs: []clause.Expression{
 			clause.Eq{
-				Column: clause.Column{Table: clause.CurrentTable, Name: "deleted_at"},
+				Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName},
 				Value:  nil,
 			},
 		}},
 	}
 }
 
-func (DeletedAt) DeleteClauses() []clause.Interface {
-	return []clause.Interface{SoftDeleteClause{}}
+type SoftDeleteQueryClause struct {
+	Field *schema.Field
 }
 
-type SoftDeleteClause struct {
-}
-
-func (SoftDeleteClause) Name() string {
+func (sd SoftDeleteQueryClause) Name() string {
 	return ""
 }
 
-func (SoftDeleteClause) Build(clause.Builder) {
+func (sd SoftDeleteQueryClause) Build(clause.Builder) {
 }
 
-func (SoftDeleteClause) MergeClause(*clause.Clause) {
+func (sd SoftDeleteQueryClause) MergeClause(*clause.Clause) {
 }
 
-func (SoftDeleteClause) ModifyStatement(stmt *Statement) {
+func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
+	if _, ok := stmt.Clauses["soft_delete_enabled"]; !ok {
+		stmt.AddClause(clause.Where{Exprs: []clause.Expression{
+			clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: sd.Field.DBName}, Value: nil},
+		}})
+		stmt.Clauses["soft_delete_enabled"] = clause.Clause{}
+	}
+}
+
+func (DeletedAt) DeleteClauses(f *schema.Field) []clause.Interface {
+	return []clause.Interface{SoftDeleteDeleteClause{Field: f}}
+}
+
+type SoftDeleteDeleteClause struct {
+	Field *schema.Field
+}
+
+func (sd SoftDeleteDeleteClause) Name() string {
+	return ""
+}
+
+func (sd SoftDeleteDeleteClause) Build(clause.Builder) {
+}
+
+func (sd SoftDeleteDeleteClause) MergeClause(*clause.Clause) {
+}
+
+func (sd SoftDeleteDeleteClause) ModifyStatement(stmt *Statement) {
 	if stmt.SQL.String() == "" {
-		stmt.AddClause(clause.Set{{Column: clause.Column{Name: "deleted_at"}, Value: stmt.DB.NowFunc()}})
+		stmt.AddClause(clause.Set{{Column: clause.Column{Name: sd.Field.DBName}, Value: stmt.DB.NowFunc()}})
 
 		if stmt.Schema != nil {
 			_, queryValues := schema.GetIdentityFieldValuesMap(stmt.ReflectValue, stmt.Schema.PrimaryFields)

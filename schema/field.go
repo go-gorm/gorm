@@ -88,23 +88,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	fieldValue := reflect.New(field.IndirectFieldType)
-
-	if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
-		field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
-		field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
-		field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
-		field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses()...)
-	}
-
 	// if field is valuer, used its value or first fields as data type
 	valuer, isValuer := fieldValue.Interface().(driver.Valuer)
 	if isValuer {
@@ -353,11 +336,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.TagSettings[k] = v
 				}
 			}
-
-			field.Schema.CreateClauses = append(field.Schema.CreateClauses, field.EmbeddedSchema.CreateClauses...)
-			field.Schema.QueryClauses = append(field.Schema.QueryClauses, field.EmbeddedSchema.QueryClauses...)
-			field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, field.EmbeddedSchema.UpdateClauses...)
-			field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, field.EmbeddedSchema.DeleteClauses...)
 		} else {
 			schema.err = fmt.Errorf("invalid embedded struct for %v's field %v, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
 		}

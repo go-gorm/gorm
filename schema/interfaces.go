@@ -7,17 +7,17 @@ type GormDataTypeInterface interface {
 }
 
 type CreateClausesInterface interface {
-	CreateClauses() []clause.Interface
+	CreateClauses(*Field) []clause.Interface
 }
 
 type QueryClausesInterface interface {
-	QueryClauses() []clause.Interface
+	QueryClauses(*Field) []clause.Interface
 }
 
 type UpdateClausesInterface interface {
-	UpdateClauses() []clause.Interface
+	UpdateClauses(*Field) []clause.Interface
 }
 
 type DeleteClausesInterface interface {
-	DeleteClauses() []clause.Interface
+	DeleteClauses(*Field) []clause.Interface
 }

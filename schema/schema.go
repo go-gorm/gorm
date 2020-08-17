@@ -219,6 +219,23 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 					return schema, schema.err
 				}
 			}
+
+			fieldValue := reflect.New(field.IndirectFieldType)
+			if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
+				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
+				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
+				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
+				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
+			}
 		}
 	}
 
