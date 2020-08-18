@@ -346,6 +346,11 @@ func TestSelect(t *testing.T) {
 	if !regexp.MustCompile(`SELECT u\.\* FROM .*users.*`).MatchString(r.Statement.SQL.String()) {
 		t.Fatalf("Build Select with u.*, but got %v", r.Statement.SQL.String())
 	}
+
+	r = dryDB.Select("count(*)").Select("u.*").Table("users as u").First(&User{}, user.ID)
+	if !regexp.MustCompile(`SELECT u\.\* FROM .*users.*`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build Select with u.*, but got %v", r.Statement.SQL.String())
+	}
 }
 
 func TestOmit(t *testing.T) {
