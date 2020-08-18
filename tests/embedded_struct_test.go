@@ -160,9 +160,9 @@ func TestEmbeddedRelations(t *testing.T) {
 		Advanced bool
 	}
 
-	DB.Debug().Migrator().DropTable(&AdvancedUser{})
+	DB.Migrator().DropTable(&AdvancedUser{})
 
-	if err := DB.Debug().AutoMigrate(&AdvancedUser{}); err != nil {
+	if err := DB.AutoMigrate(&AdvancedUser{}); err != nil {
 		t.Errorf("Failed to auto migrate advanced user, got error %v", err)
 	}
 }

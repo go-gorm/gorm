@@ -162,7 +162,23 @@ func TestCustomizeTableName(t *testing.T) {
 }
 
 func TestNestedModel(t *testing.T) {
-	if _, err := schema.Parse(&VersionUser{}, &sync.Map{}, schema.NamingStrategy{}); err != nil {
+	versionUser, err := schema.Parse(&VersionUser{}, &sync.Map{}, schema.NamingStrategy{})
+
+	if err != nil {
 		t.Fatalf("failed to parse nested user, got error %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"VersionModel", "BaseModel", "ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true},
+		{Name: "CreatedBy", DBName: "created_by", BindNames: []string{"VersionModel", "BaseModel", "CreatedBy"}, DataType: schema.Int, Size: 64},
+		{Name: "Version", DBName: "version", BindNames: []string{"VersionModel", "Version"}, DataType: schema.Int, Size: 64},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, versionUser, &f, func(f *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+			f.Readable = true
+		})
 	}
 }

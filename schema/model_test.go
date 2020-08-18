@@ -41,7 +41,7 @@ type AdvancedDataTypeUser struct {
 }
 
 type BaseModel struct {
-	ID        uint `gorm:"primarykey"`
+	ID        uint
 	CreatedAt time.Time
 	CreatedBy *int
 	Created   *VersionUser `gorm:"foreignKey:CreatedBy"`
@@ -51,8 +51,7 @@ type BaseModel struct {
 
 type VersionModel struct {
 	BaseModel
-	Version   int
-	CompanyID int
+	Version int
 }
 
 type VersionUser struct {

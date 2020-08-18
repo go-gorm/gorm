@@ -301,14 +301,12 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.Updatable = false
 			field.Readable = false
 
-			cacheStore := schema.cacheStore
-			if _, embedded := schema.cacheStore.Load("embedded_cache_store"); !embedded {
-				cacheStore = &sync.Map{}
-				cacheStore.Store("embedded_cache_store", true)
-			}
+			cacheStore := &sync.Map{}
+			cacheStore.Store(embeddedCacheKey, true)
 			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, schema.namer); err != nil {
 				schema.err = err
 			}
+
 			for _, ef := range field.EmbeddedSchema.Fields {
 				ef.Schema = schema
 				ef.OwnerSchema = field.EmbeddedSchema

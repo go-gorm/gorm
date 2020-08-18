@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+var embeddedCacheKey = "embedded_cache_store"
+
 func ParseTagSetting(str string, sep string) map[string]string {
 	settings := map[string]string{}
 	names := strings.Split(str, sep)
