@@ -148,7 +148,6 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 						if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
 							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
 						}
-					default:
 					}
 				}
 			}
