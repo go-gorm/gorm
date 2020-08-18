@@ -334,6 +334,15 @@ func TestSelectWithUpdateWithMap(t *testing.T) {
 	AssertObjEqual(t, result2, result, "Name", "Account", "Toys", "Manager", "ManagerID", "Languages")
 }
 
+func TestWithUpdateWithInvalidMap(t *testing.T) {
+	user := *GetUser("update_with_invalid_map", Config{})
+	DB.Create(&user)
+
+	if err := DB.Model(&user).Updates(map[string]string{"name": "jinzhu"}).Error; !errors.Is(err, gorm.ErrInvalidData) {
+		t.Errorf("should returns error for unsupported updating data")
+	}
+}
+
 func TestOmitWithUpdate(t *testing.T) {
 	user := *GetUser("omit_update", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
 	DB.Create(&user)

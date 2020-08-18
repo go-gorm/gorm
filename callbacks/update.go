@@ -252,6 +252,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					}
 				}
 			}
+		default:
+			stmt.AddError(gorm.ErrInvalidData)
 		}
 	}
 

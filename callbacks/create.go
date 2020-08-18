@@ -309,6 +309,8 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					}
 				}
 			}
+		default:
+			stmt.AddError(gorm.ErrInvalidData)
 		}
 	}
 

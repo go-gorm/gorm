@@ -19,6 +19,8 @@ var (
 	ErrPrimaryKeyRequired = errors.New("primary key required")
 	// ErrModelValueRequired model value required
 	ErrModelValueRequired = errors.New("model value required")
+	// ErrInvalidData unsupported data
+	ErrInvalidData = errors.New("unsupported data")
 	// ErrUnsupportedDriver unsupported driver
 	ErrUnsupportedDriver = errors.New("unsupported driver")
 	// ErrRegistered registered
