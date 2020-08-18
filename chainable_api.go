@@ -69,7 +69,7 @@ func (db *DB) Distinct(args ...interface{}) (tx *DB) {
 	if len(args) > 0 {
 		tx = tx.Select(args[0], args[1:]...)
 	}
-	return tx
+	return
 }
 
 // Select specify fields that you want when querying, creating, updating
