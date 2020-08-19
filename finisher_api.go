@@ -289,6 +289,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
+		defer func() {
+			tx.Statement.Model = nil
+		}()
 	}
 
 	if len(tx.Statement.Selects) == 0 {
