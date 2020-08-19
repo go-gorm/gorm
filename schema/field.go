@@ -92,32 +92,40 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	valuer, isValuer := fieldValue.Interface().(driver.Valuer)
 	if isValuer {
 		if _, ok := fieldValue.Interface().(GormDataTypeInterface); !ok {
-			var overrideFieldValue bool
-			if v, err := valuer.Value(); v != nil && err == nil {
-				overrideFieldValue = true
+			if v, err := valuer.Value(); reflect.ValueOf(v).IsValid() && err == nil {
 				fieldValue = reflect.ValueOf(v)
 			}
 
-			if field.IndirectFieldType.Kind() == reflect.Struct {
-				for i := 0; i < field.IndirectFieldType.NumField(); i++ {
-					if !overrideFieldValue {
-						newFieldType := field.IndirectFieldType.Field(i).Type
+			var getRealFieldValue func(reflect.Value)
+			getRealFieldValue = func(v reflect.Value) {
+				rv := reflect.Indirect(v)
+				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+					for i := 0; i < rv.Type().NumField(); i++ {
+						newFieldType := rv.Type().Field(i).Type
 						for newFieldType.Kind() == reflect.Ptr {
 							newFieldType = newFieldType.Elem()
 						}
 
 						fieldValue = reflect.New(newFieldType)
-						overrideFieldValue = true
-					}
 
-					// copy tag settings from valuer
-					for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
-						if _, ok := field.TagSettings[key]; !ok {
-							field.TagSettings[key] = value
+						if rv.Type() != reflect.Indirect(fieldValue).Type() {
+							getRealFieldValue(fieldValue)
+						}
+
+						if fieldValue.IsValid() {
+							return
+						}
+
+						for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
+							if _, ok := field.TagSettings[key]; !ok {
+								field.TagSettings[key] = value
+							}
 						}
 					}
 				}
 			}
+
+			getRealFieldValue(fieldValue)
 		}
 	}
 

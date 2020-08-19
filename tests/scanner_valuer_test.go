@@ -27,6 +27,7 @@ func TestScannerValuer(t *testing.T) {
 		Male:     sql.NullBool{Bool: true, Valid: true},
 		Height:   sql.NullFloat64{Float64: 1.8888, Valid: true},
 		Birthday: sql.NullTime{Time: time.Now(), Valid: true},
+		Allergen: NullString{sql.NullString{String: "Allergen", Valid: true}},
 		Password: EncryptedData("pass1"),
 		Bytes:    []byte("byte"),
 		Num:      18,
@@ -143,6 +144,7 @@ type ScannerValuerStruct struct {
 	Male             sql.NullBool
 	Height           sql.NullFloat64
 	Birthday         sql.NullTime
+	Allergen         NullString
 	Password         EncryptedData
 	Bytes            []byte
 	Num              Num
@@ -298,4 +300,8 @@ func (t *EmptyTime) Scan(v interface{}) error {
 
 func (t EmptyTime) Value() (driver.Value, error) {
 	return time.Now() /* pass tests, mysql 8 doesn't support 0000-00-00 by default */, nil
+}
+
+type NullString struct {
+	sql.NullString
 }
