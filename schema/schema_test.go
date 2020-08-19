@@ -182,3 +182,35 @@ func TestNestedModel(t *testing.T) {
 		})
 	}
 }
+
+func TestEmbeddedStruct(t *testing.T) {
+	type Company struct {
+		ID   int
+		Name string
+	}
+
+	type Corp struct {
+		ID   uint
+		Base Company `gorm:"embedded;embeddedPrefix:company_"`
+	}
+
+	cropSchema, err := schema.Parse(&Corp{}, &sync.Map{}, schema.NamingStrategy{})
+
+	if err != nil {
+		t.Fatalf("failed to parse embedded struct with primary key, got error %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true},
+		{Name: "ID", DBName: "company_id", BindNames: []string{"Base", "ID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "Name", DBName: "company_name", BindNames: []string{"Base", "Name"}, DataType: schema.String, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, cropSchema, &f, func(f *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+			f.Readable = true
+		})
+	}
+}

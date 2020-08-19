@@ -336,6 +336,14 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.PrimaryKey = true
 				} else {
 					ef.PrimaryKey = false
+
+					if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
+						ef.AutoIncrement = false
+					}
+
+					if ef.DefaultValue == "" {
+						ef.HasDefaultValue = false
+					}
 				}
 
 				for k, v := range field.TagSettings {
