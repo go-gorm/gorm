@@ -29,11 +29,11 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 ## Getting Started
 
-* GORM Guides [https://gorm.io](https://gorm.io)
+* GORM Guides [https://gorm.io](https://v2.gorm.io)
 
 ## Contributing
 
-[You can help to deliver a better GORM, check out things you can do](https://gorm.io/contribute.html)
+[You can help to deliver a better GORM, check out things you can do](https://v2.gorm.io/contribute.html)
 
 ## License
 
