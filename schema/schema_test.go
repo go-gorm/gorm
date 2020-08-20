@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils/tests"
 )
@@ -184,13 +185,19 @@ func TestNestedModel(t *testing.T) {
 }
 
 func TestEmbeddedStruct(t *testing.T) {
+	type CorpBase struct {
+		gorm.Model
+		OwnerID string
+	}
+
 	type Company struct {
-		ID   int
-		Name string
+		ID      int
+		OwnerID int
+		Name    string
 	}
 
 	type Corp struct {
-		ID   uint
+		CorpBase
 		Base Company `gorm:"embedded;embeddedPrefix:company_"`
 	}
 
@@ -201,9 +208,11 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	fields := []schema.Field{
-		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true},
+		{Name: "ID", DBName: "id", BindNames: []string{"CorpBase", "Model", "ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true, TagSettings: map[string]string{"PRIMARYKEY": "PRIMARYKEY"}},
 		{Name: "ID", DBName: "company_id", BindNames: []string{"Base", "ID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
 		{Name: "Name", DBName: "company_name", BindNames: []string{"Base", "Name"}, DataType: schema.String, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "OwnerID", DBName: "company_owner_id", BindNames: []string{"Base", "OwnerID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "OwnerID", DBName: "owner_id", BindNames: []string{"CorpBase", "OwnerID"}, DataType: schema.String},
 	}
 
 	for _, f := range fields {
