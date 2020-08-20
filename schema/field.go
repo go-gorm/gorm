@@ -473,15 +473,15 @@ func (field *Field) setupValuerAndSetter() {
 				}
 			}
 
-			if valuer, ok := v.(driver.Valuer); ok {
-				if v, err = valuer.Value(); err == nil {
-					err = setter(value, v)
-				}
-			} else if reflectV.Kind() == reflect.Ptr {
+			if reflectV.Kind() == reflect.Ptr {
 				if reflectV.IsNil() {
 					field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 				} else {
 					err = setter(value, reflectV.Elem().Interface())
+				}
+			} else if valuer, ok := v.(driver.Valuer); ok {
+				if v, err = valuer.Value(); err == nil {
+					err = setter(value, v)
 				}
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
