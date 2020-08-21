@@ -225,7 +225,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: ownField.StructField.PkgPath,
 			Type:    ownField.StructField.Type,
-			Tag:     removeSettingFromTag(removeSettingFromTag(ownField.StructField.Tag, "column"), "autoincrement"),
+			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -248,7 +248,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: relField.StructField.PkgPath,
 			Type:    relField.StructField.Type,
-			Tag:     removeSettingFromTag(removeSettingFromTag(relField.StructField.Tag, "column"), "autoincrement"),
+			Tag:     removeSettingFromTag(relField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 

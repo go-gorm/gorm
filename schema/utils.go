@@ -51,8 +51,11 @@ func toColumns(val string) (results []string) {
 	return
 }
 
-func removeSettingFromTag(tag reflect.StructTag, name string) reflect.StructTag {
-	return reflect.StructTag(regexp.MustCompile(`(?i)(gorm:.*?)(`+name+`(:.*?)?)(;|("))`).ReplaceAllString(string(tag), "${1}${5}"))
+func removeSettingFromTag(tag reflect.StructTag, names ...string) reflect.StructTag {
+	for _, name := range names {
+		tag = reflect.StructTag(regexp.MustCompile(`(?i)(gorm:.*?)(`+name+`(:.*?)?)(;|("))`).ReplaceAllString(string(tag), "${1}${5}"))
+	}
+	return tag
 }
 
 // GetRelationsValues get relations's values from a reflect value
