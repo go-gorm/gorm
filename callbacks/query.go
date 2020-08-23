@@ -104,12 +104,12 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 
 		joins := []clause.Join{}
-		for name, conds := range db.Statement.Joins {
+		for _, join := range db.Statement.Joins {
 			if db.Statement.Schema == nil {
 				joins = append(joins, clause.Join{
-					Expression: clause.Expr{SQL: name, Vars: conds},
+					Expression: clause.Expr{SQL: join.Name, Vars: join.Conds},
 				})
-			} else if relation, ok := db.Statement.Schema.Relationships.Relations[name]; ok {
+			} else if relation, ok := db.Statement.Schema.Relationships.Relations[join.Name]; ok {
 				tableAliasName := relation.Name
 
 				for _, s := range relation.FieldSchema.DBNames {
@@ -149,7 +149,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				})
 			} else {
 				joins = append(joins, clause.Join{
-					Expression: clause.Expr{SQL: name, Vars: conds},
+					Expression: clause.Expr{SQL: join.Name, Vars: join.Conds},
 				})
 			}
 		}

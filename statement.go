@@ -29,7 +29,7 @@ type Statement struct {
 	Distinct             bool
 	Selects              []string // selected columns
 	Omits                []string // omit columns
-	Joins                map[string][]interface{}
+	Joins                []join
 	Preloads             map[string][]interface{}
 	Settings             sync.Map
 	ConnPool             ConnPool
@@ -42,6 +42,11 @@ type Statement struct {
 	CurDestIndex         int
 	attrs                []interface{}
 	assigns              []interface{}
+}
+
+type join struct {
+	Name  string
+	Conds []interface{}
 }
 
 // StatementModifier statement modifier interface
@@ -401,7 +406,6 @@ func (stmt *Statement) clone() *Statement {
 		Distinct:             stmt.Distinct,
 		Selects:              stmt.Selects,
 		Omits:                stmt.Omits,
-		Joins:                map[string][]interface{}{},
 		Preloads:             map[string][]interface{}{},
 		ConnPool:             stmt.ConnPool,
 		Schema:               stmt.Schema,
@@ -417,8 +421,9 @@ func (stmt *Statement) clone() *Statement {
 		newStmt.Preloads[k] = p
 	}
 
-	for k, j := range stmt.Joins {
-		newStmt.Joins[k] = j
+	if len(stmt.Joins) > 0 {
+		newStmt.Joins = make([]join, len(stmt.Joins))
+		copy(newStmt.Joins, stmt.Joins)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {
