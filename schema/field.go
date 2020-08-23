@@ -55,6 +55,7 @@ type Field struct {
 	Comment               string
 	Size                  int
 	Precision             int
+	Scale                 int
 	FieldType             reflect.Type
 	IndirectFieldType     reflect.Type
 	StructField           reflect.StructField
@@ -158,6 +159,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if p, ok := field.TagSettings["PRECISION"]; ok {
 		field.Precision, _ = strconv.Atoi(p)
+	}
+
+	if s, ok := field.TagSettings["SCALE"]; ok {
+		field.Scale, _ = strconv.Atoi(s)
 	}
 
 	if val, ok := field.TagSettings["NOT NULL"]; ok && utils.CheckTruth(val) {

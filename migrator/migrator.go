@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 
 	"gorm.io/gorm"
@@ -80,7 +81,6 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 
 // AutoMigrate
 func (m Migrator) AutoMigrate(values ...interface{}) error {
-	// TODO smart migrate data type
 	for _, value := range m.ReorderModels(values, true) {
 		tx := m.DB.Session(&gorm.Session{})
 		if !tx.Migrator().HasTable(value) {
@@ -89,11 +89,26 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
+				columnTypes, _ := m.DB.Migrator().ColumnTypes(value)
+
 				for _, field := range stmt.Schema.FieldsByDBName {
-					if !tx.Migrator().HasColumn(value, field.DBName) {
+					var foundColumn *sql.ColumnType
+
+					for _, columnType := range columnTypes {
+						if columnType.Name() == field.DBName {
+							foundColumn = columnType
+							break
+						}
+					}
+
+					if foundColumn == nil {
+						// not found, add column
 						if err := tx.Migrator().AddColumn(value, field.DBName); err != nil {
 							return err
 						}
+					} else if err := m.DB.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
+						// found, smart migrate
+						return err
 					}
 				}
 
@@ -120,7 +135,6 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				}
 				return nil
 			}); err != nil {
-				fmt.Println(err)
 				return err
 			}
 		}
@@ -325,6 +339,49 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 			clause.Table{Name: stmt.Table}, clause.Column{Name: oldName}, clause.Column{Name: newName},
 		).Error
 	})
+}
+
+func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnType *sql.ColumnType) error {
+	// found, smart migrate
+	fullDataType := strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)
+	realDataType := strings.ToLower(columnType.DatabaseTypeName())
+
+	alterColumn := false
+
+	// check size
+	if length, _ := columnType.Length(); length != int64(field.Size) {
+		if length > 0 && field.Size > 0 {
+			alterColumn = true
+		} else {
+			// has size in data type and not equal
+			matches := regexp.MustCompile(`[^\d](\d+)[^\d]`).FindAllString(realDataType, 1)
+			matches2 := regexp.MustCompile(`[^\d]*(\d+)[^\d]`).FindAllStringSubmatch(fullDataType, -1)
+			if len(matches) > 0 && matches[1] != fmt.Sprint(field.Size) || len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) {
+				alterColumn = true
+			}
+		}
+	}
+
+	// check precision
+	if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
+		if strings.Contains(fullDataType, fmt.Sprint(field.Precision)) {
+			alterColumn = true
+		}
+	}
+
+	// check nullable
+	if nullable, ok := columnType.Nullable(); ok && nullable == field.NotNull {
+		// not primary key & database is nullable
+		if !field.PrimaryKey && nullable {
+			alterColumn = true
+		}
+	}
+
+	if alterColumn {
+		return m.DB.Migrator().AlterColumn(value, field.Name)
+	}
+
+	return nil
 }
 
 func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {

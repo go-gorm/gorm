@@ -379,7 +379,6 @@ func (stmt *Statement) Build(clauses ...string) {
 			}
 		}
 	}
-	// TODO handle named vars
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
