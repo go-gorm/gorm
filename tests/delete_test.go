@@ -118,4 +118,8 @@ func TestBlockGlobalDelete(t *testing.T) {
 	if err := DB.Delete(&User{}).Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
 		t.Errorf("should returns missing WHERE clause while deleting error")
 	}
+
+	if err := DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&User{}).Error; err != nil {
+		t.Errorf("should returns no error while enable global update, but got err %v", err)
+	}
 }

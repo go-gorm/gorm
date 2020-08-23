@@ -51,7 +51,7 @@ func Delete(db *gorm.DB) {
 				}
 			}
 
-			if _, ok := db.Statement.Clauses["WHERE"]; !ok {
+			if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
 				db.AddError(gorm.ErrMissingWhereClause)
 				return
 			}

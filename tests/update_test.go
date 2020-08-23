@@ -222,6 +222,10 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	if err := DB.Model(&User{}).Update("name", "jinzhu").Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
 		t.Errorf("should returns missing WHERE clause while updating error, got err %v", err)
 	}
+
+	if err := DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&User{}).Update("name", "jinzhu").Error; err != nil {
+		t.Errorf("should returns no error while enable global update, but got err %v", err)
+	}
 }
 
 func TestSelectWithUpdate(t *testing.T) {

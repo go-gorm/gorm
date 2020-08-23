@@ -32,6 +32,8 @@ type Config struct {
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
 	DisableForeignKeyConstraintWhenMigrating bool
+	// AllowGlobalUpdate allow global update
+	AllowGlobalUpdate bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -61,6 +63,7 @@ type Session struct {
 	PrepareStmt            bool
 	WithConditions         bool
 	SkipDefaultTransaction bool
+	AllowGlobalUpdate      bool
 	Context                context.Context
 	Logger                 logger.Interface
 	NowFunc                func() time.Time
@@ -152,6 +155,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.SkipDefaultTransaction {
 		tx.Config.SkipDefaultTransaction = true
+	}
+
+	if config.AllowGlobalUpdate {
+		txConfig.AllowGlobalUpdate = true
 	}
 
 	if config.Context != nil {
