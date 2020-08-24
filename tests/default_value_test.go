@@ -10,7 +10,7 @@ func TestDefaultValue(t *testing.T) {
 	type Harumph struct {
 		gorm.Model
 		Email   string `gorm:"not null;index:,unique"`
-		Name    string `gorm:"not null;default:'foo'"`
+		Name    string `gorm:"not null;default:foo"`
 		Name2   string `gorm:"size:233;not null;default:'foo'"`
 		Name3   string `gorm:"size:233;not null;default:''"`
 		Age     int    `gorm:"default:18"`
