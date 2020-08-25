@@ -48,6 +48,10 @@ func TestDelete(t *testing.T) {
 		t.Errorf("errors happened when delete: %v", err)
 	}
 
+	if err := DB.Delete(User{}).Error; err != gorm.ErrMissingWhereClause {
+		t.Errorf("errors happened when delete: %v", err)
+	}
+
 	if err := DB.Where("id = ?", users[0].ID).First(&result).Error; err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("should returns record not found error, but got %v", err)
 	}

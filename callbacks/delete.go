@@ -41,7 +41,7 @@ func Delete(db *gorm.DB) {
 					db.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
 				}
 
-				if db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
+				if db.Statement.ReflectValue.CanAddr() && db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
 					_, queryValues = schema.GetIdentityFieldValuesMap(reflect.ValueOf(db.Statement.Model), db.Statement.Schema.PrimaryFields)
 					column, values = schema.ToQueryValues(db.Statement.Table, db.Statement.Schema.PrimaryFieldDBNames, queryValues)
 
@@ -51,13 +51,13 @@ func Delete(db *gorm.DB) {
 				}
 			}
 
-			if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-				db.AddError(gorm.ErrMissingWhereClause)
-				return
-			}
-
 			db.Statement.AddClauseIfNotExists(clause.From{})
 			db.Statement.Build("DELETE", "FROM", "WHERE")
+		}
+
+		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
+			db.AddError(gorm.ErrMissingWhereClause)
+			return
 		}
 
 		if !db.DryRun && db.Error == nil {
