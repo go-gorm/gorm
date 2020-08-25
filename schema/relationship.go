@@ -336,7 +336,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		primarySchema, foreignSchema = schema, relation.FieldSchema
 	)
 
-	reguessOrErr := func(err string, args ...interface{}) {
+	reguessOrErr := func() {
 		switch gl {
 		case guessHas:
 			schema.guessRelation(relation, field, guessEmbeddedHas)
@@ -345,7 +345,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		case guessBelongs:
 			schema.guessRelation(relation, field, guessEmbeddedBelongs)
 		default:
-			schema.err = fmt.Errorf(err, args...)
+			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
 		}
 	}
 
@@ -354,7 +354,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		if field.OwnerSchema != nil {
 			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
 		} else {
-			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+			reguessOrErr()
 			return
 		}
 	case guessBelongs:
@@ -363,7 +363,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		if field.OwnerSchema != nil {
 			primarySchema, foreignSchema = relation.FieldSchema, field.OwnerSchema
 		} else {
-			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+			reguessOrErr()
 			return
 		}
 	}
@@ -373,7 +373,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			if f := foreignSchema.LookUpField(foreignKey); f != nil {
 				foreignFields = append(foreignFields, f)
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with foreign keys %v", relation.FieldSchema, schema, field.Name, relation.foreignKeys)
+				reguessOrErr()
 				return
 			}
 		}
@@ -392,7 +392,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 	}
 
 	if len(foreignFields) == 0 {
-		reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+		reguessOrErr()
 		return
 	} else if len(relation.primaryKeys) > 0 {
 		for idx, primaryKey := range relation.primaryKeys {
@@ -400,11 +400,11 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 				if len(primaryFields) < idx+1 {
 					primaryFields = append(primaryFields, f)
 				} else if f != primaryFields[idx] {
-					reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+					reguessOrErr()
 					return
 				}
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+				reguessOrErr()
 				return
 			}
 		}
@@ -414,7 +414,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		} else if len(primarySchema.PrimaryFields) == len(foreignFields) {
 			primaryFields = append(primaryFields, primarySchema.PrimaryFields...)
 		} else {
-			reguessOrErr("unsupported relations %v for %v on field %v", relation.FieldSchema, schema, field.Name)
+			reguessOrErr()
 			return
 		}
 	}
