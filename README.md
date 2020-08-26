@@ -23,7 +23,7 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * Composite Primary Key
 * Auto Migrations
 * Logger
-* Extendable, write Plugins based on GORM callbacks
+* Extendable, flexible plugin API: Database Resolver (Multiple Databases, Read/Write Splitting) / Prometheus…
 * Every feature comes with tests
 * Developer Friendly
 
@@ -40,4 +40,3 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 © Jinzhu, 2013~time.Now
 
 Released under the [MIT License](https://github.com/go-gorm/gorm/blob/master/License)
-
