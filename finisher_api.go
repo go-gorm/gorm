@@ -362,7 +362,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 		tx.AddError(ErrModelValueRequired)
 	}
 
-	fields := strings.FieldsFunc(column, utils.IsChar)
+	fields := strings.FieldsFunc(column, utils.IsValidDBNameChar)
 	tx.Statement.AddClauseIfNotExists(clause.Select{
 		Distinct: tx.Statement.Distinct,
 		Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},

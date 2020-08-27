@@ -93,7 +93,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 		}
 		delete(tx.Statement.Clauses, "SELECT")
 	case string:
-		fields := strings.FieldsFunc(v, utils.IsChar)
+		fields := strings.FieldsFunc(v, utils.IsValidDBNameChar)
 
 		// normal field names
 		if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
@@ -133,7 +133,7 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsChar)
+		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
 	} else {
 		tx.Statement.Omits = columns
 	}
@@ -180,7 +180,7 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
 
-	fields := strings.FieldsFunc(name, utils.IsChar)
+	fields := strings.FieldsFunc(name, utils.IsValidDBNameChar)
 	tx.Statement.AddClause(clause.GroupBy{
 		Columns: []clause.Column{{Name: name, Raw: len(fields) != 1}},
 	})
