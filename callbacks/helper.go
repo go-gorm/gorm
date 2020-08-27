@@ -20,8 +20,10 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 
 	for _, k := range keys {
 		value := mapValue[k]
-		if field := stmt.Schema.LookUpField(k); field != nil {
-			k = field.DBName
+		if stmt.Schema != nil {
+			if field := stmt.Schema.LookUpField(k); field != nil {
+				k = field.DBName
+			}
 		}
 
 		if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
@@ -46,8 +48,10 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 
 	for idx, mapValue := range mapValues {
 		for k, v := range mapValue {
-			if field := stmt.Schema.LookUpField(k); field != nil {
-				k = field.DBName
+			if stmt.Schema != nil {
+				if field := stmt.Schema.LookUpField(k); field != nil {
+					k = field.DBName
+				}
 			}
 
 			if _, ok := result[k]; !ok {

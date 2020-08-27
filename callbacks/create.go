@@ -225,8 +225,12 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
 		values = ConvertMapToValuesForCreate(stmt, value)
+	case *map[string]interface{}:
+		values = ConvertMapToValuesForCreate(stmt, *value)
 	case []map[string]interface{}:
 		values = ConvertSliceOfMapToValuesForCreate(stmt, value)
+	case *[]map[string]interface{}:
+		values = ConvertSliceOfMapToValuesForCreate(stmt, *value)
 	default:
 		var (
 			selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)

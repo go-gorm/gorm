@@ -353,4 +353,30 @@ func TestGORMValuer(t *testing.T) {
 	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {
 		t.Errorf("generated vars is not equal, got %v", stmt.Vars)
 	}
+
+	stmt = dryRunDB.Model(UserWithPoint{}).Create(map[string]interface{}{
+		"Name":  "jinzhu",
+		"Point": clause.Expr{SQL: "ST_PointFromText(?)", Vars: []interface{}{"POINT(100 100)"}},
+	}).Statement
+
+	if !regexp.MustCompile(`INSERT INTO .user_with_points. \(.name.,.point.\) VALUES \(.+,ST_PointFromText\(.+\)\)`).MatchString(stmt.SQL.String()) {
+		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
+	}
+
+	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {
+		t.Errorf("generated vars is not equal, got %v", stmt.Vars)
+	}
+
+	stmt = dryRunDB.Table("user_with_points").Create(&map[string]interface{}{
+		"Name":  "jinzhu",
+		"Point": clause.Expr{SQL: "ST_PointFromText(?)", Vars: []interface{}{"POINT(100 100)"}},
+	}).Statement
+
+	if !regexp.MustCompile(`INSERT INTO .user_with_points. \(.Name.,.Point.\) VALUES \(.+,ST_PointFromText\(.+\)\)`).MatchString(stmt.SQL.String()) {
+		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
+	}
+
+	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {
+		t.Errorf("generated vars is not equal, got %v", stmt.Vars)
+	}
 }
