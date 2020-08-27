@@ -314,10 +314,6 @@ type Point struct {
 	X, Y int
 }
 
-func (point *Point) Scan(v interface{}) error {
-	return nil
-}
-
 func (point Point) GormDataType() string {
 	return "geo"
 }
@@ -373,6 +369,21 @@ func TestGORMValuer(t *testing.T) {
 	}).Statement
 
 	if !regexp.MustCompile(`INSERT INTO .user_with_points. \(.Name.,.Point.\) VALUES \(.+,ST_PointFromText\(.+\)\)`).MatchString(stmt.SQL.String()) {
+		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
+	}
+
+	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {
+		t.Errorf("generated vars is not equal, got %v", stmt.Vars)
+	}
+
+	stmt = dryRunDB.Session(&gorm.Session{
+		AllowGlobalUpdate: true,
+	}).Model(&UserWithPoint{}).Updates(UserWithPoint{
+		Name:  "jinzhu",
+		Point: Point{X: 100, Y: 100},
+	}).Statement
+
+	if !regexp.MustCompile(`UPDATE .user_with_points. SET .name.=.+,.point.=ST_PointFromText\(.+\)`).MatchString(stmt.SQL.String()) {
 		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
 	}
 
