@@ -1,16 +1,20 @@
 package tests_test
 
 import (
+	"context"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -304,4 +308,49 @@ func (t EmptyTime) Value() (driver.Value, error) {
 
 type NullString struct {
 	sql.NullString
+}
+
+type Point struct {
+	X, Y int
+}
+
+func (point *Point) Scan(v interface{}) error {
+	return nil
+}
+
+func (point Point) GormDataType() string {
+	return "geo"
+}
+
+func (point Point) GormValue(ctx context.Context, db *gorm.DB) clause.Expr {
+	return clause.Expr{
+		SQL:  "ST_PointFromText(?)",
+		Vars: []interface{}{fmt.Sprintf("POINT(%d %d)", point.X, point.Y)},
+	}
+}
+
+func TestGORMValuer(t *testing.T) {
+	type UserWithPoint struct {
+		Name  string
+		Point Point
+	}
+
+	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
+
+	stmt := dryRunDB.Create(&UserWithPoint{
+		Name:  "jinzhu",
+		Point: Point{X: 100, Y: 100},
+	}).Statement
+
+	if stmt.SQL.String() == "" || len(stmt.Vars) != 2 {
+		t.Errorf("Failed to generate sql, got %v", stmt.SQL.String())
+	}
+
+	if !regexp.MustCompile(`INSERT INTO .user_with_points. \(.name.,.point.\) VALUES \(.+,ST_PointFromText\(.+\)\)`).MatchString(stmt.SQL.String()) {
+		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
+	}
+
+	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {
+		t.Errorf("generated vars is not equal, got %v", stmt.Vars)
+	}
 }

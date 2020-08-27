@@ -32,14 +32,14 @@ func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
-				if i, ok := value.(gorm.BeforeSaveInterface); ok {
+				if i, ok := value.(BeforeSaveInterface); ok {
 					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeUpdate {
-				if i, ok := value.(gorm.BeforeUpdateInterface); ok {
+				if i, ok := value.(BeforeUpdateInterface); ok {
 					called = true
 					db.AddError(i.BeforeUpdate(tx))
 				}
@@ -90,14 +90,14 @@ func AfterUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterSave {
-				if i, ok := value.(gorm.AfterSaveInterface); ok {
+				if i, ok := value.(AfterSaveInterface); ok {
 					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterUpdate {
-				if i, ok := value.(gorm.AfterUpdateInterface); ok {
+				if i, ok := value.(AfterUpdateInterface); ok {
 					called = true
 					db.AddError(i.AfterUpdate(tx))
 				}

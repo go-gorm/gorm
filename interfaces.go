@@ -53,38 +53,7 @@ type TxCommitter interface {
 	Rollback() error
 }
 
-type BeforeCreateInterface interface {
-	BeforeCreate(*DB) error
-}
-
-type AfterCreateInterface interface {
-	AfterCreate(*DB) error
-}
-
-type BeforeUpdateInterface interface {
-	BeforeUpdate(*DB) error
-}
-
-type AfterUpdateInterface interface {
-	AfterUpdate(*DB) error
-}
-
-type BeforeSaveInterface interface {
-	BeforeSave(*DB) error
-}
-
-type AfterSaveInterface interface {
-	AfterSave(*DB) error
-}
-
-type BeforeDeleteInterface interface {
-	BeforeDelete(*DB) error
-}
-
-type AfterDeleteInterface interface {
-	AfterDelete(*DB) error
-}
-
-type AfterFindInterface interface {
-	AfterFind(*DB) error
+// Valuer gorm valuer interface
+type Valuer interface {
+	GormValue(context.Context, *DB) clause.Expr
 }

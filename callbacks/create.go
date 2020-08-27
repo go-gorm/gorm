@@ -12,14 +12,14 @@ func BeforeCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
-				if i, ok := value.(gorm.BeforeSaveInterface); ok {
+				if i, ok := value.(BeforeSaveInterface); ok {
 					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeCreate {
-				if i, ok := value.(gorm.BeforeCreateInterface); ok {
+				if i, ok := value.(BeforeCreateInterface); ok {
 					called = true
 					db.AddError(i.BeforeCreate(tx))
 				}
@@ -203,14 +203,14 @@ func AfterCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterSave {
-				if i, ok := value.(gorm.AfterSaveInterface); ok {
+				if i, ok := value.(AfterSaveInterface); ok {
 					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterCreate {
-				if i, ok := value.(gorm.AfterCreateInterface); ok {
+				if i, ok := value.(AfterCreateInterface); ok {
 					called = true
 					db.AddError(i.AfterCreate(tx))
 				}
