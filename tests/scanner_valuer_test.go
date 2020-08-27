@@ -384,7 +384,7 @@ func TestGORMValuer(t *testing.T) {
 	}).Statement
 
 	if !regexp.MustCompile(`UPDATE .user_with_points. SET .name.=.+,.point.=ST_PointFromText\(.+\)`).MatchString(stmt.SQL.String()) {
-		t.Errorf("insert with sql.Expr, but got %v", stmt.SQL.String())
+		t.Errorf("update with sql.Expr, but got %v", stmt.SQL.String())
 	}
 
 	if !reflect.DeepEqual([]interface{}{"jinzhu", "POINT(100 100)"}, stmt.Vars) {

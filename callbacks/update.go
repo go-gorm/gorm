@@ -199,7 +199,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 
 		if !stmt.UpdatingColumn && stmt.Schema != nil {
-			for _, field := range stmt.Schema.FieldsByDBName {
+			for _, dbName := range stmt.Schema.DBNames {
+				field := stmt.Schema.LookUpField(dbName)
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						now := stmt.DB.NowFunc()
@@ -222,7 +223,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		switch updatingValue.Kind() {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
-			for _, field := range stmt.Schema.FieldsByDBName {
+			for _, dbName := range stmt.Schema.DBNames {
+				field := stmt.Schema.LookUpField(dbName)
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						value, isZero := field.ValueOf(updatingValue)
