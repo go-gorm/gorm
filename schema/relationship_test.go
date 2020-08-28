@@ -55,6 +55,20 @@ func TestBelongsToOverrideReferences(t *testing.T) {
 	})
 }
 
+func TestSelfReferentialBelongsToOverrideReferences(t *testing.T) {
+	type User struct {
+		ID        int32 `gorm:"primaryKey"`
+		Name      string
+		CreatedBy *int32
+		Creator   *User `gorm:"foreignKey:CreatedBy;references:ID"`
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Creator", Type: schema.BelongsTo, Schema: "User", FieldSchema: "User",
+		References: []Reference{{"ID", "User", "CreatedBy", "User", "", false}},
+	})
+}
+
 func TestHasOneOverrideForeignKey(t *testing.T) {
 	type Profile struct {
 		gorm.Model

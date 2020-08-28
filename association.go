@@ -54,7 +54,7 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 				for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
 					joinStmt.AddClause(queryClause)
 				}
-				joinStmt.Build("WHERE", "LIMIT")
+				joinStmt.Build("WHERE")
 				tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
 			}
 
@@ -112,7 +112,7 @@ func (association *Association) Replace(values ...interface{}) error {
 					updateMap[ref.ForeignKey.DBName] = nil
 				}
 
-				association.DB.UpdateColumns(updateMap)
+				association.Error = association.DB.UpdateColumns(updateMap).Error
 			}
 		case schema.HasOne, schema.HasMany:
 			var (

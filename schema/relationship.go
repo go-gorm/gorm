@@ -82,7 +82,9 @@ func (schema *Schema) parseRelation(field *Field) {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
 		switch field.IndirectFieldType.Kind() {
-		case reflect.Struct, reflect.Slice:
+		case reflect.Struct:
+			schema.guessRelation(relation, field, guessBelongs)
+		case reflect.Slice:
 			schema.guessRelation(relation, field, guessHas)
 		default:
 			schema.err = fmt.Errorf("unsupported data type %v for %v on field %v", relation.FieldSchema, schema, field.Name)
@@ -324,10 +326,10 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 type guessLevel int
 
 const (
-	guessHas guessLevel = iota
-	guessEmbeddedHas
-	guessBelongs
+	guessBelongs guessLevel = iota
 	guessEmbeddedBelongs
+	guessHas
+	guessEmbeddedHas
 )
 
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl guessLevel) {
@@ -338,30 +340,32 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 
 	reguessOrErr := func() {
 		switch gl {
-		case guessHas:
-			schema.guessRelation(relation, field, guessEmbeddedHas)
-		case guessEmbeddedHas:
-			schema.guessRelation(relation, field, guessBelongs)
 		case guessBelongs:
 			schema.guessRelation(relation, field, guessEmbeddedBelongs)
+		case guessEmbeddedBelongs:
+			schema.guessRelation(relation, field, guessHas)
+		case guessHas:
+			schema.guessRelation(relation, field, guessEmbeddedHas)
+		// case guessEmbeddedHas:
 		default:
 			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
 		}
 	}
 
 	switch gl {
-	case guessEmbeddedHas:
-		if field.OwnerSchema != nil {
-			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
-		} else {
-			reguessOrErr()
-			return
-		}
 	case guessBelongs:
 		primarySchema, foreignSchema = relation.FieldSchema, schema
 	case guessEmbeddedBelongs:
 		if field.OwnerSchema != nil {
 			primarySchema, foreignSchema = relation.FieldSchema, field.OwnerSchema
+		} else {
+			reguessOrErr()
+			return
+		}
+	case guessHas:
+	case guessEmbeddedHas:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
 		} else {
 			reguessOrErr()
 			return
