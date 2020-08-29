@@ -29,8 +29,8 @@ func FileWithLineNum() string {
 	return ""
 }
 
-func IsChar(c rune) bool {
-	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*'
+func IsValidDBNameChar(c rune) bool {
+	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*' && c != '_' && c != '$'
 }
 
 func CheckTruth(val interface{}) bool {

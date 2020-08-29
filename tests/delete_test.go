@@ -43,6 +43,18 @@ func TestDelete(t *testing.T) {
 			t.Errorf("no error should returns when query %v, but got %v", user.ID, err)
 		}
 	}
+
+	if err := DB.Delete(users[0]).Error; err != nil {
+		t.Errorf("errors happened when delete: %v", err)
+	}
+
+	if err := DB.Delete(User{}).Error; err != gorm.ErrMissingWhereClause {
+		t.Errorf("errors happened when delete: %v", err)
+	}
+
+	if err := DB.Where("id = ?", users[0].ID).First(&result).Error; err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Errorf("should returns record not found error, but got %v", err)
+	}
 }
 
 func TestDeleteWithTable(t *testing.T) {
@@ -109,5 +121,9 @@ func TestInlineCondDelete(t *testing.T) {
 func TestBlockGlobalDelete(t *testing.T) {
 	if err := DB.Delete(&User{}).Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
 		t.Errorf("should returns missing WHERE clause while deleting error")
+	}
+
+	if err := DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&User{}).Error; err != nil {
+		t.Errorf("should returns no error while enable global update, but got err %v", err)
 	}
 }

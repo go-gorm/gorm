@@ -12,14 +12,14 @@ func BeforeCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
-				if i, ok := value.(gorm.BeforeSaveInterface); ok {
+				if i, ok := value.(BeforeSaveInterface); ok {
 					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeCreate {
-				if i, ok := value.(gorm.BeforeCreateInterface); ok {
+				if i, ok := value.(BeforeCreateInterface); ok {
 					called = true
 					db.AddError(i.BeforeCreate(tx))
 				}
@@ -61,16 +61,26 @@ func Create(config *Config) func(db *gorm.DB) {
 									case reflect.Slice, reflect.Array:
 										if config.LastInsertIDReversed {
 											for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i))
+												rv := db.Statement.ReflectValue.Index(i)
+												if reflect.Indirect(rv).Kind() != reflect.Struct {
+													break
+												}
+
+												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
 												if isZero {
-													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
 													insertID--
 												}
 											}
 										} else {
 											for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue.Index(i)); isZero {
-													db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue.Index(i), insertID)
+												rv := db.Statement.ReflectValue.Index(i)
+												if reflect.Indirect(rv).Kind() != reflect.Struct {
+													break
+												}
+
+												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
 													insertID++
 												}
 											}
@@ -140,6 +150,10 @@ func CreateWithReturning(db *gorm.DB) {
 						for rows.Next() {
 						BEGIN:
 							reflectValue := db.Statement.ReflectValue.Index(int(db.RowsAffected))
+							if reflect.Indirect(reflectValue).Kind() != reflect.Struct {
+								break
+							}
+
 							for idx, field := range fields {
 								fieldValue := field.ReflectValueOf(reflectValue)
 
@@ -189,14 +203,14 @@ func AfterCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterSave {
-				if i, ok := value.(gorm.AfterSaveInterface); ok {
+				if i, ok := value.(AfterSaveInterface); ok {
 					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterCreate {
-				if i, ok := value.(gorm.AfterCreateInterface); ok {
+				if i, ok := value.(AfterCreateInterface); ok {
 					called = true
 					db.AddError(i.AfterCreate(tx))
 				}
@@ -211,8 +225,12 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
 		values = ConvertMapToValuesForCreate(stmt, value)
+	case *map[string]interface{}:
+		values = ConvertMapToValuesForCreate(stmt, *value)
 	case []map[string]interface{}:
 		values = ConvertSliceOfMapToValuesForCreate(stmt, value)
+	case *[]map[string]interface{}:
+		values = ConvertSliceOfMapToValuesForCreate(stmt, *value)
 	default:
 		var (
 			selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
@@ -295,6 +313,8 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					}
 				}
 			}
+		default:
+			stmt.AddError(gorm.ErrInvalidData)
 		}
 	}
 

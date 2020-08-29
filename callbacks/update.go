@@ -32,14 +32,14 @@ func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
-				if i, ok := value.(gorm.BeforeSaveInterface); ok {
+				if i, ok := value.(BeforeSaveInterface); ok {
 					called = true
 					db.AddError(i.BeforeSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.BeforeUpdate {
-				if i, ok := value.(gorm.BeforeUpdateInterface); ok {
+				if i, ok := value.(BeforeUpdateInterface); ok {
 					called = true
 					db.AddError(i.BeforeUpdate(tx))
 				}
@@ -69,7 +69,7 @@ func Update(db *gorm.DB) {
 			db.Statement.Build("UPDATE", "SET", "WHERE")
 		}
 
-		if _, ok := db.Statement.Clauses["WHERE"]; !ok {
+		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
 			db.AddError(gorm.ErrMissingWhereClause)
 			return
 		}
@@ -90,14 +90,14 @@ func AfterUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.UpdatingColumn && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterSave {
-				if i, ok := value.(gorm.AfterSaveInterface); ok {
+				if i, ok := value.(AfterSaveInterface); ok {
 					called = true
 					db.AddError(i.AfterSave(tx))
 				}
 			}
 
 			if db.Statement.Schema.AfterUpdate {
-				if i, ok := value.(gorm.AfterUpdateInterface); ok {
+				if i, ok := value.(AfterUpdateInterface); ok {
 					called = true
 					db.AddError(i.AfterUpdate(tx))
 				}
@@ -174,11 +174,16 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		sort.Strings(keys)
 
 		for _, k := range keys {
+			kv := value[k]
+			if _, ok := kv.(*gorm.DB); ok {
+				kv = []interface{}{kv}
+			}
+
 			if stmt.Schema != nil {
 				if field := stmt.Schema.LookUpField(k); field != nil {
 					if field.DBName != "" {
 						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value[k]})
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: kv})
 							assignValue(field, value[k])
 						}
 					} else if v, ok := selectColumns[field.Name]; (ok && v) || (!ok && !restricted) {
@@ -189,12 +194,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 
 			if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
-				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: value[k]})
+				set = append(set, clause.Assignment{Column: clause.Column{Name: k}, Value: kv})
 			}
 		}
 
 		if !stmt.UpdatingColumn && stmt.Schema != nil {
-			for _, field := range stmt.Schema.FieldsByDBName {
+			for _, dbName := range stmt.Schema.DBNames {
+				field := stmt.Schema.LookUpField(dbName)
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						now := stmt.DB.NowFunc()
@@ -217,7 +223,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		switch updatingValue.Kind() {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
-			for _, field := range stmt.Schema.FieldsByDBName {
+			for _, dbName := range stmt.Schema.DBNames {
+				field := stmt.Schema.LookUpField(dbName)
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 						value, isZero := field.ValueOf(updatingValue)
@@ -247,6 +254,8 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					}
 				}
 			}
+		default:
+			stmt.AddError(gorm.ErrInvalidData)
 		}
 	}
 

@@ -96,7 +96,7 @@ func BuildQuerySQL(db *gorm.DB) {
 
 	// inline joins
 	if len(db.Statement.Joins) != 0 {
-		if len(db.Statement.Selects) == 0 {
+		if len(db.Statement.Selects) == 0 && db.Statement.Schema != nil {
 			clauseSelect.Columns = make([]clause.Column, len(db.Statement.Schema.DBNames))
 			for idx, dbName := range db.Statement.Schema.DBNames {
 				clauseSelect.Columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
@@ -104,12 +104,12 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 
 		joins := []clause.Join{}
-		for name, conds := range db.Statement.Joins {
+		for _, join := range db.Statement.Joins {
 			if db.Statement.Schema == nil {
 				joins = append(joins, clause.Join{
-					Expression: clause.Expr{SQL: name, Vars: conds},
+					Expression: clause.Expr{SQL: join.Name, Vars: join.Conds},
 				})
-			} else if relation, ok := db.Statement.Schema.Relationships.Relations[name]; ok {
+			} else if relation, ok := db.Statement.Schema.Relationships.Relations[join.Name]; ok {
 				tableAliasName := relation.Name
 
 				for _, s := range relation.FieldSchema.DBNames {
@@ -149,7 +149,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				})
 			} else {
 				joins = append(joins, clause.Join{
-					Expression: clause.Expr{SQL: name, Vars: conds},
+					Expression: clause.Expr{SQL: join.Name, Vars: join.Conds},
 				})
 			}
 		}
@@ -214,7 +214,7 @@ func Preload(db *gorm.DB) {
 func AfterQuery(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterFind {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
-			if i, ok := value.(gorm.AfterFindInterface); ok {
+			if i, ok := value.(AfterFindInterface); ok {
 				db.AddError(i.AfterFind(tx))
 				return true
 			}

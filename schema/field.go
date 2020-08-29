@@ -55,6 +55,7 @@ type Field struct {
 	Comment               string
 	Size                  int
 	Precision             int
+	Scale                 int
 	FieldType             reflect.Type
 	IndirectFieldType     reflect.Type
 	StructField           reflect.StructField
@@ -88,53 +89,44 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	fieldValue := reflect.New(field.IndirectFieldType)
-
-	if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
-		field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
-		field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
-		field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses()...)
-	}
-
-	if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
-		field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses()...)
-	}
-
 	// if field is valuer, used its value or first fields as data type
 	valuer, isValuer := fieldValue.Interface().(driver.Valuer)
 	if isValuer {
 		if _, ok := fieldValue.Interface().(GormDataTypeInterface); !ok {
-			var overrideFieldValue bool
-			if v, err := valuer.Value(); v != nil && err == nil {
-				overrideFieldValue = true
+			if v, err := valuer.Value(); reflect.ValueOf(v).IsValid() && err == nil {
 				fieldValue = reflect.ValueOf(v)
 			}
 
-			if field.IndirectFieldType.Kind() == reflect.Struct {
-				for i := 0; i < field.IndirectFieldType.NumField(); i++ {
-					if !overrideFieldValue {
-						newFieldType := field.IndirectFieldType.Field(i).Type
+			var getRealFieldValue func(reflect.Value)
+			getRealFieldValue = func(v reflect.Value) {
+				rv := reflect.Indirect(v)
+				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+					for i := 0; i < rv.Type().NumField(); i++ {
+						newFieldType := rv.Type().Field(i).Type
 						for newFieldType.Kind() == reflect.Ptr {
 							newFieldType = newFieldType.Elem()
 						}
 
 						fieldValue = reflect.New(newFieldType)
-						overrideFieldValue = true
-					}
 
-					// copy tag settings from valuer
-					for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
-						if _, ok := field.TagSettings[key]; !ok {
-							field.TagSettings[key] = value
+						if rv.Type() != reflect.Indirect(fieldValue).Type() {
+							getRealFieldValue(fieldValue)
+						}
+
+						if fieldValue.IsValid() {
+							return
+						}
+
+						for key, value := range ParseTagSetting(field.IndirectFieldType.Field(i).Tag.Get("gorm"), ";") {
+							if _, ok := field.TagSettings[key]; !ok {
+								field.TagSettings[key] = value
+							}
 						}
 					}
 				}
 			}
+
+			getRealFieldValue(fieldValue)
 		}
 	}
 
@@ -167,6 +159,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if p, ok := field.TagSettings["PRECISION"]; ok {
 		field.Precision, _ = strconv.Atoi(p)
+	}
+
+	if s, ok := field.TagSettings["SCALE"]; ok {
+		field.Scale, _ = strconv.Atoi(s)
 	}
 
 	if val, ok := field.TagSettings["NOT NULL"]; ok && utils.CheckTruth(val) {
@@ -311,15 +307,19 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer) {
+	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer && (field.Creatable || field.Updatable || field.Readable)) {
 		if reflect.Indirect(fieldValue).Kind() == reflect.Struct {
 			var err error
 			field.Creatable = false
 			field.Updatable = false
 			field.Readable = false
-			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), &sync.Map{}, schema.namer); err != nil {
+
+			cacheStore := &sync.Map{}
+			cacheStore.Store(embeddedCacheKey, true)
+			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, schema.namer); err != nil {
 				schema.err = err
 			}
+
 			for _, ef := range field.EmbeddedSchema.Fields {
 				ef.Schema = schema
 				ef.OwnerSchema = field.EmbeddedSchema
@@ -341,17 +341,20 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.PrimaryKey = true
 				} else {
 					ef.PrimaryKey = false
+
+					if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
+						ef.AutoIncrement = false
+					}
+
+					if ef.DefaultValue == "" {
+						ef.HasDefaultValue = false
+					}
 				}
 
 				for k, v := range field.TagSettings {
 					ef.TagSettings[k] = v
 				}
 			}
-
-			field.Schema.CreateClauses = append(field.Schema.CreateClauses, field.EmbeddedSchema.CreateClauses...)
-			field.Schema.QueryClauses = append(field.Schema.QueryClauses, field.EmbeddedSchema.QueryClauses...)
-			field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, field.EmbeddedSchema.UpdateClauses...)
-			field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, field.EmbeddedSchema.DeleteClauses...)
 		} else {
 			schema.err = fmt.Errorf("invalid embedded struct for %v's field %v, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
 		}
@@ -475,15 +478,15 @@ func (field *Field) setupValuerAndSetter() {
 				}
 			}
 
-			if valuer, ok := v.(driver.Valuer); ok {
-				if v, err = valuer.Value(); err == nil {
-					err = setter(value, v)
-				}
-			} else if reflectV.Kind() == reflect.Ptr {
+			if reflectV.Kind() == reflect.Ptr {
 				if reflectV.IsNil() {
 					field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 				} else {
 					err = setter(value, reflectV.Elem().Interface())
+				}
+			} else if valuer, ok := v.(driver.Valuer); ok {
+				if v, err = valuer.Value(); err == nil {
+					err = setter(value, v)
 				}
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
@@ -731,40 +734,10 @@ func (field *Field) setupValuerAndSetter() {
 				return nil
 			}
 		default:
-			if _, ok := fieldValue.Interface().(sql.Scanner); ok {
-				// struct scanner
-				field.Set = func(value reflect.Value, v interface{}) (err error) {
-					if valuer, ok := v.(driver.Valuer); ok {
-						v, _ = valuer.Value()
-					}
-
-					reflectV := reflect.ValueOf(v)
-					if !reflectV.IsValid() {
-						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-					} else if reflectV.Kind() == reflect.Ptr {
-						if reflectV.Elem().IsNil() || !reflectV.Elem().IsValid() {
-							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							return field.Set(value, reflectV.Elem().Interface())
-						}
-					} else {
-						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
-					}
-					return
-				}
-			} else if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
+			if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
 					reflectV := reflect.ValueOf(v)
-
-					if valuer, ok := v.(driver.Valuer); ok {
-						if valuer == nil || reflectV.IsNil() {
-							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							v, _ = valuer.Value()
-						}
-					}
-
 					if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
@@ -778,7 +751,35 @@ func (field *Field) setupValuerAndSetter() {
 						if fieldValue.IsNil() {
 							fieldValue.Set(reflect.New(field.FieldType.Elem()))
 						}
+
+						if valuer, ok := v.(driver.Valuer); ok {
+							v, _ = valuer.Value()
+						}
+
 						err = fieldValue.Interface().(sql.Scanner).Scan(v)
+					}
+					return
+				}
+			} else if _, ok := fieldValue.Interface().(sql.Scanner); ok {
+				// struct scanner
+				field.Set = func(value reflect.Value, v interface{}) (err error) {
+					reflectV := reflect.ValueOf(v)
+					if !reflectV.IsValid() {
+						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Type().AssignableTo(field.FieldType) {
+						field.ReflectValueOf(value).Set(reflectV)
+					} else if reflectV.Kind() == reflect.Ptr {
+						if reflectV.IsNil() || !reflectV.IsValid() {
+							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+						} else {
+							return field.Set(value, reflectV.Elem().Interface())
+						}
+					} else {
+						if valuer, ok := v.(driver.Valuer); ok {
+							v, _ = valuer.Value()
+						}
+
+						err = field.ReflectValueOf(value).Addr().Interface().(sql.Scanner).Scan(v)
 					}
 					return
 				}

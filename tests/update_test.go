@@ -222,6 +222,10 @@ func TestBlockGlobalUpdate(t *testing.T) {
 	if err := DB.Model(&User{}).Update("name", "jinzhu").Error; err == nil || !errors.Is(err, gorm.ErrMissingWhereClause) {
 		t.Errorf("should returns missing WHERE clause while updating error, got err %v", err)
 	}
+
+	if err := DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Model(&User{}).Update("name", "jinzhu").Error; err != nil {
+		t.Errorf("should returns no error while enable global update, but got err %v", err)
+	}
 }
 
 func TestSelectWithUpdate(t *testing.T) {
@@ -332,6 +336,15 @@ func TestSelectWithUpdateWithMap(t *testing.T) {
 	})
 
 	AssertObjEqual(t, result2, result, "Name", "Account", "Toys", "Manager", "ManagerID", "Languages")
+}
+
+func TestWithUpdateWithInvalidMap(t *testing.T) {
+	user := *GetUser("update_with_invalid_map", Config{})
+	DB.Create(&user)
+
+	if err := DB.Model(&user).Updates(map[string]string{"name": "jinzhu"}).Error; !errors.Is(err, gorm.ErrInvalidData) {
+		t.Errorf("should returns error for unsupported updating data")
+	}
 }
 
 func TestOmitWithUpdate(t *testing.T) {
@@ -543,5 +556,33 @@ func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 
 	if result.IgnoredField != 0 {
 		t.Errorf("element's ignored field should not be updated")
+	}
+}
+
+func TestUpdateFromSubQuery(t *testing.T) {
+	user := *GetUser("update_from_sub_query", Config{Company: true})
+	if err := DB.Create(&user).Error; err != nil {
+		t.Errorf("failed to create user, got error: %v", err)
+	}
+
+	if err := DB.Model(&user).Update("name", DB.Model(&Company{}).Select("name").Where("companies.id = users.company_id")).Error; err != nil {
+		t.Errorf("failed to update with sub query, got error %v", err)
+	}
+
+	var result User
+	DB.First(&result, user.ID)
+
+	if result.Name != user.Company.Name {
+		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
+	}
+
+	DB.Model(&user.Company).Update("Name", "new company name")
+	if err := DB.Table("users").Where("1 = 1").Update("name", DB.Table("companies").Select("name").Where("companies.id = users.company_id")).Error; err != nil {
+		t.Errorf("failed to update with sub query, got error %v", err)
+	}
+
+	DB.First(&result, user.ID)
+	if result.Name != "new company name" {
+		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
 	}
 }

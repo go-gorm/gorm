@@ -19,11 +19,11 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * Transactions, Nested Transactions, Save Point, RollbackTo to Saved Point
 * Context, Prepared Statment Mode, DryRun Mode
 * Batch Insert, FindInBatches, Find To Map
-* SQL Builder, Upsert, Locking, Optimizer/Index/Comment Hints, NamedArg
+* SQL Builder, Upsert, Locking, Optimizer/Index/Comment Hints, NamedArg, Search/Update/Create with SQL Expr
 * Composite Primary Key
 * Auto Migrations
 * Logger
-* Extendable, write Plugins based on GORM callbacks
+* Extendable, flexible plugin API: Database Resolver (Multiple Databases, Read/Write Splitting) / Prometheus…
 * Every feature comes with tests
 * Developer Friendly
 
@@ -40,4 +40,3 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 © Jinzhu, 2013~time.Now
 
 Released under the [MIT License](https://github.com/go-gorm/gorm/blob/master/License)
-

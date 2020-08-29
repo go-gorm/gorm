@@ -67,4 +67,9 @@ func TestCount(t *testing.T) {
 	if !regexp.MustCompile(`SELECT COUNT\(DISTINCT\(.name.\)\) FROM .*users.*`).MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build count with select, but got %v", result.Statement.SQL.String())
 	}
+
+	var count4 int64
+	if err := DB.Debug().Table("users").Joins("LEFT JOIN companies on companies.name = users.name").Where("users.name = ?", user1.Name).Count(&count4).Error; err != nil || count4 != 1 {
+		t.Errorf("count with join, got error: %v, count %v", err, count)
+	}
 }

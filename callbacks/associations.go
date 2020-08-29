@@ -48,14 +48,19 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					obj := db.Statement.ReflectValue.Index(i)
-					if _, zero := rel.Field.ValueOf(obj); !zero { // check belongs to relation value
-						rv := rel.Field.ReflectValueOf(obj) // relation reflect value
-						objs = append(objs, obj)
-						if isPtr {
-							elems = reflect.Append(elems, rv)
-						} else {
-							elems = reflect.Append(elems, rv.Addr())
+
+					if reflect.Indirect(obj).Kind() == reflect.Struct {
+						if _, zero := rel.Field.ValueOf(obj); !zero { // check belongs to relation value
+							rv := rel.Field.ReflectValueOf(obj) // relation reflect value
+							objs = append(objs, obj)
+							if isPtr {
+								elems = reflect.Append(elems, rv)
+							} else {
+								elems = reflect.Append(elems, rv.Addr())
+							}
 						}
+					} else {
+						break
 					}
 				}
 
@@ -112,22 +117,24 @@ func SaveAfterAssociations(db *gorm.DB) {
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					obj := db.Statement.ReflectValue.Index(i)
 
-					if _, zero := rel.Field.ValueOf(obj); !zero {
-						rv := rel.Field.ReflectValueOf(obj)
-						if rv.Kind() != reflect.Ptr {
-							rv = rv.Addr()
-						}
-
-						for _, ref := range rel.References {
-							if ref.OwnPrimaryKey {
-								fv, _ := ref.PrimaryKey.ValueOf(obj)
-								db.AddError(ref.ForeignKey.Set(rv, fv))
-							} else if ref.PrimaryValue != "" {
-								db.AddError(ref.ForeignKey.Set(rv, ref.PrimaryValue))
+					if reflect.Indirect(obj).Kind() == reflect.Struct {
+						if _, zero := rel.Field.ValueOf(obj); !zero {
+							rv := rel.Field.ReflectValueOf(obj)
+							if rv.Kind() != reflect.Ptr {
+								rv = rv.Addr()
 							}
-						}
 
-						elems = reflect.Append(elems, rv)
+							for _, ref := range rel.References {
+								if ref.OwnPrimaryKey {
+									fv, _ := ref.PrimaryKey.ValueOf(obj)
+									db.AddError(ref.ForeignKey.Set(rv, fv))
+								} else if ref.PrimaryValue != "" {
+									db.AddError(ref.ForeignKey.Set(rv, ref.PrimaryValue))
+								}
+							}
+
+							elems = reflect.Append(elems, rv)
+						}
 					}
 				}
 
@@ -207,7 +214,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					appendToElems(db.Statement.ReflectValue.Index(i))
+					obj := db.Statement.ReflectValue.Index(i)
+					if reflect.Indirect(obj).Kind() == reflect.Struct {
+						appendToElems(obj)
+					}
 				}
 			case reflect.Struct:
 				appendToElems(db.Statement.ReflectValue)
@@ -277,7 +287,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-					appendToElems(db.Statement.ReflectValue.Index(i))
+					obj := db.Statement.ReflectValue.Index(i)
+					if reflect.Indirect(obj).Kind() == reflect.Struct {
+						appendToElems(obj)
+					}
 				}
 			case reflect.Struct:
 				appendToElems(db.Statement.ReflectValue)

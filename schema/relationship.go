@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/jinzhu/inflection"
 	"gorm.io/gorm/clause"
@@ -67,16 +66,14 @@ func (schema *Schema) parseRelation(field *Field) {
 		}
 	)
 
+	cacheStore := schema.cacheStore
 	if field.OwnerSchema != nil {
-		if relation.FieldSchema, err = Parse(fieldValue, &sync.Map{}, schema.namer); err != nil {
-			schema.err = err
-			return
-		}
-	} else {
-		if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
-			schema.err = err
-			return
-		}
+		cacheStore = field.OwnerSchema.cacheStore
+	}
+
+	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer); err != nil {
+		schema.err = err
+		return
 	}
 
 	if polymorphic := field.TagSettings["POLYMORPHIC"]; polymorphic != "" {
@@ -85,7 +82,9 @@ func (schema *Schema) parseRelation(field *Field) {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
 		switch field.IndirectFieldType.Kind() {
-		case reflect.Struct, reflect.Slice:
+		case reflect.Struct:
+			schema.guessRelation(relation, field, guessBelongs)
+		case reflect.Slice:
 			schema.guessRelation(relation, field, guessHas)
 		default:
 			schema.err = fmt.Errorf("unsupported data type %v for %v on field %v", relation.FieldSchema, schema, field.Name)
@@ -228,7 +227,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: ownField.StructField.PkgPath,
 			Type:    ownField.StructField.Type,
-			Tag:     removeSettingFromTag(removeSettingFromTag(ownField.StructField.Tag, "column"), "autoincrement"),
+			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -251,7 +250,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: relField.StructField.PkgPath,
 			Type:    relField.StructField.Type,
-			Tag:     removeSettingFromTag(removeSettingFromTag(relField.StructField.Tag, "column"), "autoincrement"),
+			Tag:     removeSettingFromTag(relField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -327,10 +326,10 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 type guessLevel int
 
 const (
-	guessHas guessLevel = iota
-	guessEmbeddedHas
-	guessBelongs
+	guessBelongs guessLevel = iota
 	guessEmbeddedBelongs
+	guessHas
+	guessEmbeddedHas
 )
 
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl guessLevel) {
@@ -339,34 +338,36 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		primarySchema, foreignSchema = schema, relation.FieldSchema
 	)
 
-	reguessOrErr := func(err string, args ...interface{}) {
+	reguessOrErr := func() {
 		switch gl {
-		case guessHas:
-			schema.guessRelation(relation, field, guessEmbeddedHas)
-		case guessEmbeddedHas:
-			schema.guessRelation(relation, field, guessBelongs)
 		case guessBelongs:
 			schema.guessRelation(relation, field, guessEmbeddedBelongs)
+		case guessEmbeddedBelongs:
+			schema.guessRelation(relation, field, guessHas)
+		case guessHas:
+			schema.guessRelation(relation, field, guessEmbeddedHas)
+		// case guessEmbeddedHas:
 		default:
-			schema.err = fmt.Errorf(err, args...)
+			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
 		}
 	}
 
 	switch gl {
-	case guessEmbeddedHas:
-		if field.OwnerSchema != nil {
-			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
-		} else {
-			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
-			return
-		}
 	case guessBelongs:
 		primarySchema, foreignSchema = relation.FieldSchema, schema
 	case guessEmbeddedBelongs:
 		if field.OwnerSchema != nil {
 			primarySchema, foreignSchema = relation.FieldSchema, field.OwnerSchema
 		} else {
-			reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+			reguessOrErr()
+			return
+		}
+	case guessHas:
+	case guessEmbeddedHas:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
+		} else {
+			reguessOrErr()
 			return
 		}
 	}
@@ -376,7 +377,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			if f := foreignSchema.LookUpField(foreignKey); f != nil {
 				foreignFields = append(foreignFields, f)
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with foreign keys %v", relation.FieldSchema, schema, field.Name, relation.foreignKeys)
+				reguessOrErr()
 				return
 			}
 		}
@@ -395,7 +396,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 	}
 
 	if len(foreignFields) == 0 {
-		reguessOrErr("failed to guess %v's relations with %v's field %v, guess level: %v", relation.FieldSchema, schema, field.Name, gl)
+		reguessOrErr()
 		return
 	} else if len(relation.primaryKeys) > 0 {
 		for idx, primaryKey := range relation.primaryKeys {
@@ -403,11 +404,11 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 				if len(primaryFields) < idx+1 {
 					primaryFields = append(primaryFields, f)
 				} else if f != primaryFields[idx] {
-					reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+					reguessOrErr()
 					return
 				}
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+				reguessOrErr()
 				return
 			}
 		}
@@ -417,7 +418,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		} else if len(primarySchema.PrimaryFields) == len(foreignFields) {
 			primaryFields = append(primaryFields, primarySchema.PrimaryFields...)
 		} else {
-			reguessOrErr("unsupported relations %v for %v on field %v", relation.FieldSchema, schema, field.Name)
+			reguessOrErr()
 			return
 		}
 	}

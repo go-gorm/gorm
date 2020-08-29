@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -108,6 +109,20 @@ func TestPreloadWithConds(t *testing.T) {
 	}
 
 	CheckUser(t, users2[0], users[0])
+
+	var users3 []User
+	if err := DB.Preload("Account", func(tx *gorm.DB) *gorm.DB {
+		return tx.Table("accounts AS a").Select("a.*")
+	}).Find(&users3, "id IN ?", userIDs).Error; err != nil {
+		t.Errorf("failed to query, got error %v", err)
+	}
+	sort.Slice(users3, func(i, j int) bool {
+		return users2[i].ID < users2[j].ID
+	})
+
+	for i, u := range users3 {
+		CheckUser(t, u, users[i])
+	}
 }
 
 func TestNestedPreloadWithConds(t *testing.T) {

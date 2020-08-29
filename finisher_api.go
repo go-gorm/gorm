@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
 
@@ -132,19 +133,46 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 	return
 }
 
-func (tx *DB) assignExprsToValue(exprs []clause.Expression) {
-	for _, expr := range exprs {
-		if eq, ok := expr.(clause.Eq); ok {
-			switch column := eq.Column.(type) {
-			case string:
-				if field := tx.Statement.Schema.LookUpField(column); field != nil {
-					tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+func (tx *DB) assignInterfacesToValue(values ...interface{}) {
+	for _, value := range values {
+		switch v := value.(type) {
+		case []clause.Expression:
+			for _, expr := range v {
+				if eq, ok := expr.(clause.Eq); ok {
+					switch column := eq.Column.(type) {
+					case string:
+						if field := tx.Statement.Schema.LookUpField(column); field != nil {
+							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+						}
+					case clause.Column:
+						if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
+							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+						}
+					}
 				}
-			case clause.Column:
-				if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
-					tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+			}
+		case clause.Expression, map[string]string, map[interface{}]interface{}, map[string]interface{}:
+			exprs := tx.Statement.BuildCondition(value)
+			tx.assignInterfacesToValue(exprs)
+		default:
+			if s, err := schema.Parse(value, tx.cacheStore, tx.NamingStrategy); err == nil {
+				reflectValue := reflect.Indirect(reflect.ValueOf(value))
+				switch reflectValue.Kind() {
+				case reflect.Struct:
+					for _, f := range s.Fields {
+						if f.Readable {
+							if v, isZero := f.ValueOf(reflectValue); !isZero {
+								if field := tx.Statement.Schema.LookUpField(f.Name); field != nil {
+									tx.AddError(field.Set(tx.Statement.ReflectValue, v))
+								}
+							}
+						}
+					}
 				}
-			default:
+			} else if len(values) > 0 {
+				exprs := tx.Statement.BuildCondition(values[0], values[1:]...)
+				tx.assignInterfacesToValue(exprs)
+				return
 			}
 		}
 	}
@@ -154,22 +182,20 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 	if tx = db.First(dest, conds...); errors.Is(tx.Error, ErrRecordNotFound) {
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok {
-				tx.assignExprsToValue(where.Exprs)
+				tx.assignInterfacesToValue(where.Exprs)
 			}
 		}
 
 		// initialize with attrs, conds
 		if len(tx.Statement.attrs) > 0 {
-			exprs := tx.Statement.BuildCondition(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
-			tx.assignExprsToValue(exprs)
+			tx.assignInterfacesToValue(tx.Statement.attrs...)
 		}
 		tx.Error = nil
 	}
 
 	// initialize with attrs, conds
 	if len(tx.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
-		tx.assignExprsToValue(exprs)
+		tx.assignInterfacesToValue(tx.Statement.assigns...)
 	}
 	return
 }
@@ -180,20 +206,18 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok {
-				tx.assignExprsToValue(where.Exprs)
+				tx.assignInterfacesToValue(where.Exprs)
 			}
 		}
 
 		// initialize with attrs, conds
 		if len(tx.Statement.attrs) > 0 {
-			exprs := tx.Statement.BuildCondition(tx.Statement.attrs[0], tx.Statement.attrs[1:]...)
-			tx.assignExprsToValue(exprs)
+			tx.assignInterfacesToValue(tx.Statement.attrs...)
 		}
 
 		// initialize with attrs, conds
 		if len(tx.Statement.assigns) > 0 {
-			exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
-			tx.assignExprsToValue(exprs)
+			tx.assignInterfacesToValue(tx.Statement.assigns...)
 		}
 
 		return tx.Create(dest)
@@ -265,11 +289,14 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
+		defer func() {
+			tx.Statement.Model = nil
+		}()
 	}
 
 	if len(tx.Statement.Selects) == 0 {
 		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
-		defer tx.Statement.AddClause(clause.Select{})
+		defer delete(tx.Statement.Clauses, "SELECT")
 	} else if !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
 		expr := clause.Expr{SQL: "count(1)"}
 
@@ -335,7 +362,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 		tx.AddError(ErrModelValueRequired)
 	}
 
-	fields := strings.FieldsFunc(column, utils.IsChar)
+	fields := strings.FieldsFunc(column, utils.IsValidDBNameChar)
 	tx.Statement.AddClauseIfNotExists(clause.Select{
 		Distinct: tx.Statement.Distinct,
 		Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
@@ -420,7 +447,7 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 
 // Commit commit a transaction
 func (db *DB) Commit() *DB {
-	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
+	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil && !reflect.ValueOf(committer).IsNil() {
 		db.AddError(committer.Commit())
 	} else {
 		db.AddError(ErrInvalidTransaction)
@@ -431,7 +458,9 @@ func (db *DB) Commit() *DB {
 // Rollback rollback a transaction
 func (db *DB) Rollback() *DB {
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
-		db.AddError(committer.Rollback())
+		if !reflect.ValueOf(committer).IsNil() {
+			db.AddError(committer.Rollback())
+		}
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}

@@ -4,6 +4,7 @@ import (
 	"sync"
 	"testing"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils/tests"
 )
@@ -158,5 +159,67 @@ func TestCustomizeTableName(t *testing.T) {
 
 	if customize.Table != "customize" {
 		t.Errorf("Failed to customize table with TableName method")
+	}
+}
+
+func TestNestedModel(t *testing.T) {
+	versionUser, err := schema.Parse(&VersionUser{}, &sync.Map{}, schema.NamingStrategy{})
+
+	if err != nil {
+		t.Fatalf("failed to parse nested user, got error %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"VersionModel", "BaseModel", "ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true},
+		{Name: "CreatedBy", DBName: "created_by", BindNames: []string{"VersionModel", "BaseModel", "CreatedBy"}, DataType: schema.Uint, Size: 64},
+		{Name: "Version", DBName: "version", BindNames: []string{"VersionModel", "Version"}, DataType: schema.Int, Size: 64},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, versionUser, &f, func(f *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+			f.Readable = true
+		})
+	}
+}
+
+func TestEmbeddedStruct(t *testing.T) {
+	type CorpBase struct {
+		gorm.Model
+		OwnerID string
+	}
+
+	type Company struct {
+		ID      int
+		OwnerID int
+		Name    string
+	}
+
+	type Corp struct {
+		CorpBase
+		Base Company `gorm:"embedded;embeddedPrefix:company_"`
+	}
+
+	cropSchema, err := schema.Parse(&Corp{}, &sync.Map{}, schema.NamingStrategy{})
+
+	if err != nil {
+		t.Fatalf("failed to parse embedded struct with primary key, got error %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "ID", DBName: "id", BindNames: []string{"CorpBase", "Model", "ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true, TagSettings: map[string]string{"PRIMARYKEY": "PRIMARYKEY"}},
+		{Name: "ID", DBName: "company_id", BindNames: []string{"Base", "ID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "Name", DBName: "company_name", BindNames: []string{"Base", "Name"}, DataType: schema.String, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "OwnerID", DBName: "company_owner_id", BindNames: []string{"Base", "OwnerID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "OwnerID", DBName: "owner_id", BindNames: []string{"CorpBase", "OwnerID"}, DataType: schema.String},
+	}
+
+	for _, f := range fields {
+		checkSchemaField(t, cropSchema, &f, func(f *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+			f.Readable = true
+		})
 	}
 }

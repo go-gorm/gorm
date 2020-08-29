@@ -39,3 +39,24 @@ type AdvancedDataTypeUser struct {
 	Active       mybool
 	Admin        *mybool
 }
+
+type BaseModel struct {
+	ID        uint
+	CreatedAt time.Time
+	CreatedBy *int
+	Created   *VersionUser `gorm:"foreignKey:CreatedBy"`
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+
+type VersionModel struct {
+	BaseModel
+	Version int
+}
+
+type VersionUser struct {
+	VersionModel
+	Name     string
+	Age      uint
+	Birthday *time.Time
+}

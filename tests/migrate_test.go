@@ -47,6 +47,86 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
+func TestSmartMigrateColumn(t *testing.T) {
+	type UserMigrateColumn struct {
+		ID       uint
+		Name     string
+		Salary   float64
+		Birthday time.Time
+	}
+
+	DB.Migrator().DropTable(&UserMigrateColumn{})
+
+	DB.AutoMigrate(&UserMigrateColumn{})
+
+	type UserMigrateColumn2 struct {
+		ID       uint
+		Name     string    `gorm:"size:128"`
+		Salary   float64   `gorm:"precision:2"`
+		Birthday time.Time `gorm:"precision:2"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err := DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); length != 0 && length != 128 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, o, _ := columnType.DecimalSize(); precision != 0 && precision != 2 {
+				t.Fatalf("salary's precision should be 2, but got %v %v", precision, o)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 2 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		}
+	}
+
+	type UserMigrateColumn3 struct {
+		ID       uint
+		Name     string    `gorm:"size:256"`
+		Salary   float64   `gorm:"precision:3"`
+		Birthday time.Time `gorm:"precision:3"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn3{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err = DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); length != 0 && length != 256 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 3 {
+				t.Fatalf("salary's precision should be 2, but got %v", precision)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 3 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		}
+	}
+
+}
+
 func TestMigrateWithComment(t *testing.T) {
 	type UserWithComment struct {
 		gorm.Model

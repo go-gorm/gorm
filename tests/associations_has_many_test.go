@@ -21,6 +21,23 @@ func TestHasManyAssociation(t *testing.T) {
 	DB.Model(&user2).Association("Pets").Find(&user2.Pets)
 	CheckUser(t, user2, user)
 
+	var pets []Pet
+	DB.Model(&user).Where("name = ?", user.Pets[0].Name).Association("Pets").Find(&pets)
+
+	if len(pets) != 1 {
+		t.Fatalf("should only find one pets, but got %v", len(pets))
+	}
+
+	CheckPet(t, pets[0], *user.Pets[0])
+
+	if count := DB.Model(&user).Where("name = ?", user.Pets[1].Name).Association("Pets").Count(); count != 1 {
+		t.Fatalf("should only find one pets, but got %v", count)
+	}
+
+	if count := DB.Model(&user).Where("name = ?", "not found").Association("Pets").Count(); count != 0 {
+		t.Fatalf("should only find no pet with invalid conditions, but got %v", count)
+	}
+
 	// Count
 	AssertAssociationCount(t, user, "Pets", 2, "")
 
@@ -40,13 +57,13 @@ func TestHasManyAssociation(t *testing.T) {
 
 	AssertAssociationCount(t, user, "Pets", 3, "AfterAppend")
 
-	var pets = []Pet{{Name: "pet-has-many-append-1-1"}, {Name: "pet-has-many-append-1-1"}}
+	var pets2 = []Pet{{Name: "pet-has-many-append-1-1"}, {Name: "pet-has-many-append-1-1"}}
 
-	if err := DB.Model(&user2).Association("Pets").Append(&pets); err != nil {
+	if err := DB.Model(&user2).Association("Pets").Append(&pets2); err != nil {
 		t.Fatalf("Error happened when append pet, got %v", err)
 	}
 
-	for _, pet := range pets {
+	for _, pet := range pets2 {
 		var pet = pet
 		if pet.ID == 0 {
 			t.Fatalf("Pet's ID should be created")
