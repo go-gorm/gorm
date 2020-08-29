@@ -32,17 +32,12 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		tx.callbacks.Create().Execute(tx)
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
-			where := clause.Where{Exprs: make([]clause.Expression, len(tx.Statement.Schema.PrimaryFields))}
-			for idx, pf := range tx.Statement.Schema.PrimaryFields {
-				if pv, isZero := pf.ValueOf(reflectValue); isZero {
+			for _, pf := range tx.Statement.Schema.PrimaryFields {
+				if _, isZero := pf.ValueOf(reflectValue); isZero {
 					tx.callbacks.Create().Execute(tx)
 					return
-				} else {
-					where.Exprs[idx] = clause.Eq{Column: pf.DBName, Value: pv}
 				}
 			}
-
-			tx.Statement.AddClause(where)
 		}
 
 		fallthrough

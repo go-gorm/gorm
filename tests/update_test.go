@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"errors"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -584,5 +585,28 @@ func TestUpdateFromSubQuery(t *testing.T) {
 	DB.First(&result, user.ID)
 	if result.Name != "new company name" {
 		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
+	}
+}
+
+func TestSave(t *testing.T) {
+	user := *GetUser("save", Config{})
+	DB.Create(&user)
+
+	if err := DB.First(&User{}, "name = ?", "save").Error; err != nil {
+		t.Fatalf("failed to find created user")
+	}
+
+	user.Name = "save2"
+	DB.Save(&user)
+
+	var result User
+	if err := DB.First(&result, "name = ?", "save2").Error; err != nil || result.ID != user.ID {
+		t.Fatalf("failed to find updated user")
+	}
+
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	stmt := dryDB.Save(&user).Statement
+	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
+		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
 	}
 }
