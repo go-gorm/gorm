@@ -14,10 +14,8 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
 
-	if db.Workarounds.DoColumnLowerCasing {
-		columns = funk.Map(columns, func(s string) string {
-			return strings.ToLower(s)
-		}).([]string)
+	if db.DoColumnLowerCasingOnSchemaParsing {
+		columns = funk.Map(columns, strings.ToLower).([]string)
 	}
 
 	switch dest := db.Statement.Dest.(type) {
