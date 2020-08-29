@@ -20,12 +20,18 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 
 	for _, k := range keys {
 		value := mapValue[k]
-		if field := stmt.Schema.LookUpField(k); field != nil {
-			k = field.DBName
+		if stmt.Schema != nil {
+			if field := stmt.Schema.LookUpField(k); field != nil {
+				k = field.DBName
+			}
 		}
 
 		if v, ok := selectColumns[k]; (ok && v) || (!ok && !restricted) {
 			values.Columns = append(values.Columns, clause.Column{Name: k})
+			if len(values.Values) == 0 {
+				values.Values = [][]interface{}{{}}
+			}
+
 			values.Values[0] = append(values.Values[0], value)
 		}
 	}
@@ -42,8 +48,10 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 
 	for idx, mapValue := range mapValues {
 		for k, v := range mapValue {
-			if field := stmt.Schema.LookUpField(k); field != nil {
-				k = field.DBName
+			if stmt.Schema != nil {
+				if field := stmt.Schema.LookUpField(k); field != nil {
+					k = field.DBName
+				}
 			}
 
 			if _, ok := result[k]; !ok {
@@ -61,11 +69,15 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 
 	sort.Strings(columns)
 	values.Values = make([][]interface{}, len(mapValues))
+	values.Columns = make([]clause.Column, len(columns))
 	for idx, column := range columns {
+		values.Columns[idx] = clause.Column{Name: column}
+
 		for i, v := range result[column] {
-			if i == 0 {
+			if len(values.Values[i]) == 0 {
 				values.Values[i] = make([]interface{}, len(columns))
 			}
+
 			values.Values[i][idx] = v
 		}
 	}

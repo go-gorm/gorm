@@ -66,7 +66,12 @@ func (schema *Schema) parseRelation(field *Field) {
 		}
 	)
 
-	if relation.FieldSchema, err = Parse(fieldValue, schema.cacheStore, schema.namer); err != nil {
+	cacheStore := schema.cacheStore
+	if field.OwnerSchema != nil {
+		cacheStore = field.OwnerSchema.cacheStore
+	}
+
+	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer); err != nil {
 		schema.err = err
 		return
 	}
@@ -77,8 +82,10 @@ func (schema *Schema) parseRelation(field *Field) {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else {
 		switch field.IndirectFieldType.Kind() {
-		case reflect.Struct, reflect.Slice:
-			schema.guessRelation(relation, field, true)
+		case reflect.Struct:
+			schema.guessRelation(relation, field, guessBelongs)
+		case reflect.Slice:
+			schema.guessRelation(relation, field, guessHas)
 		default:
 			schema.err = fmt.Errorf("unsupported data type %v for %v on field %v", relation.FieldSchema, schema, field.Name)
 		}
@@ -220,7 +227,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: ownField.StructField.PkgPath,
 			Type:    ownField.StructField.Type,
-			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column"),
+			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -243,7 +250,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: relField.StructField.PkgPath,
 			Type:    relField.StructField.Type,
-			Tag:     removeSettingFromTag(relField.StructField.Tag, "column"),
+			Tag:     removeSettingFromTag(relField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -316,21 +323,52 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 }
 
-func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessHas bool) {
+type guessLevel int
+
+const (
+	guessBelongs guessLevel = iota
+	guessEmbeddedBelongs
+	guessHas
+	guessEmbeddedHas
+)
+
+func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl guessLevel) {
 	var (
 		primaryFields, foreignFields []*Field
 		primarySchema, foreignSchema = schema, relation.FieldSchema
 	)
 
-	if !guessHas {
-		primarySchema, foreignSchema = relation.FieldSchema, schema
+	reguessOrErr := func() {
+		switch gl {
+		case guessBelongs:
+			schema.guessRelation(relation, field, guessEmbeddedBelongs)
+		case guessEmbeddedBelongs:
+			schema.guessRelation(relation, field, guessHas)
+		case guessHas:
+			schema.guessRelation(relation, field, guessEmbeddedHas)
+		// case guessEmbeddedHas:
+		default:
+			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
+		}
 	}
 
-	reguessOrErr := func(err string, args ...interface{}) {
-		if guessHas {
-			schema.guessRelation(relation, field, false)
+	switch gl {
+	case guessBelongs:
+		primarySchema, foreignSchema = relation.FieldSchema, schema
+	case guessEmbeddedBelongs:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = relation.FieldSchema, field.OwnerSchema
 		} else {
-			schema.err = fmt.Errorf(err, args...)
+			reguessOrErr()
+			return
+		}
+	case guessHas:
+	case guessEmbeddedHas:
+		if field.OwnerSchema != nil {
+			primarySchema, foreignSchema = field.OwnerSchema, relation.FieldSchema
+		} else {
+			reguessOrErr()
+			return
 		}
 	}
 
@@ -339,14 +377,14 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 			if f := foreignSchema.LookUpField(foreignKey); f != nil {
 				foreignFields = append(foreignFields, f)
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with foreign keys %v", relation.FieldSchema, schema, field.Name, relation.foreignKeys)
+				reguessOrErr()
 				return
 			}
 		}
 	} else {
 		for _, primaryField := range primarySchema.PrimaryFields {
-			lookUpName := schema.Name + primaryField.Name
-			if !guessHas {
+			lookUpName := primarySchema.Name + primaryField.Name
+			if gl == guessBelongs {
 				lookUpName = field.Name + primaryField.Name
 			}
 
@@ -358,7 +396,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 	}
 
 	if len(foreignFields) == 0 {
-		reguessOrErr("failed to guess %v's relations with %v's field %v 1 g %v", relation.FieldSchema, schema, field.Name, guessHas)
+		reguessOrErr()
 		return
 	} else if len(relation.primaryKeys) > 0 {
 		for idx, primaryKey := range relation.primaryKeys {
@@ -366,11 +404,11 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 				if len(primaryFields) < idx+1 {
 					primaryFields = append(primaryFields, f)
 				} else if f != primaryFields[idx] {
-					reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+					reguessOrErr()
 					return
 				}
 			} else {
-				reguessOrErr("unsupported relations %v for %v on field %v with primary keys %v", relation.FieldSchema, schema, field.Name, relation.primaryKeys)
+				reguessOrErr()
 				return
 			}
 		}
@@ -380,7 +418,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 		} else if len(primarySchema.PrimaryFields) == len(foreignFields) {
 			primaryFields = append(primaryFields, primarySchema.PrimaryFields...)
 		} else {
-			reguessOrErr("unsupported relations %v for %v on field %v", relation.FieldSchema, schema, field.Name)
+			reguessOrErr()
 			return
 		}
 	}
@@ -394,11 +432,11 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, guessH
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],
 			ForeignKey:    foreignField,
-			OwnPrimaryKey: schema == primarySchema && guessHas,
+			OwnPrimaryKey: (schema == primarySchema && gl == guessHas) || (field.OwnerSchema == primarySchema && gl == guessEmbeddedHas),
 		})
 	}
 
-	if guessHas {
+	if gl == guessHas || gl == guessEmbeddedHas {
 		relation.Type = "has"
 	} else {
 		relation.Type = BelongsTo

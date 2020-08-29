@@ -64,6 +64,8 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// USE gorm;
 		// CREATE USER gorm FROM LOGIN gorm;
 		// sp_changedbowner 'gorm';
+		// npm install -g sql-cli
+		// mssql -u gorm -p LoremIpsum86 -d gorm -o 9930
 		log.Println("testing sqlserver...")
 		if dbDSN == "" {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"

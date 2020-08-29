@@ -76,7 +76,7 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 					}
 				} else {
 					name := reflect.ValueOf(got).Type().Elem().Name()
-					t.Errorf("%v expects length: %v, got %v", name, reflect.ValueOf(expect).Len(), reflect.ValueOf(got).Len())
+					t.Errorf("%v expects length: %v, got %v (expects: %+v, got %+v)", name, reflect.ValueOf(expect).Len(), reflect.ValueOf(got).Len(), expect, got)
 				}
 				return
 			}

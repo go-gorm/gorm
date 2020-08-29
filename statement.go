@@ -29,7 +29,7 @@ type Statement struct {
 	Distinct             bool
 	Selects              []string // selected columns
 	Omits                []string // omit columns
-	Joins                map[string][]interface{}
+	Joins                []join
 	Preloads             map[string][]interface{}
 	Settings             sync.Map
 	ConnPool             ConnPool
@@ -42,6 +42,11 @@ type Statement struct {
 	CurDestIndex         int
 	attrs                []interface{}
 	assigns              []interface{}
+}
+
+type join struct {
+	Name  string
+	Conds []interface{}
 }
 
 // StatementModifier statement modifier interface
@@ -95,7 +100,9 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		}
 
 		if v.Name == clause.PrimaryKey {
-			if stmt.Schema != nil && stmt.Schema.PrioritizedPrimaryField != nil {
+			if stmt.Schema == nil {
+				stmt.DB.AddError(ErrModelValueRequired)
+			} else if stmt.Schema.PrioritizedPrimaryField != nil {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
 			} else if len(stmt.Schema.DBNames) > 0 {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.DBNames[0])
@@ -154,6 +161,8 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			stmt.Vars = append(stmt.Vars, v.Value)
 		case clause.Column, clause.Table:
 			stmt.QuoteTo(writer, v)
+		case Valuer:
+			stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
 		case clause.Expr:
 			var varStr strings.Builder
 			var sql = v.SQL
@@ -307,10 +316,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 					for _, field := range s.Fields {
 						if field.Readable {
 							if v, isZero := field.ValueOf(reflectValue); !isZero {
-								if field.DBName == "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-								} else {
+								if field.DBName != "" {
 									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+								} else if field.DataType != "" {
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 								}
 							}
 						}
@@ -320,10 +329,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 						for _, field := range s.Fields {
 							if field.Readable {
 								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
-									if field.DBName == "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
-									} else {
+									if field.DBName != "" {
 										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+									} else if field.DataType != "" {
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
 									}
 								}
 							}
@@ -372,7 +381,6 @@ func (stmt *Statement) Build(clauses ...string) {
 			}
 		}
 	}
-	// TODO handle named vars
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
@@ -390,6 +398,7 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 func (stmt *Statement) clone() *Statement {
 	newStmt := &Statement{
+		TableExpr:            stmt.TableExpr,
 		Table:                stmt.Table,
 		Model:                stmt.Model,
 		Dest:                 stmt.Dest,
@@ -398,7 +407,6 @@ func (stmt *Statement) clone() *Statement {
 		Distinct:             stmt.Distinct,
 		Selects:              stmt.Selects,
 		Omits:                stmt.Omits,
-		Joins:                map[string][]interface{}{},
 		Preloads:             map[string][]interface{}{},
 		ConnPool:             stmt.ConnPool,
 		Schema:               stmt.Schema,
@@ -414,8 +422,9 @@ func (stmt *Statement) clone() *Statement {
 		newStmt.Preloads[k] = p
 	}
 
-	for k, j := range stmt.Joins {
-		newStmt.Joins[k] = j
+	if len(stmt.Joins) > 0 {
+		newStmt.Joins = make([]join, len(stmt.Joins))
+		copy(newStmt.Joins, stmt.Joins)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {

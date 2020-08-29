@@ -72,6 +72,10 @@ type Tabler interface {
 
 // get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+	if dest == nil {
+		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+	}
+
 	modelType := reflect.ValueOf(dest).Type()
 	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
@@ -184,11 +188,11 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if field := schema.PrioritizedPrimaryField; field != nil {
 		switch field.GORMDataType {
 		case Int, Uint:
-			if !field.HasDefaultValue || field.DefaultValueInterface != nil {
-				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
-			}
-
 			if _, ok := field.TagSettings["AUTOINCREMENT"]; !ok {
+				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+					schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+				}
+
 				field.HasDefaultValue = true
 				field.AutoIncrement = true
 			}
@@ -208,11 +212,29 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	if _, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
-		// parse relations for unidentified fields
-		for _, field := range schema.Fields {
-			if field.DataType == "" && field.Creatable {
-				if schema.parseRelation(field); schema.err != nil {
-					return schema, schema.err
+		if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
+			for _, field := range schema.Fields {
+				if field.DataType == "" && field.Creatable {
+					if schema.parseRelation(field); schema.err != nil {
+						return schema, schema.err
+					}
+				}
+
+				fieldValue := reflect.New(field.IndirectFieldType)
+				if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
+					field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
+				}
+
+				if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
+					field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
+				}
+
+				if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
+					field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
+				}
+
+				if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
+					field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
 				}
 			}
 		}
