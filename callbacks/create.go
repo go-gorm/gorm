@@ -319,7 +319,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	}
 
 	if stmt.UpdatingColumn {
-		if stmt.Schema != nil {
+		if stmt.Schema != nil && len(values.Columns) > 1 {
 			columns := make([]string, 0, len(values.Columns)-1)
 			for _, column := range values.Columns {
 				if field := stmt.Schema.LookUpField(column.Name); field != nil {

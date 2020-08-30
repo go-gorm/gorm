@@ -86,7 +86,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		}
 
 		if v.Alias != "" {
-			writer.WriteString(" AS ")
+			writer.WriteByte(' ')
 			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
 		}
 	case clause.Column:

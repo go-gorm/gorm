@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"errors"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -585,4 +586,47 @@ func TestUpdateFromSubQuery(t *testing.T) {
 	if result.Name != "new company name" {
 		t.Errorf("name should be %v, but got %v", user.Company.Name, result.Name)
 	}
+}
+
+func TestSave(t *testing.T) {
+	user := *GetUser("save", Config{})
+	DB.Create(&user)
+
+	if err := DB.First(&User{}, "name = ?", "save").Error; err != nil {
+		t.Fatalf("failed to find created user")
+	}
+
+	user.Name = "save2"
+	DB.Save(&user)
+
+	var result User
+	if err := DB.First(&result, "name = ?", "save2").Error; err != nil || result.ID != user.ID {
+		t.Fatalf("failed to find updated user")
+	}
+
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	stmt := dryDB.Save(&user).Statement
+	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
+		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
+	}
+}
+
+func TestSaveWithPrimaryValue(t *testing.T) {
+	lang := Language{Code: "save", Name: "save"}
+	if result := DB.Save(&lang); result.RowsAffected != 1 {
+		t.Errorf("should create language, rows affected: %v", result.RowsAffected)
+	}
+
+	var result Language
+	DB.First(&result, "code = ?", "save")
+	AssertEqual(t, result, lang)
+
+	lang.Name = "save name2"
+	if result := DB.Save(&lang); result.RowsAffected != 1 {
+		t.Errorf("should update language")
+	}
+
+	var result2 Language
+	DB.First(&result2, "code = ?", "save")
+	AssertEqual(t, result2, lang)
 }
