@@ -218,4 +218,4 @@ jobs:
           key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('go.mod') }}
 
       - name: Tests
-        run: GORM_ENABLE_CACHE=true GORM_DIALECT=oracle GORM_DSN="gorm/gorm@localhost:9940/XEPDB1" ./tests/tests_all.sh
+        run: GORM_DIALECT=oracle GORM_DSN="gorm/gorm@localhost:9940/XEPDB1" ./tests/tests_all.sh
