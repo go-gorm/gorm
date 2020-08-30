@@ -189,3 +189,33 @@ jobs:
 
     - name: Tests
       run: GORM_DIALECT=sqlserver GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
+  oracle:
+    needs: sqlite
+    strategy:
+      matrix:
+        go: ['1.15', '1.14', '1.13']
+        platform: [ubuntu-latest] # can not run test in macOS and windows
+    runs-on: ${{ matrix.platform }}
+
+    services:
+      oracle:
+        image: stevefan1999/docker-oracle-xe:latest
+        ports:
+          - 9940:1521
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: go mod pakcage cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('go.mod') }}
+
+      - name: Tests
+        run: GORM_ENABLE_CACHE=true GORM_DIALECT=oracle GORM_DSN="gorm/gorm@localhost:9940/XEPDB1" ./tests/tests_all.sh
