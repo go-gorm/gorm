@@ -29,3 +29,7 @@ services:
       - MSSQL_DB=gorm
       - MSSQL_USER=gorm
       - MSSQL_PASSWORD=LoremIpsum86
+  oracle:
+    image: stevefan1999/docker-oracle-xe:latest
+    ports:
+      - 9940:1521
