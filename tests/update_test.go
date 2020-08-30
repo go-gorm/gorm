@@ -610,3 +610,23 @@ func TestSave(t *testing.T) {
 		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
 	}
 }
+
+func TestSaveWithPrimaryValue(t *testing.T) {
+	lang := Language{Code: "save", Name: "save"}
+	if result := DB.Save(&lang); result.RowsAffected != 1 {
+		t.Errorf("should create language, rows affected: %v", result.RowsAffected)
+	}
+
+	var result Language
+	DB.First(&result, "code = ?", "save")
+	AssertEqual(t, result, lang)
+
+	lang.Name = "save name2"
+	if result := DB.Save(&lang); result.RowsAffected != 1 {
+		t.Errorf("should update language")
+	}
+
+	var result2 Language
+	DB.First(&result2, "code = ?", "save")
+	AssertEqual(t, result2, lang)
+}

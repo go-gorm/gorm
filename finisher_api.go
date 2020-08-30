@@ -42,11 +42,19 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 		fallthrough
 	default:
-		if len(tx.Statement.Selects) == 0 {
+		selectedUpdate := len(tx.Statement.Selects) != 0
+		// when updating, use all fields including those zero-value fields
+		if !selectedUpdate {
 			tx.Statement.Selects = append(tx.Statement.Selects, "*")
 		}
 
 		tx.callbacks.Update().Execute(tx)
+
+		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
+			if err := tx.Session(&Session{}).First(value).Error; errors.Is(err, ErrRecordNotFound) {
+				return tx.Create(value)
+			}
+		}
 	}
 
 	return
