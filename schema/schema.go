@@ -161,13 +161,18 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		field.setupValuerAndSetter()
 	}
 
-	if f := schema.LookUpField("id"); f != nil {
-		if f.PrimaryKey {
-			schema.PrioritizedPrimaryField = f
+	prioritizedPrimaryField := schema.LookUpField("id")
+	if prioritizedPrimaryField == nil {
+		prioritizedPrimaryField = schema.LookUpField("ID")
+	}
+
+	if prioritizedPrimaryField != nil {
+		if prioritizedPrimaryField.PrimaryKey {
+			schema.PrioritizedPrimaryField = prioritizedPrimaryField
 		} else if len(schema.PrimaryFields) == 0 {
-			f.PrimaryKey = true
-			schema.PrioritizedPrimaryField = f
-			schema.PrimaryFields = append(schema.PrimaryFields, f)
+			prioritizedPrimaryField.PrimaryKey = true
+			schema.PrioritizedPrimaryField = prioritizedPrimaryField
+			schema.PrimaryFields = append(schema.PrimaryFields, prioritizedPrimaryField)
 		}
 	}
 
