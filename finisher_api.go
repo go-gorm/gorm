@@ -322,6 +322,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		defer tx.Statement.AddClause(clause.Select{})
 	}
 
+	tx.Statement.AddClause(clause.Limit{Ignore: true})
+	defer tx.Statement.AddClause(clause.Limit{Ignore: false})
+
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
 	if tx.RowsAffected != 1 {

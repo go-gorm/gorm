@@ -72,4 +72,10 @@ func TestCount(t *testing.T) {
 	if err := DB.Debug().Table("users").Joins("LEFT JOIN companies on companies.name = users.name").Where("users.name = ?", user1.Name).Count(&count4).Error; err != nil || count4 != 1 {
 		t.Errorf("count with join, got error: %v, count %v", err, count)
 	}
+
+	var count5 int64
+	DB.Where("name in ?", []string{user2.Name, user3.Name}).Limit(1).Offset(1).Find(&users).Count(&count5)
+	if len(users) != 1 || count5 != 2 {
+		t.Errorf("count for pagination should works")
+	}
 }

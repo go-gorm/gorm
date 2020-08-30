@@ -6,6 +6,7 @@ import "strconv"
 type Limit struct {
 	Limit  int
 	Offset int
+	Ignore bool
 }
 
 // Name where clause name
@@ -15,6 +16,9 @@ func (limit Limit) Name() string {
 
 // Build build where clause
 func (limit Limit) Build(builder Builder) {
+	if limit.Ignore {
+		return
+	}
 	if limit.Limit > 0 {
 		builder.WriteString("LIMIT ")
 		builder.WriteString(strconv.Itoa(limit.Limit))
