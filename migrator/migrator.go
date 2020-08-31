@@ -297,10 +297,12 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 func (m Migrator) AlterColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
+			fileType := clause.Expr{SQL: m.DataTypeOf(field)}
 			return m.DB.Exec(
 				"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.DB.Migrator().FullDataTypeOf(field),
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, fileType,
 			).Error
+
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)
 	})
