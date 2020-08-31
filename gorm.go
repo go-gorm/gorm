@@ -169,6 +169,7 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.PrepareStmt {
 		if v, ok := db.cacheStore.Load("preparedStmt"); ok {
+			tx.Statement = tx.Statement.clone()
 			preparedStmt := v.(*PreparedStmtDB)
 			tx.Statement.ConnPool = &PreparedStmtDB{
 				ConnPool: db.Config.ConnPool,
