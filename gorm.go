@@ -203,6 +203,14 @@ func (db *DB) WithContext(ctx context.Context) *DB {
 	return db.Session(&Session{WithConditions: true, Context: ctx})
 }
 
+// WithLogger change current instance db's Logger to l
+func (db *DB) WithLogger(l logger.Interface) *DB {
+	return db.Session(&Session{
+		WithConditions: true,
+		Logger:         l,
+	})
+}
+
 // Debug start debug mode
 func (db *DB) Debug() (tx *DB) {
 	return db.Session(&Session{
