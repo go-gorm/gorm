@@ -14,3 +14,5 @@ require (
 )
 
 replace gorm.io/gorm => ../
+
+replace github.com/jackc/pgx/v4 => github.com/jinzhu/pgx/v4 v4.8.2

@@ -116,7 +116,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, query)
 	if err == nil {
-		rows, err = tx.Tx.StmtContext(ctx, stmt).QueryContext(ctx, args...)
+		rows, err = tx.Tx.Stmt(stmt).QueryContext(ctx, args...)
 		if err != nil {
 			tx.PreparedStmtDB.Mux.Lock()
 			stmt.Close()

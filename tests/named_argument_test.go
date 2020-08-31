@@ -48,10 +48,22 @@ func TestNamedArg(t *testing.T) {
 		t.Errorf("failed to update with named arg")
 	}
 
+	namedUser.Name1 = "jinzhu-new"
+	namedUser.Name2 = "jinzhu-new2"
+	namedUser.Name3 = "jinzhu-new"
+
 	var result5 NamedUser
 	if err := DB.Raw("SELECT * FROM named_users WHERE (name1 = @name AND name3 = @name) AND name2 = @name2", map[string]interface{}{"name": "jinzhu-new", "name2": "jinzhu-new2"}).Find(&result5).Error; err != nil {
 		t.Errorf("failed to update with named arg")
 	}
 
-	AssertEqual(t, result4, namedUser)
+	AssertEqual(t, result5, namedUser)
+
+	var result6 NamedUser
+	if err := DB.Raw(`SELECT * FROM named_users WHERE (name1 = @name
+	AND name3 = @name) AND name2 = @name2`, map[string]interface{}{"name": "jinzhu-new", "name2": "jinzhu-new2"}).Find(&result6).Error; err != nil {
+		t.Errorf("failed to update with named arg")
+	}
+
+	AssertEqual(t, result6, namedUser)
 }
