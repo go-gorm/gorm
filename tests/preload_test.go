@@ -31,6 +31,20 @@ func TestPreloadWithAssociations(t *testing.T) {
 	var user2 User
 	DB.Preload(clause.Associations).Find(&user2, "id = ?", user.ID)
 	CheckUser(t, user2, user)
+
+	var user3 = *GetUser("preload_with_associations_new", Config{
+		Account:   true,
+		Pets:      2,
+		Toys:      3,
+		Company:   true,
+		Manager:   true,
+		Team:      4,
+		Languages: 3,
+		Friends:   1,
+	})
+
+	DB.Preload(clause.Associations).Find(&user3, "id = ?", user.ID)
+	CheckUser(t, user3, user)
 }
 
 func TestNestedPreload(t *testing.T) {
