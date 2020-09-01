@@ -388,7 +388,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		rows, err := m.DB.Raw("select * from ?", clause.Table{Name: stmt.Table}).Rows()
+		rows, err := m.DB.Session(&gorm.Session{}).Raw("select * from ?", clause.Table{Name: stmt.Table}).Rows()
 		if err == nil {
 			columnTypes, err = rows.ColumnTypes()
 		}
