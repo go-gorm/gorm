@@ -12,7 +12,7 @@ import (
 func TestPreparedStmt(t *testing.T) {
 	tx := DB.Session(&gorm.Session{PrepareStmt: true})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	txCtx := tx.WithContext(ctx)
 
