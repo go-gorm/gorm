@@ -2,11 +2,51 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"reflect"
 	"strings"
 
 	"gorm.io/gorm/schema"
 )
+
+func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
+	if db.Statement.Schema != nil {
+		for idx, name := range columns {
+			if field := db.Statement.Schema.LookUpField(name); field != nil {
+				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+				continue
+			}
+			values[idx] = new(interface{})
+		}
+	} else if len(columnTypes) > 0 {
+		for idx, columnType := range columnTypes {
+			if columnType.ScanType() != nil {
+				values[idx] = reflect.New(reflect.PtrTo(columnType.ScanType())).Interface()
+			} else {
+				values[idx] = new(interface{})
+			}
+		}
+	} else {
+		for idx := range columns {
+			values[idx] = new(interface{})
+		}
+	}
+}
+
+func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns []string) {
+	for idx, column := range columns {
+		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
+			mapValue[column] = reflectValue.Interface()
+			if valuer, ok := mapValue[column].(driver.Valuer); ok {
+				mapValue[column], _ = valuer.Value()
+			} else if b, ok := mapValue[column].(sql.RawBytes); ok {
+				mapValue[column] = string(b)
+			}
+		} else {
+			mapValue[column] = nil
+		}
+	}
+}
 
 func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
@@ -15,9 +55,8 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:
 		if initialized || rows.Next() {
-			for idx := range columns {
-				values[idx] = new(interface{})
-			}
+			columnTypes, _ := rows.ColumnTypes()
+			prepareValues(values, db, columnTypes, columns)
 
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
@@ -28,38 +67,19 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					mapValue = *v
 				}
 			}
-
-			for idx, column := range columns {
-				if v, ok := values[idx].(*interface{}); ok {
-					if v == nil {
-						mapValue[column] = nil
-					} else {
-						mapValue[column] = *v
-					}
-				}
-			}
+			scanIntoMap(mapValue, values, columns)
 		}
 	case *[]map[string]interface{}:
+		columnTypes, _ := rows.ColumnTypes()
 		for initialized || rows.Next() {
-			for idx := range columns {
-				values[idx] = new(interface{})
-			}
+			prepareValues(values, db, columnTypes, columns)
 
 			initialized = false
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
 
 			mapValue := map[string]interface{}{}
-			for idx, column := range columns {
-				if v, ok := values[idx].(*interface{}); ok {
-					if v == nil {
-						mapValue[column] = nil
-					} else {
-						mapValue[column] = *v
-					}
-				}
-			}
-
+			scanIntoMap(mapValue, values, columns)
 			*dest = append(*dest, mapValue)
 		}
 	case *int, *int64, *uint, *uint64, *float32, *float64:
