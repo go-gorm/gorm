@@ -267,3 +267,34 @@ func TestMany2ManyWithMultiPrimaryKeys(t *testing.T) {
 		},
 	)
 }
+
+func TestMultipleMany2Many(t *testing.T) {
+	type Thing struct {
+		ID int
+	}
+
+	type Person struct {
+		ID       int
+		Likes    []Thing `gorm:"many2many:likes"`
+		Dislikes []Thing `gorm:"many2many:dislikes"`
+	}
+
+	checkStructRelation(t, &Person{},
+		Relation{
+			Name: "Likes", Type: schema.Many2Many, Schema: "Person", FieldSchema: "Thing",
+			JoinTable: JoinTable{Name: "likes", Table: "likes"},
+			References: []Reference{
+				{"ID", "Person", "PersonID", "likes", "", true},
+				{"ID", "Thing", "ThingID", "likes", "", false},
+			},
+		},
+		Relation{
+			Name: "Dislikes", Type: schema.Many2Many, Schema: "Person", FieldSchema: "Thing",
+			JoinTable: JoinTable{Name: "dislikes", Table: "dislikes"},
+			References: []Reference{
+				{"ID", "Person", "PersonID", "dislikes", "", true},
+				{"ID", "Thing", "ThingID", "dislikes", "", false},
+			},
+		},
+	)
+}
