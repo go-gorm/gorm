@@ -3,6 +3,7 @@ package logger
 import (
 	"database/sql/driver"
 	"fmt"
+	"gorm.io/gorm/utils"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -24,13 +25,12 @@ var convertableTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeO
 
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
-	var vars = make([]interface{}, len(avars))
-	copy(vars, avars)
+	var vars = make([]string, len(avars))
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
 		case bool:
-			vars[idx] = fmt.Sprint(v)
+			vars[idx] = strconv.FormatBool(v)
 		case time.Time:
 			if v.IsZero() {
 				vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
@@ -44,7 +44,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				vars[idx] = escaper + "<binary>" + escaper
 			}
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-			vars[idx] = fmt.Sprintf("%d", v)
+			vars[idx] = utils.ToString(v)
 		case float64, float32:
 			vars[idx] = fmt.Sprintf("%.6f", v)
 		case string:
@@ -70,18 +70,18 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		}
 	}
 
-	for idx, v := range vars {
+	for idx, v := range avars {
 		convertParams(v, idx)
 	}
 
 	if numericPlaceholder == nil {
 		for _, v := range vars {
-			sql = strings.Replace(sql, "?", v.(string), 1)
+			sql = strings.Replace(sql, "?", v, 1)
 		}
 	} else {
 		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
 		for idx, v := range vars {
-			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v.(string), 1)
+			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v, 1)
 		}
 	}
 

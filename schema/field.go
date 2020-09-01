@@ -671,7 +671,7 @@ func (field *Field) setupValuerAndSetter() {
 			case []byte:
 				field.ReflectValueOf(value).SetString(string(data))
 			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-				field.ReflectValueOf(value).SetString(fmt.Sprint(data))
+				field.ReflectValueOf(value).SetString(utils.ToString(data))
 			case float64, float32:
 				field.ReflectValueOf(value).SetString(fmt.Sprintf("%."+strconv.Itoa(field.Precision)+"f", data))
 			default:
