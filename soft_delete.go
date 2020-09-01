@@ -25,14 +25,7 @@ func (n DeletedAt) Value() (driver.Value, error) {
 }
 
 func (DeletedAt) QueryClauses(f *schema.Field) []clause.Interface {
-	return []clause.Interface{
-		clause.Where{Exprs: []clause.Expression{
-			clause.Eq{
-				Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName},
-				Value:  nil,
-			},
-		}},
-	}
+	return []clause.Interface{SoftDeleteQueryClause{Field: f}}
 }
 
 type SoftDeleteQueryClause struct {
