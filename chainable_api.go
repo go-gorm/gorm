@@ -198,7 +198,7 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 
 // Order specify order when retrieve records from database
 //     db.Order("name DESC")
-//     db.Order(gorm.Expr("name = ? DESC", "first")) // sql expression
+//     db.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: true})
 func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 
