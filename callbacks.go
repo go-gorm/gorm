@@ -79,6 +79,8 @@ func (p *processor) Execute(db *DB) {
 
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest
+	} else if stmt.Dest == nil {
+		stmt.Dest = stmt.Model
 	}
 
 	if stmt.Model != nil {

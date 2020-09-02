@@ -11,7 +11,7 @@ func RowQuery(db *gorm.DB) {
 		}
 
 		if !db.DryRun {
-			if _, ok := db.Get("rows"); ok {
+			if isRows, ok := db.InstanceGet("rows"); ok && isRows.(bool) {
 				db.Statement.Dest, db.Error = db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 			} else {
 				db.Statement.Dest = db.Statement.ConnPool.QueryRowContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)

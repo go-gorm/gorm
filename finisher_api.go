@@ -331,13 +331,13 @@ func (db *DB) Count(count *int64) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	tx := db.getInstance()
+	tx := db.getInstance().InstanceSet("rows", false)
 	tx.callbacks.Row().Execute(tx)
 	return tx.Statement.Dest.(*sql.Row)
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.Set("rows", true)
+	tx := db.getInstance().InstanceSet("rows", true)
 	tx.callbacks.Row().Execute(tx)
 	return tx.Statement.Dest.(*sql.Rows), tx.Error
 }
@@ -345,8 +345,14 @@ func (db *DB) Rows() (*sql.Rows, error) {
 // Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.Dest = dest
-	tx.callbacks.Query().Execute(tx)
+	if rows, err := tx.Rows(); err != nil {
+		tx.AddError(err)
+	} else {
+		defer rows.Close()
+		if rows.Next() {
+			tx.ScanRows(rows, dest)
+		}
+	}
 	return
 }
 
@@ -379,7 +385,10 @@ func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	tx := db.getInstance()
 	tx.Error = tx.Statement.Parse(dest)
 	tx.Statement.Dest = dest
-	tx.Statement.ReflectValue = reflect.Indirect(reflect.ValueOf(dest))
+	tx.Statement.ReflectValue = reflect.ValueOf(dest)
+	for tx.Statement.ReflectValue.Kind() == reflect.Ptr {
+		tx.Statement.ReflectValue = tx.Statement.ReflectValue.Elem()
+	}
 	Scan(rows, tx, true)
 	return tx.Error
 }

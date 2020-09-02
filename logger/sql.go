@@ -3,13 +3,14 @@ package logger
 import (
 	"database/sql/driver"
 	"fmt"
-	"gorm.io/gorm/utils"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
+
+	"gorm.io/gorm/utils"
 )
 
 func isPrintable(s []byte) bool {
