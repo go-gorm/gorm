@@ -13,7 +13,6 @@ func TestDefaultValue(t *testing.T) {
 		Name    string `gorm:"not null;default:foo"`
 		Name2   string `gorm:"size:233;not null;default:'foo'"`
 		Name3   string `gorm:"size:233;not null;default:''"`
-		Name4   string `gorm:"size:233;default:null"`
 		Age     int    `gorm:"default:18"`
 		Enabled bool   `gorm:"default:true"`
 	}
