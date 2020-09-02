@@ -201,7 +201,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.String:
 		field.DataType = String
 		isFunc := strings.Contains(field.DefaultValue, "(") &&
-			strings.Contains(field.DefaultValue, ")")
+			strings.Contains(field.DefaultValue, ")") || strings.ToLower(field.DefaultValue) == "null"
 
 		if field.HasDefaultValue && !isFunc {
 			field.DefaultValue = strings.Trim(field.DefaultValue, "'")
