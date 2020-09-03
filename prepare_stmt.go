@@ -99,6 +99,20 @@ type PreparedStmtTX struct {
 	PreparedStmtDB *PreparedStmtDB
 }
 
+func (tx *PreparedStmtTX) Commit() error {
+	if tx.Tx != nil {
+		return tx.Tx.Commit()
+	}
+	return ErrInvalidTransaction
+}
+
+func (tx *PreparedStmtTX) Rollback() error {
+	if tx.Tx != nil {
+		return tx.Tx.Rollback()
+	}
+	return ErrInvalidTransaction
+}
+
 func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, query)
 	if err == nil {
