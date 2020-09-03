@@ -176,6 +176,8 @@ func (db *DB) Session(config *Session) *DB {
 				Mux:      preparedStmt.Mux,
 				Stmts:    preparedStmt.Stmts,
 			}
+			txConfig.ConnPool = tx.Statement.ConnPool
+			txConfig.PrepareStmt = true
 		}
 	}
 

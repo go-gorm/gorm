@@ -12,6 +12,10 @@ import (
 func TestPreparedStmt(t *testing.T) {
 	tx := DB.Session(&gorm.Session{PrepareStmt: true})
 
+	if _, ok := tx.ConnPool.(*gorm.PreparedStmtDB); !ok {
+		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	txCtx := tx.WithContext(ctx)
