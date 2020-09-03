@@ -287,6 +287,18 @@ func TestCreateEmptyStruct(t *testing.T) {
 	}
 }
 
+func TestCreateEmptySlice(t *testing.T) {
+	var data = []User{}
+	if err := DB.Create(&data).Error; err != gorm.ErrEmptySlice {
+		t.Errorf("no data should be created, got %v", err)
+	}
+
+	var sliceMap = []map[string]interface{}{}
+	if err := DB.Model(&User{}).Create(&sliceMap).Error; err != gorm.ErrEmptySlice {
+		t.Errorf("no data should be created, got %v", err)
+	}
+}
+
 func TestCreateWithExistingTimestamp(t *testing.T) {
 	user := User{Name: "CreateUserExistingTimestamp"}
 	curTime := now.MustParse("2016-01-01")

@@ -252,6 +252,11 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 			stmt.SQL.Grow(stmt.ReflectValue.Len() * 15)
 			values.Values = make([][]interface{}, stmt.ReflectValue.Len())
 			defaultValueFieldsHavingValue := map[*schema.Field][]interface{}{}
+			if stmt.ReflectValue.Len() == 0 {
+				stmt.AddError(gorm.ErrEmptySlice)
+				return
+			}
+
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {
 				rv := reflect.Indirect(stmt.ReflectValue.Index(i))
 				values.Values[i] = make([]interface{}, len(values.Columns))
