@@ -10,7 +10,7 @@ if [ -d tests ]
 then
   cd tests
   cp go.mod go.mod.bak
-  sed '/$[[:space:]]*gorm.io\/driver/d' go.mod.bak > go.mod
+  sed '/^[[:blank:]]*gorm.io\/driver/d' go.mod.bak > go.mod
   cd ..
 fi
 
