@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 func SaveBeforeAssociations(db *gorm.DB) {
@@ -145,7 +146,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 					}
 
 					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+						Columns:   onConflictColumns(rel.FieldSchema),
 						DoUpdates: clause.AssignmentColumns(assignmentColumns),
 					}).Create(elems.Interface()).Error)
 				}
@@ -168,7 +169,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 					}
 
 					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+						Columns:   onConflictColumns(rel.FieldSchema),
 						DoUpdates: clause.AssignmentColumns(assignmentColumns),
 					}).Create(f.Interface()).Error)
 				}
@@ -230,7 +231,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 				}
 
 				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-					Columns:   []clause.Column{{Name: rel.FieldSchema.PrioritizedPrimaryField.DBName}},
+					Columns:   onConflictColumns(rel.FieldSchema),
 					DoUpdates: clause.AssignmentColumns(assignmentColumns),
 				}).Create(elems.Interface()).Error)
 			}
@@ -309,4 +310,15 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 		}
 	}
+}
+
+func onConflictColumns(s *schema.Schema) (columns []clause.Column) {
+	if s.PrioritizedPrimaryField != nil {
+		return []clause.Column{{Name: s.PrioritizedPrimaryField.DBName}}
+	}
+
+	for _, dbName := range s.PrimaryFieldDBNames {
+		columns = append(columns, clause.Column{Name: dbName})
+	}
+	return
 }
