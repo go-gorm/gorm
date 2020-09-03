@@ -319,6 +319,9 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 			if f := joinSchema.LookUpField(ref.ForeignKey.DBName); f != nil {
 				f.DataType = ref.ForeignKey.DataType
 				f.GORMDataType = ref.ForeignKey.GORMDataType
+				if f.Size == 0 {
+					f.Size = ref.ForeignKey.Size
+				}
 				ref.ForeignKey = f
 			} else {
 				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
