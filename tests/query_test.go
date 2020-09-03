@@ -202,7 +202,6 @@ func TestFind(t *testing.T) {
 			}
 		}
 	})
-
 }
 
 func TestQueryWithAssociation(t *testing.T) {
@@ -798,5 +797,13 @@ func TestScanNullValue(t *testing.T) {
 	var results []User
 	if err := DB.Find(&results, "name like ?", "scan_null_value_for_slice%").Error; err != nil {
 		t.Fatalf("failed to query slice data with null age, got error %v", err)
+	}
+}
+
+func TestQueryWithTableAndConditions(t *testing.T) {
+	result := DB.Session(&gorm.Session{DryRun: true}).Table("user").Find(&User{}, User{Name: "jinzhu"})
+
+	if !regexp.MustCompile(`SELECT \* FROM .user. WHERE .user.\..name. = .+ AND .user.\..deleted_at. IS NULL`).MatchString(result.Statement.SQL.String()) {
+		t.Errorf("invalid query SQL, got %v", result.Statement.SQL.String())
 	}
 }
