@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -296,6 +297,18 @@ func TestCreateEmptySlice(t *testing.T) {
 	var sliceMap = []map[string]interface{}{}
 	if err := DB.Model(&User{}).Create(&sliceMap).Error; err != gorm.ErrEmptySlice {
 		t.Errorf("no data should be created, got %v", err)
+	}
+}
+
+func TestCreateInvalidSlice(t *testing.T) {
+	users := []*User{
+		GetUser("invalid_slice_1", Config{}),
+		GetUser("invalid_slice_2", Config{}),
+		nil,
+	}
+
+	if err := DB.Create(&users).Error; !errors.Is(err, gorm.ErrInvalidData) {
+		t.Errorf("should returns error invalid data when creating from slice that contains invalid data")
 	}
 }
 

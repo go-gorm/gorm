@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 
 	"gorm.io/gorm"
@@ -259,6 +260,11 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {
 				rv := reflect.Indirect(stmt.ReflectValue.Index(i))
+				if !rv.IsValid() {
+					stmt.AddError(fmt.Errorf("slice data #%v is invalid: %w", i, gorm.ErrInvalidData))
+					return
+				}
+
 				values.Values[i] = make([]interface{}, len(values.Columns))
 				for idx, column := range values.Columns {
 					field := stmt.Schema.FieldsByDBName[column.Name]
