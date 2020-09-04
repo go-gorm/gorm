@@ -51,11 +51,11 @@ func TestScan(t *testing.T) {
 	DB.Table("users").Select("name, age").Where("id in ?", []uint{user2.ID, user3.ID}).Scan(&results)
 
 	sort.Slice(results, func(i, j int) bool {
-		return strings.Compare(results[i].Name, results[j].Name) < -1
+		return strings.Compare(results[i].Name, results[j].Name) <= -1
 	})
 
 	if len(results) != 2 || results[0].Name != user2.Name || results[1].Name != user3.Name {
-		t.Errorf("Scan into struct map")
+		t.Errorf("Scan into struct map, got %#v", results)
 	}
 }
 
@@ -83,6 +83,10 @@ func TestScanRows(t *testing.T) {
 		}
 		results = append(results, result)
 	}
+
+	sort.Slice(results, func(i, j int) bool {
+		return strings.Compare(results[i].Name, results[j].Name) <= -1
+	})
 
 	if !reflect.DeepEqual(results, []Result{{Name: "ScanRowsUser2", Age: 10}, {Name: "ScanRowsUser3", Age: 20}}) {
 		t.Errorf("Should find expected results")

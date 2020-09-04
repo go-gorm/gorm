@@ -110,10 +110,20 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	// clean up old values before preloading
 	switch reflectValue.Kind() {
 	case reflect.Struct:
-		rel.Field.Set(reflectValue, reflect.New(rel.Field.FieldType).Interface())
+		switch rel.Type {
+		case schema.HasMany, schema.Many2Many:
+			rel.Field.Set(reflectValue, reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 0).Interface())
+		default:
+			rel.Field.Set(reflectValue, reflect.New(rel.Field.FieldType).Interface())
+		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < reflectValue.Len(); i++ {
-			rel.Field.Set(reflectValue.Index(i), reflect.New(rel.Field.FieldType).Interface())
+			switch rel.Type {
+			case schema.HasMany, schema.Many2Many:
+				rel.Field.Set(reflectValue.Index(i), reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 0).Interface())
+			default:
+				rel.Field.Set(reflectValue.Index(i), reflect.New(rel.Field.FieldType).Interface())
+			}
 		}
 	}
 
