@@ -194,6 +194,7 @@ func TestEmbeddedStruct(t *testing.T) {
 		ID      int
 		OwnerID int
 		Name    string
+		Ignored string `gorm:"-"`
 	}
 
 	type Corp struct {
@@ -211,15 +212,18 @@ func TestEmbeddedStruct(t *testing.T) {
 		{Name: "ID", DBName: "id", BindNames: []string{"CorpBase", "Model", "ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, HasDefaultValue: true, AutoIncrement: true, TagSettings: map[string]string{"PRIMARYKEY": "PRIMARYKEY"}},
 		{Name: "ID", DBName: "company_id", BindNames: []string{"Base", "ID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
 		{Name: "Name", DBName: "company_name", BindNames: []string{"Base", "Name"}, DataType: schema.String, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
+		{Name: "Ignored", BindNames: []string{"Base", "Ignored"}, TagSettings: map[string]string{"-": "-", "EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
 		{Name: "OwnerID", DBName: "company_owner_id", BindNames: []string{"Base", "OwnerID"}, DataType: schema.Int, Size: 64, TagSettings: map[string]string{"EMBEDDED": "EMBEDDED", "EMBEDDEDPREFIX": "company_"}},
 		{Name: "OwnerID", DBName: "owner_id", BindNames: []string{"CorpBase", "OwnerID"}, DataType: schema.String},
 	}
 
 	for _, f := range fields {
 		checkSchemaField(t, cropSchema, &f, func(f *schema.Field) {
-			f.Creatable = true
-			f.Updatable = true
-			f.Readable = true
+			if f.Name != "Ignored" {
+				f.Creatable = true
+				f.Updatable = true
+				f.Readable = true
+			}
 		})
 	}
 }

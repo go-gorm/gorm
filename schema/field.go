@@ -340,7 +340,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.StructField.Index = append([]int{-fieldStruct.Index[0] - 1}, ef.StructField.Index...)
 				}
 
-				if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
+				if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok && ef.DBName != "" {
 					ef.DBName = prefix + ef.DBName
 				}
 
