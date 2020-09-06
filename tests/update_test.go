@@ -629,4 +629,26 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	var result2 Language
 	DB.First(&result2, "code = ?", "save")
 	AssertEqual(t, result2, lang)
+
+	DB.Table("langs").Migrator().DropTable(&Language{})
+	DB.Table("langs").AutoMigrate(&Language{})
+
+	if err := DB.Table("langs").Save(&lang).Error; err != nil {
+		t.Errorf("no error should happen when creating data, but got %v", err)
+	}
+
+	var result3 Language
+	if err := DB.Table("langs").First(&result3, "code = ?", lang.Code).Error; err != nil || result3.Name != lang.Name {
+		t.Errorf("failed to find created record, got error: %v, result: %+v", err, result3)
+	}
+
+	lang.Name += "name2"
+	if err := DB.Table("langs").Save(&lang).Error; err != nil {
+		t.Errorf("no error should happen when creating data, but got %v", err)
+	}
+
+	var result4 Language
+	if err := DB.Table("langs").First(&result4, "code = ?", lang.Code).Error; err != nil || result4.Name != lang.Name {
+		t.Errorf("failed to find created record, got error: %v, result: %+v", err, result4)
+	}
 }

@@ -51,7 +51,8 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		tx.callbacks.Update().Execute(tx)
 
 		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
-			if err := tx.Session(&Session{}).First(value).Error; errors.Is(err, ErrRecordNotFound) {
+			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
+			if err := tx.Session(&Session{WithConditions: true}).First(result).Error; errors.Is(err, ErrRecordNotFound) {
 				return tx.Create(value)
 			}
 		}
