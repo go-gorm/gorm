@@ -41,6 +41,10 @@ func (ns NamingStrategy) ColumnName(table, column string) string {
 
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
+	if strings.ToLower(str) == str {
+		return str
+	}
+
 	if ns.SingularTable {
 		return ns.TablePrefix + toDBName(str)
 	}

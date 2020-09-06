@@ -206,16 +206,16 @@ func TestMany2ManyOverrideJoinForeignKey(t *testing.T) {
 
 	type User struct {
 		gorm.Model
-		Profiles []Profile `gorm:"many2many:user_profiles;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
+		Profiles []Profile `gorm:"many2many:user_profile;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
 		Refer    uint
 	}
 
 	checkStructRelation(t, &User{}, Relation{
 		Name: "Profiles", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
-		JoinTable: JoinTable{Name: "user_profiles", Table: "user_profiles"},
+		JoinTable: JoinTable{Name: "user_profile", Table: "user_profile"},
 		References: []Reference{
-			{"ID", "User", "UserReferID", "user_profiles", "", true},
-			{"ID", "Profile", "ProfileRefer", "user_profiles", "", false},
+			{"ID", "User", "UserReferID", "user_profile", "", true},
+			{"ID", "Profile", "ProfileRefer", "user_profile", "", false},
 		},
 	})
 }
