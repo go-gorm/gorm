@@ -65,9 +65,9 @@ func New(writer Writer, config Config) Interface {
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
 		errStr       = "%s\n[error] "
-		traceStr     = "%s\n[%v] [rows:%d] %s"
-		traceWarnStr = "%s\n[%v] [rows:%d] %s"
-		traceErrStr  = "%s %s\n[%v] [rows:%d] %s"
+		traceStr     = "%s\n[%.3fms] [rows:%d] %s"
+		traceWarnStr = "%s\n[%.3fms] [rows:%d] %s"
+		traceErrStr  = "%s %s\n[%.3fms] [rows:%d] %s"
 	)
 
 	if config.Colorful {
