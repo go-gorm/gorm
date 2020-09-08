@@ -37,6 +37,9 @@ func (expr Expr) Build(builder Builder) {
 				} else {
 					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
 					case reflect.Slice, reflect.Array:
+						if rv.Len() == 0 {
+							builder.AddVar(builder, nil)
+						}
 						for i := 0; i < rv.Len(); i++ {
 							if i > 0 {
 								builder.WriteByte(',')

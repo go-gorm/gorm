@@ -202,6 +202,22 @@ func TestFind(t *testing.T) {
 			}
 		}
 	})
+
+	var models []User
+	if err := DB.Where("name in ?", []string{"find"}).Find(&models).Error; err != nil || len(models) != 3 {
+		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models))
+	} else {
+		for idx, user := range users {
+			t.Run("FindWithInClause#"+strconv.Itoa(idx+1), func(t *testing.T) {
+				CheckUser(t, models[idx], user)
+			})
+		}
+	}
+
+	var none []User
+	if err := DB.Where("name in ?", []string{}).Find(&none).Error; err != nil || len(none) != 0 {
+		t.Errorf("errors happened when query find with in clause and zero length parameter: %v, length: %v", err, len(none))
+	}
 }
 
 func TestQueryWithAssociation(t *testing.T) {
