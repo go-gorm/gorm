@@ -163,6 +163,8 @@ func TestEmbeddedRelations(t *testing.T) {
 	DB.Migrator().DropTable(&AdvancedUser{})
 
 	if err := DB.AutoMigrate(&AdvancedUser{}); err != nil {
-		t.Errorf("Failed to auto migrate advanced user, got error %v", err)
+		if DB.Dialector.Name() != "sqlite" {
+			t.Errorf("Failed to auto migrate advanced user, got error %v", err)
+		}
 	}
 }

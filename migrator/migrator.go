@@ -586,6 +586,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 	var (
 		modelNames, orderedModelNames []string
 		orderedModelNamesMap          = map[string]bool{}
+		parsedSchemas                 = map[*schema.Schema]bool{}
 		valuesMap                     = map[string]Dependency{}
 		insertIntoOrderedList         func(name string)
 		parseDependence               func(value interface{}, addToList bool)
@@ -595,23 +596,35 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
+		beDependedOn := map[*schema.Schema]bool{}
 		if err := dep.Parse(value); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
 		}
+		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
+			return
+		}
+		parsedSchemas[dep.Statement.Schema] = true
 
 		for _, rel := range dep.Schema.Relationships.Relations {
 			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
 				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
 
+			if rel.Type == schema.HasOne || rel.Type == schema.HasMany {
+				beDependedOn[rel.FieldSchema] = true
+			}
+
 			if rel.JoinTable != nil {
-				if rel.Schema != rel.FieldSchema {
-					dep.Depends = append(dep.Depends, rel.FieldSchema)
-				}
 				// append join value
-				defer func(joinValue interface{}) {
+				defer func(rel *schema.Relationship, joinValue interface{}) {
+					if !beDependedOn[rel.FieldSchema] {
+						dep.Depends = append(dep.Depends, rel.FieldSchema)
+					} else {
+						fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+						parseDependence(fieldValue, autoAdd)
+					}
 					parseDependence(joinValue, autoAdd)
-				}(reflect.New(rel.JoinTable.ModelType).Interface())
+				}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
 			}
 		}
 
