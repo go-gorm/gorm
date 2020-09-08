@@ -38,6 +38,26 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			} else {
 				vars[idx] = escaper + v.Format("2006-01-02 15:04:05.999") + escaper
 			}
+		case *time.Time:
+			if v != nil {
+				if v.IsZero() {
+					vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
+				} else {
+					vars[idx] = escaper + v.Format("2006-01-02 15:04:05.999") + escaper
+				}
+			} else {
+				vars[idx] = "NULL"
+			}
+		case fmt.Stringer:
+			vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
+		case driver.Valuer:
+			reflectValue := reflect.ValueOf(v)
+			if v != nil && reflectValue.IsValid() && (reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) {
+				r, _ := v.Value()
+				vars[idx] = fmt.Sprintf("%v", r)
+			} else {
+				vars[idx] = "NULL"
+			}
 		case []byte:
 			if isPrintable(v) {
 				vars[idx] = escaper + strings.Replace(string(v), escaper, "\\"+escaper, -1) + escaper
