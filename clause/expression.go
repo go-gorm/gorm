@@ -39,12 +39,13 @@ func (expr Expr) Build(builder Builder) {
 					case reflect.Slice, reflect.Array:
 						if rv.Len() == 0 {
 							builder.AddVar(builder, nil)
-						}
-						for i := 0; i < rv.Len(); i++ {
-							if i > 0 {
-								builder.WriteByte(',')
+						} else {
+							for i := 0; i < rv.Len(); i++ {
+								if i > 0 {
+									builder.WriteByte(',')
+								}
+								builder.AddVar(builder, rv.Index(i).Interface())
 							}
-							builder.AddVar(builder, rv.Index(i).Interface())
 						}
 					default:
 						builder.AddVar(builder, expr.Vars[idx])
