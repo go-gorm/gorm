@@ -388,10 +388,10 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		rows, err := m.DB.Session(&gorm.Session{}).Raw("select * from ? limit 1", clause.Table{Name: stmt.Table}).Rows()
+		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err == nil {
+			defer rows.Close()
 			columnTypes, err = rows.ColumnTypes()
-			_ = rows.Close()
 		}
 		return err
 	})
