@@ -220,6 +220,29 @@ func TestMany2ManyOverrideJoinForeignKey(t *testing.T) {
 	})
 }
 
+func TestBuildReadonlyMany2ManyRelation(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profiles []Profile `gorm:"->;many2many:user_profile;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
+		Refer    uint
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profiles", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
+		JoinTable: JoinTable{Name: "user_profile", Table: "user_profile"},
+		References: []Reference{
+			{"ID", "User", "UserReferID", "user_profile", "", true},
+			{"ID", "Profile", "ProfileRefer", "user_profile", "", false},
+		},
+	})
+}
+
 func TestMany2ManyWithMultiPrimaryKeys(t *testing.T) {
 	type Tag struct {
 		ID     uint   `gorm:"primary_key"`

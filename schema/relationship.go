@@ -300,7 +300,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 
 	// build references
 	for _, f := range relation.JoinTable.Fields {
-		if f.Creatable {
+		if f.Creatable || f.Readable || f.Updatable {
 			// use same data type for foreign keys
 			f.DataType = fieldsMap[f.Name].DataType
 			f.GORMDataType = fieldsMap[f.Name].GORMDataType
