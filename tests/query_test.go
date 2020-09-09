@@ -204,7 +204,7 @@ func TestFind(t *testing.T) {
 	})
 
 	var models []User
-	if err := DB.Where("name in ?", []string{"find"}).Find(&models).Error; err != nil || len(models) != 3 {
+	if err := DB.Where("name in (?)", []string{"find"}).Find(&models).Error; err != nil || len(models) != 3 {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models))
 	} else {
 		for idx, user := range users {
@@ -215,7 +215,7 @@ func TestFind(t *testing.T) {
 	}
 
 	var none []User
-	if err := DB.Where("name in ?", []string{}).Find(&none).Error; err != nil || len(none) != 0 {
+	if err := DB.Where("name in (?)", []string{}).Find(&none).Error; err != nil || len(none) != 0 {
 		t.Errorf("errors happened when query find with in clause and zero length parameter: %v, length: %v", err, len(none))
 	}
 }
