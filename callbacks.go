@@ -8,7 +8,6 @@ import (
 	"sort"
 	"time"
 
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -156,7 +155,7 @@ func (p *processor) compile() (err error) {
 	p.callbacks = callbacks
 
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
-		logger.Default.Error(context.Background(), "Got error when compile callbacks, got %v", err)
+		p.db.Logger.Error(context.Background(), "Got error when compile callbacks, got %v", err)
 	}
 	return
 }
@@ -179,7 +178,7 @@ func (c *callback) Register(name string, fn func(*DB)) error {
 }
 
 func (c *callback) Remove(name string) error {
-	logger.Default.Warn(context.Background(), "removing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.processor.db.Logger.Warn(context.Background(), "removing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.remove = true
 	c.processor.callbacks = append(c.processor.callbacks, c)
@@ -187,7 +186,7 @@ func (c *callback) Remove(name string) error {
 }
 
 func (c *callback) Replace(name string, fn func(*DB)) error {
-	logger.Default.Info(context.Background(), "replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.processor.db.Logger.Info(context.Background(), "replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.handler = fn
 	c.replace = true
@@ -217,7 +216,7 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 	for _, c := range cs {
 		// show warning message the callback name already exists
 		if idx := getRIndex(names, c.name); idx > -1 && !c.replace && !c.remove && !cs[idx].remove {
-			logger.Default.Warn(context.Background(), "duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
+			c.processor.db.Logger.Warn(context.Background(), "duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
 		}
 		names = append(names, c.name)
 	}
