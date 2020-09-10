@@ -49,6 +49,7 @@ type Config struct {
 // Interface logger interface
 type Interface interface {
 	LogMode(LogLevel) Interface
+	SetLogMode(LogLevel) Interface
 	Info(context.Context, string, ...interface{})
 	Warn(context.Context, string, ...interface{})
 	Error(context.Context, string, ...interface{})
@@ -107,6 +108,12 @@ func (l *logger) LogMode(level LogLevel) Interface {
 	newlogger := *l
 	newlogger.LogLevel = level
 	return &newlogger
+}
+
+// SetLogMode global log mode
+func (l *logger) SetLogMode(level LogLevel) Interface {
+	l.LogLevel = level
+	return l
 }
 
 // Info print info
