@@ -21,6 +21,59 @@ func BeforeDelete(db *gorm.DB) {
 	}
 }
 
+func DeleteBeforeAssociations(db *gorm.DB) {
+	if db.Error == nil && db.Statement.Schema != nil {
+		selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
+
+		if restricted {
+			for column, v := range selectColumns {
+				if v {
+					if rel, ok := db.Statement.Schema.Relationships.Relations[column]; ok {
+						switch rel.Type {
+						case schema.HasOne, schema.HasMany:
+							queryConds := rel.ToQueryConditions(db.Statement.ReflectValue)
+							modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+							tx := db.Session(&gorm.Session{}).Model(modelValue)
+							if db.AddError(tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error) != nil {
+								return
+							}
+						case schema.Many2Many:
+							var (
+								queryConds     []clause.Expression
+								foreignFields  []*schema.Field
+								relForeignKeys []string
+								modelValue     = reflect.New(rel.JoinTable.ModelType).Interface()
+								table          = rel.JoinTable.Table
+								tx             = db.Session(&gorm.Session{}).Model(modelValue).Table(table)
+							)
+
+							for _, ref := range rel.References {
+								if ref.OwnPrimaryKey {
+									foreignFields = append(foreignFields, ref.PrimaryKey)
+									relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
+								} else if ref.PrimaryValue != "" {
+									queryConds = append(queryConds, clause.Eq{
+										Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+										Value:  ref.PrimaryValue,
+									})
+								}
+							}
+
+							_, foreignValues := schema.GetIdentityFieldValuesMap(db.Statement.ReflectValue, foreignFields)
+							column, values := schema.ToQueryValues(table, relForeignKeys, foreignValues)
+							queryConds = append(queryConds, clause.IN{Column: column, Values: values})
+
+							if db.AddError(tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error) != nil {
+								return
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 func Delete(db *gorm.DB) {
 	if db.Error == nil {
 		if db.Statement.Schema != nil && !db.Statement.Unscoped {

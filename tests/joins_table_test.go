@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Person struct {
 	ID        int
 	Name      string
 	Addresses []Address `gorm:"many2many:person_addresses;"`
+	DeletedAt gorm.DeletedAt
 }
 
 type Address struct {
@@ -94,5 +96,21 @@ func TestOverrideJoinTable(t *testing.T) {
 
 	if DB.Unscoped().Model(&person).Association("Addresses").Count() != 0 {
 		t.Fatalf("address should be deleted when clear with unscoped")
+	}
+
+	address2_1 := Address{Name: "address 2-1"}
+	address2_2 := Address{Name: "address 2-2"}
+	person2 := Person{Name: "person_2", Addresses: []Address{address2_1, address2_2}}
+	DB.Create(&person2)
+	if err := DB.Select(clause.Associations).Delete(&person2).Error; err != nil {
+		t.Fatalf("failed to delete person, got error: %v", err)
+	}
+
+	if count := DB.Unscoped().Model(&person2).Association("Addresses").Count(); count != 2 {
+		t.Errorf("person's addresses expects 2, got %v", count)
+	}
+
+	if count := DB.Model(&person2).Association("Addresses").Count(); count != 0 {
+		t.Errorf("person's addresses expects 2, got %v", count)
 	}
 }

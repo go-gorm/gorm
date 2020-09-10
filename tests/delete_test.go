@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -125,5 +126,58 @@ func TestBlockGlobalDelete(t *testing.T) {
 
 	if err := DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&User{}).Error; err != nil {
 		t.Errorf("should returns no error while enable global update, but got err %v", err)
+	}
+}
+
+func TestDeleteWithAssociations(t *testing.T) {
+	user := GetUser("delete_with_associations", Config{Account: true, Pets: 2, Toys: 4, Company: true, Manager: true, Team: 1, Languages: 1, Friends: 1})
+
+	if err := DB.Create(user).Error; err != nil {
+		t.Fatalf("failed to create user, got error %v", err)
+	}
+
+	if err := DB.Select(clause.Associations).Delete(&user).Error; err != nil {
+		t.Fatalf("failed to delete user, got error %v", err)
+	}
+
+	for key, value := range map[string]int64{"Account": 1, "Pets": 2, "Toys": 4, "Company": 1, "Manager": 1, "Team": 1, "Languages": 0, "Friends": 0} {
+		if count := DB.Unscoped().Model(&user).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
+	}
+
+	for key, value := range map[string]int64{"Account": 0, "Pets": 0, "Toys": 0, "Company": 1, "Manager": 1, "Team": 0, "Languages": 0, "Friends": 0} {
+		if count := DB.Model(&user).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
+	}
+}
+
+func TestDeleteSliceWithAssociations(t *testing.T) {
+	users := []User{
+		*GetUser("delete_slice_with_associations1", Config{Account: true, Pets: 4, Toys: 1, Company: true, Manager: true, Team: 1, Languages: 1, Friends: 4}),
+		*GetUser("delete_slice_with_associations2", Config{Account: true, Pets: 3, Toys: 2, Company: true, Manager: true, Team: 2, Languages: 2, Friends: 3}),
+		*GetUser("delete_slice_with_associations3", Config{Account: true, Pets: 2, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 2}),
+		*GetUser("delete_slice_with_associations4", Config{Account: true, Pets: 1, Toys: 4, Company: true, Manager: true, Team: 4, Languages: 4, Friends: 1}),
+	}
+
+	if err := DB.Create(users).Error; err != nil {
+		t.Fatalf("failed to create user, got error %v", err)
+	}
+
+	if err := DB.Select(clause.Associations).Delete(&users).Error; err != nil {
+		t.Fatalf("failed to delete user, got error %v", err)
+	}
+
+	for key, value := range map[string]int64{"Account": 4, "Pets": 10, "Toys": 10, "Company": 4, "Manager": 4, "Team": 10, "Languages": 0, "Friends": 0} {
+		if count := DB.Unscoped().Model(&users).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
+	}
+
+	for key, value := range map[string]int64{"Account": 0, "Pets": 0, "Toys": 0, "Company": 4, "Manager": 4, "Team": 0, "Languages": 0, "Friends": 0} {
+		if count := DB.Model(&users).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
 	}
 }
