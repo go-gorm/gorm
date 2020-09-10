@@ -178,33 +178,34 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.Comment = val
 	}
 
-	defaultValueFunc := strings.Contains(field.DefaultValue, "(") &&
-		strings.Contains(field.DefaultValue, ")") || strings.ToLower(field.DefaultValue) == "null"
+	// default value is function or null or blank (primary keys)
+	skipParseDefaultValue := strings.Contains(field.DefaultValue, "(") &&
+		strings.Contains(field.DefaultValue, ")") || strings.ToLower(field.DefaultValue) == "null" || field.DefaultValue == ""
 	switch reflect.Indirect(fieldValue).Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
-		if field.HasDefaultValue && !defaultValueFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseBool(field.DefaultValue); err != nil {
 				schema.err = fmt.Errorf("failed to parse %v as default value for bool, got error: %v", field.DefaultValue, err)
 			}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.DataType = Int
-		if field.HasDefaultValue && !defaultValueFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseInt(field.DefaultValue, 0, 64); err != nil {
 				schema.err = fmt.Errorf("failed to parse %v as default value for int, got error: %v", field.DefaultValue, err)
 			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.DataType = Uint
-		if field.HasDefaultValue && !defaultValueFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseUint(field.DefaultValue, 0, 64); err != nil {
 				schema.err = fmt.Errorf("failed to parse %v as default value for uint, got error: %v", field.DefaultValue, err)
 			}
 		}
 	case reflect.Float32, reflect.Float64:
 		field.DataType = Float
-		if field.HasDefaultValue && !defaultValueFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseFloat(field.DefaultValue, 64); err != nil {
 				schema.err = fmt.Errorf("failed to parse %v as default value for float, got error: %v", field.DefaultValue, err)
 			}
@@ -212,7 +213,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.String:
 		field.DataType = String
 
-		if field.HasDefaultValue && !defaultValueFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			field.DefaultValue = strings.Trim(field.DefaultValue, "'")
 			field.DefaultValue = strings.Trim(field.DefaultValue, "\"")
 			field.DefaultValueInterface = field.DefaultValue
