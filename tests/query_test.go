@@ -625,6 +625,7 @@ func TestLimit(t *testing.T) {
 		{Name: "LimitUser3", Age: 20},
 		{Name: "LimitUser4", Age: 10},
 		{Name: "LimitUser5", Age: 20},
+		{Name: "LimitUser6", Age: 20},
 	}
 
 	DB.Create(&users)
@@ -633,7 +634,7 @@ func TestLimit(t *testing.T) {
 	DB.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
 
 	if len(users1) != 3 || len(users2) != 5 || len(users3) <= 5 {
-		t.Errorf("Limit should works")
+		t.Errorf("Limit should works, users1 %v users2 %v users3 %v", len(users1), len(users2), len(users3))
 	}
 }
 

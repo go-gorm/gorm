@@ -33,10 +33,8 @@ func (limit Limit) MergeClause(clause *Clause) {
 	clause.Name = ""
 
 	if v, ok := clause.Expression.(Limit); ok {
-		if limit.Limit == 0 && v.Limit > 0 {
+		if limit.Limit == 0 && v.Limit != 0 {
 			limit.Limit = v.Limit
-		} else if limit.Limit < 0 {
-			limit.Limit = 0
 		}
 
 		if limit.Offset == 0 && v.Offset > 0 {
