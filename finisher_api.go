@@ -384,7 +384,9 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 
 func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	tx := db.getInstance()
-	tx.Error = tx.Statement.Parse(dest)
+	if err := tx.Statement.Parse(dest); !errors.Is(err, schema.ErrUnsupportedDataType) {
+		tx.AddError(err)
+	}
 	tx.Statement.Dest = dest
 	tx.Statement.ReflectValue = reflect.ValueOf(dest)
 	for tx.Statement.ReflectValue.Kind() == reflect.Ptr {

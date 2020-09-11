@@ -91,4 +91,14 @@ func TestScanRows(t *testing.T) {
 	if !reflect.DeepEqual(results, []Result{{Name: "ScanRowsUser2", Age: 10}, {Name: "ScanRowsUser3", Age: 20}}) {
 		t.Errorf("Should find expected results")
 	}
+
+	var ages int
+	if err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("SUM(age)").Scan(&ages).Error; err != nil || ages != 30 {
+		t.Fatalf("failed to scan ages, got error %v, ages: %v", err, ages)
+	}
+
+	var name string
+	if err := DB.Table("users").Where("name = ?", user2.Name).Select("name").Scan(&name).Error; err != nil || name != user2.Name {
+		t.Fatalf("failed to scan ages, got error %v, ages: %v", err, name)
+	}
 }
