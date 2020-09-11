@@ -345,19 +345,21 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.DBName = prefix + ef.DBName
 				}
 
-				if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
-					ef.PrimaryKey = true
-				} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
-					ef.PrimaryKey = true
-				} else {
-					ef.PrimaryKey = false
+				if ef.PrimaryKey {
+					if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
+						ef.PrimaryKey = true
+					} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
+						ef.PrimaryKey = true
+					} else {
+						ef.PrimaryKey = false
 
-					if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
-						ef.AutoIncrement = false
-					}
+						if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
+							ef.AutoIncrement = false
+						}
 
-					if ef.DefaultValue == "" {
-						ef.HasDefaultValue = false
+						if ef.DefaultValue == "" {
+							ef.HasDefaultValue = false
+						}
 					}
 				}
 
