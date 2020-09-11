@@ -624,6 +624,14 @@ func (field *Field) setupValuerAndSetter() {
 				field.ReflectValueOf(value).SetUint(uint64(data))
 			case []byte:
 				return field.Set(value, string(data))
+			case time.Time:
+				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
+					field.ReflectValueOf(value).SetUint(uint64(data.UnixNano()))
+				} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
+					field.ReflectValueOf(value).SetUint(uint64(data.UnixNano() / 1e6))
+				} else {
+					field.ReflectValueOf(value).SetUint(uint64(data.Unix()))
+				}
 			case string:
 				if i, err := strconv.ParseUint(data, 0, 64); err == nil {
 					field.ReflectValueOf(value).SetUint(i)
