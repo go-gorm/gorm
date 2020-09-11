@@ -356,9 +356,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 						ef.AutoIncrement = false
 					}
 
-					if ef.DefaultValue == "" {
-						ef.HasDefaultValue = false
-					}
+					_, ef.HasDefaultValue = ef.TagSettings["DEFAULT"]
 				}
 
 				for k, v := range field.TagSettings {
