@@ -96,9 +96,21 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 	}
 
 	if numericPlaceholder == nil {
-		for _, v := range vars {
-			sql = strings.Replace(sql, "?", v, 1)
+		var idx int
+		var newSQL strings.Builder
+
+		for _, v := range []byte(sql) {
+			if v == '?' {
+				if len(vars) > idx {
+					newSQL.WriteString(vars[idx])
+					idx++
+					continue
+				}
+			}
+			newSQL.WriteByte(v)
 		}
+
+		sql = newSQL.String()
 	} else {
 		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
 		for idx, v := range vars {
