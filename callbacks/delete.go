@@ -34,8 +34,23 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							queryConds := rel.ToQueryConditions(db.Statement.ReflectValue)
 							modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
 							tx := db.Session(&gorm.Session{}).Model(modelValue)
-							if db.AddError(tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error) != nil {
-								return
+							withoutConditions := false
+
+							if len(db.Statement.Selects) > 0 {
+								tx = tx.Select(db.Statement.Selects)
+							}
+
+							for _, cond := range queryConds {
+								if c, ok := cond.(clause.IN); ok && len(c.Values) == 0 {
+									withoutConditions = true
+									break
+								}
+							}
+
+							if !withoutConditions {
+								if db.AddError(tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error) != nil {
+									return
+								}
 							}
 						case schema.Many2Many:
 							var (
