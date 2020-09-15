@@ -2,6 +2,7 @@ package callbacks
 
 import (
 	"reflect"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -37,7 +38,18 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							withoutConditions := false
 
 							if len(db.Statement.Selects) > 0 {
-								tx = tx.Select(db.Statement.Selects)
+								var selects []string
+								for _, s := range db.Statement.Selects {
+									if s == clause.Associations {
+										selects = append(selects, s)
+									} else if strings.HasPrefix(s, column+".") {
+										selects = append(selects, strings.TrimPrefix(s, column+"."))
+									}
+								}
+
+								if len(selects) > 0 {
+									tx = tx.Select(selects)
+								}
 							}
 
 							for _, cond := range queryConds {

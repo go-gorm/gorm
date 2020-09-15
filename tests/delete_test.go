@@ -136,7 +136,7 @@ func TestDeleteWithAssociations(t *testing.T) {
 		t.Fatalf("failed to create user, got error %v", err)
 	}
 
-	if err := DB.Select(clause.Associations).Delete(&user).Error; err != nil {
+	if err := DB.Select(clause.Associations, "Pets.Toy").Delete(&user).Error; err != nil {
 		t.Fatalf("failed to delete user, got error %v", err)
 	}
 
