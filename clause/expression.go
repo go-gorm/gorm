@@ -3,6 +3,7 @@ package clause
 import (
 	"database/sql"
 	"database/sql/driver"
+	"go/ast"
 	"reflect"
 )
 
@@ -88,6 +89,17 @@ func (expr NamedExpr) Build(builder Builder) {
 		case map[string]interface{}:
 			for k, v := range value {
 				namedMap[k] = v
+			}
+		default:
+			reflectValue := reflect.Indirect(reflect.ValueOf(value))
+			switch reflectValue.Kind() {
+			case reflect.Struct:
+				modelType := reflectValue.Type()
+				for i := 0; i < modelType.NumField(); i++ {
+					if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
+						namedMap[fieldStruct.Name] = reflectValue.Field(i).Interface()
+					}
+				}
 			}
 		}
 	}
