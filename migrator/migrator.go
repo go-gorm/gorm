@@ -133,6 +133,15 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 						}
 					}
 				}
+
+				for _, idx := range stmt.Schema.ParseIndexes() {
+					if !tx.Migrator().HasIndex(value, idx.Name) {
+						if err := tx.Migrator().CreateIndex(value, idx.Name); err != nil {
+							return err
+						}
+					}
+				}
+
 				return nil
 			}); err != nil {
 				return err
