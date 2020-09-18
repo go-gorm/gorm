@@ -31,7 +31,7 @@ func (expr Expr) Build(builder Builder) {
 	)
 
 	for _, v := range []byte(expr.SQL) {
-		if v == '?' {
+		if v == '?' && len(expr.Vars) > idx {
 			if afterParenthesis {
 				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
 					builder.AddVar(builder, expr.Vars[idx])
@@ -122,7 +122,7 @@ func (expr NamedExpr) Build(builder Builder) {
 			}
 
 			builder.WriteByte(v)
-		} else if v == '?' {
+		} else if v == '?' && len(expr.Vars) > idx {
 			builder.AddVar(builder, expr.Vars[idx])
 			idx++
 		} else if inName {

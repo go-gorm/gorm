@@ -76,6 +76,10 @@ func TestNamedExpr(t *testing.T) {
 		Vars:         []interface{}{NamedArgument{Name1: "jinzhu", Name2: "jinzhu2"}},
 		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
+	}, {
+		SQL:    "create table ? (? ?, ? ?)",
+		Vars:   []interface{}{},
+		Result: "create table ? (? ?, ? ?)",
 	}}
 
 	for idx, result := range results {
