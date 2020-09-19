@@ -52,9 +52,9 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
 		case driver.Valuer:
 			reflectValue := reflect.ValueOf(v)
-			if v != nil && reflectValue.IsValid() && (reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) {
+			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
 				r, _ := v.Value()
-				vars[idx] = fmt.Sprintf("%v", r)
+				convertParams(r, idx)
 			} else {
 				vars[idx] = "NULL"
 			}
