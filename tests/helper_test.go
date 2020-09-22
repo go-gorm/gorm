@@ -19,6 +19,7 @@ type Config struct {
 	Team      int
 	Languages int
 	Friends   int
+	Contacts  int
 }
 
 func GetUser(name string, config Config) *User {
@@ -65,6 +66,10 @@ func GetUser(name string, config Config) *User {
 		user.Friends = append(user.Friends, GetUser(name+"_friend_"+strconv.Itoa(i+1), Config{}))
 	}
 
+	for i := 0; i < config.Contacts; i++ {
+		user.Contacts = append(user.Contacts, &Contact{Email: name + "_" + strconv.Itoa(i+1) + "@email"})
+	}
+
 	return &user
 }
 
@@ -85,6 +90,19 @@ func CheckPet(t *testing.T, pet Pet, expect Pet) {
 	if expect.Toy.Name != "" && expect.Toy.OwnerType != "pets" {
 		t.Errorf("toys's OwnerType, expect: %v, got %v", "pets", expect.Toy.OwnerType)
 	}
+}
+
+func CheckContact(t *testing.T, contact Contact, expect Contact) {
+	if contact.ID != 0 {
+		var newContact Contact
+		if err := DB.Where("id = ?", contact.ID).First(&newContact).Error; err != nil {
+			t.Fatalf("errors happened when query: %v", err)
+		} else {
+			AssertObjEqual(t, newContact, contact, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Email")
+		}
+	}
+
+	AssertObjEqual(t, contact, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Email")
 }
 
 func CheckUser(t *testing.T, user User, expect User) {
@@ -225,6 +243,28 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 		for idx, friend := range user.Friends {
 			AssertObjEqual(t, friend, expect.Friends[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+		}
+	})
+
+	t.Run("Contacts", func(t *testing.T) {
+		if len(user.Contacts) != len(expect.Contacts) {
+			t.Fatalf("contacts should equal, expect: %v, got %v", len(expect.Contacts), len(user.Contacts))
+		}
+
+		sort.Slice(user.Contacts, func(i, j int) bool {
+			return user.Contacts[i].ID > user.Contacts[j].ID
+		})
+
+		sort.Slice(expect.Contacts, func(i, j int) bool {
+			return expect.Contacts[i].ID > expect.Contacts[j].ID
+		})
+
+		for idx, contact := range user.Contacts {
+			if contact == nil || expect.Contacts[idx] == nil {
+				t.Errorf("contact#%v should equal, expect: %v, got %v", idx, expect.Contacts[idx], contact)
+			} else {
+				CheckContact(t, *contact, *expect.Contacts[idx])
+			}
 		}
 	})
 }

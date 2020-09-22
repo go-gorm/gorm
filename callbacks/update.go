@@ -80,7 +80,7 @@ func Update(db *gorm.DB) {
 			if err == nil {
 				db.RowsAffected, _ = result.RowsAffected()
 			} else {
-				db.AddError(err)
+				db.AddErrorFromDB(err)
 			}
 		}
 	}

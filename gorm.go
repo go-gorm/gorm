@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -250,6 +251,49 @@ func (db *DB) AddError(err error) error {
 		db.Error = fmt.Errorf("%v; %w", db.Error, err)
 	}
 	return db.Error
+}
+
+// AddErrorFromDB add error from database
+func (db *DB) AddErrorFromDB(err error) error {
+	msg := err.Error()
+	// === Unique constraint errors
+	if strings.HasPrefix(msg, "UNIQUE constraint failed:") {
+		// SQLite3
+		cols := strings.Split(msg[25:], ",")
+		for i := range cols {
+			cols[i] = strings.TrimSpace(cols[i])
+		}
+		err = &ErrUniqueConstraint{
+			Columns: cols,
+		}
+	} else if strings.HasPrefix(msg, "Error 1062: Duplicate entry") {
+		// MySQL
+		constr := strings.Trim(strings.TrimSpace(msg[strings.Index(msg, "for key")+7:]), "'")
+		p := strings.Split(constr, ".")
+		if len(p) == 1 {
+			constr = p[0]
+		} else {
+			constr = p[1]
+		}
+
+		err = &ErrUniqueConstraint{
+			ConstraintName: constr,
+		}
+	} else if strings.HasPrefix(msg, "ERROR: duplicate key value violates unique constraint") {
+		// PostgreSQL
+		constr := ""
+		i := strings.Index(msg, `"`)
+		j := strings.LastIndex(msg, `"`)
+		if i != -1 && j != i {
+			constr = msg[i+1 : j]
+		}
+
+		err = &ErrUniqueConstraint{
+			ConstraintName: constr,
+		}
+	}
+
+	return db.AddError(err)
 }
 
 // DB returns `*sql.DB`

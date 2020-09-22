@@ -108,6 +108,10 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 			}},
 			References: []Reference{{"ID", "User", "UserID", "user_friends", "", true}, {"ID", "User", "FriendID", "user_friends", "", false}},
 		},
+		{
+			Name: "Contacts", Type: schema.HasMany, Schema: "User", FieldSchema: "Contact",
+			References: []Reference{{"ID", "User", "UserID", "Contact", "", true}},
+		},
 	}
 
 	for _, relation := range relations {

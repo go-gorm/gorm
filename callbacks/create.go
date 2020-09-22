@@ -92,12 +92,12 @@ func Create(config *Config) func(db *gorm.DB) {
 										}
 									}
 								} else {
-									db.AddError(err)
+									db.AddErrorFromDB(err)
 								}
 							}
 						}
 					} else {
-						db.AddError(err)
+						db.AddErrorFromDB(err)
 					}
 				}
 			}
@@ -187,14 +187,14 @@ func CreateWithReturning(db *gorm.DB) {
 						}
 					}
 				} else {
-					db.AddError(err)
+					db.AddErrorFromDB(err)
 				}
 			}
 		} else if !db.DryRun && db.Error == nil {
 			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
 				db.RowsAffected, _ = result.RowsAffected()
 			} else {
-				db.AddError(err)
+				db.AddErrorFromDB(err)
 			}
 		}
 	}

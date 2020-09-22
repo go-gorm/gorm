@@ -2,6 +2,8 @@ package gorm
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 )
 
 var (
@@ -32,3 +34,21 @@ var (
 	// ErrDryRunModeUnsupported dry run mode unsupported
 	ErrDryRunModeUnsupported = errors.New("dry run mode unsupported")
 )
+
+// ErrUniqueConstraint unique constraint error
+type ErrUniqueConstraint struct {
+	ConstraintName string
+	Columns        []string
+}
+
+func (e *ErrUniqueConstraint) Error() string {
+	if len(e.ConstraintName) > 0 {
+		return fmt.Sprintf("unique constraint '%s' error", e.ConstraintName)
+	}
+
+	if len(e.Columns) > 0 {
+		return fmt.Sprintf("unique constraint on columns '%s' error", strings.Join(e.Columns, ", "))
+	}
+
+	return "unique constraint error"
+}

@@ -23,6 +23,7 @@ type User struct {
 	Team      []*User           `gorm:"foreignkey:ManagerID"`
 	Languages []*tests.Language `gorm:"many2many:UserSpeak"`
 	Friends   []*User           `gorm:"many2many:user_friends"`
+	Contacts  []*tests.Contact
 	Active    *bool
 }
 

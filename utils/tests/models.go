@@ -26,6 +26,7 @@ type User struct {
 	Team      []User     `gorm:"foreignkey:ManagerID"`
 	Languages []Language `gorm:"many2many:UserSpeak;"`
 	Friends   []*User    `gorm:"many2many:user_friends;"`
+	Contacts  []*Contact
 	Active    bool
 }
 
@@ -57,4 +58,10 @@ type Company struct {
 type Language struct {
 	Code string `gorm:"primarykey"`
 	Name string
+}
+
+type Contact struct {
+	gorm.Model
+	UserID *uint
+	Email  string `gorm:"index:idx_email,unique"`
 }
