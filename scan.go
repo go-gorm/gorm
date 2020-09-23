@@ -12,7 +12,7 @@ import (
 func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
-			if field := db.Statement.Schema.LookUpField(name); field != nil {
+			if field := db.Statement.Schema.LookUpField(name); field != nil && !field.XJSON {
 				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
 				continue
 			}
@@ -145,7 +145,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				} else {
 					for idx, field := range fields {
 						if field != nil {
-							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							if field.XJSON {
+								values[idx] = &sql.RawBytes{}
+							} else {
+								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							}
 						}
 					}
 
@@ -183,11 +187,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			if initialized || rows.Next() {
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
+					if field := Schema.LookUpField(column); field != nil && field.Readable && !field.XJSON {
 						values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable && !field.XJSON {
 								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
 								continue
 							}

@@ -156,7 +156,7 @@ func TestDryRun(t *testing.T) {
 	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
 
 	stmt := dryRunDB.Create(&user).Statement
-	if stmt.SQL.String() == "" || len(stmt.Vars) != 9 {
+	if stmt.SQL.String() == "" || len(stmt.Vars) != 10 {
 		t.Errorf("Failed to generate sql, got %v", stmt.SQL.String())
 	}
 

@@ -3,6 +3,8 @@ package schema
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -67,6 +69,8 @@ type Field struct {
 	ReflectValueOf        func(reflect.Value) reflect.Value
 	ValueOf               func(reflect.Value) (value interface{}, zero bool)
 	Set                   func(reflect.Value, interface{}) error
+
+	XJSON bool
 }
 
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
@@ -176,6 +180,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if val, ok := field.TagSettings["COMMENT"]; ok {
 		field.Comment = val
+	}
+
+	if val, ok := field.TagSettings["XJSON"]; ok && utils.CheckTruth(val) {
+		field.XJSON = true
 	}
 
 	// default value is function or null or blank (primary keys)
@@ -381,13 +389,23 @@ func (field *Field) setupValuerAndSetter() {
 	switch {
 	case len(field.StructField.Index) == 1:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
-			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			v := reflect.Indirect(value).Field(field.StructField.Index[0])
+			if field.XJSON {
+				b, _ := json.Marshal(v.Interface())
+				// pgx will santize bytes with special prefix
+				return string(b), v.IsZero()
+			}
+			return v.Interface(), v.IsZero()
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
-			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			v := reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
+			if field.XJSON {
+				b, _ := json.Marshal(v.Interface())
+				// pgx will santize bytes with special prefix
+				return string(b), v.IsZero()
+			}
+			return v.Interface(), v.IsZero()
 		}
 	default:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
@@ -409,6 +427,11 @@ func (field *Field) setupValuerAndSetter() {
 						return nil, true
 					}
 				}
+			}
+			if field.XJSON {
+				// pgx will santize bytes with special prefix
+				b, _ := json.Marshal(v.Interface())
+				return string(b), v.IsZero()
 			}
 			return v.Interface(), v.IsZero()
 		}
@@ -500,6 +523,16 @@ func (field *Field) setupValuerAndSetter() {
 				if v, err = valuer.Value(); err == nil {
 					err = setter(value, v)
 				}
+			} else if field.XJSON {
+				if s, ok := v.(sql.RawBytes); ok {
+					p := reflect.New(field.FieldType).Interface()
+					err = json.Unmarshal([]byte(s), p)
+					if err != nil {
+						return err
+					}
+					return setter(value, p)
+				}
+				return errors.New("inlvaid type for tag: xjson")
 			} else {
 				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
 			}

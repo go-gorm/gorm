@@ -19,6 +19,7 @@ type Config struct {
 	Team      int
 	Languages int
 	Friends   int
+	Phones    int
 }
 
 func GetUser(name string, config Config) *User {
@@ -65,6 +66,11 @@ func GetUser(name string, config Config) *User {
 		user.Friends = append(user.Friends, GetUser(name+"_friend_"+strconv.Itoa(i+1), Config{}))
 	}
 
+	user.Phones = append(user.Phones, "phone_"+strconv.Itoa(10086))
+	for i := 0; i < config.Phones; i++ {
+		user.Phones = append(user.Phones, "phone_"+strconv.Itoa(i+1))
+	}
+
 	return &user
 }
 
@@ -93,11 +99,11 @@ func CheckUser(t *testing.T, user User, expect User) {
 		if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
 			t.Fatalf("errors happened when query: %v", err)
 		} else {
-			AssertObjEqual(t, newUser, user, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+			AssertObjEqual(t, newUser, user, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active", "Phones")
 		}
 	}
 
-	AssertObjEqual(t, user, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+	AssertObjEqual(t, user, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active", "Phones")
 
 	t.Run("Account", func(t *testing.T) {
 		AssertObjEqual(t, user.Account, expect.Account, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Number")

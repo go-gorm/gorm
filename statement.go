@@ -315,7 +315,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, field := range s.Fields {
-						if field.Readable {
+						// NOTE: xjson doesn't support where with object
+						if field.Readable && !field.XJSON {
 							if v, isZero := field.ValueOf(reflectValue); !isZero {
 								if field.DBName != "" {
 									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
@@ -328,7 +329,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
 						for _, field := range s.Fields {
-							if field.Readable {
+							if field.Readable && !field.XJSON {
 								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
 									if field.DBName != "" {
 										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
