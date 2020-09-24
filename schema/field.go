@@ -326,7 +326,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 			cacheStore := &sync.Map{}
 			cacheStore.Store(embeddedCacheKey, true)
-			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, schema.namer); err != nil {
+			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}); err != nil {
 				schema.err = err
 			}
 

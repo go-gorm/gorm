@@ -97,6 +97,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
 	}
+	if en, ok := namer.(embeddedNamer); ok {
+		tableName = en.Table
+	}
 
 	schema := &Schema{
 		Name:           modelType.Name(),

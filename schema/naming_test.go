@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -31,4 +32,29 @@ func TestToDBName(t *testing.T) {
 			t.Errorf("%v toName should equal %v, but got %v", key, value, toDBName(key))
 		}
 	}
+}
+
+type NewNamingStrategy struct {
+	NamingStrategy
+}
+
+func (ns NewNamingStrategy) ColumnName(table, column string) string {
+	baseColumnName := ns.NamingStrategy.ColumnName(table, column)
+
+	if table == "" {
+		return baseColumnName
+	}
+
+	s := strings.Split(table, "_")
+
+	var prefix string
+	switch len(s) {
+	case 1:
+		prefix = s[0][:3]
+	case 2:
+		prefix = s[0][:1] + s[1][:2]
+	default:
+		prefix = s[0][:1] + s[1][:1] + s[2][:1]
+	}
+	return prefix + "_" + baseColumnName
 }

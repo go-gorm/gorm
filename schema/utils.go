@@ -190,3 +190,8 @@ func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interfa
 		return columns, queryValues
 	}
 }
+
+type embeddedNamer struct {
+	Table string
+	Namer
+}
