@@ -20,6 +20,8 @@ type Config struct {
 	SkipDefaultTransaction bool
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
+	// FullSaveAssociations full save associations
+	FullSaveAssociations bool
 	// Logger
 	Logger logger.Interface
 	// NowFunc the function to be used when creating a new timestamp
@@ -64,6 +66,7 @@ type Session struct {
 	WithConditions         bool
 	SkipDefaultTransaction bool
 	AllowGlobalUpdate      bool
+	FullSaveAssociations   bool
 	Context                context.Context
 	Logger                 logger.Interface
 	NowFunc                func() time.Time
@@ -159,6 +162,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.AllowGlobalUpdate {
 		txConfig.AllowGlobalUpdate = true
+	}
+
+	if config.FullSaveAssociations {
+		txConfig.FullSaveAssociations = true
 	}
 
 	if config.Context != nil {

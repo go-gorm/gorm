@@ -20,6 +20,7 @@ const (
 	Magenta     = "\033[35m"
 	Cyan        = "\033[36m"
 	White       = "\033[37m"
+	BlueBold    = "\033[34;1m"
 	MagentaBold = "\033[35;1m"
 	RedBold     = "\033[31;1m"
 	YellowBold  = "\033[33;1m"
@@ -76,11 +77,11 @@ func New(writer Writer, config Config) Interface {
 
 	if config.Colorful {
 		infoStr = Green + "%s\n" + Reset + Green + "[info] " + Reset
-		warnStr = Blue + "%s\n" + Reset + Magenta + "[warn] " + Reset
+		warnStr = BlueBold + "%s\n" + Reset + Magenta + "[warn] " + Reset
 		errStr = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
-		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + Blue + "[rows:%d]" + Reset + " %s"
+		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%d]" + Reset + " %s"
 		traceWarnStr = Green + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%d]" + Magenta + " %s" + Reset
-		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + Blue + "[rows:%d]" + Reset + " %s"
+		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%d]" + Reset + " %s"
 	}
 
 	return &logger{

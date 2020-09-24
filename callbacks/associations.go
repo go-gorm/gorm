@@ -66,9 +66,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				}
 
 				if elems.Len() > 0 {
-					if db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						DoNothing: true,
-					}).Create(elems.Interface()).Error) == nil {
+					if db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error) == nil {
 						for i := 0; i < elems.Len(); i++ {
 							setupReferences(objs[i], elems.Index(i))
 						}
@@ -81,9 +79,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 						rv = rv.Addr()
 					}
 
-					if db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						DoNothing: true,
-					}).Create(rv.Interface()).Error) == nil {
+					if db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(rv.Interface()).Error) == nil {
 						setupReferences(db.Statement.ReflectValue, rv)
 					}
 				}
@@ -145,10 +141,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						Columns:   onConflictColumns(rel.FieldSchema),
-						DoUpdates: clause.AssignmentColumns(assignmentColumns),
-					}).Create(elems.Interface()).Error)
+					db.AddError(db.Session(&gorm.Session{}).Clauses(
+						onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
+					).Create(elems.Interface()).Error)
 				}
 			case reflect.Struct:
 				if _, zero := rel.Field.ValueOf(db.Statement.ReflectValue); !zero {
@@ -168,10 +163,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-						Columns:   onConflictColumns(rel.FieldSchema),
-						DoUpdates: clause.AssignmentColumns(assignmentColumns),
-					}).Create(f.Interface()).Error)
+					db.AddError(db.Session(&gorm.Session{}).Clauses(
+						onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
+					).Create(f.Interface()).Error)
 				}
 			}
 		}
@@ -230,10 +224,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 					assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 				}
 
-				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{
-					Columns:   onConflictColumns(rel.FieldSchema),
-					DoUpdates: clause.AssignmentColumns(assignmentColumns),
-				}).Create(elems.Interface()).Error)
+				db.AddError(db.Session(&gorm.Session{}).Clauses(
+					onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
+				).Create(elems.Interface()).Error)
 			}
 		}
 
@@ -298,7 +291,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(elems.Interface()).Error)
+				db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error)
 
 				for i := 0; i < elems.Len(); i++ {
 					appendToJoins(objs[i], elems.Index(i))
@@ -312,13 +305,31 @@ func SaveAfterAssociations(db *gorm.DB) {
 	}
 }
 
-func onConflictColumns(s *schema.Schema) (columns []clause.Column) {
-	if s.PrioritizedPrimaryField != nil {
-		return []clause.Column{{Name: s.PrioritizedPrimaryField.DBName}}
+func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingColumns []string) clause.OnConflict {
+	if stmt.DB.FullSaveAssociations {
+		defaultUpdatingColumns = make([]string, 0, len(s.DBNames))
+		for _, dbName := range s.DBNames {
+			if !s.LookUpField(dbName).PrimaryKey {
+				defaultUpdatingColumns = append(defaultUpdatingColumns, dbName)
+			}
+		}
 	}
 
-	for _, dbName := range s.PrimaryFieldDBNames {
-		columns = append(columns, clause.Column{Name: dbName})
+	if len(defaultUpdatingColumns) > 0 {
+		var columns []clause.Column
+		if s.PrioritizedPrimaryField != nil {
+			columns = []clause.Column{{Name: s.PrioritizedPrimaryField.DBName}}
+		} else {
+			for _, dbName := range s.PrimaryFieldDBNames {
+				columns = append(columns, clause.Column{Name: dbName})
+			}
+		}
+
+		return clause.OnConflict{
+			Columns:   columns,
+			DoUpdates: clause.AssignmentColumns(defaultUpdatingColumns),
+		}
 	}
-	return
+
+	return clause.OnConflict{DoNothing: true}
 }
