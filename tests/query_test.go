@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -430,6 +431,33 @@ func TestPluck(t *testing.T) {
 		if int(id) != int(users[idx].ID) {
 			t.Errorf("Unexpected result on pluck id, got %+v", ids)
 		}
+	}
+
+	var times []time.Time
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &times).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range times {
+		AssertEqual(t, tv, users[idx].CreatedAt)
+	}
+
+	var ptrtimes []*time.Time
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &ptrtimes).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range ptrtimes {
+		AssertEqual(t, tv, users[idx].CreatedAt)
+	}
+
+	var nulltimes []sql.NullTime
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &nulltimes).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range nulltimes {
+		AssertEqual(t, tv.Time, users[idx].CreatedAt)
 	}
 }
 

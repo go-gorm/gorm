@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"reflect"
 	"strings"
+	"time"
 
 	"gorm.io/gorm/schema"
 )
@@ -82,7 +83,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			scanIntoMap(mapValue, values, columns)
 			*dest = append(*dest, mapValue)
 		}
-	case *int, *int64, *uint, *uint64, *float32, *float64, *string:
+	case *int, *int64, *uint, *uint64, *float32, *float64, *string, *time.Time:
 		for initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
@@ -134,7 +135,15 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 
 			// pluck values into slice of data
-			isPluck := len(fields) == 1 && reflectValueType.Kind() != reflect.Struct
+			isPluck := false
+			if len(fields) == 1 {
+				if _, ok := reflect.New(reflectValueType).Interface().(sql.Scanner); ok {
+					isPluck = true
+				} else if reflectValueType.Kind() != reflect.Struct || reflectValueType.ConvertibleTo(schema.TimeReflectType) {
+					isPluck = true
+				}
+			}
+
 			for initialized || rows.Next() {
 				initialized = false
 				db.RowsAffected++

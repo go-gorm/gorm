@@ -18,6 +18,8 @@ type DataType string
 
 type TimeType int64
 
+var TimeReflectType = reflect.TypeOf(time.Time{})
+
 const (
 	UnixSecond      TimeType = 1
 	UnixMillisecond TimeType = 2
@@ -102,7 +104,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			var getRealFieldValue func(reflect.Value)
 			getRealFieldValue = func(v reflect.Value) {
 				rv := reflect.Indirect(v)
-				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(TimeReflectType) {
 					for i := 0; i < rv.Type().NumField(); i++ {
 						newFieldType := rv.Type().Field(i).Type
 						for newFieldType.Kind() == reflect.Ptr {
@@ -221,7 +223,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.Struct:
 		if _, ok := fieldValue.Interface().(*time.Time); ok {
 			field.DataType = Time
-		} else if fieldValue.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+		} else if fieldValue.Type().ConvertibleTo(TimeReflectType) {
 			field.DataType = Time
 		} else if fieldValue.Type().ConvertibleTo(reflect.TypeOf(&time.Time{})) {
 			field.DataType = Time
