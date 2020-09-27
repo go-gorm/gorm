@@ -52,6 +52,7 @@ func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns 
 func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
+	db.RowsAffected = 0
 
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:

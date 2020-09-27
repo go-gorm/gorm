@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -353,7 +354,9 @@ func (db *DB) Rows() (*sql.Rows, error) {
 
 // Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
+	currentLogger, newLogger := db.Logger, logger.Recorder.New()
 	tx = db.getInstance()
+	tx.Logger = newLogger
 	if rows, err := tx.Rows(); err != nil {
 		tx.AddError(err)
 	} else {
@@ -362,6 +365,11 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 			tx.ScanRows(rows, dest)
 		}
 	}
+
+	currentLogger.Trace(tx.Statement.Context, newLogger.BeginAt, func() (string, int64) {
+		return newLogger.SQL, tx.RowsAffected
+	}, tx.Error)
+	tx.Logger = currentLogger
 	return
 }
 

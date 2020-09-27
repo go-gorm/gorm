@@ -16,6 +16,8 @@ func RowQuery(db *gorm.DB) {
 			} else {
 				db.Statement.Dest = db.Statement.ConnPool.QueryRowContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 			}
+
+			db.RowsAffected = -1
 		}
 	}
 }

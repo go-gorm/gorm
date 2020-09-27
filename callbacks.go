@@ -74,7 +74,6 @@ func (cs *callbacks) Raw() *processor {
 func (p *processor) Execute(db *DB) {
 	curTime := time.Now()
 	stmt := db.Statement
-	db.RowsAffected = 0
 
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest

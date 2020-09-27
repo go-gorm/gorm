@@ -63,6 +63,7 @@ var (
 		LogLevel:      Warn,
 		Colorful:      true,
 	})
+	Recorder = traceRecorder{Interface: Default}
 )
 
 func New(writer Writer, config Config) Interface {
@@ -70,18 +71,18 @@ func New(writer Writer, config Config) Interface {
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
 		errStr       = "%s\n[error] "
-		traceStr     = "%s\n[%.3fms] [rows:%d] %s"
-		traceWarnStr = "%s\n[%.3fms] [rows:%d] %s"
-		traceErrStr  = "%s %s\n[%.3fms] [rows:%d] %s"
+		traceStr     = "%s\n[%.3fms] [rows:%v] %s"
+		traceWarnStr = "%s\n[%.3fms] [rows:%v] %s"
+		traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
 	)
 
 	if config.Colorful {
 		infoStr = Green + "%s\n" + Reset + Green + "[info] " + Reset
 		warnStr = BlueBold + "%s\n" + Reset + Magenta + "[warn] " + Reset
 		errStr = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
-		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%d]" + Reset + " %s"
-		traceWarnStr = Green + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%d]" + Magenta + " %s" + Reset
-		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%d]" + Reset + " %s"
+		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%v]" + Reset + " %s"
+		traceWarnStr = Green + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%v]" + Magenta + " %s" + Reset
+		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%v]" + Reset + " %s"
 	}
 
 	return &logger{
@@ -138,13 +139,43 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 		switch {
 		case err != nil && l.LogLevel >= Error:
 			sql, rows := fc()
-			l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			if rows == -1 {
+				l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			} else {
+				l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			}
 		case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= Warn:
 			sql, rows := fc()
-			l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			if rows == -1 {
+				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			} else {
+				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			}
 		case l.LogLevel >= Info:
 			sql, rows := fc()
-			l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			if rows == -1 {
+				l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
+			} else {
+				l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+			}
 		}
 	}
+}
+
+type traceRecorder struct {
+	Interface
+	BeginAt      time.Time
+	SQL          string
+	RowsAffected int64
+	Err          error
+}
+
+func (l traceRecorder) New() *traceRecorder {
+	return &traceRecorder{Interface: l.Interface}
+}
+
+func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	l.BeginAt = begin
+	l.SQL, l.RowsAffected = fc()
+	l.Err = err
 }
