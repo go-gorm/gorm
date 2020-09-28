@@ -50,6 +50,8 @@ type Config struct {
 	cacheStore *sync.Map
 }
 
+type ConfigOption func(*Config)
+
 // DB GORM DB definition
 type DB struct {
 	*Config
