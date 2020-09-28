@@ -147,6 +147,69 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	return
 }
 
+// OpenD initialize db session based on dialector
+func OpenD(dialector Dialector, options ...ConfigOption) (db *DB, err error) {
+	cfg := defaultConfig(dialector)
+	for _, option := range options {
+		option(cfg)
+	}
+	db = &DB{Config: cfg, clone: 1}
+	db.callbacks = initializeCallbacks(db)
+
+	if cfg.Dialector != nil {
+		err = cfg.Dialector.Initialize(db)
+	}
+	preparedStmt := &PreparedStmtDB{
+		ConnPool:    db.ConnPool,
+		Stmts:       map[string]*sql.Stmt{},
+		PreparedSQL: make([]string, 0, 100),
+	}
+	db.cacheStore.Store("preparedStmt", preparedStmt)
+
+	if cfg.PrepareStmt {
+		db.ConnPool = preparedStmt
+	}
+	db.Statement = &Statement{
+		DB:       db,
+		ConnPool: db.ConnPool,
+		Context:  context.Background(),
+		Clauses:  map[string]clause.Clause{},
+	}
+
+	if err == nil && !cfg.DisableAutomaticPing {
+		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
+			err = pinger.Ping()
+		}
+	}
+
+	if err != nil {
+		cfg.Logger.Error(context.Background(), "failed to initialize database, got error %v", err)
+	}
+
+	return
+}
+
+func defaultConfig(dialector Dialector) *Config {
+	return &Config{
+		SkipDefaultTransaction:                   false,
+		NamingStrategy:                           schema.NamingStrategy{},
+		FullSaveAssociations:                     false,
+		Logger:                                   logger.Default,
+		NowFunc:                                  func() time.Time { return time.Now().Local() },
+		DryRun:                                   false,
+		PrepareStmt:                              false,
+		DisableAutomaticPing:                     false,
+		DisableForeignKeyConstraintWhenMigrating: false,
+		AllowGlobalUpdate:                        false,
+		ClauseBuilders:                           map[string]clause.ClauseBuilder{},
+		ConnPool:                                 nil,
+		Dialector:                                dialector,
+		Plugins:                                  map[string]Plugin{},
+		callbacks:                                nil,
+		cacheStore:                               &sync.Map{},
+	}
+}
+
 // Session create new db session
 func (db *DB) Session(config *Session) *DB {
 	var (
