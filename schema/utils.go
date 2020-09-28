@@ -195,3 +195,24 @@ type embeddedNamer struct {
 	Table string
 	Namer
 }
+
+var (
+	charBlank      = ""
+	charPoint      = "."
+	charUnderscore = "_"
+)
+
+// genPatternName generate pattern string, use to replace fmt.Sprintf()
+func genPatternName(prefix, intervalBefore, intervalAfter string, vars ...string) string {
+	for i := range vars {
+		if intervalBefore != charBlank {
+			prefix += intervalBefore + vars[i]
+			continue
+		}
+		prefix += vars[i]
+	}
+	if intervalAfter == charBlank {
+		return prefix
+	}
+	return strings.Replace(prefix, intervalAfter, intervalBefore, -1)
+}

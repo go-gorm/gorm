@@ -53,25 +53,23 @@ func (ns NamingStrategy) JoinTableName(str string) string {
 
 // RelationshipFKName generate fk name for relation
 func (ns NamingStrategy) RelationshipFKName(rel Relationship) string {
-	return strings.Replace(fmt.Sprintf("fk_%s_%s", rel.Schema.Table, toDBName(rel.Name)), ".", "_", -1)
+	return genPatternName("fk", charUnderscore, charPoint, rel.Schema.Table, toDBName(rel.Name))
 }
 
 // CheckerName generate checker name
 func (ns NamingStrategy) CheckerName(table, column string) string {
-	return strings.Replace(fmt.Sprintf("chk_%s_%s", table, column), ".", "_", -1)
+	return genPatternName("chk", charUnderscore, charPoint, table, toDBName(column))
 }
 
 // IndexName generate index name
 func (ns NamingStrategy) IndexName(table, column string) string {
-	idxName := fmt.Sprintf("idx_%v_%v", table, toDBName(column))
-	idxName = strings.Replace(idxName, ".", "_", -1)
-
+	idxName := genPatternName("idx", charUnderscore, charPoint, table, toDBName(column))
 	if utf8.RuneCountInString(idxName) > 64 {
 		h := sha1.New()
 		h.Write([]byte(idxName))
 		bs := h.Sum(nil)
 
-		idxName = fmt.Sprintf("idx%v%v", table, column)[0:56] + string(bs)[:8]
+		idxName = genPatternName("idx", charBlank, charBlank, table, column)[0:56] + string(bs)[:8]
 	}
 	return idxName
 }
