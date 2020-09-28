@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -34,27 +33,34 @@ func TestToDBName(t *testing.T) {
 	}
 }
 
-type NewNamingStrategy struct {
-	NamingStrategy
-}
+func TestNamingStrategy(t *testing.T) {
+	var ns = NamingStrategy{
+		TablePrefix:   "public.",
+		SingularTable: true,
+	}
+	idxName := ns.IndexName("public.table", "name")
 
-func (ns NewNamingStrategy) ColumnName(table, column string) string {
-	baseColumnName := ns.NamingStrategy.ColumnName(table, column)
-
-	if table == "" {
-		return baseColumnName
+	if idxName != "idx_public_table_name" {
+		t.Errorf("invalid index name generated, got %v", idxName)
 	}
 
-	s := strings.Split(table, "_")
-
-	var prefix string
-	switch len(s) {
-	case 1:
-		prefix = s[0][:3]
-	case 2:
-		prefix = s[0][:1] + s[1][:2]
-	default:
-		prefix = s[0][:1] + s[1][:1] + s[2][:1]
+	chkName := ns.CheckerName("public.table", "name")
+	if chkName != "chk_public_table_name" {
+		t.Errorf("invalid checker name generated, got %v", chkName)
 	}
-	return prefix + "_" + baseColumnName
+
+	joinTable := ns.JoinTableName("user_languages")
+	if joinTable != "public.user_languages" {
+		t.Errorf("invalid join table generated, got %v", joinTable)
+	}
+
+	joinTable2 := ns.JoinTableName("UserLanguage")
+	if joinTable2 != "public.user_language" {
+		t.Errorf("invalid join table generated, got %v", joinTable2)
+	}
+
+	tableName := ns.TableName("Company")
+	if tableName != "public.company" {
+		t.Errorf("invalid table name generated, got %v", tableName)
+	}
 }
