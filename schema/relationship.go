@@ -165,6 +165,9 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 		// use same data type for foreign keys
 		relation.Polymorphic.PolymorphicID.DataType = primaryKeyField.DataType
 		relation.Polymorphic.PolymorphicID.GORMDataType = primaryKeyField.GORMDataType
+		if relation.Polymorphic.PolymorphicID.Size == 0 {
+			relation.Polymorphic.PolymorphicID.Size = primaryKeyField.Size
+		}
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryKeyField,
@@ -254,12 +257,18 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		})
 	}
 
+	joinTableFields = append(joinTableFields, reflect.StructField{
+		Name: schema.Name + field.Name,
+		Type: schema.ModelType,
+		Tag:  `gorm:"-"`,
+	})
+
 	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer); err != nil {
 		schema.err = err
 	}
 	relation.JoinTable.Name = many2many
 	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
-	relation.JoinTable.PrimaryFields = make([]*Field, len(relation.JoinTable.Fields))
+	relation.JoinTable.PrimaryFields = make([]*Field, 0, len(relation.JoinTable.Fields))
 
 	relName := relation.Schema.Name
 	relRefName := relation.FieldSchema.Name
@@ -290,36 +299,41 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 
 	// build references
-	for idx, f := range relation.JoinTable.Fields {
-		// use same data type for foreign keys
-		f.DataType = fieldsMap[f.Name].DataType
-		f.GORMDataType = fieldsMap[f.Name].GORMDataType
-		relation.JoinTable.PrimaryFields[idx] = f
-		ownPriamryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
-
-		if ownPriamryField {
-			joinRel := relation.JoinTable.Relationships.Relations[relName]
-			joinRel.Field = relation.Field
-			joinRel.References = append(joinRel.References, &Reference{
-				PrimaryKey: fieldsMap[f.Name],
-				ForeignKey: f,
-			})
-		} else {
-			joinRefRel := relation.JoinTable.Relationships.Relations[relRefName]
-			if joinRefRel.Field == nil {
-				joinRefRel.Field = relation.Field
+	for _, f := range relation.JoinTable.Fields {
+		if f.Creatable || f.Readable || f.Updatable {
+			// use same data type for foreign keys
+			f.DataType = fieldsMap[f.Name].DataType
+			f.GORMDataType = fieldsMap[f.Name].GORMDataType
+			if f.Size == 0 {
+				f.Size = fieldsMap[f.Name].Size
 			}
-			joinRefRel.References = append(joinRefRel.References, &Reference{
-				PrimaryKey: fieldsMap[f.Name],
-				ForeignKey: f,
+			relation.JoinTable.PrimaryFields = append(relation.JoinTable.PrimaryFields, f)
+			ownPriamryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
+
+			if ownPriamryField {
+				joinRel := relation.JoinTable.Relationships.Relations[relName]
+				joinRel.Field = relation.Field
+				joinRel.References = append(joinRel.References, &Reference{
+					PrimaryKey: fieldsMap[f.Name],
+					ForeignKey: f,
+				})
+			} else {
+				joinRefRel := relation.JoinTable.Relationships.Relations[relRefName]
+				if joinRefRel.Field == nil {
+					joinRefRel.Field = relation.Field
+				}
+				joinRefRel.References = append(joinRefRel.References, &Reference{
+					PrimaryKey: fieldsMap[f.Name],
+					ForeignKey: f,
+				})
+			}
+
+			relation.References = append(relation.References, &Reference{
+				PrimaryKey:    fieldsMap[f.Name],
+				ForeignKey:    f,
+				OwnPrimaryKey: ownPriamryField,
 			})
 		}
-
-		relation.References = append(relation.References, &Reference{
-			PrimaryKey:    fieldsMap[f.Name],
-			ForeignKey:    f,
-			OwnPrimaryKey: ownPriamryField,
-		})
 	}
 }
 
@@ -428,6 +442,9 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 		// use same data type for foreign keys
 		foreignField.DataType = primaryFields[idx].DataType
 		foreignField.GORMDataType = primaryFields[idx].GORMDataType
+		if foreignField.Size == 0 {
+			foreignField.Size = primaryFields[idx].Size
+		}
 
 		relation.References = append(relation.References, &Reference{
 			PrimaryKey:    primaryFields[idx],

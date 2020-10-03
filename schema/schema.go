@@ -97,6 +97,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
 	}
+	if en, ok := namer.(embeddedNamer); ok {
+		tableName = en.Table
+	}
 
 	schema := &Schema{
 		Name:           modelType.Name(),
@@ -133,7 +136,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 		if field.DBName != "" {
 			// nonexistence or shortest path or first appear prioritized if has permission
-			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || (field.Creatable && len(field.BindNames) < len(v.BindNames)) {
+			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || ((field.Creatable || field.Updatable || field.Readable) && len(field.BindNames) < len(v.BindNames)) {
 				if _, ok := schema.FieldsByDBName[field.DBName]; !ok {
 					schema.DBNames = append(schema.DBNames, field.DBName)
 				}
@@ -219,7 +222,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if _, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
 		if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 			for _, field := range schema.Fields {
-				if field.DataType == "" && field.Creatable {
+				if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 					if schema.parseRelation(field); schema.err != nil {
 						return schema, schema.err
 					}

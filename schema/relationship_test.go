@@ -206,16 +206,39 @@ func TestMany2ManyOverrideJoinForeignKey(t *testing.T) {
 
 	type User struct {
 		gorm.Model
-		Profiles []Profile `gorm:"many2many:user_profiles;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
+		Profiles []Profile `gorm:"many2many:user_profile;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
 		Refer    uint
 	}
 
 	checkStructRelation(t, &User{}, Relation{
 		Name: "Profiles", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
-		JoinTable: JoinTable{Name: "user_profiles", Table: "user_profiles"},
+		JoinTable: JoinTable{Name: "user_profile", Table: "user_profile"},
 		References: []Reference{
-			{"ID", "User", "UserReferID", "user_profiles", "", true},
-			{"ID", "Profile", "ProfileRefer", "user_profiles", "", false},
+			{"ID", "User", "UserReferID", "user_profile", "", true},
+			{"ID", "Profile", "ProfileRefer", "user_profile", "", false},
+		},
+	})
+}
+
+func TestBuildReadonlyMany2ManyRelation(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profiles []Profile `gorm:"->;many2many:user_profile;JoinForeignKey:UserReferID;JoinReferences:ProfileRefer"`
+		Refer    uint
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profiles", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
+		JoinTable: JoinTable{Name: "user_profile", Table: "user_profile"},
+		References: []Reference{
+			{"ID", "User", "UserReferID", "user_profile", "", true},
+			{"ID", "Profile", "ProfileRefer", "user_profile", "", false},
 		},
 	})
 }
@@ -263,6 +286,37 @@ func TestMany2ManyWithMultiPrimaryKeys(t *testing.T) {
 				{"ID", "Blog", "BlogID", "locale_blog_tags", "", true},
 				{"Locale", "Blog", "BlogLocale", "locale_blog_tags", "", true},
 				{"ID", "Tag", "TagID", "locale_blog_tags", "", false},
+			},
+		},
+	)
+}
+
+func TestMultipleMany2Many(t *testing.T) {
+	type Thing struct {
+		ID int
+	}
+
+	type Person struct {
+		ID       int
+		Likes    []Thing `gorm:"many2many:likes"`
+		Dislikes []Thing `gorm:"many2many:dislikes"`
+	}
+
+	checkStructRelation(t, &Person{},
+		Relation{
+			Name: "Likes", Type: schema.Many2Many, Schema: "Person", FieldSchema: "Thing",
+			JoinTable: JoinTable{Name: "likes", Table: "likes"},
+			References: []Reference{
+				{"ID", "Person", "PersonID", "likes", "", true},
+				{"ID", "Thing", "ThingID", "likes", "", false},
+			},
+		},
+		Relation{
+			Name: "Dislikes", Type: schema.Many2Many, Schema: "Person", FieldSchema: "Thing",
+			JoinTable: JoinTable{Name: "dislikes", Table: "dislikes"},
+			References: []Reference{
+				{"ID", "Person", "PersonID", "dislikes", "", true},
+				{"ID", "Thing", "ThingID", "dislikes", "", false},
 			},
 		},
 	)

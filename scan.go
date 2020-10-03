@@ -2,22 +2,63 @@ package gorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"reflect"
 	"strings"
+	"time"
 
 	"gorm.io/gorm/schema"
 )
 
+func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
+	if db.Statement.Schema != nil {
+		for idx, name := range columns {
+			if field := db.Statement.Schema.LookUpField(name); field != nil {
+				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+				continue
+			}
+			values[idx] = new(interface{})
+		}
+	} else if len(columnTypes) > 0 {
+		for idx, columnType := range columnTypes {
+			if columnType.ScanType() != nil {
+				values[idx] = reflect.New(reflect.PtrTo(columnType.ScanType())).Interface()
+			} else {
+				values[idx] = new(interface{})
+			}
+		}
+	} else {
+		for idx := range columns {
+			values[idx] = new(interface{})
+		}
+	}
+}
+
+func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns []string) {
+	for idx, column := range columns {
+		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
+			mapValue[column] = reflectValue.Interface()
+			if valuer, ok := mapValue[column].(driver.Valuer); ok {
+				mapValue[column], _ = valuer.Value()
+			} else if b, ok := mapValue[column].(sql.RawBytes); ok {
+				mapValue[column] = string(b)
+			}
+		} else {
+			mapValue[column] = nil
+		}
+	}
+}
+
 func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
+	db.RowsAffected = 0
 
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:
 		if initialized || rows.Next() {
-			for idx := range columns {
-				values[idx] = new(interface{})
-			}
+			columnTypes, _ := rows.ColumnTypes()
+			prepareValues(values, db, columnTypes, columns)
 
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
@@ -28,41 +69,22 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					mapValue = *v
 				}
 			}
-
-			for idx, column := range columns {
-				if v, ok := values[idx].(*interface{}); ok {
-					if v == nil {
-						mapValue[column] = nil
-					} else {
-						mapValue[column] = *v
-					}
-				}
-			}
+			scanIntoMap(mapValue, values, columns)
 		}
 	case *[]map[string]interface{}:
+		columnTypes, _ := rows.ColumnTypes()
 		for initialized || rows.Next() {
-			for idx := range columns {
-				values[idx] = new(interface{})
-			}
+			prepareValues(values, db, columnTypes, columns)
 
 			initialized = false
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
 
 			mapValue := map[string]interface{}{}
-			for idx, column := range columns {
-				if v, ok := values[idx].(*interface{}); ok {
-					if v == nil {
-						mapValue[column] = nil
-					} else {
-						mapValue[column] = *v
-					}
-				}
-			}
-
+			scanIntoMap(mapValue, values, columns)
 			*dest = append(*dest, mapValue)
 		}
-	case *int, *int64, *uint, *uint64, *float32, *float64:
+	case *int, *int64, *uint, *uint64, *float32, *float64, *string, *time.Time:
 		for initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
@@ -114,7 +136,15 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 
 			// pluck values into slice of data
-			isPluck := len(fields) == 1 && reflectValueType.Kind() != reflect.Struct
+			isPluck := false
+			if len(fields) == 1 {
+				if _, ok := reflect.New(reflectValueType).Interface().(sql.Scanner); ok {
+					isPluck = true
+				} else if reflectValueType.Kind() != reflect.Struct || reflectValueType.ConvertibleTo(schema.TimeReflectType) {
+					isPluck = true
+				}
+			}
+
 			for initialized || rows.Next() {
 				initialized = false
 				db.RowsAffected++

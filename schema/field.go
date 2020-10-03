@@ -18,6 +18,8 @@ type DataType string
 
 type TimeType int64
 
+var TimeReflectType = reflect.TypeOf(time.Time{})
+
 const (
 	UnixSecond      TimeType = 1
 	UnixMillisecond TimeType = 2
@@ -70,6 +72,8 @@ type Field struct {
 }
 
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
+	var err error
+
 	field := &Field{
 		Name:              fieldStruct.Name,
 		BindNames:         []string{fieldStruct.Name},
@@ -100,7 +104,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			var getRealFieldValue func(reflect.Value)
 			getRealFieldValue = func(v reflect.Value) {
 				rv := reflect.Indirect(v)
-				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+				if rv.Kind() == reflect.Struct && !rv.Type().ConvertibleTo(TimeReflectType) {
 					for i := 0; i < rv.Type().NumField(); i++ {
 						newFieldType := rv.Type().Field(i).Type
 						for newFieldType.Kind() == reflect.Ptr {
@@ -151,7 +155,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if num, ok := field.TagSettings["SIZE"]; ok {
-		var err error
 		if field.Size, err = strconv.Atoi(num); err != nil {
 			field.Size = -1
 		}
@@ -177,33 +180,42 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.Comment = val
 	}
 
+	// default value is function or null or blank (primary keys)
+	skipParseDefaultValue := strings.Contains(field.DefaultValue, "(") &&
+		strings.Contains(field.DefaultValue, ")") || strings.ToLower(field.DefaultValue) == "null" || field.DefaultValue == ""
 	switch reflect.Indirect(fieldValue).Kind() {
 	case reflect.Bool:
 		field.DataType = Bool
-		if field.HasDefaultValue && field.DefaultValue != "" {
-			field.DefaultValueInterface, _ = strconv.ParseBool(field.DefaultValue)
+		if field.HasDefaultValue && !skipParseDefaultValue {
+			if field.DefaultValueInterface, err = strconv.ParseBool(field.DefaultValue); err != nil {
+				schema.err = fmt.Errorf("failed to parse %v as default value for bool, got error: %v", field.DefaultValue, err)
+			}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.DataType = Int
-		if field.HasDefaultValue && field.DefaultValue != "" {
-			field.DefaultValueInterface, _ = strconv.ParseInt(field.DefaultValue, 0, 64)
+		if field.HasDefaultValue && !skipParseDefaultValue {
+			if field.DefaultValueInterface, err = strconv.ParseInt(field.DefaultValue, 0, 64); err != nil {
+				schema.err = fmt.Errorf("failed to parse %v as default value for int, got error: %v", field.DefaultValue, err)
+			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.DataType = Uint
-		if field.HasDefaultValue && field.DefaultValue != "" {
-			field.DefaultValueInterface, _ = strconv.ParseUint(field.DefaultValue, 0, 64)
+		if field.HasDefaultValue && !skipParseDefaultValue {
+			if field.DefaultValueInterface, err = strconv.ParseUint(field.DefaultValue, 0, 64); err != nil {
+				schema.err = fmt.Errorf("failed to parse %v as default value for uint, got error: %v", field.DefaultValue, err)
+			}
 		}
 	case reflect.Float32, reflect.Float64:
 		field.DataType = Float
-		if field.HasDefaultValue && field.DefaultValue != "" {
-			field.DefaultValueInterface, _ = strconv.ParseFloat(field.DefaultValue, 64)
+		if field.HasDefaultValue && !skipParseDefaultValue {
+			if field.DefaultValueInterface, err = strconv.ParseFloat(field.DefaultValue, 64); err != nil {
+				schema.err = fmt.Errorf("failed to parse %v as default value for float, got error: %v", field.DefaultValue, err)
+			}
 		}
 	case reflect.String:
 		field.DataType = String
-		isFunc := strings.Contains(field.DefaultValue, "(") &&
-			strings.Contains(field.DefaultValue, ")")
 
-		if field.HasDefaultValue && !isFunc {
+		if field.HasDefaultValue && !skipParseDefaultValue {
 			field.DefaultValue = strings.Trim(field.DefaultValue, "'")
 			field.DefaultValue = strings.Trim(field.DefaultValue, "\"")
 			field.DefaultValueInterface = field.DefaultValue
@@ -211,7 +223,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.Struct:
 		if _, ok := fieldValue.Interface().(*time.Time); ok {
 			field.DataType = Time
-		} else if fieldValue.Type().ConvertibleTo(reflect.TypeOf(time.Time{})) {
+		} else if fieldValue.Type().ConvertibleTo(TimeReflectType) {
 			field.DataType = Time
 		} else if fieldValue.Type().ConvertibleTo(reflect.TypeOf(&time.Time{})) {
 			field.DataType = Time
@@ -316,7 +328,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 			cacheStore := &sync.Map{}
 			cacheStore.Store(embeddedCacheKey, true)
-			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, schema.namer); err != nil {
+			if field.EmbeddedSchema, err = Parse(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}); err != nil {
 				schema.err = err
 			}
 
@@ -331,23 +343,25 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.StructField.Index = append([]int{-fieldStruct.Index[0] - 1}, ef.StructField.Index...)
 				}
 
-				if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok {
+				if prefix, ok := field.TagSettings["EMBEDDEDPREFIX"]; ok && ef.DBName != "" {
 					ef.DBName = prefix + ef.DBName
 				}
 
-				if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
-					ef.PrimaryKey = true
-				} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
-					ef.PrimaryKey = true
-				} else {
-					ef.PrimaryKey = false
+				if ef.PrimaryKey {
+					if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
+						ef.PrimaryKey = true
+					} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
+						ef.PrimaryKey = true
+					} else {
+						ef.PrimaryKey = false
 
-					if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
-						ef.AutoIncrement = false
-					}
+						if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
+							ef.AutoIncrement = false
+						}
 
-					if ef.DefaultValue == "" {
-						ef.HasDefaultValue = false
+						if ef.DefaultValue == "" {
+							ef.HasDefaultValue = false
+						}
 					}
 				}
 
@@ -612,6 +626,14 @@ func (field *Field) setupValuerAndSetter() {
 				field.ReflectValueOf(value).SetUint(uint64(data))
 			case []byte:
 				return field.Set(value, string(data))
+			case time.Time:
+				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
+					field.ReflectValueOf(value).SetUint(uint64(data.UnixNano()))
+				} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
+					field.ReflectValueOf(value).SetUint(uint64(data.UnixNano() / 1e6))
+				} else {
+					field.ReflectValueOf(value).SetUint(uint64(data.Unix()))
+				}
 			case string:
 				if i, err := strconv.ParseUint(data, 0, 64); err == nil {
 					field.ReflectValueOf(value).SetUint(i)
@@ -671,7 +693,7 @@ func (field *Field) setupValuerAndSetter() {
 			case []byte:
 				field.ReflectValueOf(value).SetString(string(data))
 			case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-				field.ReflectValueOf(value).SetString(fmt.Sprint(data))
+				field.ReflectValueOf(value).SetString(utils.ToString(data))
 			case float64, float32:
 				field.ReflectValueOf(value).SetString(fmt.Sprintf("%."+strconv.Itoa(field.Precision)+"f", data))
 			default:

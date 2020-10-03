@@ -282,3 +282,24 @@ func TestNestedTransactionWithBlock(t *testing.T) {
 		t.Fatalf("Should find saved record")
 	}
 }
+
+func TestTransactionOnClosedConn(t *testing.T) {
+	DB, err := OpenTestConnection()
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+	rawDB, _ := DB.DB()
+	rawDB.Close()
+
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		return nil
+	}); err == nil {
+		t.Errorf("should returns error when commit with closed conn, got error %v", err)
+	}
+
+	if err := DB.Session(&gorm.Session{PrepareStmt: true}).Transaction(func(tx *gorm.DB) error {
+		return nil
+	}); err == nil {
+		t.Errorf("should returns error when commit with closed conn, got error %v", err)
+	}
+}

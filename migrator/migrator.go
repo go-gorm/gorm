@@ -71,7 +71,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 			defaultStmt := &gorm.Statement{Vars: []interface{}{field.DefaultValueInterface}}
 			m.Dialector.BindVarTo(defaultStmt, defaultStmt, field.DefaultValueInterface)
 			expr.SQL += " DEFAULT " + m.Dialector.Explain(defaultStmt.SQL.String(), field.DefaultValueInterface)
-		} else {
+		} else if field.DefaultValue != "(-)" {
 			expr.SQL += " DEFAULT " + field.DefaultValue
 		}
 	}
@@ -133,6 +133,15 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 						}
 					}
 				}
+
+				for _, idx := range stmt.Schema.ParseIndexes() {
+					if !tx.Migrator().HasIndex(value, idx.Name) {
+						if err := tx.Migrator().CreateIndex(value, idx.Name); err != nil {
+							return err
+						}
+					}
+				}
+
 				return nil
 			}); err != nil {
 				return err
@@ -297,10 +306,12 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 func (m Migrator) AlterColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
+			fileType := clause.Expr{SQL: m.DataTypeOf(field)}
 			return m.DB.Exec(
 				"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
-				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, m.DB.Migrator().FullDataTypeOf(field),
+				clause.Table{Name: stmt.Table}, clause.Column{Name: field.DBName}, fileType,
 			).Error
+
 		}
 		return fmt.Errorf("failed to look up field with name: %s", field)
 	})
@@ -354,9 +365,9 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			alterColumn = true
 		} else {
 			// has size in data type and not equal
-			matches := regexp.MustCompile(`[^\d](\d+)[^\d]`).FindAllString(realDataType, 1)
+			matches := regexp.MustCompile(`[^\d](\d+)[^\d]`).FindAllStringSubmatch(realDataType, -1)
 			matches2 := regexp.MustCompile(`[^\d]*(\d+)[^\d]`).FindAllStringSubmatch(fullDataType, -1)
-			if len(matches) > 0 && matches[1] != fmt.Sprint(field.Size) || len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) {
+			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size)) && (len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
 				alterColumn = true
 			}
 		}
@@ -386,8 +397,9 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		rows, err := m.DB.Raw("select * from ?", clause.Table{Name: stmt.Table}).Rows()
+		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err == nil {
+			defer rows.Close()
 			columnTypes, err = rows.ColumnTypes()
 		}
 		return err
@@ -584,6 +596,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 	var (
 		modelNames, orderedModelNames []string
 		orderedModelNamesMap          = map[string]bool{}
+		parsedSchemas                 = map[*schema.Schema]bool{}
 		valuesMap                     = map[string]Dependency{}
 		insertIntoOrderedList         func(name string)
 		parseDependence               func(value interface{}, addToList bool)
@@ -593,23 +606,35 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
+		beDependedOn := map[*schema.Schema]bool{}
 		if err := dep.Parse(value); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
 		}
+		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
+			return
+		}
+		parsedSchemas[dep.Statement.Schema] = true
 
 		for _, rel := range dep.Schema.Relationships.Relations {
 			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
 				dep.Depends = append(dep.Depends, c.ReferenceSchema)
 			}
 
+			if rel.Type == schema.HasOne || rel.Type == schema.HasMany {
+				beDependedOn[rel.FieldSchema] = true
+			}
+
 			if rel.JoinTable != nil {
-				if rel.Schema != rel.FieldSchema {
-					dep.Depends = append(dep.Depends, rel.FieldSchema)
-				}
 				// append join value
-				defer func(joinValue interface{}) {
+				defer func(rel *schema.Relationship, joinValue interface{}) {
+					if !beDependedOn[rel.FieldSchema] {
+						dep.Depends = append(dep.Depends, rel.FieldSchema)
+					} else {
+						fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+						parseDependence(fieldValue, autoAdd)
+					}
 					parseDependence(joinValue, autoAdd)
-				}(reflect.New(rel.JoinTable.ModelType).Interface())
+				}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
 			}
 		}
 

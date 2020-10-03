@@ -1,11 +1,13 @@
 package tests_test
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,6 +63,54 @@ func TestFind(t *testing.T) {
 			for _, name := range []string{"Name", "Age", "Birthday"} {
 				t.Run(name, func(t *testing.T) {
 					dbName := DB.NamingStrategy.ColumnName("", name)
+
+					switch name {
+					case "Name":
+						if _, ok := first[dbName].(string); !ok {
+							t.Errorf("invalid data type for %v, got %#v", dbName, first[dbName])
+						}
+					case "Age":
+						if _, ok := first[dbName].(uint); !ok {
+							t.Errorf("invalid data type for %v, got %#v", dbName, first[dbName])
+						}
+					case "Birthday":
+						if _, ok := first[dbName].(*time.Time); !ok {
+							t.Errorf("invalid data type for %v, got %#v", dbName, first[dbName])
+						}
+					}
+
+					reflectValue := reflect.Indirect(reflect.ValueOf(users[0]))
+					AssertEqual(t, first[dbName], reflectValue.FieldByName(name).Interface())
+				})
+			}
+		}
+	})
+
+	t.Run("FirstMapWithTable", func(t *testing.T) {
+		var first = map[string]interface{}{}
+		if err := DB.Table("users").Where("name = ?", "find").Find(first).Error; err != nil {
+			t.Errorf("errors happened when query first: %v", err)
+		} else {
+			for _, name := range []string{"Name", "Age", "Birthday"} {
+				t.Run(name, func(t *testing.T) {
+					dbName := DB.NamingStrategy.ColumnName("", name)
+					resultType := reflect.ValueOf(first[dbName]).Type().Name()
+
+					switch name {
+					case "Name":
+						if !strings.Contains(resultType, "string") {
+							t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, first[dbName])
+						}
+					case "Age":
+						if !strings.Contains(resultType, "int") {
+							t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, first[dbName])
+						}
+					case "Birthday":
+						if !strings.Contains(resultType, "Time") && !(DB.Dialector.Name() == "sqlite" && strings.Contains(resultType, "string")) {
+							t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, first[dbName])
+						}
+					}
+
 					reflectValue := reflect.Indirect(reflect.ValueOf(users[0]))
 					AssertEqual(t, first[dbName], reflectValue.FieldByName(name).Interface())
 				})
@@ -86,13 +136,29 @@ func TestFind(t *testing.T) {
 	t.Run("FirstSliceOfMap", func(t *testing.T) {
 		var allMap = []map[string]interface{}{}
 		if err := DB.Model(&User{}).Where("name = ?", "find").Find(&allMap).Error; err != nil {
-			t.Errorf("errors happened when query first: %v", err)
+			t.Errorf("errors happened when query find: %v", err)
 		} else {
 			for idx, user := range users {
 				t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
 					for _, name := range []string{"Name", "Age", "Birthday"} {
 						t.Run(name, func(t *testing.T) {
 							dbName := DB.NamingStrategy.ColumnName("", name)
+
+							switch name {
+							case "Name":
+								if _, ok := allMap[idx][dbName].(string); !ok {
+									t.Errorf("invalid data type for %v, got %#v", dbName, allMap[idx][dbName])
+								}
+							case "Age":
+								if _, ok := allMap[idx][dbName].(uint); !ok {
+									t.Errorf("invalid data type for %v, got %#v", dbName, allMap[idx][dbName])
+								}
+							case "Birthday":
+								if _, ok := allMap[idx][dbName].(*time.Time); !ok {
+									t.Errorf("invalid data type for %v, got %#v", dbName, allMap[idx][dbName])
+								}
+							}
+
 							reflectValue := reflect.Indirect(reflect.ValueOf(user))
 							AssertEqual(t, allMap[idx][dbName], reflectValue.FieldByName(name).Interface())
 						})
@@ -101,6 +167,58 @@ func TestFind(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("FindSliceOfMapWithTable", func(t *testing.T) {
+		var allMap = []map[string]interface{}{}
+		if err := DB.Table("users").Where("name = ?", "find").Find(&allMap).Error; err != nil {
+			t.Errorf("errors happened when query find: %v", err)
+		} else {
+			for idx, user := range users {
+				t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
+					for _, name := range []string{"Name", "Age", "Birthday"} {
+						t.Run(name, func(t *testing.T) {
+							dbName := DB.NamingStrategy.ColumnName("", name)
+							resultType := reflect.ValueOf(allMap[idx][dbName]).Type().Name()
+
+							switch name {
+							case "Name":
+								if !strings.Contains(resultType, "string") {
+									t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, allMap[idx][dbName])
+								}
+							case "Age":
+								if !strings.Contains(resultType, "int") {
+									t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, allMap[idx][dbName])
+								}
+							case "Birthday":
+								if !strings.Contains(resultType, "Time") && !(DB.Dialector.Name() == "sqlite" && strings.Contains(resultType, "string")) {
+									t.Errorf("invalid data type for %v, got %v %#v", dbName, resultType, allMap[idx][dbName])
+								}
+							}
+
+							reflectValue := reflect.Indirect(reflect.ValueOf(user))
+							AssertEqual(t, allMap[idx][dbName], reflectValue.FieldByName(name).Interface())
+						})
+					}
+				})
+			}
+		}
+	})
+
+	var models []User
+	if err := DB.Where("name in (?)", []string{"find"}).Find(&models).Error; err != nil || len(models) != 3 {
+		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models))
+	} else {
+		for idx, user := range users {
+			t.Run("FindWithInClause#"+strconv.Itoa(idx+1), func(t *testing.T) {
+				CheckUser(t, models[idx], user)
+			})
+		}
+	}
+
+	var none []User
+	if err := DB.Where("name in (?)", []string{}).Find(&none).Error; err != nil || len(none) != 0 {
+		t.Errorf("errors happened when query find with in clause and zero length parameter: %v, length: %v", err, len(none))
+	}
 }
 
 func TestQueryWithAssociation(t *testing.T) {
@@ -228,6 +346,11 @@ func TestNot(t *testing.T) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
+	result = dryDB.Where(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&User{})
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
+	}
+
 	result = dryDB.Not("name = ?", "jinzhu").Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
@@ -308,6 +431,33 @@ func TestPluck(t *testing.T) {
 		if int(id) != int(users[idx].ID) {
 			t.Errorf("Unexpected result on pluck id, got %+v", ids)
 		}
+	}
+
+	var times []time.Time
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &times).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range times {
+		AssertEqual(t, tv, users[idx].CreatedAt)
+	}
+
+	var ptrtimes []*time.Time
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &ptrtimes).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range ptrtimes {
+		AssertEqual(t, tv, users[idx].CreatedAt)
+	}
+
+	var nulltimes []sql.NullTime
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("created_at", &nulltimes).Error; err != nil {
+		t.Errorf("got error when pluck time: %v", err)
+	}
+
+	for idx, tv := range nulltimes {
+		AssertEqual(t, tv.Time, users[idx].CreatedAt)
 	}
 }
 
@@ -508,6 +658,7 @@ func TestLimit(t *testing.T) {
 		{Name: "LimitUser3", Age: 20},
 		{Name: "LimitUser4", Age: 10},
 		{Name: "LimitUser5", Age: 20},
+		{Name: "LimitUser6", Age: 20},
 	}
 
 	DB.Create(&users)
@@ -516,7 +667,7 @@ func TestLimit(t *testing.T) {
 	DB.Order("age desc").Limit(3).Find(&users1).Limit(5).Find(&users2).Limit(-1).Find(&users3)
 
 	if len(users1) != 3 || len(users2) != 5 || len(users3) <= 5 {
-		t.Errorf("Limit should works")
+		t.Errorf("Limit should works, users1 %v users2 %v users3 %v", len(users1), len(users2), len(users3))
 	}
 }
 
@@ -531,6 +682,7 @@ func TestOffset(t *testing.T) {
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
 		t.Errorf("Offset should work")
 	}
+
 	DB.Where("name like ?", "OffsetUser%").Order("age desc").Find(&users1).Offset(3).Find(&users2).Offset(5).Find(&users3).Offset(-1).Find(&users4)
 
 	if (len(users1) != len(users4)) || (len(users1)-len(users2) != 3) || (len(users1)-len(users3) != 5) {
@@ -696,5 +848,13 @@ func TestScanNullValue(t *testing.T) {
 	var results []User
 	if err := DB.Find(&results, "name like ?", "scan_null_value_for_slice%").Error; err != nil {
 		t.Fatalf("failed to query slice data with null age, got error %v", err)
+	}
+}
+
+func TestQueryWithTableAndConditions(t *testing.T) {
+	result := DB.Session(&gorm.Session{DryRun: true}).Table("user").Find(&User{}, User{Name: "jinzhu"})
+
+	if !regexp.MustCompile(`SELECT \* FROM .user. WHERE .user.\..name. = .+ AND .user.\..deleted_at. IS NULL`).MatchString(result.Statement.SQL.String()) {
+		t.Errorf("invalid query SQL, got %v", result.Statement.SQL.String())
 	}
 }

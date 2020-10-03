@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -16,14 +17,25 @@ func TestScan(t *testing.T) {
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	type result struct {
+		ID   uint
 		Name string
 		Age  int
 	}
 
 	var res result
-	DB.Table("users").Select("name, age").Where("id = ?", user3.ID).Scan(&res)
-	if res.Name != user3.Name || res.Age != int(user3.Age) {
-		t.Errorf("Scan into struct should work")
+	DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&res)
+	if res.ID != user3.ID || res.Name != user3.Name || res.Age != int(user3.Age) {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
+	}
+
+	DB.Table("users").Select("id, name, age").Where("id = ?", user2.ID).Scan(&res)
+	if res.ID != user2.ID || res.Name != user2.Name || res.Age != int(user2.Age) {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user2)
+	}
+
+	DB.Model(&User{Model: gorm.Model{ID: user3.ID}}).Select("id, name, age").Scan(&res)
+	if res.ID != user3.ID || res.Name != user3.Name || res.Age != int(user3.Age) {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
 	}
 
 	var doubleAgeRes = &result{}
@@ -39,11 +51,11 @@ func TestScan(t *testing.T) {
 	DB.Table("users").Select("name, age").Where("id in ?", []uint{user2.ID, user3.ID}).Scan(&results)
 
 	sort.Slice(results, func(i, j int) bool {
-		return strings.Compare(results[i].Name, results[j].Name) < -1
+		return strings.Compare(results[i].Name, results[j].Name) <= -1
 	})
 
 	if len(results) != 2 || results[0].Name != user2.Name || results[1].Name != user3.Name {
-		t.Errorf("Scan into struct map")
+		t.Errorf("Scan into struct map, got %#v", results)
 	}
 }
 
@@ -72,7 +84,21 @@ func TestScanRows(t *testing.T) {
 		results = append(results, result)
 	}
 
+	sort.Slice(results, func(i, j int) bool {
+		return strings.Compare(results[i].Name, results[j].Name) <= -1
+	})
+
 	if !reflect.DeepEqual(results, []Result{{Name: "ScanRowsUser2", Age: 10}, {Name: "ScanRowsUser3", Age: 20}}) {
 		t.Errorf("Should find expected results")
+	}
+
+	var ages int
+	if err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("SUM(age)").Scan(&ages).Error; err != nil || ages != 30 {
+		t.Fatalf("failed to scan ages, got error %v, ages: %v", err, ages)
+	}
+
+	var name string
+	if err := DB.Table("users").Where("name = ?", user2.Name).Select("name").Scan(&name).Error; err != nil || name != user2.Name {
+		t.Fatalf("failed to scan ages, got error %v, ages: %v", err, name)
 	}
 }

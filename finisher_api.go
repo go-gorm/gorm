@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -51,7 +52,8 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		tx.callbacks.Update().Execute(tx)
 
 		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
-			if err := tx.Session(&Session{}).First(value).Error; errors.Is(err, ErrRecordNotFound) {
+			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
+			if err := tx.Session(&Session{WithConditions: true}).First(result).Error; errors.Is(err, ErrRecordNotFound) {
 				return tx.Create(value)
 			}
 		}
@@ -331,22 +333,43 @@ func (db *DB) Count(count *int64) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	tx := db.getInstance()
+	tx := db.getInstance().InstanceSet("rows", false)
 	tx.callbacks.Row().Execute(tx)
-	return tx.Statement.Dest.(*sql.Row)
+	row, ok := tx.Statement.Dest.(*sql.Row)
+	if !ok && tx.DryRun {
+		db.Logger.Error(tx.Statement.Context, ErrDryRunModeUnsupported.Error())
+	}
+	return row
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.Set("rows", true)
+	tx := db.getInstance().InstanceSet("rows", true)
 	tx.callbacks.Row().Execute(tx)
-	return tx.Statement.Dest.(*sql.Rows), tx.Error
+	rows, ok := tx.Statement.Dest.(*sql.Rows)
+	if !ok && tx.DryRun && tx.Error == nil {
+		tx.Error = ErrDryRunModeUnsupported
+	}
+	return rows, tx.Error
 }
 
 // Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
+	currentLogger, newLogger := db.Logger, logger.Recorder.New()
 	tx = db.getInstance()
-	tx.Statement.Dest = dest
-	tx.callbacks.Query().Execute(tx)
+	tx.Logger = newLogger
+	if rows, err := tx.Rows(); err != nil {
+		tx.AddError(err)
+	} else {
+		defer rows.Close()
+		if rows.Next() {
+			tx.ScanRows(rows, dest)
+		}
+	}
+
+	currentLogger.Trace(tx.Statement.Context, newLogger.BeginAt, func() (string, int64) {
+		return newLogger.SQL, tx.RowsAffected
+	}, tx.Error)
+	tx.Logger = currentLogger
 	return
 }
 
@@ -377,9 +400,14 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 
 func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	tx := db.getInstance()
-	tx.Error = tx.Statement.Parse(dest)
+	if err := tx.Statement.Parse(dest); !errors.Is(err, schema.ErrUnsupportedDataType) {
+		tx.AddError(err)
+	}
 	tx.Statement.Dest = dest
-	tx.Statement.ReflectValue = reflect.Indirect(reflect.ValueOf(dest))
+	tx.Statement.ReflectValue = reflect.ValueOf(dest)
+	for tx.Statement.ReflectValue.Kind() == reflect.Ptr {
+		tx.Statement.ReflectValue = tx.Statement.ReflectValue.Elem()
+	}
 	Scan(rows, tx, true)
 	return tx.Error
 }

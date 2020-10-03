@@ -1,5 +1,9 @@
 package clause
 
+import (
+	"strings"
+)
+
 // Where where clause
 type Where struct {
 	Exprs []Expression
@@ -22,6 +26,7 @@ func (where Where) Build(builder Builder) {
 		}
 	}
 
+	wrapInParentheses := false
 	for idx, expr := range where.Exprs {
 		if idx > 0 {
 			if v, ok := expr.(OrConditions); ok && len(v.Exprs) == 1 {
@@ -31,7 +36,36 @@ func (where Where) Build(builder Builder) {
 			}
 		}
 
-		expr.Build(builder)
+		if len(where.Exprs) > 1 {
+			switch v := expr.(type) {
+			case OrConditions:
+				if len(v.Exprs) == 1 {
+					if e, ok := v.Exprs[0].(Expr); ok {
+						sql := strings.ToLower(e.SQL)
+						wrapInParentheses = strings.Contains(sql, "and") || strings.Contains(sql, "or")
+					}
+				}
+			case AndConditions:
+				if len(v.Exprs) == 1 {
+					if e, ok := v.Exprs[0].(Expr); ok {
+						sql := strings.ToLower(e.SQL)
+						wrapInParentheses = strings.Contains(sql, "and") || strings.Contains(sql, "or")
+					}
+				}
+			case Expr:
+				sql := strings.ToLower(v.SQL)
+				wrapInParentheses = strings.Contains(sql, "and") || strings.Contains(sql, "or")
+			}
+		}
+
+		if wrapInParentheses {
+			builder.WriteString(`(`)
+			expr.Build(builder)
+			builder.WriteString(`)`)
+			wrapInParentheses = false
+		} else {
+			expr.Build(builder)
+		}
 	}
 }
 
@@ -50,6 +84,8 @@ func (where Where) MergeClause(clause *Clause) {
 func And(exprs ...Expression) Expression {
 	if len(exprs) == 0 {
 		return nil
+	} else if len(exprs) == 1 {
+		return exprs[0]
 	}
 	return AndConditions{Exprs: exprs}
 }
@@ -118,6 +154,7 @@ func (not NotConditions) Build(builder Builder) {
 	if len(not.Exprs) > 1 {
 		builder.WriteByte('(')
 	}
+
 	for idx, c := range not.Exprs {
 		if idx > 0 {
 			builder.WriteString(" AND ")
@@ -127,9 +164,22 @@ func (not NotConditions) Build(builder Builder) {
 			negationBuilder.NegationBuild(builder)
 		} else {
 			builder.WriteString("NOT ")
+			e, wrapInParentheses := c.(Expr)
+			if wrapInParentheses {
+				sql := strings.ToLower(e.SQL)
+				if wrapInParentheses = strings.Contains(sql, "and") || strings.Contains(sql, "or"); wrapInParentheses {
+					builder.WriteByte('(')
+				}
+			}
+
 			c.Build(builder)
+
+			if wrapInParentheses {
+				builder.WriteByte(')')
+			}
 		}
 	}
+
 	if len(not.Exprs) > 1 {
 		builder.WriteByte(')')
 	}

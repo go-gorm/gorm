@@ -1,6 +1,8 @@
 package tests_test
 
 import (
+	"encoding/json"
+	"regexp"
 	"sort"
 	"strconv"
 	"testing"
@@ -31,6 +33,20 @@ func TestPreloadWithAssociations(t *testing.T) {
 	var user2 User
 	DB.Preload(clause.Associations).Find(&user2, "id = ?", user.ID)
 	CheckUser(t, user2, user)
+
+	var user3 = *GetUser("preload_with_associations_new", Config{
+		Account:   true,
+		Pets:      2,
+		Toys:      3,
+		Company:   true,
+		Manager:   true,
+		Team:      4,
+		Languages: 3,
+		Friends:   1,
+	})
+
+	DB.Preload(clause.Associations).Find(&user3, "id = ?", user.ID)
+	CheckUser(t, user3, user)
 }
 
 func TestNestedPreload(t *testing.T) {
@@ -172,5 +188,27 @@ func TestNestedPreloadWithConds(t *testing.T) {
 		}
 
 		CheckPet(t, *users2[2].Pets[2], *users[2].Pets[2])
+	}
+}
+
+func TestPreloadEmptyData(t *testing.T) {
+	var user = *GetUser("user_without_associations", Config{})
+	DB.Create(&user)
+
+	DB.Preload("Team").Preload("Languages").Preload("Friends").First(&user, "name = ?", user.Name)
+
+	if r, err := json.Marshal(&user); err != nil {
+		t.Errorf("failed to marshal users, got error %v", err)
+	} else if !regexp.MustCompile(`"Team":\[\],"Languages":\[\],"Friends":\[\]`).MatchString(string(r)) {
+		t.Errorf("json marshal is not empty slice, got %v", string(r))
+	}
+
+	var results []User
+	DB.Preload("Team").Preload("Languages").Preload("Friends").Find(&results, "name = ?", user.Name)
+
+	if r, err := json.Marshal(&results); err != nil {
+		t.Errorf("failed to marshal users, got error %v", err)
+	} else if !regexp.MustCompile(`"Team":\[\],"Languages":\[\],"Friends":\[\]`).MatchString(string(r)) {
+		t.Errorf("json marshal is not empty slice, got %v", string(r))
 	}
 }

@@ -10,6 +10,11 @@
       "colour": "#EDEDED",
       "description": "general questions"
     },
+    "invalid_question": {
+      "name": "type:invalid question",
+      "colour": "#CF2E1F",
+      "description": "invalid question (not related to GORM or described in document or not enough information provided)"
+    },
     "with_playground": {
       "name": "type:with reproduction steps",
       "colour": "#00ff00",

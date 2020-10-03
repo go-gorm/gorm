@@ -46,6 +46,11 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 		selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
 	)
 
+	if len(mapValues) == 0 {
+		stmt.AddError(gorm.ErrEmptySlice)
+		return
+	}
+
 	for idx, mapValue := range mapValues {
 		for k, v := range mapValue {
 			if stmt.Schema != nil {

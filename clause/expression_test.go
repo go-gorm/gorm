@@ -37,6 +37,11 @@ func TestExpr(t *testing.T) {
 }
 
 func TestNamedExpr(t *testing.T) {
+	type NamedArgument struct {
+		Name1 string
+		Name2 string
+	}
+
 	results := []struct {
 		SQL          string
 		Result       string
@@ -66,6 +71,15 @@ func TestNamedExpr(t *testing.T) {
 		Vars:         []interface{}{sql.Named("name1", "jinzhu"), sql.Named("name2", "jinzhu2")},
 		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
+	}, {
+		SQL:          "@@test AND name1 = @Name1 AND name2 = @Name2 AND name3 = @Name1 @Notexist",
+		Vars:         []interface{}{NamedArgument{Name1: "jinzhu", Name2: "jinzhu2"}},
+		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
+	}, {
+		SQL:    "create table ? (? ?, ? ?)",
+		Vars:   []interface{}{},
+		Result: "create table ? (? ?, ? ?)",
 	}}
 
 	for idx, result := range results {

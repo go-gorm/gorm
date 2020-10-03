@@ -115,7 +115,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 	t.Run("Pets", func(t *testing.T) {
 		if len(user.Pets) != len(expect.Pets) {
-			t.Errorf("pets should equal, expect: %v, got %v", len(expect.Pets), len(user.Pets))
+			t.Fatalf("pets should equal, expect: %v, got %v", len(expect.Pets), len(user.Pets))
 		}
 
 		sort.Slice(user.Pets, func(i, j int) bool {
@@ -137,7 +137,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 	t.Run("Toys", func(t *testing.T) {
 		if len(user.Toys) != len(expect.Toys) {
-			t.Errorf("toys should equal, expect: %v, got %v", len(expect.Toys), len(user.Toys))
+			t.Fatalf("toys should equal, expect: %v, got %v", len(expect.Toys), len(user.Toys))
 		}
 
 		sort.Slice(user.Toys, func(i, j int) bool {
@@ -177,7 +177,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 	t.Run("Team", func(t *testing.T) {
 		if len(user.Team) != len(expect.Team) {
-			t.Errorf("Team should equal, expect: %v, got %v", len(expect.Team), len(user.Team))
+			t.Fatalf("Team should equal, expect: %v, got %v", len(expect.Team), len(user.Team))
 		}
 
 		sort.Slice(user.Team, func(i, j int) bool {
@@ -195,7 +195,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 	t.Run("Languages", func(t *testing.T) {
 		if len(user.Languages) != len(expect.Languages) {
-			t.Errorf("Languages should equal, expect: %v, got %v", len(expect.Languages), len(user.Languages))
+			t.Fatalf("Languages should equal, expect: %v, got %v", len(expect.Languages), len(user.Languages))
 		}
 
 		sort.Slice(user.Languages, func(i, j int) bool {
@@ -212,7 +212,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 
 	t.Run("Friends", func(t *testing.T) {
 		if len(user.Friends) != len(expect.Friends) {
-			t.Errorf("Friends should equal, expect: %v, got %v", len(expect.Friends), len(user.Friends))
+			t.Fatalf("Friends should equal, expect: %v, got %v", len(expect.Friends), len(user.Friends))
 		}
 
 		sort.Slice(user.Friends, func(i, j int) bool {

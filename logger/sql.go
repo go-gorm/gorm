@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"gorm.io/gorm/utils"
 )
 
 func isPrintable(s []byte) bool {
@@ -24,18 +26,37 @@ var convertableTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeO
 
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
-	var vars = make([]interface{}, len(avars))
-	copy(vars, avars)
+	var vars = make([]string, len(avars))
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
 		case bool:
-			vars[idx] = fmt.Sprint(v)
+			vars[idx] = strconv.FormatBool(v)
 		case time.Time:
 			if v.IsZero() {
 				vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
 			} else {
 				vars[idx] = escaper + v.Format("2006-01-02 15:04:05.999") + escaper
+			}
+		case *time.Time:
+			if v != nil {
+				if v.IsZero() {
+					vars[idx] = escaper + "0000-00-00 00:00:00" + escaper
+				} else {
+					vars[idx] = escaper + v.Format("2006-01-02 15:04:05.999") + escaper
+				}
+			} else {
+				vars[idx] = "NULL"
+			}
+		case fmt.Stringer:
+			vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
+		case driver.Valuer:
+			reflectValue := reflect.ValueOf(v)
+			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
+				r, _ := v.Value()
+				convertParams(r, idx)
+			} else {
+				vars[idx] = "NULL"
 			}
 		case []byte:
 			if isPrintable(v) {
@@ -44,7 +65,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				vars[idx] = escaper + "<binary>" + escaper
 			}
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-			vars[idx] = fmt.Sprintf("%d", v)
+			vars[idx] = utils.ToString(v)
 		case float64, float32:
 			vars[idx] = fmt.Sprintf("%.6f", v)
 		case string:
@@ -70,18 +91,30 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		}
 	}
 
-	for idx, v := range vars {
+	for idx, v := range avars {
 		convertParams(v, idx)
 	}
 
 	if numericPlaceholder == nil {
-		for _, v := range vars {
-			sql = strings.Replace(sql, "?", v.(string), 1)
+		var idx int
+		var newSQL strings.Builder
+
+		for _, v := range []byte(sql) {
+			if v == '?' {
+				if len(vars) > idx {
+					newSQL.WriteString(vars[idx])
+					idx++
+					continue
+				}
+			}
+			newSQL.WriteByte(v)
 		}
+
+		sql = newSQL.String()
 	} else {
 		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
 		for idx, v := range vars {
-			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v.(string), 1)
+			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v, 1)
 		}
 	}
 

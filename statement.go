@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -189,7 +190,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString("(NULL)")
 			}
 		case *DB:
-			subdb := v.Session(&Session{DryRun: true, WithConditions: true}).getInstance()
+			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true, WithConditions: true}).getInstance()
 			subdb.Statement.Vars = append(subdb.Statement.Vars, stmt.Vars...)
 			subdb.callbacks.Query().Execute(subdb)
 			writer.WriteString(subdb.Statement.SQL.String())
@@ -298,12 +299,18 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 				reflectValue := reflect.Indirect(reflect.ValueOf(v[key]))
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
-					values := make([]interface{}, reflectValue.Len())
-					for i := 0; i < reflectValue.Len(); i++ {
-						values[i] = reflectValue.Index(i).Interface()
-					}
+					if _, ok := v[key].(driver.Valuer); ok {
+						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+					} else if _, ok := v[key].(Valuer); ok {
+						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+					} else {
+						values := make([]interface{}, reflectValue.Len())
+						for i := 0; i < reflectValue.Len(); i++ {
+							values[i] = reflectValue.Index(i).Interface()
+						}
 
-					conds = append(conds, clause.IN{Column: key, Values: values})
+						conds = append(conds, clause.IN{Column: key, Values: values})
+					}
 				default:
 					conds = append(conds, clause.Eq{Column: key, Value: v[key]})
 				}
@@ -317,9 +324,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 						if field.Readable {
 							if v, isZero := field.ValueOf(reflectValue); !isZero {
 								if field.DBName != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
 								} else if field.DataType != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
 								}
 							}
 						}
@@ -330,9 +337,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 							if field.Readable {
 								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
 									if field.DBName != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.DBName}, Value: v})
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
 									} else if field.DataType != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: s.Table, Name: field.Name}, Value: v})
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
 									}
 								}
 							}

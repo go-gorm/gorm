@@ -14,7 +14,7 @@ import (
 type Namer interface {
 	TableName(table string) string
 	ColumnName(table, column string) string
-	JoinTableName(table string) string
+	JoinTableName(joinTable string) string
 	RelationshipFKName(Relationship) string
 	CheckerName(table, column string) string
 	IndexName(table, column string) string
@@ -41,6 +41,10 @@ func (ns NamingStrategy) ColumnName(table, column string) string {
 
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
+	if strings.ToLower(str) == str {
+		return ns.TablePrefix + str
+	}
+
 	if ns.SingularTable {
 		return ns.TablePrefix + toDBName(str)
 	}
@@ -49,17 +53,18 @@ func (ns NamingStrategy) JoinTableName(str string) string {
 
 // RelationshipFKName generate fk name for relation
 func (ns NamingStrategy) RelationshipFKName(rel Relationship) string {
-	return fmt.Sprintf("fk_%s_%s", rel.Schema.Table, toDBName(rel.Name))
+	return strings.Replace(fmt.Sprintf("fk_%s_%s", rel.Schema.Table, toDBName(rel.Name)), ".", "_", -1)
 }
 
 // CheckerName generate checker name
 func (ns NamingStrategy) CheckerName(table, column string) string {
-	return fmt.Sprintf("chk_%s_%s", table, column)
+	return strings.Replace(fmt.Sprintf("chk_%s_%s", table, column), ".", "_", -1)
 }
 
 // IndexName generate index name
 func (ns NamingStrategy) IndexName(table, column string) string {
 	idxName := fmt.Sprintf("idx_%v_%v", table, toDBName(column))
+	idxName = strings.Replace(idxName, ".", "_", -1)
 
 	if utf8.RuneCountInString(idxName) > 64 {
 		h := sha1.New()
