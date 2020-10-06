@@ -89,7 +89,11 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
-		return v.(*Schema), nil
+		s := v.(*Schema)
+		if tabler, ok := dest.(Tabler); ok {
+			s.Table = tabler.TableName()
+		}
+		return s, nil
 	}
 
 	modelValue := reflect.New(modelType)
