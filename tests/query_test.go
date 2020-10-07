@@ -475,6 +475,16 @@ func TestSelect(t *testing.T) {
 		t.Errorf("Should have user Name when selected it")
 	}
 
+	var resultAlias User
+	DB.Where("name = ?", user.Name).Select("name as name").Find(&resultAlias)
+	if resultAlias.ID != 0 {
+		t.Errorf("Should not have ID because only selected name, %+v", resultAlias.ID)
+	}
+
+	if user.Name != resultAlias.Name {
+		t.Errorf("Should have user Name when selected it")
+	}
+
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
 	r := dryDB.Select("name", "age").Find(&User{})
 	if !regexp.MustCompile("SELECT .*name.*,.*age.* FROM .*users.*").MatchString(r.Statement.SQL.String()) {
