@@ -170,6 +170,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if val, ok := field.TagSettings["NOT NULL"]; ok && utils.CheckTruth(val) {
 		field.NotNull = true
+	} else if val, ok := field.TagSettings["NOTNULL"]; ok && utils.CheckTruth(val) {
+		field.NotNull = true
 	}
 
 	if val, ok := field.TagSettings["UNIQUE"]; ok && utils.CheckTruth(val) {
