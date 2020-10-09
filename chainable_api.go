@@ -97,7 +97,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 
 		// normal field names
 		if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
-			tx.Statement.Selects = fields
+			tx.Statement.Selects = []string{v}
 
 			for _, arg := range args {
 				switch arg := arg.(type) {
