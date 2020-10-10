@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -59,7 +60,7 @@ type Interface interface {
 var (
 	Discard = New(log.New(ioutil.Discard, "", log.LstdFlags), Config{})
 	Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
-		SlowThreshold: 100 * time.Millisecond,
+		SlowThreshold: 200 * time.Millisecond,
 		LogLevel:      Warn,
 		Colorful:      true,
 	})
@@ -72,7 +73,7 @@ func New(writer Writer, config Config) Interface {
 		warnStr      = "%s\n[warn] "
 		errStr       = "%s\n[error] "
 		traceStr     = "%s\n[%.3fms] [rows:%v] %s"
-		traceWarnStr = "%s\n[%.3fms] [rows:%v] %s"
+		traceWarnStr = "%s %s\n[%.3fms] [rows:%v] %s"
 		traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
 	)
 
@@ -81,7 +82,7 @@ func New(writer Writer, config Config) Interface {
 		warnStr = BlueBold + "%s\n" + Reset + Magenta + "[warn] " + Reset
 		errStr = Magenta + "%s\n" + Reset + Red + "[error] " + Reset
 		traceStr = Green + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%v]" + Reset + " %s"
-		traceWarnStr = Green + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%v]" + Magenta + " %s" + Reset
+		traceWarnStr = Green + "%s " + Yellow + "%s\n" + Reset + RedBold + "[%.3fms] " + Yellow + "[rows:%v]" + Magenta + " %s" + Reset
 		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%v]" + Reset + " %s"
 	}
 
@@ -146,10 +147,11 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 			}
 		case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= Warn:
 			sql, rows := fc()
+			slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 			if rows == -1 {
-				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
+				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)
 			} else {
-				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, rows, sql)
+				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}
 		case l.LogLevel >= Info:
 			sql, rows := fc()
