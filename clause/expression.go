@@ -91,16 +91,25 @@ func (expr NamedExpr) Build(builder Builder) {
 				namedMap[k] = v
 			}
 		default:
-			reflectValue := reflect.Indirect(reflect.ValueOf(value))
-			switch reflectValue.Kind() {
-			case reflect.Struct:
-				modelType := reflectValue.Type()
-				for i := 0; i < modelType.NumField(); i++ {
-					if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
-						namedMap[fieldStruct.Name] = reflectValue.Field(i).Interface()
+			var appendFieldsToMap func(reflect.Value)
+			appendFieldsToMap = func(reflectValue reflect.Value) {
+				reflectValue = reflect.Indirect(reflectValue)
+				switch reflectValue.Kind() {
+				case reflect.Struct:
+					modelType := reflectValue.Type()
+					for i := 0; i < modelType.NumField(); i++ {
+						if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
+							namedMap[fieldStruct.Name] = reflectValue.Field(i).Interface()
+
+							if fieldStruct.Anonymous {
+								appendFieldsToMap(reflectValue.Field(i))
+							}
+						}
 					}
 				}
 			}
+
+			appendFieldsToMap(reflect.ValueOf(value))
 		}
 	}
 

@@ -37,9 +37,13 @@ func TestExpr(t *testing.T) {
 }
 
 func TestNamedExpr(t *testing.T) {
+	type Base struct {
+		Name2 string
+	}
+
 	type NamedArgument struct {
 		Name1 string
-		Name2 string
+		Base
 	}
 
 	results := []struct {
@@ -73,7 +77,7 @@ func TestNamedExpr(t *testing.T) {
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
 	}, {
 		SQL:          "@@test AND name1 = @Name1 AND name2 = @Name2 AND name3 = @Name1 @Notexist",
-		Vars:         []interface{}{NamedArgument{Name1: "jinzhu", Name2: "jinzhu2"}},
+		Vars:         []interface{}{NamedArgument{Name1: "jinzhu", Base: Base{Name2: "jinzhu2"}}},
 		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
 	}, {
