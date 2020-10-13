@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 	"unicode"
+
+	mysql2 "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -100,7 +102,21 @@ var LogFormatter = func(values ...interface{}) (messages []interface{}) {
 			messages = append(messages, fmt.Sprintf(" \n\033[36;31m[%v]\033[0m ", strconv.FormatInt(values[5].(int64), 10)+" rows affected or returned "))
 		} else {
 			messages = append(messages, "\033[31;1m")
-			messages = append(messages, values[2:]...)
+
+			var message interface{}
+			value := values[2]
+			switch v := value.(type) {
+			case mysql2.MySQLError:
+				message = fmt.Sprintf("%d: %s", v.Number, v.Message)
+			default:
+				message = value
+			}
+			messages = append(messages, message)
+
+			if len(values) > 3 {
+				messages = append(messages, values[3:]...)
+			}
+
 			messages = append(messages, "\033[0m")
 		}
 	}
