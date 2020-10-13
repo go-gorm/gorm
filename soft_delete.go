@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"reflect"
 
 	"gorm.io/gorm/clause"
@@ -22,6 +23,18 @@ func (n DeletedAt) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return n.Time, nil
+}
+
+func (n DeletedAt) MarshalJSON() ([]byte, error) {
+	return json.Marshal(n.Time)
+}
+
+func (n *DeletedAt) UnmarshalJSON(b []byte) error {
+	err := json.Unmarshal(b, &n.Time)
+	if err == nil {
+		n.Valid = true
+	}
+	return err
 }
 
 func (DeletedAt) QueryClauses(f *schema.Field) []clause.Interface {
