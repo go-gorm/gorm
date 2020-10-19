@@ -26,17 +26,22 @@ func (where Where) Build(builder Builder) {
 		}
 	}
 
+	buildExprs(where.Exprs, builder, " AND ")
+}
+
+func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 	wrapInParentheses := false
-	for idx, expr := range where.Exprs {
+
+	for idx, expr := range exprs {
 		if idx > 0 {
 			if v, ok := expr.(OrConditions); ok && len(v.Exprs) == 1 {
 				builder.WriteString(" OR ")
 			} else {
-				builder.WriteString(" AND ")
+				builder.WriteString(joinCond)
 			}
 		}
 
-		if len(where.Exprs) > 1 {
+		if len(exprs) > 1 {
 			switch v := expr.(type) {
 			case OrConditions:
 				if len(v.Exprs) == 1 {
@@ -97,19 +102,10 @@ type AndConditions struct {
 func (and AndConditions) Build(builder Builder) {
 	if len(and.Exprs) > 1 {
 		builder.WriteByte('(')
-	}
-	for idx, c := range and.Exprs {
-		if idx > 0 {
-			if orConditions, ok := c.(OrConditions); ok && len(orConditions.Exprs) == 1 {
-				builder.WriteString(" OR ")
-			} else {
-				builder.WriteString(" AND ")
-			}
-		}
-		c.Build(builder)
-	}
-	if len(and.Exprs) > 1 {
+		buildExprs(and.Exprs, builder, " AND ")
 		builder.WriteByte(')')
+	} else {
+		buildExprs(and.Exprs, builder, " AND ")
 	}
 }
 
@@ -127,15 +123,10 @@ type OrConditions struct {
 func (or OrConditions) Build(builder Builder) {
 	if len(or.Exprs) > 1 {
 		builder.WriteByte('(')
-	}
-	for idx, c := range or.Exprs {
-		if idx > 0 {
-			builder.WriteString(" OR ")
-		}
-		c.Build(builder)
-	}
-	if len(or.Exprs) > 1 {
+		buildExprs(or.Exprs, builder, " OR ")
 		builder.WriteByte(')')
+	} else {
+		buildExprs(or.Exprs, builder, " OR ")
 	}
 }
 

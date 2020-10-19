@@ -154,6 +154,8 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
 						}
 					}
+				} else if andCond, ok := expr.(clause.AndConditions); ok {
+					tx.assignInterfacesToValue(andCond.Exprs)
 				}
 			}
 		case clause.Expression, map[string]string, map[interface{}]interface{}, map[string]interface{}:
