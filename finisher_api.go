@@ -321,16 +321,23 @@ func (db *DB) Count(count *int64) (tx *DB) {
 				expr = clause.Expr{SQL: "COUNT(?)", Vars: []interface{}{clause.Column{Name: dbName}}}
 			}
 		}
-
 		tx.Statement.AddClause(clause.Select{Expression: expr})
 		defer tx.Statement.AddClause(clause.Select{})
 	}
+
+	// Count without ORDER BY for PostgreSQL
+	orderBy := tx.Statement.Clauses["ORDER BY"]
+	delete(tx.Statement.Clauses, "ORDER BY")
+	defer func() {
+		tx.Statement.Clauses["ORDER BY"] = orderBy
+	}()
 
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
 	if tx.RowsAffected != 1 {
 		*count = tx.RowsAffected
 	}
+
 	return
 }
 

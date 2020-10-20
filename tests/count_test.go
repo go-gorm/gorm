@@ -36,8 +36,11 @@ func TestCount(t *testing.T) {
 		t.Errorf("Count() method should get correct value, expect: %v, got %v", count, len(users))
 	}
 
-	if err := DB.Model(&User{}).Where("name = ?", user1.Name).Order("id desc").Count(&count).Find(&users).Error; err != nil {
+	if err := DB.Model(&User{}).Where("id in ?", []uint{user1.ID, user2.ID, user3.ID}).Order("id DESC").Count(&count).Find(&users).Error; err != nil {
 		t.Errorf(fmt.Sprintf("Count with order by should work, but got err %v", err))
+	}
+	if users[0].ID != user3.ID {
+		t.Errorf(fmt.Sprintf("Find order by after Count, first item should id: %d, but got id: %d", user3.ID, users[0].ID))
 	}
 
 	DB.Model(&User{}).Where("name = ?", user1.Name).Count(&count1).Or("name in ?", []string{user2.Name, user3.Name}).Count(&count2)
