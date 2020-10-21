@@ -2,7 +2,6 @@ package migrator
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -92,7 +91,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				columnTypes, _ := m.DB.Migrator().ColumnTypes(value)
 
 				for _, field := range stmt.Schema.FieldsByDBName {
-					var foundColumn *sql.ColumnType
+					var foundColumn gorm.ColumnType
 
 					for _, columnType := range columnTypes {
 						if columnType.Name() == field.DBName {
@@ -352,7 +351,7 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 	})
 }
 
-func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnType *sql.ColumnType) error {
+func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnType gorm.ColumnType) error {
 	// found, smart migrate
 	fullDataType := strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
@@ -395,12 +394,18 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	return nil
 }
 
-func (m Migrator) ColumnTypes(value interface{}) (columnTypes []*sql.ColumnType, err error) {
+func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType, err error) {
+	columnTypes = make([]gorm.ColumnType, 0)
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err == nil {
 			defer rows.Close()
-			columnTypes, err = rows.ColumnTypes()
+			rawColumnTypes, err := rows.ColumnTypes()
+			if err == nil {
+				for _, c := range rawColumnTypes {
+					columnTypes = append(columnTypes, c)
+				}
+			}
 		}
 		return err
 	})
