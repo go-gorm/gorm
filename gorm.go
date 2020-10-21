@@ -117,6 +117,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	preparedStmt := &PreparedStmtDB{
 		ConnPool:    db.ConnPool,
 		Stmts:       map[string]*sql.Stmt{},
+		Mux:         &sync.RWMutex{},
 		PreparedSQL: make([]string, 0, 100),
 	}
 	db.cacheStore.Store("preparedStmt", preparedStmt)

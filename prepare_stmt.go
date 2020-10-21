@@ -9,7 +9,7 @@ import (
 type PreparedStmtDB struct {
 	Stmts       map[string]*sql.Stmt
 	PreparedSQL []string
-	Mux         sync.RWMutex
+	Mux         *sync.RWMutex
 	ConnPool
 }
 
