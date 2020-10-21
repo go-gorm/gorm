@@ -188,7 +188,13 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 					if idx.Class != "" {
 						createTableSQL += idx.Class + " "
 					}
-					createTableSQL += "INDEX ? ?,"
+					createTableSQL += "INDEX ? ?"
+
+					if idx.Option != "" {
+						createTableSQL += " " + idx.Option
+					}
+
+					createTableSQL += ","
 					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
 				}
 			}
@@ -541,6 +547,10 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 
 			if idx.Type != "" {
 				createIndexSQL += " USING " + idx.Type
+			}
+
+			if idx.Option != "" {
+				createIndexSQL += " " + idx.Option
 			}
 
 			return m.DB.Exec(createIndexSQL, values...).Error

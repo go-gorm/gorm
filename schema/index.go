@@ -12,6 +12,7 @@ type Index struct {
 	Type    string // btree, hash, gist, spgist, gin, and brin
 	Where   string
 	Comment string
+	Option  string // WITH PARSER parser_name
 	Fields  []IndexOption
 }
 
@@ -44,6 +45,9 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				}
 				if idx.Comment == "" {
 					idx.Comment = index.Comment
+				}
+				if idx.Option == "" {
+					idx.Option = index.Option
 				}
 
 				idx.Fields = append(idx.Fields, index.Fields...)
@@ -119,6 +123,7 @@ func parseFieldIndexes(field *Field) (indexes []Index) {
 					Type:    settings["TYPE"],
 					Where:   settings["WHERE"],
 					Comment: settings["COMMENT"],
+					Option:  settings["OPTION"],
 					Fields: []IndexOption{{
 						Field:      field,
 						Expression: settings["EXPRESSION"],

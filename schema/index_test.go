@@ -15,7 +15,7 @@ type UserIndex struct {
 	Name4        string `gorm:"uniqueIndex"`
 	Name5        int64  `gorm:"index:,class:FULLTEXT,comment:hello \\, world,where:age > 10"`
 	Name6        int64  `gorm:"index:profile,comment:hello \\, world,where:age > 10"`
-	Age          int64  `gorm:"index:profile,expression:ABS(age)"`
+	Age          int64  `gorm:"index:profile,expression:ABS(age),option:WITH PARSER parser_name"`
 	OID          int64  `gorm:"index:idx_id;index:idx_oid,unique"`
 	MemberNumber string `gorm:"index:idx_id,priority:1"`
 }
@@ -63,6 +63,7 @@ func TestParseIndex(t *testing.T) {
 			Name:    "profile",
 			Comment: "hello , world",
 			Where:   "age > 10",
+			Option:  "WITH PARSER parser_name",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name6"}}, {
 				Field:      &schema.Field{Name: "Age"},
 				Expression: "ABS(age)",
@@ -87,7 +88,7 @@ func TestParseIndex(t *testing.T) {
 			t.Fatalf("Failed to found index %v from parsed indices %+v", k, indices)
 		}
 
-		for _, name := range []string{"Name", "Class", "Type", "Where", "Comment"} {
+		for _, name := range []string{"Name", "Class", "Type", "Where", "Comment", "Option"} {
 			if reflect.ValueOf(result).FieldByName(name).Interface() != reflect.ValueOf(v).FieldByName(name).Interface() {
 				t.Errorf(
 					"index %v %v should equal, expects %v, got %v",
