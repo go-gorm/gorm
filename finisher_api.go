@@ -326,6 +326,15 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		defer tx.Statement.AddClause(clause.Select{})
 	}
 
+	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
+		if _, ok := db.Statement.Clauses["GROUP BY"]; !ok {
+			delete(db.Statement.Clauses, "ORDER BY")
+			defer func() {
+				db.Statement.Clauses["ORDER BY"] = orderByClause
+			}()
+		}
+	}
+
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
 	if tx.RowsAffected != 1 {
