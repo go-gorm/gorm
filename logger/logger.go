@@ -64,7 +64,7 @@ var (
 		LogLevel:      Warn,
 		Colorful:      true,
 	})
-	Recorder = traceRecorder{Interface: Default}
+	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
 )
 
 func New(writer Writer, config Config) Interface {
@@ -173,7 +173,7 @@ type traceRecorder struct {
 }
 
 func (l traceRecorder) New() *traceRecorder {
-	return &traceRecorder{Interface: l.Interface}
+	return &traceRecorder{Interface: l.Interface, BeginAt: time.Now()}
 }
 
 func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
