@@ -48,11 +48,13 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestSmartMigrateColumn(t *testing.T) {
+	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
+
 	type UserMigrateColumn struct {
 		ID       uint
 		Name     string
 		Salary   float64
-		Birthday time.Time
+		Birthday time.Time `gorm:"precision:4"`
 	}
 
 	DB.Migrator().DropTable(&UserMigrateColumn{})
@@ -78,15 +80,15 @@ func TestSmartMigrateColumn(t *testing.T) {
 	for _, columnType := range columnTypes {
 		switch columnType.Name() {
 		case "name":
-			if length, _ := columnType.Length(); length != 0 && length != 128 {
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 128 {
 				t.Fatalf("name's length should be 128, but got %v", length)
 			}
 		case "salary":
-			if precision, o, _ := columnType.DecimalSize(); precision != 0 && precision != 2 {
+			if precision, o, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
 				t.Fatalf("salary's precision should be 2, but got %v %v", precision, o)
 			}
 		case "birthday":
-			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 2 {
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
 				t.Fatalf("birthday's precision should be 2, but got %v", precision)
 			}
 		}
@@ -111,15 +113,15 @@ func TestSmartMigrateColumn(t *testing.T) {
 	for _, columnType := range columnTypes {
 		switch columnType.Name() {
 		case "name":
-			if length, _ := columnType.Length(); length != 0 && length != 256 {
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 256 {
 				t.Fatalf("name's length should be 128, but got %v", length)
 			}
 		case "salary":
-			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 3 {
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
 				t.Fatalf("salary's precision should be 2, but got %v", precision)
 			}
 		case "birthday":
-			if precision, _, _ := columnType.DecimalSize(); precision != 0 && precision != 3 {
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
 				t.Fatalf("birthday's precision should be 2, but got %v", precision)
 			}
 		}
