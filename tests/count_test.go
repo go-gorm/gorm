@@ -70,6 +70,11 @@ func TestCount(t *testing.T) {
 
 	var count4 int64
 	if err := DB.Table("users").Joins("LEFT JOIN companies on companies.name = users.name").Where("users.name = ?", user1.Name).Count(&count4).Error; err != nil || count4 != 1 {
+		t.Errorf("count with join, got error: %v, count %v", err, count4)
+	}
+
+	var count5 int64
+	if err := DB.Table("users").Where("users.name = ?", user1.Name).Order("name").Count(&count5).Error; err != nil || count5 != 1 {
 		t.Errorf("count with join, got error: %v, count %v", err, count)
 	}
 }

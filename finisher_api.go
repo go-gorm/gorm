@@ -326,6 +326,15 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		defer tx.Statement.AddClause(clause.Select{})
 	}
 
+	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
+		if _, ok := db.Statement.Clauses["GROUP BY"]; !ok {
+			delete(db.Statement.Clauses, "ORDER BY")
+			defer func() {
+				db.Statement.Clauses["ORDER BY"] = orderByClause
+			}()
+		}
+	}
+
 	tx.Statement.Dest = count
 	tx.callbacks.Query().Execute(tx)
 	if tx.RowsAffected != 1 {
@@ -356,9 +365,13 @@ func (db *DB) Rows() (*sql.Rows, error) {
 
 // Scan scan value to a struct
 func (db *DB) Scan(dest interface{}) (tx *DB) {
-	currentLogger, newLogger := db.Logger, logger.Recorder.New()
+	config := *db.Config
+	currentLogger, newLogger := config.Logger, logger.Recorder.New()
+	config.Logger = newLogger
+
 	tx = db.getInstance()
-	tx.Logger = newLogger
+	tx.Config = &config
+
 	if rows, err := tx.Rows(); err != nil {
 		tx.AddError(err)
 	} else {

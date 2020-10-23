@@ -32,6 +32,7 @@ func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error
 	stmt := &gorm.Statement{DB: m.DB}
 	if m.DB.Statement != nil {
 		stmt.Table = m.DB.Statement.Table
+		stmt.TableExpr = m.DB.Statement.TableExpr
 	}
 
 	if table, ok := value.(string); ok {
@@ -160,6 +161,10 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				values                  = []interface{}{clause.Table{Name: stmt.Table}}
 				hasPrimaryKeyInDataType bool
 			)
+
+			if stmt.TableExpr != nil {
+				values[0] = *stmt.TableExpr
+			}
 
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.FieldsByDBName[dbName]
@@ -370,9 +375,9 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			alterColumn = true
 		} else {
 			// has size in data type and not equal
-			matches := regexp.MustCompile(`[^\d](\d+)[^\d]`).FindAllStringSubmatch(realDataType, -1)
-			matches2 := regexp.MustCompile(`[^\d]*(\d+)[^\d]`).FindAllStringSubmatch(fullDataType, -1)
-			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size)) && (len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
+			matches := regexp.MustCompile(`[^\d](\d+)[^\d]?`).FindAllStringSubmatch(realDataType, -1)
+			matches2 := regexp.MustCompile(`[^\d]*(\d+)[^\d]?`).FindAllStringSubmatch(fullDataType, -1)
+			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) && (len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
 				alterColumn = true
 			}
 		}
