@@ -762,13 +762,15 @@ func (field *Field) setupValuerAndSetter() {
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
 					reflectV := reflect.ValueOf(v)
-					if reflectV.Type().AssignableTo(field.FieldType) {
+					if !reflectV.IsValid() {
+						field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
-						if reflectV.IsNil() {
+						if reflectV.IsNil() || !reflectV.IsValid() {
 							field.ReflectValueOf(value).Set(reflect.New(field.FieldType).Elem())
 						} else {
-							err = field.Set(value, reflectV.Elem().Interface())
+							return field.Set(value, reflectV.Elem().Interface())
 						}
 					} else {
 						fieldValue := field.ReflectValueOf(value)
