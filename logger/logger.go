@@ -67,14 +67,14 @@ var (
 	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
 )
 
-func New(writer Writer, config Config) Interface {
+func New(writer Writer, config Config, v ...Options) Interface {
 	var (
-		infoStr      = "[info] %s\n "
-		warnStr      = "[warn] %s\n"
-		errStr       = "[error] %s\n"
-		traceStr     = "[traceStr] %s [%.3fms] [rows:%v] %s\n"
-		traceWarnStr = "[traceWarn] %s %s [%.3fms] [rows:%v] %s\n"
-		traceErrStr  = "[traceErr] %s %s [%.3fms] [rows:%v] %s\n"
+		infoStr      = "%s\n[info] "
+		warnStr      = "%s\n[warn] "
+		errStr       = "%s\n[error] "
+		traceStr     = "%s\n[%.3fms] [rows:%v] %s"
+		traceWarnStr = "%s %s\n[%.3fms] [rows:%v] %s"
+		traceErrStr  = "%s %s\n[%.3fms] [rows:%v] %s"
 	)
 
 	if config.Colorful {
@@ -180,4 +180,53 @@ func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (s
 	l.BeginAt = begin
 	l.SQL, l.RowsAffected = fc()
 	l.Err = err
+}
+
+// The developer can modify the log format through the following functions
+// so easy to integrate gorm into their  project
+
+type Options interface {
+	apply(*logger)
+}
+type OptionFunc func(log *logger)
+
+func (f OptionFunc) apply(log *logger) {
+	f(log)
+}
+
+// remodify
+func SetInfoStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.infoStr = format
+	})
+}
+
+func SetWarnStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.warnStr = format
+	})
+}
+
+func SetErrStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.errStr = format
+	})
+}
+
+func SetTraceStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.traceStr = format
+	})
+}
+
+func SetTracWarnStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.traceWarnStr = format
+	})
+}
+
+func SetTracErrStrFormat(format string) Options {
+	return OptionFunc(func(log *logger) {
+		log.traceErrStr = format
+	})
 }
