@@ -67,7 +67,7 @@ var (
 	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
 )
 
-func New(writer Writer, config Config, v ...Options) Interface {
+func New(writer Writer, config Config, opts ...Options) Interface {
 	var (
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
@@ -96,7 +96,7 @@ func New(writer Writer, config Config, v ...Options) Interface {
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 	}
-	for _, val := range v {
+	for _, val := range opts {
 		val.apply(log)
 	}
 	return log
