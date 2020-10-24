@@ -86,7 +86,7 @@ func New(writer Writer, config Config, v ...Options) Interface {
 		traceErrStr = RedBold + "%s " + MagentaBold + "%s\n" + Reset + Yellow + "[%.3fms] " + BlueBold + "[rows:%v]" + Reset + " %s"
 	}
 
-	return &logger{
+	log := &logger{
 		Writer:       writer,
 		Config:       config,
 		infoStr:      infoStr,
@@ -96,6 +96,10 @@ func New(writer Writer, config Config, v ...Options) Interface {
 		traceWarnStr: traceWarnStr,
 		traceErrStr:  traceErrStr,
 	}
+	for _, val := range v {
+		val.apply(log)
+	}
+	return log
 }
 
 type logger struct {
