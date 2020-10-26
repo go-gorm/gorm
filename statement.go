@@ -408,6 +408,7 @@ func (stmt *Statement) clone() *Statement {
 		TableExpr:            stmt.TableExpr,
 		Table:                stmt.Table,
 		Model:                stmt.Model,
+		Unscoped:             stmt.Unscoped,
 		Dest:                 stmt.Dest,
 		ReflectValue:         stmt.ReflectValue,
 		Clauses:              map[string]clause.Clause{},
@@ -419,6 +420,7 @@ func (stmt *Statement) clone() *Statement {
 		Schema:               stmt.Schema,
 		Context:              stmt.Context,
 		RaiseErrorOnNotFound: stmt.RaiseErrorOnNotFound,
+		UpdatingColumn:       stmt.UpdatingColumn,
 	}
 
 	for k, c := range stmt.Clauses {
