@@ -451,6 +451,27 @@ func (stmt *Statement) SetColumn(name string, value interface{}) {
 		v[name] = value
 	} else if stmt.Schema != nil {
 		if field := stmt.Schema.LookUpField(name); field != nil {
+			destValue := reflect.ValueOf(stmt.Dest)
+			for destValue.Kind() == reflect.Ptr {
+				destValue = destValue.Elem()
+			}
+
+			if stmt.ReflectValue != destValue {
+				if !destValue.CanAddr() {
+					destValueCanAddr := reflect.New(destValue.Type())
+					destValueCanAddr.Elem().Set(destValue)
+					stmt.Dest = destValueCanAddr.Interface()
+					destValue = destValueCanAddr.Elem()
+				}
+
+				switch destValue.Kind() {
+				case reflect.Struct:
+					field.Set(destValue, value)
+				default:
+					stmt.AddError(ErrInvalidData)
+				}
+			}
+
 			switch stmt.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
@@ -467,11 +488,7 @@ func (stmt *Statement) SetColumn(name string, value interface{}) {
 
 // Changed check model changed or not when updating
 func (stmt *Statement) Changed(fields ...string) bool {
-	modelValue := reflect.ValueOf(stmt.Model)
-	for modelValue.Kind() == reflect.Ptr {
-		modelValue = modelValue.Elem()
-	}
-
+	modelValue := stmt.ReflectValue
 	switch modelValue.Kind() {
 	case reflect.Slice, reflect.Array:
 		modelValue = stmt.ReflectValue.Index(stmt.CurDestIndex)
@@ -488,8 +505,13 @@ func (stmt *Statement) Changed(fields ...string) bool {
 					return !utils.AssertEqual(fv, fieldValue)
 				}
 			} else {
-				changedValue, _ := field.ValueOf(stmt.ReflectValue)
-				return !utils.AssertEqual(changedValue, fieldValue)
+				destValue := reflect.ValueOf(stmt.Dest)
+				for destValue.Kind() == reflect.Ptr {
+					destValue = destValue.Elem()
+				}
+
+				changedValue, zero := field.ValueOf(destValue)
+				return !zero && !utils.AssertEqual(changedValue, fieldValue)
 			}
 		}
 		return false

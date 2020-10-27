@@ -8,7 +8,7 @@ import (
 
 func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 	tx := db.Session(&gorm.Session{})
-	if called := fc(db.Statement.Dest, tx); !called {
+	if called := fc(db.Statement.ReflectValue.Interface(), tx); !called {
 		switch db.Statement.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			db.Statement.CurDestIndex = 0
