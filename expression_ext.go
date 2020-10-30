@@ -240,6 +240,11 @@ func (e *expr) Sum() string {
 	return "SUM(" + e.expr + ")"
 }
 
+func (e *expr) SumExpr() *expr {
+	e.expr = "SUM(" + e.expr + ")"
+	return e
+}
+
 func (e *expr) Max() string {
 	return "MAX(" + e.expr + ")"
 }
