@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -40,5 +41,16 @@ func TestSoftDelete(t *testing.T) {
 	DB.Unscoped().Delete(&user)
 	if err := DB.Unscoped().First(&User{}, "name = ?", user.Name).Error; !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Errorf("Can't find permanently deleted record")
+	}
+}
+
+func TestDeletedAtUnMarshal(t *testing.T) {
+	expected := &gorm.Model{}
+	b, _ := json.Marshal(expected)
+
+	result := &gorm.Model{}
+	_ = json.Unmarshal(b, result)
+	if result.DeletedAt != expected.DeletedAt {
+		t.Errorf("Failed, result.DeletedAt: %v is not same as expected.DeletedAt: %v", result.DeletedAt, expected.DeletedAt)
 	}
 }

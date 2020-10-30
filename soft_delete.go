@@ -31,7 +31,7 @@ func (n DeletedAt) MarshalJSON() ([]byte, error) {
 
 func (n *DeletedAt) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &n.Time)
-	if err == nil {
+	if err == nil && !n.Time.IsZero() {
 		n.Valid = true
 	}
 	return err
