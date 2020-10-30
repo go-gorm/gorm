@@ -26,12 +26,19 @@ func (n DeletedAt) Value() (driver.Value, error) {
 }
 
 func (n DeletedAt) MarshalJSON() ([]byte, error) {
+	if !n.Valid {
+		return []byte(`null`), nil
+	}
 	return json.Marshal(n.Time)
 }
 
 func (n *DeletedAt) UnmarshalJSON(b []byte) error {
+	if string(b) == "null" {
+		n.Valid = false
+		return nil
+	}
 	err := json.Unmarshal(b, &n.Time)
-	if err == nil && !n.Time.IsZero() {
+	if err == nil {
 		n.Valid = true
 	}
 	return err
