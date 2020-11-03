@@ -109,9 +109,10 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 	case reflect.Struct:
 		results = [][]interface{}{make([]interface{}, len(fields))}
 
+		notZero = true
 		for idx, field := range fields {
 			results[0][idx], zero = field.ValueOf(reflectValue)
-			notZero = notZero || !zero
+			notZero = notZero && !zero
 		}
 
 		if !notZero {
@@ -133,10 +134,11 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 			loaded[elemKey] = true
 
 			fieldValues := make([]interface{}, len(fields))
-			notZero = false
+
+			notZero = true
 			for idx, field := range fields {
 				fieldValues[idx], zero = field.ValueOf(elem)
-				notZero = notZero || !zero
+				notZero = notZero && !zero
 			}
 
 			if notZero {
