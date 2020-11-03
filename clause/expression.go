@@ -19,8 +19,9 @@ type NegationExpressionBuilder interface {
 
 // Expr raw expression
 type Expr struct {
-	SQL  string
-	Vars []interface{}
+	SQL                string
+	Vars               []interface{}
+	WithoutParentheses bool
 }
 
 // Build build raw expression
@@ -32,7 +33,7 @@ func (expr Expr) Build(builder Builder) {
 
 	for _, v := range []byte(expr.SQL) {
 		if v == '?' && len(expr.Vars) > idx {
-			if afterParenthesis {
+			if afterParenthesis || expr.WithoutParentheses {
 				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
 					builder.AddVar(builder, expr.Vars[idx])
 				} else {

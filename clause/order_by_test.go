@@ -39,6 +39,14 @@ func TestOrderBy(t *testing.T) {
 			},
 			"SELECT * FROM `users` ORDER BY `name`", nil,
 		},
+		{
+			[]clause.Interface{
+				clause.Select{}, clause.From{}, clause.OrderBy{
+					Expression: clause.Expr{SQL: "FIELD(id, ?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
+				},
+			},
+			"SELECT * FROM `users` ORDER BY FIELD(id, ?,?,?)", []interface{}{1, 2, 3},
+		},
 	}
 
 	for idx, result := range results {

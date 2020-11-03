@@ -7,7 +7,8 @@ type OrderByColumn struct {
 }
 
 type OrderBy struct {
-	Columns []OrderByColumn
+	Columns    []OrderByColumn
+	Expression Expression
 }
 
 // Name where clause name
@@ -17,14 +18,18 @@ func (orderBy OrderBy) Name() string {
 
 // Build build where clause
 func (orderBy OrderBy) Build(builder Builder) {
-	for idx, column := range orderBy.Columns {
-		if idx > 0 {
-			builder.WriteByte(',')
-		}
+	if orderBy.Expression != nil {
+		orderBy.Expression.Build(builder)
+	} else {
+		for idx, column := range orderBy.Columns {
+			if idx > 0 {
+				builder.WriteByte(',')
+			}
 
-		builder.WriteQuoted(column.Column)
-		if column.Desc {
-			builder.WriteString(" DESC")
+			builder.WriteQuoted(column.Column)
+			if column.Desc {
+				builder.WriteString(" DESC")
+			}
 		}
 	}
 }
