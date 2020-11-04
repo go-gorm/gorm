@@ -6,9 +6,7 @@ import (
 
 func RowQuery(db *gorm.DB) {
 	if db.Error == nil {
-		if db.Statement.SQL.String() == "" {
-			BuildQuerySQL(db)
-		}
+		BuildQuerySQL(db)
 
 		if !db.DryRun {
 			if isRows, ok := db.InstanceGet("rows"); ok && isRows.(bool) {
