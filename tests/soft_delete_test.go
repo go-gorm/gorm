@@ -3,6 +3,7 @@ package tests_test
 import (
 	"encoding/json"
 	"errors"
+	"regexp"
 	"testing"
 
 	"gorm.io/gorm"
@@ -26,6 +27,11 @@ func TestSoftDelete(t *testing.T) {
 
 	if err := DB.Delete(&user).Error; err != nil {
 		t.Fatalf("No error should happen when soft delete user, but got %v", err)
+	}
+
+	sql := DB.Session(&gorm.Session{DryRun: true}).Delete(&user).Statement.SQL.String()
+	if !regexp.MustCompile(`UPDATE .users. SET .deleted_at.=.* WHERE .users.\..id. = .* AND .users.\..deleted_at. IS NULL`).MatchString(sql) {
+		t.Fatalf("invalid sql generated, got %v", sql)
 	}
 
 	if DB.First(&User{}, "name = ?", user.Name).Error == nil {
