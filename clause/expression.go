@@ -202,7 +202,7 @@ func (eq Eq) Build(builder Builder) {
 }
 
 func (eq Eq) NegationBuild(builder Builder) {
-	Neq{eq.Column, eq.Value}.Build(builder)
+	Neq(eq).Build(builder)
 }
 
 // Neq not equal to for where
@@ -220,7 +220,7 @@ func (neq Neq) Build(builder Builder) {
 }
 
 func (neq Neq) NegationBuild(builder Builder) {
-	Eq{neq.Column, neq.Value}.Build(builder)
+	Eq(neq).Build(builder)
 }
 
 // Gt greater than for where
@@ -233,7 +233,7 @@ func (gt Gt) Build(builder Builder) {
 }
 
 func (gt Gt) NegationBuild(builder Builder) {
-	Lte{gt.Column, gt.Value}.Build(builder)
+	Lte(gt).Build(builder)
 }
 
 // Gte greater than or equal to for where
@@ -246,7 +246,7 @@ func (gte Gte) Build(builder Builder) {
 }
 
 func (gte Gte) NegationBuild(builder Builder) {
-	Lt{gte.Column, gte.Value}.Build(builder)
+	Lt(gte).Build(builder)
 }
 
 // Lt less than for where
@@ -259,7 +259,7 @@ func (lt Lt) Build(builder Builder) {
 }
 
 func (lt Lt) NegationBuild(builder Builder) {
-	Gte{lt.Column, lt.Value}.Build(builder)
+	Gte(lt).Build(builder)
 }
 
 // Lte less than or equal to for where
@@ -272,7 +272,7 @@ func (lte Lte) Build(builder Builder) {
 }
 
 func (lte Lte) NegationBuild(builder Builder) {
-	Gt{lte.Column, lte.Value}.Build(builder)
+	Gt(lte).Build(builder)
 }
 
 // Like whether string matches regular expression
