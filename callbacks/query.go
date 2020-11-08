@@ -83,7 +83,7 @@ func BuildQuerySQL(db *gorm.DB) {
 			if smallerStruct {
 				stmt := gorm.Statement{DB: db}
 				// smaller struct
-				if err := stmt.Parse(db.Statement.Dest); err == nil && stmt.Schema.ModelType != db.Statement.Schema.ModelType {
+				if err := stmt.Parse(db.Statement.Dest); err == nil {
 					clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
 
 					for idx, dbName := range stmt.Schema.DBNames {
