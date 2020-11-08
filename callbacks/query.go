@@ -75,7 +75,7 @@ func BuildQuerySQL(db *gorm.DB) {
 			smallerStruct := false
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Struct:
-				smallerStruct = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
+				smallerStruct = true
 			case reflect.Slice:
 				smallerStruct = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
 			}
