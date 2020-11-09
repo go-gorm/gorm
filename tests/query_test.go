@@ -317,82 +317,86 @@ func TestFillSmallerStruct(t *testing.T) {
 
 	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&User{}, user.ID)
 
-	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	if regexp.MustCompile("SELECT \\* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include a * wildcard, but got %v", result.Statement.SQL.String())
 	}
 
 	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&[]User{}, user.ID)
 
-	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	if regexp.MustCompile("SELECT \\* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include a * wildcard, but got %v", result.Statement.SQL.String())
 	}
 
 	result = DB.Session(&gorm.Session{DryRun: true}).Model(&User{}).Find(&[]*User{}, user.ID)
 
-	if regexp.MustCompile("SELECT .*name.* FROM .*users").MatchString(result.Statement.SQL.String()) {
-		t.Fatalf("SQL should not include selected names, but got %v", result.Statement.SQL.String())
+	if regexp.MustCompile("SELECT \\* FROM .*users").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("SQL should not include a * wildcard, but got %v", result.Statement.SQL.String())
 	}
 }
 
 func TestNot(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	userQuery := "SELECT .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active.* FROM .*users.* "
 
 	result := dryDB.Not(map[string]interface{}{"name": "jinzhu"}).Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* <> .+").MatchString(result.Statement.SQL.String()) {
+
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* <> .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where("name = ?", "jinzhu1").Not("name = ?", "jinzhu2").Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ AND NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* = .+ AND NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Not("name = ?", "jinzhu").Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE NOT.*name.* = .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Not(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Not([]int64{1, 2}).First(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*id.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*id.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Not([]int64{}).First(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .users.\\..deleted_at. IS NULL ORDER BY").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .users.\\..deleted_at. IS NULL ORDER BY").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Not(User{Name: "jinzhu", Age: 18}).First(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*users.*..*name.* <> .+ AND .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*users.*..*name.* <> .+ AND .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 }
 
 func TestOr(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	userQuery := "SELECT .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active.* FROM .*users.* "
 
 	result := dryDB.Where("role = ?", "admin").Or("role = ?", "super_admin").Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*role.* = .+ OR .*role.* = .+").MatchString(result.Statement.SQL.String()) {
+
+	if !regexp.MustCompile(userQuery + "WHERE .*role.* = .+ OR .*role.* = .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where("name = ?", "jinzhu").Or(User{Name: "jinzhu 2", Age: 18}).Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*name.* AND .*age.*\\)").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* = .+ OR \\(.*name.* AND .*age.*\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Where("name = ?", "jinzhu").Or(map[string]interface{}{"name": "jinzhu 2", "age": 18}).Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* = .+ OR \\(.*age.* AND .*name.*\\)").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*name.* = .+ OR \\(.*age.* AND .*name.*\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
 }
@@ -650,14 +654,15 @@ func TestSearchWithEmptyChain(t *testing.T) {
 
 func TestOrder(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
+	userQuery := "SELECT .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active.* FROM .*users.* "
 
 	result := dryDB.Order("age desc, name").Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* ORDER BY age desc, name").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "ORDER BY age desc, name").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build Order condition, but got %v", result.Statement.SQL.String())
 	}
 
 	result = dryDB.Order("age desc").Order("name").Find(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* ORDER BY age desc,name").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "ORDER BY age desc,name").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build Order condition, but got %v", result.Statement.SQL.String())
 	}
 
@@ -666,7 +671,7 @@ func TestOrder(t *testing.T) {
 	}).Find(&User{}).Statement
 
 	explainedSQL := dryDB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* ORDER BY FIELD\\(id,1,2,3\\)").MatchString(explainedSQL) {
+	if !regexp.MustCompile(userQuery + "ORDER BY FIELD\\(id,1,2,3\\)").MatchString(explainedSQL) {
 		t.Fatalf("Build Order condition, but got %v", explainedSQL)
 	}
 }
@@ -873,8 +878,9 @@ func TestScanNullValue(t *testing.T) {
 
 func TestQueryWithTableAndConditions(t *testing.T) {
 	result := DB.Session(&gorm.Session{DryRun: true}).Table("user").Find(&User{}, User{Name: "jinzhu"})
+	userQuery := "SELECT .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active.* FROM .user. "
 
-	if !regexp.MustCompile(`SELECT \* FROM .user. WHERE .user.\..name. = .+ AND .user.\..deleted_at. IS NULL`).MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + `WHERE .user.\..name. = .+ AND .user.\..deleted_at. IS NULL`).MatchString(result.Statement.SQL.String()) {
 		t.Errorf("invalid query SQL, got %v", result.Statement.SQL.String())
 	}
 }

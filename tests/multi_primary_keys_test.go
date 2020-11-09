@@ -140,7 +140,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 	}
 
 	if name := DB.Dialector.Name(); name == "postgres" {
-		t.Skip("skip postgers due to it only allow unique constraint matching given keys")
+		t.Skip("skip postgres due to it only allow unique constraint matching given keys")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
@@ -265,7 +265,7 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 	}
 
 	if name := DB.Dialector.Name(); name == "postgres" {
-		t.Skip("skip postgers due to it only allow unique constraint matching given keys")
+		t.Skip("skip postgres due to it only allow unique constraint matching given keys")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
