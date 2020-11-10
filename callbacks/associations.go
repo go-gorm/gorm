@@ -46,7 +46,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 					fieldType = reflect.PtrTo(fieldType)
 				}
 
-				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					obj := db.Statement.ReflectValue.Index(i)
 
@@ -109,7 +109,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 					fieldType = reflect.PtrTo(fieldType)
 				}
 
-				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 
 				for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 					obj := db.Statement.ReflectValue.Index(i)
@@ -181,7 +181,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			if !isPtr {
 				fieldType = reflect.PtrTo(fieldType)
 			}
-			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
+			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 			appendToElems := func(v reflect.Value) {
 				if _, zero := rel.Field.ValueOf(v); !zero {
 					f := reflect.Indirect(rel.Field.ReflectValueOf(v))
@@ -241,8 +241,8 @@ func SaveAfterAssociations(db *gorm.DB) {
 			if !isPtr {
 				fieldType = reflect.PtrTo(fieldType)
 			}
-			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 0)
-			joins := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.JoinTable.ModelType)), 0, 0)
+			elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
+			joins := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.JoinTable.ModelType)), 0, 10)
 			objs := []reflect.Value{}
 
 			appendToJoins := func(obj reflect.Value, elem reflect.Value) {

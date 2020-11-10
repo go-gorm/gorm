@@ -239,12 +239,12 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 }
 
 // BuildCondition build condition
-func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (conds []clause.Expression) {
+func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []clause.Expression {
 	if s, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
 		if _, err := strconv.Atoi(s); err != nil {
 			if s == "" && len(args) == 0 {
-				return
+				return nil
 			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(s, "?")) {
 				// looks like a where condition
 				return []clause.Expression{clause.Expr{SQL: s, Vars: args}}
@@ -257,6 +257,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 		}
 	}
 
+	conds := make([]clause.Expression, 0, 4)
 	args = append([]interface{}{query}, args...)
 	for _, arg := range args {
 		if valuer, ok := arg.(driver.Valuer); ok {
@@ -358,7 +359,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 						if len(values) > 0 {
 							conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: values})
 						}
-						return
+						return conds
 					}
 				}
 
@@ -367,7 +368,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 		}
 	}
 
-	return
+	return conds
 }
 
 // Build build sql with clauses names

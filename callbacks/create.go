@@ -57,7 +57,7 @@ func Create(config *Config) func(db *gorm.DB) {
 						db.RowsAffected, _ = result.RowsAffected()
 						if db.RowsAffected > 0 {
 							if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-								if insertID, err := result.LastInsertId(); err == nil {
+								if insertID, err := result.LastInsertId(); err == nil && insertID > 0 {
 									switch db.Statement.ReflectValue.Kind() {
 									case reflect.Slice, reflect.Array:
 										if config.LastInsertIDReversed {
@@ -87,11 +87,8 @@ func Create(config *Config) func(db *gorm.DB) {
 											}
 										}
 									case reflect.Struct:
-										if insertID > 0 {
-											if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
-
-												db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
-											}
+										if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
+											db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
 										}
 									}
 								} else {
@@ -253,7 +250,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			stmt.SQL.Grow(stmt.ReflectValue.Len() * 15)
+			stmt.SQL.Grow(stmt.ReflectValue.Len() * 18)
 			values.Values = make([][]interface{}, stmt.ReflectValue.Len())
 			defaultValueFieldsHavingValue := map[*schema.Field][]interface{}{}
 			if stmt.ReflectValue.Len() == 0 {

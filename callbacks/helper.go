@@ -12,7 +12,7 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 	values.Columns = make([]clause.Column, 0, len(mapValue))
 	selectColumns, restricted := stmt.SelectAndOmitColumns(true, false)
 
-	var keys []string
+	var keys = make([]string, 0, len(mapValue))
 	for k := range mapValue {
 		keys = append(keys, k)
 	}
@@ -41,7 +41,7 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 // ConvertSliceOfMapToValuesForCreate convert slice of map to values
 func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[string]interface{}) (values clause.Values) {
 	var (
-		columns                   = []string{}
+		columns                   = make([]string, 0, len(mapValues))
 		result                    = map[string][]interface{}{}
 		selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
 	)

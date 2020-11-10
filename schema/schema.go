@@ -50,7 +50,7 @@ func (schema Schema) String() string {
 }
 
 func (schema Schema) MakeSlice() reflect.Value {
-	slice := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(schema.ModelType)), 0, 0)
+	slice := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(schema.ModelType)), 0, 20)
 	results := reflect.New(slice.Type())
 	results.Elem().Set(slice)
 	return results
