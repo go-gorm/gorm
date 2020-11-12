@@ -37,6 +37,13 @@ type Config struct {
 	// AllowGlobalUpdate allow global update
 	AllowGlobalUpdate bool
 
+	// Automatically embed structs
+	AutoEmbedd bool
+
+	UseJSONTags bool
+
+	UnknownToJSON bool
+
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
 	// ConnPool db conn pool

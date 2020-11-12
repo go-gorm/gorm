@@ -317,7 +317,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) (c
 			}
 		default:
 			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
-			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy, stmt.DB.AutoEmbedd, stmt.DB.UseJSONTags); err == nil {
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, field := range s.Fields {
@@ -391,7 +391,7 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
+	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, stmt.DB.AutoEmbedd, stmt.DB.UseJSONTags); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]

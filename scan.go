@@ -49,6 +49,10 @@ func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns 
 	}
 }
 
+type Stringer interface {
+	String() string
+}
+
 func Scan(rows *sql.Rows, db *DB, initialized bool) {
 	columns, _ := rows.Columns()
 	values := make([]interface{}, len(columns))
@@ -110,7 +114,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 			if Schema != nil {
 				if reflectValueType != Schema.ModelType && reflectValueType.Kind() == reflect.Struct {
-					Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
+					Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy, db.AutoEmbedd, db.UseJSONTags)
 				}
 
 				for idx, column := range columns {
@@ -155,7 +159,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				} else {
 					for idx, field := range fields {
 						if field != nil {
-							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							if field.DataType == "raw_json" {
+								values[idx] = &sql.RawBytes{}
+							} else {
+								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							}
 						}
 					}
 
@@ -188,13 +196,21 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			}
 		case reflect.Struct:
 			if db.Statement.ReflectValue.Type() != Schema.ModelType {
-				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
+				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy, db.AutoEmbedd, db.UseJSONTags)
 			}
 
 			if initialized || rows.Next() {
 				for idx, column := range columns {
 					if field := Schema.LookUpField(column); field != nil && field.Readable {
-						values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+						if field.DataType == "raw_json" {
+							values[idx] = &sql.RawBytes{}
+						} else {
+							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							// if field.DBName == "_id" {
+							// 	var str = ""
+							// 	values[idx] = &str
+							// }
+						}
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {

@@ -71,7 +71,7 @@ func (schema *Schema) parseRelation(field *Field) {
 		cacheStore = field.OwnerSchema.cacheStore
 	}
 
-	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer); err != nil {
+	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer, schema.AutoEmbedd, schema.UseJSONTags); err != nil {
 		schema.err = err
 		return
 	}
@@ -263,7 +263,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		Tag:  `gorm:"-"`,
 	})
 
-	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer); err != nil {
+	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore, schema.namer, schema.AutoEmbedd, schema.UseJSONTags); err != nil {
 		schema.err = err
 	}
 	relation.JoinTable.Name = many2many

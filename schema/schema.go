@@ -28,6 +28,8 @@ type Schema struct {
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
 	Relationships             Relationships
+	AutoEmbedd                bool
+	UseJSONTags               bool
 	CreateClauses             []clause.Interface
 	QueryClauses              []clause.Interface
 	UpdateClauses             []clause.Interface
@@ -71,7 +73,7 @@ type Tabler interface {
 }
 
 // get data type from dialector
-func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+func Parse(dest interface{}, cacheStore *sync.Map, namer Namer, AutoEmbedd bool, UseJSONTags bool) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -110,6 +112,8 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		Relationships:  Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:     cacheStore,
 		namer:          namer,
+		AutoEmbedd:     AutoEmbedd,
+		UseJSONTags:    UseJSONTags,
 	}
 
 	defer func() {
@@ -129,7 +133,19 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
+	// if modelType.Field(0).Name == "Enabled" {
+	// 	if _, ok := namer.(embeddedNamer); ok {
+	// 		fmt.Printf("%#v\n", schema.Fields)
+	// 	}
+	// }
+
 	for _, field := range schema.Fields {
+		// if modelType.Field(0).Name == "Enabled" {
+		// 	if _, ok := namer.(embeddedNamer); ok {
+		// 		fmt.Printf("%#v\n", field)
+		// 	}
+		// }
+
 		if field.DBName == "" && field.DataType != "" {
 			field.DBName = namer.ColumnName(schema.Table, field.Name)
 		}
@@ -224,7 +240,8 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			for _, field := range schema.Fields {
 				if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 					if schema.parseRelation(field); schema.err != nil {
-						return schema, schema.err
+						schema.err = nil
+						// return schema, schema.err
 					}
 				}
 
