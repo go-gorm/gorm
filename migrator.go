@@ -33,6 +33,7 @@ type ColumnType interface {
 type Migrator interface {
 	// AutoMigrate
 	AutoMigrate(dst ...interface{}) error
+	After(dst interface{}) error
 
 	// Database
 	CurrentDatabase() string

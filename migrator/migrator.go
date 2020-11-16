@@ -147,8 +147,15 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				return err
 			}
 		}
+		if err := tx.Migrator().After(value); err != nil {
+			return err
+		}
 	}
 
+	return nil
+}
+
+func (m Migrator) After(dst interface{}) error {
 	return nil
 }
 
