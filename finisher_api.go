@@ -21,6 +21,29 @@ func (db *DB) Create(value interface{}) (tx *DB) {
 	return
 }
 
+// CreateInBatches insert the value in batches into database
+func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
+	reflectValue := reflect.Indirect(reflect.ValueOf(value))
+
+	switch reflectValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		tx = db.getInstance()
+		for i := 0; i < reflectValue.Len(); i += batchSize {
+			tx.AddError(tx.Transaction(func(tx *DB) error {
+				ends := i + batchSize
+				if ends > reflectValue.Len() {
+					ends = reflectValue.Len()
+				}
+
+				return tx.Create(reflectValue.Slice(i, ends).Interface()).Error
+			}))
+		}
+	default:
+		return db.Create(value)
+	}
+	return
+}
+
 // Save update value in database, if the value doesn't have primary key, will insert it
 func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()

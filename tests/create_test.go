@@ -40,6 +40,32 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func TestCreateInBatches(t *testing.T) {
+	users := []User{
+		*GetUser("create_in_batches_1", Config{Account: true, Pets: 2, Toys: 3, Company: true, Manager: true, Team: 0, Languages: 1, Friends: 1}),
+		*GetUser("create_in_batches_2", Config{Account: false, Pets: 2, Toys: 4, Company: false, Manager: false, Team: 1, Languages: 3, Friends: 5}),
+		*GetUser("create_in_batches_3", Config{Account: true, Pets: 0, Toys: 3, Company: true, Manager: false, Team: 4, Languages: 0, Friends: 1}),
+		*GetUser("create_in_batches_4", Config{Account: true, Pets: 3, Toys: 0, Company: false, Manager: true, Team: 0, Languages: 3, Friends: 0}),
+		*GetUser("create_in_batches_5", Config{Account: false, Pets: 0, Toys: 3, Company: true, Manager: false, Team: 1, Languages: 3, Friends: 1}),
+		*GetUser("create_in_batches_6", Config{Account: true, Pets: 4, Toys: 3, Company: false, Manager: true, Team: 1, Languages: 3, Friends: 0}),
+	}
+
+	DB.CreateInBatches(&users, 2)
+
+	for _, user := range users {
+		if user.ID == 0 {
+			t.Fatalf("failed to fill user's ID, got %v", user.ID)
+		} else {
+			var newUser User
+			if err := DB.Where("id = ?", user.ID).Preload(clause.Associations).First(&newUser).Error; err != nil {
+				t.Fatalf("errors happened when query: %v", err)
+			} else {
+				CheckUser(t, newUser, user)
+			}
+		}
+	}
+}
+
 func TestCreateFromMap(t *testing.T) {
 	if err := DB.Model(&User{}).Create(map[string]interface{}{"Name": "create_from_map", "Age": 18}).Error; err != nil {
 		t.Fatalf("failed to create data from map, got error: %v", err)
