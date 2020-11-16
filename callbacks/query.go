@@ -206,7 +206,9 @@ func Preload(db *gorm.DB) {
 				}
 			}
 
-			preload(db, rels, db.Statement.Preloads[name])
+			if db.Error == nil {
+				preload(db, rels, db.Statement.Preloads[name])
+			}
 		}
 	}
 }
