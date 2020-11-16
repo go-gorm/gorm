@@ -5,6 +5,7 @@ type OnConflict struct {
 	Where     Where
 	DoNothing bool
 	DoUpdates Set
+	UpdateAll bool
 }
 
 func (OnConflict) Name() string {

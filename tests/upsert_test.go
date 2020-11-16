@@ -41,6 +41,16 @@ func TestUpsert(t *testing.T) {
 	} else if langs[0].Name != "upsert-new" {
 		t.Errorf("should update name on conflict, but got name %+v", langs[0].Name)
 	}
+
+	lang = Language{Code: "upsert", Name: "Upsert-Newname"}
+	if err := DB.Clauses(clause.OnConflict{UpdateAll: true}).Create(&lang).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	var result Language
+	if err := DB.Find(&result, "code = ?", lang.Code).Error; err != nil || result.Name != lang.Name {
+		t.Fatalf("failed to upsert, got name %v", result.Name)
+	}
 }
 
 func TestUpsertSlice(t *testing.T) {

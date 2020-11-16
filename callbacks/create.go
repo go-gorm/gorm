@@ -329,26 +329,29 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 		}
 	}
 
-	if stmt.UpdatingColumn {
-		if stmt.Schema != nil && len(values.Columns) > 1 {
-			columns := make([]string, 0, len(values.Columns)-1)
-			for _, column := range values.Columns {
-				if field := stmt.Schema.LookUpField(column.Name); field != nil {
-					if !field.PrimaryKey && !field.HasDefaultValue && field.AutoCreateTime == 0 {
-						columns = append(columns, column.Name)
+	if c, ok := stmt.Clauses["ON CONFLICT"]; ok {
+		if onConflict, _ := c.Expression.(clause.OnConflict); onConflict.UpdateAll {
+			if stmt.Schema != nil && len(values.Columns) > 1 {
+				columns := make([]string, 0, len(values.Columns)-1)
+				for _, column := range values.Columns {
+					if field := stmt.Schema.LookUpField(column.Name); field != nil {
+						if !field.PrimaryKey && !field.HasDefaultValue && field.AutoCreateTime == 0 {
+							columns = append(columns, column.Name)
+						}
 					}
 				}
-			}
 
-			onConflict := clause.OnConflict{
-				Columns:   make([]clause.Column, len(stmt.Schema.PrimaryFieldDBNames)),
-				DoUpdates: clause.AssignmentColumns(columns),
-			}
+				onConflict := clause.OnConflict{
+					Columns:   make([]clause.Column, len(stmt.Schema.PrimaryFieldDBNames)),
+					DoUpdates: clause.AssignmentColumns(columns),
+				}
 
-			for idx, field := range stmt.Schema.PrimaryFields {
-				onConflict.Columns[idx] = clause.Column{Name: field.DBName}
+				for idx, field := range stmt.Schema.PrimaryFields {
+					onConflict.Columns[idx] = clause.Column{Name: field.DBName}
+				}
+
+				stmt.AddClause(onConflict)
 			}
-			stmt.AddClause(onConflict)
 		}
 	}
 

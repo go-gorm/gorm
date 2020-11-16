@@ -29,7 +29,9 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(value))
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
-		tx.Statement.UpdatingColumn = true
+		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
+			tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
+		}
 		tx.callbacks.Create().Execute(tx)
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
