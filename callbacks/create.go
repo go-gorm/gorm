@@ -55,6 +55,7 @@ func Create(config *Config) func(db *gorm.DB) {
 
 					if err == nil {
 						db.RowsAffected, _ = result.RowsAffected()
+
 						if db.RowsAffected > 0 {
 							if db.Statement.Schema != nil && db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
 								if insertID, err := result.LastInsertId(); err == nil && insertID > 0 {
@@ -138,6 +139,7 @@ func CreateWithReturning(db *gorm.DB) {
 			}
 
 			if !db.DryRun && db.Error == nil {
+				db.RowsAffected = 0
 				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
 				if err == nil {
