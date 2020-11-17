@@ -78,7 +78,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
 
 				for idx, dbName := range stmt.Schema.DBNames {
-					clauseSelect.Columns[idx] = clause.Column{Name: dbName}
+					clauseSelect.Columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
 				}
 			}
 		}
