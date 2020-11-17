@@ -160,8 +160,13 @@ func (in IN) Build(builder Builder) {
 	case 0:
 		builder.WriteString(" IN (NULL)")
 	case 1:
-		builder.WriteString(" = ")
-		builder.AddVar(builder, in.Values...)
+		if _, ok := in.Values[0].([]interface{}); !ok {
+			builder.WriteString(" = ")
+			builder.AddVar(builder, in.Values[0])
+			break
+		}
+
+		fallthrough
 	default:
 		builder.WriteString(" IN (")
 		builder.AddVar(builder, in.Values...)
@@ -173,9 +178,14 @@ func (in IN) NegationBuild(builder Builder) {
 	switch len(in.Values) {
 	case 0:
 	case 1:
-		builder.WriteQuoted(in.Column)
-		builder.WriteString(" <> ")
-		builder.AddVar(builder, in.Values...)
+		if _, ok := in.Values[0].([]interface{}); !ok {
+			builder.WriteQuoted(in.Column)
+			builder.WriteString(" <> ")
+			builder.AddVar(builder, in.Values[0])
+			break
+		}
+
+		fallthrough
 	default:
 		builder.WriteQuoted(in.Column)
 		builder.WriteString(" NOT IN (")
