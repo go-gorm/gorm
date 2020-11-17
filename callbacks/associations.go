@@ -66,7 +66,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 				}
 
 				if elems.Len() > 0 {
-					if db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error) == nil {
+					if db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error) == nil {
 						for i := 0; i < elems.Len(); i++ {
 							setupReferences(objs[i], elems.Index(i))
 						}
@@ -79,7 +79,7 @@ func SaveBeforeAssociations(db *gorm.DB) {
 						rv = rv.Addr()
 					}
 
-					if db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(rv.Interface()).Error) == nil {
+					if db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(rv.Interface()).Error) == nil {
 						setupReferences(db.Statement.ReflectValue, rv)
 					}
 				}
@@ -141,7 +141,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.AddError(db.Session(&gorm.Session{}).Clauses(
+					db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(
 						onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
 					).Create(elems.Interface()).Error)
 				}
@@ -163,7 +163,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					db.AddError(db.Session(&gorm.Session{}).Clauses(
+					db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(
 						onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
 					).Create(f.Interface()).Error)
 				}
@@ -224,7 +224,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 					assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 				}
 
-				db.AddError(db.Session(&gorm.Session{}).Clauses(
+				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(
 					onConflictOption(db.Statement, rel.FieldSchema, assignmentColumns),
 				).Create(elems.Interface()).Error)
 			}
@@ -291,7 +291,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.AddError(db.Session(&gorm.Session{}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error)
+				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error)
 
 				for i := 0; i < elems.Len(); i++ {
 					appendToJoins(objs[i], elems.Index(i))
@@ -299,7 +299,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface()).Error)
+				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface()).Error)
 			}
 		}
 	}

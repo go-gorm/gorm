@@ -7,7 +7,7 @@ import (
 
 // Migrator returns migrator
 func (db *DB) Migrator() Migrator {
-	return db.Dialector.Migrator(db.Session(&Session{WithConditions: true}))
+	return db.Dialector.Migrator(db.Session(&Session{}))
 }
 
 // AutoMigrate run auto migration for given models

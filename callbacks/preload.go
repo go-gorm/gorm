@@ -13,7 +13,7 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 	var (
 		reflectValue     = db.Statement.ReflectValue
 		rel              = rels[len(rels)-1]
-		tx               = db.Session(&gorm.Session{})
+		tx               = db.Session(&gorm.Session{NewDB: true})
 		relForeignKeys   []string
 		relForeignFields []*schema.Field
 		foreignFields    []*schema.Field

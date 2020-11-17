@@ -82,7 +82,7 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 // AutoMigrate
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, true) {
-		tx := m.DB.Session(&gorm.Session{})
+		tx := m.DB.Session(&gorm.Session{NewDB: true})
 		if !tx.Migrator().HasTable(value) {
 			if err := tx.Migrator().CreateTable(value); err != nil {
 				return err
@@ -154,7 +154,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, false) {
-		tx := m.DB.Session(&gorm.Session{})
+		tx := m.DB.Session(&gorm.Session{NewDB: true})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
 			var (
 				createTableSQL          = "CREATE TABLE ? ("
@@ -237,7 +237,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 func (m Migrator) DropTable(values ...interface{}) error {
 	values = m.ReorderModels(values, false)
 	for i := len(values) - 1; i >= 0; i-- {
-		tx := m.DB.Session(&gorm.Session{})
+		tx := m.DB.Session(&gorm.Session{NewDB: true})
 		if err := m.RunWithValue(values[i], func(stmt *gorm.Statement) error {
 			return tx.Exec("DROP TABLE IF EXISTS ?", m.CurrentTable(stmt)).Error
 		}); err != nil {
@@ -404,7 +404,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType, err error) {
 	columnTypes = make([]gorm.ColumnType, 0)
 	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
+		rows, err := m.DB.Session(&gorm.Session{NewDB: true}).Table(stmt.Table).Limit(1).Rows()
 		if err == nil {
 			defer rows.Close()
 			rawColumnTypes, err := rows.ColumnTypes()

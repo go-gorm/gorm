@@ -190,7 +190,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString("(NULL)")
 			}
 		case *DB:
-			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true, WithConditions: true}).getInstance()
+			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
 			subdb.Statement.Vars = append(subdb.Statement.Vars, stmt.Vars...)
 			subdb.callbacks.Query().Execute(subdb)
 			writer.WriteString(subdb.Statement.SQL.String())

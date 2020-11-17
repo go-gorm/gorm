@@ -417,7 +417,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			appendToRelations(reflectValue.Index(i), reflect.Indirect(reflect.ValueOf(values[i])), clear)
 
 			// TODO support save slice data, sql with case?
-			association.Error = association.DB.Session(&Session{}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Index(i).Addr().Interface()).Error
+			association.Error = association.DB.Session(&Session{NewDB: true}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Index(i).Addr().Interface()).Error
 		}
 	case reflect.Struct:
 		// clear old data
@@ -439,7 +439,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 		}
 
 		if len(values) > 0 {
-			association.Error = association.DB.Session(&Session{}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Addr().Interface()).Error
+			association.Error = association.DB.Session(&Session{NewDB: true}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Addr().Interface()).Error
 		}
 	}
 

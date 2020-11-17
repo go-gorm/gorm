@@ -63,7 +63,7 @@ type DB struct {
 type Session struct {
 	DryRun                 bool
 	PrepareStmt            bool
-	WithConditions         bool
+	NewDB                  bool
 	SkipHooks              bool
 	SkipDefaultTransaction bool
 	AllowGlobalUpdate      bool
@@ -196,7 +196,7 @@ func (db *DB) Session(config *Session) *DB {
 		tx.Statement.UpdatingColumn = true
 	}
 
-	if config.WithConditions {
+	if !config.NewDB {
 		tx.clone = 2
 	}
 
@@ -217,14 +217,13 @@ func (db *DB) Session(config *Session) *DB {
 
 // WithContext change current instance db's context to ctx
 func (db *DB) WithContext(ctx context.Context) *DB {
-	return db.Session(&Session{WithConditions: true, Context: ctx})
+	return db.Session(&Session{Context: ctx})
 }
 
 // Debug start debug mode
 func (db *DB) Debug() (tx *DB) {
 	return db.Session(&Session{
-		WithConditions: true,
-		Logger:         db.Logger.LogMode(logger.Info),
+		Logger: db.Logger.LogMode(logger.Info),
 	})
 }
 

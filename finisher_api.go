@@ -78,7 +78,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
 			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
-			if err := tx.Session(&Session{WithConditions: true}).First(result).Error; errors.Is(err, ErrRecordNotFound) {
+			if err := tx.Session(&Session{}).First(result).Error; errors.Is(err, ErrRecordNotFound) {
 				return tx.Create(value)
 			}
 		}
@@ -144,7 +144,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 	var (
 		tx = db.Order(clause.OrderByColumn{
 			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
-		}).Session(&Session{WithConditions: true})
+		}).Session(&Session{})
 		queryDB      = tx
 		rowsAffected int64
 		batch        int
@@ -480,7 +480,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			}
 		}()
 
-		err = fc(db.Session(&Session{WithConditions: true}))
+		err = fc(db.Session(&Session{}))
 	} else {
 		tx := db.Begin(opts...)
 
@@ -506,7 +506,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	var (
 		// clone statement
-		tx  = db.Session(&Session{WithConditions: true, Context: db.Statement.Context})
+		tx  = db.Session(&Session{Context: db.Statement.Context})
 		opt *sql.TxOptions
 		err error
 	)

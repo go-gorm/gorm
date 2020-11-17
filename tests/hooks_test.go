@@ -380,6 +380,13 @@ func TestSetColumn(t *testing.T) {
 	DB.First(&result2, product.ID)
 
 	AssertEqual(t, result2, product)
+
+	product2 := Product3{Name: "Product", Price: 0}
+	DB.Session(&gorm.Session{SkipHooks: true}).Create(&product2)
+
+	if product2.Price != 0 {
+		t.Errorf("invalid price after create without hooks, got %+v", product2)
+	}
 }
 
 func TestHooksForSlice(t *testing.T) {

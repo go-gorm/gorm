@@ -34,7 +34,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 						case schema.HasOne, schema.HasMany:
 							queryConds := rel.ToQueryConditions(db.Statement.ReflectValue)
 							modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-							tx := db.Session(&gorm.Session{}).Model(modelValue)
+							tx := db.Session(&gorm.Session{NewDB: true}).Model(modelValue)
 							withoutConditions := false
 
 							if len(db.Statement.Selects) > 0 {
@@ -71,7 +71,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 								relForeignKeys []string
 								modelValue     = reflect.New(rel.JoinTable.ModelType).Interface()
 								table          = rel.JoinTable.Table
-								tx             = db.Session(&gorm.Session{}).Model(modelValue).Table(table)
+								tx             = db.Session(&gorm.Session{NewDB: true}).Model(modelValue).Table(table)
 							)
 
 							for _, ref := range rel.References {

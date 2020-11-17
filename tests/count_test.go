@@ -41,7 +41,7 @@ func TestCount(t *testing.T) {
 		t.Errorf("multiple count in chain should works")
 	}
 
-	tx := DB.Model(&User{}).Where("name = ?", user1.Name).Session(&gorm.Session{WithConditions: true})
+	tx := DB.Model(&User{}).Where("name = ?", user1.Name).Session(&gorm.Session{})
 	tx.Count(&count1)
 	tx.Or("name in ?", []string{user2.Name, user3.Name}).Count(&count2)
 	if count1 != 1 || count2 != 3 {
