@@ -371,6 +371,11 @@ func TestSetColumn(t *testing.T) {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
+	DB.Model(&product).Session(&gorm.Session{SkipHooks: true}).Updates(Product3{Code: "L1216"})
+	if product.Price != 270 || product.Code != "L1216" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
 	var result2 Product3
 	DB.First(&result2, product.ID)
 

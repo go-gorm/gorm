@@ -64,6 +64,7 @@ type Session struct {
 	DryRun                 bool
 	PrepareStmt            bool
 	WithConditions         bool
+	SkipHooks              bool
 	SkipDefaultTransaction bool
 	AllowGlobalUpdate      bool
 	FullSaveAssociations   bool
@@ -169,15 +170,17 @@ func (db *DB) Session(config *Session) *DB {
 		txConfig.FullSaveAssociations = true
 	}
 
-	if config.Context != nil {
+	if config.Context != nil || config.PrepareStmt || config.SkipHooks {
 		tx.Statement = tx.Statement.clone()
 		tx.Statement.DB = tx
+	}
+
+	if config.Context != nil {
 		tx.Statement.Context = config.Context
 	}
 
 	if config.PrepareStmt {
 		if v, ok := db.cacheStore.Load("preparedStmt"); ok {
-			tx.Statement = tx.Statement.clone()
 			preparedStmt := v.(*PreparedStmtDB)
 			tx.Statement.ConnPool = &PreparedStmtDB{
 				ConnPool: db.Config.ConnPool,
@@ -187,6 +190,10 @@ func (db *DB) Session(config *Session) *DB {
 			txConfig.ConnPool = tx.Statement.ConnPool
 			txConfig.PrepareStmt = true
 		}
+	}
+
+	if config.SkipHooks {
+		tx.Statement.UpdatingColumn = true
 	}
 
 	if config.WithConditions {
