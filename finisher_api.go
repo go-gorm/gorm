@@ -307,7 +307,7 @@ func (db *DB) Updates(values interface{}) (tx *DB) {
 func (db *DB) UpdateColumn(column string, value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = map[string]interface{}{column: value}
-	tx.Statement.UpdatingColumn = true
+	tx.Statement.SkipHooks = true
 	tx.callbacks.Update().Execute(tx)
 	return
 }
@@ -315,7 +315,7 @@ func (db *DB) UpdateColumn(column string, value interface{}) (tx *DB) {
 func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = values
-	tx.Statement.UpdatingColumn = true
+	tx.Statement.SkipHooks = true
 	tx.callbacks.Update().Execute(tx)
 	return
 }

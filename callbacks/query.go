@@ -214,7 +214,7 @@ func Preload(db *gorm.DB) {
 }
 
 func AfterQuery(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterFind {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterFind {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(AfterFindInterface); ok {
 				db.AddError(i.AfterFind(tx))

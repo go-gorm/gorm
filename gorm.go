@@ -193,7 +193,7 @@ func (db *DB) Session(config *Session) *DB {
 	}
 
 	if config.SkipHooks {
-		tx.Statement.UpdatingColumn = true
+		tx.Statement.SkipHooks = true
 	}
 
 	if !config.NewDB {

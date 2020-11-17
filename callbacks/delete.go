@@ -10,7 +10,7 @@ import (
 )
 
 func BeforeDelete(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.BeforeDelete {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.BeforeDelete {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(BeforeDeleteInterface); ok {
 				db.AddError(i.BeforeDelete(tx))
@@ -153,7 +153,7 @@ func Delete(db *gorm.DB) {
 }
 
 func AfterDelete(db *gorm.DB) {
-	if db.Error == nil && db.Statement.Schema != nil && db.Statement.Schema.AfterDelete {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterDelete {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(AfterDeleteInterface); ok {
 				db.AddError(i.AfterDelete(tx))

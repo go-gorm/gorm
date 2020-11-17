@@ -37,7 +37,7 @@ type Statement struct {
 	Schema               *schema.Schema
 	Context              context.Context
 	RaiseErrorOnNotFound bool
-	UpdatingColumn       bool
+	SkipHooks            bool
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	CurDestIndex         int
@@ -421,7 +421,7 @@ func (stmt *Statement) clone() *Statement {
 		Schema:               stmt.Schema,
 		Context:              stmt.Context,
 		RaiseErrorOnNotFound: stmt.RaiseErrorOnNotFound,
-		UpdatingColumn:       stmt.UpdatingColumn,
+		SkipHooks:            stmt.SkipHooks,
 	}
 
 	for k, c := range stmt.Clauses {
