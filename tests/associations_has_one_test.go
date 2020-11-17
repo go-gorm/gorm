@@ -83,6 +83,20 @@ func TestHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, user2, "Account", 0, "after clear")
 }
 
+func TestHasOneAssociationWithSelect(t *testing.T) {
+	var user = *GetUser("hasone", Config{Account: true})
+
+	DB.Omit("Account.Number").Create(&user)
+
+	AssertAssociationCount(t, user, "Account", 1, "")
+
+	var account Account
+	DB.Model(&user).Association("Account").Find(&account)
+	if account.Number != "" {
+		t.Errorf("account's number should not be saved")
+	}
+}
+
 func TestHasOneAssociationForSlice(t *testing.T) {
 	var users = []User{
 		*GetUser("slice-hasone-1", Config{Account: true}),
