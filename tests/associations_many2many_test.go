@@ -93,6 +93,28 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user2, "Languages", 0, "after clear")
 }
 
+func TestMany2ManyOmitAssociations(t *testing.T) {
+	var user = *GetUser("many2many_omit_associations", Config{Languages: 2})
+
+	if err := DB.Omit("Languages.*").Create(&user).Error; err == nil {
+		t.Fatalf("should raise error when create users without languages reference")
+	}
+
+	if err := DB.Create(&user.Languages).Error; err != nil {
+		t.Fatalf("no error should happen when create languages, but got %v", err)
+	}
+
+	if err := DB.Omit("Languages.*").Create(&user).Error; err != nil {
+		t.Fatalf("no error should happen when create user when languages exists, but got %v", err)
+	}
+
+	// Find
+	var languages []Language
+	if DB.Model(&user).Association("Languages").Find(&languages); len(languages) != 2 {
+		t.Errorf("languages count should be %v, but got %v", 2, len(languages))
+	}
+}
+
 func TestMany2ManyAssociationForSlice(t *testing.T) {
 	var users = []User{
 		*GetUser("slice-many2many-1", Config{Languages: 2}),

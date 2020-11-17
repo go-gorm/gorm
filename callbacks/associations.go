@@ -291,7 +291,9 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error)
+				if v, ok := selectColumns[rel.Name+".*"]; !ok || v {
+					db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(onConflictOption(db.Statement, rel.FieldSchema, nil)).Create(elems.Interface()).Error)
+				}
 
 				for i := 0; i < elems.Len(); i++ {
 					appendToJoins(objs[i], elems.Index(i))
