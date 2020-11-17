@@ -140,13 +140,18 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 }
 
 // FindInBatches find records in batches
-func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) (tx *DB) {
-	tx = db.Session(&Session{WithConditions: true})
-	rowsAffected := int64(0)
-	batch := 0
+func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
+	var (
+		tx = db.Order(clause.OrderByColumn{
+			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		}).Session(&Session{WithConditions: true})
+		queryDB      = tx
+		rowsAffected int64
+		batch        int
+	)
 
 	for {
-		result := tx.Limit(batchSize).Offset(batch * batchSize).Find(dest)
+		result := queryDB.Limit(batchSize).Find(dest)
 		rowsAffected += result.RowsAffected
 		batch++
 
@@ -156,11 +161,15 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		if tx.Error != nil || int(result.RowsAffected) < batchSize {
 			break
+		} else {
+			resultsValue := reflect.Indirect(reflect.ValueOf(dest))
+			primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
+			queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 		}
 	}
 
 	tx.RowsAffected = rowsAffected
-	return
+	return tx
 }
 
 func (tx *DB) assignInterfacesToValue(values ...interface{}) {

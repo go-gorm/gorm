@@ -260,6 +260,13 @@ func TestFindInBatches(t *testing.T) {
 	if result := DB.Where("name = ?", users[0].Name).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
 		totalBatch += batch
 
+		for idx := range results {
+			results[idx].Name = results[idx].Name + "_new"
+		}
+		if err := tx.Save(results).Error; err != nil {
+			t.Errorf("failed to save users, got error %v", err)
+		}
+
 		if tx.RowsAffected != 2 {
 			t.Errorf("Incorrect affected rows, expects: 2, got %v", tx.RowsAffected)
 		}
@@ -275,6 +282,12 @@ func TestFindInBatches(t *testing.T) {
 
 	if totalBatch != 6 {
 		t.Errorf("incorrect total batch, expects: %v, got %v", 6, totalBatch)
+	}
+
+	var count int64
+	DB.Model(&User{}).Where("name = ?", "find_in_batches_new").Count(&count)
+	if count != 6 {
+		t.Errorf("incorrect count after update, expects: %v, got %v", 6, count)
 	}
 }
 
