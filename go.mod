@@ -1,4 +1,4 @@
-module gorm.io/gorm
+module TykTechnologies/gorm
 
 go 1.14
 
