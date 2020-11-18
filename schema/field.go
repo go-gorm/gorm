@@ -416,6 +416,39 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	return field
 }
 
+func isNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
+		return reflect.ValueOf(i).IsNil()
+	}
+	return false
+}
+
+func nilValue(i interface{}) []byte {
+	if isNil(i) {
+		if i == nil {
+			return []byte("")
+		}
+
+		switch reflect.TypeOf(i).Kind() {
+		case reflect.Ptr:
+			return nilValue(reflect.ValueOf(i).Elem().Interface())
+		case reflect.Map:
+			return []byte("{}")
+		case reflect.Array, reflect.Slice:
+			return []byte("[]")
+		default:
+			return []byte("")
+		}
+	}
+
+	bytes, _ := json.Marshal(i)
+	return bytes
+}
+
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// ValueOf
@@ -425,7 +458,7 @@ func (field *Field) setupValuerAndSetter() {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
 
 			if field.DataType == "raw_json" {
-				bytes, _ := json.Marshal(fieldValue.Interface())
+				bytes := nilValue(fieldValue.Interface())
 				return bytes, false
 			}
 
@@ -436,7 +469,7 @@ func (field *Field) setupValuerAndSetter() {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
 
 			if field.DataType == "raw_json" {
-				bytes, _ := json.Marshal(fieldValue.Interface())
+				bytes := nilValue(fieldValue.Interface())
 				return bytes, false
 			}
 
@@ -465,7 +498,7 @@ func (field *Field) setupValuerAndSetter() {
 			}
 
 			if field.DataType == "raw_json" {
-				bytes, _ := json.Marshal(v.Interface())
+				bytes := nilValue(v.Interface())
 				return bytes, false
 			}
 
@@ -755,7 +788,10 @@ func (field *Field) setupValuerAndSetter() {
 				field.ReflectValueOf(value).SetString(fmt.Sprintf("%."+strconv.Itoa(field.Precision)+"f", data))
 			default:
 				reflectV := reflect.ValueOf(v)
-				if reflectV.Type().AssignableTo(field.FieldType) {
+
+				if v == nil {
+					field.Set(value, reflect.New(field.FieldType).Elem())
+				} else if reflectV.Type().AssignableTo(field.FieldType) {
 					field.ReflectValueOf(value).Set(reflectV)
 				} else if reflectV.Kind() == reflect.Ptr {
 					if reflectV.IsNil() || !reflectV.IsValid() {
@@ -825,10 +861,6 @@ func (field *Field) setupValuerAndSetter() {
 			}
 		default:
 			if _, ok := fieldValue.Elem().Interface().(sql.Scanner); ok {
-				// if field.DBName == "_id" {
-				// 	panic(values[idx].(**string))
-				// }
-
 				// pointer scanner
 				field.Set = func(value reflect.Value, v interface{}) (err error) {
 					reflectV := reflect.ValueOf(v)
@@ -884,21 +916,21 @@ func (field *Field) setupValuerAndSetter() {
 					if field.DataType == "raw_json" {
 						var bytes []byte
 
+						valueV := field.ReflectValueOf(value)
+
 						switch t := v.(type) {
 						case []uint8:
 							bytes = []byte(t)
 						case *sql.RawBytes:
 							bytes = []byte(*t)
 						default:
-							panic(v)
+							panic("wrong type")
 						}
 
-						valueV := field.ReflectValueOf(value)
-
 						if valueV.Kind() == reflect.Ptr {
-							err = json.Unmarshal(bytes, field.ReflectValueOf(value).Interface())
+							err = json.Unmarshal(bytes, valueV.Interface())
 						} else {
-							err = json.Unmarshal(bytes, field.ReflectValueOf(value).Addr().Interface())
+							err = json.Unmarshal(bytes, valueV.Addr().Interface())
 						}
 
 						return
