@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -34,13 +35,13 @@ func TestInvalidAssociation(t *testing.T) {
 
 func TestAssociationNotNullClear(t *testing.T) {
 	type Profile struct {
-		ID       uint
+		gorm.Model
 		Number   string
 		MemberID uint `gorm:"not null"`
 	}
 
 	type Member struct {
-		ID       uint
+		gorm.Model
 		Profiles []Profile
 	}
 
