@@ -472,7 +472,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
-		db.SavePoint(fmt.Sprintf("sp%p", fc))
+		err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
 		defer func() {
 			// Make sure to rollback when panic, Block error or Commit error
 			if panicked || err != nil {
@@ -480,7 +480,9 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			}
 		}()
 
-		err = fc(db.Session(&Session{}))
+		if err == nil {
+			err = fc(db.Session(&Session{}))
+		}
 	} else {
 		tx := db.Begin(opts...)
 
@@ -491,7 +493,9 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			}
 		}()
 
-		err = fc(tx)
+		if err = tx.Error; err == nil {
+			err = fc(tx)
+		}
 
 		if err == nil {
 			err = tx.Commit().Error
