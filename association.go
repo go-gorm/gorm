@@ -118,7 +118,7 @@ func (association *Association) Replace(values ...interface{}) error {
 
 			if _, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields); len(pvs) > 0 {
 				column, values := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
-				tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap)
+				association.Error = tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap).Error
 			}
 		case schema.Many2Many:
 			var (
@@ -154,7 +154,7 @@ func (association *Association) Replace(values ...interface{}) error {
 				tx.Where(clause.Not(clause.IN{Column: relColumn, Values: relValues}))
 			}
 
-			tx.Delete(modelValue)
+			association.Error = tx.Delete(modelValue).Error
 		}
 	}
 	return association.Error

@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -29,6 +30,41 @@ func TestInvalidAssociation(t *testing.T) {
 	var user = *GetUser("invalid", Config{Company: true, Manager: true})
 	if err := DB.Model(&user).Association("Invalid").Find(&user.Company).Error; err == nil {
 		t.Fatalf("should return errors for invalid association, but got nil")
+	}
+}
+
+func TestAssociationNotNullClear(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Number   string
+		MemberID uint `gorm:"not null"`
+	}
+
+	type Member struct {
+		gorm.Model
+		Profiles []Profile
+	}
+
+	DB.Migrator().DropTable(&Member{}, &Profile{})
+
+	if err := DB.AutoMigrate(&Member{}, &Profile{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+
+	member := &Member{
+		Profiles: []Profile{{
+			Number: "1",
+		}, {
+			Number: "2",
+		}},
+	}
+
+	if err := DB.Create(&member).Error; err != nil {
+		t.Fatalf("Failed to create test data, got error: %v", err)
+	}
+
+	if err := DB.Model(member).Association("Profiles").Clear(); err == nil {
+		t.Fatalf("No error occured during clearind not null association")
 	}
 }
 
