@@ -32,6 +32,41 @@ func TestInvalidAssociation(t *testing.T) {
 	}
 }
 
+func TestAssociationNotNullClear(t *testing.T) {
+	type Profile struct {
+		ID       uint
+		Number   string
+		MemberID uint `gorm:"not null"`
+	}
+
+	type Member struct {
+		ID       uint
+		Profiles []Profile
+	}
+
+	DB.Migrator().DropTable(&Member{}, &Profile{})
+
+	if err := DB.AutoMigrate(&Member{}, &Profile{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+
+	member := &Member{
+		Profiles: []Profile{{
+			Number: "1",
+		}, {
+			Number: "2",
+		}},
+	}
+
+	if err := DB.Create(&member).Error; err != nil {
+		t.Fatalf("Failed to create test data, got error: %v", err)
+	}
+
+	if err := DB.Model(member).Association("Profiles").Clear(); err == nil {
+		t.Fatalf("No error occured during clearind not null association")
+	}
+}
+
 func TestForeignKeyConstraints(t *testing.T) {
 	type Profile struct {
 		ID       uint
