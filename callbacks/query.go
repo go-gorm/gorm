@@ -68,26 +68,39 @@ func BuildQuerySQL(db *gorm.DB) {
 			clauseSelect.Columns = make([]clause.Column, 0, len(db.Statement.Schema.DBNames))
 			for _, dbName := range db.Statement.Schema.DBNames {
 				if v, ok := selectColumns[dbName]; (ok && v) || !ok {
-					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{Name: dbName})
+					clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{Table: db.Statement.Table, Name: dbName})
 				}
 			}
 		} else if db.Statement.Schema != nil && db.Statement.ReflectValue.IsValid() {
-			smallerStruct := false
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Struct:
-				smallerStruct = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
-			case reflect.Slice:
-				smallerStruct = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
-			}
+			if !db.QueryFields {
+				smallerStruct := false
+				switch db.Statement.ReflectValue.Kind() {
+				case reflect.Struct:
+					smallerStruct = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
+				case reflect.Slice:
+					smallerStruct = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
+				}
 
-			if smallerStruct {
+				if smallerStruct {
+					stmt := gorm.Statement{DB: db}
+					// smaller struct
+					if err := stmt.Parse(db.Statement.Dest); err == nil && stmt.Schema.ModelType != db.Statement.Schema.ModelType {
+						clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
+
+						for idx, dbName := range stmt.Schema.DBNames {
+							clauseSelect.Columns[idx] = clause.Column{Name: dbName}
+						}
+					}
+				}
+			} else {
+				// Execute the query with all the fields of the table
 				stmt := gorm.Statement{DB: db}
 				// smaller struct
-				if err := stmt.Parse(db.Statement.Dest); err == nil && stmt.Schema.ModelType != db.Statement.Schema.ModelType {
+				if err := stmt.Parse(db.Statement.Dest); err == nil {
 					clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
 
 					for idx, dbName := range stmt.Schema.DBNames {
-						clauseSelect.Columns[idx] = clause.Column{Name: dbName}
+						clauseSelect.Columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
 					}
 				}
 			}

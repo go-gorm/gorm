@@ -36,6 +36,8 @@ type Config struct {
 	DisableForeignKeyConstraintWhenMigrating bool
 	// AllowGlobalUpdate allow global update
 	AllowGlobalUpdate bool
+	// QueryFields executes the SQL query with all fields of the table
+	QueryFields bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -68,6 +70,7 @@ type Session struct {
 	SkipDefaultTransaction bool
 	AllowGlobalUpdate      bool
 	FullSaveAssociations   bool
+	QueryFields            bool
 	Context                context.Context
 	Logger                 logger.Interface
 	NowFunc                func() time.Time
@@ -202,6 +205,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.DryRun {
 		tx.Config.DryRun = true
+	}
+
+	if config.QueryFields {
+		tx.Config.QueryFields = true
 	}
 
 	if config.Logger != nil {
