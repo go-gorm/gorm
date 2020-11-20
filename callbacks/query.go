@@ -72,31 +72,20 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 		} else if db.Statement.Schema != nil && db.Statement.ReflectValue.IsValid() {
-			if !db.QueryFields {
-				smallerStruct := false
+			queryFields := db.QueryFields
+			if !queryFields {
 				switch db.Statement.ReflectValue.Kind() {
 				case reflect.Struct:
-					smallerStruct = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
+					queryFields = db.Statement.ReflectValue.Type() != db.Statement.Schema.ModelType
 				case reflect.Slice:
-					smallerStruct = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
+					queryFields = db.Statement.ReflectValue.Type().Elem() != db.Statement.Schema.ModelType
 				}
+			}
 
-				if smallerStruct {
-					stmt := gorm.Statement{DB: db}
-					// smaller struct
-					if err := stmt.Parse(db.Statement.Dest); err == nil && stmt.Schema.ModelType != db.Statement.Schema.ModelType {
-						clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
-
-						for idx, dbName := range stmt.Schema.DBNames {
-							clauseSelect.Columns[idx] = clause.Column{Name: dbName}
-						}
-					}
-				}
-			} else {
-				// Execute the query with all the fields of the table
+			if queryFields {
 				stmt := gorm.Statement{DB: db}
 				// smaller struct
-				if err := stmt.Parse(db.Statement.Dest); err == nil {
+				if err := stmt.Parse(db.Statement.Dest); err == nil && (db.QueryFields || stmt.Schema.ModelType != db.Statement.Schema.ModelType) {
 					clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
 
 					for idx, dbName := range stmt.Schema.DBNames {
