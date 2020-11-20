@@ -359,7 +359,7 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		}
 	}
 
-	tx := db.Session(&gorm.Session{NewDB: true}).Clauses(onConflict)
+	tx := db.Session(&gorm.Session{NewDB: true}).Clauses(onConflict).Session(&gorm.Session{SkipHooks: db.Statement.SkipHooks})
 
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
