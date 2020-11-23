@@ -24,19 +24,20 @@ type Namer interface {
 type NamingStrategy struct {
 	TablePrefix   string
 	SingularTable bool
+	NameReplacer  *strings.Replacer
 }
 
 // TableName convert string to table name
 func (ns NamingStrategy) TableName(str string) string {
 	if ns.SingularTable {
-		return ns.TablePrefix + toDBName(str)
+		return ns.TablePrefix + ns.toDBName(str)
 	}
-	return ns.TablePrefix + inflection.Plural(toDBName(str))
+	return ns.TablePrefix + inflection.Plural(ns.toDBName(str))
 }
 
 // ColumnName convert string to column name
 func (ns NamingStrategy) ColumnName(table, column string) string {
-	return toDBName(column)
+	return ns.toDBName(column)
 }
 
 // JoinTableName convert string to join table name
@@ -46,14 +47,14 @@ func (ns NamingStrategy) JoinTableName(str string) string {
 	}
 
 	if ns.SingularTable {
-		return ns.TablePrefix + toDBName(str)
+		return ns.TablePrefix + ns.toDBName(str)
 	}
-	return ns.TablePrefix + inflection.Plural(toDBName(str))
+	return ns.TablePrefix + inflection.Plural(ns.toDBName(str))
 }
 
 // RelationshipFKName generate fk name for relation
 func (ns NamingStrategy) RelationshipFKName(rel Relationship) string {
-	return strings.Replace(fmt.Sprintf("fk_%s_%s", rel.Schema.Table, toDBName(rel.Name)), ".", "_", -1)
+	return strings.Replace(fmt.Sprintf("fk_%s_%s", rel.Schema.Table, ns.toDBName(rel.Name)), ".", "_", -1)
 }
 
 // CheckerName generate checker name
@@ -63,7 +64,7 @@ func (ns NamingStrategy) CheckerName(table, column string) string {
 
 // IndexName generate index name
 func (ns NamingStrategy) IndexName(table, column string) string {
-	idxName := fmt.Sprintf("idx_%v_%v", table, toDBName(column))
+	idxName := fmt.Sprintf("idx_%v_%v", table, ns.toDBName(column))
 	idxName = strings.Replace(idxName, ".", "_", -1)
 
 	if utf8.RuneCountInString(idxName) > 64 {
@@ -91,11 +92,15 @@ func init() {
 	commonInitialismsReplacer = strings.NewReplacer(commonInitialismsForReplacer...)
 }
 
-func toDBName(name string) string {
+func (ns NamingStrategy) toDBName(name string) string {
 	if name == "" {
 		return ""
 	} else if v, ok := smap.Load(name); ok {
 		return v.(string)
+	}
+
+	if ns.NameReplacer != nil {
+		name = ns.NameReplacer.Replace(name)
 	}
 
 	var (
