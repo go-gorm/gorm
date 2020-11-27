@@ -84,7 +84,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			scanIntoMap(mapValue, values, columns)
 			*dest = append(*dest, mapValue)
 		}
-	case *int, *int64, *uint, *uint64, *float32, *float64, *string, *time.Time:
+	case *int, *int32, *int64, *uint, *uint32, *uint64, *float32, *float64, *string, *time.Time:
 		for initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
