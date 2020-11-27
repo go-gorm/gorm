@@ -66,7 +66,10 @@ func Update(db *gorm.DB) {
 			} else {
 				return
 			}
-			db.Statement.Build("UPDATE", "SET", "WHERE", "RETURNING")
+			db.Statement.Build("UPDATE", "SET", "WHERE")
+			if db.Dialector.Name() == "postgres" {
+				db.Statement.Build("RETURNING")
+			}
 		}
 
 		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {

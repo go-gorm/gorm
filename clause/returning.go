@@ -11,6 +11,12 @@ func (returning Returning) Name() string {
 
 // Build build where clause
 func (returning Returning) Build(builder Builder) {
+	for _, column := range returning.Columns {
+		if column.Name == "*" {
+			builder.WriteByte('*')
+			return
+		}
+	}
 	for idx, column := range returning.Columns {
 		if idx > 0 {
 			builder.WriteByte(',')
