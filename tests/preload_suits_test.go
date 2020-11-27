@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"sort"
+	"sync/atomic"
 	"testing"
 
 	"gorm.io/gorm"
@@ -1497,10 +1498,9 @@ func TestPreloadManyToManyCallbacks(t *testing.T) {
 	}
 	DB.Save(&lvl)
 
-	called := 0
-
+	var called int64
 	DB.Callback().Query().After("gorm:query").Register("TestPreloadManyToManyCallbacks", func(_ *gorm.DB) {
-		called = called + 1
+		atomic.AddInt64(&called, 1)
 	})
 
 	DB.Preload("Level2s").First(&Level1{}, "id = ?", lvl.ID)

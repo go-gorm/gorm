@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
@@ -211,4 +212,22 @@ func TestPreloadEmptyData(t *testing.T) {
 	} else if !regexp.MustCompile(`"Team":\[\],"Languages":\[\],"Friends":\[\]`).MatchString(string(r)) {
 		t.Errorf("json marshal is not empty slice, got %v", string(r))
 	}
+}
+
+func TestPreloadGoroutine(t *testing.T) {
+	var wg sync.WaitGroup
+
+	wg.Add(10)
+	for i := 0; i < 10; i++ {
+		go func() {
+			defer wg.Done()
+			var user2 []User
+			tx := DB.Where("id = ?", 1).Session(&gorm.Session{})
+
+			if err := tx.Preload("Team").Find(&user2).Error; err != nil {
+				t.Error(err)
+			}
+		}()
+	}
+	wg.Wait()
 }

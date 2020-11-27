@@ -38,6 +38,7 @@ type Schema struct {
 	BeforeSave, AfterSave     bool
 	AfterFind                 bool
 	err                       error
+	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
 }
@@ -89,7 +90,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
-		return v.(*Schema), nil
+		s := v.(*Schema)
+		<-s.initialized
+		return s, nil
 	}
 
 	modelValue := reflect.New(modelType)
@@ -110,6 +113,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		Relationships:  Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:     cacheStore,
 		namer:          namer,
+		initialized:    make(chan struct{}),
 	}
 
 	defer func() {
@@ -219,7 +223,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	if _, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
+	if s, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
 		if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 			for _, field := range schema.Fields {
 				if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
@@ -245,8 +249,31 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 					field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
 				}
 			}
+			close(schema.initialized)
 		}
+	} else {
+		return s.(*Schema), nil
 	}
 
 	return schema, schema.err
+}
+
+func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+	modelType := reflect.ValueOf(dest).Type()
+	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
+	if modelType.Kind() != reflect.Struct {
+		if modelType.PkgPath() == "" {
+			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+		}
+		return nil, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+	}
+
+	if v, ok := cacheStore.Load(modelType); ok {
+		return v.(*Schema), nil
+	}
+
+	return Parse(dest, cacheStore, namer)
 }

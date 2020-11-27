@@ -71,7 +71,7 @@ func (schema *Schema) parseRelation(field *Field) {
 		cacheStore = field.OwnerSchema.cacheStore
 	}
 
-	if relation.FieldSchema, err = Parse(fieldValue, cacheStore, schema.namer); err != nil {
+	if relation.FieldSchema, err = getOrParse(fieldValue, cacheStore, schema.namer); err != nil {
 		schema.err = err
 		return
 	}
