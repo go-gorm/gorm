@@ -252,6 +252,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			close(schema.initialized)
 		}
 	} else {
+		<-s.(*Schema).initialized
 		return s.(*Schema), nil
 	}
 
