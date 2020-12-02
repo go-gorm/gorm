@@ -318,12 +318,8 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 
 	if len(defaultUpdatingColumns) > 0 {
 		var columns []clause.Column
-		if s.PrioritizedPrimaryField != nil {
-			columns = []clause.Column{{Name: s.PrioritizedPrimaryField.DBName}}
-		} else {
-			for _, dbName := range s.PrimaryFieldDBNames {
-				columns = append(columns, clause.Column{Name: dbName})
-			}
+		for _, dbName := range s.PrimaryFieldDBNames {
+			columns = append(columns, clause.Column{Name: dbName})
 		}
 
 		return clause.OnConflict{
