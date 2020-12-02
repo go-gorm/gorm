@@ -377,7 +377,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		}
 
 		tx.Statement.AddClause(clause.Select{Expression: expr})
-		defer tx.Statement.AddClause(clause.Select{})
+		defer delete(tx.Statement.Clauses, "SELECT")
 	}
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
