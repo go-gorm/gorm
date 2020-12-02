@@ -15,6 +15,10 @@ import (
 
 // Create insert the value into database
 func (db *DB) Create(value interface{}) (tx *DB) {
+	if db.CreateBatchSize > 0 {
+		return db.CreateInBatches(value, db.CreateBatchSize)
+	}
+
 	tx = db.getInstance()
 	tx.Statement.Dest = value
 	tx.callbacks.Create().Execute(tx)
@@ -27,19 +31,30 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
+		var rowsAffected int64
 		tx = db.getInstance()
-		for i := 0; i < reflectValue.Len(); i += batchSize {
-			tx.AddError(tx.Transaction(func(tx *DB) error {
+		tx.AddError(tx.Transaction(func(tx *DB) error {
+			for i := 0; i < reflectValue.Len(); i += batchSize {
 				ends := i + batchSize
 				if ends > reflectValue.Len() {
 					ends = reflectValue.Len()
 				}
 
-				return tx.Create(reflectValue.Slice(i, ends).Interface()).Error
-			}))
-		}
+				subtx := tx.getInstance()
+				subtx.Statement.Dest = reflectValue.Slice(i, ends).Interface()
+				subtx.callbacks.Create().Execute(subtx)
+				if subtx.Error != nil {
+					return subtx.Error
+				}
+				rowsAffected += subtx.RowsAffected
+			}
+			return nil
+		}))
+		tx.RowsAffected = rowsAffected
 	default:
-		return db.Create(value)
+		tx = db.getInstance()
+		tx.Statement.Dest = value
+		tx.callbacks.Create().Execute(tx)
 	}
 	return
 }
