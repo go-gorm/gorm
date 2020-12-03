@@ -223,37 +223,38 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	if s, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
-		defer close(schema.initialized)
-		if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
-			for _, field := range schema.Fields {
-				if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
-					if schema.parseRelation(field); schema.err != nil {
-						return schema, schema.err
-					}
-				}
+	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+		s := v.(*Schema)
+		<-s.initialized
+		return s, s.err
+	}
 
-				fieldValue := reflect.New(field.IndirectFieldType)
-				if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
-					field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
-				}
-
-				if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
-					field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
-				}
-
-				if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
-					field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
-				}
-
-				if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
-					field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
+	defer close(schema.initialized)
+	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
+		for _, field := range schema.Fields {
+			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
+				if schema.parseRelation(field); schema.err != nil {
+					return schema, schema.err
 				}
 			}
+
+			fieldValue := reflect.New(field.IndirectFieldType)
+			if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
+				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
+				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
+				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
+				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
+			}
 		}
-	} else {
-		schema = s.(*Schema)
-		<-schema.initialized
 	}
 
 	return schema, schema.err
