@@ -92,7 +92,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	if v, ok := cacheStore.Load(modelType); ok {
 		s := v.(*Schema)
 		<-s.initialized
-		return s, nil
+		return s, s.err
 	}
 
 	modelValue := reflect.New(modelType)
@@ -224,6 +224,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	if s, loaded := cacheStore.LoadOrStore(modelType, schema); !loaded {
+		defer close(schema.initialized)
 		if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 			for _, field := range schema.Fields {
 				if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
@@ -249,11 +250,10 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 					field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
 				}
 			}
-			close(schema.initialized)
 		}
 	} else {
-		<-s.(*Schema).initialized
-		return s.(*Schema), nil
+		schema = s.(*Schema)
+		<-schema.initialized
 	}
 
 	return schema, schema.err
