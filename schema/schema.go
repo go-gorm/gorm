@@ -161,7 +161,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			}
 		}
 
-		if _, ok := schema.FieldsByName[field.Name]; !ok {
+		if of, ok := schema.FieldsByName[field.Name]; !ok || of.TagSettings["-"] == "-" {
 			schema.FieldsByName[field.Name] = field
 		}
 

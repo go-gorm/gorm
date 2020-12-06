@@ -576,7 +576,7 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 	}
 
 	if stmt.Schema != nil {
-		for _, field := range stmt.Schema.Fields {
+		for _, field := range stmt.Schema.FieldsByName {
 			name := field.DBName
 			if name == "" {
 				name = field.Name
