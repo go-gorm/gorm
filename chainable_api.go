@@ -93,10 +93,12 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 		}
 		delete(tx.Statement.Clauses, "SELECT")
 	case string:
-		fields := strings.FieldsFunc(v, utils.IsValidDBNameChar)
-
-		// normal field names
-		if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
+		if (strings.Contains(v, " ?") || strings.Contains(v, "(?")) && len(args) > 0 {
+			tx.Statement.AddClause(clause.Select{
+				Distinct:   db.Statement.Distinct,
+				Expression: clause.Expr{SQL: v, Vars: args},
+			})
+		} else {
 			tx.Statement.Selects = []string{v}
 
 			for _, arg := range args {
@@ -115,11 +117,6 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 			}
 
 			delete(tx.Statement.Clauses, "SELECT")
-		} else {
-			tx.Statement.AddClause(clause.Select{
-				Distinct:   db.Statement.Distinct,
-				Expression: clause.Expr{SQL: v, Vars: args},
-			})
 		}
 	default:
 		tx.AddError(fmt.Errorf("unsupported select args %v %v", query, args))

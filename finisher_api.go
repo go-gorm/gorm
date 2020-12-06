@@ -355,29 +355,38 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		}()
 	}
 
+	if selectClause, ok := db.Statement.Clauses["SELECT"]; ok {
+		defer func() {
+			db.Statement.Clauses["SELECT"] = selectClause
+		}()
+	} else {
+		defer delete(tx.Statement.Clauses, "SELECT")
+	}
+
 	if len(tx.Statement.Selects) == 0 {
 		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
-		defer delete(tx.Statement.Clauses, "SELECT")
 	} else if !strings.Contains(strings.ToLower(tx.Statement.Selects[0]), "count(") {
 		expr := clause.Expr{SQL: "count(1)"}
 
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
-			if tx.Statement.Parse(tx.Statement.Model) == nil {
-				if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
-					dbName = f.DBName
+			fields := strings.FieldsFunc(dbName, utils.IsValidDBNameChar)
+			if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
+				if tx.Statement.Parse(tx.Statement.Model) == nil {
+					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
+						dbName = f.DBName
+					}
 				}
-			}
 
-			if tx.Statement.Distinct {
-				expr = clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: dbName}}}
-			} else {
-				expr = clause.Expr{SQL: "COUNT(?)", Vars: []interface{}{clause.Column{Name: dbName}}}
+				if tx.Statement.Distinct {
+					expr = clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: dbName}}}
+				} else {
+					expr = clause.Expr{SQL: "COUNT(?)", Vars: []interface{}{clause.Column{Name: dbName}}}
+				}
 			}
 		}
 
 		tx.Statement.AddClause(clause.Select{Expression: expr})
-		defer delete(tx.Statement.Clauses, "SELECT")
 	}
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
@@ -457,11 +466,13 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 		tx.AddError(ErrModelValueRequired)
 	}
 
-	fields := strings.FieldsFunc(column, utils.IsValidDBNameChar)
-	tx.Statement.AddClauseIfNotExists(clause.Select{
-		Distinct: tx.Statement.Distinct,
-		Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
-	})
+	if len(tx.Statement.Selects) != 1 {
+		fields := strings.FieldsFunc(column, utils.IsValidDBNameChar)
+		tx.Statement.AddClauseIfNotExists(clause.Select{
+			Distinct: tx.Statement.Distinct,
+			Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
+		})
+	}
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return

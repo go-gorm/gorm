@@ -3,6 +3,8 @@ package tests_test
 import (
 	"fmt"
 	"regexp"
+	"sort"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -77,4 +79,46 @@ func TestCount(t *testing.T) {
 	if err := DB.Table("users").Where("users.name = ?", user1.Name).Order("name").Count(&count5).Error; err != nil || count5 != 1 {
 		t.Errorf("count with join, got error: %v, count %v", err, count)
 	}
+
+	var count6 int64
+	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
+		"(CASE WHEN name=? THEN ? ELSE ? END) as name", "count-1", "main", "other",
+	).Count(&count6).Find(&users).Error; err != nil || count6 != 3 {
+		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+
+	expects := []User{User{Name: "main"}, {Name: "other"}, {Name: "other"}}
+	sort.SliceStable(users, func(i, j int) bool {
+		return strings.Compare(users[i].Name, users[j].Name) < 0
+	})
+
+	AssertEqual(t, users, expects)
+
+	var count7 int64
+	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
+		"(CASE WHEN name=? THEN ? ELSE ? END) as name, age", "count-1", "main", "other",
+	).Count(&count7).Find(&users).Error; err != nil || count7 != 3 {
+		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+
+	expects = []User{User{Name: "main", Age: 18}, {Name: "other", Age: 18}, {Name: "other", Age: 18}}
+	sort.SliceStable(users, func(i, j int) bool {
+		return strings.Compare(users[i].Name, users[j].Name) < 0
+	})
+
+	AssertEqual(t, users, expects)
+
+	var count8 int64
+	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
+		"(CASE WHEN age=18 THEN 1 ELSE 2 END) as age", "name",
+	).Count(&count8).Find(&users).Error; err != nil || count8 != 3 {
+		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+
+	expects = []User{User{Name: "count-1", Age: 1}, {Name: "count-2", Age: 1}, {Name: "count-3", Age: 1}}
+	sort.SliceStable(users, func(i, j int) bool {
+		return strings.Compare(users[i].Name, users[j].Name) < 0
+	})
+
+	AssertEqual(t, users, expects)
 }

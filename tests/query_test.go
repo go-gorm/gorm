@@ -677,7 +677,7 @@ func TestPluckWithSelect(t *testing.T) {
 	DB.Create(&users)
 
 	var userAges []int
-	err := DB.Model(&User{}).Where("name like ?", "pluck_with_select%").Select("age + 1  as user_age").Pluck("user_age", &userAges).Error
+	err := DB.Model(&User{}).Where("name like ?", "pluck_with_select%").Select("age + 1 as user_age").Pluck("user_age", &userAges).Error
 	if err != nil {
 		t.Fatalf("got error when pluck user_age: %v", err)
 	}
