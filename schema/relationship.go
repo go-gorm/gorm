@@ -362,7 +362,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			schema.guessRelation(relation, field, guessEmbeddedHas)
 		// case guessEmbeddedHas:
 		default:
-			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
+			schema.err = fmt.Errorf("invalid field found for struct %v's field %v, need to define a valid foreign key for relations or it need to implement the Valuer/Scanner interface", schema, field.Name)
 		}
 	}
 
@@ -427,7 +427,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			}
 		}
 	} else if len(primaryFields) == 0 {
-		if len(foreignFields) == 1 {
+		if len(foreignFields) == 1 && primarySchema.PrioritizedPrimaryField != nil {
 			primaryFields = append(primaryFields, primarySchema.PrioritizedPrimaryField)
 		} else if len(primarySchema.PrimaryFields) == len(foreignFields) {
 			primaryFields = append(primaryFields, primarySchema.PrimaryFields...)
