@@ -203,7 +203,7 @@ type Eq struct {
 func (eq Eq) Build(builder Builder) {
 	builder.WriteQuoted(eq.Column)
 
-	if eq.Value == nil {
+	if eqNil(eq.Value) {
 		builder.WriteString(" IS NULL")
 	} else {
 		builder.WriteString(" = ")
@@ -221,7 +221,7 @@ type Neq Eq
 func (neq Neq) Build(builder Builder) {
 	builder.WriteQuoted(neq.Column)
 
-	if neq.Value == nil {
+	if eqNil(neq.Value) {
 		builder.WriteString(" IS NOT NULL")
 	} else {
 		builder.WriteString(" <> ")
@@ -298,4 +298,13 @@ func (like Like) NegationBuild(builder Builder) {
 	builder.WriteQuoted(like.Column)
 	builder.WriteString(" NOT LIKE ")
 	builder.AddVar(builder, like.Value)
+}
+
+func eqNil(value interface{}) bool {
+	return value == nil || eqNilReflect(value)
+}
+
+func eqNilReflect(value interface{}) bool {
+	reflectValue := reflect.ValueOf(value)
+	return reflectValue.Kind() == reflect.Ptr && reflectValue.IsNil()
 }
