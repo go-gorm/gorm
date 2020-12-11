@@ -101,3 +101,52 @@ func TestNamedExpr(t *testing.T) {
 		})
 	}
 }
+
+func TestExpression(t *testing.T) {
+	column := "column-name"
+	results := []struct {
+		Expressions    []clause.Expression
+		Result string
+	}{{
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: "column-value"},
+		},
+		Result: "`column-name` = ?",
+	},{
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: nil},
+			clause.Eq{Column: column, Value: (*string)(nil)},
+			clause.Eq{Column: column, Value: (*int)(nil)},
+			clause.Eq{Column: column, Value: (*bool)(nil)},
+			clause.Eq{Column: column, Value: (interface{})(nil)},
+		},
+		Result: "`column-name` IS NULL",
+	},{
+		Expressions: []clause.Expression{
+			clause.Neq{Column: column, Value: "column-value"},
+		},
+		Result: "`column-name` <> ?",
+	},{
+		Expressions: []clause.Expression{
+			clause.Neq{Column: column, Value: nil},
+			clause.Neq{Column: column, Value: (*string)(nil)},
+			clause.Neq{Column: column, Value: (*int)(nil)},
+			clause.Neq{Column: column, Value: (*bool)(nil)},
+			clause.Neq{Column: column, Value: (interface{})(nil)},
+		},
+		Result: "`column-name` IS NOT NULL",
+	}}
+
+	for idx, result := range results {
+		for idy, expression := range result.Expressions {
+			t.Run(fmt.Sprintf("case #%v.%v", idx, idy), func(t *testing.T) {
+				user, _ := schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
+				stmt := &gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
+				expression.Build(stmt)
+				if stmt.SQL.String() != result.Result {
+					t.Errorf("generated SQL is not equal, expects %v, but got %v", result.Result, stmt.SQL.String())
+				}
+			})
+		}
+	}
+}
