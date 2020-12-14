@@ -25,7 +25,7 @@ func (db *PreparedStmtDB) Close() {
 	db.Mux.Unlock()
 }
 
-func (db *PreparedStmtDB) prepare(ctx context.Context, query string) (*sql.Stmt, error) {
+func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, query string) (*sql.Stmt, error) {
 	db.Mux.RLock()
 	if stmt, ok := db.Stmts[query]; ok {
 		db.Mux.RUnlock()
@@ -40,7 +40,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, query string) (*sql.Stmt,
 		return stmt, nil
 	}
 
-	stmt, err := db.ConnPool.PrepareContext(ctx, query)
+	stmt, err := conn.PrepareContext(ctx, query)
 	if err == nil {
 		db.Stmts[query] = stmt
 		db.PreparedSQL = append(db.PreparedSQL, query)
@@ -59,7 +59,7 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 }
 
 func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
-	stmt, err := db.prepare(ctx, query)
+	stmt, err := db.prepare(ctx, db.ConnPool, query)
 	if err == nil {
 		result, err = stmt.ExecContext(ctx, args...)
 		if err != nil {
@@ -73,7 +73,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 }
 
 func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	stmt, err := db.prepare(ctx, query)
+	stmt, err := db.prepare(ctx, db.ConnPool, query)
 	if err == nil {
 		rows, err = stmt.QueryContext(ctx, args...)
 		if err != nil {
@@ -87,7 +87,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 }
 
 func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	stmt, err := db.prepare(ctx, query)
+	stmt, err := db.prepare(ctx, db.ConnPool, query)
 	if err == nil {
 		return stmt.QueryRowContext(ctx, args...)
 	}
@@ -114,7 +114,7 @@ func (tx *PreparedStmtTX) Rollback() error {
 }
 
 func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
-	stmt, err := tx.PreparedStmtDB.prepare(ctx, query)
+	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, query)
 	if err == nil {
 		result, err = tx.Tx.StmtContext(ctx, stmt).ExecContext(ctx, args...)
 		if err != nil {
@@ -128,7 +128,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 }
 
 func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
-	stmt, err := tx.PreparedStmtDB.prepare(ctx, query)
+	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, query)
 	if err == nil {
 		rows, err = tx.Tx.Stmt(stmt).QueryContext(ctx, args...)
 		if err != nil {
@@ -142,7 +142,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 }
 
 func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	stmt, err := tx.PreparedStmtDB.prepare(ctx, query)
+	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, query)
 	if err == nil {
 		return tx.Tx.StmtContext(ctx, stmt).QueryRowContext(ctx, args...)
 	}
