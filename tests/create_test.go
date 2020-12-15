@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"errors"
+	"regexp"
 	"testing"
 	"time"
 
@@ -491,5 +492,28 @@ func TestFirstOrCreateWithPrimaryKey(t *testing.T) {
 
 	if companies[0].ID != 101 || companies[1].ID != 102 {
 		t.Errorf("invalid primary key after creating, got %v, %v", companies[0].ID, companies[1].ID)
+	}
+}
+
+func TestCreateFromSubQuery(t *testing.T) {
+	user := User{Name: "jinzhu"}
+
+	DB.Create(&user)
+
+	subQuery := DB.Table("users").Where("name=?", user.Name).Select("id")
+
+	result := DB.Session(&gorm.Session{DryRun: true}).Model(&Pet{}).Create([]map[string]interface{}{
+		{
+			"name":    "cat",
+			"user_id": gorm.Expr("(?)", DB.Table("(?) as tmp", subQuery).Select("@uid:=id")),
+		},
+		{
+			"name":    "dog",
+			"user_id": gorm.Expr("@uid"),
+		},
+	})
+
+	if !regexp.MustCompile(`INSERT INTO .pets. \(.name.,.user_id.\) .*VALUES \(.+,\(SELECT @uid:=id FROM \(SELECT id FROM .users. WHERE name=.+\) as tmp\)\),\(.+,@uid\)`).MatchString(result.Statement.SQL.String()) {
+		t.Errorf("invalid insert SQL, got %v", result.Statement.SQL.String())
 	}
 }

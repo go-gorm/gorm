@@ -165,16 +165,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		case Valuer:
 			stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
 		case clause.Expr:
-			var varStr strings.Builder
-			var sql = v.SQL
-			for _, arg := range v.Vars {
-				stmt.Vars = append(stmt.Vars, arg)
-				stmt.DB.Dialector.BindVarTo(&varStr, stmt, arg)
-				sql = strings.Replace(sql, "?", varStr.String(), 1)
-				varStr.Reset()
-			}
-
-			writer.WriteString(sql)
+			v.Build(stmt)
 		case driver.Valuer:
 			stmt.Vars = append(stmt.Vars, v)
 			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
