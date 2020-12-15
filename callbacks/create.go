@@ -244,7 +244,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 		for _, db := range stmt.Schema.DBNames {
 			if field := stmt.Schema.FieldsByDBName[db]; !field.HasDefaultValue || field.DefaultValueInterface != nil {
-				if v, ok := selectColumns[db]; (ok && v) || (!ok && !restricted) {
+				if v, ok := selectColumns[db]; (ok && v) || (!ok && (!restricted || field.AutoCreateTime > 0 || field.AutoUpdateTime > 0)) {
 					values.Columns = append(values.Columns, clause.Column{Name: db})
 				}
 			}

@@ -466,7 +466,9 @@ func TestSelectWithUpdateColumn(t *testing.T) {
 	var result2 User
 	DB.First(&result2, user.ID)
 
-	AssertEqual(t, lastUpdatedAt, result2.UpdatedAt)
+	if lastUpdatedAt.Format(time.RFC3339Nano) == result2.UpdatedAt.Format(time.RFC3339Nano) {
+		t.Errorf("UpdatedAt should be changed")
+	}
 
 	if result2.Name == user.Name || result2.Age != user.Age {
 		t.Errorf("Should only update users with name column")

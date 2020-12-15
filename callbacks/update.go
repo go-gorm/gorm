@@ -202,7 +202,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
 				if field.AutoUpdateTime > 0 && value[field.Name] == nil && value[field.DBName] == nil {
-					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+					if v, ok := selectColumns[field.DBName]; (ok && v) || !ok {
 						now := stmt.DB.NowFunc()
 						assignValue(field, now)
 
@@ -226,21 +226,19 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
-					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 						value, isZero := field.ValueOf(updatingValue)
-						if !stmt.SkipHooks {
-							if field.AutoUpdateTime > 0 {
-								if field.AutoUpdateTime == schema.UnixNanosecond {
-									value = stmt.DB.NowFunc().UnixNano()
-								} else if field.AutoUpdateTime == schema.UnixMillisecond {
-									value = stmt.DB.NowFunc().UnixNano() / 1e6
-								} else if field.GORMDataType == schema.Time {
-									value = stmt.DB.NowFunc()
-								} else {
-									value = stmt.DB.NowFunc().Unix()
-								}
-								isZero = false
+						if !stmt.SkipHooks && field.AutoUpdateTime > 0 {
+							if field.AutoUpdateTime == schema.UnixNanosecond {
+								value = stmt.DB.NowFunc().UnixNano()
+							} else if field.AutoUpdateTime == schema.UnixMillisecond {
+								value = stmt.DB.NowFunc().UnixNano() / 1e6
+							} else if field.GORMDataType == schema.Time {
+								value = stmt.DB.NowFunc()
+							} else {
+								value = stmt.DB.NowFunc().Unix()
 							}
+							isZero = false
 						}
 
 						if ok || !isZero {
