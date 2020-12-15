@@ -447,9 +447,15 @@ func (stmt *Statement) clone() *Statement {
 
 // Helpers
 // SetColumn set column's value
-func (stmt *Statement) SetColumn(name string, value interface{}) {
+//   stmt.SetColumn("Name", "jinzhu") // Hooks Method
+//   stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
+func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks ...bool) {
 	if v, ok := stmt.Dest.(map[string]interface{}); ok {
 		v[name] = value
+	} else if v, ok := stmt.Dest.([]map[string]interface{}); ok {
+		for _, m := range v {
+			m[name] = value
+		}
 	} else if stmt.Schema != nil {
 		if field := stmt.Schema.LookUpField(name); field != nil {
 			destValue := reflect.ValueOf(stmt.Dest)
@@ -475,7 +481,13 @@ func (stmt *Statement) SetColumn(name string, value interface{}) {
 
 			switch stmt.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
+				if len(fromCallbacks) > 0 {
+					for i := 0; i < stmt.ReflectValue.Len(); i++ {
+						field.Set(stmt.ReflectValue.Index(i), value)
+					}
+				} else {
+					field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
+				}
 			case reflect.Struct:
 				field.Set(stmt.ReflectValue, value)
 			}

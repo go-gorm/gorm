@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"regexp"
@@ -27,6 +28,10 @@ func TestSoftDelete(t *testing.T) {
 
 	if err := DB.Delete(&user).Error; err != nil {
 		t.Fatalf("No error should happen when soft delete user, but got %v", err)
+	}
+
+	if sql.NullTime(user.DeletedAt).Time.IsZero() {
+		t.Fatalf("user's deleted at is zero")
 	}
 
 	sql := DB.Session(&gorm.Session{DryRun: true}).Delete(&user).Statement.SQL.String()
