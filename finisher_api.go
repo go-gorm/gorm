@@ -498,13 +498,15 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
-		err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
-		defer func() {
-			// Make sure to rollback when panic, Block error or Commit error
-			if panicked || err != nil {
-				db.RollbackTo(fmt.Sprintf("sp%p", fc))
-			}
-		}()
+		if !db.DisableNestedTransaction {
+			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
+			defer func() {
+				// Make sure to rollback when panic, Block error or Commit error
+				if panicked || err != nil {
+					db.RollbackTo(fmt.Sprintf("sp%p", fc))
+				}
+			}()
+		}
 
 		if err == nil {
 			err = fc(db.Session(&Session{}))

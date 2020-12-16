@@ -34,6 +34,8 @@ type Config struct {
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
 	DisableForeignKeyConstraintWhenMigrating bool
+	// DisableNestedTransaction disable nested transaction
+	DisableNestedTransaction bool
 	// AllowGlobalUpdate allow global update
 	AllowGlobalUpdate bool
 	// QueryFields executes the SQL query with all fields of the table
@@ -65,18 +67,19 @@ type DB struct {
 
 // Session session config when create session with Session() method
 type Session struct {
-	DryRun                 bool
-	PrepareStmt            bool
-	NewDB                  bool
-	SkipHooks              bool
-	SkipDefaultTransaction bool
-	AllowGlobalUpdate      bool
-	FullSaveAssociations   bool
-	QueryFields            bool
-	Context                context.Context
-	Logger                 logger.Interface
-	NowFunc                func() time.Time
-	CreateBatchSize        int
+	DryRun                   bool
+	PrepareStmt              bool
+	NewDB                    bool
+	SkipHooks                bool
+	SkipDefaultTransaction   bool
+	DisableNestedTransaction bool
+	AllowGlobalUpdate        bool
+	FullSaveAssociations     bool
+	QueryFields              bool
+	Context                  context.Context
+	Logger                   logger.Interface
+	NowFunc                  func() time.Time
+	CreateBatchSize          int
 }
 
 // Open initialize db session based on dialector
@@ -204,6 +207,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.SkipHooks {
 		tx.Statement.SkipHooks = true
+	}
+
+	if config.DisableNestedTransaction {
+		txConfig.DisableNestedTransaction = true
 	}
 
 	if !config.NewDB {
