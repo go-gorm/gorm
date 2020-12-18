@@ -296,7 +296,10 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if joins.Len() > 0 {
-				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(clause.OnConflict{DoNothing: true}).Create(joins.Interface()).Error)
+				db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(clause.OnConflict{DoNothing: true}).Session(&gorm.Session{
+					SkipHooks:                db.Statement.SkipHooks,
+					DisableNestedTransaction: true,
+				}).Create(joins.Interface()).Error)
 			}
 		}
 	}
@@ -355,7 +358,10 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		}
 	}
 
-	tx := db.Session(&gorm.Session{NewDB: true}).Clauses(onConflict).Session(&gorm.Session{SkipHooks: db.Statement.SkipHooks})
+	tx := db.Session(&gorm.Session{NewDB: true}).Clauses(onConflict).Session(&gorm.Session{
+		SkipHooks:                db.Statement.SkipHooks,
+		DisableNestedTransaction: true,
+	})
 
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
