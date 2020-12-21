@@ -226,6 +226,12 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
+					if field.PrimaryKey {
+						if value, isZero := field.ValueOf(updatingValue); !isZero {
+							stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+						}
+						continue
+					}
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 						value, isZero := field.ValueOf(updatingValue)
 						if !stmt.SkipHooks && field.AutoUpdateTime > 0 {
