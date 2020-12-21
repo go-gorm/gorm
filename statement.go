@@ -315,10 +315,11 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 					for _, field := range s.Fields {
 						if field.Readable {
 							if v, isZero := field.ValueOf(reflectValue); !isZero {
+								tableName := field.Schema.Table
 								if field.DBName != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: tableName, Name: field.DBName}, Value: v})
 								} else if field.DataType != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: tableName, Name: field.Name}, Value: v})
 								}
 							}
 						}
