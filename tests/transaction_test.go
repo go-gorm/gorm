@@ -366,3 +366,25 @@ func TestTransactionOnClosedConn(t *testing.T) {
 		t.Errorf("should returns error when commit with closed conn, got error %v", err)
 	}
 }
+
+func TestTransactionRollbackUnlessComitted(t *testing.T) {
+	{
+		tx := DB.Begin()
+		tx.Commit()
+
+		tx.Rollback()
+		if tx.Error == nil {
+			t.Fatalf("Expected error")
+		}
+	}
+
+	{
+		tx := DB.Begin()
+		tx.Commit()
+
+		tx.RollbackUnlessComitted()
+		if tx.Error != nil {
+			t.Fatalf("Did not expect error, got: %v", tx.Error)
+		}
+	}
+}

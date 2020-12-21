@@ -584,6 +584,21 @@ func (db *DB) Rollback() *DB {
 	return db
 }
 
+// RollbackUnlessComitted rollback a transaction unless it has already been comitted
+func (db *DB) RollbackUnlessComitted() *DB {
+	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
+		if !reflect.ValueOf(committer).IsNil() {
+			err := committer.Rollback()
+			if err != nil && err != sql.ErrTxDone {
+				db.AddError(err)
+			}
+		}
+	} else {
+		db.AddError(ErrInvalidTransaction)
+	}
+	return db
+}
+
 func (db *DB) SavePoint(name string) *DB {
 	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
 		db.AddError(savePointer.SavePoint(db, name))
