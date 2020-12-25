@@ -470,7 +470,7 @@ func (association *Association) buildCondition() *DB {
 			tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
 		}
 
-		tx.Clauses(clause.From{Joins: []clause.Join{{
+		tx = tx.Session(&Session{QueryFields: true}).Clauses(clause.From{Joins: []clause.Join{{
 			Table: clause.Table{Name: association.Relationship.JoinTable.Table},
 			ON:    clause.Where{Exprs: queryConds},
 		}}})
