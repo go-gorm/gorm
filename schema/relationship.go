@@ -414,9 +414,18 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 				lookUpName = field.Name + primaryField.Name
 			}
 
-			if f := foreignSchema.LookUpField(lookUpName); f != nil {
-				foreignFields = append(foreignFields, f)
-				primaryFields = append(primaryFields, primaryField)
+			lookUpNames := []string{lookUpName}
+			if len(primaryFields) == 1 {
+				lookUpNames = append(lookUpNames, strings.TrimSuffix(lookUpName, primaryField.Name)+"ID")
+				lookUpNames = append(lookUpNames, strings.TrimSuffix(lookUpName, primaryField.Name)+"Id")
+			}
+
+			for _, name := range lookUpNames {
+				if f := foreignSchema.LookUpField(name); f != nil {
+					foreignFields = append(foreignFields, f)
+					primaryFields = append(primaryFields, primaryField)
+					break
+				}
 			}
 		}
 	}
