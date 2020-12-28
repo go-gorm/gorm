@@ -32,9 +32,14 @@ func (set Set) Build(builder Builder) {
 
 // MergeClause merge assignments clauses
 func (set Set) MergeClause(clause *Clause) {
-	copiedAssignments := make([]Assignment, len(set))
-	copy(copiedAssignments, set)
-	clause.Expression = Set(copiedAssignments)
+	if clause.Expression == nil {
+		copiedAssignments := make([]Assignment, len(set))
+		copy(copiedAssignments, set)
+		clause.Expression = Set(copiedAssignments)
+	} else if copiedAssignments, ok := clause.Expression.(Set); ok {
+		copiedAssignments = append(copiedAssignments, set...)
+		clause.Expression = Set(copiedAssignments)
+	}
 }
 
 func Assignments(values map[string]interface{}) Set {
