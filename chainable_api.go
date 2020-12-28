@@ -93,7 +93,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 		}
 		delete(tx.Statement.Clauses, "SELECT")
 	case string:
-		if (strings.Contains(v, " ?") || strings.Contains(v, "(?")) && len(args) > 0 {
+		if strings.Count(v, "?") >= len(args) && len(args) > 0 {
 			tx.Statement.AddClause(clause.Select{
 				Distinct:   db.Statement.Distinct,
 				Expression: clause.Expr{SQL: v, Vars: args},
