@@ -55,3 +55,25 @@ func TestAssignments(t *testing.T) {
 		t.Errorf("invalid assignments, got %v", assignments)
 	}
 }
+
+func TestMergeClause(t *testing.T) {
+	set1 := clause.Assignments(map[string]interface{}{
+		"name": "jinzhu",
+	})
+	set2 := clause.Assignments(map[string]interface{}{
+		"age": 18,
+	})
+
+	c := &clause.Clause{
+		Name:       "Set",
+		Expression: set1,
+	}
+	set2.MergeClause(c)
+
+	if set3, ok := c.Expression.(clause.Set); ok {
+		if len(set3) == 2 {
+			return
+		}
+	}
+	t.Error("invalid merge set")
+}
