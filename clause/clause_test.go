@@ -38,6 +38,6 @@ func checkBuildClauses(t *testing.T, clauses []clause.Interface, result string, 
 	}
 
 	if !reflect.DeepEqual(stmt.Vars, vars) {
-		t.Errorf("Vars expects %+v got %v", stmt.Vars, vars)
+		t.Errorf("Vars expects %+v got %v", vars, stmt.Vars)
 	}
 }
