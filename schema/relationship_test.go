@@ -55,6 +55,25 @@ func TestBelongsToOverrideReferences(t *testing.T) {
 	})
 }
 
+func TestBelongsToWithOnlyReferences(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Refer string
+		Name  string
+	}
+
+	type User struct {
+		gorm.Model
+		Profile      Profile `gorm:"References:Refer"`
+		ProfileRefer int
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profile", Type: schema.BelongsTo, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"Refer", "Profile", "ProfileRefer", "User", "", false}},
+	})
+}
+
 func TestSelfReferentialBelongsToOverrideReferences(t *testing.T) {
 	type User struct {
 		ID        int32 `gorm:"primaryKey"`
@@ -103,6 +122,25 @@ func TestHasOneOverrideReferences(t *testing.T) {
 	checkStructRelation(t, &User{}, Relation{
 		Name: "Profile", Type: schema.HasOne, Schema: "User", FieldSchema: "Profile",
 		References: []Reference{{"Refer", "User", "UserID", "Profile", "", true}},
+	})
+}
+
+func TestHasOneWithOnlyReferences(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Refer   string
+		Profile Profile `gorm:"References:Refer"`
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profile", Type: schema.HasOne, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"Refer", "User", "UserRefer", "Profile", "", true}},
 	})
 }
 

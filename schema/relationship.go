@@ -396,7 +396,19 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			}
 		}
 	} else {
-		for _, primaryField := range primarySchema.PrimaryFields {
+		var primaryFields []*Field
+
+		if len(relation.primaryKeys) > 0 {
+			for _, primaryKey := range relation.primaryKeys {
+				if f := primarySchema.LookUpField(primaryKey); f != nil {
+					primaryFields = append(primaryFields, f)
+				}
+			}
+		} else {
+			primaryFields = primarySchema.PrimaryFields
+		}
+
+		for _, primaryField := range primaryFields {
 			lookUpName := primarySchema.Name + primaryField.Name
 			if gl == guessBelongs {
 				lookUpName = field.Name + primaryField.Name
