@@ -71,7 +71,7 @@ func Create(config *Config) func(db *gorm.DB) {
 												_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
 												if isZero {
 													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-													insertID--
+													insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 												}
 											}
 										} else {
@@ -83,7 +83,7 @@ func Create(config *Config) func(db *gorm.DB) {
 
 												if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
 													db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-													insertID++
+													insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 												}
 											}
 										}
