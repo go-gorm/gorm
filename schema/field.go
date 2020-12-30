@@ -392,7 +392,7 @@ func (field *Field) setupValuerAndSetter() {
 		isZero := fieldValue.IsZero
 		if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
 			if zeroer, ok := fieldValue.Interface().(interface{ IsZero() bool }); ok {
-				if _, ok := reflect.Indirect(reflect.New(fieldValue.Type().Elem())).Interface().(interface{ IsZero() bool }); !ok {
+				if !fieldValue.Type().Implements(reflect.TypeOf((*interface{ IsZero() bool })(nil)).Elem()) {
 					isZero = zeroer.IsZero
 				}
 			}
