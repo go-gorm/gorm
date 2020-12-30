@@ -250,7 +250,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 
 	conds := make([]clause.Expression, 0, 4)
 	args = append([]interface{}{query}, args...)
-	for _, arg := range args {
+	for idx, arg := range args {
 		if valuer, ok := arg.(driver.Valuer); ok {
 			arg, _ = valuer.Value()
 		}
@@ -310,11 +310,22 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		default:
 			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
 			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+				selectedColumns := map[string]bool{}
+				if idx == 0 {
+					for _, v := range args[1:] {
+						if vs, ok := v.(string); ok {
+							selectedColumns[vs] = true
+						}
+					}
+				}
+				restricted := len(selectedColumns) != 0
+
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, field := range s.Fields {
-						if field.Readable {
-							if v, isZero := field.ValueOf(reflectValue); !isZero {
+						selected := selectedColumns[field.DBName] || selectedColumns[field.Name]
+						if selected || (!restricted && field.Readable) {
+							if v, isZero := field.ValueOf(reflectValue); !isZero || selected {
 								if field.DBName != "" {
 									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
 								} else if field.DataType != "" {
@@ -326,8 +337,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
 						for _, field := range s.Fields {
-							if field.Readable {
-								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero {
+							selected := selectedColumns[field.DBName] || selectedColumns[field.Name]
+							if selected || (!restricted && field.Readable) {
+								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero || selected {
 									if field.DBName != "" {
 										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
 									} else if field.DataType != "" {
@@ -337,6 +349,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 							}
 						}
 					}
+				}
+
+				if restricted {
+					break
 				}
 			} else if len(conds) == 0 {
 				if len(args) == 1 {
