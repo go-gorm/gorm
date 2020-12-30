@@ -105,28 +105,29 @@ func TestNamedExpr(t *testing.T) {
 func TestExpression(t *testing.T) {
 	column := "column-name"
 	results := []struct {
-		Expressions    []clause.Expression
-		Result string
+		Expressions []clause.Expression
+		Result      string
 	}{{
 		Expressions: []clause.Expression{
 			clause.Eq{Column: column, Value: "column-value"},
 		},
 		Result: "`column-name` = ?",
-	},{
+	}, {
 		Expressions: []clause.Expression{
 			clause.Eq{Column: column, Value: nil},
 			clause.Eq{Column: column, Value: (*string)(nil)},
 			clause.Eq{Column: column, Value: (*int)(nil)},
 			clause.Eq{Column: column, Value: (*bool)(nil)},
 			clause.Eq{Column: column, Value: (interface{})(nil)},
+			clause.Eq{Column: column, Value: sql.NullString{String: "", Valid: false}},
 		},
 		Result: "`column-name` IS NULL",
-	},{
+	}, {
 		Expressions: []clause.Expression{
 			clause.Neq{Column: column, Value: "column-value"},
 		},
 		Result: "`column-name` <> ?",
-	},{
+	}, {
 		Expressions: []clause.Expression{
 			clause.Neq{Column: column, Value: nil},
 			clause.Neq{Column: column, Value: (*string)(nil)},
