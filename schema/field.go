@@ -390,7 +390,13 @@ func (field *Field) setupValuerAndSetter() {
 	// ValueOf
 	isZero := func(fieldValue reflect.Value) bool{
 		isZero := fieldValue.IsZero
-		if zeroer, ok := fieldValue.Interface().(interface{ IsZero() bool }); ok {
+		if fieldValue.Kind() == reflect.Ptr && fieldValue.IsNil() {
+			if zeroer, ok := fieldValue.Interface().(interface{ IsZero() bool }); ok {
+				if _, ok := reflect.Indirect(reflect.New(fieldValue.Type().Elem())).Interface().(interface{ IsZero() bool }); !ok {
+					isZero = zeroer.IsZero
+				}
+			}
+		}else if zeroer, ok := fieldValue.Interface().(interface{ IsZero() bool }); ok {
 			isZero = zeroer.IsZero
 		}
 		return isZero()
