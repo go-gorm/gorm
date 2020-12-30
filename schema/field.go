@@ -388,16 +388,24 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// ValueOf
+	isZero := func(fieldValue reflect.Value) bool{
+		isZero := fieldValue.IsZero
+		if zeroer, ok := fieldValue.Interface().(interface{ IsZero() bool }); ok {
+			isZero = zeroer.IsZero
+		}
+		return isZero()
+	}
+	
 	switch {
 	case len(field.StructField.Index) == 1:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			return fieldValue.Interface(), isZero(fieldValue)
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			return fieldValue.Interface(), isZero(fieldValue)
 		}
 	default:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
@@ -420,7 +428,7 @@ func (field *Field) setupValuerAndSetter() {
 					}
 				}
 			}
-			return v.Interface(), v.IsZero()
+			return v.Interface(), isZero(v)
 		}
 	}
 
