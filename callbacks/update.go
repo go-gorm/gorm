@@ -239,6 +239,9 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 								value = stmt.DB.NowFunc().Unix()
 							}
 							isZero = false
+						} else if isZero {
+							_, isZero = field.TagSettings["ALWAYSUPDATE"]
+							isZero = !isZero
 						}
 
 						if ok || !isZero {
