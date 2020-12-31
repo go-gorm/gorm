@@ -240,8 +240,9 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							}
 							isZero = false
 						} else if isZero {
-							_, isZero = field.TagSettings["ALWAYSUPDATE"]
-							isZero = !isZero
+							if _, exist := field.TagSettings["ALWAYSUPDATE"]; exist {
+								isZero = false
+							}
 						}
 
 						if ok || !isZero {
