@@ -7,7 +7,7 @@ type Interface interface {
 	MergeClause(*Clause)
 }
 
-// ClauseBuilder clause builder, allows to custmize how to build clause
+// ClauseBuilder clause builder, allows to customize how to build clause
 type ClauseBuilder func(Clause, Builder)
 
 type Writer interface {
