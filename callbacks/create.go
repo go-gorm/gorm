@@ -337,7 +337,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				columns := make([]string, 0, len(values.Columns)-1)
 				for _, column := range values.Columns {
 					if field := stmt.Schema.LookUpField(column.Name); field != nil {
-						if !field.PrimaryKey && !field.HasDefaultValue && field.AutoCreateTime == 0 {
+						if !field.PrimaryKey && (!field.HasDefaultValue || field.DefaultValueInterface != nil) && field.AutoCreateTime == 0 {
 							columns = append(columns, column.Name)
 						}
 					}
