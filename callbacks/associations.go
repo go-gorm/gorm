@@ -363,6 +363,11 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		DisableNestedTransaction: true,
 	})
 
+	db.Statement.Settings.Range(func(k, v interface{}) bool {
+		tx.Statement.Settings.Store(k, v)
+		return true
+	})
+
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
 	}
