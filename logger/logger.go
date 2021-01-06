@@ -135,7 +135,7 @@ func (l logger) Error(ctx context.Context, msg string, data ...interface{}) {
 
 // Trace print sql message
 func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
-	if l.LogLevel > 0 {
+	if l.LogLevel > Silent {
 		elapsed := time.Since(begin)
 		switch {
 		case err != nil && l.LogLevel >= Error:
@@ -153,7 +153,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 			} else {
 				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}
-		case l.LogLevel >= Info:
+		default:
 			sql, rows := fc()
 			if rows == -1 {
 				l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
