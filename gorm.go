@@ -163,6 +163,7 @@ func (db *DB) Session(config *Session) *DB {
 		tx       = &DB{
 			Config:    &txConfig,
 			Statement: db.Statement,
+			Error:     db.Error,
 			clone:     1,
 		}
 	)
