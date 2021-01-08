@@ -606,6 +606,18 @@ func TestSave(t *testing.T) {
 		t.Fatalf("failed to find updated user")
 	}
 
+	user2 := *GetUser("save2", Config{})
+	DB.Create(&user2)
+
+	time.Sleep(time.Second)
+	user1UpdatedAt := result.UpdatedAt
+	var users = []*User{&result, &user2}
+	DB.Save(&users)
+
+	if user1UpdatedAt == result.UpdatedAt {
+		t.Fatalf("user's updated at should be changed, expects: %+v, got: %+v", user1UpdatedAt, result.UpdatedAt)
+	}
+
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
 	stmt := dryDB.Save(&user).Statement
 	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
