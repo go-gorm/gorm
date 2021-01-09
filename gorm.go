@@ -380,15 +380,14 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	return nil
 }
 
-func (db *DB) Use(plugin Plugin) (err error) {
+func (db *DB) Use(plugin Plugin) error {
 	name := plugin.Name()
-	if _, ok := db.Plugins[name]; !ok {
-		if err = plugin.Initialize(db); err == nil {
-			db.Plugins[name] = plugin
-		}
-	} else {
+	if _, ok := db.Plugins[name]; ok {
 		return ErrRegistered
 	}
-
-	return err
+	if err := plugin.Initialize(db); err != nil {
+		return err
+	}
+	db.Plugins[name] = plugin
+	return nil
 }
