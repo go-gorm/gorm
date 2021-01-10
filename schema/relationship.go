@@ -418,6 +418,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 			if len(primaryFields) == 1 {
 				lookUpNames = append(lookUpNames, strings.TrimSuffix(lookUpName, primaryField.Name)+"ID")
 				lookUpNames = append(lookUpNames, strings.TrimSuffix(lookUpName, primaryField.Name)+"Id")
+				lookUpNames = append(lookUpNames, schema.namer.ColumnName(foreignSchema.Table, strings.TrimSuffix(lookUpName, primaryField.Name)+"ID"))
 			}
 
 			for _, name := range lookUpNames {
