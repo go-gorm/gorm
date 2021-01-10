@@ -50,3 +50,41 @@ func TestPreparedStmt(t *testing.T) {
 		t.Fatalf("no error should happen but got %v", err)
 	}
 }
+
+func TestPreparedStmtFromTransaction(t *testing.T) {
+	db := DB.Session(&gorm.Session{PrepareStmt: true, SkipDefaultTransaction: true})
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		t.Errorf("Failed to start transaction, got error %v\n", err)
+	}
+
+	if err := tx.Where("name=?", "zzjin").Delete(&User{}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Create(&User{Name: "zzjin"}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Failed to commit transaction, got error %v\n", err)
+	}
+
+	if result := db.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 1 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	tx2 := db.Begin()
+	if result := tx2.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 0 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+	tx2.Commit()
+}
