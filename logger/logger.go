@@ -153,7 +153,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 			} else {
 				l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 			}
-		default:
+		case l.LogLevel == Info:
 			sql, rows := fc()
 			if rows == -1 {
 				l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)

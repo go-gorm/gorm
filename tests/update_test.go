@@ -148,13 +148,17 @@ func TestUpdates(t *testing.T) {
 	CheckUser(t, user2, *users[1])
 
 	// update with struct
+	time.Sleep(1 * time.Second)
 	DB.Table("users").Where("name in ?", []string{users[1].Name}).Updates(User{Name: "updates_02_newname"})
 
 	var user3 User
 	if err := DB.First(&user3, "name = ?", "updates_02_newname").Error; err != nil {
 		t.Errorf("User2's name should be updated")
 	}
-	AssertEqual(t, user2.UpdatedAt, user3.UpdatedAt)
+
+	if user2.UpdatedAt.Format(time.RFC1123) == user3.UpdatedAt.Format(time.RFC1123) {
+		t.Errorf("User's updated at should be changed, old %v, new %v", user2.UpdatedAt.Format(time.RFC1123), user3.UpdatedAt.Format(time.RFC1123))
+	}
 
 	// update with gorm exprs
 	if err := DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
