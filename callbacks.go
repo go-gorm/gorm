@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"time"
 
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
@@ -72,8 +71,8 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
-	curTime := time.Now()
 	stmt := db.Statement
+	curTime := db.NowFunc()
 
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest
