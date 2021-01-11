@@ -281,7 +281,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					} else if field.AutoUpdateTime > 0 {
 						if _, ok := stmt.DB.InstanceGet("gorm:update_track_time"); ok {
 							field.Set(rv, curTime)
-							values.Values[0][idx], _ = field.ValueOf(rv)
+							values.Values[i][idx], _ = field.ValueOf(rv)
 						}
 					}
 				}
