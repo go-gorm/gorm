@@ -446,6 +446,8 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 		defer rows.Close()
 		if rows.Next() {
 			tx.ScanRows(rows, dest)
+		} else {
+			tx.RowsAffected = 0
 		}
 	}
 
