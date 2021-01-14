@@ -316,6 +316,12 @@ func (db *DB) getInstance() *DB {
 				Clauses:  map[string]clause.Clause{},
 				Vars:     make([]interface{}, 0, 8),
 			}
+			
+			// Carry over the settings previously defined so that you can access them in the preload callbacks
+			db.Statement.Settings.Range(func(k, v interface{}) bool {
+				tx.Statement.Settings.Store(k, v)
+				return true
+			})
 		} else {
 			// with clone statement
 			tx.Statement = db.Statement.clone()
