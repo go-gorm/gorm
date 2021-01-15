@@ -150,7 +150,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	}
 
 	if err != nil {
-		config.Logger.Error(context.Background(), "failed to initialize database, got error %v", err)
+		config.Logger.Error(context.Background(), "failed to initialize database, got error ", err)
 	}
 
 	return
