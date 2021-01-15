@@ -22,6 +22,11 @@ func preload(db *gorm.DB, rels []*schema.Relationship, conds []interface{}) {
 		inlineConds      []interface{}
 	)
 
+	db.Statement.Settings.Range(func(k, v interface{}) bool {
+		tx.Statement.Settings.Store(k, v)
+		return true
+	})
+
 	if len(rels) > 1 {
 		reflectValue = schema.GetRelationsValues(reflectValue, rels[:len(rels)-1])
 	}
