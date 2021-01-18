@@ -9,7 +9,7 @@ func BeginTransaction(db *gorm.DB) {
 		if tx := db.Begin(); tx.Error == nil {
 			db.Statement.ConnPool = tx.Statement.ConnPool
 			db.InstanceSet("gorm:started_transaction", true)
-		} else {
+		} else if tx.Error == gorm.ErrInvalidTransaction {
 			tx.Error = nil
 		}
 	}

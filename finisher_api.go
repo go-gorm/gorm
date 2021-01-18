@@ -33,7 +33,8 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 	case reflect.Slice, reflect.Array:
 		var rowsAffected int64
 		tx = db.getInstance()
-		tx.AddError(tx.Transaction(func(tx *DB) error {
+
+		callFc := func(tx *DB) error {
 			for i := 0; i < reflectValue.Len(); i += batchSize {
 				ends := i + batchSize
 				if ends > reflectValue.Len() {
@@ -49,7 +50,14 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 				rowsAffected += subtx.RowsAffected
 			}
 			return nil
-		}))
+		}
+
+		if tx.SkipDefaultTransaction {
+			tx.AddError(callFc(tx.Session(&Session{})))
+		} else {
+			tx.AddError(tx.Transaction(callFc))
+		}
+
 		tx.RowsAffected = rowsAffected
 	default:
 		tx = db.getInstance()
