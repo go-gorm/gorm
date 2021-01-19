@@ -667,13 +667,15 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		}
 		orderedModelNamesMap[name] = true
 
-		dep := valuesMap[name]
-		for _, d := range dep.Depends {
-			if _, ok := valuesMap[d.Table]; ok {
-				insertIntoOrderedList(d.Table)
-			} else if autoAdd {
-				parseDependence(reflect.New(d.ModelType).Interface(), autoAdd)
-				insertIntoOrderedList(d.Table)
+		if autoAdd {
+			dep := valuesMap[name]
+			for _, d := range dep.Depends {
+				if _, ok := valuesMap[d.Table]; ok {
+					insertIntoOrderedList(d.Table)
+				} else {
+					parseDependence(reflect.New(d.ModelType).Interface(), autoAdd)
+					insertIntoOrderedList(d.Table)
+				}
 			}
 		}
 

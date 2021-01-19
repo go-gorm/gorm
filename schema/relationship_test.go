@@ -397,3 +397,39 @@ func TestMultipleMany2Many(t *testing.T) {
 		},
 	)
 }
+
+type CreatedByModel struct {
+	CreatedByID uint
+	CreatedBy   *CreatedUser
+}
+
+type CreatedUser struct {
+	gorm.Model
+	CreatedByModel
+}
+
+func TestEmbeddedRelation(t *testing.T) {
+	checkStructRelation(t, &CreatedUser{}, Relation{
+		Name: "CreatedBy", Type: schema.BelongsTo, Schema: "CreatedUser", FieldSchema: "CreatedUser",
+		References: []Reference{
+			{"ID", "CreatedUser", "CreatedByID", "CreatedUser", "", false},
+		},
+	})
+
+	userSchema, err := schema.Parse(&CreatedUser{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse schema, got error %v", err)
+	}
+
+	if len(userSchema.Relationships.Relations) != 1 {
+		t.Fatalf("expects 1 relations, but got %v", len(userSchema.Relationships.Relations))
+	}
+
+	if createdByRel, ok := userSchema.Relationships.Relations["CreatedBy"]; ok {
+		if createdByRel.FieldSchema != userSchema {
+			t.Fatalf("expects same field schema, but got new %p, old %p", createdByRel.FieldSchema, userSchema)
+		}
+	} else {
+		t.Fatalf("expects created by relations, but not found")
+	}
+}
