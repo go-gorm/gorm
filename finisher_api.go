@@ -116,7 +116,9 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
+		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			tx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -128,7 +130,9 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.Limit(1)
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
+		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			tx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -143,7 +147,9 @@ func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 		Desc:   true,
 	})
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
+		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			tx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
 	}
 	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
@@ -155,7 +161,9 @@ func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
+		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			tx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
 	}
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
@@ -221,8 +229,9 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 				}
 			}
 		case clause.Expression, map[string]string, map[interface{}]interface{}, map[string]interface{}:
-			exprs := tx.Statement.BuildCondition(value)
-			tx.assignInterfacesToValue(exprs)
+			if exprs := tx.Statement.BuildCondition(value); len(exprs) > 0 {
+				tx.assignInterfacesToValue(exprs)
+			}
 		default:
 			if s, err := schema.Parse(value, tx.cacheStore, tx.NamingStrategy); err == nil {
 				reflectValue := reflect.Indirect(reflect.ValueOf(value))
@@ -239,8 +248,9 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 					}
 				}
 			} else if len(values) > 0 {
-				exprs := tx.Statement.BuildCondition(values[0], values[1:]...)
-				tx.assignInterfacesToValue(exprs)
+				if exprs := tx.Statement.BuildCondition(values[0], values[1:]...); len(exprs) > 0 {
+					tx.assignInterfacesToValue(exprs)
+				}
 				return
 			}
 		}
@@ -352,7 +362,9 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(conds[0], conds[1:]...)})
+		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			tx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
 	}
 	tx.Statement.Dest = value
 	tx.callbacks.Delete().Execute(tx)
