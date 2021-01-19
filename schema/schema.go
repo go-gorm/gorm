@@ -230,7 +230,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	defer close(schema.initialized)
-	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
+	if _, ok := namer.(embeddedNamer); !ok {
 		for _, field := range schema.Fields {
 			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 				if schema.parseRelation(field); schema.err != nil {
