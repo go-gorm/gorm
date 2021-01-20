@@ -261,6 +261,11 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		case *DB:
 			if cs, ok := v.Statement.Clauses["WHERE"]; ok {
 				if where, ok := cs.Expression.(clause.Where); ok {
+					if len(where.Exprs) == 1 {
+						if orConds, ok := where.Exprs[0].(clause.OrConditions); ok {
+							where.Exprs[0] = clause.AndConditions{Exprs: orConds.Exprs}
+						}
+					}
 					conds = append(conds, clause.And(where.Exprs...))
 				} else if cs.Expression != nil {
 					conds = append(conds, cs.Expression)
