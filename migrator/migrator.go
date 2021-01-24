@@ -183,7 +183,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			for _, idx := range stmt.Schema.ParseIndexes() {
 				if m.CreateIndexAfterCreateTable {
 					defer func(value interface{}, name string) {
-						errr = tx.Migrator().CreateIndex(value, name)
+						if errr == nil {
+							errr = tx.Migrator().CreateIndex(value, name)
+						}
 					}(value, idx.Name)
 				} else {
 					if idx.Class != "" {
