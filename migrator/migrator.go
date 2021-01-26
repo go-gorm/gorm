@@ -451,50 +451,80 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 	return
 }
 
+func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ *schema.Constraint, _ *schema.Check, table string) {
+	if stmt.Schema == nil {
+		return nil, nil, stmt.Table
+	}
+
+	checkConstraints := stmt.Schema.ParseCheckConstraints()
+	if chk, ok := checkConstraints[name]; ok {
+		return nil, &chk, stmt.Table
+	}
+
+	getTable := func(rel *schema.Relationship) string {
+		switch rel.Type {
+		case schema.HasOne, schema.HasMany:
+			return rel.FieldSchema.Table
+		case schema.Many2Many:
+			return rel.JoinTable.Table
+		}
+		return stmt.Table
+	}
+
+	for _, rel := range stmt.Schema.Relationships.Relations {
+		if constraint := rel.ParseConstraint(); constraint != nil && constraint.Name == name {
+			return constraint, nil, getTable(rel)
+		}
+	}
+
+	if field := stmt.Schema.LookUpField(name); field != nil {
+		for _, cc := range checkConstraints {
+			if cc.Field == field {
+				return nil, &cc, stmt.Table
+			}
+		}
+
+		for _, rel := range stmt.Schema.Relationships.Relations {
+			if constraint := rel.ParseConstraint(); constraint != nil && rel.Field == field {
+				return constraint, nil, getTable(rel)
+			}
+		}
+	}
+	return nil, nil, ""
+}
+
 func (m Migrator) CreateConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		checkConstraints := stmt.Schema.ParseCheckConstraints()
-		if chk, ok := checkConstraints[name]; ok {
+		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
+		if chk != nil {
 			return m.DB.Exec(
 				"ALTER TABLE ? ADD CONSTRAINT ? CHECK (?)",
 				m.CurrentTable(stmt), clause.Column{Name: chk.Name}, clause.Expr{SQL: chk.Constraint},
 			).Error
 		}
 
-		for _, rel := range stmt.Schema.Relationships.Relations {
-			if constraint := rel.ParseConstraint(); constraint != nil && constraint.Name == name {
-				sql, values := buildConstraint(constraint)
-				return m.DB.Exec("ALTER TABLE ? ADD "+sql, append([]interface{}{m.CurrentTable(stmt)}, values...)...).Error
+		if constraint != nil {
+			var vars = []interface{}{clause.Table{Name: table}}
+			if stmt.TableExpr != nil {
+				vars[0] = stmt.TableExpr
 			}
+			sql, values := buildConstraint(constraint)
+			return m.DB.Exec("ALTER TABLE ? ADD "+sql, append(vars, values...)...).Error
 		}
 
-		err := fmt.Errorf("failed to create constraint with name %v", name)
-		if field := stmt.Schema.LookUpField(name); field != nil {
-			for _, cc := range checkConstraints {
-				if err = m.DB.Migrator().CreateIndex(value, cc.Name); err != nil {
-					return err
-				}
-			}
-
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				if constraint := rel.ParseConstraint(); constraint != nil && constraint.Field == field {
-					if err = m.DB.Migrator().CreateIndex(value, constraint.Name); err != nil {
-						return err
-					}
-				}
-			}
-		}
-
-		return err
+		return nil
 	})
 }
 
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		return m.DB.Exec(
-			"ALTER TABLE ? DROP CONSTRAINT ?",
-			m.CurrentTable(stmt), clause.Column{Name: name},
-		).Error
+		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
+		if constraint != nil {
+			name = constraint.Name
+		} else if chk != nil {
+			name = chk.Name
+		}
+		return m.DB.Exec("ALTER TABLE ? DROP CONSTRAINT ?", clause.Table{Name: table}, clause.Column{Name: name}).Error
 	})
 }
 
@@ -502,9 +532,16 @@ func (m Migrator) HasConstraint(value interface{}, name string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		currentDatabase := m.DB.Migrator().CurrentDatabase()
+		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
+		if constraint != nil {
+			name = constraint.Name
+		} else if chk != nil {
+			name = chk.Name
+		}
+
 		return m.DB.Raw(
 			"SELECT count(*) FROM INFORMATION_SCHEMA.table_constraints WHERE constraint_schema = ? AND table_name = ? AND constraint_name = ?",
-			currentDatabase, stmt.Table, name,
+			currentDatabase, table, name,
 		).Row().Scan(&count)
 	})
 

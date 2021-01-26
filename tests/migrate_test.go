@@ -323,3 +323,33 @@ func TestMigrateColumns(t *testing.T) {
 		t.Fatalf("Found deleted column")
 	}
 }
+
+func TestMigrateConstraint(t *testing.T) {
+	if DB.Dialector.Name() == "sqlite" {
+		t.Skip()
+	}
+
+	names := []string{"Account", "fk_users_account", "Pets", "fk_users_pets", "Company", "fk_users_company", "Manager", "fk_users_manager", "Team", "fk_users_team", "Languages", "fk_users_languages"}
+
+	for _, name := range names {
+		if !DB.Migrator().HasConstraint(&User{}, name) {
+			DB.Migrator().CreateConstraint(&User{}, name)
+		}
+
+		if err := DB.Migrator().DropConstraint(&User{}, name); err != nil {
+			t.Fatalf("failed to drop constraint %v, got error %v", name, err)
+		}
+
+		if DB.Migrator().HasConstraint(&User{}, name) {
+			t.Fatalf("constraint %v should been deleted", name)
+		}
+
+		if err := DB.Migrator().CreateConstraint(&User{}, name); err != nil {
+			t.Fatalf("failed to create constraint %v, got error %v", name, err)
+		}
+
+		if !DB.Migrator().HasConstraint(&User{}, name) {
+			t.Fatalf("failed to found constraint %v", name)
+		}
+	}
+}

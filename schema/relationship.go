@@ -519,7 +519,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	}
 
 	for _, ref := range rel.References {
-		if ref.PrimaryKey != nil {
+		if ref.PrimaryKey != nil && (rel.JoinTable == nil || ref.OwnPrimaryKey) {
 			constraint.ForeignKeys = append(constraint.ForeignKeys, ref.ForeignKey)
 			constraint.References = append(constraint.References, ref.PrimaryKey)
 
@@ -531,10 +531,6 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 				constraint.ReferenceSchema = ref.PrimaryKey.Schema
 			}
 		}
-	}
-
-	if rel.JoinTable != nil {
-		return nil
 	}
 
 	return &constraint
