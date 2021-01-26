@@ -113,6 +113,11 @@ func TestMany2ManyOmitAssociations(t *testing.T) {
 	if DB.Model(&user).Association("Languages").Find(&languages); len(languages) != 2 {
 		t.Errorf("languages count should be %v, but got %v", 2, len(languages))
 	}
+
+	var newLang = Language{Code: "omitmany2many", Name: "omitmany2many"}
+	if err := DB.Model(&user).Omit("Languages.*").Association("Languages").Replace(&newLang); err == nil {
+		t.Errorf("should failed to insert languages due to constraint failed, error: %v", err)
+	}
 }
 
 func TestMany2ManyAssociationForSlice(t *testing.T) {

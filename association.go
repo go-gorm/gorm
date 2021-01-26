@@ -66,7 +66,9 @@ func (association *Association) Append(values ...interface{}) error {
 func (association *Association) Replace(values ...interface{}) error {
 	if association.Error == nil {
 		// save associations
-		association.saveAssociation( /*clear*/ true, values...)
+		if association.saveAssociation( /*clear*/ true, values...); association.Error != nil {
+			return association.Error
+		}
 
 		// set old associations's foreign key to null
 		reflectValue := association.DB.Statement.ReflectValue
@@ -378,11 +380,31 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	}
 
 	selectedSaveColumns := []string{association.Relationship.Name}
+	omitColumns := []string{}
+	selectColumns, _ := association.DB.Statement.SelectAndOmitColumns(true, false)
+	for name, ok := range selectColumns {
+		columnName := ""
+		if strings.HasPrefix(name, association.Relationship.Name) {
+			columnName = strings.TrimPrefix(name, association.Relationship.Name)
+		} else if strings.HasPrefix(name, clause.Associations) {
+			columnName = name
+		}
+
+		if columnName != "" {
+			if ok {
+				selectedSaveColumns = append(selectedSaveColumns, columnName)
+			} else {
+				omitColumns = append(omitColumns, columnName)
+			}
+		}
+	}
+
 	for _, ref := range association.Relationship.References {
 		if !ref.OwnPrimaryKey {
 			selectedSaveColumns = append(selectedSaveColumns, ref.ForeignKey.Name)
 		}
 	}
+	associationDB := association.DB.Session(&Session{}).Model(nil).Select(selectedSaveColumns).Session(&Session{})
 
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
@@ -417,7 +439,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			appendToRelations(reflectValue.Index(i), reflect.Indirect(reflect.ValueOf(values[i])), clear)
 
 			// TODO support save slice data, sql with case?
-			association.Error = association.DB.Session(&Session{NewDB: true}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Index(i).Addr().Interface()).Error
+			association.Error = associationDB.Updates(reflectValue.Index(i).Addr().Interface()).Error
 		}
 	case reflect.Struct:
 		// clear old data
@@ -439,7 +461,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 		}
 
 		if len(values) > 0 {
-			association.Error = association.DB.Session(&Session{NewDB: true}).Select(selectedSaveColumns).Model(nil).Updates(reflectValue.Addr().Interface()).Error
+			association.Error = associationDB.Updates(reflectValue.Addr().Interface()).Error
 		}
 	}
 
