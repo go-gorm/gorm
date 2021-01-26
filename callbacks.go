@@ -94,6 +94,11 @@ func (p *processor) Execute(db *DB) {
 	if stmt.Dest != nil {
 		stmt.ReflectValue = reflect.ValueOf(stmt.Dest)
 		for stmt.ReflectValue.Kind() == reflect.Ptr {
+			if stmt.ReflectValue.IsNil() {
+				stmt.ReflectValue.Set(reflect.New(stmt.ReflectValue.Type().Elem()))
+				break
+			}
+
 			stmt.ReflectValue = stmt.ReflectValue.Elem()
 		}
 		if !stmt.ReflectValue.IsValid() {

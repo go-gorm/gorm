@@ -28,6 +28,12 @@ func TestScan(t *testing.T) {
 		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
 	}
 
+	var resPointer *result
+	DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&resPointer)
+	if res.ID != user3.ID || res.Name != user3.Name || res.Age != int(user3.Age) {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
+	}
+
 	DB.Table("users").Select("id, name, age").Where("id = ?", user2.ID).Scan(&res)
 	if res.ID != user2.ID || res.Name != user2.Name || res.Age != int(user2.Age) {
 		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user2)
