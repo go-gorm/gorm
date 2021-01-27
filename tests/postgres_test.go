@@ -15,6 +15,7 @@ func TestPostgres(t *testing.T) {
 
 	type Harumph struct {
 		gorm.Model
+		Name   string         `gorm:"check:name_checker,name <> ''"`
 		Test   uuid.UUID      `gorm:"type:uuid;not null;default:gen_random_uuid()"`
 		Things pq.StringArray `gorm:"type:text[]"`
 	}
@@ -30,10 +31,17 @@ func TestPostgres(t *testing.T) {
 	}
 
 	harumph := Harumph{}
-	DB.Create(&harumph)
+	if err := DB.Create(&harumph).Error; err == nil {
+		t.Fatalf("should failed to create data, name can't be blank")
+	}
+
+	harumph = Harumph{Name: "jinzhu"}
+	if err := DB.Create(&harumph).Error; err != nil {
+		t.Fatalf("should be able to create data, but got %v", err)
+	}
 
 	var result Harumph
-	if err := DB.First(&result, "id = ?", harumph.ID).Error; err != nil {
+	if err := DB.First(&result, "id = ?", harumph.ID).Error; err != nil || harumph.Name != "jinzhu" {
 		t.Errorf("No error should happen, but got %v", err)
 	}
 }
