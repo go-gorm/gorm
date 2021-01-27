@@ -191,7 +191,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem.Elem()))
 				}
 			}
-		case reflect.Struct, reflect.Ptr:
+		case reflect.Struct:
 			if db.Statement.ReflectValue.Type() != Schema.ModelType {
 				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
 			}
