@@ -26,7 +26,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: go mod pakcage cache
+    - name: go mod package cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
@@ -51,7 +51,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: go mod pakcage cache
+    - name: go mod package cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
@@ -95,7 +95,7 @@ jobs:
       uses: actions/checkout@v2
 
 
-    - name: go mod pakcage cache
+    - name: go mod package cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
@@ -138,7 +138,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: go mod pakcage cache
+    - name: go mod package cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
@@ -181,7 +181,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: go mod pakcage cache
+    - name: go mod package cache
       uses: actions/cache@v2
       with:
         path: ~/go/pkg/mod
