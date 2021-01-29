@@ -167,7 +167,6 @@ func (db *DB) Session(config *Session) *DB {
 			clone:     1,
 		}
 	)
-
 	if config.CreateBatchSize > 0 {
 		tx.Config.CreateBatchSize = config.CreateBatchSize
 	}
