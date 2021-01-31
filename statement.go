@@ -104,7 +104,8 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			if stmt.Schema == nil {
 				stmt.DB.AddError(ErrModelValueRequired)
 			} else if stmt.Schema.PrioritizedPrimaryField != nil {
-				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
+				stmt.DB.Dialector.QuoteTo(writer,
+					stmt.Schema.PrioritizedPrimaryField.DBName)
 			} else if len(stmt.Schema.DBNames) > 0 {
 				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.DBNames[0])
 			}
@@ -181,7 +182,8 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteString("(NULL)")
 			}
 		case *DB:
-			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
+			subdb := v.Session(&Session{Logger: logger.Discard,
+				DryRun: true}).getInstance()
 			subdb.Statement.Vars = append(subdb.Statement.Vars, stmt.Vars...)
 			subdb.callbacks.Query().Execute(subdb)
 			writer.WriteString(subdb.Statement.SQL.String())
@@ -230,7 +232,8 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 }
 
 // BuildCondition build condition
-func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []clause.Expression {
+func (stmt *Statement) BuildCondition(query interface{},
+	args ...interface{}) []clause.Expression {
 	if s, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
 		if _, err := strconv.Atoi(s); err != nil {
@@ -262,10 +265,14 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 			if cs, ok := v.Statement.Clauses["WHERE"]; ok {
 				if where, ok := cs.Expression.(clause.Where); ok {
 					if len(where.Exprs) == 1 {
-						if orConds, ok := where.Exprs[0].(clause.OrConditions); ok {
-							where.Exprs[0] = clause.AndConditions{Exprs: orConds.Exprs}
+						orConds, ok := where.Exprs[0].(clause.OrConditions)
+						if ok {
+							where.Exprs[0] = clause.AndConditions{
+								Exprs: orConds.Exprs,
+							}
 						}
 					}
+
 					conds = append(conds, clause.And(where.Exprs...))
 				} else if cs.Expression != nil {
 					conds = append(conds, cs.Expression)
@@ -297,16 +304,24 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					if _, ok := v[key].(driver.Valuer); ok {
-						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+						conds = append(conds, clause.Eq{
+							Column: key,
+							Value:  v[key],
+						})
 					} else if _, ok := v[key].(Valuer); ok {
-						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+						conds = append(conds, clause.Eq{
+							Column: key,
+							Value:  v[key],
+						})
 					} else {
 						values := make([]interface{}, reflectValue.Len())
 						for i := 0; i < reflectValue.Len(); i++ {
 							values[i] = reflectValue.Index(i).Interface()
 						}
 
-						conds = append(conds, clause.IN{Column: key, Values: values})
+						conds = append(conds, clause.IN{
+							Column: key, Values: values,
+						})
 					}
 				default:
 					conds = append(conds, clause.Eq{Column: key, Value: v[key]})
@@ -314,7 +329,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 			}
 		default:
 			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
-			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+			if s, err := schema.Parse(arg, stmt.DB.cacheStore,
+				stmt.DB.NamingStrategy); err == nil {
 				selectedColumns := map[string]bool{}
 				if idx == 0 {
 					for _, v := range args[1:] {
@@ -328,27 +344,56 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, field := range s.Fields {
-						selected := selectedColumns[field.DBName] || selectedColumns[field.Name]
+						selected := selectedColumns[field.DBName] ||
+							selectedColumns[field.Name]
 						if selected || (!restricted && field.Readable) {
-							if v, isZero := field.ValueOf(reflectValue); !isZero || selected {
+							v, isZero := field.ValueOf(reflectValue)
+							if !isZero || selected {
 								if field.DBName != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+									conds = append(conds, clause.Eq{
+										Column: clause.Column{
+											Table: clause.CurrentTable,
+											Name:  field.DBName,
+										},
+										Value: v,
+									})
 								} else if field.DataType != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+									conds = append(conds, clause.Eq{
+										Column: clause.Column{
+											Table: clause.CurrentTable,
+											Name:  field.Name,
+										},
+										Value: v,
+									})
 								}
+
 							}
 						}
 					}
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
 						for _, field := range s.Fields {
-							selected := selectedColumns[field.DBName] || selectedColumns[field.Name]
+							selected := selectedColumns[field.DBName] ||
+								selectedColumns[field.Name]
 							if selected || (!restricted && field.Readable) {
-								if v, isZero := field.ValueOf(reflectValue.Index(i)); !isZero || selected {
+								v, isZero := field.ValueOf(reflectValue.Index(i))
+								if !isZero || selected {
 									if field.DBName != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+										conds = append(conds, clause.Eq{
+											Column: clause.Column{
+												Table: clause.CurrentTable,
+												Name:  field.DBName,
+											},
+											Value: v,
+										})
 									} else if field.DataType != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+										conds = append(conds, clause.Eq{
+											Column: clause.Column{
+												Table: clause.CurrentTable,
+												Name:  field.Name,
+											},
+											Value: v,
+										})
 									}
 								}
 							}
@@ -371,13 +416,20 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 						}
 
 						if len(values) > 0 {
-							conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: values})
+							conds = append(conds, clause.IN{
+								Column: clause.PrimaryColumn,
+								Values: values,
+							})
 						}
+
 						return conds
 					}
 				}
 
-				conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
+				conds = append(conds, clause.IN{
+					Column: clause.PrimaryColumn,
+					Values: args,
+				})
 			}
 		}
 	}
@@ -406,7 +458,9 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	if stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil && stmt.Table == "" {
+	stmt.Schema, err = schema.Parse(value, stmt.DB.cacheStore,
+		stmt.DB.NamingStrategy)
+	if err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
@@ -415,6 +469,7 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 		stmt.Table = stmt.Schema.Table
 	}
+
 	return err
 }
 
@@ -463,7 +518,8 @@ func (stmt *Statement) clone() *Statement {
 // SetColumn set column's value
 //   stmt.SetColumn("Name", "jinzhu") // Hooks Method
 //   stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
-func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks ...bool) {
+func (stmt *Statement) SetColumn(name string, value interface{},
+	fromCallbacks ...bool) {
 	if v, ok := stmt.Dest.(map[string]interface{}); ok {
 		v[name] = value
 	} else if v, ok := stmt.Dest.([]map[string]interface{}); ok {
@@ -524,7 +580,8 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	selectColumns, restricted := stmt.SelectAndOmitColumns(false, true)
 	changed := func(field *schema.Field) bool {
 		fieldValue, _ := field.ValueOf(modelValue)
-		if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
+		if v, ok := selectColumns[field.DBName]; (ok && v) ||
+			(!ok && !restricted) {
 			if v, ok := stmt.Dest.(map[string]interface{}); ok {
 				if fv, ok := v[field.Name]; ok {
 					return !utils.AssertEqual(fv, fieldValue)
@@ -563,8 +620,10 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	return false
 }
 
-// SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
-func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool) {
+// SelectAndOmitColumns get select and omit columns,
+// select -> true, omit -> false
+func (stmt *Statement) SelectAndOmitColumns(requireCreate,
+	requireUpdate bool) (map[string]bool, bool) {
 	results := map[string]bool{}
 	notRestricted := false
 
@@ -579,7 +638,8 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 			for _, rel := range stmt.Schema.Relationships.Relations {
 				results[rel.Name] = true
 			}
-		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
+		} else if field := stmt.Schema.LookUpField(column); field != nil &&
+			field.DBName != "" {
 			results[field.DBName] = true
 		} else {
 			results[column] = true
@@ -594,7 +654,8 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 					results[rel.Name] = false
 				}
 			}
-		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
+		} else if field := stmt.Schema.LookUpField(omit); field != nil &&
+			field.DBName != "" {
 			results[field.DBName] = false
 		} else {
 			results[omit] = false

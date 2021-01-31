@@ -30,9 +30,11 @@ func (db *PreparedStmtDB) Close() {
 	db.Mux.Unlock()
 }
 
-func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
+func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool,
+	isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
-	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
+	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction ||
+		isTransaction) {
 		db.Mux.RUnlock()
 		return stmt, nil
 	}
@@ -40,7 +42,8 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 
 	db.Mux.Lock()
 	// double check
-	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
+	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction ||
+		isTransaction) {
 		db.Mux.Unlock()
 		return stmt, nil
 	} else if ok {
@@ -57,7 +60,8 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	return db.Stmts[query], err
 }
 
-func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (ConnPool, error) {
+func (db *PreparedStmtDB) BeginTx(ctx context.Context,
+	opt *sql.TxOptions) (ConnPool, error) {
 	if beginner, ok := db.ConnPool.(TxBeginner); ok {
 		tx, err := beginner.BeginTx(ctx, opt)
 		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
@@ -65,7 +69,8 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 	return nil, ErrInvalidTransaction
 }
 
-func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
+func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string,
+	args ...interface{}) (result sql.Result, err error) {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
 		result, err = stmt.ExecContext(ctx, args...)
@@ -79,7 +84,8 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 	return result, err
 }
 
-func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
+func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string,
+	args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
 		rows, err = stmt.QueryContext(ctx, args...)
@@ -93,7 +99,8 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 	return rows, err
 }
 
-func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string,
+	args ...interface{}) *sql.Row {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
 		return stmt.QueryRowContext(ctx, args...)
@@ -120,10 +127,12 @@ func (tx *PreparedStmtTX) Rollback() error {
 	return ErrInvalidTransaction
 }
 
-func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
+func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string,
+	args ...interface{}) (result sql.Result, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
-		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).ExecContext(ctx, args...)
+		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).
+			ExecContext(ctx, args...)
 		if err != nil {
 			tx.PreparedStmtDB.Mux.Lock()
 			stmt.Close()
@@ -134,7 +143,8 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 	return result, err
 }
 
-func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
+func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string,
+	args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
 		rows, err = tx.Tx.Stmt(stmt.Stmt).QueryContext(ctx, args...)
@@ -148,7 +158,8 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 	return rows, err
 }
 
-func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string,
+	args ...interface{}) *sql.Row {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
 		return tx.Tx.StmtContext(ctx, stmt.Stmt).QueryRowContext(ctx, args...)

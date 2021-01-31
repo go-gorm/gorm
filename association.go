@@ -24,10 +24,12 @@ func (db *DB) Association(column string) *Association {
 
 	if err := db.Statement.Parse(db.Statement.Model); err == nil {
 		db.Statement.Table = table
-		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
+		association.Relationship = db.Statement.Schema.
+			Relationships.Relations[column]
 
 		if association.Relationship == nil {
-			association.Error = fmt.Errorf("%w: %v", ErrUnsupportedRelation, column)
+			association.Error = fmt.Errorf("%w: %v",
+				ErrUnsupportedRelation, column)
 		}
 
 		db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Model)
@@ -41,9 +43,11 @@ func (db *DB) Association(column string) *Association {
 	return association
 }
 
-func (association *Association) Find(out interface{}, conds ...interface{}) error {
+func (association *Association) Find(out interface{},
+	conds ...interface{}) error {
 	if association.Error == nil {
-		association.Error = association.buildCondition().Find(out, conds...).Error
+		association.Error = association.buildCondition().
+			Find(out, conds...).Error
 	}
 	return association.Error
 }
@@ -80,10 +84,12 @@ func (association *Association) Replace(values ...interface{}) error {
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
-						association.Error = rel.Field.Set(reflectValue.Index(i), reflect.Zero(rel.Field.FieldType).Interface())
+						association.Error = rel.Field.Set(reflectValue.Index(i),
+							reflect.Zero(rel.Field.FieldType).Interface())
 					}
 				case reflect.Struct:
-					association.Error = rel.Field.Set(reflectValue, reflect.Zero(rel.Field.FieldType).Interface())
+					association.Error = rel.Field.Set(reflectValue,
+						reflect.Zero(rel.Field.FieldType).Interface())
 				}
 
 				for _, ref := range rel.References {
@@ -118,9 +124,11 @@ func (association *Association) Replace(values ...interface{}) error {
 				}
 			}
 
-			if _, pvs := schema.GetIdentityFieldValuesMap(reflectValue, primaryFields); len(pvs) > 0 {
+			if _, pvs := schema.
+				GetIdentityFieldValuesMap(reflectValue, primaryFields); len(pvs) > 0 {
 				column, values := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
-				association.Error = tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap).Error
+				association.Error = tx.Where(clause.IN{Column: column, Values: values}).
+					UpdateColumns(updateMap).Error
 			}
 		case schema.Many2Many:
 			var (
@@ -152,7 +160,8 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(values, relPrimaryFields)
-			if relColumn, relValues := schema.ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs); len(relValues) > 0 {
+			if relColumn, relValues := schema.
+				ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs); len(relValues) > 0 {
 				tx.Where(clause.Not(clause.IN{Column: relColumn, Values: relValues}))
 			}
 

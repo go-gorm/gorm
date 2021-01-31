@@ -82,8 +82,11 @@ func (p *processor) Execute(db *DB) {
 	}
 
 	if stmt.Model != nil {
-		if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.SQL.Len() == 0)) {
-			if errors.Is(err, schema.ErrUnsupportedDataType) && stmt.Table == "" {
+		if err := stmt.Parse(stmt.Model); err != nil &&
+			(!errors.Is(err, schema.ErrUnsupportedDataType) ||
+				(stmt.Table == "" && stmt.SQL.Len() == 0)) {
+			if errors.Is(err, schema.ErrUnsupportedDataType) &&
+				stmt.Table == "" {
 				db.AddError(fmt.Errorf("%w: Table not set, please set it like: db.Model(&user) or db.Table(\"users\")", err))
 			} else {
 				db.AddError(err)
@@ -163,7 +166,8 @@ func (p *processor) compile() (err error) {
 	p.callbacks = callbacks
 
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
-		p.db.Logger.Error(context.Background(), "Got error when compile callbacks, got %v", err)
+		p.db.Logger.Error(context.Background(),
+			"Got error when compile callbacks, got %v", err)
 	}
 	return
 }
@@ -186,7 +190,8 @@ func (c *callback) Register(name string, fn func(*DB)) error {
 }
 
 func (c *callback) Remove(name string) error {
-	c.processor.db.Logger.Warn(context.Background(), "removing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.processor.db.Logger.Warn(context.Background(),
+		"removing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.remove = true
 	c.processor.callbacks = append(c.processor.callbacks, c)
@@ -194,7 +199,8 @@ func (c *callback) Remove(name string) error {
 }
 
 func (c *callback) Replace(name string, fn func(*DB)) error {
-	c.processor.db.Logger.Info(context.Background(), "replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
+	c.processor.db.Logger.Info(context.Background(),
+		"replacing callback `%v` from %v\n", name, utils.FileWithLineNum())
 	c.name = name
 	c.handler = fn
 	c.replace = true
@@ -223,8 +229,11 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 
 	for _, c := range cs {
 		// show warning message the callback name already exists
-		if idx := getRIndex(names, c.name); idx > -1 && !c.replace && !c.remove && !cs[idx].remove {
-			c.processor.db.Logger.Warn(context.Background(), "duplicated callback `%v` from %v\n", c.name, utils.FileWithLineNum())
+		if idx := getRIndex(names, c.name); idx > -1 && !c.replace &&
+			!c.remove && !cs[idx].remove {
+			c.processor.db.Logger.Warn(context.Background(),
+				"duplicated callback `%v` from %v\n", c.name,
+				utils.FileWithLineNum())
 		}
 		names = append(names, c.name)
 	}
@@ -238,9 +247,11 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 			} else if sortedIdx := getRIndex(sorted, c.before); sortedIdx != -1 {
 				if curIdx := getRIndex(sorted, c.name); curIdx == -1 {
 					// if before callback already sorted, append current callback just after it
-					sorted = append(sorted[:sortedIdx], append([]string{c.name}, sorted[sortedIdx:]...)...)
+					sorted = append(sorted[:sortedIdx],
+						append([]string{c.name}, sorted[sortedIdx:]...)...)
 				} else if curIdx > sortedIdx {
-					return fmt.Errorf("conflicting callback %v with before %v", c.name, c.before)
+					return fmt.Errorf("conflicting callback %v with before %v",
+						c.name, c.before)
 				}
 			} else if idx := getRIndex(names, c.before); idx != -1 {
 				// if before callback exists
@@ -258,7 +269,8 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 					// if after callback sorted, append current callback to last
 					sorted = append(sorted, c.name)
 				} else if curIdx < sortedIdx {
-					return fmt.Errorf("conflicting callback %v with before %v", c.name, c.after)
+					return fmt.Errorf("conflicting callback %v with before %v",
+						c.name, c.after)
 				}
 			} else if idx := getRIndex(names, c.after); idx != -1 {
 				// if after callback exists but haven't sorted

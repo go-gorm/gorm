@@ -12,7 +12,8 @@ import (
 // Model specify the model you would like to run db operations
 //    // update all users's name to `hello`
 //    db.Model(&User{}).Update("name", "hello")
-//    // if user's primary key is non-blank, will use it as condition, then will only update the user's name to `hello`
+//    // if user's primary key is non-blank, will use it as condition,
+//    then will only update the user's name to `hello`
 //    db.Model(&user).Update("name", "hello")
 func (db *DB) Model(value interface{}) (tx *DB) {
 	tx = db.getInstance()
@@ -36,7 +37,8 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	}
 
 	if len(whereConds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.BuildCondition(whereConds[0], whereConds[1:]...)})
+		tx.Statement.AddClause(clause.Where{Exprs: tx.Statement.
+			BuildCondition(whereConds[0], whereConds[1:]...)})
 	}
 	return
 }
@@ -46,9 +48,11 @@ var tableRegexp = regexp.MustCompile(`(?i).+? AS (\w+)\s*(?:$|,)`)
 // Table specify the table you would like to run db operations
 func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	if strings.Contains(name, " ") || strings.Contains(name, "`") || len(args) > 0 {
+	if strings.Contains(name, " ") || strings.Contains(name, "`") ||
+		len(args) > 0 {
 		tx.Statement.TableExpr = &clause.Expr{SQL: name, Vars: args}
-		if results := tableRegexp.FindStringSubmatch(name); len(results) == 2 {
+		if results := tableRegexp.
+			FindStringSubmatch(name); len(results) == 2 {
 			tx.Statement.Table = results[1]
 			return
 		}
@@ -87,7 +91,8 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 			case []string:
 				tx.Statement.Selects = append(tx.Statement.Selects, arg...)
 			default:
-				tx.AddError(fmt.Errorf("unsupported select args %v %v", query, args))
+				tx.AddError(fmt.Errorf("unsupported select args %v %v",
+					query, args))
 				return
 			}
 		}
@@ -125,12 +130,14 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
-// Omit specify fields that you want to ignore when creating, updating and querying
+// Omit specify fields that you want to ignore when creating,
+// updating and querying
 func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
+		tx.Statement.Omits = strings.FieldsFunc(columns[0],
+			utils.IsValidDBNameChar)
 	} else {
 		tx.Statement.Omits = columns
 	}
@@ -150,7 +157,9 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Not(conds...)}})
+		tx.Statement.AddClause(clause.Where{
+			Exprs: []clause.Expression{clause.Not(conds...)},
+		})
 	}
 	return
 }
@@ -158,8 +167,11 @@ func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 // Or add OR conditions
 func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
-		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(clause.And(conds...))}})
+	if conds := tx.Statement.
+		BuildCondition(query, args...); len(conds) > 0 {
+		tx.Statement.AddClause(clause.Where{
+			Exprs: []clause.Expression{clause.Or(clause.And(conds...))}},
+		)
 	}
 	return
 }
@@ -169,7 +181,10 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 //     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args})
+	tx.Statement.Joins = append(tx.Statement.Joins, join{
+		Name: query, Conds: args,
+	})
+
 	return
 }
 

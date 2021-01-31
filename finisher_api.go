@@ -67,7 +67,8 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 	return
 }
 
-// Save update value in database, if the value doesn't have primary key, will insert it
+// Save update value in database, if the value doesn't have primary key,
+// will insert it
 func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = value
@@ -78,9 +79,11 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
 			tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
 		}
-		tx.callbacks.Create().Execute(tx.InstanceSet("gorm:update_track_time", true))
+		tx.callbacks.Create().
+			Execute(tx.InstanceSet("gorm:update_track_time", true))
 	case reflect.Struct:
-		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
+		if err := tx.Statement.Parse(value); err == nil &&
+			tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
 				if _, isZero := pf.ValueOf(reflectValue); isZero {
 					tx.callbacks.Create().Execute(tx)
@@ -99,9 +102,11 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 		tx.callbacks.Update().Execute(tx)
 
-		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
+		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun &&
+			!selectedUpdate {
 			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
-			if err := tx.Session(&Session{}).First(result).Error; errors.Is(err, ErrRecordNotFound) {
+			if err := tx.Session(&Session{}).
+				First(result).Error; errors.Is(err, ErrRecordNotFound) {
 				return tx.Create(value)
 			}
 		}
@@ -113,10 +118,15 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 // First find first record that match given conditions, order by primary key
 func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.Limit(1).Order(clause.OrderByColumn{
-		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Column: clause.Column{
+			Table: clause.CurrentTable,
+			Name:  clause.PrimaryKey,
+		},
 	})
+
 	if len(conds) > 0 {
-		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+		if exprs := tx.
+			Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
 			tx.Statement.AddClause(clause.Where{Exprs: exprs})
 		}
 	}
@@ -126,7 +136,8 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 	return
 }
 
-// Take return a record that match given conditions, the order will depend on the database implementation
+// Take return a record that match given conditions, the order will
+// depend on the database implementation
 func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.Limit(1)
 	if len(conds) > 0 {
@@ -198,8 +209,15 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 				tx.AddError(ErrPrimaryKeyRequired)
 				break
 			} else {
-				primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
-				queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
+				primaryValue, _ := result.Statement.Schema.
+					PrioritizedPrimaryField.
+					ValueOf(resultsValue.Index(resultsValue.Len() - 1))
+				queryDB = tx.Clauses(clause.Gt{
+					Column: clause.Column{
+						Table: clause.CurrentTable,
+						Name:  clause.PrimaryKey,
+					},
+					Value: primaryValue})
 			}
 		}
 	}

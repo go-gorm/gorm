@@ -10,19 +10,24 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
+func prepareValues(values []interface{}, db *DB,
+	columnTypes []*sql.ColumnType, columns []string) {
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
-			if field := db.Statement.Schema.LookUpField(name); field != nil {
-				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+			field := db.Statement.Schema.LookUpField(name)
+			if field != nil {
+				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).
+					Interface()
 				continue
 			}
+
 			values[idx] = new(interface{})
 		}
 	} else if len(columnTypes) > 0 {
 		for idx, columnType := range columnTypes {
 			if columnType.ScanType() != nil {
-				values[idx] = reflect.New(reflect.PtrTo(columnType.ScanType())).Interface()
+				values[idx] = reflect.New(reflect.PtrTo(columnType.ScanType())).
+					Interface()
 			} else {
 				values[idx] = new(interface{})
 			}
@@ -34,9 +39,14 @@ func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, 
 	}
 }
 
-func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns []string) {
+func scanIntoMap(mapValue map[string]interface{},
+	values []interface{}, columns []string) {
 	for idx, column := range columns {
-		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
+		reflectValue := reflect.Indirect(
+			reflect.Indirect(reflect.ValueOf(values[idx])),
+		)
+
+		if reflectValue.IsValid() {
 			mapValue[column] = reflectValue.Interface()
 			if valuer, ok := mapValue[column].(driver.Valuer); ok {
 				mapValue[column], _ = valuer.Value()
@@ -111,28 +121,42 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				reflectValueType = reflectValueType.Elem()
 			}
 
-			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 20))
+			db.Statement.ReflectValue.Set(
+				reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 20),
+			)
 
 			if Schema != nil {
-				if reflectValueType != Schema.ModelType && reflectValueType.Kind() == reflect.Struct {
-					Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
+				if reflectValueType != Schema.ModelType &&
+					reflectValueType.Kind() == reflect.Struct {
+					Schema, _ = schema.Parse(db.Statement.Dest,
+						db.cacheStore, db.NamingStrategy)
 				}
 
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
+					if field := Schema.LookUpField(column); field != nil &&
+						field.Readable {
 						fields[idx] = field
-					} else if names := strings.Split(column, "__"); len(names) > 1 {
-						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								fields[idx] = field
+					} else if names := strings.
+						Split(column, "__"); len(names) > 1 {
+						rel, ok := Schema.Relationships.Relations[names[0]]
+						if ok {
+							field2 := rel.FieldSchema.LookUpField(
+								strings.Join(names[1:], "__"),
+							)
+							if field2 != nil && field2.Readable {
+								fields[idx] = field2
 
 								if len(joinFields) == 0 {
-									joinFields = make([][2]*schema.Field, len(columns))
+									joinFields = make([][2]*schema.Field,
+										len(columns))
 								}
-								joinFields[idx] = [2]*schema.Field{rel.Field, field}
+
+								joinFields[idx] = [2]*schema.Field{rel.Field,
+									field2}
 								continue
 							}
 						}
+
 						values[idx] = &sql.RawBytes{}
 					} else {
 						values[idx] = &sql.RawBytes{}
@@ -143,9 +167,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 			// pluck values into slice of data
 			isPluck := false
 			if len(fields) == 1 {
-				if _, ok := reflect.New(reflectValueType).Interface().(sql.Scanner); ok || // is scanner
-					reflectValueType.Kind() != reflect.Struct || // is not struct
-					Schema.ModelType.ConvertibleTo(schema.TimeReflectType) { // is time
+				_, ok := reflect.New(reflectValueType).
+					Interface().(sql.Scanner)
+				// is scanner or is not struct or is time
+				if ok || reflectValueType.Kind() != reflect.Struct ||
+					Schema.ModelType.ConvertibleTo(schema.TimeReflectType) {
 					isPluck = true
 				}
 			}
@@ -160,7 +186,9 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				} else {
 					for idx, field := range fields {
 						if field != nil {
-							values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+							values[idx] = reflect.New(
+								reflect.PtrTo(field.IndirectFieldType),
+							).Interface()
 						}
 					}
 
@@ -171,11 +199,14 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 							value := reflect.ValueOf(values[idx]).Elem()
 							relValue := joinFields[idx][0].ReflectValueOf(elem)
 
-							if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+							if relValue.Kind() == reflect.Ptr &&
+								relValue.IsNil() {
 								if value.IsNil() {
 									continue
 								}
-								relValue.Set(reflect.New(relValue.Type().Elem()))
+								relValue.Set(
+									reflect.New(relValue.Type().Elem()),
+								)
 							}
 
 							field.Set(relValue, values[idx])
@@ -186,24 +217,36 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 
 				if isPtr {
-					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem))
+					db.Statement.ReflectValue.Set(reflect.
+						Append(db.Statement.ReflectValue, elem))
 				} else {
-					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem.Elem()))
+					db.Statement.ReflectValue.Set(reflect.
+						Append(db.Statement.ReflectValue, elem.Elem()))
 				}
 			}
 		case reflect.Struct, reflect.Ptr:
 			if db.Statement.ReflectValue.Type() != Schema.ModelType {
-				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
+				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore,
+					db.NamingStrategy)
 			}
 
 			if initialized || rows.Next() {
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
-						values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+					if field := Schema.LookUpField(column); field != nil &&
+						field.Readable {
+						values[idx] = reflect.New(
+							reflect.PtrTo(field.IndirectFieldType),
+						).Interface()
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
-						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+						rel, ok := Schema.Relationships.Relations[names[0]]
+						if ok {
+							field := rel.FieldSchema.
+								LookUpField(strings.Join(names[1:], "__"))
+							if field != nil &&
+								field.Readable {
+								values[idx] = reflect.New(
+									reflect.PtrTo(field.IndirectFieldType),
+								).Interface()
 								continue
 							}
 						}
@@ -217,11 +260,13 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				db.AddError(rows.Scan(values...))
 
 				for idx, column := range columns {
-					if field := Schema.LookUpField(column); field != nil && field.Readable {
+					if field := Schema.LookUpField(column); field != nil &&
+						field.Readable {
 						field.Set(db.Statement.ReflectValue, values[idx])
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
-							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
+							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil &&
+								field.Readable {
 								relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
 								value := reflect.ValueOf(values[idx]).Elem()
 

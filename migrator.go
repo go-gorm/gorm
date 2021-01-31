@@ -48,7 +48,8 @@ type Migrator interface {
 	AddColumn(dst interface{}, field string) error
 	DropColumn(dst interface{}, field string) error
 	AlterColumn(dst interface{}, field string) error
-	MigrateColumn(dst interface{}, field *schema.Field, columnType ColumnType) error
+	MigrateColumn(dst interface{}, field *schema.Field,
+		columnType ColumnType) error
 	HasColumn(dst interface{}, field string) bool
 	RenameColumn(dst interface{}, oldName, field string) error
 	ColumnTypes(dst interface{}) ([]ColumnType, error)
