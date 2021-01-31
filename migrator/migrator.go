@@ -396,7 +396,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	if alterColumn {
+	if alterColumn && !field.IgnoreMigration {
 		return m.DB.Migrator().AlterColumn(value, field.Name)
 	}
 

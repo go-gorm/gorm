@@ -70,6 +70,7 @@ type Field struct {
 	ReflectValueOf         func(reflect.Value) reflect.Value
 	ValueOf                func(reflect.Value) (value interface{}, zero bool)
 	Set                    func(reflect.Value, interface{}) error
+	IgnoreMigration        bool
 }
 
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
@@ -186,6 +187,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if val, ok := field.TagSettings["COMMENT"]; ok {
 		field.Comment = val
+	}
+
+	if _, ok := field.TagSettings["IGNOREMIGRATION"]; ok {
+		field.IgnoreMigration = true
 	}
 
 	// default value is function or null or blank (primary keys)
