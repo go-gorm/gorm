@@ -15,7 +15,8 @@ import (
 
 // Config GORM config
 type Config struct {
-	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
+	// GORM perform single create, update, delete operations in transactions
+	// by default to ensure database data integrity
 	// You can disable it by setting `SkipDefaultTransaction` to true
 	SkipDefaultTransaction bool
 	// NamingStrategy tables, columns naming strategy
@@ -85,7 +86,7 @@ type Session struct {
 // Open initialize db session based on dialector
 func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	if config == nil {
-		config = &Config{}
+		config = DefaultConfig()
 	}
 
 	if config.NamingStrategy == nil {
@@ -104,7 +105,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.Dialector = dialector
 	}
 
-	if config.Plugins == nil {
+	if len(config.Plugins) == 0 {
 		config.Plugins = map[string]Plugin{}
 	}
 
@@ -116,7 +117,7 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 
 	db.callbacks = initializeCallbacks(db)
 
-	if config.ClauseBuilders == nil {
+	if len(config.ClauseBuilders) == 0 {
 		config.ClauseBuilders = map[string]clause.ClauseBuilder{}
 	}
 
@@ -150,7 +151,82 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	}
 
 	if err != nil {
-		config.Logger.Error(context.Background(), "failed to initialize database, got error %v", err)
+		config.Logger.Error(context.Background(),
+			"failed to initialize database, got error %v", err)
+	}
+
+	return
+}
+
+// DefaultConfig default config.
+func DefaultConfig() *Config {
+	c := &Config{
+		NamingStrategy: schema.NamingStrategy{},
+		Logger:         logger.Default,
+		NowFunc:        func() time.Time { return time.Now().Local() },
+		ClauseBuilders: map[string]clause.ClauseBuilder{},
+		Plugins:        map[string]Plugin{},
+		cacheStore:     &sync.Map{},
+	}
+
+	return c
+}
+
+// Apply apply option for Config.
+func (config *Config) Apply(opts ...ConfigOption) {
+	for _, o := range opts {
+		o(config)
+	}
+}
+
+// OpenWithOption create *db.DB with ConfigOption
+// return *db.DB,error.
+func OpenWithOption(dialector Dialector,
+	opts ...ConfigOption) (db *DB, err error) {
+	config := DefaultConfig()
+
+	// apply config option
+	config.Apply(opts...)
+
+	if dialector != nil {
+		config.Dialector = dialector
+	}
+
+	// create DB entry
+	db = &DB{Config: config, clone: 1}
+	db.callbacks = initializeCallbacks(db)
+	if config.Dialector != nil {
+		err = config.Dialector.Initialize(db)
+	}
+
+	preparedStmt := &PreparedStmtDB{
+		ConnPool:    db.ConnPool,
+		Stmts:       map[string]Stmt{},
+		Mux:         &sync.RWMutex{},
+		PreparedSQL: make([]string, 0, 100),
+	}
+	db.cacheStore.Store("preparedStmt", preparedStmt)
+
+	if config.PrepareStmt {
+		db.ConnPool = preparedStmt
+	}
+
+	db.Statement = &Statement{
+		DB:       db,
+		ConnPool: db.ConnPool,
+		Context:  context.Background(),
+		Clauses:  map[string]clause.Clause{},
+	}
+
+	if err == nil && !config.DisableAutomaticPing {
+		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
+			err = pinger.Ping()
+		}
+	}
+
+	if err != nil {
+		config.Logger.Error(context.Background(),
+			"failed to initialize database, got error %v", err)
 	}
 
 	return
