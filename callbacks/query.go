@@ -172,7 +172,7 @@ func Preload(db *gorm.DB) {
 			if name == clause.Associations {
 				for _, rel := range db.Statement.Schema.Relationships.Relations {
 					if rel.Schema == db.Statement.Schema {
-						preloadMap[rel.Name] = nil
+						preloadMap[rel.Name] = map[string][]interface{}{}
 					}
 				}
 			} else {

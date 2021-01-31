@@ -385,7 +385,9 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	for name, ok := range selectColumns {
 		columnName := ""
 		if strings.HasPrefix(name, association.Relationship.Name) {
-			columnName = strings.TrimPrefix(name, association.Relationship.Name)
+			if columnName = strings.TrimPrefix(name, association.Relationship.Name); columnName == ".*" {
+				columnName = name
+			}
 		} else if strings.HasPrefix(name, clause.Associations) {
 			columnName = name
 		}
@@ -404,7 +406,15 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			selectedSaveColumns = append(selectedSaveColumns, ref.ForeignKey.Name)
 		}
 	}
-	associationDB := association.DB.Session(&Session{}).Model(nil).Select(selectedSaveColumns).Session(&Session{})
+
+	associationDB := association.DB.Session(&Session{}).Model(nil)
+	if !association.DB.FullSaveAssociations {
+		associationDB.Select(selectedSaveColumns)
+	}
+	if len(omitColumns) > 0 {
+		associationDB.Omit(omitColumns...)
+	}
+	associationDB = associationDB.Session(&Session{})
 
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
