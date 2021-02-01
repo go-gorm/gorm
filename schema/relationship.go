@@ -18,6 +18,7 @@ const (
 	HasMany   RelationshipType = "has_many"     // HasManyRel has many relationship
 	BelongsTo RelationshipType = "belongs_to"   // BelongsToRel belongs to relationship
 	Many2Many RelationshipType = "many_to_many" // Many2ManyRel many to many relationship
+	has       RelationshipType = "has"
 )
 
 type Relationships struct {
@@ -88,7 +89,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 		}
 	}
 
-	if relation.Type == "has" {
+	if relation.Type == has {
 		// don't add relations to embeded schema, which might be shared
 		if relation.FieldSchema != relation.Schema && relation.Polymorphic == nil && field.OwnerSchema == nil {
 			relation.FieldSchema.Relationships.Relations["_"+relation.Schema.Name+"_"+relation.Name] = relation
@@ -176,7 +177,7 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 		})
 	}
 
-	relation.Type = "has"
+	relation.Type = has
 }
 
 func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Field, many2many string) {
@@ -476,7 +477,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl gue
 	}
 
 	if gl == guessHas || gl == guessEmbeddedHas {
-		relation.Type = "has"
+		relation.Type = has
 	} else {
 		relation.Type = BelongsTo
 	}
