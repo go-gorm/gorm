@@ -85,18 +85,21 @@ func (r CustomReplacer) Replace(name string) string {
 	return r.f(name)
 }
 
+var testReplacer = CustomReplacer{
+	func(name string) string {
+		replaced := "REPLACED_" + strings.ToUpper(name)
+		return strings.NewReplacer("CID", "_Cid").Replace(replaced)
+	},
+}
+
 func TestCustomReplacer(t *testing.T) {
 	reset()
 
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
-		NameReplacer: CustomReplacer{
-			func(name string) string {
-				replaced := "REPLACED_" + strings.ToUpper(name)
-				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
-			},
-		},
+		NameReplacer:  testReplacer,
+		NoLowerCase:   false,
 	}
 
 	idxName := ns.IndexName("public.table", "name")
@@ -126,6 +129,47 @@ func TestCustomReplacer(t *testing.T) {
 
 	columdName := ns.ColumnName("", "NameCID")
 	if columdName != "replaced_name_cid" {
+		t.Errorf("invalid column name generated, got %v", columdName)
+	}
+}
+
+func TestCustomReplacerWithNoLowerCase(t *testing.T) {
+	reset()
+
+	var ns = NamingStrategy{
+		TablePrefix:   "public.",
+		SingularTable: true,
+		NameReplacer:  testReplacer,
+		NoLowerCase:   true,
+	}
+
+	idxName := ns.IndexName("public.table", "name")
+	if idxName != "idx_public_table_REPLACED_NAME" {
+		t.Errorf("invalid index name generated, got %v", idxName)
+	}
+
+	chkName := ns.CheckerName("public.table", "name")
+	if chkName != "chk_public_table_name" {
+		t.Errorf("invalid checker name generated, got %v", chkName)
+	}
+
+	joinTable := ns.JoinTableName("user_languages")
+	if joinTable != "public.REPLACED_USER_LANGUAGES" {
+		t.Errorf("invalid join table generated, got %v", joinTable)
+	}
+
+	joinTable2 := ns.JoinTableName("UserLanguage")
+	if joinTable2 != "public.REPLACED_USERLANGUAGE" {
+		t.Errorf("invalid join table generated, got %v", joinTable2)
+	}
+
+	tableName := ns.TableName("Company")
+	if tableName != "public.REPLACED_COMPANY" {
+		t.Errorf("invalid table name generated, got %v", tableName)
+	}
+
+	columdName := ns.ColumnName("", "NameCID")
+	if columdName != "REPLACED_NAME_Cid" {
 		t.Errorf("invalid column name generated, got %v", columdName)
 	}
 }

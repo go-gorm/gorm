@@ -30,6 +30,7 @@ type NamingStrategy struct {
 	TablePrefix   string
 	SingularTable bool
 	NameReplacer  Replacer
+	NoLowerCase   bool
 }
 
 // TableName convert string to table name
@@ -47,7 +48,7 @@ func (ns NamingStrategy) ColumnName(table, column string) string {
 
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
-	if strings.ToLower(str) == str {
+	if !ns.NoLowerCase && strings.ToLower(str) == str {
 		return ns.TablePrefix + str
 	}
 
@@ -116,6 +117,11 @@ func (ns NamingStrategy) toDBName(name string) string {
 		name = ns.NameReplacer.Replace(name)
 	}
 
+	if ns.NoLowerCase {
+		smap.Store(name, name) // TODO: should store with original name, not replaced name
+		return name
+	}
+
 	var (
 		value                          = commonInitialismsReplacer.Replace(name)
 		buf                            strings.Builder
@@ -153,6 +159,6 @@ func (ns NamingStrategy) toDBName(name string) string {
 		buf.WriteByte(value[len(value)-1])
 	}
 	ret := buf.String()
-	smap.Store(name, ret)
+	smap.Store(name, ret) // TODO: should store with original name, not replaced name
 	return ret
 }
