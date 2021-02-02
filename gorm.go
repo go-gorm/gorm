@@ -248,6 +248,11 @@ func (db *DB) Debug() (tx *DB) {
 	})
 }
 
+// NewDB clone a new db connection without search conditions
+func (db *DB) NewDB() *DB {
+	return db.Session(&Session{NewDB: true})
+}
+
 // Set store value with key into current db instance's context
 func (db *DB) Set(key string, value interface{}) *DB {
 	tx := db.getInstance()
