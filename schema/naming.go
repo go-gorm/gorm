@@ -20,11 +20,16 @@ type Namer interface {
 	IndexName(table, column string) string
 }
 
+// Replacer replacer interface like strings.Replacer
+type Replacer interface {
+	Replace(name string) string
+}
+
 // NamingStrategy tables, columns naming strategy
 type NamingStrategy struct {
 	TablePrefix   string
 	SingularTable bool
-	NameReplacer  *strings.Replacer
+	NameReplacer  Replacer
 }
 
 // TableName convert string to table name
@@ -93,6 +98,11 @@ func init() {
 		commonInitialismsForReplacer = append(commonInitialismsForReplacer, initialism, strings.Title(strings.ToLower(initialism)))
 	}
 	commonInitialismsReplacer = strings.NewReplacer(commonInitialismsForReplacer...)
+}
+
+// reset should be called before each unit test. It clears out the cached names from smap. TODO: make smap part of NamingStrategy instead of a global singleton.
+func reset() {
+	smap = sync.Map{}
 }
 
 func (ns NamingStrategy) toDBName(name string) string {

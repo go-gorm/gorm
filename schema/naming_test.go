@@ -6,6 +6,8 @@ import (
 )
 
 func TestToDBName(t *testing.T) {
+	reset()
+
 	var maps = map[string]string{
 		"":                          "",
 		"x":                         "x",
@@ -36,6 +38,8 @@ func TestToDBName(t *testing.T) {
 }
 
 func TestNamingStrategy(t *testing.T) {
+	reset()
+
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
@@ -69,6 +73,59 @@ func TestNamingStrategy(t *testing.T) {
 
 	columdName := ns.ColumnName("", "NameCID")
 	if columdName != "name_cid" {
+		t.Errorf("invalid column name generated, got %v", columdName)
+	}
+}
+
+type CustomReplacer struct {
+	f func(string) string
+}
+
+func (r CustomReplacer) Replace(name string) string {
+	return r.f(name)
+}
+
+func TestCustomReplacer(t *testing.T) {
+	reset()
+
+	var ns = NamingStrategy{
+		TablePrefix:   "public.",
+		SingularTable: true,
+		NameReplacer: CustomReplacer{
+			func(name string) string {
+				replaced := "REPLACED_" + strings.ToUpper(name)
+				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
+			},
+		},
+	}
+
+	idxName := ns.IndexName("public.table", "name")
+	if idxName != "idx_public_table_replaced_name" {
+		t.Errorf("invalid index name generated, got %v", idxName)
+	}
+
+	chkName := ns.CheckerName("public.table", "name")
+	if chkName != "chk_public_table_name" {
+		t.Errorf("invalid checker name generated, got %v", chkName)
+	}
+
+	joinTable := ns.JoinTableName("user_languages")
+	if joinTable != "public.user_languages" { // Seems like a bug in NamingStrategy to skip the Replacer when the name is lowercase here.
+		t.Errorf("invalid join table generated, got %v", joinTable)
+	}
+
+	joinTable2 := ns.JoinTableName("UserLanguage")
+	if joinTable2 != "public.replaced_userlanguage" {
+		t.Errorf("invalid join table generated, got %v", joinTable2)
+	}
+
+	tableName := ns.TableName("Company")
+	if tableName != "public.replaced_company" {
+		t.Errorf("invalid table name generated, got %v", tableName)
+	}
+
+	columdName := ns.ColumnName("", "NameCID")
+	if columdName != "replaced_name_cid" {
 		t.Errorf("invalid column name generated, got %v", columdName)
 	}
 }
