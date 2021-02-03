@@ -106,6 +106,14 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 
 	if config.Plugins == nil {
 		config.Plugins = map[string]Plugin{}
+	} else {
+		for _, p := range config.Plugins {
+			defer func(plugin Plugin) {
+				if errr := plugin.Initialize(db); errr != nil {
+					err = errr
+				}
+			}(p)
+		}
 	}
 
 	if config.cacheStore == nil {
