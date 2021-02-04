@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -297,3 +298,27 @@ func TestEmbeddedStructForCustomizedNamingStrategy(t *testing.T) {
 		})
 	}
 }
+
+
+type DynamicTable struct {
+	ID int
+}
+
+func (d *DynamicTable) TableName() string {
+	return fmt.Sprintf("dynamic_%d",d.ID)
+}
+
+func TestDynamicTableName(t *testing.T) {
+	for i:=0;i<=10;i++ {
+		dt := &DynamicTable{ID:i}
+		dynamic, err := schema.Parse(dt, &sync.Map{}, schema.NamingStrategy{})
+		if err != nil {
+			t.Fatalf("failed to parse pointer user, got error %v", err)
+		}
+
+		if dynamic.Table != dt.TableName(){
+			t.Errorf("Failed to customize table with TableName method")
+		}
+	}
+}
+
