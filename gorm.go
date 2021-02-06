@@ -164,6 +164,80 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 	return
 }
 
+// DefaultConfig default config.
+func DefaultConfig() *Config {
+	c := &Config{
+		NamingStrategy: schema.NamingStrategy{},
+		Logger:         logger.Default,
+		NowFunc:        func() time.Time { return time.Now().Local() },
+		ClauseBuilders: map[string]clause.ClauseBuilder{},
+		Plugins:        map[string]Plugin{},
+		cacheStore:     &sync.Map{},
+	}
+
+	return c
+}
+
+// Apply apply option for Config.
+func (config *Config) Apply(opts ...ConfigOption) {
+	for _, o := range opts {
+		o(config)
+	}
+}
+
+// OpenWithOption create *db.DB with ConfigOption
+// return *db.DB,error.
+func OpenWithOption(dialector Dialector,
+	opts ...ConfigOption) (db *DB, err error) {
+	config := DefaultConfig()
+
+	// apply config option
+	config.Apply(opts...)
+
+	if dialector != nil {
+		config.Dialector = dialector
+	}
+
+	// create DB entry
+	db = &DB{Config: config, clone: 1}
+	db.callbacks = initializeCallbacks(db)
+	if config.Dialector != nil {
+		err = config.Dialector.Initialize(db)
+	}
+
+	preparedStmt := &PreparedStmtDB{
+		ConnPool:    db.ConnPool,
+		Stmts:       map[string]Stmt{},
+		Mux:         &sync.RWMutex{},
+		PreparedSQL: make([]string, 0, 100),
+	}
+	db.cacheStore.Store("preparedStmt", preparedStmt)
+
+	if config.PrepareStmt {
+		db.ConnPool = preparedStmt
+	}
+
+	db.Statement = &Statement{
+		DB:       db,
+		ConnPool: db.ConnPool,
+		Context:  context.Background(),
+		Clauses:  map[string]clause.Clause{},
+	}
+
+	if err == nil && !config.DisableAutomaticPing {
+		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
+			err = pinger.Ping()
+		}
+	}
+
+	if err != nil {
+		config.Logger.Error(context.Background(),
+			"failed to initialize database, got error %v", err)
+	}
+
+	return
+}
+
 // Session create new db session
 func (db *DB) Session(config *Session) *DB {
 	var (
