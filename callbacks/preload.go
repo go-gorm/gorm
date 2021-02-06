@@ -2,6 +2,7 @@ package callbacks
 
 import (
 	"reflect"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -108,7 +109,23 @@ func preload(db *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 		}
 	}
 
-	db.AddError(tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), inlineConds...).Error)
+	// if preload clauses contains LIMIT, use union sql, otherwise use IN (...)
+	if _, ok := tx.Statement.Clauses["LIMIT"]; ok && len(values) > 0 {
+		placeholders := []string{}
+		subQueries := []interface{}{}
+		model := reflect.New(rel.FieldSchema.ModelType).Interface()
+		for _, v := range values {
+			placeholders = append(placeholders, "(?)")
+			txCopy := tx.Session(&gorm.Session{}).Model(model).Where(clause.Eq{Column: column, Value: v})
+			subQueries = append(subQueries, txCopy)
+		}
+		unionTable := "(" + strings.Join(placeholders, " union ") + ") as unionTable"
+		tx = tx.Session(&gorm.Session{NewDB: true}).Table(unionTable, subQueries...)
+	} else {
+		tx = tx.Where(clause.IN{Column: column, Values: values})
+	}
+
+	db.AddError(tx.Find(reflectResults.Addr().Interface(), inlineConds...).Error)
 
 	fieldValues := make([]interface{}, len(relForeignFields))
 
