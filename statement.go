@@ -438,12 +438,13 @@ func (stmt *Statement) clone() *Statement {
 		SkipHooks:            stmt.SkipHooks,
 	}
 
-	for k, c := range stmt.Clauses {
-		newStmt.Clauses[k] = c
+	// Optimize loop assignment
+	if len(stmt.Clauses) > 0 {
+		newStmt.Clauses = stmt.Clauses
 	}
 
-	for k, p := range stmt.Preloads {
-		newStmt.Preloads[k] = p
+	if len(stmt.Preloads) > 0 {
+		newStmt.Preloads = stmt.Preloads
 	}
 
 	if len(stmt.Joins) > 0 {
