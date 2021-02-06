@@ -194,6 +194,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	// default value is function or null or blank (primary keys)
+	field.DefaultValue = strings.TrimSpace(field.DefaultValue)
 	skipParseDefaultValue := strings.Contains(field.DefaultValue, "(") &&
 		strings.Contains(field.DefaultValue, ")") || strings.ToLower(field.DefaultValue) == "null" || field.DefaultValue == ""
 	switch reflect.Indirect(fieldValue).Kind() {
