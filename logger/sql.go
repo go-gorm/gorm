@@ -54,18 +54,18 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			} else {
 				vars[idx] = nullStr
 			}
-		case fmt.Stringer:
-			reflectValue := reflect.ValueOf(v)
-			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
-				vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
-			} else {
-				vars[idx] = nullStr
-			}
 		case driver.Valuer:
 			reflectValue := reflect.ValueOf(v)
 			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
 				r, _ := v.Value()
 				convertParams(r, idx)
+			} else {
+				vars[idx] = nullStr
+			}
+		case fmt.Stringer:
+			reflectValue := reflect.ValueOf(v)
+			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
+				vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
 			} else {
 				vars[idx] = nullStr
 			}
