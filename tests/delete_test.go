@@ -153,6 +153,30 @@ func TestDeleteWithAssociations(t *testing.T) {
 	}
 }
 
+func TestDeleteAssociationsWithUnscoped(t *testing.T) {
+	user := GetUser("unscoped_delete_with_associations", Config{Account: true, Pets: 2, Toys: 4, Company: true, Manager: true, Team: 1, Languages: 1, Friends: 1})
+
+	if err := DB.Create(user).Error; err != nil {
+		t.Fatalf("failed to create user, got error %v", err)
+	}
+
+	if err := DB.Unscoped().Select(clause.Associations, "Pets.Toy").Delete(&user).Error; err != nil {
+		t.Fatalf("failed to delete user, got error %v", err)
+	}
+
+	for key, value := range map[string]int64{"Account": 0, "Pets": 0, "Toys": 0, "Company": 1, "Manager": 1, "Team": 0, "Languages": 0, "Friends": 0} {
+		if count := DB.Unscoped().Model(&user).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
+	}
+
+	for key, value := range map[string]int64{"Account": 0, "Pets": 0, "Toys": 0, "Company": 1, "Manager": 1, "Team": 0, "Languages": 0, "Friends": 0} {
+		if count := DB.Model(&user).Association(key).Count(); count != value {
+			t.Errorf("user's %v expects: %v, got %v", key, value, count)
+		}
+	}
+}
+
 func TestDeleteSliceWithAssociations(t *testing.T) {
 	users := []User{
 		*GetUser("delete_slice_with_associations1", Config{Account: true, Pets: 4, Toys: 1, Company: true, Manager: true, Team: 1, Languages: 1, Friends: 4}),

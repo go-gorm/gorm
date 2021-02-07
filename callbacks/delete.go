@@ -36,6 +36,9 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
 							tx := db.Session(&gorm.Session{NewDB: true}).Model(modelValue)
 							withoutConditions := false
+							if db.Statement.Unscoped {
+								tx = tx.Unscoped()
+							}
 
 							if len(db.Statement.Selects) > 0 {
 								var selects []string
