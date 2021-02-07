@@ -235,6 +235,8 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 				if schema.parseRelation(field); schema.err != nil {
 					return schema, schema.err
+				} else {
+					schema.FieldsByName[field.Name] = field
 				}
 			}
 

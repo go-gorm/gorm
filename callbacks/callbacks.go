@@ -17,9 +17,9 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	createCallback := db.Callback().Create()
 	createCallback.Match(enableTransaction).Register("gorm:begin_transaction", BeginTransaction)
 	createCallback.Register("gorm:before_create", BeforeCreate)
-	createCallback.Register("gorm:save_before_associations", SaveBeforeAssociations)
+	createCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(true))
 	createCallback.Register("gorm:create", Create(config))
-	createCallback.Register("gorm:save_after_associations", SaveAfterAssociations)
+	createCallback.Register("gorm:save_after_associations", SaveAfterAssociations(true))
 	createCallback.Register("gorm:after_create", AfterCreate)
 	createCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 
@@ -40,9 +40,9 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	updateCallback.Match(enableTransaction).Register("gorm:begin_transaction", BeginTransaction)
 	updateCallback.Register("gorm:setup_reflect_value", SetupUpdateReflectValue)
 	updateCallback.Register("gorm:before_update", BeforeUpdate)
-	updateCallback.Register("gorm:save_before_associations", SaveBeforeAssociations)
+	updateCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(false))
 	updateCallback.Register("gorm:update", Update)
-	updateCallback.Register("gorm:save_after_associations", SaveAfterAssociations)
+	updateCallback.Register("gorm:save_after_associations", SaveAfterAssociations(false))
 	updateCallback.Register("gorm:after_update", AfterUpdate)
 	updateCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 
