@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+var (
+	// match English letters and midline
+	regEnLetterAndmidline = regexp.MustCompile("^[A-Za-z-_]+$")
+)
+
 type Check struct {
 	Name       string
 	Constraint string // length(phone) >= 10
@@ -17,7 +22,7 @@ func (schema *Schema) ParseCheckConstraints() map[string]Check {
 	for _, field := range schema.FieldsByDBName {
 		if chk := field.TagSettings["CHECK"]; chk != "" {
 			names := strings.Split(chk, ",")
-			if len(names) > 1 && regexp.MustCompile("^[A-Za-z-_]+$").MatchString(names[0]) {
+			if len(names) > 1 && regEnLetterAndmidline.MatchString(names[0]) {
 				checks[names[0]] = Check{Name: names[0], Constraint: strings.Join(names[1:], ","), Field: field}
 			} else {
 				if names[0] == "" {
