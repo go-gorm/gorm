@@ -133,6 +133,15 @@ func TestRunCallbacks(t *testing.T) {
 	if DB.Where("Code = ?", "unique_code").First(&p).Error == nil {
 		t.Fatalf("Can't find a deleted record")
 	}
+
+	beforeCallTimes := p.AfterFindCallTimes
+	if DB.Where("Code = ?", "unique_code").Find(&p).Error != nil {
+		t.Fatalf("Find don't raise error when record not found")
+	}
+
+	if p.AfterFindCallTimes != beforeCallTimes {
+		t.Fatalf("AfterFind should not be called")
+	}
 }
 
 func TestCallbacksWithErrors(t *testing.T) {
