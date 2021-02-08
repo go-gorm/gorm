@@ -81,19 +81,17 @@ func (r CustomReplacer) Replace(name string) string {
 	return r.f(name)
 }
 
-var testReplacer = CustomReplacer{
-	func(name string) string {
-		replaced := "REPLACED_" + strings.ToUpper(name)
-		return strings.NewReplacer("CID", "_Cid").Replace(replaced)
-	},
-}
-
 func TestCustomReplacer(t *testing.T) {
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
-		NameReplacer:  testReplacer,
-		NoLowerCase:   false,
+		NameReplacer: CustomReplacer{
+			func(name string) string {
+				replaced := "REPLACED_" + strings.ToUpper(name)
+				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
+			},
+		},
+		NoLowerCase: false,
 	}
 
 	idxName := ns.IndexName("public.table", "name")
@@ -131,8 +129,13 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
-		NameReplacer:  testReplacer,
-		NoLowerCase:   true,
+		NameReplacer: CustomReplacer{
+			func(name string) string {
+				replaced := "REPLACED_" + strings.ToUpper(name)
+				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
+			},
+		},
+		NoLowerCase: true,
 	}
 
 	idxName := ns.IndexName("public.table", "name")
@@ -167,42 +170,87 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 }
 
 func TestNamingStrategySmapInit(t *testing.T) {
-	ncalls := 0
+	ncalls := 0        // Track how many times testReplacer was called
+	args := []string{} // Track the arguments given to each call
+
+	// This CustomReplacer keeps track of how many times it was called.
 	var testReplacer = CustomReplacer{
 		func(name string) string {
+			args = append(args, name)
 			ncalls++
 			return name
 		},
 	}
 
+	// First NamingStrategy instance using our CustomReplacer.
 	var ns = NamingStrategy{
 		NameReplacer: testReplacer,
 	}
 
-	ns.IndexName("public.table", "name") // This calls the Replacer: there is no smap.
-	if ncalls != 1 {
-		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	// A different NamingStrategy instance does not share the same smap.
+	var ns2 = NamingStrategy{
+		NameReplacer: testReplacer,
 	}
 
-	ns.IndexName("public.table", "name") // This calls the Replacer: there is no smap.
-	if ncalls != 2 {
-		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	// Helper functions to make assertions about the CustomReplacer.
+	var expectCalls = func(expected int) {
+		t.Helper()
+		if ncalls != expected {
+			t.Errorf("testReplacer called unexpected # of times, got %v; expected %v", ncalls, expected)
+		}
 	}
+	var expectNthCallArg = func(n int, expected string) {
+		t.Helper()
+		if len(args) <= n {
+			t.Errorf("cannot expect Nth arg: testReplacer was not called %v times", n)
+			return
+		}
+		if args[n] != expected {
+			t.Errorf("testReplacer called with unexpected argument, got '%v'; expected '%v'", args[n], expected)
+		}
+	}
+
+	// This will call the Replacer: there is no smap.
+	ns.IndexName("public.table", "name")
+	expectCalls(1)
+	expectNthCallArg(0, "name")
+
+	// This will call the Replacer: there is no smap.
+	ns.IndexName("public.table", "name")
+	expectCalls(2)
+	expectNthCallArg(1, "name")
 
 	// Now call Init() to create the smap. The next call will be cached.
 	ns.Init()
 
-	ns.IndexName("public.table", "name") // This calls the Replacer: smap not populated yet.
-	if ncalls != 3 {
-		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
-	}
-	ns.IndexName("public.table", "name") // This does not call the Replacer. "name" is in the smap.
-	if ncalls != 3 {
-		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
-	}
+	// This will call the Replacer: smap not populated yet.
+	ns.IndexName("public.table", "name")
+	expectCalls(3)
+	expectNthCallArg(2, "name")
 
-	ns.IndexName("public.table", "name2") // This calls the Replacer, because it's a different name.
-	if ncalls != 4 {
-		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
-	}
+	// This will not call the Replacer: "name" is in the smap.
+	ns.IndexName("public.table", "name")
+	expectCalls(3)
+
+	// This will call the Replacer: it's a different name, not in the smap.
+	ns.IndexName("public.table", "name2")
+	expectCalls(4)
+	expectNthCallArg(3, "name2")
+
+	// This will call the Replacer: ns2 has not been initialized.
+	ns2.IndexName("public.table", "name")
+	expectCalls(5)
+	expectNthCallArg(4, "name")
+
+	ns2.Init()
+
+	// This will call the Replacer: ns2's smap is empty.
+	ns2.IndexName("public.table", "name")
+	expectCalls(6)
+	expectNthCallArg(5, "name")
+
+	// This will not call the Replacer: "name" is now in ns2's smap.
+	ns2.IndexName("public.table", "name")
+	expectCalls(6)
+	expectNthCallArg(5, "name")
 }
