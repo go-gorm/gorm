@@ -6,8 +6,6 @@ import (
 )
 
 func TestToDBName(t *testing.T) {
-	reset()
-
 	var maps = map[string]string{
 		"":                          "",
 		"x":                         "x",
@@ -38,8 +36,6 @@ func TestToDBName(t *testing.T) {
 }
 
 func TestNamingStrategy(t *testing.T) {
-	reset()
-
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
@@ -93,8 +89,6 @@ var testReplacer = CustomReplacer{
 }
 
 func TestCustomReplacer(t *testing.T) {
-	reset()
-
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
@@ -134,8 +128,6 @@ func TestCustomReplacer(t *testing.T) {
 }
 
 func TestCustomReplacerWithNoLowerCase(t *testing.T) {
-	reset()
-
 	var ns = NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
@@ -171,5 +163,46 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 	columdName := ns.ColumnName("", "NameCID")
 	if columdName != "REPLACED_NAME_Cid" {
 		t.Errorf("invalid column name generated, got %v", columdName)
+	}
+}
+
+func TestNamingStrategySmapInit(t *testing.T) {
+	ncalls := 0
+	var testReplacer = CustomReplacer{
+		func(name string) string {
+			ncalls++
+			return name
+		},
+	}
+
+	var ns = NamingStrategy{
+		NameReplacer: testReplacer,
+	}
+
+	ns.IndexName("public.table", "name") // This calls the Replacer: there is no smap.
+	if ncalls != 1 {
+		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	}
+
+	ns.IndexName("public.table", "name") // This calls the Replacer: there is no smap.
+	if ncalls != 2 {
+		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	}
+
+	// Now call Init() to create the smap. The next call will be cached.
+	ns.Init()
+
+	ns.IndexName("public.table", "name") // This calls the Replacer: smap not populated yet.
+	if ncalls != 3 {
+		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	}
+	ns.IndexName("public.table", "name") // This does not call the Replacer. "name" is in the smap.
+	if ncalls != 3 {
+		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
+	}
+
+	ns.IndexName("public.table", "name2") // This calls the Replacer, because it's a different name.
+	if ncalls != 4 {
+		t.Errorf("replacer function called invalid # of times, got %v", ncalls)
 	}
 }
