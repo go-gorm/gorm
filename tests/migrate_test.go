@@ -62,10 +62,11 @@ func TestSmartMigrateColumn(t *testing.T) {
 	DB.AutoMigrate(&UserMigrateColumn{})
 
 	type UserMigrateColumn2 struct {
-		ID       uint
-		Name     string    `gorm:"size:128"`
-		Salary   float64   `gorm:"precision:2"`
-		Birthday time.Time `gorm:"precision:2"`
+		ID                  uint
+		Name                string    `gorm:"size:128"`
+		Salary              float64   `gorm:"precision:2"`
+		Birthday            time.Time `gorm:"precision:2"`
+		NameIgnoreMigration string    `gorm:"size:100"`
 	}
 
 	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
@@ -95,10 +96,11 @@ func TestSmartMigrateColumn(t *testing.T) {
 	}
 
 	type UserMigrateColumn3 struct {
-		ID       uint
-		Name     string    `gorm:"size:256"`
-		Salary   float64   `gorm:"precision:3"`
-		Birthday time.Time `gorm:"precision:3"`
+		ID                  uint
+		Name                string    `gorm:"size:256"`
+		Salary              float64   `gorm:"precision:3"`
+		Birthday            time.Time `gorm:"precision:3"`
+		NameIgnoreMigration string    `gorm:"size:128;-:migration"`
 	}
 
 	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn3{}); err != nil {
@@ -123,6 +125,10 @@ func TestSmartMigrateColumn(t *testing.T) {
 		case "birthday":
 			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
 				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		case "name_ignore_migration":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 100 {
+				t.Fatalf("name_ignore_migration's length should still be 100 but got %v", length)
 			}
 		}
 	}
