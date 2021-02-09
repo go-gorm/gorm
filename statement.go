@@ -438,6 +438,12 @@ func (stmt *Statement) clone() *Statement {
 		SkipHooks:            stmt.SkipHooks,
 	}
 
+	if stmt.SQL.Len() > 0 {
+		newStmt.SQL.WriteString(stmt.SQL.String())
+		newStmt.Vars = make([]interface{}, 0, len(stmt.Vars))
+		newStmt.Vars = append(newStmt.Vars, stmt.Vars...)
+	}
+
 	for k, c := range stmt.Clauses {
 		newStmt.Clauses[k] = c
 	}
