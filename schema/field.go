@@ -189,10 +189,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.Comment = val
 	}
 
-	if _, ok := field.TagSettings["IGNOREMIGRATION"]; ok {
-		field.IgnoreMigration = true
-	}
-
 	// default value is function or null or blank (primary keys)
 	field.DefaultValue = strings.TrimSpace(field.DefaultValue)
 	skipParseDefaultValue := strings.Contains(field.DefaultValue, "(") &&
@@ -301,11 +297,23 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	// setup permission
-	if _, ok := field.TagSettings["-"]; ok {
-		field.Creatable = false
-		field.Updatable = false
-		field.Readable = false
-		field.DataType = ""
+	if val, ok := field.TagSettings["-"]; ok {
+		val = strings.ToLower(strings.TrimSpace(val))
+		switch val {
+		case "-":
+			field.Creatable = false
+			field.Updatable = false
+			field.Readable = false
+			field.DataType = ""
+		case "all":
+			field.Creatable = false
+			field.Updatable = false
+			field.Readable = false
+			field.DataType = ""
+			field.IgnoreMigration = true
+		case "migration":
+			field.IgnoreMigration = true
+		}
 	}
 
 	if v, ok := field.TagSettings["->"]; ok {
