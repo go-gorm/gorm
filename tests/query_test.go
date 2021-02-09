@@ -991,13 +991,13 @@ func TestSubQueryWithRaw(t *testing.T) {
 	DB.Create(&users)
 
 	var count int64
-	err := DB.Raw("select count(*) from (?) tmp", DB.Raw("select name from users where age >= ? and name in (?)", 10, []string{"subquery_raw_1", "subquery_raw_3"})).Scan(&count).Error
+	err := DB.Raw("select count(*) from (?) tmp where 1 = ? AND name IN (?)", DB.Raw("select name from users where age >= ? and name in (?)", 10, []string{"subquery_raw_1", "subquery_raw_2", "subquery_raw_3"}), 1, DB.Raw("select name from users where age >= ? and name in (?)", 20, []string{"subquery_raw_1", "subquery_raw_2", "subquery_raw_3"})).Scan(&count).Error
 	if err != nil {
 		t.Errorf("Expected to get no errors, but got %v", err)
 	}
 
 	if count != 2 {
-		t.Errorf("Row count must be 1, instead got %d", count)
+		t.Errorf("Row count must be 2, instead got %d", count)
 	}
 
 	err = DB.Raw("select count(*) from (?) tmp",

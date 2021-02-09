@@ -182,8 +182,32 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			}
 		case *DB:
 			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
-			subdb.Statement.Vars = append(subdb.Statement.Vars, stmt.Vars...)
-			subdb.callbacks.Query().Execute(subdb)
+			if v.Statement.SQL.Len() > 0 {
+				var (
+					vars = subdb.Statement.Vars
+					sql  = v.Statement.SQL.String()
+				)
+
+				subdb.Statement.Vars = make([]interface{}, 0, len(vars))
+				for _, vv := range vars {
+					subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
+					bindvar := strings.Builder{}
+					v.Dialector.BindVarTo(&bindvar, subdb.Statement, vv)
+					sql = strings.Replace(sql, bindvar.String(), "?", 1)
+				}
+
+				subdb.Statement.SQL.Reset()
+				subdb.Statement.Vars = stmt.Vars
+				if strings.Contains(sql, "@") {
+					clause.NamedExpr{SQL: sql, Vars: vars}.Build(subdb.Statement)
+				} else {
+					clause.Expr{SQL: sql, Vars: vars}.Build(subdb.Statement)
+				}
+			} else {
+				subdb.Statement.Vars = append(stmt.Vars, subdb.Statement.Vars...)
+				subdb.callbacks.Query().Execute(subdb)
+			}
+
 			writer.WriteString(subdb.Statement.SQL.String())
 			stmt.Vars = subdb.Statement.Vars
 		default:
