@@ -9,6 +9,9 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// Scope define short function name easy to use
+type Scope func(*DB) *DB
+
 // Model specify the model you would like to run db operations
 //    // update all users's name to `hello`
 //    db.Model(&User{}).Update("name", "hello")
@@ -240,7 +243,7 @@ func (db *DB) Offset(offset int) (tx *DB) {
 //     }
 //
 //     db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
-func (db *DB) Scopes(funcs ...func(*DB) *DB) *DB {
+func (db *DB) Scopes(funcs ...Scope) *DB {
 	for _, f := range funcs {
 		db = f(db)
 	}
