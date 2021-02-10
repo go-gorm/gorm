@@ -26,12 +26,6 @@ func (onConflict OnConflict) Build(builder Builder) {
 		builder.WriteString(`) `)
 	}
 
-	if len(onConflict.Where.Exprs) > 0 {
-		builder.WriteString("WHERE ")
-		onConflict.Where.Build(builder)
-		builder.WriteByte(' ')
-	}
-
 	if onConflict.OnConstraint != "" {
 		builder.WriteString("ON CONSTRAINT ")
 		builder.WriteString(onConflict.OnConstraint)
@@ -43,6 +37,12 @@ func (onConflict OnConflict) Build(builder Builder) {
 	} else {
 		builder.WriteString("DO UPDATE SET ")
 		onConflict.DoUpdates.Build(builder)
+	}
+
+	if len(onConflict.Where.Exprs) > 0 {
+		builder.WriteString("WHERE ")
+		onConflict.Where.Build(builder)
+		builder.WriteByte(' ')
 	}
 }
 
