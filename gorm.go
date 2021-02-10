@@ -92,12 +92,6 @@ func Open(dialector Dialector, config *Config) (db *DB, err error) {
 		config.NamingStrategy = schema.NamingStrategy{}
 	}
 
-	// Special case: initialize the smap if given Namer is a schema.NamingStrategy.
-	if v, ok := config.NamingStrategy.(schema.NamingStrategy); ok {
-		v.Init()
-		config.NamingStrategy = v
-	}
-
 	if config.Logger == nil {
 		config.Logger = logger.Default
 	}

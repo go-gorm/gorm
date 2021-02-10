@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/jinzhu/inflection"
@@ -31,31 +30,6 @@ type NamingStrategy struct {
 	SingularTable bool
 	NameReplacer  Replacer
 	NoLowerCase   bool
-	smap          *safeSyncMap // Optional: gorm.Open initializes this by calling Init().
-}
-
-// safeSyncMap is a sync.Map that allows Load and Store to be called with a nil receiver.
-type safeSyncMap sync.Map
-
-// Load implements a nil-safe call to sync.Map's Load.
-func (smap *safeSyncMap) Load(name string) (interface{}, bool) {
-	if smap == nil {
-		return nil, false
-	}
-	return (*sync.Map)(smap).Load(name)
-}
-
-// Store implements a nil-safe call to sync.Map's Store.
-func (smap *safeSyncMap) Store(name string, value interface{}) {
-	if smap == nil {
-		return
-	}
-	(*sync.Map)(smap).Store(name, value)
-}
-
-// Init initializes a NamingStrategy instance smap ptr.
-func (ns *NamingStrategy) Init() {
-	ns.smap = &safeSyncMap{}
 }
 
 // TableName convert string to table name
@@ -128,17 +102,13 @@ func init() {
 func (ns NamingStrategy) toDBName(name string) string {
 	if name == "" {
 		return ""
-	} else if v, ok := ns.smap.Load(name); ok {
-		return v.(string)
 	}
 
-	origName := name
 	if ns.NameReplacer != nil {
 		name = ns.NameReplacer.Replace(name)
 	}
 
 	if ns.NoLowerCase {
-		ns.smap.Store(origName, name)
 		return name
 	}
 
@@ -179,6 +149,5 @@ func (ns NamingStrategy) toDBName(name string) string {
 		buf.WriteByte(value[len(value)-1])
 	}
 	ret := buf.String()
-	ns.smap.Store(origName, ret)
 	return ret
 }
