@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"github.com/jinzhu/inflection"
@@ -20,11 +19,17 @@ type Namer interface {
 	IndexName(table, column string) string
 }
 
+// Replacer replacer interface like strings.Replacer
+type Replacer interface {
+	Replace(name string) string
+}
+
 // NamingStrategy tables, columns naming strategy
 type NamingStrategy struct {
 	TablePrefix   string
 	SingularTable bool
-	NameReplacer  *strings.Replacer
+	NameReplacer  Replacer
+	NoLowerCase   bool
 }
 
 // TableName convert string to table name
@@ -42,7 +47,7 @@ func (ns NamingStrategy) ColumnName(table, column string) string {
 
 // JoinTableName convert string to join table name
 func (ns NamingStrategy) JoinTableName(str string) string {
-	if strings.ToLower(str) == str {
+	if !ns.NoLowerCase && strings.ToLower(str) == str {
 		return ns.TablePrefix + str
 	}
 
@@ -81,7 +86,6 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 }
 
 var (
-	smap sync.Map
 	// https://github.com/golang/lint/blob/master/lint.go#L770
 	commonInitialisms         = []string{"API", "ASCII", "CPU", "CSS", "DNS", "EOF", "GUID", "HTML", "HTTP", "HTTPS", "ID", "IP", "JSON", "LHS", "QPS", "RAM", "RHS", "RPC", "SLA", "SMTP", "SSH", "TLS", "TTL", "UID", "UI", "UUID", "URI", "URL", "UTF8", "VM", "XML", "XSRF", "XSS"}
 	commonInitialismsReplacer *strings.Replacer
@@ -98,12 +102,14 @@ func init() {
 func (ns NamingStrategy) toDBName(name string) string {
 	if name == "" {
 		return ""
-	} else if v, ok := smap.Load(name); ok {
-		return v.(string)
 	}
 
 	if ns.NameReplacer != nil {
 		name = ns.NameReplacer.Replace(name)
+	}
+
+	if ns.NoLowerCase {
+		return name
 	}
 
 	var (
@@ -143,6 +149,5 @@ func (ns NamingStrategy) toDBName(name string) string {
 		buf.WriteByte(value[len(value)-1])
 	}
 	ret := buf.String()
-	smap.Store(name, ret)
 	return ret
 }
