@@ -433,3 +433,27 @@ func TestEmbeddedRelation(t *testing.T) {
 		t.Fatalf("expects created by relations, but not found")
 	}
 }
+
+func TestSameForeignKey(t *testing.T) {
+	type UserAux struct {
+		gorm.Model
+		Aux  string
+		UUID string
+	}
+
+	type User struct {
+		gorm.Model
+		Name string
+		UUID string
+		Aux  *UserAux `gorm:"foreignkey:UUID;references:UUID"`
+	}
+
+	checkStructRelation(t, &User{},
+		Relation{
+			Name: "Aux", Type: schema.HasOne, Schema: "User", FieldSchema: "UserAux",
+			References: []Reference{
+				{"UUID", "User", "UUID", "UserAux", "", true},
+			},
+		},
+	)
+}

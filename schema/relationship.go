@@ -81,7 +81,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	} else {
 		switch field.IndirectFieldType.Kind() {
 		case reflect.Struct:
-			schema.guessRelation(relation, field, guessBelongs)
+			schema.guessRelation(relation, field, guessGuess)
 		case reflect.Slice:
 			schema.guessRelation(relation, field, guessHas)
 		default:
@@ -341,20 +341,32 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 type guessLevel int
 
 const (
-	guessBelongs guessLevel = iota
+	guessGuess guessLevel = iota
+	guessBelongs
 	guessEmbeddedBelongs
 	guessHas
 	guessEmbeddedHas
 )
 
-func (schema *Schema) guessRelation(relation *Relationship, field *Field, gl guessLevel) {
+func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl guessLevel) {
 	var (
 		primaryFields, foreignFields []*Field
 		primarySchema, foreignSchema = schema, relation.FieldSchema
+		gl                           = cgl
 	)
 
+	if gl == guessGuess {
+		if field.Schema == relation.FieldSchema {
+			gl = guessBelongs
+		} else {
+			gl = guessHas
+		}
+	}
+
 	reguessOrErr := func() {
-		switch gl {
+		switch cgl {
+		case guessGuess:
+			schema.guessRelation(relation, field, guessBelongs)
 		case guessBelongs:
 			schema.guessRelation(relation, field, guessEmbeddedBelongs)
 		case guessEmbeddedBelongs:
