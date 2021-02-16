@@ -38,7 +38,6 @@ func TestMigrate(t *testing.T) {
 		{"user_friends", "fk_user_friends_friends"},
 		{"accounts", "fk_users_account"},
 		{"users", "fk_users_team"},
-		{"users", "fk_users_manager"},
 		{"users", "fk_users_company"},
 	} {
 		if !DB.Migrator().HasConstraint(indexes[0], indexes[1]) {
@@ -335,7 +334,7 @@ func TestMigrateConstraint(t *testing.T) {
 		t.Skip()
 	}
 
-	names := []string{"Account", "fk_users_account", "Pets", "fk_users_pets", "Company", "fk_users_company", "Manager", "fk_users_manager", "Team", "fk_users_team", "Languages", "fk_users_languages"}
+	names := []string{"Account", "fk_users_account", "Pets", "fk_users_pets", "Company", "fk_users_company", "Team", "fk_users_team", "Languages", "fk_users_languages"}
 
 	for _, name := range names {
 		if !DB.Migrator().HasConstraint(&User{}, name) {
