@@ -172,7 +172,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			if !hasPrimaryKeyInDataType && len(stmt.Schema.PrimaryFields) > 0 {
 				createTableSQL += "PRIMARY KEY ?,"
-				primaryKeys := []interface{}{}
+				primaryKeys := make([]interface{}, 0, len(stmt.Schema.PrimaryFieldDBNames))
 				for _, field := range stmt.Schema.PrimaryFields {
 					primaryKeys = append(primaryKeys, clause.Column{Name: field.DBName})
 				}
@@ -439,11 +439,12 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 		sql += " ON UPDATE " + constraint.OnUpdate
 	}
 
-	var foreignKeys, references []interface{}
+	foreignKeys := make([]interface{}, 0, len(constraint.ForeignKeys))
 	for _, field := range constraint.ForeignKeys {
 		foreignKeys = append(foreignKeys, clause.Column{Name: field.DBName})
 	}
 
+	references := make([]interface{}, 0, len(constraint.References))
 	for _, field := range constraint.References {
 		references = append(references, clause.Column{Name: field.DBName})
 	}

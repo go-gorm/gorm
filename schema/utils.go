@@ -157,8 +157,7 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 // GetIdentityFieldValuesMapFromValues get identity map from fields
 func GetIdentityFieldValuesMapFromValues(values []interface{}, fields []*Field) (map[string][]reflect.Value, [][]interface{}) {
 	resultsMap := map[string][]reflect.Value{}
-	results := [][]interface{}{}
-
+	results := make([][]interface{}, 0, len(values))
 	for _, v := range values {
 		rm, rs := GetIdentityFieldValuesMap(reflect.Indirect(reflect.ValueOf(v)), fields)
 		for k, v := range rm {

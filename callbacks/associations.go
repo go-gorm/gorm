@@ -137,7 +137,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 				}
 
 				if elems.Len() > 0 {
-					assignmentColumns := []string{}
+					assignmentColumns := make([]string, 0, len(rel.References))
 					for _, ref := range rel.References {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
@@ -151,7 +151,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 						f = f.Addr()
 					}
 
-					assignmentColumns := []string{}
+					assignmentColumns := make([]string, 0, len(rel.References))
 					for _, ref := range rel.References {
 						if ref.OwnPrimaryKey {
 							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
@@ -216,7 +216,7 @@ func SaveAfterAssociations(db *gorm.DB) {
 			}
 
 			if elems.Len() > 0 {
-				assignmentColumns := []string{}
+				assignmentColumns := make([]string, 0, len(rel.References))
 				for _, ref := range rel.References {
 					assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 				}
@@ -320,7 +320,7 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 	}
 
 	if len(defaultUpdatingColumns) > 0 {
-		var columns []clause.Column
+		columns := make([]clause.Column, 0, len(s.PrimaryFieldDBNames))
 		for _, dbName := range s.PrimaryFieldDBNames {
 			columns = append(columns, clause.Column{Name: dbName})
 		}

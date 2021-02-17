@@ -38,7 +38,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							withoutConditions := false
 
 							if len(db.Statement.Selects) > 0 {
-								var selects []string
+								selects := make([]string, 0, len(db.Statement.Selects))
 								for _, s := range db.Statement.Selects {
 									if s == clause.Associations {
 										selects = append(selects, s)
