@@ -39,10 +39,10 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 				switch db.Statement.ReflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					var (
-						objs      []reflect.Value
 						fieldType = rel.Field.FieldType
 						isPtr     = fieldType.Kind() == reflect.Ptr
 					)
+					objs := make([]reflect.Value, 0, db.Statement.ReflectValue.Len())
 
 					if !isPtr {
 						fieldType = reflect.PtrTo(fieldType)
@@ -140,7 +140,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					}
 
 					if elems.Len() > 0 {
-						assignmentColumns := []string{}
+						assignmentColumns := make([]string, 0, len(rel.References))
 						for _, ref := range rel.References {
 							assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 						}
@@ -154,7 +154,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 							f = f.Addr()
 						}
 
-						assignmentColumns := []string{}
+						assignmentColumns := make([]string, 0, len(rel.References))
 						for _, ref := range rel.References {
 							if ref.OwnPrimaryKey {
 								fv, _ := ref.PrimaryKey.ValueOf(db.Statement.ReflectValue)
@@ -219,7 +219,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				}
 
 				if elems.Len() > 0 {
-					assignmentColumns := []string{}
+					assignmentColumns := make([]string, 0, len(rel.References))
 					for _, ref := range rel.References {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
@@ -324,7 +324,7 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 	}
 
 	if len(defaultUpdatingColumns) > 0 {
-		var columns []clause.Column
+		columns := make([]clause.Column, 0, len(s.PrimaryFieldDBNames))
 		for _, dbName := range s.PrimaryFieldDBNames {
 			columns = append(columns, clause.Column{Name: dbName})
 		}
@@ -340,10 +340,11 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 
 func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{}, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
 	var (
-		selects, omits []string
-		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
-		refName        = rel.Name + "."
+		onConflict = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
+		refName    = rel.Name + "."
 	)
+	selects := make([]string, 0, len(selectColumns))
+	omits := make([]string, 0, len(selectColumns))
 
 	for name, ok := range selectColumns {
 		columnName := ""
