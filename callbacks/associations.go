@@ -341,8 +341,8 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{}, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
 	var (
 		selects, omits []string
-		onConflict = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
-		refName    = rel.Name + "."
+		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
+		refName        = rel.Name + "."
 	)
 
 	for name, ok := range selectColumns {
