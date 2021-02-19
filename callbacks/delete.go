@@ -69,14 +69,13 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							}
 						case schema.Many2Many:
 							var (
-								modelValue = reflect.New(rel.JoinTable.ModelType).Interface()
-								table      = rel.JoinTable.Table
-								tx         = db.Session(&gorm.Session{NewDB: true}).Model(modelValue).Table(table)
+								queryConds     = make([]clause.Expression, 0, len(rel.References))
+								foreignFields  = make([]*schema.Field, 0, len(rel.References))
+								relForeignKeys = make([]string, 0, len(rel.References))
+								modelValue     = reflect.New(rel.JoinTable.ModelType).Interface()
+								table          = rel.JoinTable.Table
+								tx             = db.Session(&gorm.Session{NewDB: true}).Model(modelValue).Table(table)
 							)
-
-							queryConds := make([]clause.Expression, 0, len(rel.References))
-							foreignFields := make([]*schema.Field, 0, len(rel.References))
-							relForeignKeys := make([]string, 0, len(rel.References))
 
 							for _, ref := range rel.References {
 								if ref.OwnPrimaryKey {

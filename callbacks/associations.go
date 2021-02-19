@@ -39,10 +39,10 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 				switch db.Statement.ReflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					var (
+						objs      = make([]reflect.Value, 0, db.Statement.ReflectValue.Len())
 						fieldType = rel.Field.FieldType
 						isPtr     = fieldType.Kind() == reflect.Ptr
 					)
-					objs := make([]reflect.Value, 0, db.Statement.ReflectValue.Len())
 
 					if !isPtr {
 						fieldType = reflect.PtrTo(fieldType)
