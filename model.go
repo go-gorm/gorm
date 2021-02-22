@@ -8,8 +8,10 @@ import "time"
 //      gorm.Model
 //    }
 type Model struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt DeletedAt `gorm:"index"`
+	ID          uint      `gorm:"primarykey"`
+	ActivatedAt time.Time `gorm:"not null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
+
