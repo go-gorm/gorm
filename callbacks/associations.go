@@ -349,8 +349,6 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		columnName := ""
 		if strings.HasPrefix(name, refName) {
 			columnName = strings.TrimPrefix(name, refName)
-		} else if strings.HasPrefix(name, clause.Associations) {
-			columnName = name
 		}
 
 		if columnName != "" {
@@ -374,6 +372,8 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
+	} else if len(selectColumns) > 0 && len(omits) == 0 {
+		tx = tx.Omit(clause.Associations)
 	}
 
 	if len(omits) > 0 {
