@@ -482,8 +482,9 @@ func (stmt *Statement) clone() *Statement {
 		copy(newStmt.Joins, stmt.Joins)
 	}
 
-	for _, scope := range stmt.scopes {
-		stmt.scopes = append(stmt.scopes, scope)
+	if len(stmt.scopes) > 0 {
+		newStmt.scopes = make([]func(*DB) *DB, len(stmt.scopes))
+		copy(newStmt.scopes, stmt.scopes)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {
