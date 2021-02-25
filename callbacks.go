@@ -72,8 +72,10 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
-	curTime := time.Now()
-	stmt := db.Statement
+	var (
+		curTime = time.Now()
+		stmt    = db.Statement
+	)
 
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest
@@ -105,6 +107,12 @@ func (p *processor) Execute(db *DB) {
 			db.AddError(fmt.Errorf("invalid value"))
 		}
 	}
+
+	// call scopes
+	for _, scope := range stmt.scopes {
+		db = scope(db)
+	}
+	stmt.scopes = nil
 
 	for _, f := range p.fns {
 		f(db)

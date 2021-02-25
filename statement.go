@@ -43,6 +43,7 @@ type Statement struct {
 	CurDestIndex         int
 	attrs                []interface{}
 	assigns              []interface{}
+	scopes               []func(*DB) *DB
 }
 
 type join struct {
@@ -479,6 +480,10 @@ func (stmt *Statement) clone() *Statement {
 	if len(stmt.Joins) > 0 {
 		newStmt.Joins = make([]join, len(stmt.Joins))
 		copy(newStmt.Joins, stmt.Joins)
+	}
+
+	for _, scope := range stmt.scopes {
+		stmt.scopes = append(stmt.scopes, scope)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {
