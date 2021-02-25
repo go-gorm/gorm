@@ -192,6 +192,28 @@ func Not(stmt interface{}) *expr {
 	return e
 }
 
+// Concat will create an expression which concats all given statements together.
+func Concat(stmts ...interface{}) *expr {
+	e := &expr{expr: "CONCAT("}
+
+	for i, stmt := range stmts {
+		if i != 0 {
+			e.expr += ", "
+		}
+
+		if exp, ok := stmt.(*expr); ok {
+			e.expr += exp.expr
+			e.args = append(e.args, exp.args...)
+		} else {
+			e.expr += "?"
+			e.args = append(e.args, stmt)
+		}
+	}
+
+	e.expr += ")"
+	return e
+}
+
 func (e *expr) Gt(value interface{}) *expr {
 	return e.operator(">", value)
 }
