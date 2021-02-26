@@ -41,7 +41,8 @@ func TestTransaction(t *testing.T) {
 		t.Fatalf("Should not find record after rollback, but got %v", err)
 	}
 
-	tx2 := DB.Begin()
+	txDB := DB.Where("fake_name = ?", "fake_name")
+	tx2 := txDB.Session(&gorm.Session{NewDB: true}).Begin()
 	user2 := *GetUser("transaction-2", Config{})
 	if err := tx2.Save(&user2).Error; err != nil {
 		t.Fatalf("No error should raise, but got %v", err)
