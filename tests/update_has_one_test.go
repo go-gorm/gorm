@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
@@ -31,7 +32,10 @@ func TestUpdateHasOne(t *testing.T) {
 
 	var user3 User
 	DB.Preload("Account").Find(&user3, "id = ?", user.ID)
+
 	CheckUser(t, user2, user3)
+	var lastUpdatedAt = user2.Account.UpdatedAt
+	time.Sleep(time.Second)
 
 	if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(&user).Error; err != nil {
 		t.Fatalf("errors happened when update: %v", err)
@@ -39,7 +43,13 @@ func TestUpdateHasOne(t *testing.T) {
 
 	var user4 User
 	DB.Preload("Account").Find(&user4, "id = ?", user.ID)
-	CheckUser(t, user4, user)
+
+	if lastUpdatedAt.Format(time.RFC3339) == user4.Account.UpdatedAt.Format(time.RFC3339) {
+		t.Fatalf("updated at should be updated, but not, old: %v, new %v", lastUpdatedAt.Format(time.RFC3339), user3.Account.UpdatedAt.Format(time.RFC3339))
+	} else {
+		user.Account.UpdatedAt = user4.Account.UpdatedAt
+		CheckUser(t, user4, user)
+	}
 
 	t.Run("Polymorphic", func(t *testing.T) {
 		var pet = Pet{Name: "create"}

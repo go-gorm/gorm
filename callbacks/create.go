@@ -320,6 +320,11 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 						field.Set(stmt.ReflectValue, curTime)
 						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
 					}
+				} else if field.AutoUpdateTime > 0 {
+					if _, ok := stmt.DB.InstanceGet("gorm:update_track_time"); ok {
+						field.Set(stmt.ReflectValue, curTime)
+						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
+					}
 				}
 			}
 

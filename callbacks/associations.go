@@ -361,6 +361,7 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 	}
 
 	tx := db.Session(&gorm.Session{NewDB: true}).Clauses(onConflict).Session(&gorm.Session{
+		FullSaveAssociations:     db.FullSaveAssociations,
 		SkipHooks:                db.Statement.SkipHooks,
 		DisableNestedTransaction: true,
 	})
@@ -369,6 +370,10 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		tx.Statement.Settings.Store(k, v)
 		return true
 	})
+
+	if tx.Statement.FullSaveAssociations {
+		tx = tx.InstanceSet("gorm:update_track_time", true)
+	}
 
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
