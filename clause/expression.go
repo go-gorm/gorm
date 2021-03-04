@@ -78,9 +78,10 @@ type NamedExpr struct {
 // Build build raw expression
 func (expr NamedExpr) Build(builder Builder) {
 	var (
-		idx      int
-		inName   bool
-		namedMap = make(map[string]interface{}, len(expr.Vars))
+		idx              int
+		inName           bool
+		afterParenthesis bool
+		namedMap         = make(map[string]interface{}, len(expr.Vars))
 	)
 
 	for _, v := range expr.Vars {
@@ -131,13 +132,42 @@ func (expr NamedExpr) Build(builder Builder) {
 				inName = false
 			}
 
+			afterParenthesis = false
 			builder.WriteByte(v)
 		} else if v == '?' && len(expr.Vars) > idx {
-			builder.AddVar(builder, expr.Vars[idx])
+			if afterParenthesis {
+				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
+					builder.AddVar(builder, expr.Vars[idx])
+				} else {
+					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
+					case reflect.Slice, reflect.Array:
+						if rv.Len() == 0 {
+							builder.AddVar(builder, nil)
+						} else {
+							for i := 0; i < rv.Len(); i++ {
+								if i > 0 {
+									builder.WriteByte(',')
+								}
+								builder.AddVar(builder, rv.Index(i).Interface())
+							}
+						}
+					default:
+						builder.AddVar(builder, expr.Vars[idx])
+					}
+				}
+			} else {
+				builder.AddVar(builder, expr.Vars[idx])
+			}
+
 			idx++
 		} else if inName {
 			name = append(name, v)
 		} else {
+			if v == '(' {
+				afterParenthesis = true
+			} else {
+				afterParenthesis = false
+			}
 			builder.WriteByte(v)
 		}
 	}
