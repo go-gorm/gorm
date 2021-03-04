@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -240,5 +241,49 @@ func TestCombineStringConditions(t *testing.T) {
 	sql = dryRunDB.Not("a = ? or b = ?", "a", "b").Unscoped().Find(&User{}).Statement.SQL.String()
 	if !regexp.MustCompile(`WHERE NOT \(a = .+ or b = .+\)$`).MatchString(sql) {
 		t.Fatalf("invalid sql generated, got %v", sql)
+	}
+}
+
+func TestFromWithJoins(t *testing.T) {
+	var result User
+
+	newDB := DB.Session(&gorm.Session{NewDB: true, DryRun: true}).Table("users")
+
+	newDB.Clauses(
+		clause.From{
+			Tables: []clause.Table{{Name: "users"}},
+			Joins: []clause.Join{
+				{
+					Table: clause.Table{Name: "companies", Raw: false},
+					ON: clause.Where{
+						Exprs: []clause.Expression{
+							clause.Eq{
+								Column: clause.Column{
+									Table: "users",
+									Name:  "company_id",
+								},
+								Value: clause.Column{
+									Table: "companies",
+									Name:  "id",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+
+	newDB.Joins("inner join rgs on rgs.id = user.id")
+
+	stmt := newDB.First(&result).Statement
+	str := stmt.SQL.String()
+
+	if !strings.Contains(str, "rgs.id = user.id") {
+		t.Errorf("The second join condition is over written instead of combining")
+	}
+
+	if !strings.Contains(str, "`users`.`company_id` = `companies`.`id`") && !strings.Contains(str, "\"users\".\"company_id\" = \"companies\".\"id\"") {
+		t.Errorf("The first join condition is over written instead of combining")
 	}
 }
