@@ -57,6 +57,7 @@ type Config struct {
 }
 
 func (c *Config) Apply(config *Config) error {
+	*config = *c
 	return nil
 }
 
