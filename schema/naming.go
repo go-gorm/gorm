@@ -92,7 +92,7 @@ var (
 )
 
 func init() {
-	var commonInitialismsForReplacer []string
+	commonInitialismsForReplacer := make([]string, 0, len(commonInitialisms))
 	for _, initialism := range commonInitialisms {
 		commonInitialismsForReplacer = append(commonInitialismsForReplacer, initialism, strings.Title(strings.ToLower(initialism)))
 	}

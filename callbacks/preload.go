@@ -27,8 +27,13 @@ func preload(db *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 	})
 
 	if rel.JoinTable != nil {
-		var joinForeignFields, joinRelForeignFields []*schema.Field
-		var joinForeignKeys []string
+
+		var (
+			joinForeignFields    = make([]*schema.Field, 0, len(rel.References))
+			joinRelForeignFields = make([]*schema.Field, 0, len(rel.References))
+			joinForeignKeys      = make([]string, 0, len(rel.References))
+		)
+
 		for _, ref := range rel.References {
 			if ref.OwnPrimaryKey {
 				joinForeignKeys = append(joinForeignKeys, ref.ForeignKey.DBName)
