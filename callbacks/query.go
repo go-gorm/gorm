@@ -104,6 +104,11 @@ func BuildQuerySQL(db *gorm.DB) {
 			}
 
 			joins := []clause.Join{}
+
+			if fromClause, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+				joins = fromClause.Joins
+			}
+
 			for _, join := range db.Statement.Joins {
 				if db.Statement.Schema == nil {
 					joins = append(joins, clause.Join{
@@ -154,6 +159,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
+			db.Statement.Joins = nil
 			db.Statement.AddClause(clause.From{Joins: joins})
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
