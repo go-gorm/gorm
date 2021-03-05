@@ -93,17 +93,17 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 		}
 		delete(tx.Statement.Clauses, "SELECT")
 	case string:
-		if strings.Count(v, "@") <= len(args) && len(args) > 0 {
-			tx.Statement.AddClause(clause.Select{
-				Distinct:   db.Statement.Distinct,
-				Expression: clause.NamedExpr{SQL: v, Vars: args},
-			})
-		} else if strings.Count(v, "?") >= len(args) && len(args) > 0 {
+		if strings.Count(v, "?") >= len(args) && len(args) > 0 {
 			tx.Statement.AddClause(clause.Select{
 				Distinct:   db.Statement.Distinct,
 				Expression: clause.Expr{SQL: v, Vars: args},
 			})
-		} else {
+		} else if strings.Count(v, "@") > 0 && len(args) > 0 {
+			tx.Statement.AddClause(clause.Select{
+				Distinct:   db.Statement.Distinct,
+				Expression: clause.NamedExpr{SQL: v, Vars: args},
+			})
+		}  else {
 			tx.Statement.Selects = []string{v}
 
 			for _, arg := range args {

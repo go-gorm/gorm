@@ -62,9 +62,9 @@ func (c Clause) Build(builder Builder) {
 }
 
 const (
-	PrimaryKey   string = "@@@py@@@" // primary key
-	CurrentTable string = "@@@ct@@@" // current table
-	Associations string = "@@@as@@@" // associations
+	PrimaryKey   string = "~~~py~~~" // primary key
+	CurrentTable string = "~~~ct~~~" // current table
+	Associations string = "~~~as~~~" // associations
 )
 
 var (
