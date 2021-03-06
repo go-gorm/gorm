@@ -31,4 +31,6 @@ var (
 	ErrEmptySlice = errors.New("empty slice found")
 	// ErrDryRunModeUnsupported dry run mode unsupported
 	ErrDryRunModeUnsupported = errors.New("dry run mode unsupported")
+	// ErrInvaildDB invalid db
+	ErrInvaildDB = errors.New("invalid db")
 )

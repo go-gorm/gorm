@@ -3,7 +3,6 @@ package gorm
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -331,7 +330,7 @@ func (db *DB) DB() (*sql.DB, error) {
 		return sqldb, nil
 	}
 
-	return nil, errors.New("invalid db")
+	return nil, ErrInvaildDB
 }
 
 func (db *DB) getInstance() *DB {
