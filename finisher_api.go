@@ -165,6 +165,7 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 			tx.Statement.AddClause(clause.Where{Exprs: exprs})
 		}
 	}
+	tx.Statement.RaiseErrorOnNotFound = true
 	tx.Statement.Dest = dest
 	tx.callbacks.Query().Execute(tx)
 	return
