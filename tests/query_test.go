@@ -628,6 +628,12 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("Build Select with func, but got %v", r.Statement.SQL.String())
 	}
 
+	// named arguments
+	r = dryDB.Table("users").Select("COALESCE(age, @default)", sql.Named("default", 42)).Find(&User{})
+	if !regexp.MustCompile(`SELECT COALESCE\(age,.*\) FROM .*users.*`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("Build Select with func, but got %v", r.Statement.SQL.String())
+	}
+
 	if _, err := DB.Table("users").Select("COALESCE(age,?)", "42").Rows(); err != nil {
 		t.Fatalf("Failed, got error: %v", err)
 	}
