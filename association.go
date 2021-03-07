@@ -1,7 +1,6 @@
 package gorm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -441,7 +440,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				break
 			}
 
-			association.Error = errors.New("invalid association values, length doesn't match")
+			association.Error = ErrInvalidValueOfLength
 			return
 		}
 
