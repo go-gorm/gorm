@@ -31,4 +31,10 @@ var (
 	ErrEmptySlice = errors.New("empty slice found")
 	// ErrDryRunModeUnsupported dry run mode unsupported
 	ErrDryRunModeUnsupported = errors.New("dry run mode unsupported")
+	// ErrInvaildDB invalid db
+	ErrInvaildDB = errors.New("invalid db")
+	// ErrInvalidValue invalid value
+	ErrInvalidValue = errors.New("invalid value")
+	// ErrInvalidValueOfLength invalid values do not match length
+	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
 )

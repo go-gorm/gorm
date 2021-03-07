@@ -104,7 +104,7 @@ func (p *processor) Execute(db *DB) {
 			stmt.ReflectValue = stmt.ReflectValue.Elem()
 		}
 		if !stmt.ReflectValue.IsValid() {
-			db.AddError(fmt.Errorf("invalid value"))
+			db.AddError(ErrInvalidValue)
 		}
 	}
 
