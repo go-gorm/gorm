@@ -12,6 +12,9 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// for Config.cacheStore store PreparedStmtDB key
+const preparedStmtDBKey = "preparedStmt"
+
 // Config GORM config
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
@@ -161,7 +164,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		Mux:         &sync.RWMutex{},
 		PreparedSQL: make([]string, 0, 100),
 	}
-	db.cacheStore.Store("preparedStmt", preparedStmt)
+	db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 
 	if config.PrepareStmt {
 		db.ConnPool = preparedStmt
@@ -224,7 +227,7 @@ func (db *DB) Session(config *Session) *DB {
 	}
 
 	if config.PrepareStmt {
-		if v, ok := db.cacheStore.Load("preparedStmt"); ok {
+		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt := v.(*PreparedStmtDB)
 			tx.Statement.ConnPool = &PreparedStmtDB{
 				ConnPool: db.Config.ConnPool,
