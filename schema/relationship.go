@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"github.com/jinzhu/inflection"
@@ -536,7 +535,11 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 		settings = ParseTagSetting(str, ",")
 	)
 
-	if idx != -1 && regexp.MustCompile("^[A-Za-z-_]+$").MatchString(str[0:idx]) {
+	// optimize match english letters and midline
+	// The following code is basically called in for.
+	// In order to avoid the performance problems caused by repeated compilation of regular expressions,
+	// it only needs to be done once outside, so optimization is done here.
+	if idx != -1 && regEnLetterAndMidline.MatchString(str[0:idx]) {
 		name = str[0:idx]
 	} else {
 		name = rel.Schema.namer.RelationshipFKName(*rel)
