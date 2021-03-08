@@ -109,10 +109,11 @@ func (p *processor) Execute(db *DB) {
 	}
 
 	// call scopes
-	for _, scope := range stmt.scopes {
+	scopes := stmt.scopes
+	stmt.scopes = nil
+	for _, scope := range scopes {
 		db = scope(db)
 	}
-	stmt.scopes = nil
 
 	for _, f := range p.fns {
 		f(db)
