@@ -129,7 +129,7 @@ func (sd SoftDeleteDeleteClause) ModifyStatement(stmt *Statement) {
 		if _, ok := stmt.Clauses["WHERE"]; !stmt.DB.AllowGlobalUpdate && !ok {
 			stmt.DB.AddError(ErrMissingWhereClause)
 		} else {
-			SoftDeleteQueryClause{Field: sd.Field}.ModifyStatement(stmt)
+			SoftDeleteQueryClause(sd).ModifyStatement(stmt)
 		}
 
 		stmt.AddClauseIfNotExists(clause.Update{})
