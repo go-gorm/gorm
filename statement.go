@@ -288,7 +288,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				if where, ok := cs.Expression.(clause.Where); ok {
 					if len(where.Exprs) == 1 {
 						if orConds, ok := where.Exprs[0].(clause.OrConditions); ok {
-							where.Exprs[0] = clause.AndConditions{Exprs: orConds.Exprs}
+							where.Exprs[0] = clause.AndConditions(orConds)
 						}
 					}
 					conds = append(conds, clause.And(where.Exprs...))

@@ -142,7 +142,7 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 			if notZero {
 				dataKey := utils.ToStringKey(fieldValues...)
 				if _, ok := dataResults[dataKey]; !ok {
-					results = append(results, fieldValues[:])
+					results = append(results, fieldValues)
 					dataResults[dataKey] = []reflect.Value{elem}
 				} else {
 					dataResults[dataKey] = append(dataResults[dataKey], elem)
