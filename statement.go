@@ -339,6 +339,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 			}
 		default:
 			reflectValue := reflect.Indirect(reflect.ValueOf(arg))
+			for reflectValue.Kind() == reflect.Ptr {
+				reflectValue = reflectValue.Elem()
+			}
+
 			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
 				selectedColumns := map[string]bool{}
 				if idx == 0 {
