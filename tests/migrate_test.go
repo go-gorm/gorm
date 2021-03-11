@@ -15,7 +15,7 @@ func TestMigrate(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 
-	DB.Migrator().DropTable("user_speaks", "user_friends")
+	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
 
 	if err := DB.Migrator().DropTable(allModels...); err != nil {
 		t.Fatalf("Failed to drop table, got error %v", err)
@@ -29,6 +29,14 @@ func TestMigrate(t *testing.T) {
 		if !DB.Migrator().HasTable(m) {
 			t.Fatalf("Failed to create table for %#v---", m)
 		}
+	}
+
+	DB.Scopes(func(db *gorm.DB) *gorm.DB {
+		return db.Table("ccc")
+	}).Migrator().CreateTable(&Company{})
+
+	if !DB.Migrator().HasTable("ccc") {
+		t.Errorf("failed to create table ccc")
 	}
 
 	for _, indexes := range [][2]string{

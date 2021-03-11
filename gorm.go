@@ -122,6 +122,12 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		}
 	}
 
+	if d, ok := dialector.(interface{ Apply(*Config) error }); ok {
+		if err = d.Apply(config); err != nil {
+			return
+		}
+	}
+
 	if config.NamingStrategy == nil {
 		config.NamingStrategy = schema.NamingStrategy{}
 	}

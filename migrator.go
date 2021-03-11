@@ -7,6 +7,13 @@ import (
 
 // Migrator returns migrator
 func (db *DB) Migrator() Migrator {
+	// apply scopes to migrator
+	scopes := db.Statement.scopes
+	db.Statement.scopes = nil
+	for _, scope := range scopes {
+		db = scope(db)
+	}
+
 	return db.Dialector.Migrator(db.Session(&Session{}))
 }
 
