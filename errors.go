@@ -37,4 +37,6 @@ var (
 	ErrInvalidValue = errors.New("invalid value")
 	// ErrInvalidValueOfLength invalid values do not match length
 	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
+	// ErrDBNotFoundInContext when gorm.DB not found in the context
+	ErrDBNotFoundInContext = errors.New("DB not found in context")
 )
