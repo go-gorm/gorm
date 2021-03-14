@@ -175,36 +175,26 @@ func Preload(db *gorm.DB) {
 	if db.Error == nil && len(db.Statement.Preloads) > 0 {
 		preloadMap := map[string]map[string][]interface{}{}
 		for name := range db.Statement.Preloads {
-			if name == clause.Associations {
+			preloadFields := strings.Split(name, ".")
+			if preloadFields[0] == clause.Associations {
 				for _, rel := range db.Statement.Schema.Relationships.Relations {
 					if rel.Schema == db.Statement.Schema {
 						if _, ok := preloadMap[rel.Name]; !ok {
 							preloadMap[rel.Name] = map[string][]interface{}{}
 						}
+
+						if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
+							preloadMap[rel.Name][value] = db.Statement.Preloads[name]
+						}
 					}
 				}
 			} else {
-				preloadFields := strings.Split(name, ".")
-				if preloadFields[0] == clause.Associations {
-					for _, rel := range db.Statement.Schema.Relationships.Relations {
-						if rel.Schema == db.Statement.Schema {
-							if _, ok := preloadMap[rel.Name]; !ok {
-								preloadMap[rel.Name] = map[string][]interface{}{}
-							}
+				if _, ok := preloadMap[preloadFields[0]]; !ok {
+					preloadMap[preloadFields[0]] = map[string][]interface{}{}
+				}
 
-							if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
-								preloadMap[rel.Name][value] = db.Statement.Preloads[name]
-							}
-						}
-					}
-				} else {
-					if _, ok := preloadMap[preloadFields[0]]; !ok {
-						preloadMap[preloadFields[0]] = map[string][]interface{}{}
-					}
-
-					if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
-						preloadMap[preloadFields[0]][value] = db.Statement.Preloads[name]
-					}
+				if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
+					preloadMap[preloadFields[0]][value] = db.Statement.Preloads[name]
 				}
 			}
 		}
