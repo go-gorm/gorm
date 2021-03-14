@@ -121,7 +121,7 @@ func BuildQuerySQL(db *gorm.DB) {
 						clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
 							Table: tableAliasName,
 							Name:  s,
-							Alias: tableAliasName + "__" + s,
+							Alias: tableAliasName + gorm.DoubleUnderscore + s,
 						})
 					}
 
