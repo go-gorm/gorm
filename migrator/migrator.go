@@ -12,6 +12,11 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+var (
+	regRealDataType = regexp.MustCompile(`[^\d](\d+)[^\d]?`)
+	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
+)
+
 // Migrator m struct
 type Migrator struct {
 	Config
@@ -373,8 +378,10 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			alterColumn = true
 		} else {
 			// has size in data type and not equal
-			matches := regexp.MustCompile(`[^\d](\d+)[^\d]?`).FindAllStringSubmatch(realDataType, -1)
-			matches2 := regexp.MustCompile(`[^\d]*(\d+)[^\d]?`).FindAllStringSubmatch(fullDataType, -1)
+
+			// Since the following code is frequently called in the for loop, reg optimization is needed here
+			matches := regRealDataType.FindAllStringSubmatch(realDataType, -1)
+			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
 			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) && (len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
 				alterColumn = true
 			}
