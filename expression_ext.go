@@ -60,6 +60,11 @@ func (db *DB) LA(model interface{}, alias string, name string) *expr {
 	return &expr{expr: scope.Quote(alias) + "." + scope.Quote(field.DBName)}
 }
 
+func (db *DB) QuoteExpr(table string, column string) *expr {
+	scope := db.NewScope(nil)
+	return &expr{expr: scope.Quote(table) + "." + scope.Quote(column)}
+}
+
 func (db *DB) C(model interface{}, names ...string) string {
 	columns := make([]string, 0)
 
@@ -247,6 +252,10 @@ func (e *expr) SumExpr() *expr {
 
 func (e *expr) Max() string {
 	return "MAX(" + e.expr + ")"
+}
+
+func (e *expr) Min() string {
+	return "MIN(" + e.expr + ")"
 }
 
 func (e *expr) Count() string {
