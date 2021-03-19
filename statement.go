@@ -167,6 +167,8 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
 		case clause.Expr:
 			v.Build(stmt)
+		case *clause.Expr:
+			v.Build(stmt)
 		case driver.Valuer:
 			stmt.Vars = append(stmt.Vars, v)
 			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
