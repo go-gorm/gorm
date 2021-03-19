@@ -398,6 +398,31 @@ func TestMultipleMany2Many(t *testing.T) {
 	)
 }
 
+func TestSelfReferentialMany2Many(t *testing.T) {
+	type User struct {
+		ID         int32 `gorm:"primaryKey"`
+		Name       string
+		CreatedBy  int32
+		Creators   []User      `gorm:"foreignKey:CreatedBy"`
+		AnotherPro interface{} `gorm:"-"`
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Creators", Type: schema.HasMany, Schema: "User", FieldSchema: "User",
+		References: []Reference{{"ID", "User", "CreatedBy", "User", "", true}},
+	})
+
+	user, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse schema")
+	}
+
+	relSchema := user.Relationships.Relations["Creators"].FieldSchema
+	if user != relSchema {
+		t.Fatalf("schema should be same, expects %p but got %p", user, relSchema)
+	}
+}
+
 type CreatedByModel struct {
 	CreatedByID uint
 	CreatedBy   *CreatedUser

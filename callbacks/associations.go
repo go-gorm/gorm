@@ -377,7 +377,7 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 
 	if len(selects) > 0 {
 		tx = tx.Select(selects)
-	} else if len(selectColumns) > 0 && len(omits) == 0 {
+	} else if restricted && len(omits) == 0 {
 		tx = tx.Omit(clause.Associations)
 	}
 
