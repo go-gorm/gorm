@@ -45,4 +45,13 @@ func TestScopes(t *testing.T) {
 	if len(users3) != 2 {
 		t.Errorf("Should found two users's name in 1, 3, but got %v", len(users3))
 	}
+
+	db := DB.Scopes(func(tx *gorm.DB) *gorm.DB {
+		return tx.Table("custom_table")
+	}).Session(&gorm.Session{})
+
+	db.AutoMigrate(&User{})
+	if db.Find(&User{}).Statement.Table != "custom_table" {
+		t.Errorf("failed to call Scopes")
+	}
 }
