@@ -190,6 +190,8 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		if result.Error == nil && result.RowsAffected != 0 {
 			tx.AddError(fc(result, batch))
+		} else if result.Error != nil {
+			tx.AddError(result.Error)
 		}
 
 		if tx.Error != nil || int(result.RowsAffected) < batchSize {
