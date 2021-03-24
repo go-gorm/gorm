@@ -35,31 +35,6 @@ jobs:
     - name: Tests
       run: GORM_DIALECT=sqlite ./tests/tests_all.sh
 
-  sqlite_windows:
-    strategy:
-      matrix:
-        go: ['1.16', '1.15', '1.14']
-        platform: [windows-latest]
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ matrix.go }}
-
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-
-    - name: go mod package cache
-      uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
-
-    - name: Tests
-      run: cd tests && set GORM_DIALECT=sqlite && go test $race -count=1 -v ./... #run the line in widnows's CMD, default GORM_DIALECT is sqlite
-
   mysql:
     strategy:
       matrix:
