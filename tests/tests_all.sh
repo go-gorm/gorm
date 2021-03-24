@@ -9,10 +9,10 @@ fi
 if [ -d tests ]
 then
   cd tests
+  go get -u ./...
+  go mod download
   cd ..
 fi
-
-go get -u ./...
 
 for dialect in "${dialects[@]}" ; do
   if [ "$GORM_DIALECT" = "" ] || [ "$GORM_DIALECT" = "${dialect}" ]
