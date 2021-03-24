@@ -102,10 +102,10 @@ type AndConditions struct {
 func (and AndConditions) Build(builder Builder) {
 	if len(and.Exprs) > 1 {
 		builder.WriteByte('(')
-		buildExprs(and.Exprs, builder, " AND ")
+	}
+	buildExprs(and.Exprs, builder, " AND ")
+	if len(and.Exprs) > 1 {
 		builder.WriteByte(')')
-	} else {
-		buildExprs(and.Exprs, builder, " AND ")
 	}
 }
 
@@ -123,10 +123,10 @@ type OrConditions struct {
 func (or OrConditions) Build(builder Builder) {
 	if len(or.Exprs) > 1 {
 		builder.WriteByte('(')
-		buildExprs(or.Exprs, builder, " OR ")
+	}
+	buildExprs(or.Exprs, builder, " OR ")
+	if len(or.Exprs) > 1 {
 		builder.WriteByte(')')
-	} else {
-		buildExprs(or.Exprs, builder, " OR ")
 	}
 }
 
