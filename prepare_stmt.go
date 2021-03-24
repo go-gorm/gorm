@@ -30,6 +30,10 @@ func (db *PreparedStmtDB) GetDB() (*sql.DB, error) {
 	return nil, ErrInvaildDB
 }
 
+func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
+	return db.GetDB()
+}
+
 func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	for _, query := range db.PreparedSQL {
