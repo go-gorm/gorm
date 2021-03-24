@@ -293,6 +293,10 @@ func TestFindInBatches(t *testing.T) {
 }
 
 func TestFindInBatchesWithError(t *testing.T) {
+	if name := DB.Dialector.Name(); name == "sqlserver" {
+		t.Skip("skip sqlserver due to it will raise data race for invalid sql")
+	}
+
 	var users = []User{
 		*GetUser("find_in_batches_with_error", Config{}),
 		*GetUser("find_in_batches_with_error", Config{}),
