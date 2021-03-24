@@ -103,7 +103,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 				Distinct:   db.Statement.Distinct,
 				Expression: clause.NamedExpr{SQL: v, Vars: args},
 			})
-		}  else {
+		} else {
 			tx.Statement.Selects = []string{v}
 
 			for _, arg := range args {

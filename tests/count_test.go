@@ -121,4 +121,12 @@ func TestCount(t *testing.T) {
 	})
 
 	AssertEqual(t, users, expects)
+
+	var count9 int64
+	if err := DB.Debug().Scopes(func(tx *gorm.DB) *gorm.DB {
+		fmt.Println("kdkdkdkdk")
+		return tx.Table("users")
+	}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Count(&count9).Find(&users).Error; err != nil || count9 != 3 {
+		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
 }
