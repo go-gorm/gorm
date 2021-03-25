@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 )
@@ -250,6 +251,48 @@ func (e *expr) SumExpr() *expr {
 	return e
 }
 
+func (db *DB) GroupConcatExpr(e *expr, separator string, orderExpr *expr) *expr {
+	e.args = append(e.args, orderExpr.args...)
+
+	dbType := db.Dialect().GetName()
+	switch dbType {
+	case "mysql":
+		e.expr = fmt.Sprintf("GROUP_CONCAT(%s %s SEPARATOR '%s')", e.expr, orderExpr.expr, separator)
+	case "mssql":
+		e.expr = fmt.Sprintf("STRING_AGG(%s, '%s') WITHIN GROUP (%s)", e.expr, separator, orderExpr.expr)
+	case "sqlite":
+		e.expr = fmt.Sprintf("LISTAGG(%s, '%s') WITHIN GROUP (%s)", e.expr, separator, orderExpr.expr)
+	case "postgresql":
+		e.expr = fmt.Sprintf("string_agg(%s, '%s' %s)", e.expr, separator, orderExpr.expr)
+	case "oracle":
+		e.expr = fmt.Sprintf("LISTAGG(%s, '%s') WITHIN GROUP (%s)", e.expr, separator, orderExpr.expr)
+	default:
+		panic(fmt.Sprintf("Unsuported database type %s for GroupConcat!", dbType))
+	}
+	return e
+}
+
+func (db *DB) GroupConcat(e *expr, separator string, orderExpr *expr) string {
+	return db.GroupConcatExpr(e, separator, orderExpr).expr
+}
+
+func Order(stmts ...interface{}) *expr {
+	e := &expr{expr: "ORDER BY "}
+	for i, stmt := range stmts {
+		if i != 0 {
+			e.expr += ", "
+		}
+		if exp, ok := stmt.(*expr); ok {
+			e.expr += exp.expr
+			e.args = append(e.args, exp.args...)
+		} else {
+			e.expr += "?"
+			e.args = append(e.args, stmt)
+		}
+	}
+	return e
+}
+
 func (e *expr) Max() string {
 	return "MAX(" + e.expr + ")"
 }
@@ -324,6 +367,16 @@ func (e *expr) OrderAsc() string {
 
 func (e *expr) OrderDesc() string {
 	return e.expr + " DESC "
+}
+
+func (e *expr) OrderAscExpr() *expr {
+	e.expr = e.expr + " ASC "
+	return e
+}
+
+func (e *expr) OrderDescExpr() *expr {
+	e.expr = e.expr + " DESC "
+	return e
 }
 
 func (e *expr) Or(e2 *expr) *expr {
