@@ -18,7 +18,7 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
-func (db *PreparedStmtDB) GetDB() (*sql.DB, error) {
+func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
 		return dbConnector.GetDBConn()
 	}
