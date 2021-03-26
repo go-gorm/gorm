@@ -116,9 +116,9 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 			if err := opt.Apply(config); err != nil {
 				return nil, err
 			}
-			defer func() {
+			defer func(opt Option) {
 				opt.AfterInitialize(db)
-			}()
+			}(opt)
 		}
 	}
 
