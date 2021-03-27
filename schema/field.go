@@ -441,15 +441,8 @@ func (field *Field) setupValuerAndSetter() {
 	// ReflectValueOf
 	switch {
 	case len(field.StructField.Index) == 1:
-		if field.FieldType.Kind() == reflect.Ptr {
-			field.ReflectValueOf = func(value reflect.Value) reflect.Value {
-				fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
-				return fieldValue
-			}
-		} else {
-			field.ReflectValueOf = func(value reflect.Value) reflect.Value {
-				return reflect.Indirect(value).Field(field.StructField.Index[0])
-			}
+		field.ReflectValueOf = func(value reflect.Value) reflect.Value {
+			return reflect.Indirect(value).Field(field.StructField.Index[0])
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0 && field.FieldType.Kind() != reflect.Ptr:
 		field.ReflectValueOf = func(value reflect.Value) reflect.Value {
