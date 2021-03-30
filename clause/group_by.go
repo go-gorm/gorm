@@ -39,4 +39,10 @@ func (groupBy GroupBy) MergeClause(clause *Clause) {
 		groupBy.Having = append(copiedHaving, groupBy.Having...)
 	}
 	clause.Expression = groupBy
+
+	if len(groupBy.Columns) == 0 {
+		clause.Name = ""
+	} else {
+		clause.Name = groupBy.Name()
+	}
 }
