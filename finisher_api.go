@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"unsafe"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -646,4 +647,26 @@ func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 
 	tx.callbacks.Raw().Execute(tx)
 	return
+}
+
+// RollbackUnlessCommitted if transaction not commited, will rollback this transaction
+func (db *DB) RollbackUnlessCommitted() *DB {
+	txCommitter, ok := db.Statement.ConnPool.(TxCommitter)
+	if !ok {
+		db.AddError(ErrInvalidTransaction)
+		return db
+	}
+	tx, ok := txCommitter.(*sql.Tx)
+	if !ok {
+		db.AddError(ErrInvalidTransaction)
+		return db
+	}
+	type Tx struct {
+		done int32
+	}
+	x := (*Tx)(unsafe.Pointer(tx))
+	if x.done == 0 {
+		db.Rollback()
+	}
+	return db
 }
