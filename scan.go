@@ -241,7 +241,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 		}
 	}
 
-	if db.RowsAffected == 0 && db.Statement.RaiseErrorOnNotFound {
+	if err := rows.Err(); err != nil && err != db.Error {
+		db.AddError(err)
+	}
+
+	if db.RowsAffected == 0 && db.Statement.RaiseErrorOnNotFound && db.Error == nil {
 		db.AddError(ErrRecordNotFound)
 	}
 }
