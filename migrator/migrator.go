@@ -53,7 +53,9 @@ func (m Migrator) DataTypeOf(field *schema.Field) string {
 	}
 
 	if field.DataType == "raw_json" {
-		return "string"
+		field = &schema.Field{
+			DataType: schema.String,
+		}
 	}
 
 	return m.Dialector.DataTypeOf(field)
