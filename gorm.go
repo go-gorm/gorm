@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -110,6 +111,12 @@ type Session struct {
 // Open initialize db session based on dialector
 func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	config := &Config{}
+
+	sort.Slice(opts, func(i, j int) bool {
+		_, isConfig := opts[i].(*Config)
+		_, isConfig2 := opts[j].(*Config)
+		return isConfig && !isConfig2
+	})
 
 	for _, opt := range opts {
 		if opt != nil {
