@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,8 @@ import (
 
 	"gorm.io/gorm/utils"
 )
+
+var ErrRecordNotFound = errors.New("record not found")
 
 // Colors
 const (
@@ -43,9 +46,10 @@ type Writer interface {
 }
 
 type Config struct {
-	SlowThreshold time.Duration
-	Colorful      bool
-	LogLevel      LogLevel
+	SlowThreshold             time.Duration
+	Colorful                  bool
+	IgnoreRecordNotFoundError bool
+	LogLevel                  LogLevel
 }
 
 // Interface logger interface
@@ -138,7 +142,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 	if l.LogLevel > Silent {
 		elapsed := time.Since(begin)
 		switch {
-		case err != nil && l.LogLevel >= Error:
+		case err != nil && l.LogLevel >= Error && (!errors.Is(err, ErrRecordNotFound) || !l.IgnoreRecordNotFoundError):
 			sql, rows := fc()
 			if rows == -1 {
 				l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)
