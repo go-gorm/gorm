@@ -2,13 +2,11 @@ package gorm
 
 import (
 	"errors"
-
-	"gorm.io/gorm/logger"
 )
 
 var (
 	// ErrRecordNotFound record not found error
-	ErrRecordNotFound = logger.ErrRecordNotFound
+	ErrRecordNotFound = errors.New("record not found")
 	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
 	ErrInvalidTransaction = errors.New("no valid transaction")
 	// ErrNotImplemented not implemented
