@@ -288,12 +288,13 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					appendToElems(db.Statement.ReflectValue)
 				}
 
-				if elems.Len() > 0 {
+				// optimize elems of reflect value length
+				if elemLen := elems.Len(); elemLen > 0 {
 					if v, ok := selectColumns[rel.Name+".*"]; !ok || v {
 						saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, nil)
 					}
 
-					for i := 0; i < elems.Len(); i++ {
+					for i := 0; i < elemLen; i++ {
 						appendToJoins(objs[i], elems.Index(i))
 					}
 				}
