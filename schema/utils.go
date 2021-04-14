@@ -71,10 +71,10 @@ func GetRelationsValues(reflectValue reflect.Value, rels []*Relationship) (refle
 					reflectResults = reflect.Append(reflectResults, result.Addr())
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < result.Len(); i++ {
-						if result.Index(i).Kind() == reflect.Ptr {
-							reflectResults = reflect.Append(reflectResults, result.Index(i))
+						if elem := result.Index(i); elem.Kind() == reflect.Ptr {
+							reflectResults = reflect.Append(reflectResults, elem)
 						} else {
-							reflectResults = reflect.Append(reflectResults, result.Index(i).Addr())
+							reflectResults = reflect.Append(reflectResults, elem.Addr())
 						}
 					}
 				}
