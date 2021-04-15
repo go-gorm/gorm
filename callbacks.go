@@ -110,7 +110,6 @@ func (p *processor) Execute(db *DB) {
 		for stmt.ReflectValue.Kind() == reflect.Ptr {
 			if stmt.ReflectValue.IsNil() && stmt.ReflectValue.CanAddr() {
 				stmt.ReflectValue.Set(reflect.New(stmt.ReflectValue.Type().Elem()))
-				break
 			}
 
 			stmt.ReflectValue = stmt.ReflectValue.Elem()

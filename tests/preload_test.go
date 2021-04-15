@@ -63,12 +63,15 @@ func TestNestedPreload(t *testing.T) {
 
 	var user2 User
 	DB.Preload("Pets.Toy").Find(&user2, "id = ?", user.ID)
-
 	CheckUser(t, user2, user)
 
 	var user3 User
 	DB.Preload(clause.Associations+"."+clause.Associations).Find(&user3, "id = ?", user.ID)
 	CheckUser(t, user3, user)
+
+	var user4 *User
+	DB.Preload("Pets.Toy").Find(&user4, "id = ?", user.ID)
+	CheckUser(t, *user4, user)
 }
 
 func TestNestedPreloadForSlice(t *testing.T) {
