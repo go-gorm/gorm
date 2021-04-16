@@ -11,6 +11,8 @@ func BeginTransaction(db *gorm.DB) {
 			db.InstanceSet("gorm:started_transaction", true)
 		} else if tx.Error == gorm.ErrInvalidTransaction {
 			tx.Error = nil
+		} else {
+			db.Error = tx.Error
 		}
 	}
 }
