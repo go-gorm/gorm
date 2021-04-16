@@ -27,7 +27,7 @@ func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 		return sqldb, nil
 	}
 
-	return nil, ErrInvaildDB
+	return nil, ErrInvalidDB
 }
 
 func (db *PreparedStmtDB) Close() {

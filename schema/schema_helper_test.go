@@ -29,7 +29,7 @@ func checkSchema(t *testing.T, s *schema.Schema, v schema.Schema, primaryFields 
 			}
 
 			if !found {
-				t.Errorf("schema %v failed to found priamry key: %v", s, field)
+				t.Errorf("schema %v failed to found primary key: %v", s, field)
 			}
 		}
 	})

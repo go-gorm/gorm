@@ -348,7 +348,7 @@ func (db *DB) DB() (*sql.DB, error) {
 		return sqldb, nil
 	}
 
-	return nil, ErrInvaildDB
+	return nil, ErrInvalidDB
 }
 
 func (db *DB) getInstance() *DB {
