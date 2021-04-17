@@ -165,6 +165,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 	switch value := updatingValue.Interface().(type) {
 	case map[string]interface{}:
+		var updateAtFieldName string
 		set = make([]clause.Assignment, 0, len(value))
 
 		keys := make([]string, 0, len(value))
@@ -206,6 +207,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						now := stmt.DB.NowFunc()
 						assignValue(field, now)
 
+						updateAtFieldName = field.DBName
 						if field.AutoUpdateTime == schema.UnixNanosecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
 						} else if field.AutoUpdateTime == schema.UnixMillisecond {
@@ -219,9 +221,14 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 				}
 			}
 		}
+		// This method only works if there is only one AutoUpdateTime field
+		if len(set) == 1 && set[0].Column.Name == updateAtFieldName {
+			return set[0:0]
+		}
 	default:
 		switch updatingValue.Kind() {
 		case reflect.Struct:
+			var updateAtFieldName string
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
@@ -229,6 +236,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 						value, isZero := field.ValueOf(updatingValue)
 						if !stmt.SkipHooks && field.AutoUpdateTime > 0 {
+							updateAtFieldName = field.DBName
 							if field.AutoUpdateTime == schema.UnixNanosecond {
 								value = stmt.DB.NowFunc().UnixNano()
 							} else if field.AutoUpdateTime == schema.UnixMillisecond {
@@ -251,6 +259,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
 					}
 				}
+			}
+			// This method only works if there is only one AutoUpdateTime field
+			if len(set) == 1 && set[0].Column.Name == updateAtFieldName {
+				return set[0:0]
 			}
 		default:
 			stmt.AddError(gorm.ErrInvalidData)
