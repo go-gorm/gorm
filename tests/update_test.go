@@ -685,3 +685,103 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 		t.Errorf("failed to find created record, got error: %v, result: %+v", err, result4)
 	}
 }
+
+func TestUpdateAtNotChangeForStruct(t *testing.T) {
+	var user User
+	var newUser User
+	user = *GetUser("nothing_update", Config{})
+	DB.Create(&user)
+
+	DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).Updates(User{
+		Model:     gorm.Model{},
+		Name:      "",
+		Age:       0,
+		Birthday:  nil,
+		Account:   Account{},
+		Pets:      nil,
+		Toys:      nil,
+		CompanyID: nil,
+		Company:   Company{},
+		ManagerID: nil,
+		Manager:   nil,
+		Team:      nil,
+		Languages: nil,
+		Friends:   nil,
+		Active:    false,
+	})
+
+	if err := DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).First(&newUser).Error; err != nil || newUser.UpdatedAt.UnixNano() != user.UpdatedAt.UnixNano() {
+		t.Errorf("failed to find update record, got error: %v, result: %+v", err, newUser)
+	}
+}
+
+func TestUpdateAtNotChangeForMap(t *testing.T) {
+	var user User
+	var newUser User
+	user = *GetUser("nothing_update", Config{})
+	DB.Create(&user)
+
+	DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).Updates(map[string]interface{}{})
+
+	if err := DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).First(&newUser).Error; err != nil || newUser.UpdatedAt.UnixNano() != user.UpdatedAt.UnixNano() {
+		t.Errorf("failed to find update record, got error: %v, result: %+v", err, newUser)
+	}
+}
+
+func TestUpdateAtChangeForStruct(t *testing.T) {
+	var user User
+	var newUser User
+	user = *GetUser("nothing_update", Config{})
+	DB.Create(&user)
+
+	DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).Updates(User{
+		Model:     gorm.Model{},
+		Name:      "",
+		Age:       1,
+		Birthday:  nil,
+		Account:   Account{},
+		Pets:      nil,
+		Toys:      nil,
+		CompanyID: nil,
+		Company:   Company{},
+		ManagerID: nil,
+		Manager:   nil,
+		Team:      nil,
+		Languages: nil,
+		Friends:   nil,
+		Active:    false,
+	})
+
+	if err := DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).First(&newUser).Error; err != nil || newUser.UpdatedAt.UnixNano() <= user.UpdatedAt.UnixNano() {
+		t.Errorf("failed to find update record, got error: %v, result: %+v", err, newUser)
+	}
+}
+
+func TestUpdateAtChangeForMap(t *testing.T) {
+	var user User
+	var newUser User
+	user = *GetUser("nothing_update", Config{})
+	DB.Create(&user)
+
+	DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).Updates(map[string]interface{}{"age": 1})
+
+	if err := DB.Model(User{}).Where(User{
+		Model: gorm.Model{ID: user.ID},
+	}).First(&newUser).Error; err != nil || newUser.UpdatedAt.UnixNano() <= user.UpdatedAt.UnixNano() {
+		t.Errorf("failed to find update record, got error: %v, result: %+v", err, newUser)
+	}
+}
