@@ -685,3 +685,32 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 		t.Errorf("failed to find created record, got error: %v, result: %+v", err, result4)
 	}
 }
+
+func TestCanZeroWithUpdate(t *testing.T) {
+	user := *GetUser("can_zero_update", Config{})
+	user.Active = true
+	DB.Create(&user)
+
+	var result User
+	DB.First(&result, user.ID)
+
+	user2 := *GetUser("can_zero_update_new", Config{})
+	result.Name = user2.Name
+	result.Active = false
+	result.Age = 0
+
+	DB.Model(User{}).Where("ID", user.ID).CanZero("Age").Updates(User{
+		Name:   user2.Name,
+		Active: false,
+		Age:    0,
+	})
+
+	var result2 User
+	DB.First(&result2, user.ID)
+
+	AssertObjEqual(t, result2, result, "Name", "Age")
+
+	if !result2.Active || result.Active {
+		t.Fatalf("Update struct should only update can zero columns, was %+v, got %+v", result2.Active, result.Active)
+	}
+}

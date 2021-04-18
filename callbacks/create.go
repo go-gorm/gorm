@@ -328,9 +328,19 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				}
 			}
 
+			canZeroColumns := stmt.CanZeroColumns(true, false)
 			for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					if v, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+					v, isZero := field.ValueOf(stmt.ReflectValue)
+
+					// can zero
+					if isZero {
+						if v, ok := canZeroColumns[field.DBName]; ok && v {
+							isZero = false
+						}
+					}
+
+					if !isZero {
 						values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
 						values.Values[0] = append(values.Values[0], v)
 					}

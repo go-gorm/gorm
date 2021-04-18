@@ -142,6 +142,19 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	return
 }
 
+// CanZero specifies fields that you can be set to zero value when creating and updating.
+// Priority is lower than Select and Omit
+func (db *DB) CanZero(columns ...string) (tx *DB) {
+	tx = db.getInstance()
+
+	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
+		tx.Statement.CanZeros = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
+	} else {
+		tx.Statement.CanZeros = columns
+	}
+	return
+}
+
 // Where add conditions
 func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()

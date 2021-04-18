@@ -30,6 +30,7 @@ type Statement struct {
 	Distinct             bool
 	Selects              []string // selected columns
 	Omits                []string // omit columns
+	CanZeros             []string // can zero columns, priority is lower than selected columns and omit columns
 	Joins                []join
 	Preloads             map[string][]interface{}
 	Settings             sync.Map
@@ -665,4 +666,45 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 	}
 
 	return results, !notRestricted && len(stmt.Selects) > 0
+}
+
+// CanZeroColumns get can zero columns
+func (stmt *Statement) CanZeroColumns(requireCreate, requireUpdate bool) map[string]bool {
+	results := map[string]bool{}
+
+	// can zero columns
+	for _, canZero := range stmt.CanZeros {
+		if stmt.Schema == nil {
+			results[canZero] = true
+		} else if canZero == "*" {
+			for _, dbName := range stmt.Schema.DBNames {
+				results[dbName] = true
+			}
+		} else if canZero == clause.Associations {
+			for _, rel := range stmt.Schema.Relationships.Relations {
+				results[rel.Name] = true
+			}
+		} else if field := stmt.Schema.LookUpField(canZero); field != nil && field.DBName != "" {
+			results[field.DBName] = true
+		} else {
+			results[canZero] = true
+		}
+	}
+
+	if stmt.Schema != nil {
+		for _, field := range stmt.Schema.FieldsByName {
+			name := field.DBName
+			if name == "" {
+				name = field.Name
+			}
+
+			if requireCreate && !field.Creatable {
+				results[name] = false
+			} else if requireUpdate && !field.Updatable {
+				results[name] = false
+			}
+		}
+	}
+
+	return results
 }

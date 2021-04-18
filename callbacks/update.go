@@ -222,12 +222,21 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	default:
 		switch updatingValue.Kind() {
 		case reflect.Struct:
+			canZeroColumns := stmt.CanZeroColumns(false, true)
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
 				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 						value, isZero := field.ValueOf(updatingValue)
+
+						// can zero
+						if isZero {
+							if v, ok := canZeroColumns[field.DBName]; ok && v {
+								isZero = false
+							}
+						}
+
 						if !stmt.SkipHooks && field.AutoUpdateTime > 0 {
 							if field.AutoUpdateTime == schema.UnixNanosecond {
 								value = stmt.DB.NowFunc().UnixNano()
