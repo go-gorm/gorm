@@ -89,7 +89,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	}
 
 	if relation.Type == has {
-		// don't add relations to embeded schema, which might be shared
+		// don't add relations to embedded schema, which might be shared
 		if relation.FieldSchema != relation.Schema && relation.Polymorphic == nil && field.OwnerSchema == nil {
 			relation.FieldSchema.Relationships.Relations["_"+relation.Schema.Name+"_"+relation.Name] = relation
 		}
@@ -308,9 +308,9 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 				f.Size = fieldsMap[f.Name].Size
 			}
 			relation.JoinTable.PrimaryFields = append(relation.JoinTable.PrimaryFields, f)
-			ownPriamryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
+			ownPrimaryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
 
-			if ownPriamryField {
+			if ownPrimaryField {
 				joinRel := relation.JoinTable.Relationships.Relations[relName]
 				joinRel.Field = relation.Field
 				joinRel.References = append(joinRel.References, &Reference{
@@ -331,7 +331,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			relation.References = append(relation.References, &Reference{
 				PrimaryKey:    fieldsMap[f.Name],
 				ForeignKey:    f,
-				OwnPrimaryKey: ownPriamryField,
+				OwnPrimaryKey: ownPrimaryField,
 			})
 		}
 	}

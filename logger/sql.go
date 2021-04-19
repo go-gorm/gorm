@@ -28,7 +28,7 @@ func isPrintable(s []byte) bool {
 	return true
 }
 
-var convertableTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
+var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
@@ -91,7 +91,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
 				convertParams(reflect.Indirect(rv).Interface(), idx)
 			} else {
-				for _, t := range convertableTypes {
+				for _, t := range convertibleTypes {
 					if rv.Type().ConvertibleTo(t) {
 						convertParams(rv.Convert(t).Interface(), idx)
 						return

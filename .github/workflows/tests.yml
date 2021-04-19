@@ -84,7 +84,7 @@ jobs:
       matrix:
         dbversion: ['postgres:latest', 'postgres:11', 'postgres:10']
         go: ['1.16', '1.15', '1.14']
-        platform: [ubuntu-latest] # can not run in macOS and widnowsOS
+        platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
     services:
