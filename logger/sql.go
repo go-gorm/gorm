@@ -78,7 +78,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 			vars[idx] = utils.ToString(v)
 		case float64, float32:
-			vars[idx] = fmt.Sprintf("%.6f", v)
+			vars[idx] = strconv.FormatFloat(v.(float64), 'f', -1, 64)
 		case string:
 			vars[idx] = escaper + strings.Replace(v, escaper, "\\"+escaper, -1) + escaper
 		default:
