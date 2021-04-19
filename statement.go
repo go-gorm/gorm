@@ -539,6 +539,11 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 				}
 			}
 
+			if !stmt.ReflectValue.CanAddr() {
+				stmt.AddError(ErrInvalidValue)
+				return
+			}
+
 			switch stmt.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				if len(fromCallbacks) > 0 {

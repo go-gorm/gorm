@@ -36,7 +36,7 @@ var (
 	// ErrInvalidDB invalid db
 	ErrInvalidDB = errors.New("invalid db")
 	// ErrInvalidValue invalid value
-	ErrInvalidValue = errors.New("invalid value")
+	ErrInvalidValue = errors.New("invalid value, should be pointer to struct or slice")
 	// ErrInvalidValueOfLength invalid values do not match length
 	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
 )
