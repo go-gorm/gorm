@@ -2,6 +2,7 @@ package schema
 
 import (
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -80,7 +81,7 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 		h.Write([]byte(formattedName))
 		bs := h.Sum(nil)
 
-		formattedName = fmt.Sprintf("%v%v%v", prefix, table, name)[0:56] + string(bs)[:8]
+		formattedName = fmt.Sprintf("%v%v%v", prefix, table, name)[0:56] + hex.EncodeToString(bs)[:8]
 	}
 	return formattedName
 }
