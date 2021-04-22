@@ -168,3 +168,12 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 		t.Errorf("invalid column name generated, got %v", columdName)
 	}
 }
+
+func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
+	var ns = NamingStrategy{}
+
+	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
+	if formattedName != "prefixtablethisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLo180f2c67" {
+		t.Errorf("invalid formatted name generated, got %v", formattedName)
+	}
+}
