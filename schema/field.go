@@ -341,6 +341,15 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
+	// placeholder; readonly without migration
+
+	if _, ok := field.TagSettings["<->"]; ok {
+		field.Readable = true
+		field.Creatable = false
+		field.Updatable = false
+		field.IgnoreMigration = true
+	}
+
 	if _, ok := field.TagSettings["EMBEDDED"]; ok || (fieldStruct.Anonymous && !isValuer && (field.Creatable || field.Updatable || field.Readable)) {
 		if reflect.Indirect(fieldValue).Kind() == reflect.Struct {
 			var err error
