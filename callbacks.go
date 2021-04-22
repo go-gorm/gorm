@@ -72,19 +72,19 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) {
-	var (
-		curTime = time.Now()
-		stmt    = db.Statement
-	)
-
 	// call scopes
-	for len(stmt.scopes) > 0 {
-		scopes := stmt.scopes
-		stmt.scopes = nil
+	for len(db.Statement.scopes) > 0 {
+		scopes := db.Statement.scopes
+		db.Statement.scopes = nil
 		for _, scope := range scopes {
 			db = scope(db)
 		}
 	}
+
+	var (
+		curTime = time.Now()
+		stmt    = db.Statement
+	)
 
 	// assign model values
 	if stmt.Model == nil {
