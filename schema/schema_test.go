@@ -299,7 +299,6 @@ func TestEmbeddedStructForCustomizedNamingStrategy(t *testing.T) {
 	}
 }
 
-
 func TestSchemaParseMarshalJson(t *testing.T) {
 	type model struct {
 		gorm.Model

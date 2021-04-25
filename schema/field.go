@@ -64,12 +64,12 @@ type Field struct {
 	StructField            reflect.StructField
 	Tag                    reflect.StructTag
 	TagSettings            map[string]string
-	Schema                 *Schema
-	EmbeddedSchema         *Schema
-	OwnerSchema            *Schema
-	ReflectValueOf         func(reflect.Value) reflect.Value
-	ValueOf                func(reflect.Value) (value interface{}, zero bool)
-	Set                    func(reflect.Value, interface{}) error
+	Schema                 *Schema                                            `json:"-"`
+	EmbeddedSchema         *Schema                                            `json:"-"`
+	OwnerSchema            *Schema                                            `json:"-"`
+	ReflectValueOf         func(reflect.Value) reflect.Value                  `json:"-"`
+	ValueOf                func(reflect.Value) (value interface{}, zero bool) `json:"-"`
+	Set                    func(reflect.Value, interface{}) error             `json:"-"`
 	IgnoreMigration        bool
 }
 
