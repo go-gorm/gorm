@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"encoding/json"
 	"strings"
 	"sync"
 	"testing"
@@ -295,5 +296,22 @@ func TestEmbeddedStructForCustomizedNamingStrategy(t *testing.T) {
 				f.Readable = true
 			}
 		})
+	}
+}
+
+
+func TestSchemaParseMarshalJson(t *testing.T) {
+	type model struct {
+		gorm.Model
+		Title string
+	}
+	v := &model{Title: "test"}
+	schema, err := schema.Parse(v, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("error while parsing schema %v", err)
+	}
+	_, err = json.MarshalIndent(schema, "", "\t")
+	if err != nil {
+		t.Fatalf("error while json marshaling schema %v", err)
 	}
 }
