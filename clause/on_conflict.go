@@ -33,10 +33,11 @@ func (onConflict OnConflict) Build(builder Builder) {
 	}
 
 	if onConflict.DoNothing {
-		builder.WriteString("DO NOTHING")
+		builder.WriteString("DO NOTHING ")
 	} else {
 		builder.WriteString("DO UPDATE SET ")
 		onConflict.DoUpdates.Build(builder)
+		builder.WriteByte(' ')
 	}
 
 	if len(onConflict.Where.Exprs) > 0 {
