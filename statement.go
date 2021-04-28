@@ -27,6 +27,7 @@ type Statement struct {
 	Dest                 interface{}
 	ReflectValue         reflect.Value
 	Clauses              map[string]clause.Clause
+	BuildClauses         []string
 	Distinct             bool
 	Selects              []string // selected columns
 	Omits                []string // omit columns

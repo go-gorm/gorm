@@ -32,6 +32,7 @@ type callbacks struct {
 
 type processor struct {
 	db        *DB
+	Clauses   []string
 	fns       []func(*DB)
 	callbacks []*callback
 }
@@ -82,9 +83,15 @@ func (p *processor) Execute(db *DB) {
 	}
 
 	var (
-		curTime = time.Now()
-		stmt    = db.Statement
+		curTime           = time.Now()
+		stmt              = db.Statement
+		resetBuildClauses bool
 	)
+
+	if len(stmt.BuildClauses) == 0 {
+		stmt.BuildClauses = p.Clauses
+		resetBuildClauses = true
+	}
 
 	// assign model values
 	if stmt.Model == nil {
@@ -130,6 +137,10 @@ func (p *processor) Execute(db *DB) {
 	if !stmt.DB.DryRun {
 		stmt.SQL.Reset()
 		stmt.Vars = nil
+	}
+
+	if resetBuildClauses {
+		stmt.BuildClauses = nil
 	}
 }
 

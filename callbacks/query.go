@@ -167,7 +167,7 @@ func BuildQuerySQL(db *gorm.DB) {
 
 		db.Statement.AddClauseIfNotExists(clauseSelect)
 
-		db.Statement.Build("SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR")
+		db.Statement.Build(db.Statement.BuildClauses...)
 	}
 }
 

@@ -47,7 +47,7 @@ func Create(config *Config) func(db *gorm.DB) {
 					db.Statement.AddClauseIfNotExists(clause.Insert{})
 					db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
-					db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+					db.Statement.Build(db.Statement.BuildClauses...)
 				}
 
 				if !db.DryRun && db.Error == nil {
@@ -118,7 +118,7 @@ func CreateWithReturning(db *gorm.DB) {
 			db.Statement.AddClauseIfNotExists(clause.Insert{})
 			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
 
-			db.Statement.Build("INSERT", "VALUES", "ON CONFLICT")
+			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
 		if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {

@@ -135,7 +135,7 @@ func Delete(db *gorm.DB) {
 			}
 
 			db.Statement.AddClauseIfNotExists(clause.From{})
-			db.Statement.Build("DELETE", "FROM", "WHERE")
+			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
 		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok && db.Error == nil {
