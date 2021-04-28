@@ -40,7 +40,7 @@ func (onConflict OnConflict) Build(builder Builder) {
 	}
 
 	if len(onConflict.Where.Exprs) > 0 {
-		builder.WriteString("WHERE ")
+		builder.WriteString(" WHERE ")
 		onConflict.Where.Build(builder)
 		builder.WriteByte(' ')
 	}
