@@ -2,59 +2,41 @@ package gorm
 
 import (
 	"errors"
-	"strings"
+
+	"gorm.io/gorm/logger"
 )
 
 var (
-	// ErrRecordNotFound record not found error, happens when haven't find any matched data when looking up with a struct
-	ErrRecordNotFound = errors.New("record not found")
-	// ErrInvalidSQL invalid SQL error, happens when you passed invalid SQL
-	ErrInvalidSQL = errors.New("invalid SQL")
+	// ErrRecordNotFound record not found error
+	ErrRecordNotFound = logger.ErrRecordNotFound
 	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
 	ErrInvalidTransaction = errors.New("no valid transaction")
-	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = errors.New("can't start transaction")
-	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = errors.New("using unaddressable value")
+	// ErrNotImplemented not implemented
+	ErrNotImplemented = errors.New("not implemented")
+	// ErrMissingWhereClause missing where clause
+	ErrMissingWhereClause = errors.New("WHERE conditions required")
+	// ErrUnsupportedRelation unsupported relations
+	ErrUnsupportedRelation = errors.New("unsupported relations")
+	// ErrPrimaryKeyRequired primary keys required
+	ErrPrimaryKeyRequired = errors.New("primary key required")
+	// ErrModelValueRequired model value required
+	ErrModelValueRequired = errors.New("model value required")
+	// ErrInvalidData unsupported data
+	ErrInvalidData = errors.New("unsupported data")
+	// ErrUnsupportedDriver unsupported driver
+	ErrUnsupportedDriver = errors.New("unsupported driver")
+	// ErrRegistered registered
+	ErrRegistered = errors.New("registered")
+	// ErrInvalidField invalid field
+	ErrInvalidField = errors.New("invalid field")
+	// ErrEmptySlice empty slice found
+	ErrEmptySlice = errors.New("empty slice found")
+	// ErrDryRunModeUnsupported dry run mode unsupported
+	ErrDryRunModeUnsupported = errors.New("dry run mode unsupported")
+	// ErrInvalidDB invalid db
+	ErrInvalidDB = errors.New("invalid db")
+	// ErrInvalidValue invalid value
+	ErrInvalidValue = errors.New("invalid value, should be pointer to struct or slice")
+	// ErrInvalidValueOfLength invalid values do not match length
+	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
 )
-
-// Errors contains all happened errors
-type Errors []error
-
-// GetErrors gets all happened errors
-func (errs Errors) GetErrors() []error {
-	return errs
-}
-
-// Add adds an error
-func (errs Errors) Add(newErrors ...error) Errors {
-	for _, err := range newErrors {
-		if err == nil {
-			continue
-		}
-
-		if errors, ok := err.(Errors); ok {
-			errs = errs.Add(errors...)
-		} else {
-			ok = true
-			for _, e := range errs {
-				if err == e {
-					ok = false
-				}
-			}
-			if ok {
-				errs = append(errs, err)
-			}
-		}
-	}
-	return errs
-}
-
-// Error format happened errors
-func (errs Errors) Error() string {
-	var errors = []string{}
-	for _, e := range errs {
-		errors = append(errors, e.Error())
-	}
-	return strings.Join(errors, "; ")
-}

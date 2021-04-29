@@ -2,13 +2,14 @@ package gorm
 
 import "time"
 
-// Model base model definition, including fields `ID`, `CreatedAt`, `UpdatedAt`, `DeletedAt`, which could be embedded in your models
+// Model a basic GoLang struct which includes the following fields: ID, CreatedAt, UpdatedAt, DeletedAt
+// It may be embedded into your model or you may build your own model without it
 //    type User struct {
 //      gorm.Model
 //    }
 type Model struct {
-	ID        uint `gorm:"primary_key"`
+	ID        uint `gorm:"primarykey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt *time.Time `sql:"index"`
+	DeletedAt DeletedAt `gorm:"index"`
 }
