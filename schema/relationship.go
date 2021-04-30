@@ -163,7 +163,9 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 		}
 
 		// use same data type for foreign keys
-		relation.Polymorphic.PolymorphicID.DataType = primaryKeyField.DataType
+		if copyableDataType(primaryKeyField.DataType) {
+			relation.Polymorphic.PolymorphicID.DataType = primaryKeyField.DataType
+		}
 		relation.Polymorphic.PolymorphicID.GORMDataType = primaryKeyField.GORMDataType
 		if relation.Polymorphic.PolymorphicID.Size == 0 {
 			relation.Polymorphic.PolymorphicID.Size = primaryKeyField.Size
@@ -302,7 +304,9 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	for _, f := range relation.JoinTable.Fields {
 		if f.Creatable || f.Readable || f.Updatable {
 			// use same data type for foreign keys
-			f.DataType = fieldsMap[f.Name].DataType
+			if copyableDataType(fieldsMap[f.Name].DataType) {
+				f.DataType = fieldsMap[f.Name].DataType
+			}
 			f.GORMDataType = fieldsMap[f.Name].GORMDataType
 			if f.Size == 0 {
 				f.Size = fieldsMap[f.Name].Size
@@ -472,7 +476,9 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	// build references
 	for idx, foreignField := range foreignFields {
 		// use same data type for foreign keys
-		foreignField.DataType = primaryFields[idx].DataType
+		if copyableDataType(primaryFields[idx].DataType) {
+			foreignField.DataType = primaryFields[idx].DataType
+		}
 		foreignField.GORMDataType = primaryFields[idx].GORMDataType
 		if foreignField.Size == 0 {
 			foreignField.Size = primaryFields[idx].Size
@@ -613,4 +619,13 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 
 	conds = append(conds, clause.IN{Column: column, Values: values})
 	return
+}
+
+func copyableDataType(str DataType) bool {
+	for _, s := range []string{"auto_increment", "primary key"} {
+		if strings.Contains(strings.ToLower(string(str)), s) {
+			return false
+		}
+	}
+	return true
 }
