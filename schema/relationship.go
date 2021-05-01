@@ -7,6 +7,7 @@ import (
 
 	"github.com/jinzhu/inflection"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/utils"
 )
 
 // RelationshipType relationship type
@@ -404,11 +405,14 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 
 	if len(relation.foreignKeys) > 0 {
 		for _, foreignKey := range relation.foreignKeys {
-			if f := foreignSchema.LookUpField(foreignKey); f != nil {
-				foreignFields = append(foreignFields, f)
-			} else {
+			ff := foreignSchema.LookUpField(foreignKey)
+			pf := primarySchema.LookUpField(foreignKey)
+			isKeySame := utils.ExistsIn(foreignKey, &relation.primaryKeys)
+			if ff == nil || (pf != nil && ff != nil && schema == primarySchema && primarySchema != foreignSchema && !isKeySame) {
 				reguessOrErr()
 				return
+			} else {
+				foreignFields = append(foreignFields, ff)
 			}
 		}
 	} else {
