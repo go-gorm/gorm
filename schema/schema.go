@@ -71,7 +71,7 @@ type Tabler interface {
 	TableName() string
 }
 
-// get data type from dialector
+// Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
@@ -91,6 +91,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	if v, ok := cacheStore.Load(modelType); ok {
 		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
 		<-s.initialized
 		return s, s.err
 	}
@@ -114,6 +115,15 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		cacheStore:     cacheStore,
 		namer:          namer,
 		initialized:    make(chan struct{}),
+	}
+	// When the schema initialization is completed, the channel will be closed
+	defer close(schema.initialized)
+
+	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
+		<-s.initialized
+		return s, s.err
 	}
 
 	defer func() {
@@ -223,13 +233,6 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
-		s := v.(*Schema)
-		<-s.initialized
-		return s, s.err
-	}
-
-	defer close(schema.initialized)
 	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 		for _, field := range schema.Fields {
 			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
