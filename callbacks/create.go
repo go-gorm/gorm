@@ -316,8 +316,27 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					if field.DefaultValueInterface != nil {
 						values.Values[0][idx] = field.DefaultValueInterface
 						field.Set(stmt.ReflectValue, field.DefaultValueInterface)
-					} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
-						field.Set(stmt.ReflectValue, curTime)
+					} else if field.AutoCreateTime > 0 {
+						if field.AutoCreateTime == schema.UnixNanosecond {
+							field.Set(stmt.ReflectValue, curTime.UnixNano())
+						} else if field.AutoCreateTime == schema.UnixMillisecond {
+							field.Set(stmt.ReflectValue, curTime.UnixNano()/1e6)
+						} else if field.AutoCreateTime == schema.UnixSecond {
+							field.Set(stmt.ReflectValue, curTime.Unix())
+						} else {
+							field.Set(stmt.ReflectValue, curTime)
+						}
+						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
+					} else if field.AutoUpdateTime > 0 {
+						if field.AutoUpdateTime == schema.UnixNanosecond {
+							field.Set(stmt.ReflectValue, curTime.UnixNano())
+						} else if field.AutoUpdateTime == schema.UnixMillisecond {
+							field.Set(stmt.ReflectValue, curTime.UnixNano()/1e6)
+						} else if field.AutoUpdateTime == schema.UnixSecond {
+							field.Set(stmt.ReflectValue, curTime.Unix())
+						} else {
+							field.Set(stmt.ReflectValue, curTime)
+						}
 						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
 					}
 				} else if field.AutoUpdateTime > 0 {

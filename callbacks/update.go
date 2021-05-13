@@ -210,10 +210,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
 						} else if field.AutoUpdateTime == schema.UnixMillisecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano() / 1e6})
-						} else if field.GORMDataType == schema.Time {
-							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
-						} else {
+						} else if field.AutoUpdateTime == schema.UnixSecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.Unix()})
+						} else {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 						}
 					}
 				}
