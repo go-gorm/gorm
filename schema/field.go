@@ -24,6 +24,7 @@ const (
 	UnixSecond      TimeType = 1
 	UnixMillisecond TimeType = 2
 	UnixNanosecond  TimeType = 3
+	DefaultTime     TimeType = 4 //DefaultTime is time.Time
 )
 
 const (
@@ -255,8 +256,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.AutoCreateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
 			field.AutoCreateTime = UnixMillisecond
-		} else {
+		} else if strings.ToUpper(v) == "UNIX" {
 			field.AutoCreateTime = UnixSecond
+		} else {
+			field.AutoCreateTime = DefaultTime
 		}
 	}
 
@@ -265,8 +268,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.AutoUpdateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
 			field.AutoUpdateTime = UnixMillisecond
-		} else {
+		} else if strings.ToUpper(v) == "UNIX" {
 			field.AutoUpdateTime = UnixSecond
+		} else {
+			field.AutoUpdateTime = DefaultTime
 		}
 	}
 
