@@ -274,7 +274,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 						if field.DefaultValueInterface != nil {
 							values.Values[i][idx] = field.DefaultValueInterface
 							field.Set(rv, field.DefaultValueInterface)
-						} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
+						} else if field.AutoCreateTime >= 0 || field.AutoUpdateTime >= 0 {
 							field.Set(rv, curTime)
 							values.Values[i][idx], _ = field.ValueOf(rv)
 						}
@@ -316,7 +316,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					if field.DefaultValueInterface != nil {
 						values.Values[0][idx] = field.DefaultValueInterface
 						field.Set(stmt.ReflectValue, field.DefaultValueInterface)
-					} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
+					} else if field.AutoCreateTime >= 0 || field.AutoUpdateTime >= 0 {
 						field.Set(stmt.ReflectValue, curTime)
 						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
 					}

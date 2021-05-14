@@ -89,6 +89,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		TagSettings:            ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";"),
 		Schema:                 schema,
 		AutoIncrementIncrement: 1,
+		AutoUpdateTime:         -1,
+		AutoCreateTime:         -1,
 	}
 
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
@@ -250,7 +252,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = DataType(dataTyper.GormDataType())
 	}
 
-	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
+	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok && (field.DataType == Time || field.DataType == Int || field.DataType == Uint) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
@@ -258,9 +260,11 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		} else {
 			field.AutoCreateTime = UnixSecond
 		}
+	} else if ok && field.Name == "CreatedAt" {
+		field.AutoCreateTime = 0
 	}
 
-	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
+	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok && (field.DataType == Time || field.DataType == Int || field.DataType == Uint) {
 		if strings.ToUpper(v) == "NANO" {
 			field.AutoUpdateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
@@ -268,6 +272,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		} else {
 			field.AutoUpdateTime = UnixSecond
 		}
+	} else if ok && field.Name == "UpdatedAt" {
+		field.AutoUpdateTime = 0
 	}
 
 	if val, ok := field.TagSettings["TYPE"]; ok {
