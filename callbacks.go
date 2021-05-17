@@ -72,7 +72,7 @@ func (cs *callbacks) Raw() *processor {
 	return cs.processors["raw"]
 }
 
-func (p *processor) Execute(db *DB) {
+func (p *processor) Execute(db *DB) *DB {
 	// call scopes
 	for len(db.Statement.scopes) > 0 {
 		scopes := db.Statement.scopes
@@ -142,6 +142,8 @@ func (p *processor) Execute(db *DB) {
 	if resetBuildClauses {
 		stmt.BuildClauses = nil
 	}
+
+	return db
 }
 
 func (p *processor) Get(name string) func(*DB) {
