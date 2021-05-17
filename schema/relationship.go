@@ -408,7 +408,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 			ff := foreignSchema.LookUpField(foreignKey)
 			pf := primarySchema.LookUpField(foreignKey)
 			isKeySame := utils.ExistsIn(foreignKey, &relation.primaryKeys)
-			if ff == nil || (pf != nil && ff != nil && schema == primarySchema && primarySchema != foreignSchema && !isKeySame) {
+			if ff == nil || (pf != nil && ff != nil && schema == primarySchema && primarySchema != foreignSchema && !isKeySame && field.IndirectFieldType.Kind() == reflect.Struct) {
 				reguessOrErr()
 				return
 			} else {
