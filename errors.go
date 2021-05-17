@@ -10,7 +10,7 @@ var (
 	// ErrRecordNotFound record not found error
 	ErrRecordNotFound = logger.ErrRecordNotFound
 	// ErrInvalidTransaction invalid transaction when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = errors.New("no valid transaction")
+	ErrInvalidTransaction = errors.New("invalid transaction")
 	// ErrNotImplemented not implemented
 	ErrNotImplemented = errors.New("not implemented")
 	// ErrMissingWhereClause missing where clause
