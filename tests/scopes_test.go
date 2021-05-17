@@ -54,4 +54,12 @@ func TestScopes(t *testing.T) {
 	if db.Find(&User{}).Statement.Table != "custom_table" {
 		t.Errorf("failed to call Scopes")
 	}
+
+	result := DB.Scopes(NameIn1And2, func(tx *gorm.DB) *gorm.DB {
+		return tx.Session(&gorm.Session{})
+	}).Find(&users1)
+
+	if result.RowsAffected != 2 {
+		t.Errorf("Should found two users's name in 1, 2, but got %v", result.RowsAffected)
+	}
 }
