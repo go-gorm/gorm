@@ -501,3 +501,22 @@ func TestBelongsToWithSameForeignKey(t *testing.T) {
 		References: []Reference{{"ID", "Profile", "ProfileRefer", "User", "", false}},
 	})
 }
+
+func TestHasManySameForeignKey(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name      string
+		UserRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		UserRefer uint
+		Profile   []Profile `gorm:"ForeignKey:UserRefer"`
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profile", Type: schema.HasMany, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"ID", "User", "UserRefer", "Profile", "", true}},
+	})
+}
