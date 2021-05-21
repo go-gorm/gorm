@@ -167,7 +167,7 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 }
 
 // FindInBatches find records in batches
-func (db *DB) FindInBatch(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
+func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
 	var (
 		tx = db.Session(&Session{})
 		queryDB      = tx
