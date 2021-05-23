@@ -540,11 +540,6 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 				}
 			}
 
-			if !stmt.ReflectValue.CanAddr() {
-				stmt.AddError(ErrInvalidValue)
-				return
-			}
-
 			switch stmt.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				if len(fromCallbacks) > 0 {
@@ -555,6 +550,11 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 					field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
 				}
 			case reflect.Struct:
+				if !stmt.ReflectValue.CanAddr() {
+					stmt.AddError(ErrInvalidValue)
+					return
+				}
+
 				field.Set(stmt.ReflectValue, value)
 			}
 		} else {
