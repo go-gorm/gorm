@@ -64,7 +64,7 @@ func TestAssociationNotNullClear(t *testing.T) {
 	}
 
 	if err := DB.Model(member).Association("Profiles").Clear(); err == nil {
-		t.Fatalf("No error occured during clearind not null association")
+		t.Fatalf("No error occurred during clearind not null association")
 	}
 }
 
