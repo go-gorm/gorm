@@ -37,3 +37,25 @@ func TestDefaultValue(t *testing.T) {
 		t.Fatalf("Failed to find created data with default data, got %+v", result)
 	}
 }
+
+func TestDefaultValueWithPrimaryKeyAndTypeInteger(t *testing.T) {
+	type Harumph struct {
+		ID int `gorm:"primaryKey;type:integer;default:1"`
+	}
+
+	DB.Migrator().DropTable(&Harumph{})
+
+	if err := DB.AutoMigrate(&Harumph{}); err != nil {
+		t.Fatalf("Failed to migrate with default value, got error: %v", err)
+	}
+
+	var harumph = Harumph{}
+	if err := DB.Create(&harumph).Error; err != nil {
+		t.Fatalf("Failed to create data with default value, got error: %v", err)
+	}
+
+	var result Harumph
+	if err := DB.First(&result, "id = ?", "1").Error; err != nil {
+		t.Fatalf("Failed to find created data, got error: %v", err)
+	}
+}
