@@ -86,7 +86,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		if modelType.PkgPath() == "" {
 			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 		}
-		return nil, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
@@ -275,7 +275,7 @@ func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, e
 		if modelType.PkgPath() == "" {
 			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 		}
-		return nil, fmt.Errorf("%w: %v.%v", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
