@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,7 +14,7 @@ var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	gormSourceDir = regexp.MustCompile(`utils.utils\.go`).ReplaceAllString(file, "")
+	gormSourceDir = strings.Replace(file, `utils.utils.go`, "", -1)
 }
 
 func FileWithLineNum() string {
