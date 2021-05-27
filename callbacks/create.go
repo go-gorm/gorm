@@ -60,6 +60,7 @@ func Create(config *Config) func(db *gorm.DB) {
 
 			if err != nil {
 				db.AddError(err)
+				return
 			}
 
 			db.RowsAffected, _ = result.RowsAffected()
