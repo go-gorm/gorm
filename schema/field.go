@@ -423,12 +423,12 @@ func (field *Field) setupValuerAndSetter() {
 				} else {
 					v = v.Field(-idx - 1)
 
-					if v.Type().Elem().Kind() == reflect.Struct {
-						if !v.IsNil() {
-							v = v.Elem()
-						} else {
-							return nil, true
-						}
+					if v.Type().Elem().Kind() != reflect.Struct {
+						return nil, true
+					}
+
+					if !v.IsNil() {
+						v = v.Elem()
 					} else {
 						return nil, true
 					}

@@ -45,9 +45,9 @@ type Schema struct {
 
 func (schema Schema) String() string {
 	if schema.ModelType.Name() == "" {
-		return fmt.Sprintf("%v(%v)", schema.Name, schema.Table)
+		return fmt.Sprintf("%s(%s)", schema.Name, schema.Table)
 	}
-	return fmt.Sprintf("%v.%v", schema.ModelType.PkgPath(), schema.ModelType.Name())
+	return fmt.Sprintf("%s.%s", schema.ModelType.PkgPath(), schema.ModelType.Name())
 }
 
 func (schema Schema) MakeSlice() reflect.Value {
