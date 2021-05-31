@@ -136,6 +136,16 @@ func TestExpression(t *testing.T) {
 			clause.Neq{Column: column, Value: (interface{})(nil)},
 		},
 		Result: "`column-name` IS NOT NULL",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []string{"a", "b"}},
+		},
+		Result: "`column-name` IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Neq{Column: column, Value: []string{"a", "b"}},
+		},
+		Result: "`column-name` NOT IN (?,?)",
 	}}
 
 	for idx, result := range results {
