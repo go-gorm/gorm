@@ -241,7 +241,7 @@ func (eq Eq) Build(builder Builder) {
 			if i > 0 {
 				builder.WriteByte(',')
 			}
-			builder.AddVar(builder, rv.Index(i))
+			builder.AddVar(builder, rv.Index(i).Interface())
 		}
 		builder.WriteByte(')')
 	default:
@@ -272,7 +272,7 @@ func (neq Neq) Build(builder Builder) {
 			if i > 0 {
 				builder.WriteByte(',')
 			}
-			builder.AddVar(builder, rv.Index(i))
+			builder.AddVar(builder, rv.Index(i).Interface())
 		}
 		builder.WriteByte(')')
 	default:
