@@ -20,6 +20,12 @@ const (
 	nullStr     = "NULL"
 )
 
+var (
+	escapeMap = map[string]bool{
+		`\`: true,
+	}
+)
+
 func isPrintable(s []byte) bool {
 	for _, r := range s {
 		if !unicode.IsPrint(rune(r)) {
@@ -34,6 +40,8 @@ var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeO
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
 	var vars = make([]string, len(avars))
+	escapeMap[escaper] = true
+	defer delete(escapeMap, escaper)
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
@@ -81,6 +89,10 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		case float64, float32:
 			vars[idx] = strconv.FormatFloat(v.(float64), 'f', -1, 64)
 		case string:
+			middle := v
+			for escChar := range escapeMap {
+				middle = strings.ReplaceAll(middle, escChar, `\`+escChar)
+			}
 			vars[idx] = escaper + strings.Replace(v, escaper, "\\"+escaper, -1) + escaper
 			log.Println("hoho", escaper, vars[idx], v, strings.Replace(v, escaper, "\\"+escaper, -1))
 		default:
