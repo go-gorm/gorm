@@ -3,6 +3,7 @@ package logger
 import (
 	"database/sql/driver"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -81,6 +82,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			vars[idx] = strconv.FormatFloat(v.(float64), 'f', -1, 64)
 		case string:
 			vars[idx] = escaper + strings.Replace(v, escaper, "\\"+escaper, -1) + escaper
+			log.Println("hoho", vars[idx])
 		default:
 			rv := reflect.ValueOf(v)
 			if v == nil || !rv.IsValid() || rv.Kind() == reflect.Ptr && rv.IsNil() {
