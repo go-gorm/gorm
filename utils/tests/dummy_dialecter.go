@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"log"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -37,6 +39,7 @@ func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
 }
 
 func (DummyDialector) Explain(sql string, vars ...interface{}) string {
+	log.Println("WTF", `"`)
 	return logger.ExplainSQL(sql, nil, `"`, vars...)
 }
 
