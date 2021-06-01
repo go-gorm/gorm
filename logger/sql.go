@@ -93,7 +93,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			for escChar := range escapeMap {
 				middle = strings.ReplaceAll(middle, escChar, `\`+escChar)
 			}
-			vars[idx] = escaper + strings.Replace(v, escaper, "\\"+escaper, -1) + escaper
+			vars[idx] = escaper + middle + escaper
 			log.Println("hoho", escaper, vars[idx], v, strings.Replace(v, escaper, "\\"+escaper, -1))
 		default:
 			rv := reflect.ValueOf(v)
