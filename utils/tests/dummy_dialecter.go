@@ -39,7 +39,7 @@ func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
 }
 
 func (DummyDialector) Explain(sql string, vars ...interface{}) string {
-	log.Println("WTF", `"`)
+	log.Println("escaper", `"`)
 	return logger.ExplainSQL(sql, nil, `"`, vars...)
 }
 
