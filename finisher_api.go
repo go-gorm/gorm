@@ -304,7 +304,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		return tx.Create(dest)
 	} else if len(db.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+		exprs := tx.Statement.BuildCondition(db.Statement.assigns[0], db.Statement.assigns[1:]...)
 		assigns := map[string]interface{}{}
 		for _, expr := range exprs {
 			if eq, ok := expr.(clause.Eq); ok {
