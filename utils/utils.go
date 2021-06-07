@@ -24,8 +24,6 @@ func init() {
 func FileWithLineNum() string {
 	for i := 1; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-
-		// fmt.Println("file:", file, " line: ", line, "ok: ", ok)
 		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
 			return file + ":" + strconv.FormatInt(int64(line), 10)
 		}
