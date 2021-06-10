@@ -178,17 +178,18 @@ func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interfa
 		}
 
 		return clause.Column{Table: table, Name: foreignKeys[0]}, queryValues
-	} else {
-		columns := make([]clause.Column, len(foreignKeys))
-		for idx, key := range foreignKeys {
-			columns[idx] = clause.Column{Table: table, Name: key}
-		}
-
-		for idx, r := range foreignValues {
-			queryValues[idx] = r
-		}
-		return columns, queryValues
 	}
+
+	columns := make([]clause.Column, len(foreignKeys))
+	for idx, key := range foreignKeys {
+		columns[idx] = clause.Column{Table: table, Name: key}
+	}
+
+	for idx, r := range foreignValues {
+		queryValues[idx] = r
+	}
+
+	return columns, queryValues
 }
 
 type embeddedNamer struct {

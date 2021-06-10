@@ -190,16 +190,17 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		if tx.Error != nil || int(result.RowsAffected) < batchSize {
 			break
-		} else {
-			resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-			if result.Statement.Schema.PrioritizedPrimaryField == nil {
-				tx.AddError(ErrPrimaryKeyRequired)
-				break
-			} else {
-				primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
-				queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
-			}
 		}
+
+		// Optimize for-break
+		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
+		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+			tx.AddError(ErrPrimaryKeyRequired)
+			break
+		}
+
+		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
+		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
 	tx.RowsAffected = rowsAffected

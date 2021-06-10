@@ -119,13 +119,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 				for _, rel := range stmt.Schema.Relationships.Relations {
 					if !m.DB.Config.DisableForeignKeyConstraintWhenMigrating {
-						if constraint := rel.ParseConstraint(); constraint != nil {
-							if constraint.Schema == stmt.Schema {
-								if !tx.Migrator().HasConstraint(value, constraint.Name) {
-									if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
-										return err
-									}
-								}
+						if constraint := rel.ParseConstraint(); constraint != nil &&
+							constraint.Schema == stmt.Schema && !tx.Migrator().HasConstraint(value, constraint.Name) {
+							if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+								return err
 							}
 						}
 					}
@@ -294,16 +291,20 @@ func (m Migrator) RenameTable(oldName, newName interface{}) error {
 
 func (m Migrator) AddColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		if field := stmt.Schema.LookUpField(field); field != nil {
-			if !field.IgnoreMigration {
-				return m.DB.Exec(
-					"ALTER TABLE ? ADD ? ?",
-					m.CurrentTable(stmt), clause.Column{Name: field.DBName}, m.DB.Migrator().FullDataTypeOf(field),
-				).Error
-			}
-			return nil
+		// avoid using the same name field
+		f := stmt.Schema.LookUpField(field)
+		if f == nil {
+			return fmt.Errorf("failed to look up field with name: %s", field)
 		}
-		return fmt.Errorf("failed to look up field with name: %s", field)
+
+		if !f.IgnoreMigration {
+			return m.DB.Exec(
+				"ALTER TABLE ? ADD ? ?",
+				m.CurrentTable(stmt), clause.Column{Name: f.DBName}, m.DB.Migrator().FullDataTypeOf(f),
+			).Error
+		}
+
+		return nil
 	})
 }
 

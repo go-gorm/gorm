@@ -409,7 +409,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 				}
 				ref.ForeignKey = f
 			} else {
-				return fmt.Errorf("missing field %v for join table", ref.ForeignKey.DBName)
+				return fmt.Errorf("missing field %s for join table", ref.ForeignKey.DBName)
 			}
 		}
 
@@ -422,7 +422,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 
 		relation.JoinTable = joinSchema
 	} else {
-		return fmt.Errorf("failed to found relation: %v", field)
+		return fmt.Errorf("failed to found relation: %s", field)
 	}
 
 	return nil

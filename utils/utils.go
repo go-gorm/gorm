@@ -3,8 +3,8 @@ package utils
 import (
 	"database/sql/driver"
 	"fmt"
+	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -15,17 +15,20 @@ var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	gormSourceDir = regexp.MustCompile(`utils.utils\.go`).ReplaceAllString(file, "")
+	// Here is the directory to get the gorm source code. Here, the filepath.Dir mode is enough,
+	// and the filepath is compatible with various operating systems
+	gormSourceDir = filepath.Dir(filepath.Dir(file))
 }
 
+// FileWithLineNum return the file name and line number of the current file
 func FileWithLineNum() string {
-	for i := 2; i < 15; i++ {
+	for i := 1; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-
 		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
 			return file + ":" + strconv.FormatInt(int64(line), 10)
 		}
 	}
+
 	return ""
 }
 
