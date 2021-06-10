@@ -383,9 +383,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	}
 
 	if len(tx.Statement.Selects) == 0 {
-		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
+		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(*)"}})
 	} else if !strings.HasPrefix(strings.TrimSpace(strings.ToLower(tx.Statement.Selects[0])), "count(") {
-		expr := clause.Expr{SQL: "count(1)"}
+		expr := clause.Expr{SQL: "count(*)"}
 
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
