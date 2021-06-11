@@ -12,3 +12,7 @@ func TestIsValidDBNameChar(t *testing.T) {
 		}
 	}
 }
+
+func TestFileWithLineNum(t *testing.T) {
+	t.Log("file line with num: ", FileWithLineNum())
+}

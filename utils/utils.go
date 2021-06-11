@@ -15,8 +15,9 @@ var gormSourceDir string
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
-	// Here is the directory to get the gorm source code. Here, the filepath.Dir mode is enough,
-	// and the filepath is compatible with various operating systems
+	// the separator in the path returned by runtime.Caller is /,
+	// which is a known problem with go, but for compatibility with the path,
+	// the filepath.Dir mode is used here
 	gormSourceDir = filepath.Dir(filepath.Dir(file))
 }
 
@@ -24,7 +25,8 @@ func init() {
 func FileWithLineNum() string {
 	for i := 1; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
+		// compatible with various platforms
+		if ok && (!strings.HasPrefix(filepath.Dir(file), gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
 			return file + ":" + strconv.FormatInt(int64(line), 10)
 		}
 	}
