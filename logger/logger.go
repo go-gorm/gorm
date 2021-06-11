@@ -58,7 +58,7 @@ type Interface interface {
 	Info(context.Context, string, ...interface{})
 	Warn(context.Context, string, ...interface{})
 	Error(context.Context, string, ...interface{})
-	Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error)
+	Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error)
 }
 
 var (
