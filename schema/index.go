@@ -27,21 +27,32 @@ type IndexOption struct {
 
 // ParseIndexes parse schema indexes
 func (schema *Schema) ParseIndexes() map[string]Index {
-	indexes := make(map[string]Index, len(schema.Fields)+1)
+	indexes := make(map[string]Index, len(schema.Fields))
 	for _, field := range schema.Fields {
 		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUEINDEX"] != "" {
 			for _, index := range parseFieldIndexes(field) {
 				idx, ok := indexes[index.Name]
 				if !ok {
 					indexes[index.Name] = Index{
-						Name:    index.Name,
-						Class:   index.Class,
-						Type:    index.Type,
-						Where:   index.Where,
-						Comment: index.Comment,
-						Option:  index.Option,
-						Fields:  make([]IndexOption, 0, 10), // Fields cap default is 10
+						Fields: make([]IndexOption, 0, 10), // Fields cap default is 10
 					}
+				}
+
+				idx.Name = index.Name
+				if idx.Class == "" {
+					idx.Class = index.Class
+				}
+				if idx.Type == "" {
+					idx.Type = index.Type
+				}
+				if idx.Where == "" {
+					idx.Where = index.Where
+				}
+				if idx.Comment == "" {
+					idx.Comment = index.Comment
+				}
+				if idx.Option == "" {
+					idx.Option = index.Option
 				}
 
 				idx.Fields = append(idx.Fields, index.Fields...)
