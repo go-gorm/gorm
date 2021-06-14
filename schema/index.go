@@ -27,33 +27,29 @@ type IndexOption struct {
 
 // ParseIndexes parse schema indexes
 func (schema *Schema) ParseIndexes() map[string]Index {
-	var indexes = map[string]Index{}
-
+	indexes := make(map[string]Index, len(schema.Fields)+1)
 	for _, field := range schema.Fields {
 		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUEINDEX"] != "" {
 			for _, index := range parseFieldIndexes(field) {
-				idx := indexes[index.Name]
-				idx.Name = index.Name
-				if idx.Class == "" {
-					idx.Class = index.Class
-				}
-				if idx.Type == "" {
-					idx.Type = index.Type
-				}
-				if idx.Where == "" {
-					idx.Where = index.Where
-				}
-				if idx.Comment == "" {
-					idx.Comment = index.Comment
-				}
-				if idx.Option == "" {
-					idx.Option = index.Option
+				idx, ok := indexes[index.Name]
+				if !ok {
+					indexes[index.Name] = Index{
+						Name:    index.Name,
+						Class:   index.Class,
+						Type:    index.Type,
+						Where:   index.Where,
+						Comment: index.Comment,
+						Option:  index.Option,
+						Fields:  make([]IndexOption, 0, 10), // Fields cap default is 10
+					}
 				}
 
 				idx.Fields = append(idx.Fields, index.Fields...)
-				sort.Slice(idx.Fields, func(i, j int) bool {
-					return idx.Fields[i].priority < idx.Fields[j].priority
-				})
+				if len(idx.Fields) >= 2 {
+					sort.Slice(idx.Fields, func(i, j int) bool {
+						return idx.Fields[i].priority < idx.Fields[j].priority
+					})
+				}
 
 				indexes[index.Name] = idx
 			}
