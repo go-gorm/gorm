@@ -209,7 +209,7 @@ func Preload(db *gorm.DB) {
 			if rel := db.Statement.Schema.Relationships.Relations[name]; rel != nil {
 				preload(db, rel, db.Statement.Preloads[name], preloadMap[name])
 			} else {
-				db.AddError(fmt.Errorf("%v: %w for schema %v", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
+				db.AddError(fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
 			}
 		}
 	}

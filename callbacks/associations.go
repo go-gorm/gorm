@@ -22,15 +22,16 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 
 				setupReferences := func(obj reflect.Value, elem reflect.Value) {
 					for _, ref := range rel.References {
-						if !ref.OwnPrimaryKey {
-							pv, _ := ref.PrimaryKey.ValueOf(elem)
-							db.AddError(ref.ForeignKey.Set(obj, pv))
+						if ref.OwnPrimaryKey {
+							continue
+						}
 
-							if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
-								dest[ref.ForeignKey.DBName] = pv
-								if _, ok := dest[rel.Name]; ok {
-									dest[rel.Name] = elem.Interface()
-								}
+						pv, _ := ref.PrimaryKey.ValueOf(elem)
+						db.AddError(ref.ForeignKey.Set(obj, pv))
+						if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
+							dest[ref.ForeignKey.DBName] = pv
+							if _, ok := dest[rel.Name]; ok {
+								dest[rel.Name] = elem.Interface()
 							}
 						}
 					}
@@ -51,27 +52,24 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 					elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 					for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
 						obj := db.Statement.ReflectValue.Index(i)
-
-						if reflect.Indirect(obj).Kind() == reflect.Struct {
-							if _, zero := rel.Field.ValueOf(obj); !zero { // check belongs to relation value
-								rv := rel.Field.ReflectValueOf(obj) // relation reflect value
-								objs = append(objs, obj)
-								if isPtr {
-									elems = reflect.Append(elems, rv)
-								} else {
-									elems = reflect.Append(elems, rv.Addr())
-								}
-							}
-						} else {
+						if reflect.Indirect(obj).Kind() != reflect.Struct {
 							break
+						}
+
+						if _, zero := rel.Field.ValueOf(obj); !zero { // check belongs to relation value
+							rv := rel.Field.ReflectValueOf(obj) // relation reflect value
+							objs = append(objs, obj)
+							if isPtr {
+								elems = reflect.Append(elems, rv)
+							} else {
+								elems = reflect.Append(elems, rv.Addr())
+							}
 						}
 					}
 
-					if elems.Len() > 0 {
-						if saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, nil) == nil {
-							for i := 0; i < elems.Len(); i++ {
-								setupReferences(objs[i], elems.Index(i))
-							}
+					if elems.Len() > 0 && saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, nil) == nil {
+						for i := 0; i < elems.Len(); i++ {
+							setupReferences(objs[i], elems.Index(i))
 						}
 					}
 				case reflect.Struct:
