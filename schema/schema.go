@@ -248,19 +248,20 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			}
 
 			fieldValue := reflect.New(field.IndirectFieldType)
-			if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
+			fieldInterface := fieldValue.Interface()
+			if fc, ok := fieldInterface.(CreateClausesInterface); ok {
 				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
+			if fc, ok := fieldInterface.(QueryClausesInterface); ok {
 				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
+			if fc, ok := fieldInterface.(UpdateClausesInterface); ok {
 				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
+			if fc, ok := fieldInterface.(DeleteClausesInterface); ok {
 				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
 			}
 		}
