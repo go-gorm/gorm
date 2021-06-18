@@ -79,7 +79,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
 			tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
 		}
-		tx = tx.callbacks.Create().Execute(tx.InstanceSet("gorm:update_track_time", true))
+		tx = tx.callbacks.Create().Execute(tx.Set("gorm:update_track_time", true))
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
@@ -426,7 +426,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	tx := db.getInstance().InstanceSet("rows", false)
+	tx := db.getInstance().Set("rows", false)
 	tx = tx.callbacks.Row().Execute(tx)
 	row, ok := tx.Statement.Dest.(*sql.Row)
 	if !ok && tx.DryRun {
@@ -436,7 +436,7 @@ func (db *DB) Row() *sql.Row {
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.getInstance().InstanceSet("rows", true)
+	tx := db.getInstance().Set("rows", true)
 	tx = tx.callbacks.Row().Execute(tx)
 	rows, ok := tx.Statement.Dest.(*sql.Rows)
 	if !ok && tx.DryRun && tx.Error == nil {

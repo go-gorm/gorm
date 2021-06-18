@@ -243,9 +243,12 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	default:
 		var (
 			selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
+			_, updateTrackTime        = stmt.Get("gorm:update_track_time")
 			curTime                   = stmt.DB.NowFunc()
 			isZero                    bool
 		)
+		stmt.Settings.Delete("gorm:update_track_time")
+
 		values = clause.Values{Columns: make([]clause.Column, 0, len(stmt.Schema.DBNames))}
 
 		for _, db := range stmt.Schema.DBNames {
@@ -284,11 +287,9 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 							field.Set(rv, curTime)
 							values.Values[i][idx], _ = field.ValueOf(rv)
 						}
-					} else if field.AutoUpdateTime > 0 {
-						if _, ok := stmt.DB.InstanceGet("gorm:update_track_time"); ok {
-							field.Set(rv, curTime)
-							values.Values[i][idx], _ = field.ValueOf(rv)
-						}
+					} else if field.AutoUpdateTime > 0 && updateTrackTime {
+						field.Set(rv, curTime)
+						values.Values[i][idx], _ = field.ValueOf(rv)
 					}
 				}
 
@@ -326,11 +327,9 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 						field.Set(stmt.ReflectValue, curTime)
 						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
 					}
-				} else if field.AutoUpdateTime > 0 {
-					if _, ok := stmt.DB.InstanceGet("gorm:update_track_time"); ok {
-						field.Set(stmt.ReflectValue, curTime)
-						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
-					}
+				} else if field.AutoUpdateTime > 0 && updateTrackTime {
+					field.Set(stmt.ReflectValue, curTime)
+					values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
 				}
 			}
 

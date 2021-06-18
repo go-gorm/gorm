@@ -373,7 +373,7 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 	})
 
 	if tx.Statement.FullSaveAssociations {
-		tx = tx.InstanceSet("gorm:update_track_time", true)
+		tx = tx.Set("gorm:update_track_time", true)
 	}
 
 	if len(selects) > 0 {
