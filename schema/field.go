@@ -401,17 +401,18 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
+	_, force := field.TagSettings["FORCE"]
 	// ValueOf
 	switch {
 	case len(field.StructField.Index) == 1:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			return fieldValue.Interface(), !force && fieldValue.IsZero()
 		}
 	case len(field.StructField.Index) == 2 && field.StructField.Index[0] >= 0:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
 			fieldValue := reflect.Indirect(value).Field(field.StructField.Index[0]).Field(field.StructField.Index[1])
-			return fieldValue.Interface(), fieldValue.IsZero()
+			return fieldValue.Interface(), !force && fieldValue.IsZero()
 		}
 	default:
 		field.ValueOf = func(value reflect.Value) (interface{}, bool) {
@@ -424,17 +425,17 @@ func (field *Field) setupValuerAndSetter() {
 					v = v.Field(-idx - 1)
 
 					if v.Type().Elem().Kind() != reflect.Struct {
-						return nil, true
+						return nil, !force
 					}
 
 					if !v.IsNil() {
 						v = v.Elem()
 					} else {
-						return nil, true
+						return nil, !force
 					}
 				}
 			}
-			return v.Interface(), v.IsZero()
+			return v.Interface(), !force && v.IsZero()
 		}
 	}
 

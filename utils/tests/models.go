@@ -50,8 +50,9 @@ type Toy struct {
 }
 
 type Company struct {
-	ID   int
-	Name string
+	ID      int
+	Name    string
+	Foreign bool `gorm:"force"`
 }
 
 type Language struct {

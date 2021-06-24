@@ -13,6 +13,18 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+func TestUpdateZero(t *testing.T) {
+	c := &Company{
+		ID:      0,
+		Name:    "bingoo",
+		Foreign: true,
+	}
+
+	DB.Create(c)
+	c.Foreign = false
+	DB.Updates(c)
+}
+
 func TestUpdate(t *testing.T) {
 	var (
 		users = []*User{
