@@ -474,7 +474,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 
 // Pluck used to query single column from a model as a map
 //     var ages []int64
-//     db.Find(&users).Pluck("age", &ages)
+//     db.Model(&users).Pluck("age", &ages)
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model != nil {
