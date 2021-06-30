@@ -64,7 +64,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 		db.Stmts[query] = Stmt{Stmt: stmt, Transaction: isTransaction}
 		db.PreparedSQL = append(db.PreparedSQL, query)
 	}
-	db.Mux.Unlock()
+	defer db.Mux.Unlock()
 
 	return db.Stmts[query], err
 }
