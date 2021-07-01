@@ -84,6 +84,32 @@ func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
 	}
 }
 
+func (DeletedAt) UpdateClauses(f *schema.Field) []clause.Interface {
+	return []clause.Interface{SoftDeleteUpdateClause{Field: f}}
+}
+
+type SoftDeleteUpdateClause struct {
+	Field *schema.Field
+}
+
+func (sd SoftDeleteUpdateClause) Name() string {
+	return ""
+}
+
+func (sd SoftDeleteUpdateClause) Build(clause.Builder) {
+}
+
+func (sd SoftDeleteUpdateClause) MergeClause(*clause.Clause) {
+}
+
+func (sd SoftDeleteUpdateClause) ModifyStatement(stmt *Statement) {
+	if stmt.SQL.String() == "" {
+		if _, ok := stmt.Clauses["WHERE"]; stmt.DB.AllowGlobalUpdate || ok {
+			SoftDeleteQueryClause(sd).ModifyStatement(stmt)
+		}
+	}
+}
+
 func (DeletedAt) DeleteClauses(f *schema.Field) []clause.Interface {
 	return []clause.Interface{SoftDeleteDeleteClause{Field: f}}
 }

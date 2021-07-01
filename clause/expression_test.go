@@ -105,13 +105,15 @@ func TestNamedExpr(t *testing.T) {
 func TestExpression(t *testing.T) {
 	column := "column-name"
 	results := []struct {
-		Expressions []clause.Expression
-		Result      string
+		Expressions  []clause.Expression
+		ExpectedVars []interface{}
+		Result       string
 	}{{
 		Expressions: []clause.Expression{
 			clause.Eq{Column: column, Value: "column-value"},
 		},
-		Result: "`column-name` = ?",
+		ExpectedVars: []interface{}{"column-value"},
+		Result:       "`column-name` = ?",
 	}, {
 		Expressions: []clause.Expression{
 			clause.Eq{Column: column, Value: nil},
@@ -126,7 +128,8 @@ func TestExpression(t *testing.T) {
 		Expressions: []clause.Expression{
 			clause.Neq{Column: column, Value: "column-value"},
 		},
-		Result: "`column-name` <> ?",
+		ExpectedVars: []interface{}{"column-value"},
+		Result:       "`column-name` <> ?",
 	}, {
 		Expressions: []clause.Expression{
 			clause.Neq{Column: column, Value: nil},
@@ -136,6 +139,18 @@ func TestExpression(t *testing.T) {
 			clause.Neq{Column: column, Value: (interface{})(nil)},
 		},
 		Result: "`column-name` IS NOT NULL",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []string{"a", "b"}},
+		},
+		ExpectedVars: []interface{}{"a", "b"},
+		Result:       "`column-name` IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Neq{Column: column, Value: []string{"a", "b"}},
+		},
+		ExpectedVars: []interface{}{"a", "b"},
+		Result:       "`column-name` NOT IN (?,?)",
 	}}
 
 	for idx, result := range results {
@@ -146,6 +161,10 @@ func TestExpression(t *testing.T) {
 				expression.Build(stmt)
 				if stmt.SQL.String() != result.Result {
 					t.Errorf("generated SQL is not equal, expects %v, but got %v", result.Result, stmt.SQL.String())
+				}
+
+				if !reflect.DeepEqual(result.ExpectedVars, stmt.Vars) {
+					t.Errorf("generated vars is not equal, expects %v, but got %v", result.ExpectedVars, stmt.Vars)
 				}
 			})
 		}

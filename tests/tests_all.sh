@@ -11,6 +11,7 @@ then
   cd tests
   go get -u ./...
   go mod download
+  go mod tidy
   cd ..
 fi
 

@@ -57,12 +57,12 @@ type StatementModifier interface {
 	ModifyStatement(*Statement)
 }
 
-// Write write string
+// WriteString write string
 func (stmt *Statement) WriteString(str string) (int, error) {
 	return stmt.SQL.WriteString(str)
 }
 
-// Write write string
+// WriteByte write byte
 func (stmt *Statement) WriteByte(c byte) error {
 	return stmt.SQL.WriteByte(c)
 }
@@ -152,7 +152,7 @@ func (stmt *Statement) Quote(field interface{}) string {
 	return builder.String()
 }
 
-// Write write string
+// AddVar add var
 func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 	for idx, v := range vars {
 		if idx > 0 {
@@ -506,7 +506,6 @@ func (stmt *Statement) clone() *Statement {
 	return newStmt
 }
 
-// Helpers
 // SetColumn set column's value
 //   stmt.SetColumn("Name", "jinzhu") // Hooks Method
 //   stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
@@ -540,11 +539,6 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 				}
 			}
 
-			if !stmt.ReflectValue.CanAddr() {
-				stmt.AddError(ErrInvalidValue)
-				return
-			}
-
 			switch stmt.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
 				if len(fromCallbacks) > 0 {
@@ -555,6 +549,11 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 					field.Set(stmt.ReflectValue.Index(stmt.CurDestIndex), value)
 				}
 			case reflect.Struct:
+				if !stmt.ReflectValue.CanAddr() {
+					stmt.AddError(ErrInvalidValue)
+					return
+				}
+
 				field.Set(stmt.ReflectValue, value)
 			}
 		} else {

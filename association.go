@@ -26,7 +26,7 @@ func (db *DB) Association(column string) *Association {
 		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
 
 		if association.Relationship == nil {
-			association.Error = fmt.Errorf("%w: %v", ErrUnsupportedRelation, column)
+			association.Error = fmt.Errorf("%w: %s", ErrUnsupportedRelation, column)
 		}
 
 		db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Model)
@@ -355,7 +355,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				} else if ev.Type().Elem().AssignableTo(elemType) {
 					fieldValue = reflect.Append(fieldValue, ev.Elem())
 				} else {
-					association.Error = fmt.Errorf("unsupported data type: %v for relation %v", ev.Type(), association.Relationship.Name)
+					association.Error = fmt.Errorf("unsupported data type: %v for relation %s", ev.Type(), association.Relationship.Name)
 				}
 
 				if elemType.Kind() == reflect.Struct {

@@ -79,7 +79,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
 			tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
 		}
-		tx = tx.callbacks.Create().Execute(tx.InstanceSet("gorm:update_track_time", true))
+		tx = tx.callbacks.Create().Execute(tx.Set("gorm:update_track_time", true))
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
@@ -190,16 +190,17 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		if tx.Error != nil || int(result.RowsAffected) < batchSize {
 			break
-		} else {
-			resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-			if result.Statement.Schema.PrioritizedPrimaryField == nil {
-				tx.AddError(ErrPrimaryKeyRequired)
-				break
-			} else {
-				primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
-				queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
-			}
 		}
+
+		// Optimize for-break
+		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
+		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+			tx.AddError(ErrPrimaryKeyRequired)
+			break
+		}
+
+		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
+		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
 	tx.RowsAffected = rowsAffected
@@ -304,7 +305,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 
 		return tx.Create(dest)
 	} else if len(db.Statement.assigns) > 0 {
-		exprs := tx.Statement.BuildCondition(tx.Statement.assigns[0], tx.Statement.assigns[1:]...)
+		exprs := tx.Statement.BuildCondition(db.Statement.assigns[0], db.Statement.assigns[1:]...)
 		assigns := map[string]interface{}{}
 		for _, expr := range exprs {
 			if eq, ok := expr.(clause.Eq); ok {
@@ -382,9 +383,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	}
 
 	if len(tx.Statement.Selects) == 0 {
-		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(1)"}})
+		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(*)"}})
 	} else if !strings.HasPrefix(strings.TrimSpace(strings.ToLower(tx.Statement.Selects[0])), "count(") {
-		expr := clause.Expr{SQL: "count(1)"}
+		expr := clause.Expr{SQL: "count(*)"}
 
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
@@ -425,7 +426,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	tx := db.getInstance().InstanceSet("rows", false)
+	tx := db.getInstance().Set("rows", false)
 	tx = tx.callbacks.Row().Execute(tx)
 	row, ok := tx.Statement.Dest.(*sql.Row)
 	if !ok && tx.DryRun {
@@ -435,7 +436,7 @@ func (db *DB) Row() *sql.Row {
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.getInstance().InstanceSet("rows", true)
+	tx := db.getInstance().Set("rows", true)
 	tx = tx.callbacks.Row().Execute(tx)
 	rows, ok := tx.Statement.Dest.(*sql.Rows)
 	if !ok && tx.DryRun && tx.Error == nil {
@@ -473,7 +474,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 
 // Pluck used to query single column from a model as a map
 //     var ages []int64
-//     db.Find(&users).Pluck("age", &ages)
+//     db.Model(&users).Pluck("age", &ages)
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model != nil {

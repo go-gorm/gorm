@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"context"
 	"testing"
 
 	"gorm.io/gorm"
@@ -61,5 +62,13 @@ func TestScopes(t *testing.T) {
 
 	if result.RowsAffected != 2 {
 		t.Errorf("Should found two users's name in 1, 2, but got %v", result.RowsAffected)
+	}
+
+	var maxId int64
+	userTable := func(db *gorm.DB) *gorm.DB {
+		return db.WithContext(context.Background()).Table("users")
+	}
+	if err := DB.Scopes(userTable).Select("max(id)").Scan(&maxId).Error; err != nil {
+		t.Errorf("select max(id)")
 	}
 }
