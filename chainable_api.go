@@ -177,6 +177,12 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	return
 }
 
+func (db *DB) JoinsOn(query string, on clause.Expression, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args, On: on})
+	return
+}
+
 // Group specify the group method on the find
 func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
