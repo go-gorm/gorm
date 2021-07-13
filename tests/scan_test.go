@@ -63,6 +63,13 @@ func TestScan(t *testing.T) {
 	if len(results) != 2 || results[0].Name != user2.Name || results[1].Name != user3.Name {
 		t.Errorf("Scan into struct map, got %#v", results)
 	}
+
+	type ID uint64
+	var id ID
+	DB.Raw("select id from users where id = ?", user2.ID).Scan(&id)
+	if uint(id) != user2.ID {
+		t.Errorf("Failed to scan to customized data type")
+	}
 }
 
 func TestScanRows(t *testing.T) {

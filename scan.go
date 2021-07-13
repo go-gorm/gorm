@@ -238,6 +238,8 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					}
 				}
 			}
+		default:
+			db.AddError(rows.Scan(dest))
 		}
 	}
 
