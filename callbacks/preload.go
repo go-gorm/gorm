@@ -104,15 +104,17 @@ func preload(db *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 	reflectResults := rel.FieldSchema.MakeSlice().Elem()
 	column, values := schema.ToQueryValues(clause.CurrentTable, relForeignKeys, foreignValues)
 
-	for _, cond := range conds {
-		if fc, ok := cond.(func(*gorm.DB) *gorm.DB); ok {
-			tx = fc(tx)
-		} else {
-			inlineConds = append(inlineConds, cond)
+	if len(values) != 0 {
+		for _, cond := range conds {
+			if fc, ok := cond.(func(*gorm.DB) *gorm.DB); ok {
+				tx = fc(tx)
+			} else {
+				inlineConds = append(inlineConds, cond)
+			}
 		}
-	}
 
-	db.AddError(tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), inlineConds...).Error)
+		db.AddError(tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), inlineConds...).Error)
+	}
 
 	fieldValues := make([]interface{}, len(relForeignFields))
 
