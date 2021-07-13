@@ -173,7 +173,12 @@ func (expr NamedExpr) Build(builder Builder) {
 	}
 
 	if inName {
-		builder.AddVar(builder, namedMap[string(name)])
+		if nv, ok := namedMap[string(name)]; ok {
+			builder.AddVar(builder, nv)
+		} else {
+			builder.WriteByte('@')
+			builder.WriteString(string(name))
+		}
 	}
 }
 
