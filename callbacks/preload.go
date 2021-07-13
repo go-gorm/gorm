@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 
 	"gorm.io/gorm"
@@ -144,23 +145,27 @@ func preload(db *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 			fieldValues[idx], _ = field.ValueOf(elem)
 		}
 
-		for _, data := range identityMap[utils.ToStringKey(fieldValues...)] {
-			reflectFieldValue := rel.Field.ReflectValueOf(data)
-			if reflectFieldValue.Kind() == reflect.Ptr && reflectFieldValue.IsNil() {
-				reflectFieldValue.Set(reflect.New(rel.Field.FieldType.Elem()))
-			}
+		if datas, ok := identityMap[utils.ToStringKey(fieldValues...)]; ok {
+			for _, data := range datas {
+				reflectFieldValue := rel.Field.ReflectValueOf(data)
+				if reflectFieldValue.Kind() == reflect.Ptr && reflectFieldValue.IsNil() {
+					reflectFieldValue.Set(reflect.New(rel.Field.FieldType.Elem()))
+				}
 
-			reflectFieldValue = reflect.Indirect(reflectFieldValue)
-			switch reflectFieldValue.Kind() {
-			case reflect.Struct:
-				rel.Field.Set(data, reflectResults.Index(i).Interface())
-			case reflect.Slice, reflect.Array:
-				if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
-					rel.Field.Set(data, reflect.Append(reflectFieldValue, elem).Interface())
-				} else {
-					rel.Field.Set(data, reflect.Append(reflectFieldValue, elem.Elem()).Interface())
+				reflectFieldValue = reflect.Indirect(reflectFieldValue)
+				switch reflectFieldValue.Kind() {
+				case reflect.Struct:
+					rel.Field.Set(data, reflectResults.Index(i).Interface())
+				case reflect.Slice, reflect.Array:
+					if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
+						rel.Field.Set(data, reflect.Append(reflectFieldValue, elem).Interface())
+					} else {
+						rel.Field.Set(data, reflect.Append(reflectFieldValue, elem.Elem()).Interface())
+					}
 				}
 			}
+		} else {
+			db.AddError(fmt.Errorf("failed to assign association %#v, make sure foreign fields exists", elem.Interface()))
 		}
 	}
 }
