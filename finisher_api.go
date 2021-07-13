@@ -376,7 +376,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if selectClause, ok := db.Statement.Clauses["SELECT"]; ok {
 		defer func() {
-			db.Statement.Clauses["SELECT"] = selectClause
+			tx.Statement.Clauses["SELECT"] = selectClause
 		}()
 	} else {
 		defer delete(tx.Statement.Clauses, "SELECT")
@@ -410,9 +410,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
 		if _, ok := db.Statement.Clauses["GROUP BY"]; !ok {
-			delete(db.Statement.Clauses, "ORDER BY")
+			delete(tx.Statement.Clauses, "ORDER BY")
 			defer func() {
-				db.Statement.Clauses["ORDER BY"] = orderByClause
+				tx.Statement.Clauses["ORDER BY"] = orderByClause
 			}()
 		}
 	}
