@@ -344,7 +344,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 	if c, ok := stmt.Clauses["ON CONFLICT"]; ok {
 		if onConflict, _ := c.Expression.(clause.OnConflict); onConflict.UpdateAll {
-			if stmt.Schema != nil && len(values.Columns) > 1 {
+			if stmt.Schema != nil && len(values.Columns) >= 1 {
 				selectColumns, restricted := stmt.SelectAndOmitColumns(true, true)
 
 				columns := make([]string, 0, len(values.Columns)-1)
