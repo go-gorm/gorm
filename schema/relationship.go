@@ -238,7 +238,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 
 	for idx, relField := range refForeignFields {
-		joinFieldName := relation.FieldSchema.Name + relField.Name
+		joinFieldName := strings.Title(relation.FieldSchema.Name) + relField.Name
 		if len(joinReferences) > idx {
 			joinFieldName = strings.Title(joinReferences[idx])
 		}
