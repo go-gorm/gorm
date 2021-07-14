@@ -195,6 +195,10 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 					}
 					createTableSQL += "INDEX ? ?"
 
+					if idx.Comment != "" {
+						createTableSQL += fmt.Sprintf(" COMMENT '%s'", idx.Comment)
+					}
+
 					if idx.Option != "" {
 						createTableSQL += " " + idx.Option
 					}
@@ -599,6 +603,10 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 
 			if idx.Type != "" {
 				createIndexSQL += " USING " + idx.Type
+			}
+
+			if idx.Comment != "" {
+				createIndexSQL += fmt.Sprintf(" COMMENT '%s'", idx.Comment)
 			}
 
 			if idx.Option != "" {
