@@ -466,7 +466,7 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 	return
 }
 
-func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ *schema.Constraint, _ *schema.Check, table string) {
+func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (*schema.Constraint, *schema.Check, string) {
 	if stmt.Schema == nil {
 		return nil, nil, stmt.Table
 	}
@@ -493,9 +493,11 @@ func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ 
 	}
 
 	if field := stmt.Schema.LookUpField(name); field != nil {
-		for _, cc := range checkConstraints {
-			if cc.Field == field {
-				return nil, &cc, stmt.Table
+		// fix return value for *schema.Check
+		for k := range checkConstraints {
+			if checkConstraints[k].Field == field {
+				v := checkConstraints[k]
+				return nil, &v, stmt.Table
 			}
 		}
 
