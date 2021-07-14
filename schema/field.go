@@ -490,21 +490,22 @@ func (field *Field) setupValuerAndSetter() {
 				return
 			} else if field.FieldType.Kind() == reflect.Ptr {
 				fieldValue := field.ReflectValueOf(value)
+				fieldType := field.FieldType.Elem()
 
-				if reflectValType.AssignableTo(field.FieldType.Elem()) {
+				if reflectValType.AssignableTo(fieldType) {
 					if !fieldValue.IsValid() {
-						fieldValue = reflect.New(field.FieldType.Elem())
+						fieldValue = reflect.New(fieldType)
 					} else if fieldValue.IsNil() {
-						fieldValue.Set(reflect.New(field.FieldType.Elem()))
+						fieldValue.Set(reflect.New(fieldType))
 					}
 					fieldValue.Elem().Set(reflectV)
 					return
-				} else if reflectValType.ConvertibleTo(field.FieldType.Elem()) {
+				} else if reflectValType.ConvertibleTo(fieldType) {
 					if fieldValue.IsNil() {
-						fieldValue.Set(reflect.New(field.FieldType.Elem()))
+						fieldValue.Set(reflect.New(fieldType))
 					}
 
-					fieldValue.Elem().Set(reflectV.Convert(field.FieldType.Elem()))
+					fieldValue.Elem().Set(reflectV.Convert(fieldType))
 					return
 				}
 			}
@@ -520,7 +521,7 @@ func (field *Field) setupValuerAndSetter() {
 					err = setter(value, v)
 				}
 			} else {
-				return fmt.Errorf("failed to set value %+v to field %v", v, field.Name)
+				return fmt.Errorf("failed to set value %+v to field %s", v, field.Name)
 			}
 		}
 
