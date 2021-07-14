@@ -31,6 +31,18 @@ func TestSelect(t *testing.T) {
 			}, clause.From{}},
 			"SELECT `name` FROM `users`", nil,
 		},
+		{
+			[]clause.Interface{clause.Select{
+				Expression: clause.CommaExpression{
+					Exprs: []clause.Expression{
+						clause.NamedExpr{"?", []interface{}{clause.Column{Name: "id"}}},
+						clause.NamedExpr{"?", []interface{}{clause.Column{Name: "name"}}},
+						clause.NamedExpr{"LENGTH(?)", []interface{}{clause.Column{Name: "mobile"}}},
+					},
+				},
+			}, clause.From{}},
+			"SELECT `id`, `name`, LENGTH(`mobile`) FROM `users`", nil,
+		},
 	}
 
 	for idx, result := range results {
