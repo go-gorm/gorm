@@ -44,7 +44,7 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 		columns = make([]string, 0, len(mapValues))
 	)
 
-	// when the length of mapValues,return directly here
+	// when the length of mapValues is zero,return directly here
 	// no need to call stmt.SelectAndOmitColumns method
 	if len(mapValues) == 0 {
 		stmt.AddError(gorm.ErrEmptySlice)
