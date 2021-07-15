@@ -50,6 +50,7 @@ type Statement struct {
 type join struct {
 	Name  string
 	Conds []interface{}
+	On    clause.Expression
 }
 
 // StatementModifier statement modifier interface
