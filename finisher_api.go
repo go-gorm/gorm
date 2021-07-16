@@ -162,6 +162,7 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 			tx.Statement.AddClause(clause.Where{Exprs: exprs})
 		}
 	}
+	tx.Statement.RaiseErrorOnNotFound = false
 	tx.Statement.Dest = dest
 	return tx.callbacks.Query().Execute(tx)
 }
@@ -494,6 +495,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 			Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
 		})
 	}
+	tx.Statement.RaiseErrorOnNotFound = false
 	tx.Statement.Dest = dest
 	return tx.callbacks.Query().Execute(tx)
 }
@@ -503,6 +505,7 @@ func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	if err := tx.Statement.Parse(dest); !errors.Is(err, schema.ErrUnsupportedDataType) {
 		tx.AddError(err)
 	}
+	tx.Statement.RaiseErrorOnNotFound = false
 	tx.Statement.Dest = dest
 	tx.Statement.ReflectValue = reflect.ValueOf(dest)
 	for tx.Statement.ReflectValue.Kind() == reflect.Ptr {
