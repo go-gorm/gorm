@@ -125,7 +125,19 @@ func BuildQuerySQL(db *gorm.DB) {
 						})
 					}
 
-					if join.On == nil {
+					if join.On != nil {
+						primaryFields := make([]clause.Column, len(relation.FieldSchema.PrimaryFieldDBNames))
+						for idx, ref := range relation.FieldSchema.PrimaryFieldDBNames {
+							primaryFields[idx] = clause.Column{Table: tableAliasName, Name: ref}
+						}
+
+						exprs := db.Statement.BuildCondition("(?) = (?)", primaryFields, join.On)
+						joins = append(joins, clause.Join{
+							Type:  clause.LeftJoin,
+							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+							ON:    clause.Where{Exprs: exprs},
+						})
+					} else {
 						exprs := make([]clause.Expression, len(relation.References))
 						for idx, ref := range relation.References {
 							if ref.OwnPrimaryKey {
@@ -147,18 +159,7 @@ func BuildQuerySQL(db *gorm.DB) {
 								}
 							}
 						}
-						joins = append(joins, clause.Join{
-							Type:  clause.LeftJoin,
-							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
-							ON:    clause.Where{Exprs: exprs},
-						})
-					} else {
-						primaryFields := make([]clause.Column, len(relation.FieldSchema.PrimaryFieldDBNames))
-						for idx, ref := range relation.FieldSchema.PrimaryFieldDBNames {
-							primaryFields[idx] = clause.Column{Table: tableAliasName, Name: ref}
-						}
 
-						exprs := db.Statement.BuildCondition("(?) = (?)", primaryFields, join.On)
 						joins = append(joins, clause.Join{
 							Type:  clause.LeftJoin,
 							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
