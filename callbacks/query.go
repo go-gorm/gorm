@@ -28,13 +28,28 @@ func Query(db *gorm.DB) {
 }
 
 func BuildQuerySQL(db *gorm.DB) {
+	var hasLimitClause bool
+	sqlStr := db.Statement.SQL.String()
 	if db.Statement.Schema != nil && !db.Statement.Unscoped {
 		for _, c := range db.Statement.Schema.QueryClauses {
 			db.Statement.AddClause(c)
 		}
 	}
 
-	if db.Statement.SQL.String() == "" {
+	for cla, _ := range db.Statement.Clauses {
+		if cla == "LIMIT" {
+			hasLimitClause = true
+		}
+	}
+
+	if sqlStr != "" && !strings.Contains(strings.ToUpper(sqlStr), "LIMIT") && hasLimitClause {
+		if !strings.HasSuffix(db.Statement.SQL.String(), " ") {
+			db.Statement.SQL.WriteByte(' ')
+		}
+		db.Statement.Build("LIMIT")
+	}
+
+	if sqlStr == "" {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
 
