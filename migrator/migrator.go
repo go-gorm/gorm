@@ -616,7 +616,7 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 			return m.DB.Exec(createIndexSQL, values...).Error
 		}
 
-		return fmt.Errorf("failed to create index with name %v", name)
+		return fmt.Errorf("failed to create index with name %s", name)
 	})
 }
 
