@@ -466,7 +466,7 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 	return
 }
 
-func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (*schema.Constraint, *schema.Check, string) {
+func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ *schema.Constraint, _ *schema.Check, table string) {
 	if stmt.Schema == nil {
 		return nil, nil, stmt.Table
 	}
