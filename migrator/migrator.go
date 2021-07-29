@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -388,12 +387,11 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			alterColumn = true
 		} else {
 			// has size in data type and not equal
-
 			// Since the following code is frequently called in the for loop, reg optimization is needed here
 			matches := regRealDataType.FindAllStringSubmatch(realDataType, -1)
 			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
-			if (len(matches) == 1 && matches[0][1] != strconv.Itoa(field.Size) || !field.PrimaryKey) &&
-				(len(matches2) == 1 && matches2[0][1] != strconv.FormatInt(length, 10)) {
+			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) &&
+				(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
 				alterColumn = true
 			}
 		}
