@@ -126,8 +126,10 @@ func (p *processor) Execute(db *DB) *DB {
 		}
 	}
 
-	for _, f := range p.fns {
-		f(db)
+	for _, c := range p.callbacks {
+		if stmt.ShouldSkipHook(c) {
+			c.handler(db)
+		}
 	}
 
 	db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
