@@ -690,7 +690,7 @@ func (stmt *Statement) ShouldSkipHook(c *callback) (skip bool) {
 			}
 		}
 		// skip by func
-		if skip || len(stmt.SkipHooksFunc) > 0 {
+		if !skip && len(stmt.SkipHooksFunc) > 0 {
 			for _, hookFunc := range stmt.SkipHooksFunc {
 				// compare with ptr
 				if &hookFunc == &c.handler {
@@ -700,4 +700,5 @@ func (stmt *Statement) ShouldSkipHook(c *callback) (skip bool) {
 			}
 		}
 	}
+	return
 }
