@@ -642,10 +642,3 @@ func (db *DB) SkipHookByName(name ...string) (tx *DB) {
 	tx.Statement.SkipHooksNames = append(tx.Statement.SkipHooksNames, name...)
 	return tx
 }
-
-// add SkipHook name
-func (db *DB) SkipHookByFunc(fns ...func(*DB)) (tx *DB) {
-	tx = db.getInstance()
-	tx.Statement.SkipHooksFunc = append(tx.Statement.SkipHooksFunc, fns...)
-	return tx
-}

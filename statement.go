@@ -40,7 +40,6 @@ type Statement struct {
 	RaiseErrorOnNotFound bool
 	SkipHooks            bool
 	SkipHooksNames       []string
-	SkipHooksFunc        []func(*DB)
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	CurDestIndex         int
@@ -684,16 +683,6 @@ func (stmt *Statement) ShouldSkipHook(c *callback) (skip bool) {
 		if len(stmt.SkipHooksNames) > 0 {
 			for _, hookName := range stmt.SkipHooksNames {
 				if hookName == c.name {
-					skip = true
-					break
-				}
-			}
-		}
-		// skip by func
-		if !skip && len(stmt.SkipHooksFunc) > 0 {
-			for _, hookFunc := range stmt.SkipHooksFunc {
-				// compare with ptr
-				if &hookFunc == &c.handler {
 					skip = true
 					break
 				}

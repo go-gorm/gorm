@@ -127,7 +127,7 @@ func (p *processor) Execute(db *DB) *DB {
 	}
 
 	for _, c := range p.callbacks {
-		if stmt.ShouldSkipHook(c) {
+		if !stmt.ShouldSkipHook(c) {
 			c.handler(db)
 		}
 	}

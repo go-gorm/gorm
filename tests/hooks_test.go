@@ -493,3 +493,17 @@ func TestFailedToSaveAssociationShouldRollback(t *testing.T) {
 		t.Errorf("should find product, but got error %v", err)
 	}
 }
+
+func TestSkipHookByName(t *testing.T) {
+	product := Product3{Name: "Product", Price: 0}
+	DB.AutoMigrate(&Product3{})
+	// expect price = 0
+	DB.SkipHookByName("gorm:before_create").Create(&product)
+	product2 := Product3{Name: "Product", Price: 0}
+	// expect price = 100
+	DB.Create(&product2)
+	// expect code = code1 , price = 100 + 20(add in before update) + 30(add in before update)
+	DB.Model(&product2).Update("code", "code1")
+	// expect code = code2 , price not change
+	DB.Model(&product).SkipHookByName("gorm:before_update").Update("code", "code2")
+}
