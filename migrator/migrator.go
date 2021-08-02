@@ -493,7 +493,6 @@ func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ 
 	}
 
 	if field := stmt.Schema.LookUpField(name); field != nil {
-		// fix return value for *schema.Check
 		for k := range checkConstraints {
 			if checkConstraints[k].Field == field {
 				v := checkConstraints[k]
