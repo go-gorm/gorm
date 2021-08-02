@@ -2,6 +2,7 @@ package migrator
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -386,11 +387,11 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			alterColumn = true
 		} else {
 			// has size in data type and not equal
-
 			// Since the following code is frequently called in the for loop, reg optimization is needed here
 			matches := regRealDataType.FindAllStringSubmatch(realDataType, -1)
 			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
-			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) && (len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
+			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) &&
+				(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length)) {
 				alterColumn = true
 			}
 		}
@@ -418,22 +419,31 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	return nil
 }
 
-func (m Migrator) ColumnTypes(value interface{}) (columnTypes []gorm.ColumnType, err error) {
-	columnTypes = make([]gorm.ColumnType, 0)
-	err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+// ColumnTypes return columnTypes []gorm.ColumnType and execErr error
+func (m Migrator) ColumnTypes(value interface{}) ([]gorm.ColumnType, error) {
+	columnTypes := make([]gorm.ColumnType, 0)
+	execErr := m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
-		if err == nil {
-			defer rows.Close()
-			rawColumnTypes, err := rows.ColumnTypes()
-			if err == nil {
-				for _, c := range rawColumnTypes {
-					columnTypes = append(columnTypes, c)
-				}
-			}
+		if err != nil {
+			return err
 		}
-		return err
+
+		defer rows.Close()
+
+		var rawColumnTypes []*sql.ColumnType
+		rawColumnTypes, err = rows.ColumnTypes()
+		if err != nil {
+			return err
+		}
+
+		for _, c := range rawColumnTypes {
+			columnTypes = append(columnTypes, c)
+		}
+
+		return nil
 	})
-	return
+
+	return columnTypes, execErr
 }
 
 func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
