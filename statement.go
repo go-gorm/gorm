@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	callbacks2 "gorm.io/gorm/callbacks"
 	"reflect"
 	"sort"
 	"strconv"
@@ -673,8 +674,10 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 	return results, !notRestricted && len(stmt.Selects) > 0
 }
 
-// determine
-func (stmt *Statement) ShouldSkipHook(c *callback) (skip bool) {
+// determine weather the hook should be skipped or not
+// return true if should skip
+func (stmt *Statement) ShouldSkip(c *callback) (skip bool) {
+	skip = false
 	if stmt.SkipHooks {
 		// skip all
 		skip = true
@@ -687,6 +690,18 @@ func (stmt *Statement) ShouldSkipHook(c *callback) (skip bool) {
 					break
 				}
 			}
+		}
+	}
+	return
+}
+
+// to avoid skipping core hook.
+func (stmt *Statement) CanSkip(c *callback) (canSkip bool) {
+	ckName := c.name
+	canSkip = true
+	for _, name := range callbacks2.CoreCallbackNames {
+		if ckName == name {
+			canSkip = false
 		}
 	}
 	return

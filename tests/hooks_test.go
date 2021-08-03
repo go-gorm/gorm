@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"errors"
+	"gorm.io/gorm/callbacks"
 	"reflect"
 	"strings"
 	"testing"
@@ -498,7 +499,7 @@ func TestSkipHookByName(t *testing.T) {
 	product := Product3{Name: "Product", Price: 0}
 	DB.AutoMigrate(&Product3{})
 	// expect price = 0
-	DB.SkipHookByName("gorm:before_create").Create(&product)
+	DB.SkipHookByName(callbacks.BeforeCreateCk).Create(&product)
 	product2 := Product3{Name: "Product", Price: 0}
 	// expect price = 100
 	DB.Create(&product2)

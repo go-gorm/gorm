@@ -127,9 +127,10 @@ func (p *processor) Execute(db *DB) *DB {
 	}
 
 	for _, c := range p.callbacks {
-		if !stmt.ShouldSkipHook(c) {
-			c.handler(db)
+		if stmt.CanSkip(c) && stmt.ShouldSkip(c) {
+			continue
 		}
+		c.handler(db)
 	}
 
 	db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
