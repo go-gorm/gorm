@@ -2,7 +2,6 @@ package tests_test
 
 import (
 	"errors"
-	"gorm.io/gorm/callbacks"
 	"reflect"
 	"strings"
 	"testing"
@@ -499,12 +498,14 @@ func TestSkipHookByName(t *testing.T) {
 	product := Product3{Name: "Product", Price: 0}
 	DB.AutoMigrate(&Product3{})
 	// expect price = 0
-	DB.SkipHookByName(callbacks.BeforeCreateCk).Create(&product)
+	DB.SkipHookByName(gorm.BeforeCreateCk).Create(&product)
 	product2 := Product3{Name: "Product", Price: 0}
 	// expect price = 100
 	DB.Create(&product2)
 	// expect code = code1 , price = 100 + 20(add in before update) + 30(add in before update)
 	DB.Model(&product2).Update("code", "code1")
 	// expect code = code2 , price not change
-	DB.Model(&product).SkipHookByName("gorm:before_update").Update("code", "code2")
+	DB.Model(&product).SkipHookByName(gorm.BeforeUpdateCk).Update("code", "code2")
+	// cant skip 'update',because update is core hook
+	DB.Model(&product).SkipHookByName(gorm.UpdateCk).Update("code", "code3")
 }

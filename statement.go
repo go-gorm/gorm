@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
-	callbacks2 "gorm.io/gorm/callbacks"
 	"reflect"
 	"sort"
 	"strconv"
@@ -699,7 +698,7 @@ func (stmt *Statement) ShouldSkip(c *callback) (skip bool) {
 func (stmt *Statement) CanSkip(c *callback) (canSkip bool) {
 	ckName := c.name
 	canSkip = true
-	for _, name := range callbacks2.CoreCallbackNames {
+	for _, name := range CoreCallbackNames {
 		if ckName == name {
 			canSkip = false
 		}

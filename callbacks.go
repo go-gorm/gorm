@@ -12,6 +12,49 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+var (
+	//transaction callback names
+	BeforeTransactionCk = "gorm:begin_transaction"
+	CommitOrRollbackCk  = "gorm:commit_or_rollback_transaction"
+
+	// create callback names
+	BeforeCreateCk           = "gorm:before_create"
+	SaveBeforeAssociationsCk = "gorm:save_before_associations"
+	CreateCk                 = "gorm:create"
+	SaveAfterAssociationsCk  = "gorm:save_after_associations"
+	AfterCreateCk            = "gorm:after_create"
+
+	// query callback names
+	QueryCk      = "gorm:query"
+	PreloadCk    = "gorm:preload"
+	AfterQueryCk = "gorm:after_query"
+
+	// delete callback names
+	BeforeDeleteCk             = "gorm:before_delete"
+	DeleteBeforeAssociationsCk = "gorm:delete_before_associations"
+	DeleteCk                   = "gorm:delete"
+	AfterDeleteCk              = "gorm:after_delete"
+
+	// update callback names
+	SetUpReflectValueCk = "gorm:setup_reflect_value"
+	BeforeUpdateCk      = "gorm:before_update"
+	UpdateCk            = "gorm:update"
+	AfterUpdateCk       = "gorm:after_update"
+
+	// row callback names
+	RowCk = "gorm:row"
+
+	// raw callback names
+	RawCk = "gorm:raw"
+
+	CoreCallbackNames = [...]string{BeforeTransactionCk, CommitOrRollbackCk,
+		SaveBeforeAssociationsCk, SaveAfterAssociationsCk,
+		CreateCk, QueryCk, PreloadCk,
+		DeleteBeforeAssociationsCk, DeleteCk,
+		SetUpReflectValueCk, UpdateCk,
+		RowCk, RawCk}
+)
+
 func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
