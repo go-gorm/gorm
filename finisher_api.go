@@ -635,3 +635,19 @@ func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 
 	return tx.callbacks.Raw().Execute(tx)
 }
+
+func (db *DB) Restore(values interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.Unscoped = true
+	tx.Statement.Parse(values)
+
+	dest := make(map[string]interface{})
+	for _, c := range tx.Statement.Schema.DeleteClauses {
+		fieldName := c.(SoftDeleteDeleteClause).Field.DBName
+		dest[fieldName] = nil
+	}
+
+	tx.Statement.Dest = dest
+
+	return tx.callbacks.Update().Execute(tx)
+}
