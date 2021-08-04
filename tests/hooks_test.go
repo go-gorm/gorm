@@ -507,5 +507,8 @@ func TestSkipHookByName(t *testing.T) {
 	// expect code = code2 , price not change
 	DB.Model(&product).SkipHookByName(gorm.BeforeUpdateCk).Update("code", "code2")
 	// cant skip 'update',because update is core hook
+	// so its equals DB.Model(&product).Update("code", "code3")
 	DB.Model(&product).SkipHookByName(gorm.UpdateCk).Update("code", "code3")
+	// no difference with origin
+	DB.Model(&product).UpdateColumn("owner", "me")
 }
