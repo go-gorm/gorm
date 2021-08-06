@@ -209,12 +209,14 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{v},
 		})
-	default:
-		tx.Statement.AddClause(clause.OrderBy{
-			Columns: []clause.OrderByColumn{{
-				Column: clause.Column{Name: fmt.Sprint(value), Raw: true},
-			}},
-		})
+	case string:
+		if v != "" {
+			tx.Statement.AddClause(clause.OrderBy{
+				Columns: []clause.OrderByColumn{{
+					Column: clause.Column{Name: v, Raw: true},
+				}},
+			})
+		}
 	}
 	return
 }
