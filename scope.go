@@ -800,9 +800,27 @@ func (scope *Scope) orderSQL() string {
 		return ""
 	}
 
+	// We have to make sure, that one column is not used multiple times in the order by clause.
+	// This would lead to an error on MSSQL.
+	// Therefore we create a map with just the column names and while creating the order by clause we may skip
+	// one or more columns
+	orderByColumnMap := make(map[string]bool, len(scope.Search.orders))
+
 	var orders []string
 	for _, order := range scope.Search.orders {
 		if str, ok := order.(string); ok {
+			columnName := str
+			columnNameLC := strings.ToLower(columnName)
+			if strings.HasSuffix(columnNameLC, " asc") {
+				columnName = columnName[0 : len(columnName)-4]
+			} else if strings.HasSuffix(columnNameLC, " desc") {
+				columnName = columnName[0 : len(columnName)-5]
+			}
+			if _, ok := orderByColumnMap[columnName]; ok {
+				continue
+			}
+			orderByColumnMap[columnName] = true
+
 			orders = append(orders, scope.quoteIfPossible(str))
 		} else if expr, ok := order.(*expr); ok {
 			exp := expr.expr
