@@ -294,8 +294,10 @@ func (s *DB) Assign(attrs ...interface{}) *DB {
 func (s *DB) First(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.Set("gorm:order_by_primary_key", "ASC").
-		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+	if len(newScope.Search.orders) == 0 {
+		newScope.Set("gorm:order_by_primary_key", "ASC")
+	}
+	return newScope.inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Take return a record that match given conditions, the order will depend on the database implementation
@@ -309,8 +311,10 @@ func (s *DB) Take(out interface{}, where ...interface{}) *DB {
 func (s *DB) Last(out interface{}, where ...interface{}) *DB {
 	newScope := s.NewScope(out)
 	newScope.Search.Limit(1)
-	return newScope.Set("gorm:order_by_primary_key", "DESC").
-		inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
+	if len(newScope.Search.orders) == 0 {
+		newScope.Set("gorm:order_by_primary_key", "DESC")
+	}
+	return newScope.inlineCondition(where...).callCallbacks(s.parent.callbacks.queries).db
 }
 
 // Find find records that match given conditions
