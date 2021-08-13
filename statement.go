@@ -57,6 +57,11 @@ type StatementModifier interface {
 	ModifyStatement(*Statement)
 }
 
+// UnDeleteDester set undelete dest interface
+type UnDeleteDester interface {
+	SetUnDeleteDest(*Statement)
+}
+
 // WriteString write string
 func (stmt *Statement) WriteString(str string) (int, error) {
 	return stmt.SQL.WriteString(str)

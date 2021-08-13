@@ -641,13 +641,13 @@ func (db *DB) Restore(values interface{}) (tx *DB) {
 	tx.Statement.Unscoped = true
 	tx.Statement.Parse(values)
 
-	dest := make(map[string]interface{})
-	for _, c := range tx.Statement.Schema.DeleteClauses {
-		fieldName := c.(SoftDeleteDeleteClause).Field.DBName
-		dest[fieldName] = nil
-	}
+	tx.Statement.Dest = make(map[string]interface{})
 
-	tx.Statement.Dest = dest
+	for _, c := range tx.Statement.Schema.DeleteClauses {
+		if optimizer, ok := c.(UnDeleteDester); ok {
+			optimizer.SetUnDeleteDest(tx.Statement)
+		}
+	}
 
 	return tx.callbacks.Update().Execute(tx)
 }

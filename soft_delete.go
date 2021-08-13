@@ -162,3 +162,13 @@ func (sd SoftDeleteDeleteClause) ModifyStatement(stmt *Statement) {
 		stmt.Build("UPDATE", "SET", "WHERE")
 	}
 }
+
+func (sd SoftDeleteDeleteClause) SetUnDeleteDest(stmt *Statement) {
+	if stmt.Unscoped {
+		if sd.Field.DefaultValue != "" {
+			stmt.SetColumn(sd.Field.DBName, clause.Expr{SQL: sd.Field.DefaultValue}, true)
+		} else {
+			stmt.SetColumn(sd.Field.DBName, nil, true)
+		}
+	}
+}
