@@ -33,6 +33,26 @@ func TestToDBName(t *testing.T) {
 			t.Errorf("%v toName should equal %v, but got %v", key, value, ns.toDBName(key))
 		}
 	}
+
+	maps = map[string]string{
+		"x":                              "X",
+		"user_restrictions":              "UserRestriction",
+		"this_is_a_test":                 "ThisIsATest",
+		"abc_and_jkl":                    "AbcAndJkl",
+		"employee_id":                    "EmployeeID",
+		"field_x":                        "FieldX",
+		"http_and_smtp":                  "HTTPAndSMTP",
+		"http_server_handler_for_url_id": "HTTPServerHandlerForURLID",
+		"uuid":                           "UUID",
+		"http_url":                       "HTTPURL",
+		"sha256_hash":                    "Sha256Hash",
+		"this_is_actually_a_test_so_we_may_be_able_to_use_this_code_in_gorm_package_also_id_can_be_used_at_the_end_as_id": "ThisIsActuallyATestSoWeMayBeAbleToUseThisCodeInGormPackageAlsoIDCanBeUsedAtTheEndAsID",
+	}
+	for key, value := range maps {
+		if ns.SchemaName(key) != value {
+			t.Errorf("%v schema name should equal %v, but got %v", key, value, ns.SchemaName(key))
+		}
+	}
 }
 
 func TestNamingStrategy(t *testing.T) {

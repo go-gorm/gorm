@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -13,6 +14,7 @@ import (
 // Namer namer interface
 type Namer interface {
 	TableName(table string) string
+	SchemaName(table string) string
 	ColumnName(table, column string) string
 	JoinTableName(joinTable string) string
 	RelationshipFKName(Relationship) string
@@ -39,6 +41,16 @@ func (ns NamingStrategy) TableName(str string) string {
 		return ns.TablePrefix + ns.toDBName(str)
 	}
 	return ns.TablePrefix + inflection.Plural(ns.toDBName(str))
+}
+
+// SchemaName generate schema name from table name, don't guarantee it is the reverse value of TableName
+func (ns NamingStrategy) SchemaName(table string) string {
+	table = strings.TrimPrefix(table, ns.TablePrefix)
+
+	if ns.SingularTable {
+		return ns.toSchemaName(table)
+	}
+	return ns.toSchemaName(inflection.Singular(table))
 }
 
 // ColumnName convert string to column name
@@ -153,4 +165,12 @@ func (ns NamingStrategy) toDBName(name string) string {
 	}
 	ret := buf.String()
 	return ret
+}
+
+func (ns NamingStrategy) toSchemaName(name string) string {
+	result := strings.Replace(strings.Title(strings.Replace(name, "_", " ", -1)), " ", "", -1)
+	for _, initialism := range commonInitialisms {
+		result = regexp.MustCompile(strings.Title(strings.ToLower(initialism))+"([A-Z]|$|_)").ReplaceAllString(result, initialism+"$1")
+	}
+	return result
 }

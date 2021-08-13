@@ -50,15 +50,14 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 		tx.Statement.TableExpr = &clause.Expr{SQL: name, Vars: args}
 		if results := tableRegexp.FindStringSubmatch(name); len(results) == 2 {
 			tx.Statement.Table = results[1]
-			return
 		}
 	} else if tables := strings.Split(name, "."); len(tables) == 2 {
 		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
 		tx.Statement.Table = tables[1]
-		return
+	} else {
+		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
+		tx.Statement.Table = name
 	}
-
-	tx.Statement.Table = name
 	return
 }
 
@@ -209,12 +208,14 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{v},
 		})
-	default:
-		tx.Statement.AddClause(clause.OrderBy{
-			Columns: []clause.OrderByColumn{{
-				Column: clause.Column{Name: fmt.Sprint(value), Raw: true},
-			}},
-		})
+	case string:
+		if v != "" {
+			tx.Statement.AddClause(clause.OrderBy{
+				Columns: []clause.OrderByColumn{{
+					Column: clause.Column{Name: v, Raw: true},
+				}},
+			})
+		}
 	}
 	return
 }

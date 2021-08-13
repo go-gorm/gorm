@@ -167,10 +167,12 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.FieldsByDBName[dbName]
-				createTableSQL += "? ?"
-				hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
-				values = append(values, clause.Column{Name: dbName}, m.DB.Migrator().FullDataTypeOf(field))
-				createTableSQL += ","
+				if !field.IgnoreMigration {
+					createTableSQL += "? ?"
+					hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
+					values = append(values, clause.Column{Name: dbName}, m.DB.Migrator().FullDataTypeOf(field))
+					createTableSQL += ","
+				}
 			}
 
 			if !hasPrimaryKeyInDataType && len(stmt.Schema.PrimaryFields) > 0 {

@@ -64,9 +64,10 @@ type Interface interface {
 var (
 	Discard = New(log.New(ioutil.Discard, "", log.LstdFlags), Config{})
 	Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
-		SlowThreshold: 200 * time.Millisecond,
-		LogLevel:      Warn,
-		Colorful:      true,
+		SlowThreshold:             200 * time.Millisecond,
+		LogLevel:                  Warn,
+		IgnoreRecordNotFoundError: false,
+		Colorful:                  true,
 	})
 	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
 )
