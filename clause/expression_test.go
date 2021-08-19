@@ -156,6 +156,18 @@ func TestExpression(t *testing.T) {
 		},
 		ExpectedVars: []interface{}{"a", "b"},
 		Result:       "`column-name` NOT IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: clause.Expr{SQL: "SUM(?)", Vars: []interface{}{clause.Column{Name: "id"}}}, Value: 100},
+		},
+		ExpectedVars: []interface{}{100},
+		Result:       "SUM(`id`) = ?",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Gte{Column: clause.Expr{SQL: "SUM(?)", Vars: []interface{}{clause.Column{Table: "users", Name: "id"}}}, Value: 100},
+		},
+		ExpectedVars: []interface{}{100},
+		Result:       "SUM(`users`.`id`) >= ?",
 	}}
 
 	for idx, result := range results {
