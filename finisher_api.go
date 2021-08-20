@@ -390,7 +390,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
 			fields := strings.FieldsFunc(dbName, utils.IsValidDBNameChar)
-			if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
+			if len(fields) == 1 || (len(fields) == 3 && (strings.ToUpper(fields[1]) == "AS" || fields[1] == ".")) {
 				if tx.Statement.Parse(tx.Statement.Model) == nil {
 					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
 						dbName = f.DBName
