@@ -210,11 +210,12 @@ func (in IN) Build(builder Builder) {
 }
 
 func (in IN) NegationBuild(builder Builder) {
+	builder.WriteQuoted(in.Column)
 	switch len(in.Values) {
 	case 0:
+		builder.WriteString(" IS NOT NULL")
 	case 1:
 		if _, ok := in.Values[0].([]interface{}); !ok {
-			builder.WriteQuoted(in.Column)
 			builder.WriteString(" <> ")
 			builder.AddVar(builder, in.Values[0])
 			break
@@ -222,7 +223,6 @@ func (in IN) NegationBuild(builder Builder) {
 
 		fallthrough
 	default:
-		builder.WriteQuoted(in.Column)
 		builder.WriteString(" NOT IN (")
 		builder.AddVar(builder, in.Values...)
 		builder.WriteByte(')')
