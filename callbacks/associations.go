@@ -314,7 +314,7 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 	if stmt.DB.FullSaveAssociations {
 		defaultUpdatingColumns = make([]string, 0, len(s.DBNames))
 		for _, dbName := range s.DBNames {
-			if v, ok := selectColumns[dbName]; (ok && !v) || (!ok && restricted) {
+			if v, ok := selectColumns[dbName]; (ok && !v) || (!ok && restricted) || !s.FieldsByDBName[dbName].Updatable {
 				continue
 			}
 
