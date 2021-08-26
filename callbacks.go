@@ -102,8 +102,8 @@ func (p *processor) Execute(db *DB) *DB {
 
 	// parse model values
 	if stmt.Model != nil {
-		if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.SQL.Len() == 0)) {
-			if errors.Is(err, schema.ErrUnsupportedDataType) && stmt.Table == "" {
+		if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0)) {
+			if errors.Is(err, schema.ErrUnsupportedDataType) && stmt.Table == "" && stmt.TableExpr == nil {
 				db.AddError(fmt.Errorf("%w: Table not set, please set it like: db.Model(&user) or db.Table(\"users\")", err))
 			} else {
 				db.AddError(err)
