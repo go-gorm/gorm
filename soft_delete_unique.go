@@ -65,10 +65,11 @@ func (sd SoftDeleteUniqueDeleteClause) Build(clause.Builder) {
 func (sd SoftDeleteUniqueDeleteClause) MergeClause(*clause.Clause) {
 }
 
+var regReplaceUpdate = regexp.MustCompile(`UPDATE (.+?) WHERE `)
+
 func (sd SoftDeleteUniqueDeleteClause) ModifyStatement(stmt *Statement) {
-	re := regexp.MustCompile(`UPDATE (.*) WHERE `)
 	if sql := stmt.SQL.String(); sql != "" {
-		setClause := re.FindStringSubmatch(sql)[1]
+		setClause := regReplaceUpdate.FindStringSubmatch(sql)[1]
 		if setClause == "" {
 			return
 		}

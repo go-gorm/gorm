@@ -65,7 +65,8 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 
 						if !exists {
 							idx.Fields = append(idx.Fields, IndexOption{
-								Field: df,
+								Field:    df,
+								priority: 100,
 							})
 						}
 					}
