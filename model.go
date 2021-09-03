@@ -13,3 +13,10 @@ type Model struct {
 	UpdatedAt time.Time
 	DeletedAt DeletedAt `gorm:"index"`
 }
+
+type ModelSupportUnique struct {
+	ID          uint `gorm:"primarykey"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedFlag DeletedFlag `gorm:"type:BIGINT UNSIGNED NOT NULL DEFAULT 0" json:"deleted_flag"`
+}

@@ -51,6 +51,26 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				}
 
 				idx.Fields = append(idx.Fields, index.Fields...)
+
+				// create combined index for unique
+				if index.Class == "UNIQUE" {
+					if df := schema.LookUpField("deleted_flag"); df != nil {
+						var exists bool
+						for _, f := range idx.Fields {
+							if f.Field.Name == df.Name {
+								exists = true
+								break
+							}
+						}
+
+						if !exists {
+							idx.Fields = append(idx.Fields, IndexOption{
+								Field: df,
+							})
+						}
+					}
+				}
+
 				sort.Slice(idx.Fields, func(i, j int) bool {
 					return idx.Fields[i].priority < idx.Fields[j].priority
 				})
