@@ -23,9 +23,36 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 						rel.Field.Set(db.Statement.ReflectValue, dest[rel.Name])
 					}
 				}
+			} else if modelType, destType := findType(db.Statement.Model), findType(db.Statement.Dest); modelType.Kind() == reflect.Struct && destType.Kind() == reflect.Struct {
+				db.Statement.Dest = transToModel(reflect.Indirect(reflect.ValueOf(db.Statement.Dest)), reflect.New(modelType).Elem())
 			}
 		}
 	}
+}
+
+func findType(target interface{}) reflect.Type {
+	t := reflect.TypeOf(target)
+	if t.Kind() == reflect.Ptr {
+		return t.Elem()
+	}
+	return t
+}
+
+func transToModel(from, to reflect.Value) interface{} {
+	if from.String() == to.String() {
+		return from.Interface()
+	}
+
+	fromType := from.Type()
+	for i := 0; i < fromType.NumField(); i++ {
+		fieldName := fromType.Field(i).Name
+		fromField, toField := from.FieldByName(fieldName), to.FieldByName(fieldName)
+		if !toField.IsValid() || !toField.CanSet() || toField.Kind() != fromField.Kind() {
+			continue
+		}
+		toField.Set(fromField)
+	}
+	return to.Interface()
 }
 
 func BeforeUpdate(db *gorm.DB) {
@@ -227,7 +254,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.LookUpField(dbName)
-				if !field.PrimaryKey || (!updatingValue.CanAddr() || stmt.Dest != stmt.Model) {
+				if !field.PrimaryKey || !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 						value, isZero := field.ValueOf(updatingValue)
 						if !stmt.SkipHooks && field.AutoUpdateTime > 0 {
