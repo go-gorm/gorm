@@ -651,14 +651,14 @@ func TestSave(t *testing.T) {
 	}
 
 	user3.Name = "save3_"
-	DB.Model(User{}).Save(&user3)
+	DB.Model(User{Model: user3.Model}).Save(&user3)
 
 	var result2 User
 	if err := DB.First(&result2, "name = ?", "save3_").Error; err != nil || result2.ID != user3.ID {
 		t.Fatalf("failed to find updated user")
 	}
 
-	DB.Model(User{}).Save(&struct {
+	DB.Debug().Model(User{Model: user3.Model}).Save(&struct {
 		gorm.Model
 		Placeholder string
 		Name        string
