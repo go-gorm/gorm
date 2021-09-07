@@ -104,6 +104,26 @@ func TestJoinConds(t *testing.T) {
 	}
 }
 
+func TestJoinOn(t *testing.T) {
+	var user = *GetUser("joins-on", Config{Pets: 2})
+	DB.Save(&user)
+
+	var user1 User
+	onQuery := DB.Select("id").Where("user_id = users.id AND name = ?", "joins-on_pet_1").Model(&Pet{})
+
+	if err := DB.Joins("NamedPet", onQuery).Where("users.name = ?", user.Name).First(&user1).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+	AssertEqual(t, user1.NamedPet.Name, "joins-on_pet_1")
+
+	onQuery2 := DB.Select("id").Where("user_id = users.id AND name = ?", "joins-on_pet_2").Model(&Pet{})
+	var user2 User
+	if err := DB.Joins("NamedPet", onQuery2).Where("users.name = ?", user.Name).First(&user2).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+	AssertEqual(t, user2.NamedPet.Name, "joins-on_pet_2")
+}
+
 func TestJoinsWithSelect(t *testing.T) {
 	type result struct {
 		ID    uint

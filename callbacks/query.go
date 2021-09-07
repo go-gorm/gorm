@@ -125,33 +125,47 @@ func BuildQuerySQL(db *gorm.DB) {
 						})
 					}
 
-					exprs := make([]clause.Expression, len(relation.References))
-					for idx, ref := range relation.References {
-						if ref.OwnPrimaryKey {
-							exprs[idx] = clause.Eq{
-								Column: clause.Column{Table: clause.CurrentTable, Name: ref.PrimaryKey.DBName},
-								Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-							}
-						} else {
-							if ref.PrimaryValue == "" {
+					if join.On != nil {
+						primaryFields := make([]clause.Column, len(relation.FieldSchema.PrimaryFieldDBNames))
+						for idx, ref := range relation.FieldSchema.PrimaryFieldDBNames {
+							primaryFields[idx] = clause.Column{Table: tableAliasName, Name: ref}
+						}
+
+						exprs := db.Statement.BuildCondition("(?) = (?)", primaryFields, join.On)
+						joins = append(joins, clause.Join{
+							Type:  clause.LeftJoin,
+							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+							ON:    clause.Where{Exprs: exprs},
+						})
+					} else {
+						exprs := make([]clause.Expression, len(relation.References))
+						for idx, ref := range relation.References {
+							if ref.OwnPrimaryKey {
 								exprs[idx] = clause.Eq{
-									Column: clause.Column{Table: clause.CurrentTable, Name: ref.ForeignKey.DBName},
-									Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
+									Column: clause.Column{Table: clause.CurrentTable, Name: ref.PrimaryKey.DBName},
+									Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
 								}
 							} else {
-								exprs[idx] = clause.Eq{
-									Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-									Value:  ref.PrimaryValue,
+								if ref.PrimaryValue == "" {
+									exprs[idx] = clause.Eq{
+										Column: clause.Column{Table: clause.CurrentTable, Name: ref.ForeignKey.DBName},
+										Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
+									}
+								} else {
+									exprs[idx] = clause.Eq{
+										Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+										Value:  ref.PrimaryValue,
+									}
 								}
 							}
 						}
-					}
 
-					joins = append(joins, clause.Join{
-						Type:  clause.LeftJoin,
-						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
-						ON:    clause.Where{Exprs: exprs},
-					})
+						joins = append(joins, clause.Join{
+							Type:  clause.LeftJoin,
+							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+							ON:    clause.Where{Exprs: exprs},
+						})
+					}
 				} else {
 					joins = append(joins, clause.Join{
 						Expression: clause.NamedExpr{SQL: join.Name, Vars: join.Conds},
