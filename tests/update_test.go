@@ -651,14 +651,16 @@ func TestSave(t *testing.T) {
 	}
 
 	user3.Name = "save3_"
-	DB.Model(User{Model: user3.Model}).Save(&user3)
+	if err := DB.Model(User{Model: user3.Model}).Save(&user3).Error; err != nil {
+		t.Fatalf("failed to save user, got %v", err)
+	}
 
 	var result2 User
 	if err := DB.First(&result2, "name = ?", "save3_").Error; err != nil || result2.ID != user3.ID {
-		t.Fatalf("failed to find updated user")
+		t.Fatalf("failed to find updated user, got %v", err)
 	}
 
-	DB.Debug().Model(User{Model: user3.Model}).Save(&struct {
+	if err := DB.Model(User{Model: user3.Model}).Save(&struct {
 		gorm.Model
 		Placeholder string
 		Name        string
@@ -666,7 +668,9 @@ func TestSave(t *testing.T) {
 		Model:       user3.Model,
 		Placeholder: "placeholder",
 		Name:        "save3__",
-	})
+	}).Error; err != nil {
+		t.Fatalf("failed to update user, got %v", err)
+	}
 
 	var result3 User
 	if err := DB.First(&result3, "name = ?", "save3__").Error; err != nil || result3.ID != user3.ID {
