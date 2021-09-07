@@ -451,3 +451,65 @@ func (db *DB) FormatDate(e *expr, format string) *expr {
 func (db *DB) FormatDateColumn(e *expr, format string) string {
 	return db.FormatDate(e, format).expr
 }
+
+func (db *DB) GetSQL() string {
+	scope := db.NewScope(db.Value)
+
+	scope.prepareQuerySQL()
+
+	stmt := scope.SQL
+	for _, arg := range scope.SQLVars {
+		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
+	}
+
+	return stmt
+}
+
+func escape(source string) string {
+	var j int = 0
+	if len(source) == 0 {
+		return ""
+	}
+	tempStr := source[:]
+	desc := make([]byte, len(tempStr)*2)
+	for i := 0; i < len(tempStr); i++ {
+		flag := false
+		var escape byte
+		switch tempStr[i] {
+		case '\r':
+			flag = true
+			escape = '\r'
+
+		case '\n':
+			flag = true
+			escape = '\n'
+
+		case '\\':
+			flag = true
+			escape = '\\'
+
+		case '\'':
+			flag = true
+			escape = '\''
+
+		case '"':
+			flag = true
+			escape = '"'
+
+		case '\032':
+			flag = true
+			escape = 'Z'
+
+		default:
+		}
+		if flag {
+			desc[j] = '\\'
+			desc[j+1] = escape
+			j = j + 2
+		} else {
+			desc[j] = tempStr[i]
+			j = j + 1
+		}
+	}
+	return string(desc[0:j])
+}
