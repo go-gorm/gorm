@@ -125,47 +125,48 @@ func BuildQuerySQL(db *gorm.DB) {
 						})
 					}
 
-					if join.On != nil {
-						primaryFields := make([]clause.Column, len(relation.FieldSchema.PrimaryFieldDBNames))
-						for idx, ref := range relation.FieldSchema.PrimaryFieldDBNames {
-							primaryFields[idx] = clause.Column{Table: tableAliasName, Name: ref}
-						}
-
-						exprs := db.Statement.BuildCondition("(?) = (?)", primaryFields, join.On)
-						joins = append(joins, clause.Join{
-							Type:  clause.LeftJoin,
-							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
-							ON:    clause.Where{Exprs: exprs},
-						})
-					} else {
-						exprs := make([]clause.Expression, len(relation.References))
-						for idx, ref := range relation.References {
-							if ref.OwnPrimaryKey {
+					exprs := make([]clause.Expression, len(relation.References))
+					for idx, ref := range relation.References {
+						if ref.OwnPrimaryKey {
+							exprs[idx] = clause.Eq{
+								Column: clause.Column{Table: clause.CurrentTable, Name: ref.PrimaryKey.DBName},
+								Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+							}
+						} else {
+							if ref.PrimaryValue == "" {
 								exprs[idx] = clause.Eq{
-									Column: clause.Column{Table: clause.CurrentTable, Name: ref.PrimaryKey.DBName},
-									Value:  clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+									Column: clause.Column{Table: clause.CurrentTable, Name: ref.ForeignKey.DBName},
+									Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
 								}
 							} else {
-								if ref.PrimaryValue == "" {
-									exprs[idx] = clause.Eq{
-										Column: clause.Column{Table: clause.CurrentTable, Name: ref.ForeignKey.DBName},
-										Value:  clause.Column{Table: tableAliasName, Name: ref.PrimaryKey.DBName},
-									}
-								} else {
-									exprs[idx] = clause.Eq{
-										Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
-										Value:  ref.PrimaryValue,
-									}
+								exprs[idx] = clause.Eq{
+									Column: clause.Column{Table: tableAliasName, Name: ref.ForeignKey.DBName},
+									Value:  ref.PrimaryValue,
 								}
 							}
 						}
-
-						joins = append(joins, clause.Join{
-							Type:  clause.LeftJoin,
-							Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
-							ON:    clause.Where{Exprs: exprs},
-						})
 					}
+
+					if join.On != nil {
+						onStmt := gorm.Statement{Table: tableAliasName, DB: db}
+						join.On.Build(&onStmt)
+						onSQL := onStmt.SQL.String()
+						vars := onStmt.Vars
+						for idx, v := range onStmt.Vars {
+							bindvar := strings.Builder{}
+							onStmt.Vars = vars[0 : idx+1]
+							db.Dialector.BindVarTo(&bindvar, &onStmt, v)
+							onSQL = strings.Replace(onSQL, bindvar.String(), "?", 1)
+						}
+
+						exprs = append(exprs, clause.Expr{SQL: onSQL, Vars: vars})
+					}
+
+					joins = append(joins, clause.Join{
+						Type:  clause.LeftJoin,
+						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+						ON:    clause.Where{Exprs: exprs},
+					})
 				} else {
 					joins = append(joins, clause.Join{
 						Expression: clause.NamedExpr{SQL: join.Name, Vars: join.Conds},

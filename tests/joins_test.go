@@ -109,14 +109,15 @@ func TestJoinOn(t *testing.T) {
 	DB.Save(&user)
 
 	var user1 User
-	onQuery := DB.Select("id").Where("user_id = users.id AND name = ?", "joins-on_pet_1").Model(&Pet{})
+	onQuery := DB.Where(&Pet{Name: "joins-on_pet_1"})
 
 	if err := DB.Joins("NamedPet", onQuery).Where("users.name = ?", user.Name).First(&user1).Error; err != nil {
 		t.Fatalf("Failed to load with joins on, got error: %v", err)
 	}
+
 	AssertEqual(t, user1.NamedPet.Name, "joins-on_pet_1")
 
-	onQuery2 := DB.Select("id").Where("user_id = users.id AND name = ?", "joins-on_pet_2").Model(&Pet{})
+	onQuery2 := DB.Where(&Pet{Name: "joins-on_pet_2"})
 	var user2 User
 	if err := DB.Joins("NamedPet", onQuery2).Where("users.name = ?", user.Name).First(&user2).Error; err != nil {
 		t.Fatalf("Failed to load with joins on, got error: %v", err)

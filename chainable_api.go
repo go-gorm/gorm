@@ -177,7 +177,9 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 
 	if len(args) > 0 {
 		if db, ok := args[0].(*DB); ok {
-			tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args[1:], On: db})
+			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
+				tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args[1:], On: &where})
+			}
 			return
 		}
 	}
