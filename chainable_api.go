@@ -171,8 +171,19 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 // Joins specify Joins conditions
 //     db.Joins("Account").Find(&user)
 //     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
+//     db.Joins("Account", DB.Select("id").Where("user_id = users.id AND name = ?", "someName").Model(&Account{}))
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
+
+	if len(args) > 0 {
+		if db, ok := args[0].(*DB); ok {
+			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
+				tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args[1:], On: &where})
+			}
+			return
+		}
+	}
+
 	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args})
 	return
 }

@@ -642,6 +642,40 @@ func TestSave(t *testing.T) {
 	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
 		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
 	}
+
+	user3 := *GetUser("save3", Config{})
+	DB.Create(&user3)
+
+	if err := DB.First(&User{}, "name = ?", "save3").Error; err != nil {
+		t.Fatalf("failed to find created user")
+	}
+
+	user3.Name = "save3_"
+	if err := DB.Model(User{Model: user3.Model}).Save(&user3).Error; err != nil {
+		t.Fatalf("failed to save user, got %v", err)
+	}
+
+	var result2 User
+	if err := DB.First(&result2, "name = ?", "save3_").Error; err != nil || result2.ID != user3.ID {
+		t.Fatalf("failed to find updated user, got %v", err)
+	}
+
+	if err := DB.Model(User{Model: user3.Model}).Save(&struct {
+		gorm.Model
+		Placeholder string
+		Name        string
+	}{
+		Model:       user3.Model,
+		Placeholder: "placeholder",
+		Name:        "save3__",
+	}).Error; err != nil {
+		t.Fatalf("failed to update user, got %v", err)
+	}
+
+	var result3 User
+	if err := DB.First(&result3, "name = ?", "save3__").Error; err != nil || result3.ID != user3.ID {
+		t.Fatalf("failed to find updated user")
+	}
 }
 
 func TestSaveWithPrimaryValue(t *testing.T) {
