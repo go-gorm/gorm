@@ -119,19 +119,12 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
 
-	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+	if v, loaded := cacheStore.Load(modelType); loaded {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
 		<-s.initialized
 		return s, s.err
 	}
-
-	defer func() {
-		if schema.err != nil {
-			logger.Default.Error(context.Background(), schema.err.Error())
-			cacheStore.Delete(modelType)
-		}
-	}()
 
 	for i := 0; i < modelType.NumField(); i++ {
 		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
@@ -232,6 +225,20 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			}
 		}
 	}
+
+	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
+		<-s.initialized
+		return s, s.err
+	}
+
+	defer func() {
+		if schema.err != nil {
+			logger.Default.Error(context.Background(), schema.err.Error())
+			cacheStore.Delete(modelType)
+		}
+	}()
 
 	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 		for _, field := range schema.Fields {
