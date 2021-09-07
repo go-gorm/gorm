@@ -62,46 +62,57 @@ func Create(config *Config) func(db *gorm.DB) {
 				return
 			}
 
-			db.RowsAffected, _ = result.RowsAffected()
+			db.RowsAffected, err = result.RowsAffected()
+			if err != nil {
+				db.AddError(err)
+				return
+			}
 
 			if db.RowsAffected != 0 && db.Statement.Schema != nil &&
 				db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-				if insertID, err := result.LastInsertId(); err == nil && insertID > 0 {
-					switch db.Statement.ReflectValue.Kind() {
-					case reflect.Slice, reflect.Array:
-						if config.LastInsertIDReversed {
-							for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-								rv := db.Statement.ReflectValue.Index(i)
-								if reflect.Indirect(rv).Kind() != reflect.Struct {
-									break
-								}
+				insertID, err := result.LastInsertId()
+				if err != nil {
+					db.AddError(err)
+					return
+				}
 
-								_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
-								if isZero {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-									insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
-								}
+				if insertID <= 0 {
+					// maybe log record
+					return
+				}
+
+				switch db.Statement.ReflectValue.Kind() {
+				case reflect.Slice, reflect.Array:
+					if config.LastInsertIDReversed {
+						for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+							rv := db.Statement.ReflectValue.Index(i)
+							if reflect.Indirect(rv).Kind() != reflect.Struct {
+								break
 							}
-						} else {
-							for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-								rv := db.Statement.ReflectValue.Index(i)
-								if reflect.Indirect(rv).Kind() != reflect.Struct {
-									break
-								}
 
-								if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-									insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
-								}
+							_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
+							if isZero {
+								db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+								insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 							}
 						}
-					case reflect.Struct:
-						if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+					} else {
+						for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+							rv := db.Statement.ReflectValue.Index(i)
+							if reflect.Indirect(rv).Kind() != reflect.Struct {
+								break
+							}
+
+							if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+								db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+								insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
+							}
 						}
 					}
-				} else {
-					db.AddError(err)
+				case reflect.Struct:
+					if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
+						db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+					}
 				}
 			}
 		}
@@ -195,9 +206,14 @@ func CreateWithReturning(db *gorm.DB) {
 				}
 			}
 		} else if !db.DryRun && db.Error == nil {
-			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
-			} else {
+			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+			if err != nil {
+				db.AddError(err)
+				return
+			}
+
+			db.RowsAffected, err = result.RowsAffected()
+			if err != nil {
 				db.AddError(err)
 			}
 		}

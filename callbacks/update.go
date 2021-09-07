@@ -61,11 +61,12 @@ func Update(db *gorm.DB) {
 		if db.Statement.SQL.String() == "" {
 			db.Statement.SQL.Grow(180)
 			db.Statement.AddClauseIfNotExists(clause.Update{})
-			if set := ConvertToAssignments(db.Statement); len(set) != 0 {
-				db.Statement.AddClause(set)
-			} else {
+			set := ConvertToAssignments(db.Statement)
+			if len(set) == 0 {
 				return
 			}
+
+			db.Statement.AddClause(set)
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
@@ -76,12 +77,12 @@ func Update(db *gorm.DB) {
 
 		if !db.DryRun && db.Error == nil {
 			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-			if err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
-			} else {
+			if err != nil {
 				db.AddError(err)
+				return
 			}
+
+			db.RowsAffected, _ = result.RowsAffected()
 		}
 	}
 }
