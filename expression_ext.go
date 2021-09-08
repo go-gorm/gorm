@@ -465,6 +465,31 @@ func (db *DB) GetSQL() string {
 	return stmt
 }
 
+func (db *DB) GetSQL() string {
+	scope := db.NewScope(db.Value)
+
+	scope.prepareQuerySQL()
+
+	stmt := scope.SQL
+	for _, arg := range scope.SQLVars {
+		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
+	}
+
+	return stmt
+}
+
+func (db *DB) GetSQLWhereClause() string {
+	scope := db.NewScope(db.Value)
+
+	stmt := scope.CombinedConditionSql()
+
+	for _, arg := range scope.SQLVars {
+		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
+	}
+
+	return stmt
+}
+
 func escape(source string) string {
 	var j int = 0
 	if len(source) == 0 {
