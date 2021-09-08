@@ -457,7 +457,7 @@ func (db *DB) GetSQL() string {
 
 	scope.prepareQuerySQL()
 
-	stmt := scope.SQL
+	stmt := strings.ReplaceAll(scope.SQL, "$$$", "?")
 	for _, arg := range scope.SQLVars {
 		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
 	}
@@ -468,7 +468,7 @@ func (db *DB) GetSQL() string {
 func (db *DB) GetSQLWhereClause() string {
 	scope := db.NewScope(db.Value)
 
-	stmt := scope.CombinedConditionSql()
+	stmt := strings.ReplaceAll(scope.CombinedConditionSql(), "$$$", "?")
 
 	for _, arg := range scope.SQLVars {
 		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
