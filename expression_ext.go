@@ -465,19 +465,6 @@ func (db *DB) GetSQL() string {
 	return stmt
 }
 
-func (db *DB) GetSQL() string {
-	scope := db.NewScope(db.Value)
-
-	scope.prepareQuerySQL()
-
-	stmt := scope.SQL
-	for _, arg := range scope.SQLVars {
-		stmt = strings.Replace(stmt, "?", "'"+escape(fmt.Sprintf("%v", arg))+"'", 1)
-	}
-
-	return stmt
-}
-
 func (db *DB) GetSQLWhereClause() string {
 	scope := db.NewScope(db.Value)
 
