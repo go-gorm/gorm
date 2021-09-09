@@ -22,8 +22,8 @@ func TestDelete(t *testing.T) {
 		}
 	}
 
-	if err := DB.Delete(&users[1]).Error; err != nil {
-		t.Errorf("errors happened when delete: %v", err)
+	if res := DB.Delete(&users[1]); res.Error != nil || res.RowsAffected != 1 {
+		t.Errorf("errors happened when delete: %v, affected: %v", res.Error, res.RowsAffected)
 	}
 
 	var result User

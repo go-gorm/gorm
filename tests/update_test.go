@@ -69,8 +69,10 @@ func TestUpdate(t *testing.T) {
 	}
 
 	values := map[string]interface{}{"Active": true, "age": 5}
-	if err := DB.Model(user).Updates(values).Error; err != nil {
-		t.Errorf("errors happened when update: %v", err)
+	if res := DB.Model(user).Updates(values); res.Error != nil {
+		t.Errorf("errors happened when update: %v", res.Error)
+	} else if res.RowsAffected != 1 {
+		t.Errorf("rows affected should be 1, but got : %v", res.RowsAffected)
 	} else if user.Age != 5 {
 		t.Errorf("Age should equals to 5, but got %v", user.Age)
 	} else if user.Active != true {
@@ -131,7 +133,10 @@ func TestUpdates(t *testing.T) {
 	lastUpdatedAt := users[0].UpdatedAt
 
 	// update with map
-	DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100})
+	if res := DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100}); res.Error != nil || res.RowsAffected != 1 {
+		t.Errorf("Failed to update users")
+	}
+
 	if users[0].Name != "updates_01_newname" || users[0].Age != 100 {
 		t.Errorf("Record should be updated also with map")
 	}
