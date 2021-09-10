@@ -114,15 +114,3 @@ func ToString(value interface{}) string {
 	}
 	return ""
 }
-
-func ExistsIn(a string, list *[]string) bool {
-	if list == nil {
-		return false
-	}
-	for _, b := range *list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
