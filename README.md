@@ -1,4 +1,8 @@
-# GORM
+# GORM 
+
+## NOTE: this fork's purpose is to submit upstream PRs.  It should not be used as a dependency in any project.
+
+---
 
 The fantastic ORM library for Golang, aims to be developer friendly.
 
