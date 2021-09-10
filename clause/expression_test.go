@@ -89,6 +89,11 @@ func TestNamedExpr(t *testing.T) {
 		SQL:    "create table ? (? ?, ? ?)",
 		Vars:   []interface{}{},
 		Result: "create table ? (? ?, ? ?)",
+	}, {
+		SQL:          "name1 = @name AND name2 = @name;",
+		Vars:         []interface{}{sql.Named("name", "jinzhu")},
+		Result:       "name1 = ? AND name2 = ?;",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
 	}}
 
 	for idx, result := range results {
