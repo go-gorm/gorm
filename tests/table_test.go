@@ -30,6 +30,26 @@ func TestTable(t *testing.T) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
 	}
 
+	r = dryDB.Table("`people`").Table("`user`").Find(&User{}).Statement
+	if !regexp.MustCompile("SELECT \\* FROM `user`").MatchString(r.Statement.SQL.String()) {
+		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+	}
+
+	r = dryDB.Table("people as p").Table("user as u").Find(&User{}).Statement
+	if !regexp.MustCompile("SELECT \\* FROM user as u WHERE .u.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
+		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+	}
+
+	r = dryDB.Table("people as p").Table("user").Find(&User{}).Statement
+	if !regexp.MustCompile("SELECT \\* FROM .user. WHERE .user.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
+		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+	}
+
+	r = dryDB.Table("gorm.people").Table("user").Find(&User{}).Statement
+	if !regexp.MustCompile("SELECT \\* FROM .user. WHERE .user.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
+		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+	}
+
 	r = dryDB.Table("gorm.user").Select("name").Find(&User{}).Statement
 	if !regexp.MustCompile("SELECT .name. FROM .gorm.\\..user. WHERE .user.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())

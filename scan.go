@@ -208,6 +208,8 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 							}
 						}
 						values[idx] = &sql.RawBytes{}
+					} else if len(columns) == 1 {
+						values[idx] = dest
 					} else {
 						values[idx] = &sql.RawBytes{}
 					}
@@ -238,6 +240,8 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 					}
 				}
 			}
+		default:
+			db.AddError(rows.Scan(dest))
 		}
 	}
 

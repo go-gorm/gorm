@@ -142,17 +142,36 @@ func TestSmartMigrateColumn(t *testing.T) {
 
 }
 
-func TestMigrateWithComment(t *testing.T) {
-	type UserWithComment struct {
+func TestMigrateWithColumnComment(t *testing.T) {
+	type UserWithColumnComment struct {
 		gorm.Model
-		Name string `gorm:"size:111;index:,comment:这是一个index;comment:this is a 字段"`
+		Name string `gorm:"size:111;comment:this is a 字段"`
 	}
 
-	if err := DB.Migrator().DropTable(&UserWithComment{}); err != nil {
+	if err := DB.Migrator().DropTable(&UserWithColumnComment{}); err != nil {
 		t.Fatalf("Failed to drop table, got error %v", err)
 	}
 
-	if err := DB.AutoMigrate(&UserWithComment{}); err != nil {
+	if err := DB.AutoMigrate(&UserWithColumnComment{}); err != nil {
+		t.Fatalf("Failed to auto migrate, but got error %v", err)
+	}
+}
+
+func TestMigrateWithIndexComment(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		t.Skip()
+	}
+
+	type UserWithIndexComment struct {
+		gorm.Model
+		Name string `gorm:"size:111;index:,comment:这是一个index"`
+	}
+
+	if err := DB.Migrator().DropTable(&UserWithIndexComment{}); err != nil {
+		t.Fatalf("Failed to drop table, got error %v", err)
+	}
+
+	if err := DB.AutoMigrate(&UserWithIndexComment{}); err != nil {
 		t.Fatalf("Failed to auto migrate, but got error %v", err)
 	}
 }

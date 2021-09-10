@@ -147,6 +147,21 @@ func BuildQuerySQL(db *gorm.DB) {
 						}
 					}
 
+					if join.On != nil {
+						onStmt := gorm.Statement{Table: tableAliasName, DB: db}
+						join.On.Build(&onStmt)
+						onSQL := onStmt.SQL.String()
+						vars := onStmt.Vars
+						for idx, v := range onStmt.Vars {
+							bindvar := strings.Builder{}
+							onStmt.Vars = vars[0 : idx+1]
+							db.Dialector.BindVarTo(&bindvar, &onStmt, v)
+							onSQL = strings.Replace(onSQL, bindvar.String(), "?", 1)
+						}
+
+						exprs = append(exprs, clause.Expr{SQL: onSQL, Vars: vars})
+					}
+
 					joins = append(joins, clause.Join{
 						Type:  clause.LeftJoin,
 						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
@@ -209,7 +224,7 @@ func Preload(db *gorm.DB) {
 			if rel := db.Statement.Schema.Relationships.Relations[name]; rel != nil {
 				preload(db, rel, db.Statement.Preloads[name], preloadMap[name])
 			} else {
-				db.AddError(fmt.Errorf("%v: %w for schema %v", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
+				db.AddError(fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
 			}
 		}
 	}

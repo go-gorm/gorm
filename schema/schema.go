@@ -119,19 +119,12 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
 
-	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+	if v, loaded := cacheStore.Load(modelType); loaded {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
 		<-s.initialized
 		return s, s.err
 	}
-
-	defer func() {
-		if schema.err != nil {
-			logger.Default.Error(context.Background(), schema.err.Error())
-			cacheStore.Delete(modelType)
-		}
-	}()
 
 	for i := 0; i < modelType.NumField(); i++ {
 		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
@@ -228,10 +221,24 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			case "func(*gorm.DB) error": // TODO hack
 				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(name).SetBool(true)
 			default:
-				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be %v(*gorm.DB)", schema, name, name)
+				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, name, name)
 			}
 		}
 	}
+
+	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
+		<-s.initialized
+		return s, s.err
+	}
+
+	defer func() {
+		if schema.err != nil {
+			logger.Default.Error(context.Background(), schema.err.Error())
+			cacheStore.Delete(modelType)
+		}
+	}()
 
 	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 		for _, field := range schema.Fields {
@@ -244,19 +251,20 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 			}
 
 			fieldValue := reflect.New(field.IndirectFieldType)
-			if fc, ok := fieldValue.Interface().(CreateClausesInterface); ok {
+			fieldInterface := fieldValue.Interface()
+			if fc, ok := fieldInterface.(CreateClausesInterface); ok {
 				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(QueryClausesInterface); ok {
+			if fc, ok := fieldInterface.(QueryClausesInterface); ok {
 				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(UpdateClausesInterface); ok {
+			if fc, ok := fieldInterface.(UpdateClausesInterface); ok {
 				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
 			}
 
-			if fc, ok := fieldValue.Interface().(DeleteClausesInterface); ok {
+			if fc, ok := fieldInterface.(DeleteClausesInterface); ok {
 				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
 			}
 		}

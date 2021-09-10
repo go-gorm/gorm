@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -84,5 +85,49 @@ func TestUpdateHasOne(t *testing.T) {
 		var pet4 Pet
 		DB.Preload("Toy").Find(&pet4, "id = ?", pet.ID)
 		CheckPet(t, pet4, pet)
+	})
+
+	t.Run("Restriction", func(t *testing.T) {
+		type CustomizeAccount struct {
+			gorm.Model
+			UserID sql.NullInt64
+			Number string `gorm:"<-:create"`
+		}
+
+		type CustomizeUser struct {
+			gorm.Model
+			Name    string
+			Account CustomizeAccount `gorm:"foreignkey:UserID"`
+		}
+
+		DB.Migrator().DropTable(&CustomizeUser{})
+		DB.Migrator().DropTable(&CustomizeAccount{})
+
+		if err := DB.AutoMigrate(&CustomizeUser{}); err != nil {
+			t.Fatalf("failed to migrate, got error: %v", err)
+		}
+		if err := DB.AutoMigrate(&CustomizeAccount{}); err != nil {
+			t.Fatalf("failed to migrate, got error: %v", err)
+		}
+
+		number := "number-has-one-associations"
+		cusUser := CustomizeUser{
+			Name: "update-has-one-associations",
+			Account: CustomizeAccount{
+				Number: number,
+			},
+		}
+
+		if err := DB.Create(&cusUser).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+		cusUser.Account.Number += "-update"
+		if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&cusUser).Error; err != nil {
+			t.Fatalf("errors happened when create: %v", err)
+		}
+
+		var account2 CustomizeAccount
+		DB.Find(&account2, "user_id = ?", cusUser.ID)
+		AssertEqual(t, account2.Number, number)
 	})
 }

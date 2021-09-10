@@ -1,9 +1,11 @@
 package tests_test
 
 import (
+	"regexp"
 	"testing"
 	"time"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -50,6 +52,19 @@ func TestUpsert(t *testing.T) {
 	var result Language
 	if err := DB.Find(&result, "code = ?", lang.Code).Error; err != nil || result.Name != lang.Name {
 		t.Fatalf("failed to upsert, got name %v", result.Name)
+	}
+
+	if name := DB.Dialector.Name(); name != "sqlserver" {
+		type RestrictedLanguage struct {
+			Code string `gorm:"primarykey"`
+			Name string
+			Lang string `gorm:"<-:create"`
+		}
+
+		r := DB.Session(&gorm.Session{DryRun: true}).Clauses(clause.OnConflict{UpdateAll: true}).Create(&RestrictedLanguage{Code: "upsert_code", Name: "upsert_name", Lang: "upsert_lang"})
+		if !regexp.MustCompile(`INTO .restricted_languages. .*\(.code.,.name.,.lang.\) .* (SET|UPDATE) .name.=.*.name.[^\w]*$`).MatchString(r.Statement.SQL.String()) {
+			t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+		}
 	}
 }
 

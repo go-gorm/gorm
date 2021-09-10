@@ -50,6 +50,7 @@ type Statement struct {
 type join struct {
 	Name  string
 	Conds []interface{}
+	On    *clause.Where
 }
 
 // StatementModifier statement modifier interface
@@ -129,6 +130,8 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			stmt.QuoteTo(writer, d)
 		}
 		writer.WriteByte(')')
+	case clause.Expr:
+		v.Build(stmt)
 	case string:
 		stmt.DB.Dialector.QuoteTo(writer, v)
 	case []string:

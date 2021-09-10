@@ -69,8 +69,10 @@ func TestUpdate(t *testing.T) {
 	}
 
 	values := map[string]interface{}{"Active": true, "age": 5}
-	if err := DB.Model(user).Updates(values).Error; err != nil {
-		t.Errorf("errors happened when update: %v", err)
+	if res := DB.Model(user).Updates(values); res.Error != nil {
+		t.Errorf("errors happened when update: %v", res.Error)
+	} else if res.RowsAffected != 1 {
+		t.Errorf("rows affected should be 1, but got : %v", res.RowsAffected)
 	} else if user.Age != 5 {
 		t.Errorf("Age should equals to 5, but got %v", user.Age)
 	} else if user.Active != true {
@@ -131,7 +133,10 @@ func TestUpdates(t *testing.T) {
 	lastUpdatedAt := users[0].UpdatedAt
 
 	// update with map
-	DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100})
+	if res := DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100}); res.Error != nil || res.RowsAffected != 1 {
+		t.Errorf("Failed to update users")
+	}
+
 	if users[0].Name != "updates_01_newname" || users[0].Age != 100 {
 		t.Errorf("Record should be updated also with map")
 	}
@@ -641,6 +646,40 @@ func TestSave(t *testing.T) {
 	stmt := dryDB.Save(&user).Statement
 	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
 		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
+	}
+
+	user3 := *GetUser("save3", Config{})
+	DB.Create(&user3)
+
+	if err := DB.First(&User{}, "name = ?", "save3").Error; err != nil {
+		t.Fatalf("failed to find created user")
+	}
+
+	user3.Name = "save3_"
+	if err := DB.Model(User{Model: user3.Model}).Save(&user3).Error; err != nil {
+		t.Fatalf("failed to save user, got %v", err)
+	}
+
+	var result2 User
+	if err := DB.First(&result2, "name = ?", "save3_").Error; err != nil || result2.ID != user3.ID {
+		t.Fatalf("failed to find updated user, got %v", err)
+	}
+
+	if err := DB.Model(User{Model: user3.Model}).Save(&struct {
+		gorm.Model
+		Placeholder string
+		Name        string
+	}{
+		Model:       user3.Model,
+		Placeholder: "placeholder",
+		Name:        "save3__",
+	}).Error; err != nil {
+		t.Fatalf("failed to update user, got %v", err)
+	}
+
+	var result3 User
+	if err := DB.First(&result3, "name = ?", "save3__").Error; err != nil || result3.ID != user3.ID {
+		t.Fatalf("failed to find updated user")
 	}
 }
 

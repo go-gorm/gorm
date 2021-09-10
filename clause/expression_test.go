@@ -61,6 +61,11 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "name1 = ? AND name2 = ?",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
 	}, {
+		SQL:          "name1 = @name AND name2 = @@name",
+		Vars:         []interface{}{map[string]interface{}{"name": "jinzhu"}},
+		Result:       "name1 = ? AND name2 = @@name",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
 		SQL:          "name1 = @name1 AND name2 = @name2 AND name3 = @name1",
 		Vars:         []interface{}{sql.Named("name1", "jinzhu"), sql.Named("name2", "jinzhu2")},
 		Result:       "name1 = ? AND name2 = ? AND name3 = ?",
@@ -73,13 +78,13 @@ func TestNamedExpr(t *testing.T) {
 	}, {
 		SQL:          "@@test AND name1 = @name1 AND name2 = @name2 AND name3 = @name1 @notexist",
 		Vars:         []interface{}{sql.Named("name1", "jinzhu"), sql.Named("name2", "jinzhu2")},
-		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
-		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
+		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? @notexist",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu"},
 	}, {
-		SQL:          "@@test AND name1 = @Name1 AND name2 = @Name2 AND name3 = @Name1 @Notexist",
+		SQL:          "@@test AND name1 = @Name1 AND name2 = @Name2 AND name3 = @Name1 @notexist",
 		Vars:         []interface{}{NamedArgument{Name1: "jinzhu", Base: Base{Name2: "jinzhu2"}}},
-		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? ?",
-		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu", nil},
+		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? @notexist",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu"},
 	}, {
 		SQL:    "create table ? (? ?, ? ?)",
 		Vars:   []interface{}{},
@@ -151,6 +156,18 @@ func TestExpression(t *testing.T) {
 		},
 		ExpectedVars: []interface{}{"a", "b"},
 		Result:       "`column-name` NOT IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: clause.Expr{SQL: "SUM(?)", Vars: []interface{}{clause.Column{Name: "id"}}}, Value: 100},
+		},
+		ExpectedVars: []interface{}{100},
+		Result:       "SUM(`id`) = ?",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Gte{Column: clause.Expr{SQL: "SUM(?)", Vars: []interface{}{clause.Column{Table: "users", Name: "id"}}}, Value: 100},
+		},
+		ExpectedVars: []interface{}{100},
+		Result:       "SUM(`users`.`id`) >= ?",
 	}}
 
 	for idx, result := range results {

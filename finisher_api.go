@@ -376,7 +376,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if selectClause, ok := db.Statement.Clauses["SELECT"]; ok {
 		defer func() {
-			db.Statement.Clauses["SELECT"] = selectClause
+			tx.Statement.Clauses["SELECT"] = selectClause
 		}()
 	} else {
 		defer delete(tx.Statement.Clauses, "SELECT")
@@ -390,7 +390,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
 			fields := strings.FieldsFunc(dbName, utils.IsValidDBNameChar)
-			if len(fields) == 1 || (len(fields) == 3 && strings.ToUpper(fields[1]) == "AS") {
+			if len(fields) == 1 || (len(fields) == 3 && (strings.ToUpper(fields[1]) == "AS" || fields[1] == ".")) {
 				if tx.Statement.Parse(tx.Statement.Model) == nil {
 					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
 						dbName = f.DBName
@@ -410,9 +410,9 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
 		if _, ok := db.Statement.Clauses["GROUP BY"]; !ok {
-			delete(db.Statement.Clauses, "ORDER BY")
+			delete(tx.Statement.Clauses, "ORDER BY")
 			defer func() {
-				db.Statement.Clauses["ORDER BY"] = orderByClause
+				tx.Statement.Clauses["ORDER BY"] = orderByClause
 			}()
 		}
 	}

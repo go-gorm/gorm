@@ -35,7 +35,7 @@ func (db *PreparedStmtDB) Close() {
 	for _, query := range db.PreparedSQL {
 		if stmt, ok := db.Stmts[query]; ok {
 			delete(db.Stmts, query)
-			stmt.Close()
+			go stmt.Close()
 		}
 	}
 
@@ -56,7 +56,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 		db.Mux.Unlock()
 		return stmt, nil
 	} else if ok {
-		stmt.Close()
+		go stmt.Close()
 	}
 
 	stmt, err := conn.PrepareContext(ctx, query)
@@ -83,7 +83,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 		result, err = stmt.ExecContext(ctx, args...)
 		if err != nil {
 			db.Mux.Lock()
-			stmt.Close()
+			go stmt.Close()
 			delete(db.Stmts, query)
 			db.Mux.Unlock()
 		}
@@ -97,7 +97,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 		rows, err = stmt.QueryContext(ctx, args...)
 		if err != nil {
 			db.Mux.Lock()
-			stmt.Close()
+			go stmt.Close()
 			delete(db.Stmts, query)
 			db.Mux.Unlock()
 		}
@@ -138,7 +138,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).ExecContext(ctx, args...)
 		if err != nil {
 			tx.PreparedStmtDB.Mux.Lock()
-			stmt.Close()
+			go stmt.Close()
 			delete(tx.PreparedStmtDB.Stmts, query)
 			tx.PreparedStmtDB.Mux.Unlock()
 		}
@@ -152,7 +152,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 		rows, err = tx.Tx.Stmt(stmt.Stmt).QueryContext(ctx, args...)
 		if err != nil {
 			tx.PreparedStmtDB.Mux.Lock()
-			stmt.Close()
+			go stmt.Close()
 			delete(tx.PreparedStmtDB.Stmts, query)
 			tx.PreparedStmtDB.Mux.Unlock()
 		}
