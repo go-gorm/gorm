@@ -159,6 +159,7 @@ func CreateWithReturning(db *gorm.DB) {
 								break
 							}
 
+							resetFields := map[int]*schema.Field{}
 							for idx, field := range fields {
 								fieldValue := field.ReflectValueOf(reflectValue)
 
@@ -172,22 +173,47 @@ func CreateWithReturning(db *gorm.DB) {
 									goto BEGIN
 								}
 
-								values[idx] = fieldValue.Addr().Interface()
+								if field.FieldType.Kind() == reflect.Ptr {
+									values[idx] = fieldValue.Addr().Interface()
+								} else {
+									reflectValue := reflect.New(reflect.PtrTo(field.FieldType))
+									reflectValue.Elem().Set(fieldValue.Addr())
+									values[idx] = reflectValue.Interface()
+									resetFields[idx] = field
+								}
 							}
 
 							db.RowsAffected++
 							if err := rows.Scan(values...); err != nil {
 								db.AddError(err)
 							}
+
+							for idx, field := range resetFields {
+								if v := reflect.ValueOf(values[idx]).Elem().Elem(); v.IsValid() {
+									field.ReflectValueOf(reflectValue).Set(v)
+								}
+							}
 						}
 					case reflect.Struct:
+						resetFields := map[int]*schema.Field{}
 						for idx, field := range fields {
-							values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+							if field.FieldType.Kind() == reflect.Ptr {
+								values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
+							} else {
+								reflectValue := reflect.New(reflect.PtrTo(field.FieldType))
+								reflectValue.Elem().Set(field.ReflectValueOf(db.Statement.ReflectValue).Addr())
+								values[idx] = reflectValue.Interface()
+								resetFields[idx] = field
+							}
 						}
-
 						if rows.Next() {
 							db.RowsAffected++
 							db.AddError(rows.Scan(values...))
+							for idx, field := range resetFields {
+								if v := reflect.ValueOf(values[idx]).Elem().Elem(); v.IsValid() {
+									field.ReflectValueOf(db.Statement.ReflectValue).Set(v)
+								}
+							}
 						}
 					}
 				} else {
