@@ -522,6 +522,17 @@ func (s *DB) Rollback() *DB {
 	return s
 }
 
+// WrapInTx wraps a method in a transaction
+func (s *DB) WrapInTx(f func(tx *gorm.DB) (error)) error {
+	tx := s.Begin()
+	if err := f(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	tx.Commit()
+	return nil
+}
+
 // NewRecord check if value's primary key is blank
 func (s *DB) NewRecord(value interface{}) bool {
 	return s.NewScope(value).PrimaryKeyZero()
