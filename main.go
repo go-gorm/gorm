@@ -533,6 +533,11 @@ func (s *DB) WrapInTx(f func(tx *gorm.DB) (error)) error {
 	return nil
 }
 
+// SkipAssocSave disables saving of associations
+func (s *DB) SkipAssocSave() *DB {
+	return s.Set("gorm:save_associations", false)
+}
+
 // NewRecord check if value's primary key is blank
 func (s *DB) NewRecord(value interface{}) bool {
 	return s.NewScope(value).PrimaryKeyZero()
