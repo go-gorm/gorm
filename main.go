@@ -523,7 +523,7 @@ func (s *DB) Rollback() *DB {
 }
 
 // WrapInTx wraps a method in a transaction
-func (s *DB) WrapInTx(f func(tx *gorm.DB) (error)) error {
+func (s *DB) WrapInTx(f func(tx *DB) (error)) error {
 	tx := s.Begin()
 	if err := f(tx); err != nil {
 		tx.Rollback()
