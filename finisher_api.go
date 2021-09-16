@@ -399,7 +399,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 				if tx.Statement.Distinct {
 					expr = clause.Expr{SQL: "COUNT(DISTINCT(?))", Vars: []interface{}{clause.Column{Name: dbName}}}
-				} else {
+				} else if dbName != "*" {
 					expr = clause.Expr{SQL: "COUNT(?)", Vars: []interface{}{clause.Column{Name: dbName}}}
 				}
 			}

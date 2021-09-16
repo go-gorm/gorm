@@ -112,7 +112,7 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
 		"(CASE WHEN age=18 THEN 1 ELSE 2 END) as age", "name",
 	).Count(&count8).Find(&users).Error; err != nil || count8 != 3 {
-		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Fatalf("Count should work, but got err %v", err)
 	}
 
 	expects = []User{User{Name: "count-1", Age: 1}, {Name: "count-2", Age: 1}, {Name: "count-3", Age: 1}}
@@ -123,9 +123,15 @@ func TestCount(t *testing.T) {
 	AssertEqual(t, users, expects)
 
 	var count9 int64
-	if err := DB.Debug().Scopes(func(tx *gorm.DB) *gorm.DB {
+	if err := DB.Scopes(func(tx *gorm.DB) *gorm.DB {
 		return tx.Table("users")
 	}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Count(&count9).Find(&users).Error; err != nil || count9 != 3 {
-		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Fatalf("Count should work, but got err %v", err)
 	}
+
+	var count10 int64
+	if err := DB.Model(&User{}).Select("*").Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Count(&count10).Error; err != nil || count10 != 3 {
+		t.Fatalf("Count should be 3, but got count: %v err %v", count10, err)
+	}
+
 }
