@@ -97,11 +97,15 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 		}
 	default:
 		Schema := db.Statement.Schema
+		reflectValue := db.Statement.ReflectValue
+		if reflectValue.Kind() == reflect.Interface {
+			reflectValue = reflectValue.Elem()
+		}
 
-		switch db.Statement.ReflectValue.Kind() {
+		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			var (
-				reflectValueType = db.Statement.ReflectValue.Type().Elem()
+				reflectValueType = reflectValue.Type().Elem()
 				isPtr            = reflectValueType.Kind() == reflect.Ptr
 				fields           = make([]*schema.Field, len(columns))
 				joinFields       [][2]*schema.Field
@@ -111,7 +115,7 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				reflectValueType = reflectValueType.Elem()
 			}
 
-			db.Statement.ReflectValue.Set(reflect.MakeSlice(db.Statement.ReflectValue.Type(), 0, 20))
+			db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
 
 			if Schema != nil {
 				if reflectValueType != Schema.ModelType && reflectValueType.Kind() == reflect.Struct {
@@ -186,13 +190,13 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 
 				if isPtr {
-					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem))
+					db.Statement.ReflectValue.Set(reflect.Append(reflectValue, elem))
 				} else {
-					db.Statement.ReflectValue.Set(reflect.Append(db.Statement.ReflectValue, elem.Elem()))
+					db.Statement.ReflectValue.Set(reflect.Append(reflectValue, elem.Elem()))
 				}
 			}
 		case reflect.Struct, reflect.Ptr:
-			if db.Statement.ReflectValue.Type() != Schema.ModelType {
+			if reflectValue.Type() != Schema.ModelType {
 				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
 			}
 
@@ -220,11 +224,11 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 
 				for idx, column := range columns {
 					if field := Schema.LookUpField(column); field != nil && field.Readable {
-						field.Set(db.Statement.ReflectValue, values[idx])
+						field.Set(reflectValue, values[idx])
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := Schema.Relationships.Relations[names[0]]; ok {
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-								relValue := rel.Field.ReflectValueOf(db.Statement.ReflectValue)
+								relValue := rel.Field.ReflectValueOf(reflectValue)
 								value := reflect.ValueOf(values[idx]).Elem()
 
 								if relValue.Kind() == reflect.Ptr && relValue.IsNil() {

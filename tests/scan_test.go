@@ -29,8 +29,9 @@ func TestScan(t *testing.T) {
 	}
 
 	var resPointer *result
-	DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&resPointer)
-	if res.ID != user3.ID || res.Name != user3.Name || res.Age != int(user3.Age) {
+	if err := DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&resPointer).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if resPointer.ID != user3.ID || resPointer.Name != user3.Name || resPointer.Age != int(user3.Age) {
 		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
 	}
 
@@ -69,6 +70,38 @@ func TestScan(t *testing.T) {
 	DB.Raw("select id from users where id = ?", user2.ID).Scan(&id)
 	if uint(id) != user2.ID {
 		t.Errorf("Failed to scan to customized data type")
+	}
+
+	var resInt interface{}
+	resInt = &User{}
+	if err := DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Find(&resInt).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if resInt.(*User).ID != user3.ID || resInt.(*User).Name != user3.Name || resInt.(*User).Age != user3.Age {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", resInt, user3)
+	}
+
+	var resInt2 interface{}
+	resInt2 = &User{}
+	if err := DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&resInt2).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if resInt2.(*User).ID != user3.ID || resInt2.(*User).Name != user3.Name || resInt2.(*User).Age != user3.Age {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", resInt2, user3)
+	}
+
+	var resInt3 interface{}
+	resInt3 = []User{}
+	if err := DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Find(&resInt3).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if rus := resInt3.([]User); len(rus) == 0 || rus[0].ID != user3.ID || rus[0].Name != user3.Name || rus[0].Age != user3.Age {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", resInt3, user3)
+	}
+
+	var resInt4 interface{}
+	resInt4 = []User{}
+	if err := DB.Table("users").Select("id, name, age").Where("id = ?", user3.ID).Scan(&resInt4).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if rus := resInt4.([]User); len(rus) == 0 || rus[0].ID != user3.ID || rus[0].Name != user3.Name || rus[0].Age != user3.Age {
+		t.Fatalf("Scan into struct should work, got %#v, should %#v", resInt4, user3)
 	}
 }
 
