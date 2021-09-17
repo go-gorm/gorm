@@ -103,6 +103,14 @@ func TestScan(t *testing.T) {
 	} else if rus := resInt4.([]User); len(rus) == 0 || rus[0].ID != user3.ID || rus[0].Name != user3.Name || rus[0].Age != user3.Age {
 		t.Fatalf("Scan into struct should work, got %#v, should %#v", resInt4, user3)
 	}
+
+	var resInt5 interface{}
+	resInt5 = []User{}
+	if err := DB.Table("users").Select("id, name, age").Where("id IN ?", []uint{user1.ID, user2.ID, user3.ID}).Find(&resInt5).Error; err != nil {
+		t.Fatalf("Failed to query with pointer of value, got error %v", err)
+	} else if rus := resInt5.([]User); len(rus) != 3 {
+		t.Fatalf("Scan into struct should work, got %+v, len %v", resInt5, len(rus))
+	}
 }
 
 func TestScanRows(t *testing.T) {

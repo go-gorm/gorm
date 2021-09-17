@@ -190,11 +190,13 @@ func Scan(rows *sql.Rows, db *DB, initialized bool) {
 				}
 
 				if isPtr {
-					db.Statement.ReflectValue.Set(reflect.Append(reflectValue, elem))
+					reflectValue = reflect.Append(reflectValue, elem)
 				} else {
-					db.Statement.ReflectValue.Set(reflect.Append(reflectValue, elem.Elem()))
+					reflectValue = reflect.Append(reflectValue, elem.Elem())
 				}
 			}
+
+			db.Statement.ReflectValue.Set(reflectValue)
 		case reflect.Struct, reflect.Ptr:
 			if reflectValue.Type() != Schema.ModelType {
 				Schema, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
