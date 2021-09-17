@@ -21,9 +21,10 @@ type TimeType int64
 var TimeReflectType = reflect.TypeOf(time.Time{})
 
 const (
-	UnixSecond      TimeType = 1
-	UnixMillisecond TimeType = 2
-	UnixNanosecond  TimeType = 3
+	UnixTime        TimeType = 1
+	UnixSecond      TimeType = 2
+	UnixMillisecond TimeType = 3
+	UnixNanosecond  TimeType = 4
 )
 
 const (
@@ -251,7 +252,9 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if v, ok := field.TagSettings["AUTOCREATETIME"]; ok || (field.Name == "CreatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
-		if strings.ToUpper(v) == "NANO" {
+		if field.DataType == Time {
+			field.AutoCreateTime = UnixTime
+		} else if strings.ToUpper(v) == "NANO" {
 			field.AutoCreateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
 			field.AutoCreateTime = UnixMillisecond
@@ -261,7 +264,9 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if v, ok := field.TagSettings["AUTOUPDATETIME"]; ok || (field.Name == "UpdatedAt" && (field.DataType == Time || field.DataType == Int || field.DataType == Uint)) {
-		if strings.ToUpper(v) == "NANO" {
+		if field.DataType == Time {
+			field.AutoUpdateTime = UnixTime
+		} else if strings.ToUpper(v) == "NANO" {
 			field.AutoUpdateTime = UnixNanosecond
 		} else if strings.ToUpper(v) == "MILLI" {
 			field.AutoUpdateTime = UnixMillisecond

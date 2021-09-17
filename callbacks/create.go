@@ -227,6 +227,8 @@ func AfterCreate(db *gorm.DB) {
 
 // ConvertToCreateValues convert to create values
 func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
+	curTime := stmt.DB.NowFunc()
+
 	switch value := stmt.Dest.(type) {
 	case map[string]interface{}:
 		values = ConvertMapToValuesForCreate(stmt, value)
@@ -240,7 +242,6 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 		var (
 			selectColumns, restricted = stmt.SelectAndOmitColumns(true, false)
 			_, updateTrackTime        = stmt.Get("gorm:update_track_time")
-			curTime                   = stmt.DB.NowFunc()
 			isZero                    bool
 		)
 		stmt.Settings.Delete("gorm:update_track_time")
@@ -352,13 +353,27 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					if field := stmt.Schema.LookUpField(column.Name); field != nil {
 						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
 							if !field.PrimaryKey && (!field.HasDefaultValue || field.DefaultValueInterface != nil) && field.AutoCreateTime == 0 {
-								columns = append(columns, column.Name)
+								if field.AutoUpdateTime > 0 {
+									assignment := clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: curTime}
+									switch field.AutoUpdateTime {
+									case schema.UnixNanosecond:
+										assignment.Value = curTime.UnixNano()
+									case schema.UnixMillisecond:
+										assignment.Value = curTime.UnixNano() / 1e6
+									case schema.UnixSecond:
+										assignment.Value = curTime.Unix()
+									}
+
+									onConflict.DoUpdates = append(onConflict.DoUpdates, assignment)
+								} else {
+									columns = append(columns, column.Name)
+								}
 							}
 						}
 					}
 				}
 
-				onConflict.DoUpdates = clause.AssignmentColumns(columns)
+				onConflict.DoUpdates = append(onConflict.DoUpdates, clause.AssignmentColumns(columns)...)
 
 				// use primary fields as default OnConflict columns
 				if len(onConflict.Columns) == 0 {
