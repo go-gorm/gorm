@@ -8,9 +8,9 @@ require (
 	github.com/lib/pq v1.10.3
 	gorm.io/driver/mysql v1.1.2
 	gorm.io/driver/postgres v1.1.0
-	gorm.io/driver/sqlite v1.1.4
+	gorm.io/driver/sqlite v1.1.5
 	gorm.io/driver/sqlserver v1.0.9
-	gorm.io/gorm v1.21.14
+	gorm.io/gorm v1.21.15
 )
 
 replace gorm.io/gorm => ../
