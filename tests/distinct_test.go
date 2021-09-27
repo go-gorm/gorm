@@ -31,6 +31,12 @@ func TestDistinct(t *testing.T) {
 
 	AssertEqual(t, names1, []string{"distinct", "distinct-2", "distinct-3"})
 
+	var names2 []string
+	DB.Scopes(func(db *gorm.DB) *gorm.DB {
+		return db.Table("users")
+	}).Where("name like ?", "distinct%").Order("name").Pluck("name", &names2)
+	AssertEqual(t, names2, []string{"distinct", "distinct", "distinct", "distinct-2", "distinct-3"})
+
 	var results []User
 	if err := DB.Distinct("name", "age").Where("name like ?", "distinct%").Order("name, age desc").Find(&results).Error; err != nil {
 		t.Errorf("failed to query users, got error: %v", err)
