@@ -483,8 +483,6 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 				column = f.DBName
 			}
 		}
-	} else if tx.Statement.Table == "" {
-		tx.AddError(ErrModelValueRequired)
 	}
 
 	if len(tx.Statement.Selects) != 1 {
