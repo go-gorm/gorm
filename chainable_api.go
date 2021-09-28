@@ -175,10 +175,10 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 
-	if len(args) > 0 {
+	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
 			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
-				tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args[1:], On: &where})
+				tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args, On: &where})
 				return
 			}
 		}
