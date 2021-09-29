@@ -94,6 +94,34 @@ func TestNamedExpr(t *testing.T) {
 		Vars:         []interface{}{sql.Named("name", "jinzhu")},
 		Result:       "name1 = ? AND name2 = ?;",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Column{Table: "table", Name: "col"}},
+		Result: "`table`.`col`",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Column{Table: "table", Name: "col", Raw: true}},
+		Result: "table.col",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Column{Table: "table", Name: clause.PrimaryKey, Raw: true}},
+		Result: "table.id",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Column{Table: "table", Name: "col", Alias: "alias"}},
+		Result: "`table`.`col` AS `alias`",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Column{Table: "table", Name: "col", Alias: "alias", Raw: true}},
+		Result: "table.col AS alias",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Table{Name: "table", Alias: "alias"}},
+		Result: "`table` AS `alias`",
+	}, {
+		SQL:    "?",
+		Vars:   []interface{}{clause.Table{Name: "table", Alias: "alias", Raw: true}},
+		Result: "table AS alias",
 	}}
 
 	for idx, result := range results {
