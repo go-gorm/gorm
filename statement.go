@@ -75,30 +75,36 @@ func (stmt *Statement) WriteQuoted(value interface{}) {
 
 // QuoteTo write quoted value to writer
 func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
+	write := func(raw bool, str string) {
+		if raw {
+			writer.WriteString(str)
+		} else {
+			stmt.DB.Dialector.QuoteTo(writer, str)
+		}
+	}
+
 	switch v := field.(type) {
 	case clause.Table:
 		if v.Name == clause.CurrentTable {
 			if stmt.TableExpr != nil {
 				stmt.TableExpr.Build(stmt)
 			} else {
-				stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
+				write(v.Raw, stmt.Table)
 			}
-		} else if v.Raw {
-			writer.WriteString(v.Name)
 		} else {
-			stmt.DB.Dialector.QuoteTo(writer, v.Name)
+			write(v.Raw, v.Name)
 		}
 
 		if v.Alias != "" {
 			writer.WriteByte(' ')
-			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
+			write(v.Raw, v.Alias)
 		}
 	case clause.Column:
 		if v.Table != "" {
 			if v.Table == clause.CurrentTable {
-				stmt.DB.Dialector.QuoteTo(writer, stmt.Table)
+				write(v.Raw, stmt.Table)
 			} else {
-				stmt.DB.Dialector.QuoteTo(writer, v.Table)
+				write(v.Raw, v.Table)
 			}
 			writer.WriteByte('.')
 		}
@@ -107,19 +113,17 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			if stmt.Schema == nil {
 				stmt.DB.AddError(ErrModelValueRequired)
 			} else if stmt.Schema.PrioritizedPrimaryField != nil {
-				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.PrioritizedPrimaryField.DBName)
+				write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
 			} else if len(stmt.Schema.DBNames) > 0 {
-				stmt.DB.Dialector.QuoteTo(writer, stmt.Schema.DBNames[0])
+				write(v.Raw, stmt.Schema.DBNames[0])
 			}
-		} else if v.Raw {
-			writer.WriteString(v.Name)
 		} else {
-			stmt.DB.Dialector.QuoteTo(writer, v.Name)
+			write(v.Raw, v.Name)
 		}
 
 		if v.Alias != "" {
 			writer.WriteString(" AS ")
-			stmt.DB.Dialector.QuoteTo(writer, v.Alias)
+			write(v.Raw, v.Alias)
 		}
 	case []clause.Column:
 		writer.WriteByte('(')
