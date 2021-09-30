@@ -310,7 +310,7 @@ func TestFindOrCreate(t *testing.T) {
 	}
 }
 
-func TestSaveWithFileNotUpdate(t *testing.T) {
+func TestUpdateWithMissWhere(t *testing.T) {
 	type User struct {
 		ID   uint   `gorm:"column:id;<-:create"`
 		Name string `gorm:"column:name"`
