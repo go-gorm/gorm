@@ -235,7 +235,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, dbName := range stmt.Schema.DBNames {
-				if field := updatingSchema.LookUpField(dbName); field != nil && field.Updatable {
+				if field := updatingSchema.LookUpField(dbName); field != nil {
 					if !field.PrimaryKey || !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && (!restricted || (!stmt.SkipHooks && field.AutoUpdateTime > 0))) {
 							value, isZero := field.ValueOf(updatingValue)
@@ -252,7 +252,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 								isZero = false
 							}
 
-							if ok || !isZero {
+							if (ok || !isZero) && field.Updatable {
 								set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
 								assignValue(field, value)
 							}

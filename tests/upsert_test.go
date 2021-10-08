@@ -309,3 +309,22 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("belongs to association should be saved")
 	}
 }
+
+func TestUpdateWithMissWhere(t *testing.T) {
+	type User struct {
+		ID   uint   `gorm:"column:id;<-:create"`
+		Name string `gorm:"column:name"`
+	}
+	user := User{ID: 1, Name: "king"}
+	tx := DB.Session(&gorm.Session{DryRun: true}).Save(&user)
+
+	if err := tx.Error; err != nil {
+		t.Fatalf("failed to update user,missing where condtion,err=%+v", err)
+
+	}
+
+	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(tx.Statement.SQL.String()) {
+		t.Fatalf("invalid updating SQL, got %v", tx.Statement.SQL.String())
+	}
+
+}
