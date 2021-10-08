@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -627,6 +628,8 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	return false
 }
 
+var nameMatcher = regexp.MustCompile(`\.[\W]?(.+?)[\W]?$`)
+
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
 func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool) {
 	results := map[string]bool{}
@@ -647,6 +650,8 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 			}
 		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
 			results[field.DBName] = true
+		} else if matches := nameMatcher.FindStringSubmatch(column); len(matches) == 2 {
+			results[matches[1]] = true
 		} else {
 			results[column] = true
 		}
@@ -662,6 +667,8 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 			}
 		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
 			results[field.DBName] = false
+		} else if matches := nameMatcher.FindStringSubmatch(omit); len(matches) == 2 {
+			results[matches[1]] = false
 		} else {
 			results[omit] = false
 		}
