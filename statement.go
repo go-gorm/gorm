@@ -271,13 +271,19 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		if _, err := strconv.Atoi(s); err != nil {
 			if s == "" && len(args) == 0 {
 				return nil
-			} else if len(args) == 0 || (len(args) > 0 && strings.Contains(s, "?")) {
+			}
+
+			if len(args) == 0 || (len(args) > 0 && strings.Contains(s, "?")) {
 				// looks like a where condition
 				return []clause.Expression{clause.Expr{SQL: s, Vars: args}}
-			} else if len(args) > 0 && strings.Contains(s, "@") {
+			}
+
+			if len(args) > 0 && strings.Contains(s, "@") {
 				// looks like a named query
 				return []clause.Expression{clause.NamedExpr{SQL: s, Vars: args}}
-			} else if len(args) == 1 {
+			}
+
+			if len(args) == 1 {
 				return []clause.Expression{clause.Eq{Column: s, Value: args[0]}}
 			}
 		}
