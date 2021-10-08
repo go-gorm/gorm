@@ -144,6 +144,25 @@ func TestHasOneOverrideReferences(t *testing.T) {
 	})
 }
 
+func TestHasOneOverrideReferences2(t *testing.T) {
+
+	type Profile struct {
+		gorm.Model
+		Name string
+	}
+
+	type User struct {
+		gorm.Model
+		ProfileID uint     `gorm:"column:profile_id"`
+		Profile   *Profile `gorm:"foreignKey:ID;references:ProfileID"`
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profile", Type: schema.HasOne, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"ProfileID", "User", "ID", "Profile", "", true}},
+	})
+}
+
 func TestHasOneWithOnlyReferences(t *testing.T) {
 	type Profile struct {
 		gorm.Model
@@ -483,22 +502,47 @@ func TestSameForeignKey(t *testing.T) {
 	)
 }
 
-func TestBelongsToWithSameForeignKey(t *testing.T) {
+func TestBelongsToSameForeignKey(t *testing.T) {
+
+	type User struct {
+		gorm.Model
+		Name string
+		UUID string
+	}
+
+	type UserAux struct {
+		gorm.Model
+		Aux  string
+		UUID string
+		User User `gorm:"ForeignKey:UUID;references:UUID;belongsTo"`
+	}
+
+	checkStructRelation(t, &UserAux{},
+		Relation{
+			Name: "User", Type: schema.BelongsTo, Schema: "UserAux", FieldSchema: "User",
+			References: []Reference{
+				{"UUID", "User", "UUID", "UserAux", "", false},
+			},
+		},
+	)
+}
+
+func TestHasOneWithSameForeignKey(t *testing.T) {
 	type Profile struct {
 		gorm.Model
 		Name         string
-		ProfileRefer int
+		ProfileRefer int // not used in relationship
 	}
 
 	type User struct {
 		gorm.Model
-		Profile      Profile `gorm:"ForeignKey:ProfileRefer"`
+		Profile      Profile `gorm:"ForeignKey:ID;references:ProfileRefer"`
 		ProfileRefer int
 	}
 
 	checkStructRelation(t, &User{}, Relation{
-		Name: "Profile", Type: schema.BelongsTo, Schema: "User", FieldSchema: "Profile",
-		References: []Reference{{"ID", "Profile", "ProfileRefer", "User", "", false}},
+		Name: "Profile", Type: schema.HasOne, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"ProfileRefer", "User", "ID", "Profile", "", true}},
 	})
 }
 
