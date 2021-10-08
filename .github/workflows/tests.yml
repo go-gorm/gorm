@@ -13,7 +13,7 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.17', '1.16', '1.15']
+        go: ['1.17', '1.16']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['mysql:latest', 'mysql:5.7', 'mariadb:latest']
-        go: ['1.17', '1.16', '1.15']
+        go: ['1.17', '1.16']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -82,8 +82,8 @@ jobs:
   postgres:
     strategy:
       matrix:
-        dbversion: ['postgres:latest', 'postgres:12', 'postgres:11', 'postgres:10']
-        go: ['1.17', '1.16', '1.15']
+        dbversion: ['postgres:latest', 'postgres:13', 'postgres:12', 'postgres:11', 'postgres:10']
+        go: ['1.17', '1.16']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -125,7 +125,7 @@ jobs:
   sqlserver:
     strategy:
       matrix:
-        go: ['1.17', '1.16', '1.15']
+        go: ['1.17', '1.16']
         platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
