@@ -95,18 +95,17 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 
 		// inline joins
-		if len(db.Statement.Joins) != 0 {
+		joins := []clause.Join{}
+		if fromClause, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+			joins = fromClause.Joins
+		}
+
+		if len(db.Statement.Joins) != 0 || len(joins) != 0 {
 			if len(db.Statement.Selects) == 0 && db.Statement.Schema != nil {
 				clauseSelect.Columns = make([]clause.Column, len(db.Statement.Schema.DBNames))
 				for idx, dbName := range db.Statement.Schema.DBNames {
 					clauseSelect.Columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
 				}
-			}
-
-			joins := []clause.Join{}
-
-			if fromClause, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
-				joins = fromClause.Joins
 			}
 
 			for _, join := range db.Statement.Joins {
