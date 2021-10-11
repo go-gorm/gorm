@@ -687,10 +687,10 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		parsedSchemas                 = map[*schema.Schema]bool{}
 		valuesMap                     = map[string]Dependency{}
 		insertIntoOrderedList         func(name string)
-		parseDependence               func(value interface{}, addToList bool)
+		parseDependence               func(value interface{}, addToList, useSchemaTable bool)
 	)
 
-	parseDependence = func(value interface{}, addToList bool) {
+	parseDependence = func(value interface{}, addToList, useSchemaTable bool) {
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
@@ -698,6 +698,13 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		if err := dep.Parse(value); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
 		}
+
+		if useSchemaTable {
+			if m.DB.Statement != nil && m.DB.Statement.Table != "" {
+				dep.Schema.Table = m.DB.Statement.Table
+			}
+		}
+
 		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
 			return
 		}
@@ -719,9 +726,9 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 						dep.Depends = append(dep.Depends, rel.FieldSchema)
 					} else {
 						fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-						parseDependence(fieldValue, autoAdd)
+						parseDependence(fieldValue, autoAdd, false)
 					}
-					parseDependence(joinValue, autoAdd)
+					parseDependence(joinValue, autoAdd, false)
 				}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
 			}
 		}
@@ -745,7 +752,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 				if _, ok := valuesMap[d.Table]; ok {
 					insertIntoOrderedList(d.Table)
 				} else {
-					parseDependence(reflect.New(d.ModelType).Interface(), autoAdd)
+					parseDependence(reflect.New(d.ModelType).Interface(), autoAdd, false)
 					insertIntoOrderedList(d.Table)
 				}
 			}
@@ -758,7 +765,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		if v, ok := value.(string); ok {
 			results = append(results, v)
 		} else {
-			parseDependence(value, true)
+			parseDependence(value, true, true)
 		}
 	}
 

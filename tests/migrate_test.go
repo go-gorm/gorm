@@ -381,3 +381,40 @@ func TestMigrateConstraint(t *testing.T) {
 		}
 	}
 }
+
+type NewUser struct {
+	gorm.Model
+	Name  string `gorm:"index"`
+	Table string `gorm:"-"`
+}
+
+func TestMigrateIndexesWithDynamicTableName(t *testing.T) {
+	tableNameFunc := func(v string) string {
+		return "newuser_" + strings.ToLower(v)
+	}
+	userTableFunc := func(u *NewUser) func(*gorm.DB) *gorm.DB {
+		return func(db *gorm.DB) *gorm.DB {
+			return db.Table(tableNameFunc(u.Table))
+		}
+	}
+
+	tableName := []string{"a", "b", "c"}
+	for _, v := range tableName {
+		nu := &NewUser{
+			Table: v,
+		}
+
+		tableName := tableNameFunc(nu.Table)
+		m := DB.Scopes(userTableFunc(nu)).Migrator()
+		if err := m.AutoMigrate(&nu); err != nil {
+			t.Fatalf("Failed to create table for %#v---", tableName)
+		}
+
+		if !m.HasTable(tableName) {
+			t.Fatalf("Failed to create table for %#v---", tableName)
+		}
+		if !m.HasIndex(&NewUser{}, "Name") {
+			t.Fatalf("Should find index for %s's name after AutoMigrate", tableName)
+		}
+	}
+}
