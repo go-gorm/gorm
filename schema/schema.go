@@ -134,7 +134,7 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
 			if field := schema.ParseField(fieldStruct); field.EmbeddedSchema != nil {
 				schema.Fields = append(schema.Fields, field.EmbeddedSchema.Fields...)
-			} else {
+			} else if field.Tag.Get("json") != "-" {
 				schema.Fields = append(schema.Fields, field)
 			}
 		}
