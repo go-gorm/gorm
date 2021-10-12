@@ -381,3 +381,33 @@ func TestMigrateConstraint(t *testing.T) {
 		}
 	}
 }
+
+type MigrateUser struct {
+	gorm.Model
+	Name string `gorm:"index"`
+}
+
+// https://github.com/go-gorm/gorm/issues/4752
+func TestMigrateIndexesWithDynamicTableName(t *testing.T) {
+	tableNameSuffixes := []string{"01", "02", "03"}
+	for _, v := range tableNameSuffixes {
+		tableName := "migrate_user_" + v
+		m := DB.Scopes(func(db *gorm.DB) *gorm.DB {
+			return db.Table(tableName)
+		}).Migrator()
+
+		if err := m.AutoMigrate(&MigrateUser{}); err != nil {
+			t.Fatalf("Failed to create table for %#v", tableName)
+		}
+
+		if !m.HasTable(tableName) {
+			t.Fatalf("Failed to create table for %#v", tableName)
+		}
+		if !m.HasIndex(&MigrateUser{}, "Name") {
+			t.Fatalf("Should find index for %s's name after AutoMigrate", tableName)
+		}
+		if !m.HasIndex(&MigrateUser{}, "DeletedAt") {
+			t.Fatalf("Should find index for %s's deleted_at after AutoMigrate", tableName)
+		}
+	}
+}
