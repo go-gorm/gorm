@@ -518,7 +518,7 @@ func TestCreateFromSubQuery(t *testing.T) {
 	}
 }
 
-func TestNilPointer(t *testing.T) {
+func TestCreateNilPointer(t *testing.T) {
 	var user *User
 
 	err := DB.Create(user).Error

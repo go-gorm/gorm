@@ -78,12 +78,10 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 	}
 
 	value := reflect.ValueOf(dest)
-	var modelType reflect.Type
-	if value.IsZero() {
-		modelType = value.Type()
-	} else {
-		modelType = reflect.Indirect(value).Type()
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		value = reflect.New(value.Type().Elem())
 	}
+	modelType := reflect.Indirect(value).Type()
 
 	if modelType.Kind() == reflect.Interface {
 		modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
