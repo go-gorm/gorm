@@ -522,7 +522,7 @@ func TestCreateNilPointer(t *testing.T) {
 	var user *User
 
 	err := DB.Create(user).Error
-	if err == nil || err != gorm.ErrInvalidValue {
-		t.Fatalf("it is not ErrInvalidValue")
+	if err != nil && !regexp.MustCompile("invalid value,.*?").MatchString(err.Error()) {
+		t.Errorf("err is not meet expectations,err=%+v", err)
 	}
 }
