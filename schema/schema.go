@@ -77,7 +77,12 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
 
-	modelType := reflect.Indirect(reflect.ValueOf(dest)).Type()
+	value := reflect.ValueOf(dest)
+	if value.Kind() == reflect.Ptr && value.IsNil() {
+		value = reflect.New(value.Type().Elem())
+	}
+	modelType := reflect.Indirect(value).Type()
+
 	if modelType.Kind() == reflect.Interface {
 		modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
 	}

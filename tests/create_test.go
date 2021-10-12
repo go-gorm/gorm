@@ -517,3 +517,12 @@ func TestCreateFromSubQuery(t *testing.T) {
 		t.Errorf("invalid insert SQL, got %v", result.Statement.SQL.String())
 	}
 }
+
+func TestCreateNilPointer(t *testing.T) {
+	var user *User
+
+	err := DB.Create(user).Error
+	if err == nil || err != gorm.ErrInvalidValue {
+		t.Fatalf("it is not ErrInvalidValue")
+	}
+}
