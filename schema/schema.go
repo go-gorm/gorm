@@ -115,15 +115,18 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 	}
 
 	modelValue := reflect.New(modelType)
-	tableName := namer.TableName(modelType.Name())
-	if schemaTable != "" {
-		tableName = schemaTable
-	}
-	if tabler, ok := modelValue.Interface().(Tabler); ok {
-		tableName = tabler.TableName()
-	}
-	if en, ok := namer.(embeddedNamer); ok {
-		tableName = en.Table
+
+	// schemaTable for assignment table name directly
+	tableName := schemaTable
+	if schemaTable == "" {
+		tableName = namer.TableName(modelType.Name())
+
+		if tabler, ok := modelValue.Interface().(Tabler); ok {
+			tableName = tabler.TableName()
+		}
+		if en, ok := namer.(embeddedNamer); ok {
+			tableName = en.Table
+		}
 	}
 
 	schema := &Schema{
