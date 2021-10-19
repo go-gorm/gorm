@@ -73,6 +73,15 @@ type Tabler interface {
 
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+	return parse(dest, cacheStore, namer, "")
+}
+
+// ParseWithSchemaTable get data type from dialector with extra schema table
+func ParseWithSchemaTable(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable string) (*Schema, error) {
+	return parse(dest, cacheStore, namer, schemaTable)
+}
+
+func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable string) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -107,6 +116,9 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 	modelValue := reflect.New(modelType)
 	tableName := namer.TableName(modelType.Name())
+	if schemaTable != "" {
+		tableName = schemaTable
+	}
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
 	}
@@ -235,11 +247,13 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 		}
 	}
 
-	if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
-		s := v.(*Schema)
-		// Wait for the initialization of other goroutines to complete
-		<-s.initialized
-		return s, s.err
+	if schemaTable == "" {
+		if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
+			s := v.(*Schema)
+			// Wait for the initialization of other goroutines to complete
+			<-s.initialized
+			return s, s.err
+		}
 	}
 
 	defer func() {
