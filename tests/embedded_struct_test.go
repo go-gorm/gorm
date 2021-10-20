@@ -4,10 +4,10 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"testing"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
+	"testing"
 )
 
 func TestEmbeddedStruct(t *testing.T) {

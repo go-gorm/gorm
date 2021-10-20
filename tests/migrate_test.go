@@ -398,7 +398,7 @@ func TestMigrateIndexesWithDynamicTableName(t *testing.T) {
 
 	// Create sub tables
 	for _, v := range []string{"01", "02", "03"} {
-		tableName := "users_" + v
+		tableName := "dynamic_users_" + v
 		m := DB.Scopes(func(db *gorm.DB) *gorm.DB {
 			return db.Table(tableName)
 		}).Migrator()

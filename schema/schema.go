@@ -107,7 +107,17 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
 	}
 
-	if v, ok := cacheStore.Load(modelType); ok {
+	// Cache the Schema for performance,
+	// Use the modelType or modelType + schemaTable (if it present) as cache key.
+	var schemaCacheKey interface{}
+	if schemaTable != "" {
+		schemaCacheKey = fmt.Sprintf("%p-%s", &modelType, schemaTable)
+	} else {
+		schemaCacheKey = modelType
+	}
+
+	// Load exist schmema cache, return if exists
+	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
 		<-s.initialized
@@ -115,18 +125,15 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 	}
 
 	modelValue := reflect.New(modelType)
-
-	// schemaTable for assignment table name directly
-	tableName := schemaTable
-	if schemaTable == "" {
-		tableName = namer.TableName(modelType.Name())
-
-		if tabler, ok := modelValue.Interface().(Tabler); ok {
-			tableName = tabler.TableName()
-		}
-		if en, ok := namer.(embeddedNamer); ok {
-			tableName = en.Table
-		}
+	tableName := namer.TableName(modelType.Name())
+	if tabler, ok := modelValue.Interface().(Tabler); ok {
+		tableName = tabler.TableName()
+	}
+	if en, ok := namer.(embeddedNamer); ok {
+		tableName = en.Table
+	}
+	if schemaTable != "" && schemaTable != tableName {
+		tableName = schemaTable
 	}
 
 	schema := &Schema{
@@ -143,7 +150,8 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
 
-	if v, loaded := cacheStore.Load(modelType); loaded {
+	// Load exist schmema cache, return if exists
+	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
 		<-s.initialized
@@ -250,13 +258,12 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 		}
 	}
 
-	if schemaTable == "" {
-		if v, loaded := cacheStore.LoadOrStore(modelType, schema); loaded {
-			s := v.(*Schema)
-			// Wait for the initialization of other goroutines to complete
-			<-s.initialized
-			return s, s.err
-		}
+	// Cache the schema
+	if v, loaded := cacheStore.LoadOrStore(schemaCacheKey, schema); loaded {
+		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
+		<-s.initialized
+		return s, s.err
 	}
 
 	defer func() {
