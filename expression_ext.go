@@ -346,6 +346,15 @@ func (e *expr) in(operator string, values ...interface{}) *expr {
 	if len(values) == 1 {
 		s := reflect.ValueOf(values[0])
 		if s.Kind() == reflect.Slice {
+			if s.Len() == 0 {
+				if operator == "" {
+					e.expr = "1 = 0"
+					return e
+				} else {
+					e.expr = "1 = 1"
+					return e
+				}
+			}
 			vals := make([]interface{}, s.Len())
 			qm := make([]string, s.Len())
 
