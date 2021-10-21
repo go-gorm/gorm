@@ -376,10 +376,20 @@ func (e *expr) in(operator string, values ...interface{}) *expr {
 }
 
 func (e *expr) In(values ...interface{}) *expr {
+	if len(values) == 0 {
+		e.expr = "1 = 0"
+		return e
+	}
+
 	return e.in("", values...)
 }
 
 func (e *expr) NotIn(values ...interface{}) *expr {
+	if len(values) == 0 {
+		e.expr = "1 = 1"
+		return e
+	}
+
 	return e.in(" NOT", values...)
 }
 
