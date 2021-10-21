@@ -441,13 +441,13 @@ func (db *DB) UpdateFields(fields ...string) *DB {
 		sets[db.C(db.Value, field)] = m.FieldByName(field).Interface()
 	}
 
-	return db.Set("gorm:save_associations", false).Update(sets)
+	return db.clone().Set("gorm:save_associations", false).Update(sets)
 }
 
 func (db *DB) SelectFields(fields ...string) *DB {
 	selects := strings.Join(fields, ", ")
 
-	return db.Select(selects)
+	return db.clone().Select(selects)
 }
 
 func (e *expr) Intersect(e2 *expr) *expr {
