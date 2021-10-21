@@ -43,7 +43,7 @@ func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error
 
 	if table, ok := value.(string); ok {
 		stmt.Table = table
-	} else if err := stmt.ParseWithTableName(value, stmt.Table); err != nil {
+	} else if err := stmt.ParseWithSpecialTableName(value, stmt.Table); err != nil {
 		return err
 	}
 

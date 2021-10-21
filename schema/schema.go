@@ -73,15 +73,11 @@ type Tabler interface {
 
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	return parse(dest, cacheStore, namer, "")
+	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
 }
 
-// ParseWithSchemaTable get data type from dialector with extra schema table
-func ParseWithSchemaTable(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable string) (*Schema, error) {
-	return parse(dest, cacheStore, namer, schemaTable)
-}
-
-func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable string) (*Schema, error) {
+// ParseWithSpecialTableName get data type from dialector with extra schema table
+func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -110,8 +106,8 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 	// Cache the Schema for performance,
 	// Use the modelType or modelType + schemaTable (if it present) as cache key.
 	var schemaCacheKey interface{}
-	if schemaTable != "" {
-		schemaCacheKey = fmt.Sprintf("%p-%s", &modelType, schemaTable)
+	if specialTableName != "" {
+		schemaCacheKey = fmt.Sprintf("%p-%s", modelType, specialTableName)
 	} else {
 		schemaCacheKey = modelType
 	}
@@ -132,8 +128,8 @@ func parse(dest interface{}, cacheStore *sync.Map, namer Namer, schemaTable stri
 	if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
 	}
-	if schemaTable != "" && schemaTable != tableName {
-		tableName = schemaTable
+	if specialTableName != "" && specialTableName != tableName {
+		tableName = specialTableName
 	}
 
 	schema := &Schema{
