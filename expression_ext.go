@@ -441,7 +441,7 @@ func (db *DB) UpdateFields(fields ...string) *DB {
 		sets[db.C(db.Value, field)] = m.FieldByName(field).Interface()
 	}
 
-	return db.clone().Set("gorm:save_associations", false).Update(sets)
+	return db.clone().Set("gorm:save_associations", false).Set("gorm:association_save_reference", false).Update(sets)
 }
 
 func (db *DB) SelectFields(fields ...string) *DB {
