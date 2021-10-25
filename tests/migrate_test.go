@@ -382,32 +382,41 @@ func TestMigrateConstraint(t *testing.T) {
 	}
 }
 
-type MigrateUser struct {
+type DynamicUser struct {
 	gorm.Model
-	Name string `gorm:"index"`
+	Name      string
+	CompanyID string `gorm:"index"`
 }
 
+// To test auto migrate crate indexes for dynamic table name
 // https://github.com/go-gorm/gorm/issues/4752
 func TestMigrateIndexesWithDynamicTableName(t *testing.T) {
-	tableNameSuffixes := []string{"01", "02", "03"}
-	for _, v := range tableNameSuffixes {
-		tableName := "migrate_user_" + v
+	// Create primary table
+	if err := DB.AutoMigrate(&DynamicUser{}); err != nil {
+		t.Fatalf("AutoMigrate create table error: %#v", err)
+	}
+
+	// Create sub tables
+	for _, v := range []string{"01", "02", "03"} {
+		tableName := "dynamic_users_" + v
 		m := DB.Scopes(func(db *gorm.DB) *gorm.DB {
 			return db.Table(tableName)
 		}).Migrator()
 
-		if err := m.AutoMigrate(&MigrateUser{}); err != nil {
-			t.Fatalf("Failed to create table for %#v", tableName)
+		if err := m.AutoMigrate(&DynamicUser{}); err != nil {
+			t.Fatalf("AutoMigrate create table error: %#v", err)
 		}
 
 		if !m.HasTable(tableName) {
-			t.Fatalf("Failed to create table for %#v", tableName)
+			t.Fatalf("AutoMigrate expected %#v exist, but not.", tableName)
 		}
-		if !m.HasIndex(&MigrateUser{}, "Name") {
-			t.Fatalf("Should find index for %s's name after AutoMigrate", tableName)
+
+		if !m.HasIndex(&DynamicUser{}, "CompanyID") {
+			t.Fatalf("Should have index on %s", "CompanyI.")
 		}
-		if !m.HasIndex(&MigrateUser{}, "DeletedAt") {
-			t.Fatalf("Should find index for %s's deleted_at after AutoMigrate", tableName)
+
+		if !m.HasIndex(&DynamicUser{}, "DeletedAt") {
+			t.Fatalf("Should have index on deleted_at.")
 		}
 	}
 }

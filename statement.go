@@ -456,7 +456,11 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	if stmt.Schema, err = schema.ParseWithSchemaTable(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, stmt.DB.Statement.Table); err == nil && stmt.Table == "" {
+	return stmt.ParseWithSpecialTableName(value, "")
+}
+
+func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
+	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
