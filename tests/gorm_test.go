@@ -1,9 +1,9 @@
 package tests_test
 
 import (
-	"gorm.io/gorm"
-	"gorm.io/gorm/callbacks"
 	"testing"
+
+	"gorm.io/gorm"
 )
 
 func TestReturningWithNullToZeroValues(t *testing.T) {
@@ -20,11 +20,6 @@ func TestReturningWithNullToZeroValues(t *testing.T) {
 			Name string `gorm:"default:null"`
 		}
 		u1 := user{}
-		c := DB.Callback().Create().Get("gorm:create")
-		t.Cleanup(func() {
-			DB.Callback().Create().Replace("gorm:create", c)
-		})
-		DB.Callback().Create().Replace("gorm:create", callbacks.Create(&callbacks.Config{WithReturning: true}))
 
 		if results := DB.Create(&u1); results.Error != nil {
 			t.Fatalf("errors happened on create: %v", results.Error)

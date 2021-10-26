@@ -26,7 +26,7 @@ func (onConflict OnConflict) Build(builder Builder) {
 		}
 		builder.WriteString(`) `)
 	}
-	
+
 	if len(onConflict.TargetWhere.Exprs) > 0 {
 		builder.WriteString(" WHERE ")
 		onConflict.TargetWhere.Build(builder)

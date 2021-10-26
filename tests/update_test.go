@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -166,13 +167,16 @@ func TestUpdates(t *testing.T) {
 	}
 
 	// update with gorm exprs
-	if err := DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+	if err := DB.Debug().Model(&user3).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}}).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
 		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
 	}
 	var user4 User
 	DB.First(&user4, user3.ID)
 
-	user3.Age += 100
+	// sqlite, postgres support returning
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+		user3.Age += 100
+	}
 	AssertObjEqual(t, user4, user3, "UpdatedAt", "Age")
 }
 

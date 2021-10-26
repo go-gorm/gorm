@@ -50,40 +50,56 @@ func BeforeUpdate(db *gorm.DB) {
 	}
 }
 
-func Update(db *gorm.DB) {
-	if db.Error != nil {
-		return
-	}
-
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
-		for _, c := range db.Statement.Schema.UpdateClauses {
-			db.Statement.AddClause(c)
+func Update(config *Config) func(db *gorm.DB) {
+	withReturning := false
+	for _, clause := range config.UpdateClauses {
+		if clause == "RETURNING" {
+			withReturning = true
 		}
 	}
 
-	if db.Statement.SQL.String() == "" {
-		db.Statement.SQL.Grow(180)
-		db.Statement.AddClauseIfNotExists(clause.Update{})
-		if set := ConvertToAssignments(db.Statement); len(set) != 0 {
-			db.Statement.AddClause(set)
-		} else {
+	return func(db *gorm.DB) {
+		if db.Error != nil {
 			return
 		}
-		db.Statement.Build(db.Statement.BuildClauses...)
-	}
 
-	if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-		db.AddError(gorm.ErrMissingWhereClause)
-		return
-	}
+		if db.Statement.Schema != nil && !db.Statement.Unscoped {
+			for _, c := range db.Statement.Schema.UpdateClauses {
+				db.Statement.AddClause(c)
+			}
+		}
 
-	if !db.DryRun && db.Error == nil {
-		result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+		if db.Statement.SQL.String() == "" {
+			db.Statement.SQL.Grow(180)
+			db.Statement.AddClauseIfNotExists(clause.Update{})
+			if set := ConvertToAssignments(db.Statement); len(set) != 0 {
+				db.Statement.AddClause(set)
+			} else {
+				return
+			}
+			db.Statement.Build(db.Statement.BuildClauses...)
+		}
 
-		if err == nil {
-			db.RowsAffected, _ = result.RowsAffected()
-		} else {
-			db.AddError(err)
+		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
+			db.AddError(gorm.ErrMissingWhereClause)
+			return
+		}
+
+		if !db.DryRun && db.Error == nil {
+			if _, ok := db.Statement.Clauses["RETURNING"]; withReturning && ok {
+				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+					gorm.Scan(rows, db, gorm.ScanUpdate)
+					rows.Close()
+				}
+			} else {
+				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+				if err == nil {
+					db.RowsAffected, _ = result.RowsAffected()
+				} else {
+					db.AddError(err)
+				}
+			}
 		}
 	}
 }

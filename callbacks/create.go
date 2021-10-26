@@ -31,18 +31,35 @@ func BeforeCreate(db *gorm.DB) {
 }
 
 func Create(config *Config) func(db *gorm.DB) {
-	if config.WithReturning {
-		return CreateWithReturning
+	withReturning := false
+	for _, clause := range config.CreateClauses {
+		if clause == "RETURNING" {
+			withReturning = true
+		}
 	}
 
 	return func(db *gorm.DB) {
 		if db.Error != nil {
 			return
 		}
+		onReturning := false
 
-		if db.Statement.Schema != nil && !db.Statement.Unscoped {
-			for _, c := range db.Statement.Schema.CreateClauses {
-				db.Statement.AddClause(c)
+		if db.Statement.Schema != nil {
+			if !db.Statement.Unscoped {
+				for _, c := range db.Statement.Schema.CreateClauses {
+					db.Statement.AddClause(c)
+				}
+			}
+
+			if withReturning && len(db.Statement.Schema.FieldsWithDefaultDBValue) > 0 {
+				onReturning = true
+				if _, ok := db.Statement.Clauses["RETURNING"]; !ok {
+					fromColumns := make([]clause.Column, 0, len(db.Statement.Schema.FieldsWithDefaultDBValue))
+					for _, field := range db.Statement.Schema.FieldsWithDefaultDBValue {
+						fromColumns = append(fromColumns, clause.Column{Name: field.DBName})
+					}
+					db.Statement.AddClause(clause.Returning{Columns: fromColumns})
+				}
 			}
 		}
 
@@ -55,179 +72,69 @@ func Create(config *Config) func(db *gorm.DB) {
 		}
 
 		if !db.DryRun && db.Error == nil {
-			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-			if err != nil {
-				db.AddError(err)
-				return
-			}
-
-			db.RowsAffected, _ = result.RowsAffected()
-
-			if db.RowsAffected != 0 && db.Statement.Schema != nil &&
-				db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-				if insertID, err := result.LastInsertId(); err == nil && insertID > 0 {
-					switch db.Statement.ReflectValue.Kind() {
-					case reflect.Slice, reflect.Array:
-						if config.LastInsertIDReversed {
-							for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
-								rv := db.Statement.ReflectValue.Index(i)
-								if reflect.Indirect(rv).Kind() != reflect.Struct {
-									break
-								}
-
-								_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
-								if isZero {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-									insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
-								}
-							}
-						} else {
-							for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-								rv := db.Statement.ReflectValue.Index(i)
-								if reflect.Indirect(rv).Kind() != reflect.Struct {
-									break
-								}
-
-								if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-									db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
-									insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
-								}
-							}
-						}
-					case reflect.Struct:
-						if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
-						}
+			if onReturning {
+				doNothing := false
+				if c, ok := db.Statement.Clauses["ON CONFLICT"]; ok {
+					onConflict, _ := c.Expression.(clause.OnConflict)
+					doNothing = onConflict.DoNothing
+				}
+				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+					if doNothing {
+						gorm.Scan(rows, db, gorm.ScanUpdate|gorm.ScanOnConflictDoNothing)
+					} else {
+						gorm.Scan(rows, db, gorm.ScanUpdate)
 					}
-				} else {
+					rows.Close()
+				}
+			} else {
+				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+
+				if err != nil {
 					db.AddError(err)
-				}
-			}
-		}
-	}
-}
-
-func CreateWithReturning(db *gorm.DB) {
-	if db.Error == nil {
-		if db.Statement.Schema != nil && !db.Statement.Unscoped {
-			for _, c := range db.Statement.Schema.CreateClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.String() == "" {
-			db.Statement.AddClauseIfNotExists(clause.Insert{})
-			db.Statement.AddClause(ConvertToCreateValues(db.Statement))
-
-			db.Statement.Build(db.Statement.BuildClauses...)
-		}
-
-		if sch := db.Statement.Schema; sch != nil && len(sch.FieldsWithDefaultDBValue) > 0 {
-			db.Statement.WriteString(" RETURNING ")
-
-			var (
-				fields = make([]*schema.Field, len(sch.FieldsWithDefaultDBValue))
-				values = make([]interface{}, len(sch.FieldsWithDefaultDBValue))
-			)
-
-			for idx, field := range sch.FieldsWithDefaultDBValue {
-				if idx > 0 {
-					db.Statement.WriteByte(',')
+					return
 				}
 
-				fields[idx] = field
-				db.Statement.WriteQuoted(field.DBName)
-			}
-
-			if !db.DryRun && db.Error == nil {
-				db.RowsAffected = 0
-				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-				if err == nil {
-					defer rows.Close()
-
-					switch db.Statement.ReflectValue.Kind() {
-					case reflect.Slice, reflect.Array:
-						var (
-							c                = db.Statement.Clauses["ON CONFLICT"]
-							onConflict, _    = c.Expression.(clause.OnConflict)
-							resetFieldValues = map[int]reflect.Value{}
-						)
-
-						for rows.Next() {
-						BEGIN:
-							reflectValue := db.Statement.ReflectValue.Index(int(db.RowsAffected))
-							if reflect.Indirect(reflectValue).Kind() != reflect.Struct {
-								break
-							}
-
-							for idx, field := range fields {
-								fieldValue := field.ReflectValueOf(reflectValue)
-
-								if onConflict.DoNothing && !fieldValue.IsZero() {
-									db.RowsAffected++
-
-									if int(db.RowsAffected) >= db.Statement.ReflectValue.Len() {
-										return
+				db.RowsAffected, _ = result.RowsAffected()
+				if db.RowsAffected != 0 && db.Statement.Schema != nil &&
+					db.Statement.Schema.PrioritizedPrimaryField != nil && db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+					if insertID, err := result.LastInsertId(); err == nil && insertID > 0 {
+						switch db.Statement.ReflectValue.Kind() {
+						case reflect.Slice, reflect.Array:
+							if config.LastInsertIDReversed {
+								for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
+									rv := db.Statement.ReflectValue.Index(i)
+									if reflect.Indirect(rv).Kind() != reflect.Struct {
+										break
 									}
 
-									goto BEGIN
+									_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
+									if isZero {
+										db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+										insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
+									}
 								}
-
-								if field.FieldType.Kind() == reflect.Ptr {
-									values[idx] = fieldValue.Addr().Interface()
-								} else {
-									reflectValue := reflect.New(reflect.PtrTo(field.FieldType))
-									reflectValue.Elem().Set(fieldValue.Addr())
-									values[idx] = reflectValue.Interface()
-									resetFieldValues[idx] = fieldValue
-								}
-							}
-
-							db.RowsAffected++
-							if err := rows.Scan(values...); err != nil {
-								db.AddError(err)
-							}
-
-							for idx, fv := range resetFieldValues {
-								if v := reflect.ValueOf(values[idx]).Elem(); !v.IsNil() {
-									fv.Set(v.Elem())
-								}
-							}
-						}
-					case reflect.Struct:
-						resetFieldValues := map[int]reflect.Value{}
-						for idx, field := range fields {
-							if field.FieldType.Kind() == reflect.Ptr {
-								values[idx] = field.ReflectValueOf(db.Statement.ReflectValue).Addr().Interface()
 							} else {
-								reflectValue := reflect.New(reflect.PtrTo(field.FieldType))
-								fieldValue := field.ReflectValueOf(db.Statement.ReflectValue)
-								reflectValue.Elem().Set(fieldValue.Addr())
-								values[idx] = reflectValue.Interface()
-								resetFieldValues[idx] = fieldValue
-							}
-						}
-						if rows.Next() {
-							db.RowsAffected++
-							db.AddError(rows.Scan(values...))
-							for idx, fv := range resetFieldValues {
-								if v := reflect.ValueOf(values[idx]).Elem(); !v.IsNil() {
-									fv.Set(v.Elem())
+								for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
+									rv := db.Statement.ReflectValue.Index(i)
+									if reflect.Indirect(rv).Kind() != reflect.Struct {
+										break
+									}
+
+									if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
+										db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+										insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
+									}
 								}
 							}
+						case reflect.Struct:
+							if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue); isZero {
+								db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+							}
 						}
+					} else {
+						db.AddError(err)
 					}
-				} else {
-					db.AddError(err)
 				}
-			}
-		} else if !db.DryRun && db.Error == nil {
-			if result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
-			} else {
-				db.AddError(err)
 			}
 		}
 	}

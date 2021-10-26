@@ -511,7 +511,7 @@ func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 		}
 		tx.Statement.ReflectValue = elem
 	}
-	Scan(rows, tx, true)
+	Scan(rows, tx, ScanInitialized)
 	return tx.Error
 }
 

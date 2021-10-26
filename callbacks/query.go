@@ -22,7 +22,7 @@ func Query(db *gorm.DB) {
 			}
 			defer rows.Close()
 
-			gorm.Scan(rows, db, false)
+			gorm.Scan(rows, db, 0)
 		}
 	}
 }
