@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 func SetupUpdateReflectValue(db *gorm.DB) {
@@ -51,12 +52,7 @@ func BeforeUpdate(db *gorm.DB) {
 }
 
 func Update(config *Config) func(db *gorm.DB) {
-	withReturning := false
-	for _, clause := range config.UpdateClauses {
-		if clause == "RETURNING" {
-			withReturning = true
-		}
-	}
+	supportReturning := utils.Contains(config.UpdateClauses, "RETURNING")
 
 	return func(db *gorm.DB) {
 		if db.Error != nil {
@@ -86,18 +82,16 @@ func Update(config *Config) func(db *gorm.DB) {
 		}
 
 		if !db.DryRun && db.Error == nil {
-			if _, ok := db.Statement.Clauses["RETURNING"]; withReturning && ok {
+			if ok, mode := hasReturning(db, supportReturning); ok {
 				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
-					gorm.Scan(rows, db, gorm.ScanUpdate)
+					gorm.Scan(rows, db, mode)
 					rows.Close()
 				}
 			} else {
 				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 
-				if err == nil {
+				if db.AddError(err) == nil {
 					db.RowsAffected, _ = result.RowsAffected()
-				} else {
-					db.AddError(err)
 				}
 			}
 		}

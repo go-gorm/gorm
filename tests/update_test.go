@@ -167,7 +167,7 @@ func TestUpdates(t *testing.T) {
 	}
 
 	// update with gorm exprs
-	if err := DB.Debug().Model(&user3).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}}).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+	if err := DB.Model(&user3).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}}).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
 		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
 	}
 	var user4 User

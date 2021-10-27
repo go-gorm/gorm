@@ -72,6 +72,15 @@ func ToStringKey(values ...interface{}) string {
 	return strings.Join(results, "_")
 }
 
+func Contains(elems []string, elem string) bool {
+	for _, e := range elems {
+		if elem == e {
+			return true
+		}
+	}
+	return false
+}
+
 func AssertEqual(src, dst interface{}) bool {
 	if !reflect.DeepEqual(src, dst) {
 		if valuer, ok := src.(driver.Valuer); ok {

@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 func BeforeDelete(db *gorm.DB) {
@@ -104,8 +105,14 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 	}
 }
 
-func Delete(db *gorm.DB) {
-	if db.Error == nil {
+func Delete(config *Config) func(db *gorm.DB) {
+	supportReturning := utils.Contains(config.DeleteClauses, "RETURNING")
+
+	return func(db *gorm.DB) {
+		if db.Error != nil {
+			return
+		}
+
 		if db.Statement.Schema != nil && !db.Statement.Unscoped {
 			for _, c := range db.Statement.Schema.DeleteClauses {
 				db.Statement.AddClause(c)
@@ -144,12 +151,16 @@ func Delete(db *gorm.DB) {
 		}
 
 		if !db.DryRun && db.Error == nil {
-			result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-
-			if err == nil {
-				db.RowsAffected, _ = result.RowsAffected()
+			if ok, mode := hasReturning(db, supportReturning); ok {
+				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+					gorm.Scan(rows, db, mode)
+					rows.Close()
+				}
 			} else {
-				db.AddError(err)
+				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+				if db.AddError(err) == nil {
+					db.RowsAffected, _ = result.RowsAffected()
+				}
 			}
 		}
 	}

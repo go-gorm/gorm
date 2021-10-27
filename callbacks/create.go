@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 func BeforeCreate(db *gorm.DB) {
@@ -31,18 +32,12 @@ func BeforeCreate(db *gorm.DB) {
 }
 
 func Create(config *Config) func(db *gorm.DB) {
-	withReturning := false
-	for _, clause := range config.CreateClauses {
-		if clause == "RETURNING" {
-			withReturning = true
-		}
-	}
+	supportReturning := utils.Contains(config.CreateClauses, "RETURNING")
 
 	return func(db *gorm.DB) {
 		if db.Error != nil {
 			return
 		}
-		onReturning := false
 
 		if db.Statement.Schema != nil {
 			if !db.Statement.Unscoped {
@@ -51,8 +46,7 @@ func Create(config *Config) func(db *gorm.DB) {
 				}
 			}
 
-			if withReturning && len(db.Statement.Schema.FieldsWithDefaultDBValue) > 0 {
-				onReturning = true
+			if supportReturning && len(db.Statement.Schema.FieldsWithDefaultDBValue) > 0 {
 				if _, ok := db.Statement.Clauses["RETURNING"]; !ok {
 					fromColumns := make([]clause.Column, 0, len(db.Statement.Schema.FieldsWithDefaultDBValue))
 					for _, field := range db.Statement.Schema.FieldsWithDefaultDBValue {
@@ -72,18 +66,15 @@ func Create(config *Config) func(db *gorm.DB) {
 		}
 
 		if !db.DryRun && db.Error == nil {
-			if onReturning {
-				doNothing := false
+
+			if ok, mode := hasReturning(db, supportReturning); ok {
 				if c, ok := db.Statement.Clauses["ON CONFLICT"]; ok {
-					onConflict, _ := c.Expression.(clause.OnConflict)
-					doNothing = onConflict.DoNothing
+					if onConflict, _ := c.Expression.(clause.OnConflict); onConflict.DoNothing {
+						mode |= gorm.ScanOnConflictDoNothing
+					}
 				}
 				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
-					if doNothing {
-						gorm.Scan(rows, db, gorm.ScanUpdate|gorm.ScanOnConflictDoNothing)
-					} else {
-						gorm.Scan(rows, db, gorm.ScanUpdate)
-					}
+					gorm.Scan(rows, db, mode)
 					rows.Close()
 				}
 			} else {

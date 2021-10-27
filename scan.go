@@ -241,7 +241,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 		case reflect.Slice, reflect.Array:
 			var elem reflect.Value
 
-			if !update {
+			if !update && reflectValue.Len() != 0 {
 				db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
 			}
 
