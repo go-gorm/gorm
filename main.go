@@ -523,14 +523,20 @@ func (s *DB) Rollback() *DB {
 }
 
 // WrapInTx wraps a method in a transaction
-func (s *DB) WrapInTx(f func(tx *DB) (error)) error {
-	tx := s.Begin()
-	if err := f(tx); err != nil {
-		tx.Rollback()
-		return err
+func (s *DB) WrapInTx(f func(tx *DB) error) error {
+	if _, ok := s.db.(*sql.Tx); ok {
+		// Already in a transaction
+		return f(s)
+	} else {
+		// Lets start a new transaction
+		tx := s.Begin()
+		if err := f(tx); err != nil {
+			tx.Rollback()
+			return err
+		}
+		tx.Commit()
+		return nil
 	}
-	tx.Commit()
-	return nil
 }
 
 // SkipAssocSave disables saving of associations
