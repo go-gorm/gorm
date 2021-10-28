@@ -84,7 +84,10 @@ func Update(config *Config) func(db *gorm.DB) {
 		if !db.DryRun && db.Error == nil {
 			if ok, mode := hasReturning(db, supportReturning); ok {
 				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+					dest := db.Statement.Dest
+					db.Statement.Dest = db.Statement.ReflectValue.Addr().Interface()
 					gorm.Scan(rows, db, mode)
+					db.Statement.Dest = dest
 					rows.Close()
 				}
 			} else {
@@ -152,20 +155,23 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			var primaryKeyExprs []clause.Expression
-			for i := 0; i < stmt.ReflectValue.Len(); i++ {
-				var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
-				var notZero bool
-				for idx, field := range stmt.Schema.PrimaryFields {
-					value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
-					exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
-					notZero = notZero || !isZero
+			if size := stmt.ReflectValue.Len(); size > 0 {
+				var primaryKeyExprs []clause.Expression
+				for i := 0; i < stmt.ReflectValue.Len(); i++ {
+					var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
+					var notZero bool
+					for idx, field := range stmt.Schema.PrimaryFields {
+						value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
+						exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
+						notZero = notZero || !isZero
+					}
+					if notZero {
+						primaryKeyExprs = append(primaryKeyExprs, clause.And(exprs...))
+					}
 				}
-				if notZero {
-					primaryKeyExprs = append(primaryKeyExprs, clause.And(exprs...))
-				}
+
+				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(primaryKeyExprs...)}})
 			}
-			stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(primaryKeyExprs...)}})
 		case reflect.Struct:
 			for _, field := range stmt.Schema.PrimaryFields {
 				if value, isZero := field.ValueOf(stmt.ReflectValue); !isZero {

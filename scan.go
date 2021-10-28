@@ -120,22 +120,6 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 
 	switch dest := db.Statement.Dest.(type) {
 	case map[string]interface{}, *map[string]interface{}:
-		if update && db.Statement.Schema != nil {
-			switch db.Statement.ReflectValue.Kind() {
-			case reflect.Struct:
-				fields := make([]*schema.Field, len(columns))
-				for idx, column := range columns {
-					if field := db.Statement.Schema.LookUpField(column); field != nil && field.Readable {
-						fields[idx] = field
-					}
-				}
-
-				if initialized || rows.Next() {
-					db.scanIntoStruct(db.Statement.Schema, rows, db.Statement.ReflectValue, values, columns, fields, nil)
-				}
-			}
-		}
-
 		if initialized || rows.Next() {
 			columnTypes, _ := rows.ColumnTypes()
 			prepareValues(values, db, columnTypes, columns)

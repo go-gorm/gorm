@@ -167,16 +167,13 @@ func TestUpdates(t *testing.T) {
 	}
 
 	// update with gorm exprs
-	if err := DB.Model(&user3).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}}).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+	if err := DB.Model(&user3).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
 		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
 	}
 	var user4 User
 	DB.First(&user4, user3.ID)
 
-	// sqlite, postgres support returning
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
-		user3.Age += 100
-	}
+	user3.Age += 100
 	AssertObjEqual(t, user4, user3, "UpdatedAt", "Age")
 }
 
@@ -726,5 +723,37 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	var result4 Language
 	if err := DB.Table("langs").First(&result4, "code = ?", lang.Code).Error; err != nil || result4.Name != lang.Name {
 		t.Errorf("failed to find created record, got error: %v, result: %+v", err, result4)
+	}
+}
+
+// only sqlite, postgres support returning
+func TestUpdateReturning(t *testing.T) {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	users := []*User{
+		GetUser("update-returning-1", Config{}),
+		GetUser("update-returning-2", Config{}),
+		GetUser("update-returning-3", Config{}),
+	}
+	DB.Create(&users)
+
+	var results []User
+	DB.Model(&results).Where("name IN ?", []string{users[0].Name, users[1].Name}).Clauses(clause.Returning{}).Update("age", 88)
+	if len(results) != 2 || results[0].Age != 88 || results[1].Age != 88 {
+		t.Errorf("failed to return updated data, got %v", results)
+	}
+
+	if err := DB.Model(&results[0]).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
+	}
+
+	if err := DB.Model(&results[1]).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}}).Updates(map[string]interface{}{"age": gorm.Expr("age + ?", 100)}).Error; err != nil {
+		t.Errorf("Not error should happen when updating with gorm expr, but got %v", err)
+	}
+
+	if results[1].Age-results[0].Age != 100 {
+		t.Errorf("failed to return updated age column")
 	}
 }
