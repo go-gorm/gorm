@@ -441,3 +441,18 @@ func (db *DB) Use(plugin Plugin) error {
 	db.Plugins[name] = plugin
 	return nil
 }
+
+// ToSQL for generate SQL string.
+//
+// db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+// 		return tx.Model(&User{}).Where(&User{Name: "foo", Age: 20})
+// 			.Limit(10).Offset(5)
+//			.Order("name ASC")
+//			.First(&User{})
+// })
+func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
+	tx := queryFn(db.Session(&Session{DryRun: true}))
+	stmt := tx.Statement
+
+	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+}
