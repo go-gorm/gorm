@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
-	"os"
+
 	"time"
 )
 
@@ -291,16 +291,13 @@ func TestFromWithJoins(t *testing.T) {
 }
 
 func TestToSQL(t *testing.T) {
-	// only test in PostgreSQL
-	var dialect = os.Getenv("GORM_DIALECT")
-	if dialect != "postgres" {
-		t.Skipf("Skipping test for %s database", dialect)
-		return
-	}
-
 	// By default DB.DryRun should false
 	if DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun to be false")
+	}
+
+	if DB.Dialector.Name() == "sqlserver" {
+		t.Skip("Skip SQL Server for this test, because it too difference with other dialects.")
 	}
 
 	date, _ := time.Parse("2006-01-02", "2021-10-18")
@@ -383,15 +380,45 @@ func TestToSQL(t *testing.T) {
 	}
 }
 
+// assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect speicals.
 func assertEqualSQL(t *testing.T, expected string, actually string) {
 	t.Helper()
 
-	// ignore updated_at value
-	var updatedAtRe = regexp.MustCompile(`"updated_at"='.+?'`)
-	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"='?'`)
-	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"='?'`)
+	// replace SQL quote, convert into postgresql like ""
+	expected = replaceQuoteInSQL(expected)
+	actually = replaceQuoteInSQL(actually)
+
+	// ignore updated_at value, becase it's generated in Gorm inernal, can't to mock value on update.
+	var updatedAtRe = regexp.MustCompile(`(?i)"updated_at"=".+?"`)
+	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"=?`)
+	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
+
+	// ignore RETURNING "id" (only in PostgreSQL)
+	var returningRe = regexp.MustCompile(`(?i)RETURNING "id"`)
+	actually = returningRe.ReplaceAllString(actually, ``)
+	expected = returningRe.ReplaceAllString(expected, ``)
+
+	actually = strings.TrimSpace(actually)
+	expected = strings.TrimSpace(expected)
 
 	if actually != expected {
-		t.Fatalf("Failed generate save SQL\nexpected: %s\nactually: %s", expected, actually)
+		t.Fatalf("\nexpected: %s\nactually: %s", expected, actually)
 	}
+}
+
+func replaceQuoteInSQL(sql string) string {
+	// convert single quote into double quote
+	sql = strings.Replace(sql, `'`, `"`, -1)
+
+	// convert dialect speical quote into double quote
+	switch DB.Dialector.Name() {
+	case "postgres":
+		sql = strings.Replace(sql, `"`, `"`, -1)
+	case "mysql", "sqlite":
+		sql = strings.Replace(sql, "`", `"`, -1)
+	case "sqlserver":
+		sql = strings.Replace(sql, `'`, `"`, -1)
+	}
+
+	return sql
 }
