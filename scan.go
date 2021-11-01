@@ -130,6 +130,9 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			mapValue, ok := dest.(map[string]interface{})
 			if !ok {
 				if v, ok := dest.(*map[string]interface{}); ok {
+					if *v == nil {
+						*v = map[string]interface{}{}
+					}
 					mapValue = *v
 				}
 			}
