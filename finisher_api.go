@@ -285,11 +285,9 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	queryTx := db.Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
-
-	if tx = queryTx.Find(dest, conds...); queryTx.RowsAffected == 0 {
-		if tx.Error != nil {
-			return tx
-		}
+	if tx = queryTx.Find(dest, conds...); tx.Error != nil {
+		return tx
+	} else if tx.RowsAffected == 0 {
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok {
 				tx.assignInterfacesToValue(where.Exprs)
@@ -325,7 +323,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 		return tx.Model(dest).Updates(assigns)
 	}
 
-	return db
+	return tx
 }
 
 // Update update attributes with callbacks, refer: https://gorm.io/docs/update.html#Update-Changed-Fields
