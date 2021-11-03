@@ -186,6 +186,9 @@ func BuildQuerySQL(db *gorm.DB) {
 }
 
 func Preload(db *gorm.DB) {
+	if db.Statement.Schema == nil {
+		return
+	}
 	if db.Error == nil && len(db.Statement.Preloads) > 0 {
 		preloadMap := map[string]map[string][]interface{}{}
 		for name := range db.Statement.Preloads {

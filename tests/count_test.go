@@ -133,5 +133,12 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Select("*").Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Count(&count10).Error; err != nil || count10 != 3 {
 		t.Fatalf("Count should be 3, but got count: %v err %v", count10, err)
 	}
-
+	var count11 int64
+	if err := DB.Table("users").
+		Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).
+		Preload("Toys", func(db *gorm.DB) *gorm.DB {
+			return db.Table("toys").Select("name")
+		}).Count(&count11).Limit(2).Find(&users).Error; err != nil || count11 != 3 || len(users) !=2 {
+		t.Fatalf("Count should be 3,len should be 2, but got count: %v len %v err %v", count11,len(users), err)
+	}
 }
