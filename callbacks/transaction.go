@@ -5,7 +5,7 @@ import (
 )
 
 func BeginTransaction(db *gorm.DB) {
-	if !db.Config.SkipDefaultTransaction {
+	if !db.Config.SkipDefaultTransaction && db.Error == nil {
 		if tx := db.Begin(); tx.Error == nil {
 			db.Statement.ConnPool = tx.Statement.ConnPool
 			db.InstanceSet("gorm:started_transaction", true)
