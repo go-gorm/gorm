@@ -287,6 +287,9 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	})
 
 	if tx = queryTx.Find(dest, conds...); queryTx.RowsAffected == 0 {
+		if tx.Error != nil {
+			return tx
+		}
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok {
 				tx.assignInterfacesToValue(where.Exprs)
