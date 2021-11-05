@@ -519,7 +519,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 
 	if rel.Type == BelongsTo {
 		for _, r := range rel.FieldSchema.Relationships.Relations {
-			if r.FieldSchema == rel.Schema && len(rel.References) == len(r.References) {
+			if r != rel && r.FieldSchema == rel.Schema && len(rel.References) == len(r.References) {
 				matched := true
 				for idx, ref := range r.References {
 					if !(rel.References[idx].PrimaryKey == ref.PrimaryKey && rel.References[idx].ForeignKey == ref.ForeignKey &&
