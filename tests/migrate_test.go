@@ -62,9 +62,7 @@ func TestAutoMigrateSelfReferential(t *testing.T) {
 		Manager   *MigratePerson
 	}
 
-	if err := DB.Debug().Migrator().DropTable(&MigratePerson{}); err != nil {
-		t.Fatalf("Failed to drop table, got error %v", err)
-	}
+	DB.Migrator().DropTable(&MigratePerson{})
 
 	if err := DB.AutoMigrate(&MigratePerson{}); err != nil {
 		t.Fatalf("Failed to auto migrate, but got error %v", err)
