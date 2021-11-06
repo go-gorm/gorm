@@ -18,6 +18,13 @@ var (
 	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
 )
 
+const (
+	// allTableQuery query db table list
+	allTableQuery = "SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?"
+	// tablesQuery query tables is has
+	tablesQuery = "SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=? and TABLE_NAME in (?)"
+)
+
 // Migrator m struct
 type Migrator struct {
 	Config
@@ -153,6 +160,13 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 	}
 
 	return nil
+}
+
+func (m Migrator) GetTables(tables ...string) (tableList []gorm.Table, err error) {
+	if len(tables) == 1 && tables[0] == gorm.ALLTables {
+		return tableList, m.DB.Raw(allTableQuery, m.CurrentDatabase()).Scan(&tableList).Error
+	}
+	return tableList, m.DB.Raw(tablesQuery, m.CurrentDatabase(), tables).Scan(&tableList).Error
 }
 
 func (m Migrator) CreateTable(values ...interface{}) error {
