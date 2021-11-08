@@ -93,6 +93,21 @@ func TestBelongsToWithOnlyReferences2(t *testing.T) {
 	})
 }
 
+func TestSelfReferentialBelongsTo(t *testing.T) {
+	type User struct {
+		ID        int32 `gorm:"primaryKey"`
+		Name      string
+		CreatorID *int32
+		Creator   *User
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Creator", Type: schema.BelongsTo, Schema: "User", FieldSchema: "User",
+		References: []Reference{{"ID", "User", "CreatorID", "User", "", false}},
+	})
+
+}
+
 func TestSelfReferentialBelongsToOverrideReferences(t *testing.T) {
 	type User struct {
 		ID        int32 `gorm:"primaryKey"`
