@@ -665,6 +665,10 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 	for _, omit := range stmt.Omits {
 		if stmt.Schema == nil {
 			results[omit] = false
+		} else if omit == "*" {
+			for _, dbName := range stmt.Schema.DBNames {
+				results[dbName] = false
+			}
 		} else if omit == clause.Associations {
 			for _, rel := range stmt.Schema.Relationships.Relations {
 				results[rel.Name] = false
