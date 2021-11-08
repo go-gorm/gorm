@@ -147,6 +147,19 @@ func TestPreloadWithConds(t *testing.T) {
 	for i, u := range users3 {
 		CheckUser(t, u, users[i])
 	}
+
+	var user4 User
+	DB.Delete(&users3[0].Account)
+
+	if err := DB.Preload(clause.Associations).Take(&user4, "id = ?", users3[0].ID).Error; err != nil || user4.Account.ID != 0 {
+		t.Errorf("failed to query, got error %v, account: %#v", err, user4.Account)
+	}
+
+	if err := DB.Preload(clause.Associations, func(tx *gorm.DB) *gorm.DB {
+		return tx.Unscoped()
+	}).Take(&user4, "id = ?", users3[0].ID).Error; err != nil || user4.Account.ID == 0 {
+		t.Errorf("failed to query, got error %v, account: %#v", err, user4.Account)
+	}
 }
 
 func TestNestedPreloadWithConds(t *testing.T) {
