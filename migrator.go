@@ -36,11 +36,6 @@ type ViewOption struct {
 // ALLTables get all database tables
 const ALLTables = "migrator:all_tables"
 
-// Table Database table list info
-type Table struct {
-	TableName string `gorm:"column:TABLE_NAME"`
-}
-
 type ColumnType interface {
 	Name() string
 	DatabaseTypeName() string
@@ -62,7 +57,8 @@ type Migrator interface {
 	DropTable(dst ...interface{}) error
 	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName interface{}) error
-	GetTables(tables ...string) (tableList []Table, err error)
+	GetTables(tables ...string) (tableList []string, err error)
+
 	// Columns
 	AddColumn(dst interface{}, field string) error
 	DropColumn(dst interface{}, field string) error

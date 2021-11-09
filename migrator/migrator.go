@@ -162,7 +162,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 	return nil
 }
 
-func (m Migrator) GetTables(tables ...string) (tableList []gorm.Table, err error) {
+func (m Migrator) GetTables(tables ...string) (tableList []string, err error) {
 	if len(tables) == 1 && tables[0] == gorm.ALLTables {
 		return tableList, m.DB.Raw(allTableQuery, m.CurrentDatabase()).Scan(&tableList).Error
 	}
