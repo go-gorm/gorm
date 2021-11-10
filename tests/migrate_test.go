@@ -16,8 +16,7 @@ func TestMigrate(t *testing.T) {
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 
 	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
-	DB.Migrator().GetTables("user_speaks", "user_friends", "ccc")
-	DB.Migrator().GetTables(gorm.ALLTables)
+	DB.Migrator().GetTables()
 
 	if err := DB.Migrator().DropTable(allModels...); err != nil {
 		t.Fatalf("Failed to drop table, got error %v", err)

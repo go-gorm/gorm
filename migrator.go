@@ -33,9 +33,6 @@ type ViewOption struct {
 	Query       *DB
 }
 
-// ALLTables get all database tables
-const ALLTables = "migrator:all_tables"
-
 type ColumnType interface {
 	Name() string
 	DatabaseTypeName() string
@@ -57,7 +54,7 @@ type Migrator interface {
 	DropTable(dst ...interface{}) error
 	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName interface{}) error
-	GetTables(tables ...string) (tableList []string, err error)
+	GetTables() (tableList []string, err error)
 
 	// Columns
 	AddColumn(dst interface{}, field string) error
