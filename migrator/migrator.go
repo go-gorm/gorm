@@ -18,11 +18,6 @@ var (
 	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
 )
 
-const (
-	// allTableQuery query db table list
-	allTableQuery = "SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?"
-)
-
 // Migrator m struct
 type Migrator struct {
 	Config
@@ -161,7 +156,8 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 }
 
 func (m Migrator) GetTables() (tableList []string, err error) {
-	return tableList, m.DB.Raw(allTableQuery, m.CurrentDatabase()).Scan(&tableList).Error
+	sql := "SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?"
+	return tableList, m.DB.Raw(sql, m.CurrentDatabase()).Scan(&tableList).Error
 }
 
 func (m Migrator) CreateTable(values ...interface{}) error {
