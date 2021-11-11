@@ -156,8 +156,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 }
 
 func (m Migrator) GetTables() (tableList []string, err error) {
-	sql := "SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?"
-	return tableList, m.DB.Raw(sql, m.CurrentDatabase()).Scan(&tableList).Error
+	return tableList, m.DB.Raw("SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?", m.CurrentDatabase()).Scan(&tableList).Error
 }
 
 func (m Migrator) CreateTable(values ...interface{}) error {
