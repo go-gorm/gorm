@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/juliangruber/go-intersect"
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -24,14 +23,22 @@ func TestMigrate(t *testing.T) {
 	if err := DB.AutoMigrate(allModels...); err != nil {
 		t.Fatalf("Failed to auto migrate, but got error %v", err)
 	}
-	tableList, tableErr := DB.Migrator().GetTables()
-	if tableErr != nil {
-		t.Fatalf("Failed to get database all tables, but got error %v", tableErr)
-	}
-	//get auto Migrator create tables and databases tables intersection
-	intersectList := intersect.Simple(tableList, []string{"users", "accounts", "pets", "companies", "toys", "languages"})
-	if len(intersectList) != len(allModels) {
-		t.Fatalf("Failed to get auto Migrator create tables and databases tables intersection nums  not eq allModels %d intersectList %d", len(allModels), len(intersectList))
+
+	if tables, err := DB.Migrator().GetTables(); err != nil {
+		t.Fatalf("Failed to get database all tables, but got error %v", err)
+	} else {
+		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages"} {
+			hasTable := false
+			for _, t2 := range tables {
+				if t2 == t1 {
+					hasTable = true
+					break
+				}
+			}
+			if !hasTable {
+				t.Fatalf("Failed to get table %v when GetTables", t1)
+			}
+		}
 	}
 
 	for _, m := range allModels {
@@ -60,6 +67,25 @@ func TestMigrate(t *testing.T) {
 		if !DB.Migrator().HasConstraint(indexes[0], indexes[1]) {
 			t.Fatalf("Failed to find index for many2many for %v %v", indexes[0], indexes[1])
 		}
+	}
+}
+
+func TestAutoMigrateSelfReferential(t *testing.T) {
+	type MigratePerson struct {
+		ID        uint
+		Name      string
+		ManagerID *uint
+		Manager   *MigratePerson
+	}
+
+	DB.Migrator().DropTable(&MigratePerson{})
+
+	if err := DB.AutoMigrate(&MigratePerson{}); err != nil {
+		t.Fatalf("Failed to auto migrate, but got error %v", err)
+	}
+
+	if !DB.Migrator().HasConstraint("migrate_people", "fk_migrate_people_manager") {
+		t.Fatalf("Failed to find has one constraint between people and managers")
 	}
 }
 
