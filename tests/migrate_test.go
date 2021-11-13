@@ -70,25 +70,6 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
-func TestAutoMigrateSelfReferential(t *testing.T) {
-	type MigratePerson struct {
-		ID        uint
-		Name      string
-		ManagerID *uint
-		Manager   *MigratePerson
-	}
-
-	DB.Migrator().DropTable(&MigratePerson{})
-
-	if err := DB.AutoMigrate(&MigratePerson{}); err != nil {
-		t.Fatalf("Failed to auto migrate, but got error %v", err)
-	}
-
-	if !DB.Migrator().HasConstraint("migrate_people", "fk_migrate_people_manager") {
-		t.Fatalf("Failed to find has one constraint between people and managers")
-	}
-}
-
 func TestSmartMigrateColumn(t *testing.T) {
 	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
 
