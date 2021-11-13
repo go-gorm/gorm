@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/juliangruber/go-intersect"
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -14,7 +15,6 @@ func TestMigrate(t *testing.T) {
 	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
-
 	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
 
 	if err := DB.Migrator().DropTable(allModels...); err != nil {
@@ -28,7 +28,13 @@ func TestMigrate(t *testing.T) {
 	if tableErr != nil {
 		t.Fatalf("Failed to get database all tables, but got error %v", tableErr)
 	}
-	for _, m := range tableList {
+	//get auto Migrator create tables and databases tables intersection
+	intersectList := intersect.Simple(tableList, []string{"users", "accounts", "pets", "companies", "toys", "languages"})
+	if len(intersectList) != len(allModels) {
+		t.Fatalf("Failed to get auto Migrator create tables and databases tables intersection nums  not eq allModels %d intersectList %d", len(allModels), len(intersectList))
+	}
+
+	for _, m := range allModels {
 		if !DB.Migrator().HasTable(m) {
 			t.Fatalf("Failed to create table for %#v---", m)
 		}
