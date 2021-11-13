@@ -24,8 +24,11 @@ func TestMigrate(t *testing.T) {
 	if err := DB.AutoMigrate(allModels...); err != nil {
 		t.Fatalf("Failed to auto migrate, but got error %v", err)
 	}
-
-	for _, m := range allModels {
+	tableList, tableErr := DB.Migrator().GetTables()
+	if tableErr != nil {
+		t.Fatalf("Failed to get database all tables, but got error %v", tableErr)
+	}
+	for _, m := range tableList {
 		if !DB.Migrator().HasTable(m) {
 			t.Fatalf("Failed to create table for %#v---", m)
 		}
