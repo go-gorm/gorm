@@ -54,6 +54,7 @@ type Migrator interface {
 	DropTable(dst ...interface{}) error
 	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName interface{}) error
+	GetTables() (tableList []string, err error)
 
 	// Columns
 	AddColumn(dst interface{}, field string) error

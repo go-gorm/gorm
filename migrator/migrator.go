@@ -155,6 +155,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 	return nil
 }
 
+func (m Migrator) GetTables() (tableList []string, err error) {
+	return tableList, m.DB.Raw("SELECT TABLE_NAME FROM information_schema.tables where TABLE_SCHEMA=?", m.CurrentDatabase()).Scan(&tableList).Error
+}
+
 func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, false) {
 		tx := m.DB.Session(&gorm.Session{})

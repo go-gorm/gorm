@@ -14,7 +14,6 @@ func TestMigrate(t *testing.T) {
 	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
-
 	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
 
 	if err := DB.Migrator().DropTable(allModels...); err != nil {
@@ -23,6 +22,23 @@ func TestMigrate(t *testing.T) {
 
 	if err := DB.AutoMigrate(allModels...); err != nil {
 		t.Fatalf("Failed to auto migrate, but got error %v", err)
+	}
+
+	if tables, err := DB.Migrator().GetTables(); err != nil {
+		t.Fatalf("Failed to get database all tables, but got error %v", err)
+	} else {
+		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages"} {
+			hasTable := false
+			for _, t2 := range tables {
+				if t2 == t1 {
+					hasTable = true
+					break
+				}
+			}
+			if !hasTable {
+				t.Fatalf("Failed to get table %v when GetTables", t1)
+			}
+		}
 	}
 
 	for _, m := range allModels {
