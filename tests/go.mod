@@ -5,7 +5,6 @@ go 1.14
 require (
 	github.com/google/uuid v1.3.0
 	github.com/jinzhu/now v1.1.2
-	github.com/juliangruber/go-intersect v1.1.0 // indirect
 	github.com/lib/pq v1.10.4
 	gorm.io/driver/mysql v1.1.3
 	gorm.io/driver/postgres v1.2.2
