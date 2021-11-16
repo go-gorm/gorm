@@ -156,16 +156,19 @@ func Delete(config *Config) func(db *gorm.DB) {
 		}
 
 		if !db.DryRun && db.Error == nil {
-			if ok, mode := hasReturning(db, supportReturning); ok {
-				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
-					gorm.Scan(rows, db, mode)
-					rows.Close()
-				}
-			} else {
+			ok, mode := hasReturning(db, supportReturning)
+			if !ok {
 				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 				if db.AddError(err) == nil {
 					db.RowsAffected, _ = result.RowsAffected()
 				}
+
+				return
+			}
+
+			if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+				gorm.Scan(rows, db, mode)
+				rows.Close()
 			}
 		}
 	}

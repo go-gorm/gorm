@@ -102,9 +102,9 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 type ScanMode uint8
 
 const (
-	ScanInitialized         ScanMode = 1 << 0
-	ScanUpdate                       = 1 << 1
-	ScanOnConflictDoNothing          = 1 << 2
+	ScanInitialized         ScanMode = 1 << iota // 1
+	ScanUpdate                                   // 2
+	ScanOnConflictDoNothing                      // 4
 )
 
 func Scan(rows *sql.Rows, db *DB, mode ScanMode) {

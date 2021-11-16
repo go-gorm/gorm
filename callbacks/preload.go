@@ -61,12 +61,13 @@ func preload(db *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 		fieldValues := make([]interface{}, len(joinForeignFields))
 		joinFieldValues := make([]interface{}, len(joinRelForeignFields))
 		for i := 0; i < joinResults.Len(); i++ {
+			joinIndexValue := joinResults.Index(i)
 			for idx, field := range joinForeignFields {
-				fieldValues[idx], _ = field.ValueOf(joinResults.Index(i))
+				fieldValues[idx], _ = field.ValueOf(joinIndexValue)
 			}
 
 			for idx, field := range joinRelForeignFields {
-				joinFieldValues[idx], _ = field.ValueOf(joinResults.Index(i))
+				joinFieldValues[idx], _ = field.ValueOf(joinIndexValue)
 			}
 
 			if results, ok := joinIdentityMap[utils.ToStringKey(fieldValues...)]; ok {

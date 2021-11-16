@@ -200,15 +200,16 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			stmt.SQL.Grow(stmt.ReflectValue.Len() * 18)
-			values.Values = make([][]interface{}, stmt.ReflectValue.Len())
-			defaultValueFieldsHavingValue := map[*schema.Field][]interface{}{}
-			if stmt.ReflectValue.Len() == 0 {
+			rValLen := stmt.ReflectValue.Len()
+			stmt.SQL.Grow(rValLen * 18)
+			values.Values = make([][]interface{}, rValLen)
+			if rValLen == 0 {
 				stmt.AddError(gorm.ErrEmptySlice)
 				return
 			}
 
-			for i := 0; i < stmt.ReflectValue.Len(); i++ {
+			defaultValueFieldsHavingValue := map[*schema.Field][]interface{}{}
+			for i := 0; i < rValLen; i++ {
 				rv := reflect.Indirect(stmt.ReflectValue.Index(i))
 				if !rv.IsValid() {
 					stmt.AddError(fmt.Errorf("slice data #%v is invalid: %w", i, gorm.ErrInvalidData))
@@ -234,11 +235,11 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 				for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-						if v, isZero := field.ValueOf(rv); !isZero {
+						if rvOfvalue, isZero := field.ValueOf(rv); !isZero {
 							if len(defaultValueFieldsHavingValue[field]) == 0 {
-								defaultValueFieldsHavingValue[field] = make([]interface{}, stmt.ReflectValue.Len())
+								defaultValueFieldsHavingValue[field] = make([]interface{}, rValLen)
 							}
-							defaultValueFieldsHavingValue[field][i] = v
+							defaultValueFieldsHavingValue[field][i] = rvOfvalue
 						}
 					}
 				}
@@ -274,9 +275,9 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 
 			for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					if v, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+					if rvOfvalue, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
 						values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
-						values.Values[0] = append(values.Values[0], v)
+						values.Values[0] = append(values.Values[0], rvOfvalue)
 					}
 				}
 			}
