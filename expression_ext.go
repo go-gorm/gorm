@@ -323,6 +323,16 @@ func (e *expr) Min() string {
 	return "MIN(" + e.expr + ")"
 }
 
+func (e *expr) LowerExpr() *expr {
+	e.expr = "LOWER(" + e.expr + ")"
+	return e
+}
+
+func (e *expr) UpperExpr() *expr {
+	e.expr = "UPPER(" + e.expr + ")"
+	return e
+}
+
 func (e *expr) Lower() string {
 	return "LOWER(" + e.expr + ")"
 }
