@@ -6,6 +6,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
+        with:
+          golangci_lint_flags: '-E cyclop,unconvert,misspell,unparam,ineffassign,gocritic,prealloc,exportloopref,gosec'

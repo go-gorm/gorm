@@ -284,6 +284,11 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				return []clause.Expression{clause.NamedExpr{SQL: s, Vars: args}}
 			}
 
+			if strings.Contains(strings.TrimSpace(s), " ") {
+				// looks like a where condition
+				return []clause.Expression{clause.Expr{SQL: s, Vars: args}}
+			}
+
 			if len(args) == 1 {
 				return []clause.Expression{clause.Eq{Column: s, Value: args[0]}}
 			}
