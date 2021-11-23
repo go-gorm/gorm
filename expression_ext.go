@@ -18,7 +18,11 @@ func join(joinType string, db *DB, model interface{}, alias ...string) *jexpr {
 	}
 
 	if val, ok := model.(*expr); ok {
-		return &jexpr{expr: " " + joinType + " JOIN (" + val.expr + ") " + al, args: val.args}
+		if al == "" {
+			return &jexpr{expr: " " + joinType + " JOIN " + val.expr, args: val.args}
+		} else {
+			return &jexpr{expr: " " + joinType + " JOIN (" + val.expr + ") " + al, args: val.args}
+		}
 	}
 	return &jexpr{expr: " " + joinType + " JOIN " + db.T(model) + " " + al}
 }
