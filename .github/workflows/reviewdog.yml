@@ -10,4 +10,4 @@ jobs:
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
         with:
-          golangci_lint_flags: '--enable-all --exclude-use-default=false'
+          golangci_lint_flags: '-E cyclop,unconvert,misspell,unparam,ineffassign,maligned,gocritic,prealloc,scopelint,scopelint,gosec'
