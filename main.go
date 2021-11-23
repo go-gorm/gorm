@@ -188,6 +188,9 @@ func (s *DB) QueryExpr(alias ...string) *expr {
 
 // SubQuery returns the query as sub query
 func (s *DB) SubQuery() *expr {
+	if s.search.limit == nil && s.search.offset == nil {
+		s = s.Order(nil, true)
+	}
 	scope := s.NewScope(s.Value)
 	scope.InstanceSet("skip_bindvar", true)
 	scope.prepareQuerySQL()
