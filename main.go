@@ -188,7 +188,7 @@ func (s *DB) QueryExpr(alias ...string) *expr {
 
 // SubQuery returns the query as sub query
 func (s *DB) SubQuery() *expr {
-	if s.search.limit == nil && s.search.offset == nil {
+	if (s.search.limit == nil || s.search.limit == -1) && (s.search.offset == nil || s.search.offset == -1) {
 		s = s.Order(nil, true)
 	}
 	scope := s.NewScope(s.Value)
