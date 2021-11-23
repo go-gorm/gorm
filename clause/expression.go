@@ -70,7 +70,7 @@ func (expr Expr) Build(builder Builder) {
 
 	if idx < len(expr.Vars) {
 		for _, v := range expr.Vars[idx:] {
-			builder.AddVar(builder, v)
+			builder.AddVar(builder, sql.NamedArg{Value: v})
 		}
 	}
 }
