@@ -69,7 +69,7 @@ func (expr Expr) Build(builder Builder) {
 	}
 
 	if idx < len(expr.Vars) {
-		for _, v := range expr.Vars[idx+1:] {
+		for _, v := range expr.Vars[idx:] {
 			builder.AddVar(builder, v)
 		}
 	}
