@@ -419,7 +419,7 @@ func (s *DB) UpdateColumn(attrs ...interface{}) *DB {
 
 // UpdateColumns update attributes without callbacks, refer: https://jinzhu.github.io/gorm/crud.html#update
 func (s *DB) UpdateColumns(values interface{}) *DB {
-	return s.NewScope(s.Value).
+	return s.Order(nil, true).NewScope(s.Value).
 		Set("gorm:update_column", true).
 		Set("gorm:save_associations", false).
 		InstanceSet("gorm:update_interface", values).
