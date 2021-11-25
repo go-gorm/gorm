@@ -134,4 +134,14 @@ func TestCount(t *testing.T) {
 		t.Fatalf("Count should be 3, but got count: %v err %v", count10, err)
 	}
 
+	var count11 int64
+	sameUsers := make([]*User, 0)
+	for i := 0; i < 3; i++ {
+		sameUsers = append(sameUsers, GetUser("count-4", Config{}))
+	}
+	DB.Create(sameUsers)
+
+	if err := DB.Model(&User{}).Where("name = ?", "count-4").Group("name").Count(&count11).Error; err != nil || count11 != 1 {
+		t.Fatalf("Count should be 3, but got count: %v err %v", count11, err)
+	}
 }

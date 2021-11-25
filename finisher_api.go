@@ -422,6 +422,11 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	if tx.RowsAffected != 1 {
 		*count = tx.RowsAffected
 	}
+
+	if _, ok := db.Statement.Clauses["GROUP BY"]; ok && tx.RowsAffected == 1 {
+		*count = tx.RowsAffected
+	}
+
 	return
 }
 
