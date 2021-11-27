@@ -297,3 +297,21 @@ func TestEmbeddedStructForCustomizedNamingStrategy(t *testing.T) {
 		})
 	}
 }
+
+func TestParseProtobufStruct(t *testing.T) {
+	type Response struct {
+		Code                 *uint32                `protobuf:"varint,1,opt,name=code" json:"code,omitempty"`
+		XXX_NoUnkeyedLiteral struct{}               `json:"-"`
+		XXX_unrecognized     []byte                 `json:"-"`
+		XXX_sizecache        int32                  `json:"-"`
+	}
+
+	responseSchema, err := schema.Parse(&Response{}, &sync.Map{}, CustomizedNamingStrategy{schema.NamingStrategy{}})
+	if err != nil {
+		t.Fatalf("failed to parse protobuf struct, got error %v", err)
+	}
+
+	if len(responseSchema.Fields) != 1 || responseSchema.Fields[0].Name != "Code" {
+		t.Errorf("schema %v do include private field in protobuf struct", responseSchema)
+	}
+}

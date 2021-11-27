@@ -155,7 +155,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	for i := 0; i < modelType.NumField(); i++ {
-		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
+		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) && fieldStruct.Tag.Get("json") != "-" {
 			if field := schema.ParseField(fieldStruct); field.EmbeddedSchema != nil {
 				schema.Fields = append(schema.Fields, field.EmbeddedSchema.Fields...)
 			} else {
