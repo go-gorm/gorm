@@ -419,11 +419,8 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 	tx.Statement.Dest = count
 	tx = tx.callbacks.Query().Execute(tx)
-	if tx.RowsAffected != 1 {
-		*count = tx.RowsAffected
-	}
 
-	if _, ok := db.Statement.Clauses["GROUP BY"]; ok && tx.RowsAffected == 1 {
+	if _, ok := db.Statement.Clauses["GROUP BY"]; (ok && tx.RowsAffected == 1) || tx.RowsAffected != 1 {
 		*count = tx.RowsAffected
 	}
 
