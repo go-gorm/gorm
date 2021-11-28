@@ -44,6 +44,10 @@ func TestPostgres(t *testing.T) {
 	if err := DB.First(&result, "id = ?", harumph.ID).Error; err != nil || harumph.Name != "jinzhu" {
 		t.Errorf("No error should happen, but got %v", err)
 	}
+
+	if err := DB.Where("id = $1", harumph.ID).First(&Harumph{}).Error; err != nil || harumph.Name != "jinzhu" {
+		t.Errorf("No error should happen, but got %v", err)
+	}
 }
 
 type Post struct {
