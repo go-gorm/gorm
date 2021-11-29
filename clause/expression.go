@@ -67,6 +67,12 @@ func (expr Expr) Build(builder Builder) {
 			builder.WriteByte(v)
 		}
 	}
+
+	if idx < len(expr.Vars) {
+		for _, v := range expr.Vars[idx:] {
+			builder.AddVar(builder, sql.NamedArg{Value: v})
+		}
+	}
 }
 
 // NamedExpr raw expression for named expr
