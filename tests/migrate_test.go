@@ -90,7 +90,7 @@ func TestAutoMigrateSelfReferential(t *testing.T) {
 }
 
 func TestSmartMigrateColumn(t *testing.T) {
-	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
+	fullSupported := map[string]bool{"mysql": true}[DB.Dialector.Name()]
 
 	type UserMigrateColumn struct {
 		ID       uint
