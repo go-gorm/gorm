@@ -454,9 +454,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Config = &config
 
-	if rows, err := tx.Rows(); err != nil {
-		tx.AddError(err)
-	} else {
+	if rows, err := tx.Rows(); err == nil {
 		defer rows.Close()
 		if rows.Next() {
 			tx.ScanRows(rows, dest)
