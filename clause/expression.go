@@ -368,7 +368,7 @@ func (like Like) NegationBuild(builder Builder) {
 }
 
 func eqNil(value interface{}) bool {
-	if valuer, ok := value.(driver.Valuer); ok {
+	if valuer, ok := value.(driver.Valuer); ok && !eqNilReflect(valuer) {
 		value, _ = valuer.Value()
 	}
 

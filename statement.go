@@ -173,7 +173,12 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		case clause.Column, clause.Table:
 			stmt.QuoteTo(writer, v)
 		case Valuer:
-			stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
+			reflectValue := reflect.ValueOf(v)
+			if reflectValue.Kind() == reflect.Ptr && reflectValue.IsNil() {
+				stmt.AddVar(writer, nil)
+			} else {
+				stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
+			}
 		case clause.Expr:
 			v.Build(stmt)
 		case *clause.Expr:
