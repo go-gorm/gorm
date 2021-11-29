@@ -178,19 +178,21 @@ func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
 }
 
 func TestFullSaveAssociations(t *testing.T) {
+	coupon := &Coupon{
+		ID: "full-save-association-coupon1",
+		AppliesToProduct: []*CouponProduct{
+			{
+				CouponId:  "full-save-association-coupon1",
+				ProductId: "full-save-association-product1",
+			},
+		},
+		AmountOff:  10,
+		PercentOff: 0.0,
+	}
+
 	err := DB.
 		Session(&gorm.Session{FullSaveAssociations: true}).
-		Create(&Coupon{
-			ID: "full-save-association-coupon1",
-			AppliesToProduct: []*CouponProduct{
-				{
-					CouponId:  "full-save-association-coupon1",
-					ProductId: "full-save-association-product1",
-				},
-			},
-			AmountOff:  10,
-			PercentOff: 0.0,
-		}).Error
+		Create(coupon).Error
 
 	if err != nil {
 		t.Errorf("Failed, got error: %v", err)
@@ -202,5 +204,10 @@ func TestFullSaveAssociations(t *testing.T) {
 
 	if DB.First(&CouponProduct{}, "coupon_id = ? AND product_id = ?", "full-save-association-coupon1", "full-save-association-product1").Error != nil {
 		t.Errorf("Failed to query saved association")
+	}
+
+	orders := []Order{{Num: "order1", Coupon: coupon}, {Num: "order2", Coupon: coupon}}
+	if err := DB.Create(&orders).Error; err != nil {
+		t.Errorf("failed to create orders, got %v", err)
 	}
 }

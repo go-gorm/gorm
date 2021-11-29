@@ -7,6 +7,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
@@ -182,6 +183,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					fieldType = reflect.PtrTo(fieldType)
 				}
 				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
+				identityMap := map[string]bool{}
 				appendToElems := func(v reflect.Value) {
 					if _, zero := rel.Field.ValueOf(v); !zero {
 						f := reflect.Indirect(rel.Field.ReflectValueOf(v))
@@ -197,10 +199,21 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 								}
 							}
 
-							if isPtr {
-								elems = reflect.Append(elems, elem)
-							} else {
-								elems = reflect.Append(elems, elem.Addr())
+							relPrimaryValues := make([]interface{}, 0, len(rel.FieldSchema.PrimaryFields))
+							for _, pf := range rel.FieldSchema.PrimaryFields {
+								if pfv, ok := pf.ValueOf(elem); !ok {
+									relPrimaryValues = append(relPrimaryValues, pfv)
+								}
+							}
+
+							cacheKey := utils.ToStringKey(relPrimaryValues)
+							if len(relPrimaryValues) == 0 || (len(relPrimaryValues) == len(rel.FieldSchema.PrimaryFields) && !identityMap[cacheKey]) {
+								identityMap[cacheKey] = true
+								if isPtr {
+									elems = reflect.Append(elems, elem)
+								} else {
+									elems = reflect.Append(elems, elem.Addr())
+								}
 							}
 						}
 					}

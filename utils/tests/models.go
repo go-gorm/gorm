@@ -72,3 +72,10 @@ type CouponProduct struct {
 	CouponId  string `gorm:"primarykey; size:255"`
 	ProductId string `gorm:"primarykey; size:255"`
 }
+
+type Order struct {
+	gorm.Model
+	Num      string
+	Coupon   *Coupon
+	CouponID string
+}

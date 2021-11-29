@@ -427,7 +427,7 @@ func TestCompositePrimaryKeysAssociations(t *testing.T) {
 
 	DB.Migrator().DropTable(&Label{}, &Book{})
 	if err := DB.AutoMigrate(&Label{}, &Book{}); err != nil {
-		t.Fatalf("failed to migrate")
+		t.Fatalf("failed to migrate, got %v", err)
 	}
 
 	book := Book{
