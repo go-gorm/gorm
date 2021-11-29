@@ -24,9 +24,9 @@ func (set Set) Build(builder Builder) {
 			builder.AddVar(builder, assignment.Value)
 		}
 	} else {
-		builder.WriteQuoted(PrimaryColumn)
+		builder.WriteQuoted(Column{Name: PrimaryKey})
 		builder.WriteByte('=')
-		builder.WriteQuoted(PrimaryColumn)
+		builder.WriteQuoted(Column{Name: PrimaryKey})
 	}
 }
 

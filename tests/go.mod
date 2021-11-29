@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/google/uuid v1.3.0
+	github.com/jackc/pgtype v1.9.1 // indirect
 	github.com/jackc/pgx/v4 v4.14.0 // indirect
 	github.com/jinzhu/now v1.1.3
 	github.com/lib/pq v1.10.4

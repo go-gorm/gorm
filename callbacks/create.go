@@ -317,6 +317,9 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				}
 
 				onConflict.DoUpdates = append(onConflict.DoUpdates, clause.AssignmentColumns(columns)...)
+				if len(onConflict.DoUpdates) == 0 {
+					onConflict.DoNothing = true
+				}
 
 				// use primary fields as default OnConflict columns
 				if len(onConflict.Columns) == 0 {

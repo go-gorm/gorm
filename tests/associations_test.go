@@ -176,3 +176,31 @@ func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
 		t.Fatalf("Should not find deleted profile")
 	}
 }
+
+func TestFullSaveAssociations(t *testing.T) {
+	err := DB.
+		Session(&gorm.Session{FullSaveAssociations: true}).
+		Create(&Coupon{
+			ID: "full-save-association-coupon1",
+			AppliesToProduct: []*CouponProduct{
+				{
+					CouponId:  "full-save-association-coupon1",
+					ProductId: "full-save-association-product1",
+				},
+			},
+			AmountOff:  10,
+			PercentOff: 0.0,
+		}).Error
+
+	if err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+
+	if DB.First(&Coupon{}, "id = ?", "full-save-association-coupon1").Error != nil {
+		t.Errorf("Failed to query saved coupon")
+	}
+
+	if DB.First(&CouponProduct{}, "coupon_id = ? AND product_id = ?", "full-save-association-coupon1", "full-save-association-product1").Error != nil {
+		t.Errorf("Failed to query saved association")
+	}
+}
