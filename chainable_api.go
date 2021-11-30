@@ -219,6 +219,12 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{v},
 		})
+
+	case clause.OrderByColumns:
+		tx.Statement.AddClause(clause.OrderBy{
+			Columns: v,
+		})
+
 	case string:
 		if v != "" {
 			tx.Statement.AddClause(clause.OrderBy{

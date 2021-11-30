@@ -6,6 +6,8 @@ type OrderByColumn struct {
 	Reorder bool
 }
 
+type OrderByColumns = []OrderByColumn
+
 type OrderBy struct {
 	Columns    []OrderByColumn
 	Expression Expression
