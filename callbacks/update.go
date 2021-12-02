@@ -88,7 +88,7 @@ func Update(config *Config) func(db *gorm.DB) {
 					db.Statement.Dest = db.Statement.ReflectValue.Addr().Interface()
 					gorm.Scan(rows, db, mode)
 					db.Statement.Dest = dest
-					rows.Close()
+					db.AddError(rows.Close())
 				}
 			} else {
 				result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
