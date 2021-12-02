@@ -83,7 +83,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			)
 			if db.AddError(err) == nil {
 				gorm.Scan(rows, db, mode)
-				rows.Close()
+				db.AddError(rows.Close())
 			}
 
 			return

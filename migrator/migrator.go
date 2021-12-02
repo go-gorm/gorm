@@ -430,13 +430,15 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 // ColumnTypes return columnTypes []gorm.ColumnType and execErr error
 func (m Migrator) ColumnTypes(value interface{}) ([]gorm.ColumnType, error) {
 	columnTypes := make([]gorm.ColumnType, 0)
-	execErr := m.RunWithValue(value, func(stmt *gorm.Statement) error {
+	execErr := m.RunWithValue(value, func(stmt *gorm.Statement) (err error) {
 		rows, err := m.DB.Session(&gorm.Session{}).Table(stmt.Table).Limit(1).Rows()
 		if err != nil {
 			return err
 		}
 
-		defer rows.Close()
+		defer func() {
+			err = rows.Close()
+		}()
 
 		var rawColumnTypes []*sql.ColumnType
 		rawColumnTypes, err = rows.ColumnTypes()
@@ -448,7 +450,7 @@ func (m Migrator) ColumnTypes(value interface{}) ([]gorm.ColumnType, error) {
 			columnTypes = append(columnTypes, c)
 		}
 
-		return nil
+		return
 	})
 
 	return columnTypes, execErr
