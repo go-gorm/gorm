@@ -132,6 +132,13 @@ func TestBelongsToAssociation(t *testing.T) {
 
 	AssertAssociationCount(t, user2, "Company", 0, "after clear")
 	AssertAssociationCount(t, user2, "Manager", 0, "after clear")
+
+	// unexist company id
+	unexistCompanyID := company.ID + 9999999
+	user = User{Name: "invalid-user-with-invalid-belongs-to-foreign-key", CompanyID: &unexistCompanyID}
+	if err := DB.Create(&user).Error; err == nil {
+		t.Errorf("should have gotten foreign key violation error")
+	}
 }
 
 func TestBelongsToAssociationForSlice(t *testing.T) {
