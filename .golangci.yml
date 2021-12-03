@@ -1,0 +1,11 @@
+linters:
+  enable:
+    - cyclop
+    - exportloopref
+    - gocritic
+    - gosec
+    - ineffassign
+    - misspell
+    - prealloc
+    - unconvert
+    - unparam

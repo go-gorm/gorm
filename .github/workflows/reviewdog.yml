@@ -9,5 +9,3 @@ jobs:
         uses: actions/checkout@v2
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v2
-        with:
-          golangci_lint_flags: '-E cyclop,unconvert,misspell,unparam,ineffassign,gocritic,prealloc,exportloopref,gosec'
