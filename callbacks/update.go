@@ -73,6 +73,13 @@ func Update(config *Config) func(db *gorm.DB) {
 			} else if _, ok := db.Statement.Clauses["SET"]; !ok {
 				return
 			}
+
+			if _, ok := db.Statement.Clauses["WHERE"]; ok && db.Statement.Schema != nil && !db.Statement.Unscoped {
+				for _, c := range db.Statement.Schema.UpdateClauses {
+					db.Statement.AddClause(c)
+				}
+			}
+
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
