@@ -244,7 +244,7 @@ func TestParseFieldWithPermission(t *testing.T) {
 		t.Fatalf("Failed to parse user with permission, got error %v", err)
 	}
 
-	fields := []schema.Field{
+	fields := []*schema.Field{
 		{Name: "ID", DBName: "id", BindNames: []string{"ID"}, DataType: schema.Uint, PrimaryKey: true, Size: 64, Creatable: true, Updatable: true, Readable: true, HasDefaultValue: true, AutoIncrement: true},
 		{Name: "Name", DBName: "", BindNames: []string{"Name"}, DataType: "", Tag: `gorm:"-"`, Creatable: false, Updatable: false, Readable: false},
 		{Name: "Name2", DBName: "name2", BindNames: []string{"Name2"}, DataType: schema.String, Tag: `gorm:"->"`, Creatable: false, Updatable: false, Readable: true},
@@ -257,7 +257,7 @@ func TestParseFieldWithPermission(t *testing.T) {
 	}
 
 	for _, f := range fields {
-		checkSchemaField(t, user, &f, func(f *schema.Field) {})
+		checkSchemaField(t, user, f, func(f *schema.Field) {})
 	}
 }
 
@@ -300,7 +300,7 @@ func TestTypeAliasField(t *testing.T){
 		t.Fatalf("Failed to parse TypeAlias with permission, got error %v", err)
 	}
 
-	fields := []schema.Field{
+	fields := []*schema.Field{
 		{Name: "ID",      DBName: "id",       BindNames: []string{"ID"},      DataType: schema.Int   , Creatable: true, Updatable: true, Readable: true, Size: 64, PrimaryKey: true, HasDefaultValue: true, AutoIncrement: true },
 		{Name: "INT",     DBName: "fint",     BindNames: []string{"INT"},     DataType: schema.Int   , Creatable: true, Updatable: true, Readable: true, Size: 64, Tag: `gorm:"column:fint"`},
 		{Name: "INT8",    DBName: "fint8",    BindNames: []string{"INT8"},    DataType: schema.Int   , Creatable: true, Updatable: true, Readable: true, Size: 8,  Tag: `gorm:"column:fint8"`},
@@ -319,6 +319,6 @@ func TestTypeAliasField(t *testing.T){
 	}
 
 	for _, f := range fields {
-		checkSchemaField(t, alias, &f, func(f *schema.Field) {})
+		checkSchemaField(t, alias, f, func(f *schema.Field) {})
 	}
 }
