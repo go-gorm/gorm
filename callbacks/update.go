@@ -59,7 +59,7 @@ func Update(config *Config) func(db *gorm.DB) {
 			return
 		}
 
-		if db.Statement.SQL.String() == "" {
+		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(180)
 			db.Statement.AddClauseIfNotExists(clause.Update{})
 			if set := ConvertToAssignments(db.Statement); len(set) != 0 {

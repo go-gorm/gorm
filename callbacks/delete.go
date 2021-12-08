@@ -118,13 +118,7 @@ func Delete(config *Config) func(db *gorm.DB) {
 			return
 		}
 
-		if db.Statement.Schema != nil {
-			for _, c := range db.Statement.Schema.DeleteClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.String() == "" {
+		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(100)
 			db.Statement.AddClauseIfNotExists(clause.Delete{})
 
@@ -147,6 +141,15 @@ func Delete(config *Config) func(db *gorm.DB) {
 			}
 
 			db.Statement.AddClauseIfNotExists(clause.From{})
+		}
+
+		if db.Statement.Schema != nil {
+			for _, c := range db.Statement.Schema.DeleteClauses {
+				db.Statement.AddClause(c)
+			}
+		}
+
+		if db.Statement.SQL.Len() == 0 {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 

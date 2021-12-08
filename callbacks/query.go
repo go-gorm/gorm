@@ -33,7 +33,7 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 	}
 
-	if db.Statement.SQL.String() == "" {
+	if db.Statement.SQL.Len() == 0 {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
 
