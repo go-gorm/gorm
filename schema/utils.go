@@ -30,7 +30,10 @@ func ParseTagSetting(str string, sep string) map[string]string {
 		}
 
 		values := strings.Split(names[j], ":")
-		k := strings.TrimSpace(strings.ToUpper(values[0]))
+		for i, v := range values {
+			values[i] = strings.TrimSpace(v)
+		}
+		k := strings.ToUpper(values[0])
 
 		if len(values) >= 2 {
 			settings[k] = strings.Join(values[1:], ":")
