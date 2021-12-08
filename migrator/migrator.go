@@ -407,9 +407,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	// check precision
 	if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
-		if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
-			alterColumn = true
-		}
+		alterColumn = true
 	}
 
 	// check nullable
