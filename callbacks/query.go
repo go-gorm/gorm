@@ -27,7 +27,7 @@ func Query(db *gorm.DB) {
 }
 
 func BuildQuerySQL(db *gorm.DB) {
-	if db.Statement.Schema != nil && !db.Statement.Unscoped {
+	if db.Statement.Schema != nil {
 		for _, c := range db.Statement.Schema.QueryClauses {
 			db.Statement.AddClause(c)
 		}
