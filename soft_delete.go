@@ -63,7 +63,7 @@ func (sd SoftDeleteQueryClause) MergeClause(*clause.Clause) {
 }
 
 func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
-	if _, ok := stmt.Clauses["soft_delete_enabled"]; !ok {
+	if _, ok := stmt.Clauses["soft_delete_enabled"]; !ok && !stmt.Statement.Unscoped {
 		if c, ok := stmt.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok && len(where.Exprs) > 1 {
 				for _, expr := range where.Exprs {
