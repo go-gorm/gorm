@@ -645,7 +645,13 @@ func TestSave(t *testing.T) {
 
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
 	stmt := dryDB.Save(&user).Statement
-	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(stmt.SQL.String()) {
+	if !regexp.MustCompile(`.id. = .* AND .users.\..deleted_at. IS NULL`).MatchString(stmt.SQL.String()) {
+		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
+	}
+
+	dryDB = DB.Session(&gorm.Session{DryRun: true})
+	stmt = dryDB.Unscoped().Save(&user).Statement
+	if !regexp.MustCompile(`WHERE .id. = [^ ]+$`).MatchString(stmt.SQL.String()) {
 		t.Fatalf("invalid updating SQL, got %v", stmt.SQL.String())
 	}
 
