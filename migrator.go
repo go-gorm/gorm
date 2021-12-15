@@ -35,10 +35,24 @@ type ViewOption struct {
 
 type ColumnType interface {
 	Name() string
-	DatabaseTypeName() string
+	DatabaseTypeName() string //varchar
 	Length() (length int64, ok bool)
 	DecimalSize() (precision int64, scale int64, ok bool)
 	Nullable() (nullable bool, ok bool)
+	Comment() string
+	ColumnType() string //varchar(64)
+	GoTypeName() string //string
+	Primary() bool
+	AutoIncrement() bool
+	Default() string
+	Indexes() []IndexType  //或者migrate加一个接口查询index，把columnName带上
+}
+
+type IndexType interface {
+	Name() string
+	Primary() bool
+	Unique() bool
+	Seq() int
 }
 
 type Migrator interface {
