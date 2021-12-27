@@ -26,7 +26,7 @@ for dialect in "${dialects[@]}" ; do
       if [ -d tests ]
       then
         cd tests
-        GORM_DIALECT=${dialect} go test -race -count=1 -coverprofile=../coverage.out ./...
+        GORM_DIALECT=${dialect} go test -race -count=1 -coverprofile=coverage.out ./...
         cd ..
       fi
     else
@@ -34,7 +34,7 @@ for dialect in "${dialects[@]}" ; do
       if [ -d tests ]
       then
         cd tests
-        GORM_DIALECT=${dialect} go test -race -count=1 -v -coverprofile=../coverage.out ./...
+        GORM_DIALECT=${dialect} go test -race -count=1 -v -coverprofile=coverage.out ./...
         cd ..
       fi
     fi

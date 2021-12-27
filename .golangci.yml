@@ -13,6 +13,7 @@ linters:
     - gocritic
     - gofumpt
     - misspell
+    - nilerr
     - prealloc
     - unconvert
     - unparam
