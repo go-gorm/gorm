@@ -18,7 +18,8 @@ func TestGroupBy(t *testing.T) {
 				Columns: []clause.Column{{Name: "role"}},
 				Having:  []clause.Expression{clause.Eq{"role", "admin"}},
 			}},
-			"SELECT * FROM `users` GROUP BY `role` HAVING `role` = ?", []interface{}{"admin"},
+			"SELECT * FROM `users` GROUP BY `role` HAVING `role` = ?",
+			[]interface{}{"admin"},
 		},
 		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.GroupBy{
@@ -28,7 +29,8 @@ func TestGroupBy(t *testing.T) {
 				Columns: []clause.Column{{Name: "gender"}},
 				Having:  []clause.Expression{clause.Neq{"gender", "U"}},
 			}},
-			"SELECT * FROM `users` GROUP BY `role`,`gender` HAVING `role` = ? AND `gender` <> ?", []interface{}{"admin", "U"},
+			"SELECT * FROM `users` GROUP BY `role`,`gender` HAVING `role` = ? AND `gender` <> ?",
+			[]interface{}{"admin", "U"},
 		},
 	}
 

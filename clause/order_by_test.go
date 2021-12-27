@@ -45,7 +45,8 @@ func TestOrderBy(t *testing.T) {
 					Expression: clause.Expr{SQL: "FIELD(id, ?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
 				},
 			},
-			"SELECT * FROM `users` ORDER BY FIELD(id, ?,?,?)", []interface{}{1, 2, 3},
+			"SELECT * FROM `users` ORDER BY FIELD(id, ?,?,?)",
+			[]interface{}{1, 2, 3},
 		},
 	}
 

@@ -20,7 +20,8 @@ func TestSet(t *testing.T) {
 				clause.Update{},
 				clause.Set([]clause.Assignment{{clause.PrimaryColumn, 1}}),
 			},
-			"UPDATE `users` SET `users`.`id`=?", []interface{}{1},
+			"UPDATE `users` SET `users`.`id`=?",
+			[]interface{}{1},
 		},
 		{
 			[]clause.Interface{
@@ -28,7 +29,8 @@ func TestSet(t *testing.T) {
 				clause.Set([]clause.Assignment{{clause.PrimaryColumn, 1}}),
 				clause.Set([]clause.Assignment{{clause.Column{Name: "name"}, "jinzhu"}}),
 			},
-			"UPDATE `users` SET `name`=?", []interface{}{"jinzhu"},
+			"UPDATE `users` SET `name`=?",
+			[]interface{}{"jinzhu"},
 		},
 	}
 

@@ -3,6 +3,7 @@ package gorm
 import (
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"reflect"
 	"strings"
 	"time"
@@ -49,7 +50,7 @@ func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns 
 	}
 }
 
-func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue reflect.Value, values []interface{}, columns []string, fields []*schema.Field, joinFields [][2]*schema.Field) {
+func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue reflect.Value, values []interface{}, columns []string) {
 	for idx, column := range columns {
 		if sch == nil {
 			values[idx] = reflectValue.Interface()
@@ -254,7 +255,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 					elem = reflect.New(reflectValueType)
 				}
 
-				db.scanIntoStruct(sch, rows, elem, values, columns, fields, joinFields)
+				db.scanIntoStruct(sch, rows, elem, values, columns)
 
 				if !update {
 					if isPtr {
@@ -270,14 +271,14 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			}
 		case reflect.Struct, reflect.Ptr:
 			if initialized || rows.Next() {
-				db.scanIntoStruct(sch, rows, reflectValue, values, columns, fields, joinFields)
+				db.scanIntoStruct(sch, rows, reflectValue, values, columns)
 			}
 		default:
 			db.AddError(rows.Scan(dest))
 		}
 	}
 
-	if err := rows.Err(); err != nil && err != db.Error {
+	if err := rows.Err(); err != nil && !errors.Is(err, db.Error) {
 		db.AddError(err)
 	}
 

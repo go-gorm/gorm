@@ -474,7 +474,8 @@ func buildConstraint(constraint *schema.Constraint) (sql string, results []inter
 		sql += " ON UPDATE " + constraint.OnUpdate
 	}
 
-	var foreignKeys, references []interface{}
+	foreignKeys := make([]interface{}, 0)
+	references := make([]interface{}, 0)
 	for _, field := range constraint.ForeignKeys {
 		foreignKeys = append(foreignKeys, clause.Column{Name: field.DBName})
 	}
@@ -541,7 +542,7 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 		}
 
 		if constraint != nil {
-			var vars = []interface{}{clause.Table{Name: table}}
+			vars := []interface{}{clause.Table{Name: table}}
 			if stmt.TableExpr != nil {
 				vars[0] = stmt.TableExpr
 			}

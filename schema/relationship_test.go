@@ -105,7 +105,6 @@ func TestSelfReferentialBelongsTo(t *testing.T) {
 		Name: "Creator", Type: schema.BelongsTo, Schema: "User", FieldSchema: "User",
 		References: []Reference{{"ID", "User", "CreatorID", "User", "", false}},
 	})
-
 }
 
 func TestSelfReferentialBelongsToOverrideReferences(t *testing.T) {
@@ -160,7 +159,6 @@ func TestHasOneOverrideReferences(t *testing.T) {
 }
 
 func TestHasOneOverrideReferences2(t *testing.T) {
-
 	type Profile struct {
 		gorm.Model
 		Name string
@@ -518,7 +516,6 @@ func TestSameForeignKey(t *testing.T) {
 }
 
 func TestBelongsToSameForeignKey(t *testing.T) {
-
 	type User struct {
 		gorm.Model
 		Name string

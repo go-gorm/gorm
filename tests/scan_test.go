@@ -45,7 +45,7 @@ func TestScan(t *testing.T) {
 		t.Fatalf("Scan into struct should work, got %#v, should %#v", res, user3)
 	}
 
-	var doubleAgeRes = &result{}
+	doubleAgeRes := &result{}
 	if err := DB.Table("users").Select("age + age as age").Where("id = ?", user3.ID).Scan(&doubleAgeRes).Error; err != nil {
 		t.Errorf("Scan to pointer of pointer")
 	}

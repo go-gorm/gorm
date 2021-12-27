@@ -1,4 +1,3 @@
 package clause
 
-type With struct {
-}
+type With struct{}

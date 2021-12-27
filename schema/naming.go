@@ -86,9 +86,9 @@ func (ns NamingStrategy) IndexName(table, column string) string {
 }
 
 func (ns NamingStrategy) formatName(prefix, table, name string) string {
-	formattedName := strings.Replace(strings.Join([]string{
+	formattedName := strings.ReplaceAll(strings.Join([]string{
 		prefix, table, name,
-	}, "_"), ".", "_", -1)
+	}, "_"), ".", "_")
 
 	if utf8.RuneCountInString(formattedName) > 64 {
 		h := sha1.New()
@@ -168,7 +168,7 @@ func (ns NamingStrategy) toDBName(name string) string {
 }
 
 func (ns NamingStrategy) toSchemaName(name string) string {
-	result := strings.Replace(strings.Title(strings.Replace(name, "_", " ", -1)), " ", "", -1)
+	result := strings.ReplaceAll(strings.Title(strings.ReplaceAll(name, "_", " ")), " ", "")
 	for _, initialism := range commonInitialisms {
 		result = regexp.MustCompile(strings.Title(strings.ToLower(initialism))+"([A-Z]|$|_)").ReplaceAllString(result, initialism+"$1")
 	}

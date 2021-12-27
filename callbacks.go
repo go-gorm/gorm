@@ -241,9 +241,10 @@ func getRIndex(strs []string, str string) int {
 }
 
 func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
+	names := make([]string, 0)
 	var (
-		names, sorted []string
-		sortCallback  func(*callback) error
+		sorted       []string
+		sortCallback func(*callback) error
 	)
 	sort.Slice(cs, func(i, j int) bool {
 		return cs[j].before == "*" || cs[j].after == "*"

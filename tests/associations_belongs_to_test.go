@@ -7,7 +7,7 @@ import (
 )
 
 func TestBelongsToAssociation(t *testing.T) {
-	var user = *GetUser("belongs-to", Config{Company: true, Manager: true})
+	user := *GetUser("belongs-to", Config{Company: true, Manager: true})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -31,8 +31,8 @@ func TestBelongsToAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Manager", 1, "")
 
 	// Append
-	var company = Company{Name: "company-belongs-to-append"}
-	var manager = GetUser("manager-belongs-to-append", Config{})
+	company := Company{Name: "company-belongs-to-append"}
+	manager := GetUser("manager-belongs-to-append", Config{})
 
 	if err := DB.Model(&user2).Association("Company").Append(&company); err != nil {
 		t.Fatalf("Error happened when append Company, got %v", err)
@@ -60,8 +60,8 @@ func TestBelongsToAssociation(t *testing.T) {
 	AssertAssociationCount(t, user2, "Manager", 1, "AfterAppend")
 
 	// Replace
-	var company2 = Company{Name: "company-belongs-to-replace"}
-	var manager2 = GetUser("manager-belongs-to-replace", Config{})
+	company2 := Company{Name: "company-belongs-to-replace"}
+	manager2 := GetUser("manager-belongs-to-replace", Config{})
 
 	if err := DB.Model(&user2).Association("Company").Replace(&company2); err != nil {
 		t.Fatalf("Error happened when replace Company, got %v", err)
@@ -142,7 +142,7 @@ func TestBelongsToAssociation(t *testing.T) {
 }
 
 func TestBelongsToAssociationForSlice(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice-belongs-to-1", Config{Company: true, Manager: true}),
 		*GetUser("slice-belongs-to-2", Config{Company: true, Manager: false}),
 		*GetUser("slice-belongs-to-3", Config{Company: true, Manager: true}),

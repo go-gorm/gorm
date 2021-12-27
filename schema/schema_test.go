@@ -145,8 +145,7 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 	}
 }
 
-type CustomizeTable struct {
-}
+type CustomizeTable struct{}
 
 func (CustomizeTable) TableName() string {
 	return "customize"
@@ -165,7 +164,6 @@ func TestCustomizeTableName(t *testing.T) {
 
 func TestNestedModel(t *testing.T) {
 	versionUser, err := schema.Parse(&VersionUser{}, &sync.Map{}, schema.NamingStrategy{})
-
 	if err != nil {
 		t.Fatalf("failed to parse nested user, got error %v", err)
 	}
@@ -204,7 +202,6 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	cropSchema, err := schema.Parse(&Corp{}, &sync.Map{}, schema.NamingStrategy{})
-
 	if err != nil {
 		t.Fatalf("failed to parse embedded struct with primary key, got error %v", err)
 	}
@@ -273,7 +270,6 @@ func TestEmbeddedStructForCustomizedNamingStrategy(t *testing.T) {
 	}
 
 	cropSchema, err := schema.Parse(&Corp{}, &sync.Map{}, CustomizedNamingStrategy{schema.NamingStrategy{}})
-
 	if err != nil {
 		t.Fatalf("failed to parse embedded struct with primary key, got error %v", err)
 	}

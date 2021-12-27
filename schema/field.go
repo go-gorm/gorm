@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+
 	"gorm.io/gorm/utils"
 )
 
@@ -199,28 +200,28 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = Bool
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseBool(field.DefaultValue); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for bool, got error: %v", field.DefaultValue, err)
+				schema.err = fmt.Errorf("failed to parse %s as default value for bool, got error: %w", field.DefaultValue, err)
 			}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.DataType = Int
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseInt(field.DefaultValue, 0, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for int, got error: %v", field.DefaultValue, err)
+				schema.err = fmt.Errorf("failed to parse %s as default value for int, got error: %w", field.DefaultValue, err)
 			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.DataType = Uint
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseUint(field.DefaultValue, 0, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for uint, got error: %v", field.DefaultValue, err)
+				schema.err = fmt.Errorf("failed to parse %s as default value for uint, got error: %w", field.DefaultValue, err)
 			}
 		}
 	case reflect.Float32, reflect.Float64:
 		field.DataType = Float
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseFloat(field.DefaultValue, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for float, got error: %v", field.DefaultValue, err)
+				schema.err = fmt.Errorf("failed to parse %s as default value for float, got error: %w", field.DefaultValue, err)
 			}
 		}
 	case reflect.String:
@@ -398,8 +399,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.TagSettings[k] = v
 				}
 			}
-		case reflect.Invalid, reflect.Uintptr, reflect.Array, reflect.Chan,          reflect.Func,      reflect.Interface,
-		     reflect.Map,     reflect.Ptr,     reflect.Slice, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
+		case reflect.Invalid, reflect.Uintptr, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface,
+			reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
 			schema.err = fmt.Errorf("invalid embedded struct for %s's field %s, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
 		}
 	}
@@ -745,7 +746,7 @@ func (field *Field) setupValuerAndSetter() {
 					if t, err := now.Parse(data); err == nil {
 						field.ReflectValueOf(value).Set(reflect.ValueOf(t))
 					} else {
-						return fmt.Errorf("failed to set string %v to time.Time field %s, failed to parse it as time, got error %v", v, field.Name, err)
+						return fmt.Errorf("failed to set string %v to time.Time field %s, failed to parse it as time, got error %w", v, field.Name, err)
 					}
 				default:
 					return fallbackSetter(value, v, field.Set)
@@ -774,7 +775,7 @@ func (field *Field) setupValuerAndSetter() {
 						}
 						fieldValue.Elem().Set(reflect.ValueOf(t))
 					} else {
-						return fmt.Errorf("failed to set string %v to time.Time field %s, failed to parse it as time, got error %v", v, field.Name, err)
+						return fmt.Errorf("failed to set string %v to time.Time field %s, failed to parse it as time, got error %w", v, field.Name, err)
 					}
 				default:
 					return fallbackSetter(value, v, field.Set)

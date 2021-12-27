@@ -323,7 +323,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 	}
 }
 
-func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) (onConflict clause.OnConflict) {
+func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingColumns []string) (onConflict clause.OnConflict) {
 	if len(defaultUpdatingColumns) > 0 || stmt.DB.FullSaveAssociations {
 		onConflict.Columns = make([]clause.Column, 0, len(s.PrimaryFieldDBNames))
 		for _, dbName := range s.PrimaryFieldDBNames {
@@ -344,7 +344,7 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{}, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
 	var (
 		selects, omits []string
-		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
+		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, defaultUpdatingColumns)
 		refName        = rel.Name + "."
 	)
 

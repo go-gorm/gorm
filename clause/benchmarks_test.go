@@ -32,7 +32,8 @@ func BenchmarkComplexSelect(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		stmt := gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
 		clauses := []clause.Interface{
-			clause.Select{}, clause.From{},
+			clause.Select{},
+			clause.From{},
 			clause.Where{Exprs: []clause.Expression{
 				clause.Eq{Column: clause.PrimaryColumn, Value: "1"},
 				clause.Gt{Column: "age", Value: 18},

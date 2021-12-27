@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/jinzhu/inflection"
+
 	"gorm.io/gorm/clause"
 )
 
@@ -186,9 +187,9 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Field, many2many string) {
 	relation.Type = Many2Many
 
+	joinTableFields := make([]reflect.StructField, 0)
 	var (
 		err             error
-		joinTableFields []reflect.StructField
 		fieldsMap       = map[string]*Field{}
 		ownFieldsMap    = map[string]bool{} // fix self join many2many
 		joinForeignKeys = toColumns(field.TagSettings["JOINFOREIGNKEY"])

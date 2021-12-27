@@ -328,7 +328,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				conds = append(conds, clause.Eq{Column: i, Value: j})
 			}
 		case map[string]string:
-			var keys = make([]string, 0, len(v))
+			keys := make([]string, 0, len(v))
 			for i := range v {
 				keys = append(keys, i)
 			}
@@ -338,7 +338,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				conds = append(conds, clause.Eq{Column: key, Value: v[key]})
 			}
 		case map[string]interface{}:
-			var keys = make([]string, 0, len(v))
+			keys := make([]string, 0, len(v))
 			for i := range v {
 				keys = append(keys, i)
 			}

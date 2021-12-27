@@ -67,7 +67,7 @@ func TestUpsert(t *testing.T) {
 		}
 	}
 
-	var user = *GetUser("upsert_on_conflict", Config{})
+	user := *GetUser("upsert_on_conflict", Config{})
 	user.Age = 20
 	if err := DB.Create(&user).Error; err != nil {
 		t.Errorf("failed to create user, got error %v", err)
@@ -320,11 +320,9 @@ func TestUpdateWithMissWhere(t *testing.T) {
 
 	if err := tx.Error; err != nil {
 		t.Fatalf("failed to update user,missing where condtion,err=%+v", err)
-
 	}
 
 	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(tx.Statement.SQL.String()) {
 		t.Fatalf("invalid updating SQL, got %v", tx.Statement.SQL.String())
 	}
-
 }

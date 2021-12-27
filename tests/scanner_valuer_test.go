@@ -182,11 +182,11 @@ func (data *EncryptedData) Scan(value interface{}) error {
 
 func (data EncryptedData) Value() (driver.Value, error) {
 	if len(data) > 0 && data[0] == 'x' {
-		//needed to test failures
+		// needed to test failures
 		return nil, errors.New("Should not start with 'x'")
 	}
 
-	//prepend asterisks
+	// prepend asterisks
 	return append([]byte("***"), data...), nil
 }
 

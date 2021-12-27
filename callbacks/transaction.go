@@ -1,6 +1,8 @@
 package callbacks
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -9,7 +11,7 @@ func BeginTransaction(db *gorm.DB) {
 		if tx := db.Begin(); tx.Error == nil {
 			db.Statement.ConnPool = tx.Statement.ConnPool
 			db.InstanceSet("gorm:started_transaction", true)
-		} else if tx.Error == gorm.ErrInvalidTransaction {
+		} else if errors.Is(tx.Error, gorm.ErrInvalidTransaction) {
 			tx.Error = nil
 		} else {
 			db.Error = tx.Error

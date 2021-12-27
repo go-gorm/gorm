@@ -23,7 +23,7 @@ func NameIn(names []string) func(d *gorm.DB) *gorm.DB {
 }
 
 func TestScopes(t *testing.T) {
-	var users = []*User{
+	users := []*User{
 		GetUser("ScopeUser1", Config{}),
 		GetUser("ScopeUser2", Config{}),
 		GetUser("ScopeUser3", Config{}),
