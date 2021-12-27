@@ -15,6 +15,7 @@ linters:
     - misspell
     - nilerr
     - prealloc
+    - revive
     - unconvert
     - unparam
 issues:  
@@ -29,6 +30,9 @@ issues:
   - linters:
       - gocritic
     text: "ifElseChain"
+  - linters:
+      - revive
+    text: "exported"
 linters-settings:
   gci:
     local-prefixes: gorm.io/gorm

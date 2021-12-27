@@ -274,9 +274,8 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 				if schema.parseRelation(field); schema.err != nil {
 					return schema, schema.err
-				} else {
-					schema.FieldsByName[field.Name] = field
 				}
+				schema.FieldsByName[field.Name] = field
 			}
 
 			fieldValue := reflect.New(field.IndirectFieldType)

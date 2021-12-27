@@ -58,11 +58,11 @@ func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
 				writer.WriteByte('`')
 				underQuoted = true
 				if selfQuoted = continuousBacktick > 0; selfQuoted {
-					continuousBacktick -= 1
+					continuousBacktick--
 				}
 			}
 
-			for ; continuousBacktick > 0; continuousBacktick -= 1 {
+			for ; continuousBacktick > 0; continuousBacktick-- {
 				writer.WriteString("``")
 			}
 
