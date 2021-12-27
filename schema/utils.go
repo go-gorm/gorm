@@ -104,7 +104,12 @@ func GetIdentityFieldValuesMap(reflectValue reflect.Value, fields []*Field) (map
 		loaded        = map[interface{}]bool{}
 		notZero, zero bool
 	)
-
+	if reflectValue.Kind() == reflect.Interface {
+		reflectValue = reflectValue.Elem()
+		if reflectValue.Kind() == reflect.Ptr {
+			reflectValue = reflectValue.Elem()
+		}
+	}
 	switch reflectValue.Kind() {
 	case reflect.Struct:
 		results = [][]interface{}{make([]interface{}, len(fields))}
