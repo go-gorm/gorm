@@ -230,7 +230,10 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 		default:
 			switch rv := reflect.ValueOf(v); rv.Kind() {
 			case reflect.Slice, reflect.Array:
-				if rv.Len() == 0 {
+				if rv.Type().Elem() == reflect.TypeOf(uint8(0)) {
+					stmt.Vars = append(stmt.Vars, v)
+					stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+				}else if rv.Len() == 0 {
 					writer.WriteString("(NULL)")
 				} else {
 					writer.WriteByte('(')

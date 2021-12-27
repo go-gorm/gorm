@@ -276,6 +276,8 @@ type FLOAT32 float32
 type FLOAT64 float64
 type BOOL bool
 type STRING string
+type TIME time.Time
+type BYTES []byte
 type TypeAlias struct {
 	ID
 	INT     `gorm:"column:fint"`
@@ -292,6 +294,8 @@ type TypeAlias struct {
 	FLOAT64 `gorm:"column:ffloat64"`
 	BOOL    `gorm:"column:fbool"`
 	STRING  `gorm:"column:fstring"`
+	TIME    `gorm:"column:ftime"`
+	BYTES   `gorm:"column:fbytes"`
 }
 
 func TestTypeAliasField(t *testing.T){
@@ -316,6 +320,8 @@ func TestTypeAliasField(t *testing.T){
 		{Name: "FLOAT64", DBName: "ffloat64", BindNames: []string{"FLOAT64"}, DataType: schema.Float , Creatable: true, Updatable: true, Readable: true, Size: 64, Tag: `gorm:"column:ffloat64"`},
 		{Name: "BOOL",    DBName: "fbool",    BindNames: []string{"BOOL"},    DataType: schema.Bool  , Creatable: true, Updatable: true, Readable: true, Tag: `gorm:"column:fbool"`},
 		{Name: "STRING",  DBName: "fstring",  BindNames: []string{"STRING"},  DataType: schema.String, Creatable: true, Updatable: true, Readable: true, Tag: `gorm:"column:fstring"`},
+		{Name: "TIME",    DBName: "ftime",    BindNames: []string{"TIME"},    DataType: schema.Time,   Creatable: true, Updatable: true, Readable: true, Tag: `gorm:"column:ftime"`},
+		{Name: "BYTES",   DBName: "fbytes",   BindNames: []string{"BYTES"},   DataType: schema.Bytes,  Creatable: true, Updatable: true, Readable: true, Tag: `gorm:"column:fbytes"`},
 	}
 
 	for _, f := range fields {
