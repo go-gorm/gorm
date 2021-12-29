@@ -83,3 +83,13 @@ func TestDeletedAtUnMarshal(t *testing.T) {
 		t.Errorf("Failed, result.DeletedAt: %v is not same as expected.DeletedAt: %v", result.DeletedAt, expected.DeletedAt)
 	}
 }
+
+func TestDeletedAtOneOr(t *testing.T) {
+	actualSQL := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Or("id = ?", 1).Find(&User{})
+	})
+
+	if !regexp.MustCompile(` WHERE id = 1 AND .users.\..deleted_at. IS NULL`).MatchString(actualSQL) {
+		t.Fatalf("invalid sql generated, got %v", actualSQL)
+	}
+}

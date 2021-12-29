@@ -92,9 +92,12 @@ func (where Where) MergeClause(clause *Clause) {
 func And(exprs ...Expression) Expression {
 	if len(exprs) == 0 {
 		return nil
-	} else if len(exprs) == 1 {
+	}
+
+	if _, ok := exprs[0].(OrConditions); !ok && len(exprs) == 1 {
 		return exprs[0]
 	}
+
 	return AndConditions{Exprs: exprs}
 }
 
