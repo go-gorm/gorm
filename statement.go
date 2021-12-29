@@ -232,6 +232,9 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			case reflect.Slice, reflect.Array:
 				if rv.Len() == 0 {
 					writer.WriteString("(NULL)")
+				} else if rv.Type().Elem() == reflect.TypeOf(uint8(0)) {
+					stmt.Vars = append(stmt.Vars, v)
+					stmt.DB.Dialector.BindVarTo(writer, stmt, v)
 				} else if rv.Type().Elem() != reflect.TypeOf(uint8(0)) {
 					writer.WriteByte('(')
 					for i := 0; i < rv.Len(); i++ {
