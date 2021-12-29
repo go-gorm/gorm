@@ -60,8 +60,6 @@ jobs:
       with:
         name: sqlite
         flags: sqlite,go-${{ matrix.go }}
-        fail_ci_if_error: true
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   mysql:
     needs: lint
@@ -112,8 +110,6 @@ jobs:
       with:
         name: mysql
         flags: mysql,go-${{ matrix.go }}
-        fail_ci_if_error: true
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   postgres:
     needs: lint
@@ -164,8 +160,6 @@ jobs:
       with:
         name: postgres
         flags: postgres,go-${{ matrix.go }}
-        fail_ci_if_error: true
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   sqlserver:
     needs: lint
@@ -216,5 +210,3 @@ jobs:
       with:
         name: sqlserver
         flags: sqlserver,go-${{ matrix.go }}
-        fail_ci_if_error: true
-        token: ${{ secrets.CODECOV_TOKEN }}
