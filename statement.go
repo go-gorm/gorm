@@ -235,7 +235,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				} else if rv.Type().Elem() == reflect.TypeOf(uint8(0)) {
 					stmt.Vars = append(stmt.Vars, v)
 					stmt.DB.Dialector.BindVarTo(writer, stmt, v)
-				} else if rv.Type().Elem() != reflect.TypeOf(uint8(0)) {
+				} else {
 					writer.WriteByte('(')
 					for i := 0; i < rv.Len(); i++ {
 						if i > 0 {
