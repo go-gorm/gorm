@@ -95,11 +95,9 @@ func And(exprs ...Expression) Expression {
 	}
 
 	if len(exprs) == 1 {
-
 		if _, ok := exprs[0].(OrConditions); !ok {
 			return exprs[0]
 		}
-
 	}
 
 	return AndConditions{Exprs: exprs}
