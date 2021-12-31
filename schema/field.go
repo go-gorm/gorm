@@ -398,8 +398,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					ef.TagSettings[k] = v
 				}
 			}
-		case reflect.Invalid, reflect.Uintptr, reflect.Array, reflect.Chan,          reflect.Func,      reflect.Interface,
-		     reflect.Map,     reflect.Ptr,     reflect.Slice, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
+		case reflect.Invalid, reflect.Uintptr, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface,
+			reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
 			schema.err = fmt.Errorf("invalid embedded struct for %s's field %s, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
 		}
 	}

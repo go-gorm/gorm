@@ -7,7 +7,7 @@ import (
 )
 
 func TestHasOneAssociation(t *testing.T) {
-	var user = *GetUser("hasone", Config{Account: true})
+	user := *GetUser("hasone", Config{Account: true})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -25,7 +25,7 @@ func TestHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Account", 1, "")
 
 	// Append
-	var account = Account{Number: "account-has-one-append"}
+	account := Account{Number: "account-has-one-append"}
 
 	if err := DB.Model(&user2).Association("Account").Append(&account); err != nil {
 		t.Fatalf("Error happened when append account, got %v", err)
@@ -41,7 +41,7 @@ func TestHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Account", 1, "AfterAppend")
 
 	// Replace
-	var account2 = Account{Number: "account-has-one-replace"}
+	account2 := Account{Number: "account-has-one-replace"}
 
 	if err := DB.Model(&user2).Association("Account").Replace(&account2); err != nil {
 		t.Fatalf("Error happened when append Account, got %v", err)
@@ -84,7 +84,7 @@ func TestHasOneAssociation(t *testing.T) {
 }
 
 func TestHasOneAssociationWithSelect(t *testing.T) {
-	var user = *GetUser("hasone", Config{Account: true})
+	user := *GetUser("hasone", Config{Account: true})
 
 	DB.Omit("Account.Number").Create(&user)
 
@@ -98,7 +98,7 @@ func TestHasOneAssociationWithSelect(t *testing.T) {
 }
 
 func TestHasOneAssociationForSlice(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice-hasone-1", Config{Account: true}),
 		*GetUser("slice-hasone-2", Config{Account: false}),
 		*GetUser("slice-hasone-3", Config{Account: true}),
@@ -139,7 +139,7 @@ func TestHasOneAssociationForSlice(t *testing.T) {
 }
 
 func TestPolymorphicHasOneAssociation(t *testing.T) {
-	var pet = Pet{Name: "hasone", Toy: Toy{Name: "toy-has-one"}}
+	pet := Pet{Name: "hasone", Toy: Toy{Name: "toy-has-one"}}
 
 	if err := DB.Create(&pet).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -157,7 +157,7 @@ func TestPolymorphicHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, pet, "Toy", 1, "")
 
 	// Append
-	var toy = Toy{Name: "toy-has-one-append"}
+	toy := Toy{Name: "toy-has-one-append"}
 
 	if err := DB.Model(&pet2).Association("Toy").Append(&toy); err != nil {
 		t.Fatalf("Error happened when append toy, got %v", err)
@@ -173,7 +173,7 @@ func TestPolymorphicHasOneAssociation(t *testing.T) {
 	AssertAssociationCount(t, pet, "Toy", 1, "AfterAppend")
 
 	// Replace
-	var toy2 = Toy{Name: "toy-has-one-replace"}
+	toy2 := Toy{Name: "toy-has-one-replace"}
 
 	if err := DB.Model(&pet2).Association("Toy").Replace(&toy2); err != nil {
 		t.Fatalf("Error happened when append Toy, got %v", err)
@@ -216,7 +216,7 @@ func TestPolymorphicHasOneAssociation(t *testing.T) {
 }
 
 func TestPolymorphicHasOneAssociationForSlice(t *testing.T) {
-	var pets = []Pet{
+	pets := []Pet{
 		{Name: "hasone-1", Toy: Toy{Name: "toy-has-one"}},
 		{Name: "hasone-2", Toy: Toy{}},
 		{Name: "hasone-3", Toy: Toy{Name: "toy-has-one"}},

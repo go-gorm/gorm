@@ -17,7 +17,7 @@ import (
 )
 
 func TestFind(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("find", Config{}),
 		*GetUser("find", Config{}),
 		*GetUser("find", Config{}),
@@ -57,7 +57,7 @@ func TestFind(t *testing.T) {
 	}
 
 	t.Run("FirstMap", func(t *testing.T) {
-		var first = map[string]interface{}{}
+		first := map[string]interface{}{}
 		if err := DB.Model(&User{}).Where("name = ?", "find").First(first).Error; err != nil {
 			t.Errorf("errors happened when query first: %v", err)
 		} else {
@@ -88,7 +88,7 @@ func TestFind(t *testing.T) {
 	})
 
 	t.Run("FirstMapWithTable", func(t *testing.T) {
-		var first = map[string]interface{}{}
+		first := map[string]interface{}{}
 		if err := DB.Table("users").Where("name = ?", "find").Find(first).Error; err != nil {
 			t.Errorf("errors happened when query first: %v", err)
 		} else {
@@ -120,7 +120,7 @@ func TestFind(t *testing.T) {
 	})
 
 	t.Run("FirstPtrMap", func(t *testing.T) {
-		var first = map[string]interface{}{}
+		first := map[string]interface{}{}
 		if err := DB.Model(&User{}).Where("name = ?", "find").First(&first).Error; err != nil {
 			t.Errorf("errors happened when query first: %v", err)
 		} else {
@@ -135,7 +135,7 @@ func TestFind(t *testing.T) {
 	})
 
 	t.Run("FirstSliceOfMap", func(t *testing.T) {
-		var allMap = []map[string]interface{}{}
+		allMap := []map[string]interface{}{}
 		if err := DB.Model(&User{}).Where("name = ?", "find").Find(&allMap).Error; err != nil {
 			t.Errorf("errors happened when query find: %v", err)
 		} else {
@@ -170,7 +170,7 @@ func TestFind(t *testing.T) {
 	})
 
 	t.Run("FindSliceOfMapWithTable", func(t *testing.T) {
-		var allMap = []map[string]interface{}{}
+		allMap := []map[string]interface{}{}
 		if err := DB.Table("users").Where("name = ?", "find").Find(&allMap).Error; err != nil {
 			t.Errorf("errors happened when query find: %v", err)
 		} else {
@@ -241,7 +241,7 @@ func TestQueryWithAssociation(t *testing.T) {
 }
 
 func TestFindInBatches(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("find_in_batches", Config{}),
 		*GetUser("find_in_batches", Config{}),
 		*GetUser("find_in_batches", Config{}),
@@ -297,7 +297,7 @@ func TestFindInBatchesWithError(t *testing.T) {
 		t.Skip("skip sqlserver due to it will raise data race for invalid sql")
 	}
 
-	var users = []User{
+	users := []User{
 		*GetUser("find_in_batches_with_error", Config{}),
 		*GetUser("find_in_batches_with_error", Config{}),
 		*GetUser("find_in_batches_with_error", Config{}),
@@ -440,7 +440,7 @@ func TestNot(t *testing.T) {
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* IS NOT NULL").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
-	
+
 	result = dryDB.Not(map[string]interface{}{"name": []string{"jinzhu", "jinzhu 2"}}).Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*name.* NOT IN \\(.+,.+\\)").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())

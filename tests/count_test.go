@@ -87,7 +87,7 @@ func TestCount(t *testing.T) {
 		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
 	}
 
-	expects := []User{User{Name: "main"}, {Name: "other"}, {Name: "other"}}
+	expects := []User{{Name: "main"}, {Name: "other"}, {Name: "other"}}
 	sort.SliceStable(users, func(i, j int) bool {
 		return strings.Compare(users[i].Name, users[j].Name) < 0
 	})
@@ -101,7 +101,7 @@ func TestCount(t *testing.T) {
 		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
 	}
 
-	expects = []User{User{Name: "main", Age: 18}, {Name: "other", Age: 18}, {Name: "other", Age: 18}}
+	expects = []User{{Name: "main", Age: 18}, {Name: "other", Age: 18}, {Name: "other", Age: 18}}
 	sort.SliceStable(users, func(i, j int) bool {
 		return strings.Compare(users[i].Name, users[j].Name) < 0
 	})
@@ -115,7 +115,7 @@ func TestCount(t *testing.T) {
 		t.Fatalf("Count should work, but got err %v", err)
 	}
 
-	expects = []User{User{Name: "count-1", Age: 1}, {Name: "count-2", Age: 1}, {Name: "count-3", Age: 1}}
+	expects = []User{{Name: "count-1", Age: 1}, {Name: "count-2", Age: 1}, {Name: "count-3", Age: 1}}
 	sort.SliceStable(users, func(i, j int) bool {
 		return strings.Compare(users[i].Name, users[j].Name) < 0
 	})
@@ -144,5 +144,4 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Where("name = ?", "count-4").Group("name").Count(&count11).Error; err != nil || count11 != 1 {
 		t.Fatalf("Count should be 3, but got count: %v err %v", count11, err)
 	}
-
 }

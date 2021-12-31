@@ -8,7 +8,7 @@ import (
 )
 
 func TestUpdateMany2ManyAssociations(t *testing.T) {
-	var user = *GetUser("update-many2many", Config{})
+	user := *GetUser("update-many2many", Config{})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)

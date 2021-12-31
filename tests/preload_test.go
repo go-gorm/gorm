@@ -14,7 +14,7 @@ import (
 )
 
 func TestPreloadWithAssociations(t *testing.T) {
-	var user = *GetUser("preload_with_associations", Config{
+	user := *GetUser("preload_with_associations", Config{
 		Account:   true,
 		Pets:      2,
 		Toys:      3,
@@ -35,7 +35,7 @@ func TestPreloadWithAssociations(t *testing.T) {
 	DB.Preload(clause.Associations).Find(&user2, "id = ?", user.ID)
 	CheckUser(t, user2, user)
 
-	var user3 = *GetUser("preload_with_associations_new", Config{
+	user3 := *GetUser("preload_with_associations_new", Config{
 		Account:   true,
 		Pets:      2,
 		Toys:      3,
@@ -51,7 +51,7 @@ func TestPreloadWithAssociations(t *testing.T) {
 }
 
 func TestNestedPreload(t *testing.T) {
-	var user = *GetUser("nested_preload", Config{Pets: 2})
+	user := *GetUser("nested_preload", Config{Pets: 2})
 
 	for idx, pet := range user.Pets {
 		pet.Toy = Toy{Name: "toy_nested_preload_" + strconv.Itoa(idx+1)}
@@ -75,7 +75,7 @@ func TestNestedPreload(t *testing.T) {
 }
 
 func TestNestedPreloadForSlice(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice_nested_preload_1", Config{Pets: 2}),
 		*GetUser("slice_nested_preload_2", Config{Pets: 0}),
 		*GetUser("slice_nested_preload_3", Config{Pets: 3}),
@@ -105,7 +105,7 @@ func TestNestedPreloadForSlice(t *testing.T) {
 }
 
 func TestPreloadWithConds(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice_nested_preload_1", Config{Account: true}),
 		*GetUser("slice_nested_preload_2", Config{Account: false}),
 		*GetUser("slice_nested_preload_3", Config{Account: true}),
@@ -163,7 +163,7 @@ func TestPreloadWithConds(t *testing.T) {
 }
 
 func TestNestedPreloadWithConds(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice_nested_preload_1", Config{Pets: 2}),
 		*GetUser("slice_nested_preload_2", Config{Pets: 0}),
 		*GetUser("slice_nested_preload_3", Config{Pets: 3}),
@@ -213,7 +213,7 @@ func TestNestedPreloadWithConds(t *testing.T) {
 }
 
 func TestPreloadEmptyData(t *testing.T) {
-	var user = *GetUser("user_without_associations", Config{})
+	user := *GetUser("user_without_associations", Config{})
 	DB.Create(&user)
 
 	DB.Preload("Team").Preload("Languages").Preload("Friends").First(&user, "name = ?", user.Name)

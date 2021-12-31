@@ -9,8 +9,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type UserWithCallback struct {
-}
+type UserWithCallback struct{}
 
 func (UserWithCallback) BeforeSave(*gorm.DB) error {
 	return nil

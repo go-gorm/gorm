@@ -10,7 +10,7 @@ import (
 )
 
 func TestDelete(t *testing.T) {
-	var users = []User{*GetUser("delete", Config{}), *GetUser("delete", Config{}), *GetUser("delete", Config{})}
+	users := []User{*GetUser("delete", Config{}), *GetUser("delete", Config{}), *GetUser("delete", Config{})}
 
 	if err := DB.Create(&users).Error; err != nil {
 		t.Errorf("errors happened when create: %v", err)

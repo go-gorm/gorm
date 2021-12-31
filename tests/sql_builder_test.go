@@ -4,12 +4,11 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
-
-	"time"
 )
 
 func TestRow(t *testing.T) {
@@ -389,12 +388,12 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 	actually = replaceQuoteInSQL(actually)
 
 	// ignore updated_at value, becase it's generated in Gorm inernal, can't to mock value on update.
-	var updatedAtRe = regexp.MustCompile(`(?i)"updated_at"=".+?"`)
+	updatedAtRe := regexp.MustCompile(`(?i)"updated_at"=".+?"`)
 	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"=?`)
 	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
 
 	// ignore RETURNING "id" (only in PostgreSQL)
-	var returningRe = regexp.MustCompile(`(?i)RETURNING "id"`)
+	returningRe := regexp.MustCompile(`(?i)RETURNING "id"`)
 	actually = returningRe.ReplaceAllString(actually, ``)
 	expected = returningRe.ReplaceAllString(expected, ``)
 

@@ -7,8 +7,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-type DummyDialector struct {
-}
+type DummyDialector struct{}
 
 func (DummyDialector) Name() string {
 	return "dummy"

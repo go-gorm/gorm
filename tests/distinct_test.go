@@ -9,7 +9,7 @@ import (
 )
 
 func TestDistinct(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("distinct", Config{}),
 		*GetUser("distinct", Config{}),
 		*GetUser("distinct", Config{}),

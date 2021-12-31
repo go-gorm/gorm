@@ -26,9 +26,11 @@ type User struct {
 	Active    *bool
 }
 
-type mytime time.Time
-type myint int
-type mybool = bool
+type (
+	mytime time.Time
+	myint  int
+	mybool = bool
+)
 
 type AdvancedDataTypeUser struct {
 	ID           sql.NullInt64

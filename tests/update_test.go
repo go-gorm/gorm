@@ -125,7 +125,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdates(t *testing.T) {
-	var users = []*User{
+	users := []*User{
 		GetUser("updates_01", Config{}),
 		GetUser("updates_02", Config{}),
 	}
@@ -178,7 +178,7 @@ func TestUpdates(t *testing.T) {
 }
 
 func TestUpdateColumn(t *testing.T) {
-	var users = []*User{
+	users := []*User{
 		GetUser("update_column_01", Config{}),
 		GetUser("update_column_02", Config{}),
 	}
@@ -622,7 +622,7 @@ func TestSave(t *testing.T) {
 	time.Sleep(time.Second)
 	user1UpdatedAt := result.UpdatedAt
 	user2UpdatedAt := user2.UpdatedAt
-	var users = []*User{&result, &user2}
+	users := []*User{&result, &user2}
 	DB.Save(&users)
 
 	if user1UpdatedAt.Format(time.RFC1123Z) == result.UpdatedAt.Format(time.RFC1123Z) {
