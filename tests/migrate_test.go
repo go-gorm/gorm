@@ -2,11 +2,13 @@ package tests_test
 
 import (
 	"math/rand"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -452,6 +454,76 @@ func TestMigrateIndexesWithDynamicTableName(t *testing.T) {
 
 		if !m.HasIndex(&DynamicUser{}, "DeletedAt") {
 			t.Fatalf("Should have index on deleted_at.")
+		}
+	}
+}
+
+// check column order after migration, flaky test
+// https://github.com/go-gorm/gorm/issues/4351
+func TestMigrateColumnOrder(t *testing.T) {
+	type UserMigrateColumn struct {
+		ID uint
+	}
+	DB.Migrator().DropTable(&UserMigrateColumn{})
+	DB.AutoMigrate(&UserMigrateColumn{})
+
+	type UserMigrateColumn2 struct {
+		ID  uint
+		F1  string
+		F2  string
+		F3  string
+		F4  string
+		F5  string
+		F6  string
+		F7  string
+		F8  string
+		F9  string
+		F10 string
+		F11 string
+		F12 string
+		F13 string
+		F14 string
+		F15 string
+		F16 string
+		F17 string
+		F18 string
+		F19 string
+		F20 string
+		F21 string
+		F22 string
+		F23 string
+		F24 string
+		F25 string
+		F26 string
+		F27 string
+		F28 string
+		F29 string
+		F30 string
+		F31 string
+		F32 string
+		F33 string
+		F34 string
+		F35 string
+	}
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err := DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn2{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+	typ := reflect.Indirect(reflect.ValueOf(&UserMigrateColumn2{})).Type()
+	numField := typ.NumField()
+	if numField != len(columnTypes) {
+		t.Fatalf("column's number not match struct and ddl, %d != %d", numField, len(columnTypes))
+	}
+	namer := schema.NamingStrategy{}
+	for i := 0; i < numField; i++ {
+		expectName := namer.ColumnName("", typ.Field(i).Name)
+		if columnTypes[i].Name() != expectName {
+			t.Fatalf("column order not match struct and ddl, idx %d: %s != %s",
+				i, columnTypes[i].Name(), expectName)
 		}
 	}
 }
