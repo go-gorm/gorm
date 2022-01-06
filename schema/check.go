@@ -5,10 +5,8 @@ import (
 	"strings"
 )
 
-var (
-	// reg match english letters and midline
-	regEnLetterAndMidline = regexp.MustCompile("^[A-Za-z-_]+$")
-)
+// reg match english letters and midline
+var regEnLetterAndMidline = regexp.MustCompile("^[A-Za-z-_]+$")
 
 type Check struct {
 	Name       string
@@ -18,7 +16,7 @@ type Check struct {
 
 // ParseCheckConstraints parse schema check constraints
 func (schema *Schema) ParseCheckConstraints() map[string]Check {
-	var checks = map[string]Check{}
+	checks := map[string]Check{}
 	for _, field := range schema.FieldsByDBName {
 		if chk := field.TagSettings["CHECK"]; chk != "" {
 			names := strings.Split(chk, ",")

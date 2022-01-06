@@ -8,7 +8,7 @@ import (
 )
 
 func TestUpdateBelongsTo(t *testing.T) {
-	var user = *GetUser("update-belongs-to", Config{})
+	user := *GetUser("update-belongs-to", Config{})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)

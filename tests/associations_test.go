@@ -27,7 +27,7 @@ func AssertAssociationCount(t *testing.T, data interface{}, name string, result 
 }
 
 func TestInvalidAssociation(t *testing.T) {
-	var user = *GetUser("invalid", Config{Company: true, Manager: true})
+	user := *GetUser("invalid", Config{Company: true, Manager: true})
 	if err := DB.Model(&user).Association("Invalid").Find(&user.Company).Error; err == nil {
 		t.Fatalf("should return errors for invalid association, but got nil")
 	}
@@ -189,7 +189,6 @@ func TestFullSaveAssociations(t *testing.T) {
 	err := DB.
 		Session(&gorm.Session{FullSaveAssociations: true}).
 		Create(coupon).Error
-
 	if err != nil {
 		t.Errorf("Failed, got error: %v", err)
 	}

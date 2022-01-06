@@ -541,7 +541,7 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 		}
 
 		if constraint != nil {
-			var vars = []interface{}{clause.Table{Name: table}}
+			vars := []interface{}{clause.Table{Name: table}}
 			if stmt.TableExpr != nil {
 				vars[0] = stmt.TableExpr
 			}

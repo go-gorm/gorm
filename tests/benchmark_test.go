@@ -7,7 +7,7 @@ import (
 )
 
 func BenchmarkCreate(b *testing.B) {
-	var user = *GetUser("bench", Config{})
+	user := *GetUser("bench", Config{})
 
 	for x := 0; x < b.N; x++ {
 		user.ID = 0
@@ -16,7 +16,7 @@ func BenchmarkCreate(b *testing.B) {
 }
 
 func BenchmarkFind(b *testing.B) {
-	var user = *GetUser("find", Config{})
+	user := *GetUser("find", Config{})
 	DB.Create(&user)
 
 	for x := 0; x < b.N; x++ {
@@ -25,7 +25,7 @@ func BenchmarkFind(b *testing.B) {
 }
 
 func BenchmarkUpdate(b *testing.B) {
-	var user = *GetUser("find", Config{})
+	user := *GetUser("find", Config{})
 	DB.Create(&user)
 
 	for x := 0; x < b.N; x++ {
@@ -34,7 +34,7 @@ func BenchmarkUpdate(b *testing.B) {
 }
 
 func BenchmarkDelete(b *testing.B) {
-	var user = *GetUser("find", Config{})
+	user := *GetUser("find", Config{})
 
 	for x := 0; x < b.N; x++ {
 		user.ID = 0

@@ -21,7 +21,8 @@ func TestValues(t *testing.T) {
 					Values:  [][]interface{}{{"jinzhu", 18}, {"josh", 1}},
 				},
 			},
-			"INSERT INTO `users` (`name`,`age`) VALUES (?,?),(?,?)", []interface{}{"jinzhu", 18, "josh", 1},
+			"INSERT INTO `users` (`name`,`age`) VALUES (?,?),(?,?)",
+			[]interface{}{"jinzhu", 18, "josh", 1},
 		},
 	}
 

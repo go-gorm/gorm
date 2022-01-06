@@ -7,7 +7,7 @@ import (
 )
 
 func TestMany2ManyAssociation(t *testing.T) {
-	var user = *GetUser("many2many", Config{Languages: 2})
+	user := *GetUser("many2many", Config{Languages: 2})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -26,7 +26,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Languages", 2, "")
 
 	// Append
-	var language = Language{Code: "language-many2many-append", Name: "language-many2many-append"}
+	language := Language{Code: "language-many2many-append", Name: "language-many2many-append"}
 	DB.Create(&language)
 
 	if err := DB.Model(&user2).Association("Languages").Append(&language); err != nil {
@@ -38,7 +38,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 
 	AssertAssociationCount(t, user, "Languages", 3, "AfterAppend")
 
-	var languages = []Language{
+	languages := []Language{
 		{Code: "language-many2many-append-1-1", Name: "language-many2many-append-1-1"},
 		{Code: "language-many2many-append-2-1", Name: "language-many2many-append-2-1"},
 	}
@@ -55,7 +55,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Languages", 5, "AfterAppendSlice")
 
 	// Replace
-	var language2 = Language{Code: "language-many2many-replace", Name: "language-many2many-replace"}
+	language2 := Language{Code: "language-many2many-replace", Name: "language-many2many-replace"}
 	DB.Create(&language2)
 
 	if err := DB.Model(&user2).Association("Languages").Replace(&language2); err != nil {
@@ -94,7 +94,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 }
 
 func TestMany2ManyOmitAssociations(t *testing.T) {
-	var user = *GetUser("many2many_omit_associations", Config{Languages: 2})
+	user := *GetUser("many2many_omit_associations", Config{Languages: 2})
 
 	if err := DB.Omit("Languages.*").Create(&user).Error; err == nil {
 		t.Fatalf("should raise error when create users without languages reference")
@@ -114,14 +114,14 @@ func TestMany2ManyOmitAssociations(t *testing.T) {
 		t.Errorf("languages count should be %v, but got %v", 2, len(languages))
 	}
 
-	var newLang = Language{Code: "omitmany2many", Name: "omitmany2many"}
+	newLang := Language{Code: "omitmany2many", Name: "omitmany2many"}
 	if err := DB.Model(&user).Omit("Languages.*").Association("Languages").Replace(&newLang); err == nil {
 		t.Errorf("should failed to insert languages due to constraint failed, error: %v", err)
 	}
 }
 
 func TestMany2ManyAssociationForSlice(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice-many2many-1", Config{Languages: 2}),
 		*GetUser("slice-many2many-2", Config{Languages: 0}),
 		*GetUser("slice-many2many-3", Config{Languages: 4}),
@@ -139,11 +139,11 @@ func TestMany2ManyAssociationForSlice(t *testing.T) {
 	}
 
 	// Append
-	var languages1 = []Language{
+	languages1 := []Language{
 		{Code: "language-many2many-append-1", Name: "language-many2many-append-1"},
 	}
-	var languages2 = []Language{}
-	var languages3 = []Language{
+	languages2 := []Language{}
+	languages3 := []Language{
 		{Code: "language-many2many-append-3-1", Name: "language-many2many-append-3-1"},
 		{Code: "language-many2many-append-3-2", Name: "language-many2many-append-3-2"},
 	}
@@ -191,7 +191,7 @@ func TestMany2ManyAssociationForSlice(t *testing.T) {
 }
 
 func TestSingleTableMany2ManyAssociation(t *testing.T) {
-	var user = *GetUser("many2many", Config{Friends: 2})
+	user := *GetUser("many2many", Config{Friends: 2})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -210,7 +210,7 @@ func TestSingleTableMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Friends", 2, "")
 
 	// Append
-	var friend = *GetUser("friend", Config{})
+	friend := *GetUser("friend", Config{})
 
 	if err := DB.Model(&user2).Association("Friends").Append(&friend); err != nil {
 		t.Fatalf("Error happened when append account, got %v", err)
@@ -221,7 +221,7 @@ func TestSingleTableMany2ManyAssociation(t *testing.T) {
 
 	AssertAssociationCount(t, user, "Friends", 3, "AfterAppend")
 
-	var friends = []*User{GetUser("friend-append-1", Config{}), GetUser("friend-append-2", Config{})}
+	friends := []*User{GetUser("friend-append-1", Config{}), GetUser("friend-append-2", Config{})}
 
 	if err := DB.Model(&user2).Association("Friends").Append(&friends); err != nil {
 		t.Fatalf("Error happened when append friend, got %v", err)
@@ -234,7 +234,7 @@ func TestSingleTableMany2ManyAssociation(t *testing.T) {
 	AssertAssociationCount(t, user, "Friends", 5, "AfterAppendSlice")
 
 	// Replace
-	var friend2 = *GetUser("friend-replace-2", Config{})
+	friend2 := *GetUser("friend-replace-2", Config{})
 
 	if err := DB.Model(&user2).Association("Friends").Replace(&friend2); err != nil {
 		t.Fatalf("Error happened when append friend, got %v", err)
@@ -272,7 +272,7 @@ func TestSingleTableMany2ManyAssociation(t *testing.T) {
 }
 
 func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
-	var users = []User{
+	users := []User{
 		*GetUser("slice-many2many-1", Config{Team: 2}),
 		*GetUser("slice-many2many-2", Config{Team: 0}),
 		*GetUser("slice-many2many-3", Config{Team: 4}),
@@ -290,17 +290,17 @@ func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
 	}
 
 	// Append
-	var teams1 = []User{*GetUser("friend-append-1", Config{})}
-	var teams2 = []User{}
-	var teams3 = []*User{GetUser("friend-append-3-1", Config{}), GetUser("friend-append-3-2", Config{})}
+	teams1 := []User{*GetUser("friend-append-1", Config{})}
+	teams2 := []User{}
+	teams3 := []*User{GetUser("friend-append-3-1", Config{}), GetUser("friend-append-3-2", Config{})}
 
 	DB.Model(&users).Association("Team").Append(&teams1, &teams2, &teams3)
 
 	AssertAssociationCount(t, users, "Team", 9, "After Append")
 
-	var teams2_1 = []User{*GetUser("friend-replace-1", Config{}), *GetUser("friend-replace-2", Config{})}
-	var teams2_2 = []User{*GetUser("friend-replace-2-1", Config{}), *GetUser("friend-replace-2-2", Config{})}
-	var teams2_3 = GetUser("friend-replace-3-1", Config{})
+	teams2_1 := []User{*GetUser("friend-replace-1", Config{}), *GetUser("friend-replace-2", Config{})}
+	teams2_2 := []User{*GetUser("friend-replace-2-1", Config{}), *GetUser("friend-replace-2-2", Config{})}
+	teams2_3 := GetUser("friend-replace-3-1", Config{})
 
 	// Replace
 	DB.Model(&users).Association("Team").Replace(&teams2_1, &teams2_2, teams2_3)

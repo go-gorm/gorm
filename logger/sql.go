@@ -32,7 +32,7 @@ var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeO
 
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var convertParams func(interface{}, int)
-	var vars = make([]string, len(avars))
+	vars := make([]string, len(avars))
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestUpdateHasManyAssociations(t *testing.T) {
-	var user = *GetUser("update-has-many", Config{})
+	user := *GetUser("update-has-many", Config{})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -44,7 +44,7 @@ func TestUpdateHasManyAssociations(t *testing.T) {
 	CheckUser(t, user4, user)
 
 	t.Run("Polymorphic", func(t *testing.T) {
-		var user = *GetUser("update-has-many", Config{})
+		user := *GetUser("update-has-many", Config{})
 
 		if err := DB.Create(&user).Error; err != nil {
 			t.Fatalf("errors happened when create: %v", err)

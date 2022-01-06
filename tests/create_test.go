@@ -13,7 +13,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	var user = *GetUser("create", Config{})
+	user := *GetUser("create", Config{})
 
 	if results := DB.Create(&user); results.Error != nil {
 		t.Fatalf("errors happened when create: %v", results.Error)
@@ -139,7 +139,7 @@ func TestCreateFromMap(t *testing.T) {
 }
 
 func TestCreateWithAssociations(t *testing.T) {
-	var user = *GetUser("create_with_associations", Config{
+	user := *GetUser("create_with_associations", Config{
 		Account:   true,
 		Pets:      2,
 		Toys:      3,
@@ -223,7 +223,7 @@ func TestBulkCreatePtrDataWithAssociations(t *testing.T) {
 
 func TestPolymorphicHasOne(t *testing.T) {
 	t.Run("Struct", func(t *testing.T) {
-		var pet = Pet{
+		pet := Pet{
 			Name: "PolymorphicHasOne",
 			Toy:  Toy{Name: "Toy-PolymorphicHasOne"},
 		}
@@ -240,7 +240,7 @@ func TestPolymorphicHasOne(t *testing.T) {
 	})
 
 	t.Run("Slice", func(t *testing.T) {
-		var pets = []Pet{{
+		pets := []Pet{{
 			Name: "PolymorphicHasOne-Slice-1",
 			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Slice-1"},
 		}, {
@@ -269,7 +269,7 @@ func TestPolymorphicHasOne(t *testing.T) {
 	})
 
 	t.Run("SliceOfPtr", func(t *testing.T) {
-		var pets = []*Pet{{
+		pets := []*Pet{{
 			Name: "PolymorphicHasOne-Slice-1",
 			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Slice-1"},
 		}, {
@@ -290,7 +290,7 @@ func TestPolymorphicHasOne(t *testing.T) {
 	})
 
 	t.Run("Array", func(t *testing.T) {
-		var pets = [...]Pet{{
+		pets := [...]Pet{{
 			Name: "PolymorphicHasOne-Array-1",
 			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-1"},
 		}, {
@@ -311,7 +311,7 @@ func TestPolymorphicHasOne(t *testing.T) {
 	})
 
 	t.Run("ArrayPtr", func(t *testing.T) {
-		var pets = [...]*Pet{{
+		pets := [...]*Pet{{
 			Name: "PolymorphicHasOne-Array-1",
 			Toy:  Toy{Name: "Toy-PolymorphicHasOne-Array-1"},
 		}, {
@@ -348,12 +348,12 @@ func TestCreateEmptyStruct(t *testing.T) {
 }
 
 func TestCreateEmptySlice(t *testing.T) {
-	var data = []User{}
+	data := []User{}
 	if err := DB.Create(&data).Error; err != gorm.ErrEmptySlice {
 		t.Errorf("no data should be created, got %v", err)
 	}
 
-	var sliceMap = []map[string]interface{}{}
+	sliceMap := []map[string]interface{}{}
 	if err := DB.Model(&User{}).Create(&sliceMap).Error; err != gorm.ErrEmptySlice {
 		t.Errorf("no data should be created, got %v", err)
 	}

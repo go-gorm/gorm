@@ -23,7 +23,7 @@ func TestDefaultValue(t *testing.T) {
 		t.Fatalf("Failed to migrate with default value, got error: %v", err)
 	}
 
-	var harumph = Harumph{Email: "hello@gorm.io"}
+	harumph := Harumph{Email: "hello@gorm.io"}
 	if err := DB.Create(&harumph).Error; err != nil {
 		t.Fatalf("Failed to create data with default value, got error: %v", err)
 	} else if harumph.Name != "foo" || harumph.Name2 != "foo" || harumph.Name3 != "" || harumph.Age != 18 || !harumph.Enabled {

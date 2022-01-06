@@ -10,7 +10,7 @@ import (
 )
 
 func TestUpdateHasOne(t *testing.T) {
-	var user = *GetUser("update-has-one", Config{})
+	user := *GetUser("update-has-one", Config{})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
@@ -35,7 +35,7 @@ func TestUpdateHasOne(t *testing.T) {
 	DB.Preload("Account").Find(&user3, "id = ?", user.ID)
 
 	CheckUser(t, user2, user3)
-	var lastUpdatedAt = user2.Account.UpdatedAt
+	lastUpdatedAt := user2.Account.UpdatedAt
 	time.Sleep(time.Second)
 
 	if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(&user).Error; err != nil {
@@ -53,7 +53,7 @@ func TestUpdateHasOne(t *testing.T) {
 	}
 
 	t.Run("Polymorphic", func(t *testing.T) {
-		var pet = Pet{Name: "create"}
+		pet := Pet{Name: "create"}
 
 		if err := DB.Create(&pet).Error; err != nil {
 			t.Fatalf("errors happened when create: %v", err)

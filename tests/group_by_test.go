@@ -7,7 +7,7 @@ import (
 )
 
 func TestGroupBy(t *testing.T) {
-	var users = []User{{
+	users := []User{{
 		Name:     "groupby",
 		Age:      10,
 		Birthday: Now(),
@@ -67,7 +67,7 @@ func TestGroupBy(t *testing.T) {
 		t.Errorf("name should be groupby, but got %v, total should be 660, but got %v", name, total)
 	}
 
-	var result = struct {
+	result := struct {
 		Name  string
 		Total int64
 	}{}

@@ -71,7 +71,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	// Append
-	var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
+	tag3 := &Tag{Locale: "ZH", Value: "tag3"}
 	DB.Model(&blog).Association("Tags").Append([]*Tag{tag3})
 
 	if !compareTags(blog.Tags, []string{"tag1", "tag2", "tag3"}) {
@@ -95,8 +95,8 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 	}
 
 	// Replace
-	var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
-	var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
+	tag5 := &Tag{Locale: "ZH", Value: "tag5"}
+	tag6 := &Tag{Locale: "ZH", Value: "tag6"}
 	DB.Model(&blog).Association("Tags").Replace(tag5, tag6)
 	var tags2 []Tag
 	DB.Model(&blog).Association("Tags").Find(&tags2)
@@ -170,7 +170,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 	}
 
 	// Append
-	var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
+	tag3 := &Tag{Locale: "ZH", Value: "tag3"}
 	DB.Model(&blog).Association("SharedTags").Append([]*Tag{tag3})
 	if !compareTags(blog.SharedTags, []string{"tag1", "tag2", "tag3"}) {
 		t.Fatalf("Blog should has three tags after Append")
@@ -201,7 +201,7 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		t.Fatalf("Preload many2many relations")
 	}
 
-	var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
+	tag4 := &Tag{Locale: "ZH", Value: "tag4"}
 	DB.Model(&blog2).Association("SharedTags").Append(tag4)
 
 	DB.Model(&blog).Association("SharedTags").Find(&tags)
@@ -215,8 +215,8 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 	}
 
 	// Replace
-	var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
-	var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
+	tag5 := &Tag{Locale: "ZH", Value: "tag5"}
+	tag6 := &Tag{Locale: "ZH", Value: "tag6"}
 	DB.Model(&blog2).Association("SharedTags").Replace(tag5, tag6)
 	var tags2 []Tag
 	DB.Model(&blog).Association("SharedTags").Find(&tags2)
@@ -291,7 +291,7 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 	DB.Create(&blog2)
 
 	// Append
-	var tag3 = &Tag{Locale: "ZH", Value: "tag3"}
+	tag3 := &Tag{Locale: "ZH", Value: "tag3"}
 	DB.Model(&blog).Association("LocaleTags").Append([]*Tag{tag3})
 	if !compareTags(blog.LocaleTags, []string{"tag1", "tag2", "tag3"}) {
 		t.Fatalf("Blog should has three tags after Append")
@@ -322,7 +322,7 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 		t.Fatalf("Preload many2many relations")
 	}
 
-	var tag4 = &Tag{Locale: "ZH", Value: "tag4"}
+	tag4 := &Tag{Locale: "ZH", Value: "tag4"}
 	DB.Model(&blog2).Association("LocaleTags").Append(tag4)
 
 	DB.Model(&blog).Association("LocaleTags").Find(&tags)
@@ -336,8 +336,8 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 	}
 
 	// Replace
-	var tag5 = &Tag{Locale: "ZH", Value: "tag5"}
-	var tag6 = &Tag{Locale: "ZH", Value: "tag6"}
+	tag5 := &Tag{Locale: "ZH", Value: "tag5"}
+	tag6 := &Tag{Locale: "ZH", Value: "tag6"}
 	DB.Model(&blog2).Association("LocaleTags").Replace(tag5, tag6)
 
 	var tags2 []Tag

@@ -162,7 +162,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			if size := stmt.ReflectValue.Len(); size > 0 {
 				var primaryKeyExprs []clause.Expression
 				for i := 0; i < size; i++ {
-					var exprs = make([]clause.Expression, len(stmt.Schema.PrimaryFields))
+					exprs := make([]clause.Expression, len(stmt.Schema.PrimaryFields))
 					var notZero bool
 					for idx, field := range stmt.Schema.PrimaryFields {
 						value, isZero := field.ValueOf(stmt.ReflectValue.Index(i))
@@ -242,7 +242,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 			}
 		}
 	default:
-		var updatingSchema = stmt.Schema
+		updatingSchema := stmt.Schema
 		if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 			// different schema
 			updatingStmt := &gorm.Statement{DB: stmt.DB}

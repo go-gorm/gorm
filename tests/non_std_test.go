@@ -8,7 +8,7 @@ import (
 type Animal struct {
 	Counter    uint64 `gorm:"primary_key:yes"`
 	Name       string `gorm:"DEFAULT:'galeone'"`
-	From       string //test reserved sql keyword as field name
+	From       string // test reserved sql keyword as field name
 	Age        *time.Time
 	unexported string // unexported value
 	CreatedAt  time.Time

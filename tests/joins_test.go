@@ -57,7 +57,7 @@ func TestJoinsForSlice(t *testing.T) {
 }
 
 func TestJoinConds(t *testing.T) {
-	var user = *GetUser("joins-conds", Config{Account: true, Pets: 3})
+	user := *GetUser("joins-conds", Config{Account: true, Pets: 3})
 	DB.Save(&user)
 
 	var users1 []User
@@ -111,7 +111,7 @@ func TestJoinConds(t *testing.T) {
 }
 
 func TestJoinOn(t *testing.T) {
-	var user = *GetUser("joins-on", Config{Pets: 2})
+	user := *GetUser("joins-on", Config{Pets: 2})
 	DB.Save(&user)
 
 	var user1 User
@@ -168,8 +168,8 @@ func TestJoinCount(t *testing.T) {
 	DB.Create(&user)
 
 	query := DB.Model(&User{}).Joins("Company")
-	//Bug happens when .Count is called on a query.
-	//Removing the below two lines or downgrading to gorm v1.20.12 will make this test pass.
+	// Bug happens when .Count is called on a query.
+	// Removing the below two lines or downgrading to gorm v1.20.12 will make this test pass.
 	var total int64
 	query.Count(&total)
 

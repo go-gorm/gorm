@@ -174,7 +174,6 @@ func TestSmartMigrateColumn(t *testing.T) {
 			}
 		}
 	}
-
 }
 
 func TestMigrateWithColumnComment(t *testing.T) {

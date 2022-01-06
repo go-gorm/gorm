@@ -6,7 +6,7 @@ import (
 )
 
 func TestToDBName(t *testing.T) {
-	var maps = map[string]string{
+	maps := map[string]string{
 		"":                          "",
 		"x":                         "x",
 		"X":                         "x",
@@ -56,7 +56,7 @@ func TestToDBName(t *testing.T) {
 }
 
 func TestNamingStrategy(t *testing.T) {
-	var ns = NamingStrategy{
+	ns := NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
 		NameReplacer:  strings.NewReplacer("CID", "Cid"),
@@ -102,7 +102,7 @@ func (r CustomReplacer) Replace(name string) string {
 }
 
 func TestCustomReplacer(t *testing.T) {
-	var ns = NamingStrategy{
+	ns := NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
 		NameReplacer: CustomReplacer{
@@ -146,7 +146,7 @@ func TestCustomReplacer(t *testing.T) {
 }
 
 func TestCustomReplacerWithNoLowerCase(t *testing.T) {
-	var ns = NamingStrategy{
+	ns := NamingStrategy{
 		TablePrefix:   "public.",
 		SingularTable: true,
 		NameReplacer: CustomReplacer{
@@ -190,7 +190,7 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 }
 
 func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
-	var ns = NamingStrategy{}
+	ns := NamingStrategy{}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
 	if formattedName != "prefixtablethisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLo180f2c67" {
