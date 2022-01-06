@@ -97,11 +97,12 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
 				columnTypes, _ := m.DB.Migrator().ColumnTypes(value)
 
-				for _, field := range stmt.Schema.FieldsByDBName {
+				for _, dbName := range stmt.Schema.DBNames {
+					field := stmt.Schema.FieldsByDBName[dbName]
 					var foundColumn gorm.ColumnType
 
 					for _, columnType := range columnTypes {
-						if columnType.Name() == field.DBName {
+						if columnType.Name() == dbName {
 							foundColumn = columnType
 							break
 						}
@@ -109,7 +110,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 					if foundColumn == nil {
 						// not found, add column
-						if err := tx.Migrator().AddColumn(value, field.DBName); err != nil {
+						if err := tx.Migrator().AddColumn(value, dbName); err != nil {
 							return err
 						}
 					} else if err := m.DB.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
