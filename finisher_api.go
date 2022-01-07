@@ -515,6 +515,30 @@ func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	return tx.Error
 }
 
+// Connection  use a db conn to execute Multiple commands,this conn will put conn pool after it is executed.
+func (db *DB) Connection(fc func(tx *DB) error) (err error) {
+	if db.Error != nil {
+		return db.Error
+	}
+
+	tx := db.getInstance()
+	sqlDB, err := tx.DB()
+	if err != nil {
+		return
+	}
+
+	conn, err := sqlDB.Conn(tx.Statement.Context)
+	if err != nil {
+		return
+	}
+
+	defer conn.Close()
+	tx.Statement.ConnPool = conn
+	err = fc(tx)
+
+	return
+}
+
 // Transaction start a transaction as a block, return error will rollback, otherwise to commit.
 func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err error) {
 	panicked := true
