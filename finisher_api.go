@@ -534,9 +534,7 @@ func (db *DB) Connection(fc func(tx *DB) error) (err error) {
 
 	defer conn.Close()
 	tx.Statement.ConnPool = conn
-	err = fc(tx)
-
-	return
+	return fc(tx)
 }
 
 // Transaction start a transaction as a block, return error will rollback, otherwise to commit.
@@ -547,6 +545,10 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 		// nested transaction
 		if !db.DisableNestedTransaction {
 			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
+			if err != nil {
+				return
+			}
+
 			defer func() {
 				// Make sure to rollback when panic, Block error or Commit error
 				if panicked || err != nil {
@@ -555,11 +557,12 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			}()
 		}
 
-		if err == nil {
-			err = fc(db.Session(&Session{}))
-		}
+		err = fc(db.Session(&Session{}))
 	} else {
 		tx := db.Begin(opts...)
+		if tx.Error != nil {
+			return tx.Error
+		}
 
 		defer func() {
 			// Make sure to rollback when panic, Block error or Commit error
@@ -568,12 +571,9 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			}
 		}()
 
-		if err = tx.Error; err == nil {
-			err = fc(tx)
-		}
-
-		if err == nil {
-			err = tx.Commit().Error
+		if err = fc(tx); err == nil {
+			panicked = false
+			return tx.Commit().Error
 		}
 	}
 

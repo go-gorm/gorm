@@ -2,13 +2,13 @@ package tests_test
 
 import (
 	"fmt"
+	"testing"
+
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"testing"
 )
 
 func TestWithSingleConnection(t *testing.T) {
-
 	var expectedName = "test"
 	var actualName string
 
@@ -35,7 +35,6 @@ func TestWithSingleConnection(t *testing.T) {
 	if actualName != expectedName {
 		t.Errorf("WithSingleConnection() method should get correct value, expect: %v, got %v", expectedName, actualName)
 	}
-
 }
 
 func getSetSQL(driverName string) (string, string) {
