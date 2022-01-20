@@ -83,7 +83,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
-				if _, isZero := pf.ValueOf(reflectValue); isZero {
+				if _, isZero := pf.ValueOf(tx.Statement.Context, reflectValue); isZero {
 					return tx.callbacks.Create().Execute(tx)
 				}
 			}
@@ -199,7 +199,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 			break
 		}
 
-		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(resultsValue.Index(resultsValue.Len() - 1))
+		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
@@ -216,11 +216,11 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 					switch column := eq.Column.(type) {
 					case string:
 						if field := tx.Statement.Schema.LookUpField(column); field != nil {
-							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+							tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, eq.Value))
 						}
 					case clause.Column:
 						if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
-							tx.AddError(field.Set(tx.Statement.ReflectValue, eq.Value))
+							tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, eq.Value))
 						}
 					}
 				} else if andCond, ok := expr.(clause.AndConditions); ok {
@@ -238,9 +238,9 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 				case reflect.Struct:
 					for _, f := range s.Fields {
 						if f.Readable {
-							if v, isZero := f.ValueOf(reflectValue); !isZero {
+							if v, isZero := f.ValueOf(tx.Statement.Context, reflectValue); !isZero {
 								if field := tx.Statement.Schema.LookUpField(f.Name); field != nil {
-									tx.AddError(field.Set(tx.Statement.ReflectValue, v))
+									tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, v))
 								}
 							}
 						}
