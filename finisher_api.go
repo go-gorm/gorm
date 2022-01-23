@@ -585,7 +585,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	var (
 		// clone statement
-		tx  = db.getInstance().Session(&Session{Context: db.Statement.Context, newDB: db.clone == 1})
+		tx  = db.getInstance().Session(&Session{Context: db.Statement.Context, NewDB: db.clone == 1})
 		opt *sql.TxOptions
 		err error
 	)
