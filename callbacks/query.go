@@ -228,6 +228,28 @@ func Preload(db *gorm.DB) {
 	}
 }
 
+func BeforeQuery(db *gorm.DB) {
+	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.BeforeFind {
+		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
+			if db.Statement.Schema.BeforeFind {
+				if i, ok := value.(BeforeFindInterface); ok {
+					called = true
+					db.AddError(i.BeforeFind(tx))
+				}
+			}
+
+			if db.Statement.Schema.BeforeFind {
+				if i, ok := value.(BeforeFindInterface); ok {
+					called = true
+					db.AddError(i.BeforeFind(tx))
+				}
+			}
+
+			return called
+		})
+	}
+}
+
 func AfterQuery(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterFind && db.RowsAffected > 0 {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {

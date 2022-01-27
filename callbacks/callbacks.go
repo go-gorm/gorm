@@ -50,6 +50,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	queryCallback := db.Callback().Query()
 	queryCallback.Register("gorm:query", Query)
 	queryCallback.Register("gorm:preload", Preload)
+	queryCallback.Register("gorm:before_query", BeforeQuery)
 	queryCallback.Register("gorm:after_query", AfterQuery)
 	queryCallback.Clauses = config.QueryClauses
 

@@ -36,7 +36,7 @@ type Schema struct {
 	BeforeUpdate, AfterUpdate bool
 	BeforeDelete, AfterDelete bool
 	BeforeSave, AfterSave     bool
-	AfterFind                 bool
+	BeforeFind, AfterFind     bool
 	err                       error
 	initialized               chan struct{}
 	namer                     Namer
