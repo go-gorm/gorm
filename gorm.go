@@ -96,6 +96,7 @@ type Session struct {
 	DryRun                   bool
 	PrepareStmt              bool
 	NewDB                    bool
+	Initialized              bool
 	SkipHooks                bool
 	SkipDefaultTransaction   bool
 	DisableNestedTransaction bool
@@ -280,6 +281,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.NowFunc != nil {
 		tx.Config.NowFunc = config.NowFunc
+	}
+
+	if config.Initialized {
+		tx = tx.getInstance()
 	}
 
 	return tx
