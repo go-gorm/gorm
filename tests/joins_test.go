@@ -158,6 +158,22 @@ func TestJoinsWithSelect(t *testing.T) {
 	}
 }
 
+func TestJoinWithOmit(t *testing.T) {
+	user := *GetUser("joins_with_omit", Config{Pets: 2})
+	DB.Save(&user)
+
+	results := make([]*User, 0)
+
+	if err := DB.Table("users").Omit("name").Where("users.name = ?", "joins_with_omit").Joins("left join pets on pets.user_id = users.id").Find(&results).Error; err != nil {
+		return
+	}
+
+	if len(results) != 2 || results[0].Name != "" || results[1].Name != "" {
+		t.Errorf("Should find all two pets with Join omit and should not find user's name, got %+v", results)
+		return
+	}
+}
+
 func TestJoinCount(t *testing.T) {
 	companyA := Company{Name: "A"}
 	companyB := Company{Name: "B"}
