@@ -62,13 +62,14 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 			PreferSimpleProtocol: true,
 		}), &gorm.Config{})
 	case "sqlserver":
-		// CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';
+		// go install github.com/microsoft/go-sqlcmd/cmd/sqlcmd@latest
+		// SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930
 		// CREATE DATABASE gorm;
-		// USE gorm;
+		// GO
+		// CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';
 		// CREATE USER gorm FROM LOGIN gorm;
-		// sp_changedbowner 'gorm';
-		// npm install -g sql-cli
-		// mssql -u gorm -p LoremIpsum86 -d gorm -o 9930
+		// ALTER SERVER ROLE sysadmin ADD MEMBER [gorm];
+		// GO
 		log.Println("testing sqlserver...")
 		if dbDSN == "" {
 			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
