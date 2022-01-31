@@ -193,7 +193,7 @@ func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
 	ns := NamingStrategy{}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
-	if formattedName != "prefixtablethisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLo180f2c67" {
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVery180f2c67" {
 		t.Errorf("invalid formatted name generated, got %v", formattedName)
 	}
 }
