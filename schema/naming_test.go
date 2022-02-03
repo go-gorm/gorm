@@ -197,3 +197,14 @@ func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
 		t.Errorf("invalid formatted name generated, got %v", formattedName)
 	}
 }
+
+func TestReplaceEmptyTableName(t *testing.T) {
+	ns := NamingStrategy{
+		SingularTable: true,
+		NameReplacer:  strings.NewReplacer("Model", ""),
+	}
+	tableName := ns.TableName("Model")
+	if tableName != "Model" {
+		t.Errorf("invalid table name generated, got %v", tableName)
+	}
+}
