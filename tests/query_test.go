@@ -512,7 +512,13 @@ func TestNotWithAllFields(t *testing.T) {
 func TestOr(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true})
 
-	result := dryDB.Where("role = ?", "admin").Where(DB.Or("role = ?", "super_admin")).Find(&User{})
+	var count int64
+	result := dryDB.Model(&User{}).Or("role = ?", "admin").Count(&count)
+	if !regexp.MustCompile("SELECT count\\(\\*\\) FROM .*users.* WHERE role = .+ AND .*users.*\\..*deleted_at.* IS NULL").MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Where("role = ?", "admin").Where(DB.Or("role = ?", "super_admin")).Find(&User{})
 	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*role.* = .+ AND .*role.* = .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build OR condition, but got %v", result.Statement.SQL.String())
 	}
