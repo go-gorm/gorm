@@ -120,7 +120,13 @@ func (ns NamingStrategy) toDBName(name string) string {
 	}
 
 	if ns.NameReplacer != nil {
-		name = ns.NameReplacer.Replace(name)
+		tmpName := ns.NameReplacer.Replace(name)
+
+		if tmpName == "" {
+			return name
+		}
+
+		name = tmpName
 	}
 
 	if ns.NoLowerCase {
