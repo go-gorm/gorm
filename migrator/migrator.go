@@ -337,7 +337,7 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 func (m Migrator) AlterColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
-			fileType := clause.Expr{SQL: m.DataTypeOf(field)}
+			fileType := m.FullDataTypeOf(field)
 			return m.DB.Exec(
 				"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
 				m.CurrentTable(stmt), clause.Column{Name: field.DBName}, fileType,

@@ -59,6 +59,7 @@ type Config struct {
 	cacheStore *sync.Map
 }
 
+// Apply update config to new config
 func (c *Config) Apply(config *Config) error {
 	if config != c {
 		*config = *c
@@ -66,6 +67,7 @@ func (c *Config) Apply(config *Config) error {
 	return nil
 }
 
+// AfterInitialize initialize plugins after db connected
 func (c *Config) AfterInitialize(db *DB) error {
 	if db != nil {
 		for _, plugin := range c.Plugins {
@@ -77,6 +79,7 @@ func (c *Config) AfterInitialize(db *DB) error {
 	return nil
 }
 
+// Option gorm option interface
 type Option interface {
 	Apply(*Config) error
 	AfterInitialize(*DB) error
@@ -381,10 +384,12 @@ func (db *DB) getInstance() *DB {
 	return db
 }
 
+// Expr returns clause.Expr, which can be used to pass SQL expression as params
 func Expr(expr string, args ...interface{}) clause.Expr {
 	return clause.Expr{SQL: expr, Vars: args}
 }
 
+// SetupJoinTable setup join table schema
 func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
 	var (
 		tx                      = db.getInstance()
@@ -435,6 +440,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	return nil
 }
 
+// Use use plugin
 func (db *DB) Use(plugin Plugin) error {
 	name := plugin.Name()
 	if _, ok := db.Plugins[name]; ok {
