@@ -168,6 +168,59 @@ func TestDryRun(t *testing.T) {
 	}
 }
 
+type ageInt int8
+
+func (ageInt) String() string {
+	return "age"
+}
+
+type ageBool bool
+
+func (ageBool) String() string {
+	return "age"
+}
+
+type ageUint64 uint64
+
+func (ageUint64) String() string {
+	return "age"
+}
+
+type ageFloat float64
+
+func (ageFloat) String() string {
+	return "age"
+}
+
+func TestExplainSQL(t *testing.T) {
+	user := *GetUser("explain-sql", Config{})
+	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
+
+	stmt := dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageInt(8)}).Statement
+	sql := DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=8,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageUint64(10241024)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=10241024,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageBool(false)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=false,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageFloat(0.12345678)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=0.123457,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+}
+
 func TestGroupConditions(t *testing.T) {
 	type Pizza struct {
 		ID   uint

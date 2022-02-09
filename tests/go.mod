@@ -9,7 +9,7 @@ require (
 	github.com/jinzhu/now v1.1.4
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-sqlite3 v1.14.11 // indirect
-	golang.org/x/crypto v0.0.0-20220208050332-20e1d8d225ab // indirect
+	golang.org/x/crypto v0.0.0-20220208233918-bba287dce954 // indirect
 	gorm.io/driver/mysql v1.2.3
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/driver/sqlite v1.2.6

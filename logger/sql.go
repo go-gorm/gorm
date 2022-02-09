@@ -30,9 +30,12 @@ func isPrintable(s []byte) bool {
 
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
+// ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
-	var convertParams func(interface{}, int)
-	vars := make([]string, len(avars))
+	var (
+		convertParams func(interface{}, int)
+		vars          = make([]string, len(avars))
+	)
 
 	convertParams = func(v interface{}, idx int) {
 		switch v := v.(type) {
@@ -64,10 +67,21 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			}
 		case fmt.Stringer:
 			reflectValue := reflect.ValueOf(v)
-			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
+			switch reflectValue.Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				vars[idx] = fmt.Sprintf("%d", reflectValue.Interface())
+			case reflect.Float32, reflect.Float64:
+				vars[idx] = fmt.Sprintf("%.6f", reflectValue.Interface())
+			case reflect.Bool:
+				vars[idx] = fmt.Sprintf("%t", reflectValue.Interface())
+			case reflect.String:
 				vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
-			} else {
-				vars[idx] = nullStr
+			default:
+				if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
+					vars[idx] = escaper + strings.Replace(fmt.Sprintf("%v", v), escaper, "\\"+escaper, -1) + escaper
+				} else {
+					vars[idx] = nullStr
+				}
 			}
 		case []byte:
 			if isPrintable(v) {
