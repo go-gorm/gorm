@@ -15,12 +15,17 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-type DataType string
+type (
+	// DataType GORM data type
+	DataType string
+	// TimeType GORM time type
+	TimeType int64
+)
 
-type TimeType int64
-
+// TimeReflectType time's reflect type
 var TimeReflectType = reflect.TypeOf(time.Time{})
 
+// GORM time types
 const (
 	UnixTime        TimeType = 1
 	UnixSecond      TimeType = 2
@@ -28,6 +33,7 @@ const (
 	UnixNanosecond  TimeType = 4
 )
 
+// GORM fields types
 const (
 	Bool   DataType = "bool"
 	Int    DataType = "int"
@@ -38,6 +44,7 @@ const (
 	Bytes  DataType = "bytes"
 )
 
+// Field is the representation of model schema's field
 type Field struct {
 	Name                   string
 	DBName                 string
@@ -50,9 +57,9 @@ type Field struct {
 	Creatable              bool
 	Updatable              bool
 	Readable               bool
-	HasDefaultValue        bool
 	AutoCreateTime         TimeType
 	AutoUpdateTime         TimeType
+	HasDefaultValue        bool
 	DefaultValue           string
 	DefaultValueInterface  interface{}
 	NotNull                bool
@@ -61,6 +68,7 @@ type Field struct {
 	Size                   int
 	Precision              int
 	Scale                  int
+	IgnoreMigration        bool
 	FieldType              reflect.Type
 	IndirectFieldType      reflect.Type
 	StructField            reflect.StructField
@@ -72,24 +80,32 @@ type Field struct {
 	ReflectValueOf         func(context.Context, reflect.Value) reflect.Value
 	ValueOf                func(context.Context, reflect.Value) (value interface{}, zero bool)
 	Set                    func(context.Context, reflect.Value, interface{}) error
-	IgnoreMigration        bool
 }
 
+// ParseField parses reflect.StructField to Field
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
-	var err error
+	var (
+		err        error
+		tagSetting = ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";")
+	)
 
 	field := &Field{
 		Name:                   fieldStruct.Name,
+		DBName:                 tagSetting["COLUMN"],
 		BindNames:              []string{fieldStruct.Name},
 		FieldType:              fieldStruct.Type,
 		IndirectFieldType:      fieldStruct.Type,
 		StructField:            fieldStruct,
+		Tag:                    fieldStruct.Tag,
+		TagSettings:            tagSetting,
+		Schema:                 schema,
 		Creatable:              true,
 		Updatable:              true,
 		Readable:               true,
-		Tag:                    fieldStruct.Tag,
-		TagSettings:            ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";"),
-		Schema:                 schema,
+		PrimaryKey:             utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"]),
+		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
+		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
+		Comment:                tagSetting["COMMENT"],
 		AutoIncrementIncrement: 1,
 	}
 
@@ -139,16 +155,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if dbName, ok := field.TagSettings["COLUMN"]; ok {
-		field.DBName = dbName
-	}
-
-	if val, ok := field.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
-		field.PrimaryKey = true
-	} else if val, ok := field.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
-		field.PrimaryKey = true
-	}
-
 	if val, ok := field.TagSettings["AUTOINCREMENT"]; ok && utils.CheckTruth(val) {
 		field.AutoIncrement = true
 		field.HasDefaultValue = true
@@ -175,20 +181,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 	if s, ok := field.TagSettings["SCALE"]; ok {
 		field.Scale, _ = strconv.Atoi(s)
-	}
-
-	if val, ok := field.TagSettings["NOT NULL"]; ok && utils.CheckTruth(val) {
-		field.NotNull = true
-	} else if val, ok := field.TagSettings["NOTNULL"]; ok && utils.CheckTruth(val) {
-		field.NotNull = true
-	}
-
-	if val, ok := field.TagSettings["UNIQUE"]; ok && utils.CheckTruth(val) {
-		field.Unique = true
-	}
-
-	if val, ok := field.TagSettings["COMMENT"]; ok {
-		field.Comment = val
 	}
 
 	// default value is function or null or blank (primary keys)
