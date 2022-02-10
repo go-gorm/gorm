@@ -77,11 +77,11 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 	if sch != nil {
 		for idx, column := range columns {
 			if field := sch.LookUpField(column); field != nil && field.Readable {
-				field.Set(reflectValue, values[idx])
+				field.Set(db.Statement.Context, reflectValue, values[idx])
 			} else if names := strings.Split(column, "__"); len(names) > 1 {
 				if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 					if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-						relValue := rel.Field.ReflectValueOf(reflectValue)
+						relValue := rel.Field.ReflectValueOf(db.Statement.Context, reflectValue)
 						value := reflect.ValueOf(values[idx]).Elem()
 
 						if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
@@ -91,7 +91,7 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 							relValue.Set(reflect.New(relValue.Type().Elem()))
 						}
 
-						field.Set(relValue, values[idx])
+						field.Set(db.Statement.Context, relValue, values[idx])
 					}
 				}
 			}
@@ -244,7 +244,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 					elem = reflectValue.Index(int(db.RowsAffected))
 					if onConflictDonothing {
 						for _, field := range fields {
-							if _, ok := field.ValueOf(elem); !ok {
+							if _, ok := field.ValueOf(db.Statement.Context, elem); !ok {
 								db.RowsAffected++
 								goto BEGIN
 							}
