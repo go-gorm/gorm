@@ -57,7 +57,7 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 		} else if field := sch.LookUpField(column); field != nil && field.Readable {
 			values[idx] = field.NewScanValue()
 			defer field.ReleaseScanValue(values[idx])
-		} else if names := strings.Split(column, "__"); len(names) > 2 {
+		} else if names := strings.Split(column, "__"); len(names) > 1 {
 			if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 				if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
 					values[idx] = field.NewScanValue()

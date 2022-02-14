@@ -424,9 +424,6 @@ var (
 	bytesPoolReleaser = func(v interface{}) {
 		bs := v.(*[]byte)
 		*bs = (*bs)[:0]
-		if string(*bs) != "" {
-			fmt.Println(string(*bs))
-		}
 		bytesPool.Put(bs)
 	}
 )
@@ -434,8 +431,8 @@ var (
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// Setup NewScanValue
-	switch field.DataType {
-	case Bytes, String:
+	switch field.IndirectFieldType.Kind() {
+	case reflect.String:
 		field.NewScanValue = bytesPool.Get
 		field.ReleaseScanValue = bytesPoolReleaser
 	default:
