@@ -84,6 +84,8 @@ type Field struct {
 	ReflectValueOf         func(context.Context, reflect.Value) reflect.Value
 	ValueOf                func(context.Context, reflect.Value) (value interface{}, zero bool)
 	Set                    func(context.Context, reflect.Value, interface{}) error
+	NewScanValue           func() interface{}
+	ReleaseScanValue       func(interface{})
 }
 
 // ParseField parses reflect.StructField to Field
@@ -412,13 +414,39 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	return field
 }
 
+var (
+	bytesPool = sync.Pool{
+		New: func() interface{} {
+			bs := make([]byte, 0, 10)
+			return &bs
+		},
+	}
+	bytesPoolReleaser = func(v interface{}) {
+		bs := v.(*[]byte)
+		*bs = (*bs)[:0]
+		if string(*bs) != "" {
+			fmt.Println(string(*bs))
+		}
+		bytesPool.Put(bs)
+	}
+)
+
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
-	// ValueOf returns field's value and if it is zero
+	// Setup NewScanValue
+	switch field.DataType {
+	case Bytes, String:
+		field.NewScanValue = bytesPool.Get
+		field.ReleaseScanValue = bytesPoolReleaser
+	default:
+		field.NewScanValue = func() interface{} {
+			return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+		}
+		field.ReleaseScanValue = func(interface{}) {
+		}
+	}
 
-	// if vr, ok := fv.(GormFieldValuer); ok {
-	// 	fv, zero = vr.GormFieldValue(ctx, field)
-	// }
+	// ValueOf returns field's value and if it is zero
 	field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
 		v = reflect.Indirect(v)
 		for _, fieldIdx := range field.StructField.Index {

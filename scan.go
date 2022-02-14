@@ -55,11 +55,13 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 		if sch == nil {
 			values[idx] = reflectValue.Interface()
 		} else if field := sch.LookUpField(column); field != nil && field.Readable {
-			values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
-		} else if names := strings.Split(column, "__"); len(names) > 1 {
+			values[idx] = field.NewScanValue()
+			defer field.ReleaseScanValue(values[idx])
+		} else if names := strings.Split(column, "__"); len(names) > 2 {
 			if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 				if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-					values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+					values[idx] = field.NewScanValue()
+					defer field.ReleaseScanValue(values[idx])
 					continue
 				}
 			}
