@@ -9,7 +9,7 @@ require (
 	github.com/jinzhu/now v1.1.4
 	github.com/lib/pq v1.10.4
 	github.com/mattn/go-sqlite3 v1.14.11 // indirect
-	golang.org/x/crypto v0.0.0-20220208233918-bba287dce954 // indirect
+	golang.org/x/crypto v0.0.0-20220213190939-1e6e3497d506 // indirect
 	gorm.io/driver/mysql v1.2.3
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/driver/sqlite v1.2.6
@@ -18,3 +18,5 @@ require (
 )
 
 replace gorm.io/gorm => ../
+
+replace gorm.io/driver/sqlserver => /Users/jinzhu/Projects/gorm/sqlserver
