@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// prepareValues prepare values slice
 func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
@@ -99,14 +100,17 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 	}
 }
 
+// ScanMode scan data mode
 type ScanMode uint8
 
+// scan modes
 const (
 	ScanInitialized         ScanMode = 1 << 0 // 1
 	ScanUpdate              ScanMode = 1 << 1 // 2
 	ScanOnConflictDoNothing ScanMode = 1 << 2 // 4
 )
 
+// Scan scan rows into db statement
 func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 	var (
 		columns, _          = rows.Columns()
@@ -138,7 +142,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			}
 			scanIntoMap(mapValue, values, columns)
 		}
-	case *[]map[string]interface{}, []map[string]interface{}:
+	case *[]map[string]interface{}:
 		columnTypes, _ := rows.ColumnTypes()
 		for initialized || rows.Next() {
 			prepareValues(values, db, columnTypes, columns)
@@ -149,11 +153,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 
 			mapValue := map[string]interface{}{}
 			scanIntoMap(mapValue, values, columns)
-			if values, ok := dest.([]map[string]interface{}); ok {
-				values = append(values, mapValue)
-			} else if values, ok := dest.(*[]map[string]interface{}); ok {
-				*values = append(*values, mapValue)
-			}
+			*dest = append(*dest, mapValue)
 		}
 	case *int, *int8, *int16, *int32, *int64,
 		*uint, *uint8, *uint16, *uint32, *uint64, *uintptr,
@@ -174,7 +174,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			reflectValue = db.Statement.ReflectValue
 		)
 
-		if reflectValue.Kind() == reflect.Interface {
+		for reflectValue.Kind() == reflect.Interface {
 			reflectValue = reflectValue.Elem()
 		}
 
