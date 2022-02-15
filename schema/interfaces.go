@@ -3,6 +3,9 @@ package schema
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"reflect"
 
 	"gorm.io/gorm/clause"
@@ -19,30 +22,19 @@ type FieldNewValuePool interface {
 	Put(interface{})
 }
 
-type fieldNewValuePool struct {
-	getter func() interface{}
-	putter func(interface{})
-}
-
-func (fp fieldNewValuePool) Get() interface{} {
-	return fp.getter()
-}
-
-func (fp fieldNewValuePool) Put(v interface{}) {
-	fp.putter(v)
-}
-
 // Serializer field value serializer
 type Serializer struct {
 	Field       *Field
 	Interface   SerializerInterface
 	Destination reflect.Value
 	Context     context.Context
+	value       interface{}
 }
 
 // Scan implements sql.Scanner interface
 func (s *Serializer) Scan(value interface{}) error {
-	return s.Interface.Scan(s.Context, s.Field, s.Destination, value)
+	s.value = value
+	return nil
 }
 
 // Value implements driver.Valuer interface
@@ -54,6 +46,38 @@ func (s Serializer) Value() (driver.Value, error) {
 type SerializerInterface interface {
 	Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) error
 	Value(ctx context.Context, field *Field, dst reflect.Value) (interface{}, error)
+}
+
+// JSONSerializer json serializer
+type JSONSerializer struct {
+}
+
+// Scan implements serializer interface
+func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) (err error) {
+	fieldValue := reflect.New(field.FieldType)
+
+	if dbValue != nil {
+		var bytes []byte
+		switch v := dbValue.(type) {
+		case []byte:
+			bytes = v
+		case string:
+			bytes = []byte(v)
+		default:
+			return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", dbValue))
+		}
+
+		err = json.Unmarshal(bytes, fieldValue.Interface())
+	}
+
+	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
+	return
+}
+
+// Value implements serializer interface
+func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value) (interface{}, error) {
+	fv, _ := field.ValueOf(ctx, dst)
+	return fv, nil
 }
 
 // CreateClausesInterface create clauses interface

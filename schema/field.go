@@ -84,6 +84,7 @@ type Field struct {
 	ReflectValueOf         func(context.Context, reflect.Value) reflect.Value
 	ValueOf                func(context.Context, reflect.Value) (value interface{}, zero bool)
 	Set                    func(context.Context, reflect.Value, interface{}) error
+	Serializer             SerializerInterface
 	NewValuePool           FieldNewValuePool
 }
 
@@ -168,10 +169,16 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
-	if _, isSerializer := fieldValue.Interface().(SerializerInterface); isSerializer {
+	if v, isSerializer := fieldValue.Interface().(SerializerInterface); isSerializer {
 		field.DataType = String
-	} else if _, ok := field.TagSettings["SERIALIZER"]; ok {
+		field.Serializer = v
+	} else if name, ok := field.TagSettings["SERIALIZER"]; ok {
 		field.DataType = String
+		if strings.ToLower(name) == "json" {
+			field.Serializer = &JSONSerializer{}
+		} else {
+			schema.err = fmt.Errorf("invalid serializer type %v", name)
+		}
 	}
 
 	if num, ok := field.TagSettings["AUTOINCREMENTINCREMENT"]; ok {
@@ -413,69 +420,21 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	return field
 }
 
-// sync pools
-var (
-	normalPool sync.Map
-	stringPool = &sync.Pool{
-		New: func() interface{} {
-			var v string
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	intPool = &sync.Pool{
-		New: func() interface{} {
-			var v int64
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	uintPool = &sync.Pool{
-		New: func() interface{} {
-			var v uint64
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	floatPool = &sync.Pool{
-		New: func() interface{} {
-			var v float64
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	boolPool = &sync.Pool{
-		New: func() interface{} {
-			var v bool
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	timePool = &sync.Pool{
-		New: func() interface{} {
-			var v time.Time
-			ptrV := &v
-			return &ptrV
-		},
-	}
-	poolInitializer = func(reflectType reflect.Type) FieldNewValuePool {
-		if v, ok := normalPool.Load(reflectType); ok {
-			return v.(FieldNewValuePool)
-		}
-
-		v, _ := normalPool.LoadOrStore(reflectType, &sync.Pool{
-			New: func() interface{} {
-				return reflect.New(reflectType).Interface()
-			},
-		})
-		return v.(FieldNewValuePool)
-	}
-)
-
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// Setup NewValuePool
-	if _, ok := reflect.New(field.IndirectFieldType).Interface().(sql.Scanner); !ok {
+	var fieldValue = reflect.New(field.FieldType).Interface()
+	if field.Serializer != nil {
+		field.NewValuePool = &sync.Pool{
+			New: func() interface{} {
+				return &Serializer{
+					Field:     field,
+					Interface: reflect.New(reflect.ValueOf(field.Serializer).Type()).Interface().(SerializerInterface),
+				}
+			},
+		}
+	} else if _, ok := fieldValue.(sql.Scanner); !ok {
+		// set default NewValuePool
 		switch field.IndirectFieldType.Kind() {
 		case reflect.String:
 			field.NewValuePool = stringPool
@@ -595,6 +554,19 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	// Set
+	if field.Serializer != nil {
+		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
+			if serializer, ok := v.(*Serializer); ok {
+				serializer.Interface.Scan(ctx, field, value, serializer.value)
+				fallbackSetter(ctx, value, serializer.Interface, field.Set)
+				serializer.Interface = reflect.New(reflect.ValueOf(field.Serializer).Type()).Interface().(SerializerInterface)
+			}
+			return nil
+		}
+
+		return
+	}
+
 	switch field.FieldType.Kind() {
 	case reflect.Bool:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
