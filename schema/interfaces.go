@@ -26,6 +26,7 @@ type FieldNewValuePool interface {
 type Serializer struct {
 	Field       *Field
 	Interface   SerializerInterface
+	Valuer      SerializerValuerInterface
 	Destination reflect.Value
 	Context     context.Context
 	value       interface{}
@@ -40,12 +41,17 @@ func (s *Serializer) Scan(value interface{}) error {
 
 // Value implements driver.Valuer interface
 func (s Serializer) Value() (driver.Value, error) {
-	return s.Interface.Value(s.Context, s.Field, s.Destination, s.fieldValue)
+	return s.Valuer.Value(s.Context, s.Field, s.Destination, s.fieldValue)
 }
 
 // SerializerInterface serializer interface
 type SerializerInterface interface {
 	Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) error
+	SerializerValuerInterface
+}
+
+// SerializerValuerInterface serializer valuer interface
+type SerializerValuerInterface interface {
 	Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error)
 }
 

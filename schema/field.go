@@ -432,7 +432,7 @@ func (field *Field) setupValuerAndSetter() {
 			New: func() interface{} {
 				return &Serializer{
 					Field:     field,
-					Interface: reflect.New(reflect.ValueOf(field.Serializer).Type()).Interface().(SerializerInterface),
+					Interface: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
 				}
 			},
 		}
@@ -489,14 +489,14 @@ func (field *Field) setupValuerAndSetter() {
 				return value, zero
 			}
 
-			serializer, ok := value.(SerializerInterface)
+			serializer, ok := value.(SerializerValuerInterface)
 			if !ok {
 				serializer = field.Serializer
 			}
 
 			return Serializer{
 				Field:       field,
-				Interface:   serializer,
+				Valuer:      serializer,
 				Destination: v,
 				Context:     ctx,
 				fieldValue:  value,
@@ -564,6 +564,9 @@ func (field *Field) setupValuerAndSetter() {
 			if reflectV.Kind() == reflect.Ptr {
 				if reflectV.IsNil() {
 					field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
+				} else if reflectV.Type().Elem().AssignableTo(field.FieldType) {
+					field.ReflectValueOf(ctx, value).Set(reflectV.Elem())
+					return
 				} else {
 					err = setter(ctx, value, reflectV.Elem().Interface())
 				}
@@ -585,7 +588,7 @@ func (field *Field) setupValuerAndSetter() {
 			if serializer, ok := v.(*Serializer); ok {
 				serializer.Interface.Scan(ctx, field, value, serializer.value)
 				fallbackSetter(ctx, value, serializer.Interface, field.Set)
-				serializer.Interface = reflect.New(reflect.ValueOf(field.Serializer).Type()).Interface().(SerializerInterface)
+				serializer.Interface = reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface)
 			}
 			return nil
 		}
