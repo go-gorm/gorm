@@ -417,36 +417,43 @@ var (
 	stringPool = &sync.Pool{
 		New: func() interface{} {
 			var v string
-			return &v
+			ptrV := &v
+			return &ptrV
 		},
 	}
 	intPool = &sync.Pool{
 		New: func() interface{} {
 			var v int64
-			return &v
+			ptrV := &v
+			return &ptrV
 		},
 	}
 	uintPool = &sync.Pool{
 		New: func() interface{} {
 			var v uint64
-			return &v
+			ptrV := &v
+			return &ptrV
 		},
 	}
 	floatPool = &sync.Pool{
 		New: func() interface{} {
 			var v float64
-			return &v
+			ptrV := &v
+			return &ptrV
 		},
 	}
 	boolPool = &sync.Pool{
 		New: func() interface{} {
 			var v bool
-			return &v
+			ptrV := &v
+			return &ptrV
 		},
 	}
 	timePool = &sync.Pool{
 		New: func() interface{} {
-			return &time.Time{}
+			var v time.Time
+			ptrV := &v
+			return &ptrV
 		},
 	}
 )
@@ -454,28 +461,31 @@ var (
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// Setup NewValuePool
-	switch field.IndirectFieldType.Kind() {
-	case reflect.String:
-		field.NewValuePool = stringPool
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		field.NewValuePool = intPool
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		field.NewValuePool = uintPool
-	case reflect.Float32, reflect.Float64:
-		field.NewValuePool = floatPool
-	case reflect.Bool:
-		field.NewValuePool = boolPool
-	default:
-		if field.IndirectFieldType == TimeReflectType {
-			field.NewValuePool = timePool
-		}
-		if field.NewValuePool == nil {
-			field.NewValuePool = fieldNewValuePool{
-				getter: func() interface{} {
-					return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
-				},
-				putter: func(interface{}) {},
+	if _, ok := reflect.New(field.IndirectFieldType).Interface().(sql.Scanner); !ok {
+		switch field.IndirectFieldType.Kind() {
+		case reflect.String:
+			field.NewValuePool = stringPool
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			field.NewValuePool = intPool
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			field.NewValuePool = uintPool
+		case reflect.Float32, reflect.Float64:
+			field.NewValuePool = floatPool
+		case reflect.Bool:
+			field.NewValuePool = boolPool
+		default:
+			if field.IndirectFieldType == TimeReflectType {
+				field.NewValuePool = timePool
 			}
+		}
+	}
+
+	if field.NewValuePool == nil {
+		field.NewValuePool = fieldNewValuePool{
+			getter: func() interface{} {
+				return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+			},
+			putter: func(interface{}) {},
 		}
 	}
 
@@ -580,14 +590,12 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.Bool:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
 			switch data := v.(type) {
+			case **bool:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetBool(**data)
+				}
 			case bool:
 				field.ReflectValueOf(ctx, value).SetBool(data)
-			case **bool:
-				if data != nil {
-					field.ReflectValueOf(ctx, value).SetBool(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetBool(false)
-				}
 			case int64:
 				field.ReflectValueOf(ctx, value).SetBool(data > 0)
 			case string:
@@ -602,7 +610,7 @@ func (field *Field) setupValuerAndSetter() {
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case **int64:
-				if data != nil {
+				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(**data)
 				}
 			case int64:
@@ -666,7 +674,7 @@ func (field *Field) setupValuerAndSetter() {
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case **uint64:
-				if data != nil {
+				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(**data)
 				}
 			case uint64:
@@ -718,7 +726,7 @@ func (field *Field) setupValuerAndSetter() {
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
 			case **float64:
-				if data != nil {
+				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetFloat(**data)
 				}
 			case float64:
@@ -761,10 +769,8 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.String:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
-			case *string:
-				field.ReflectValueOf(ctx, value).SetString(*data)
 			case **string:
-				if data != nil {
+				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetString(**data)
 				}
 			case string:
@@ -786,6 +792,10 @@ func (field *Field) setupValuerAndSetter() {
 		case time.Time:
 			field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
+				case **time.Time:
+					if data != nil && *data != nil {
+						field.Set(ctx, value, *data)
+					}
 				case time.Time:
 					field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(v))
 				case *time.Time:
@@ -808,6 +818,10 @@ func (field *Field) setupValuerAndSetter() {
 		case *time.Time:
 			field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
+				case **time.Time:
+					if data != nil {
+						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
+					}
 				case time.Time:
 					fieldValue := field.ReflectValueOf(ctx, value)
 					if fieldValue.IsNil() {
