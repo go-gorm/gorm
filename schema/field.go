@@ -175,10 +175,13 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	} else if name, ok := field.TagSettings["SERIALIZER"]; ok {
 		field.DataType = String
 		if strings.ToLower(name) == "json" {
-			field.Serializer = &JSONSerializer{}
+			field.Serializer = JSONSerializer{}
 		} else {
 			schema.err = fmt.Errorf("invalid serializer type %v", name)
 		}
+	} else if _, ok := field.TagSettings["JSON"]; ok {
+		field.DataType = String
+		field.Serializer = JSONSerializer{}
 	}
 
 	if num, ok := field.TagSettings["AUTOINCREMENTINCREMENT"]; ok {

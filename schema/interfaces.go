@@ -77,7 +77,7 @@ func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value,
 
 // Value implements serializer interface
 func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
-	return fieldValue, nil
+	return json.Marshal(fieldValue)
 }
 
 // CreateClausesInterface create clauses interface
