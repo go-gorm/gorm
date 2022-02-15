@@ -55,13 +55,15 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 		if sch == nil {
 			values[idx] = reflectValue.Interface()
 		} else if field := sch.LookUpField(column); field != nil && field.Readable {
-			values[idx] = field.NewScanValue()
-			defer field.ReleaseScanValue(values[idx])
+			fieldValue := field.NewValuePool.Get()
+			values[idx] = &fieldValue
+			defer field.NewValuePool.Put(fieldValue)
 		} else if names := strings.Split(column, "__"); len(names) > 1 {
 			if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 				if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-					values[idx] = field.NewScanValue()
-					defer field.ReleaseScanValue(values[idx])
+					fieldValue := field.NewValuePool.Get()
+					values[idx] = &fieldValue
+					defer field.NewValuePool.Put(fieldValue)
 					continue
 				}
 			}
@@ -85,12 +87,12 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 				if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 					if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
 						relValue := rel.Field.ReflectValueOf(db.Statement.Context, reflectValue)
-						value := reflect.ValueOf(values[idx]).Elem()
 
 						if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-							if value.IsNil() {
+							if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
 								continue
 							}
+
 							relValue.Set(reflect.New(relValue.Type().Elem()))
 						}
 

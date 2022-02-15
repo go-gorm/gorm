@@ -13,6 +13,25 @@ type GormDataTypeInterface interface {
 	GormDataType() string
 }
 
+// FieldNewValuePool field new scan value pool
+type FieldNewValuePool interface {
+	Get() interface{}
+	Put(interface{})
+}
+
+type fieldNewValuePool struct {
+	getter func() interface{}
+	putter func(interface{})
+}
+
+func (fp fieldNewValuePool) Get() interface{} {
+	return fp.getter()
+}
+
+func (fp fieldNewValuePool) Put(v interface{}) {
+	fp.putter(v)
+}
+
 // Serializer field value serializer
 type Serializer struct {
 	Field       *Field

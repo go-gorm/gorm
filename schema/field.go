@@ -84,8 +84,7 @@ type Field struct {
 	ReflectValueOf         func(context.Context, reflect.Value) reflect.Value
 	ValueOf                func(context.Context, reflect.Value) (value interface{}, zero bool)
 	Set                    func(context.Context, reflect.Value, interface{}) error
-	NewScanValue           func() interface{}
-	ReleaseScanValue       func(interface{})
+	NewValuePool           FieldNewValuePool
 }
 
 // ParseField parses reflect.StructField to Field
@@ -415,31 +414,68 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 }
 
 var (
-	bytesPool = sync.Pool{
+	stringPool = &sync.Pool{
 		New: func() interface{} {
-			bs := make([]byte, 0, 10)
-			return &bs
+			var v string
+			return &v
 		},
 	}
-	bytesPoolReleaser = func(v interface{}) {
-		bs := v.(*[]byte)
-		*bs = (*bs)[:0]
-		bytesPool.Put(bs)
+	intPool = &sync.Pool{
+		New: func() interface{} {
+			var v int64
+			return &v
+		},
+	}
+	uintPool = &sync.Pool{
+		New: func() interface{} {
+			var v uint64
+			return &v
+		},
+	}
+	floatPool = &sync.Pool{
+		New: func() interface{} {
+			var v float64
+			return &v
+		},
+	}
+	boolPool = &sync.Pool{
+		New: func() interface{} {
+			var v bool
+			return &v
+		},
+	}
+	timePool = &sync.Pool{
+		New: func() interface{} {
+			return &time.Time{}
+		},
 	}
 )
 
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
-	// Setup NewScanValue
+	// Setup NewValuePool
 	switch field.IndirectFieldType.Kind() {
 	case reflect.String:
-		field.NewScanValue = bytesPool.Get
-		field.ReleaseScanValue = bytesPoolReleaser
+		field.NewValuePool = stringPool
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		field.NewValuePool = intPool
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		field.NewValuePool = uintPool
+	case reflect.Float32, reflect.Float64:
+		field.NewValuePool = floatPool
+	case reflect.Bool:
+		field.NewValuePool = boolPool
 	default:
-		field.NewScanValue = func() interface{} {
-			return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+		if field.IndirectFieldType == TimeReflectType {
+			field.NewValuePool = timePool
 		}
-		field.ReleaseScanValue = func(interface{}) {
+		if field.NewValuePool == nil {
+			field.NewValuePool = fieldNewValuePool{
+				getter: func() interface{} {
+					return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+				},
+				putter: func(interface{}) {},
+			}
 		}
 	}
 
@@ -546,9 +582,9 @@ func (field *Field) setupValuerAndSetter() {
 			switch data := v.(type) {
 			case bool:
 				field.ReflectValueOf(ctx, value).SetBool(data)
-			case *bool:
+			case **bool:
 				if data != nil {
-					field.ReflectValueOf(ctx, value).SetBool(*data)
+					field.ReflectValueOf(ctx, value).SetBool(**data)
 				} else {
 					field.ReflectValueOf(ctx, value).SetBool(false)
 				}
@@ -565,6 +601,10 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
+			case **int64:
+				if data != nil {
+					field.ReflectValueOf(ctx, value).SetInt(**data)
+				}
 			case int64:
 				field.ReflectValueOf(ctx, value).SetInt(data)
 			case int:
@@ -625,6 +665,10 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
+			case **uint64:
+				if data != nil {
+					field.ReflectValueOf(ctx, value).SetUint(**data)
+				}
 			case uint64:
 				field.ReflectValueOf(ctx, value).SetUint(data)
 			case uint:
@@ -673,6 +717,10 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.Float32, reflect.Float64:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
+			case **float64:
+				if data != nil {
+					field.ReflectValueOf(ctx, value).SetFloat(**data)
+				}
 			case float64:
 				field.ReflectValueOf(ctx, value).SetFloat(data)
 			case float32:
@@ -713,6 +761,12 @@ func (field *Field) setupValuerAndSetter() {
 	case reflect.String:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			switch data := v.(type) {
+			case *string:
+				field.ReflectValueOf(ctx, value).SetString(*data)
+			case **string:
+				if data != nil {
+					field.ReflectValueOf(ctx, value).SetString(**data)
+				}
 			case string:
 				field.ReflectValueOf(ctx, value).SetString(data)
 			case []byte:
