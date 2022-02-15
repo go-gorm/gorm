@@ -413,7 +413,9 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	return field
 }
 
+// sync pools
 var (
+	normalPool sync.Map
 	stringPool = &sync.Pool{
 		New: func() interface{} {
 			var v string
@@ -456,6 +458,18 @@ var (
 			return &ptrV
 		},
 	}
+	poolInitializer = func(reflectType reflect.Type) FieldNewValuePool {
+		if v, ok := normalPool.Load(reflectType); ok {
+			return v.(FieldNewValuePool)
+		}
+
+		v, _ := normalPool.LoadOrStore(reflectType, &sync.Pool{
+			New: func() interface{} {
+				return reflect.New(reflectType).Interface()
+			},
+		})
+		return v.(FieldNewValuePool)
+	}
 )
 
 // create valuer, setter when parse struct
@@ -481,12 +495,7 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	if field.NewValuePool == nil {
-		field.NewValuePool = fieldNewValuePool{
-			getter: func() interface{} {
-				return reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
-			},
-			putter: func(interface{}) {},
-		}
+		field.NewValuePool = poolInitializer(reflect.PtrTo(field.IndirectFieldType))
 	}
 
 	// ValueOf returns field's value and if it is zero
