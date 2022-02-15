@@ -19,9 +19,9 @@ const (
 	nullStr     = "NULL"
 )
 
-func isPrintable(s []byte) bool {
+func isPrintable(s string) bool {
 	for _, r := range s {
-		if !unicode.IsPrint(rune(r)) {
+		if !unicode.IsPrint(r) {
 			return false
 		}
 	}
@@ -84,8 +84,8 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				}
 			}
 		case []byte:
-			if isPrintable(v) {
-				vars[idx] = escaper + strings.Replace(string(v), escaper, "\\"+escaper, -1) + escaper
+			if s := string(v); isPrintable(s) {
+				vars[idx] = escaper + strings.ReplaceAll(s, escaper, "\\"+escaper) + escaper
 			} else {
 				vars[idx] = escaper + "<binary>" + escaper
 			}
