@@ -16,7 +16,7 @@ import (
 type SerializerStruct struct {
 	gorm.Model
 	Name            []byte `gorm:"json"`
-	Roles           Roles  `gorm:"json"`
+	Roles           Roles  `gorm:"serializer:json"`
 	EncryptedString EncryptedString
 }
 
