@@ -478,6 +478,29 @@ func (field *Field) setupValuerAndSetter() {
 		return fv, zero
 	}
 
+	if field.Serializer != nil {
+		oldValuerOf := field.ValueOf
+		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
+			value, zero := oldValuerOf(ctx, v)
+			if zero {
+				return value, zero
+			}
+
+			serializer, ok := value.(SerializerInterface)
+			if !ok {
+				serializer = field.Serializer
+			}
+
+			return Serializer{
+				Field:       field,
+				Interface:   serializer,
+				Destination: v,
+				Context:     ctx,
+				fieldValue:  value,
+			}, false
+		}
+	}
+
 	// ReflectValueOf returns field's reflect value
 	field.ReflectValueOf = func(ctx context.Context, v reflect.Value) reflect.Value {
 		v = reflect.Indirect(v)

@@ -29,6 +29,7 @@ type Serializer struct {
 	Destination reflect.Value
 	Context     context.Context
 	value       interface{}
+	fieldValue  interface{}
 }
 
 // Scan implements sql.Scanner interface
@@ -39,13 +40,13 @@ func (s *Serializer) Scan(value interface{}) error {
 
 // Value implements driver.Valuer interface
 func (s Serializer) Value() (driver.Value, error) {
-	return s.Interface.Value(s.Context, s.Field, s.Destination)
+	return s.Interface.Value(s.Context, s.Field, s.Destination, s.fieldValue)
 }
 
 // SerializerInterface serializer interface
 type SerializerInterface interface {
 	Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) error
-	Value(ctx context.Context, field *Field, dst reflect.Value) (interface{}, error)
+	Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error)
 }
 
 // JSONSerializer json serializer
@@ -75,9 +76,8 @@ func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value,
 }
 
 // Value implements serializer interface
-func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value) (interface{}, error) {
-	fv, _ := field.ValueOf(ctx, dst)
-	return fv, nil
+func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
+	return fieldValue, nil
 }
 
 // CreateClausesInterface create clauses interface
