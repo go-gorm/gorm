@@ -35,7 +35,6 @@ func (es *EncryptedString) Scan(ctx context.Context, field *schema.Field, dst re
 	return nil
 }
 
-// Value implements serializer interface
 func (es EncryptedString) Value(ctx context.Context, field *schema.Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
 	return "hello" + string(es), nil
 }
