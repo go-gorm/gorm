@@ -84,8 +84,8 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				}
 			}
 		case []byte:
-			if isPrintable(string(v)) {
-				vars[idx] = escaper + strings.Replace(string(v), escaper, "\\"+escaper, -1) + escaper
+			if s := string(v); isPrintable(s) {
+				vars[idx] = escaper + strings.Replace(s, escaper, "\\"+escaper, -1) + escaper
 			} else {
 				vars[idx] = escaper + "<binary>" + escaper
 			}
