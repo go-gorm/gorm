@@ -172,16 +172,20 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	if v, isSerializer := fieldValue.Interface().(SerializerInterface); isSerializer {
 		field.DataType = String
 		field.Serializer = v
-	} else if name, ok := field.TagSettings["SERIALIZER"]; ok {
-		field.DataType = String
-		if strings.ToLower(name) == "json" {
-			field.Serializer = JSONSerializer{}
-		} else {
-			schema.err = fmt.Errorf("invalid serializer type %v", name)
+	} else {
+		var serializerName = field.TagSettings["JSON"]
+		if serializerName == "" {
+			serializerName = field.TagSettings["SERIALIZER"]
 		}
-	} else if _, ok := field.TagSettings["JSON"]; ok {
-		field.DataType = String
-		field.Serializer = JSONSerializer{}
+		if serializerName != "" {
+			if serializer, ok := GetSerializer(serializerName); ok {
+				// Set default data type to string for serializer
+				field.DataType = String
+				field.Serializer = serializer
+			} else {
+				schema.err = fmt.Errorf("invalid serializer type %v", serializerName)
+			}
+		}
 	}
 
 	if num, ok := field.TagSettings["AUTOINCREMENTINCREMENT"]; ok {
@@ -430,9 +434,9 @@ func (field *Field) setupValuerAndSetter() {
 	if field.Serializer != nil {
 		field.NewValuePool = &sync.Pool{
 			New: func() interface{} {
-				return &Serializer{
-					Field:     field,
-					Interface: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
+				return &serializer{
+					Field:      field,
+					Serializer: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
 				}
 			},
 		}
@@ -489,17 +493,17 @@ func (field *Field) setupValuerAndSetter() {
 				return value, zero
 			}
 
-			serializer, ok := value.(SerializerValuerInterface)
+			s, ok := value.(SerializerValuerInterface)
 			if !ok {
-				serializer = field.Serializer
+				s = field.Serializer
 			}
 
-			return Serializer{
-				Field:       field,
-				Valuer:      serializer,
-				Destination: v,
-				Context:     ctx,
-				fieldValue:  value,
+			return serializer{
+				Field:           field,
+				SerializeValuer: s,
+				Destination:     v,
+				Context:         ctx,
+				fieldValue:      value,
 			}, false
 		}
 	}
@@ -583,19 +587,6 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	// Set
-	if field.Serializer != nil {
-		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
-			if serializer, ok := v.(*Serializer); ok {
-				serializer.Interface.Scan(ctx, field, value, serializer.value)
-				fallbackSetter(ctx, value, serializer.Interface, field.Set)
-				serializer.Interface = reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface)
-			}
-			return nil
-		}
-
-		return
-	}
-
 	switch field.FieldType.Kind() {
 	case reflect.Bool:
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
@@ -915,6 +906,35 @@ func (field *Field) setupValuerAndSetter() {
 					return fallbackSetter(ctx, value, v, field.Set)
 				}
 			}
+		}
+	}
+
+	if field.Serializer != nil {
+		var (
+			oldFieldSetter = field.Set
+			sameElemType   bool
+			sameType       = field.FieldType == reflect.ValueOf(field.Serializer).Type()
+		)
+
+		if reflect.ValueOf(field.Serializer).Kind() == reflect.Ptr {
+			sameElemType = field.FieldType == reflect.ValueOf(field.Serializer).Type().Elem()
+		}
+
+		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
+			if s, ok := v.(*serializer); ok {
+				if err = s.Serializer.Scan(ctx, field, value, s.value); err == nil {
+					if sameElemType {
+						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(s.Serializer).Elem())
+						s.Serializer = reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface)
+					} else if sameType {
+						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(s.Serializer))
+						s.Serializer = reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface)
+					}
+				}
+			} else {
+				err = oldFieldSetter(ctx, value, v)
+			}
+			return
 		}
 	}
 }

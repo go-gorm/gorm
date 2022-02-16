@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -15,8 +16,10 @@ import (
 
 type SerializerStruct struct {
 	gorm.Model
-	Name            []byte `gorm:"json"`
-	Roles           Roles  `gorm:"serializer:json"`
+	Name            []byte                 `gorm:"json"`
+	Roles           Roles                  `gorm:"serializer:json"`
+	Contracts       map[string]interface{} `gorm:"serializer:json"`
+	CreatedTime     int64                  `gorm:"serializer:unixtime;type:time"` // store time in db, use int as field type
 	EncryptedString EncryptedString
 }
 
@@ -45,10 +48,14 @@ func TestSerializer(t *testing.T) {
 		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
+	createdAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
 	data := SerializerStruct{
 		Name:            []byte("jinzhu"),
 		Roles:           []string{"r1", "r2"},
+		Contracts:       map[string]interface{}{"name": "jinzhu", "age": 10},
 		EncryptedString: EncryptedString("pass"),
+		CreatedTime:     createdAt.Unix(),
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
