@@ -40,7 +40,7 @@ func BuildQuerySQL(db *gorm.DB) {
 		if db.Statement.ReflectValue.Kind() == reflect.Struct && db.Statement.ReflectValue.Type() == db.Statement.Schema.ModelType {
 			var conds []clause.Expression
 			for _, primaryField := range db.Statement.Schema.PrimaryFields {
-				if v, isZero := primaryField.ValueOf(db.Statement.ReflectValue); !isZero {
+				if v, isZero := primaryField.ValueOf(db.Statement.Context, db.Statement.ReflectValue); !isZero {
 					conds = append(conds, clause.Eq{Column: clause.Column{Table: db.Statement.Table, Name: primaryField.DBName}, Value: v})
 				}
 			}

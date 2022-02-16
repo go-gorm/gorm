@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// prepareValues prepare values slice
 func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
@@ -54,11 +55,13 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 		if sch == nil {
 			values[idx] = reflectValue.Interface()
 		} else if field := sch.LookUpField(column); field != nil && field.Readable {
-			values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+			values[idx] = field.NewValuePool.Get()
+			defer field.NewValuePool.Put(values[idx])
 		} else if names := strings.Split(column, "__"); len(names) > 1 {
 			if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 				if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-					values[idx] = reflect.New(reflect.PtrTo(field.IndirectFieldType)).Interface()
+					values[idx] = field.NewValuePool.Get()
+					defer field.NewValuePool.Put(values[idx])
 					continue
 				}
 			}
@@ -77,21 +80,21 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 	if sch != nil {
 		for idx, column := range columns {
 			if field := sch.LookUpField(column); field != nil && field.Readable {
-				field.Set(reflectValue, values[idx])
+				field.Set(db.Statement.Context, reflectValue, values[idx])
 			} else if names := strings.Split(column, "__"); len(names) > 1 {
 				if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 					if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
-						relValue := rel.Field.ReflectValueOf(reflectValue)
-						value := reflect.ValueOf(values[idx]).Elem()
+						relValue := rel.Field.ReflectValueOf(db.Statement.Context, reflectValue)
 
 						if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-							if value.IsNil() {
+							if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
 								continue
 							}
+
 							relValue.Set(reflect.New(relValue.Type().Elem()))
 						}
 
-						field.Set(relValue, values[idx])
+						field.Set(db.Statement.Context, relValue, values[idx])
 					}
 				}
 			}
@@ -99,14 +102,17 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 	}
 }
 
+// ScanMode scan data mode
 type ScanMode uint8
 
+// scan modes
 const (
 	ScanInitialized         ScanMode = 1 << 0 // 1
 	ScanUpdate              ScanMode = 1 << 1 // 2
 	ScanOnConflictDoNothing ScanMode = 1 << 2 // 4
 )
 
+// Scan scan rows into db statement
 func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 	var (
 		columns, _          = rows.Columns()
@@ -138,7 +144,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			}
 			scanIntoMap(mapValue, values, columns)
 		}
-	case *[]map[string]interface{}, []map[string]interface{}:
+	case *[]map[string]interface{}:
 		columnTypes, _ := rows.ColumnTypes()
 		for initialized || rows.Next() {
 			prepareValues(values, db, columnTypes, columns)
@@ -149,11 +155,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 
 			mapValue := map[string]interface{}{}
 			scanIntoMap(mapValue, values, columns)
-			if values, ok := dest.([]map[string]interface{}); ok {
-				values = append(values, mapValue)
-			} else if values, ok := dest.(*[]map[string]interface{}); ok {
-				*values = append(*values, mapValue)
-			}
+			*dest = append(*dest, mapValue)
 		}
 	case *int, *int8, *int16, *int32, *int64,
 		*uint, *uint8, *uint16, *uint32, *uint64, *uintptr,
@@ -174,7 +176,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			reflectValue = db.Statement.ReflectValue
 		)
 
-		if reflectValue.Kind() == reflect.Interface {
+		for reflectValue.Kind() == reflect.Interface {
 			reflectValue = reflectValue.Elem()
 		}
 
@@ -244,7 +246,7 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 					elem = reflectValue.Index(int(db.RowsAffected))
 					if onConflictDonothing {
 						for _, field := range fields {
-							if _, ok := field.ValueOf(elem); !ok {
+							if _, ok := field.ValueOf(db.Statement.Context, elem); !ok {
 								db.RowsAffected++
 								goto BEGIN
 							}
