@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -576,7 +577,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	return &constraint
 }
 
-func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []clause.Expression) {
+func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue reflect.Value) (conds []clause.Expression) {
 	table := rel.FieldSchema.Table
 	foreignFields := []*Field{}
 	relForeignKeys := []string{}
@@ -616,7 +617,7 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 		}
 	}
 
-	_, foreignValues := GetIdentityFieldValuesMap(reflectValue, foreignFields)
+	_, foreignValues := GetIdentityFieldValuesMap(ctx, reflectValue, foreignFields)
 	column, values := ToQueryValues(table, relForeignKeys, foreignValues)
 
 	conds = append(conds, clause.IN{Column: column, Values: values})

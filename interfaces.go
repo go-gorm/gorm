@@ -40,14 +40,17 @@ type SavePointerDialectorInterface interface {
 	RollbackTo(tx *DB, name string) error
 }
 
+// TxBeginner tx beginner
 type TxBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
+// ConnPoolBeginner conn pool beginner
 type ConnPoolBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (ConnPool, error)
 }
 
+// TxCommitter tx commiter
 type TxCommitter interface {
 	Commit() error
 	Rollback() error
@@ -58,6 +61,7 @@ type Valuer interface {
 	GormValue(context.Context, *DB) clause.Expr
 }
 
+// GetDBConnector SQL db connector
 type GetDBConnector interface {
 	GetDBConn() (*sql.DB, error)
 }

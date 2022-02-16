@@ -123,7 +123,7 @@ func TestCreateFromMap(t *testing.T) {
 		{"name": "create_from_map_3", "Age": 20},
 	}
 
-	if err := DB.Model(&User{}).Create(datas).Error; err != nil {
+	if err := DB.Model(&User{}).Create(&datas).Error; err != nil {
 		t.Fatalf("failed to create data from slice of map, got error: %v", err)
 	}
 

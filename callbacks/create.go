@@ -117,9 +117,9 @@ func Create(config *Config) func(db *gorm.DB) {
 							break
 						}
 
-						_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv)
+						_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, rv)
 						if isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID)
 							insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 						}
 					}
@@ -130,16 +130,16 @@ func Create(config *Config) func(db *gorm.DB) {
 							break
 						}
 
-						if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(rv); isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(rv, insertID)
+						if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, rv); isZero {
+							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID)
 							insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 						}
 					}
 				}
 			case reflect.Struct:
-				_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.ReflectValue)
+				_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, db.Statement.ReflectValue)
 				if isZero {
-					db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.ReflectValue, insertID)
+					db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, db.Statement.ReflectValue, insertID)
 				}
 			}
 		}
@@ -219,23 +219,23 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				values.Values[i] = make([]interface{}, len(values.Columns))
 				for idx, column := range values.Columns {
 					field := stmt.Schema.FieldsByDBName[column.Name]
-					if values.Values[i][idx], isZero = field.ValueOf(rv); isZero {
+					if values.Values[i][idx], isZero = field.ValueOf(stmt.Context, rv); isZero {
 						if field.DefaultValueInterface != nil {
 							values.Values[i][idx] = field.DefaultValueInterface
-							field.Set(rv, field.DefaultValueInterface)
+							field.Set(stmt.Context, rv, field.DefaultValueInterface)
 						} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
-							field.Set(rv, curTime)
-							values.Values[i][idx], _ = field.ValueOf(rv)
+							field.Set(stmt.Context, rv, curTime)
+							values.Values[i][idx], _ = field.ValueOf(stmt.Context, rv)
 						}
 					} else if field.AutoUpdateTime > 0 && updateTrackTime {
-						field.Set(rv, curTime)
-						values.Values[i][idx], _ = field.ValueOf(rv)
+						field.Set(stmt.Context, rv, curTime)
+						values.Values[i][idx], _ = field.ValueOf(stmt.Context, rv)
 					}
 				}
 
 				for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 					if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-						if rvOfvalue, isZero := field.ValueOf(rv); !isZero {
+						if rvOfvalue, isZero := field.ValueOf(stmt.Context, rv); !isZero {
 							if len(defaultValueFieldsHavingValue[field]) == 0 {
 								defaultValueFieldsHavingValue[field] = make([]interface{}, rValLen)
 							}
@@ -259,23 +259,23 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 			values.Values = [][]interface{}{make([]interface{}, len(values.Columns))}
 			for idx, column := range values.Columns {
 				field := stmt.Schema.FieldsByDBName[column.Name]
-				if values.Values[0][idx], isZero = field.ValueOf(stmt.ReflectValue); isZero {
+				if values.Values[0][idx], isZero = field.ValueOf(stmt.Context, stmt.ReflectValue); isZero {
 					if field.DefaultValueInterface != nil {
 						values.Values[0][idx] = field.DefaultValueInterface
-						field.Set(stmt.ReflectValue, field.DefaultValueInterface)
+						field.Set(stmt.Context, stmt.ReflectValue, field.DefaultValueInterface)
 					} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
-						field.Set(stmt.ReflectValue, curTime)
-						values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
+						field.Set(stmt.Context, stmt.ReflectValue, curTime)
+						values.Values[0][idx], _ = field.ValueOf(stmt.Context, stmt.ReflectValue)
 					}
 				} else if field.AutoUpdateTime > 0 && updateTrackTime {
-					field.Set(stmt.ReflectValue, curTime)
-					values.Values[0][idx], _ = field.ValueOf(stmt.ReflectValue)
+					field.Set(stmt.Context, stmt.ReflectValue, curTime)
+					values.Values[0][idx], _ = field.ValueOf(stmt.Context, stmt.ReflectValue)
 				}
 			}
 
 			for _, field := range stmt.Schema.FieldsWithDefaultDBValue {
 				if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-					if rvOfvalue, isZero := field.ValueOf(stmt.ReflectValue); !isZero {
+					if rvOfvalue, isZero := field.ValueOf(stmt.Context, stmt.ReflectValue); !isZero {
 						values.Columns = append(values.Columns, clause.Column{Name: field.DBName})
 						values.Values[0] = append(values.Values[0], rvOfvalue)
 					}
