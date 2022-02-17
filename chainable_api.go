@@ -150,6 +150,15 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+// When Condition established
+func (db *DB) When(expr bool, query func(tx *DB)) (tx *DB) {
+	tx = db.getInstance()
+	if expr {
+		query(tx)
+	}
+	return
+}
+
 // Not add NOT conditions
 func (db *DB) Not(query interface{}, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
