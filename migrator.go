@@ -45,6 +45,7 @@ type ColumnType interface {
 	Length() (length int64, ok bool)
 	DecimalSize() (precision int64, scale int64, ok bool)
 	Nullable() (nullable bool, ok bool)
+	Unique() (unique bool, ok bool)
 	ScanType() reflect.Type
 	Comment() (value string, ok bool)
 	DefaultValue() (value string, ok bool)

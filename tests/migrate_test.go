@@ -92,7 +92,7 @@ func TestAutoMigrateSelfReferential(t *testing.T) {
 }
 
 func TestSmartMigrateColumn(t *testing.T) {
-	fullSupported := map[string]bool{"mysql": true}[DB.Dialector.Name()]
+	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
 
 	type UserMigrateColumn struct {
 		ID       uint
@@ -313,9 +313,14 @@ func TestMigrateIndexes(t *testing.T) {
 }
 
 func TestMigrateColumns(t *testing.T) {
+	fullSupported := map[string]bool{"sqlite": true, "mysql": true, "postgres": true}[DB.Dialector.Name()]
+	sqlite := DB.Dialector.Name() == "sqlite"
+
 	type ColumnStruct struct {
 		gorm.Model
 		Name string
+		Age  int    `gorm:"default:18;comment:my age"`
+		Code string `gorm:"unique"`
 	}
 
 	DB.Migrator().DropTable(&ColumnStruct{})
@@ -340,10 +345,30 @@ func TestMigrateColumns(t *testing.T) {
 		stmt.Parse(&ColumnStruct2{})
 
 		for _, columnType := range columnTypes {
-			if columnType.Name() == "name" {
+			switch columnType.Name() {
+			case "id":
+				if v, ok := columnType.PrimaryKey(); (fullSupported || ok) && !v {
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+			case "name":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
-					t.Errorf("column type should be correct, name: %v, length: %v, expects: %v", columnType.Name(), columnType.DatabaseTypeName(), dataType)
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+				if length, ok := columnType.Length(); ((fullSupported && !sqlite) || ok) && length != 100 {
+					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), length, 100, columnType)
+				}
+			case "age":
+				if v, ok := columnType.DefaultValue(); (fullSupported || ok) && v != "18" {
+					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+				if v, ok := columnType.Comment(); ((fullSupported && !sqlite) || ok) && v != "my age" {
+					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+
+			case "code":
+				if v, ok := columnType.Unique(); (fullSupported || ok) && !v {
+					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 			}
 		}
