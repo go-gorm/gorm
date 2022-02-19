@@ -11,7 +11,7 @@ type ColumnType struct {
 	NameValue          sql.NullString
 	DataTypeValue      sql.NullString
 	ColumnTypeValue    sql.NullString
-	PrimayKeyValue     sql.NullBool
+	PrimaryKeyValue    sql.NullBool
 	UniqueValue        sql.NullBool
 	AutoIncrementValue sql.NullBool
 	LengthValue        sql.NullInt64
@@ -51,7 +51,7 @@ func (ct ColumnType) ColumnType() (columnType string, ok bool) {
 
 // PrimaryKey returns the column is primary key or not.
 func (ct ColumnType) PrimaryKey() (isPrimaryKey bool, ok bool) {
-	return ct.PrimayKeyValue.Bool, ct.PrimayKeyValue.Valid
+	return ct.PrimaryKeyValue.Bool, ct.PrimaryKeyValue.Valid
 }
 
 // AutoIncrement returns the column is auto increment or not.

@@ -45,7 +45,7 @@ func TestMigrate(t *testing.T) {
 
 	for _, m := range allModels {
 		if !DB.Migrator().HasTable(m) {
-			t.Fatalf("Failed to create table for %#v---", m)
+			t.Fatalf("Failed to create table for %#v", m)
 		}
 	}
 
@@ -313,15 +313,16 @@ func TestMigrateIndexes(t *testing.T) {
 }
 
 func TestMigrateColumns(t *testing.T) {
-	fullSupported := map[string]bool{"sqlite": true, "mysql": true, "postgres": true, "sqlserver": true}[DB.Dialector.Name()]
 	sqlite := DB.Dialector.Name() == "sqlite"
 	sqlserver := DB.Dialector.Name() == "sqlserver"
 
 	type ColumnStruct struct {
 		gorm.Model
-		Name string
-		Age  int    `gorm:"default:18;comment:my age"`
-		Code string `gorm:"unique"`
+		Name  string
+		Age   int    `gorm:"default:18;comment:my age"`
+		Code  string `gorm:"unique;comment:my code;"`
+		Code2 string
+		Code3 string `gorm:"unique"`
 	}
 
 	DB.Migrator().DropTable(&ColumnStruct{})
@@ -332,11 +333,18 @@ func TestMigrateColumns(t *testing.T) {
 
 	type ColumnStruct2 struct {
 		gorm.Model
-		Name string `gorm:"size:100"`
+		Name  string `gorm:"size:100"`
+		Code  string `gorm:"unique;comment:my code2;default:hello"`
+		Code2 string `gorm:"unique"`
+		// Code3 string
 	}
 
-	if err := DB.Table("column_structs").Migrator().AlterColumn(&ColumnStruct2{}, "Name"); err != nil {
+	if err := DB.Table("column_structs").Migrator().AlterColumn(&ColumnStruct{}, "Name"); err != nil {
 		t.Fatalf("no error should happened when alter column, but got %v", err)
+	}
+
+	if err := DB.Table("column_structs").AutoMigrate(&ColumnStruct2{}); err != nil {
+		t.Fatalf("no error should happened when auto migrate column, but got %v", err)
 	}
 
 	if columnTypes, err := DB.Migrator().ColumnTypes(&ColumnStruct{}); err != nil {
@@ -348,7 +356,7 @@ func TestMigrateColumns(t *testing.T) {
 		for _, columnType := range columnTypes {
 			switch columnType.Name() {
 			case "id":
-				if v, ok := columnType.PrimaryKey(); (fullSupported || ok) && !v {
+				if v, ok := columnType.PrimaryKey(); !ok || !v {
 					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 			case "name":
@@ -356,20 +364,35 @@ func TestMigrateColumns(t *testing.T) {
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
 					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
 				}
-				if length, ok := columnType.Length(); ((fullSupported && !sqlite) || ok) && length != 100 {
+				if length, ok := columnType.Length(); !sqlite && (!ok || length != 100) {
 					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), length, 100, columnType)
 				}
 			case "age":
-				if v, ok := columnType.DefaultValue(); (fullSupported || ok) && v != "18" {
+				if v, ok := columnType.DefaultValue(); !ok || v != "18" {
 					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
-				if v, ok := columnType.Comment(); ((fullSupported && !sqlite && !sqlserver) || ok) && v != "my age" {
+				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my age") {
 					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 			case "code":
-				if v, ok := columnType.Unique(); (fullSupported || ok) && !v {
+				if v, ok := columnType.Unique(); !ok || !v {
 					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
+				if v, ok := columnType.DefaultValue(); !sqlserver && (!ok || v != "hello") {
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my code2") {
+					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+			case "code2":
+				if v, ok := columnType.Unique(); !sqlserver && (!ok || !v) {
+					t.Fatalf("column code2 unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+			case "code3":
+				// TODO
+				// if v, ok := columnType.Unique(); !ok || v {
+				// 	t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				// }
 			}
 		}
 	}

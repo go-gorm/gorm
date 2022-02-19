@@ -436,6 +436,30 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
+	// check unique
+	if unique, ok := columnType.Unique(); ok && unique != field.Unique {
+		// not primary key
+		if !field.PrimaryKey {
+			alterColumn = true
+		}
+	}
+
+	// check default value
+	if v, ok := columnType.DefaultValue(); ok && v != field.DefaultValue {
+		// not primary key
+		if !field.PrimaryKey {
+			alterColumn = true
+		}
+	}
+
+	// check comment
+	if comment, ok := columnType.Comment(); ok && comment != field.Comment {
+		// not primary key
+		if !field.PrimaryKey {
+			alterColumn = true
+		}
+	}
+
 	if alterColumn && !field.IgnoreMigration {
 		return m.DB.Migrator().AlterColumn(value, field.Name)
 	}
