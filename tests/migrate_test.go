@@ -313,8 +313,9 @@ func TestMigrateIndexes(t *testing.T) {
 }
 
 func TestMigrateColumns(t *testing.T) {
-	fullSupported := map[string]bool{"sqlite": true, "mysql": true, "postgres": true}[DB.Dialector.Name()]
+	fullSupported := map[string]bool{"sqlite": true, "mysql": true, "postgres": true, "sqlserver": true}[DB.Dialector.Name()]
 	sqlite := DB.Dialector.Name() == "sqlite"
+	sqlserver := DB.Dialector.Name() == "sqlserver"
 
 	type ColumnStruct struct {
 		gorm.Model
@@ -362,10 +363,9 @@ func TestMigrateColumns(t *testing.T) {
 				if v, ok := columnType.DefaultValue(); (fullSupported || ok) && v != "18" {
 					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
-				if v, ok := columnType.Comment(); ((fullSupported && !sqlite) || ok) && v != "my age" {
+				if v, ok := columnType.Comment(); ((fullSupported && !sqlite && !sqlserver) || ok) && v != "my age" {
 					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
-
 			case "code":
 				if v, ok := columnType.Unique(); (fullSupported || ok) && !v {
 					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
