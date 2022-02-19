@@ -96,12 +96,12 @@ func (ct ColumnType) ScanType() reflect.Type {
 	return ct.SQLColumnType.ScanType()
 }
 
-// Comment returns the comment of curent column.
+// Comment returns the comment of current column.
 func (ct ColumnType) Comment() (value string, ok bool) {
 	return ct.CommentValue.String, ct.CommentValue.Valid
 }
 
-// DefaultValue returns the default value of curent column.
+// DefaultValue returns the default value of current column.
 func (ct ColumnType) DefaultValue() (value string, ok bool) {
 	return ct.DefaultValueValue.String, ct.DefaultValueValue.Valid
 }
