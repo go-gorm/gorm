@@ -174,7 +174,7 @@ func (ns NamingStrategy) toDBName(name string) string {
 }
 
 func (ns NamingStrategy) toSchemaName(name string) string {
-	result := strings.Replace(strings.Title(strings.Replace(name, "_", " ", -1)), " ", "", -1)
+	result := strings.ReplaceAll(strings.Title(strings.ReplaceAll(name, "_", " ")), " ", "")
 	for _, initialism := range commonInitialisms {
 		result = regexp.MustCompile(strings.Title(strings.ToLower(initialism))+"([A-Z]|$|_)").ReplaceAllString(result, initialism+"$1")
 	}
