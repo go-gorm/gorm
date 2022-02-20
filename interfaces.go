@@ -50,7 +50,7 @@ type ConnPoolBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (ConnPool, error)
 }
 
-// TxCommitter tx commiter
+// TxCommitter tx committer
 type TxCommitter interface {
 	Commit() error
 	Rollback() error

@@ -39,7 +39,7 @@ func IsValidDBNameChar(c rune) bool {
 // CheckTruth check string true or not
 func CheckTruth(vals ...string) bool {
 	for _, val := range vals {
-		if !strings.EqualFold(val, "false") && val != "" {
+		if val != "" && !strings.EqualFold(val, "false") {
 			return true
 		}
 	}
