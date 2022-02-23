@@ -19,11 +19,20 @@ type SerializerStruct struct {
 	Name            []byte                 `gorm:"json"`
 	Roles           Roles                  `gorm:"serializer:json"`
 	Contracts       map[string]interface{} `gorm:"serializer:json"`
+	JobInfo         Job                    `gorm:"type:bytes;serializer:gob"`
 	CreatedTime     int64                  `gorm:"serializer:unixtime;type:time"` // store time in db, use int as field type
 	EncryptedString EncryptedString
 }
 
 type Roles []string
+
+type Job struct {
+	Title    string
+	Number   int
+	Location string
+	IsIntern bool
+}
+
 type EncryptedString string
 
 func (es *EncryptedString) Scan(ctx context.Context, field *schema.Field, dst reflect.Value, dbValue interface{}) (err error) {
@@ -56,6 +65,12 @@ func TestSerializer(t *testing.T) {
 		Contracts:       map[string]interface{}{"name": "jinzhu", "age": 10},
 		EncryptedString: EncryptedString("pass"),
 		CreatedTime:     createdAt.Unix(),
+		JobInfo: Job{
+			Title:    "programmer",
+			Number:   9920,
+			Location: "Kenmawr",
+			IsIntern: false,
+		},
 	}
 
 	if err := DB.Create(&data).Error; err != nil {
