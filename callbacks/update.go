@@ -232,10 +232,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
 						} else if field.AutoUpdateTime == schema.UnixMillisecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano() / 1e6})
-						} else if field.GORMDataType == schema.Time {
-							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
-						} else {
+						} else if field.AutoUpdateTime == schema.UnixSecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.Unix()})
+						} else {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 						}
 					}
 				}
@@ -264,10 +264,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 									value = stmt.DB.NowFunc().UnixNano()
 								} else if field.AutoUpdateTime == schema.UnixMillisecond {
 									value = stmt.DB.NowFunc().UnixNano() / 1e6
-								} else if field.GORMDataType == schema.Time {
-									value = stmt.DB.NowFunc()
-								} else {
+								} else if field.AutoUpdateTime == schema.UnixSecond {
 									value = stmt.DB.NowFunc().Unix()
+								} else {
+									value = stmt.DB.NowFunc()
 								}
 								isZero = false
 							}
