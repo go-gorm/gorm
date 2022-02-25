@@ -460,16 +460,16 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 
 func replaceQuoteInSQL(sql string) string {
 	// convert single quote into double quote
-	sql = strings.Replace(sql, `'`, `"`, -1)
+	sql = strings.ReplaceAll(sql, `'`, `"`)
 
 	// convert dialect speical quote into double quote
 	switch DB.Dialector.Name() {
 	case "postgres":
-		sql = strings.Replace(sql, `"`, `"`, -1)
+		sql = strings.ReplaceAll(sql, `"`, `"`)
 	case "mysql", "sqlite":
-		sql = strings.Replace(sql, "`", `"`, -1)
+		sql = strings.ReplaceAll(sql, "`", `"`)
 	case "sqlserver":
-		sql = strings.Replace(sql, `'`, `"`, -1)
+		sql = strings.ReplaceAll(sql, `'`, `"`)
 	}
 
 	return sql

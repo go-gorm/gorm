@@ -1,11 +1,12 @@
 package schema
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -32,6 +33,7 @@ func GetSerializer(name string) (serializer SerializerInterface, ok bool) {
 func init() {
 	RegisterSerializer("json", JSONSerializer{})
 	RegisterSerializer("unixtime", UnixSecondSerializer{})
+	RegisterSerializer("gob", GobSerializer{})
 }
 
 // Serializer field value serializer
@@ -83,7 +85,7 @@ func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value,
 		case string:
 			bytes = []byte(v)
 		default:
-			return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", dbValue))
+			return fmt.Errorf("failed to unmarshal JSONB value: %#v", dbValue)
 		}
 
 		err = json.Unmarshal(bytes, fieldValue.Interface())
@@ -122,4 +124,34 @@ func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect
 		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", v)
 	}
 	return
+}
+
+// GobSerializer gob serializer
+type GobSerializer struct {
+}
+
+// Scan implements serializer interface
+func (GobSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) (err error) {
+	fieldValue := reflect.New(field.FieldType)
+
+	if dbValue != nil {
+		var bytesValue []byte
+		switch v := dbValue.(type) {
+		case []byte:
+			bytesValue = v
+		default:
+			return fmt.Errorf("failed to unmarshal gob value: %#v", dbValue)
+		}
+		decoder := gob.NewDecoder(bytes.NewBuffer(bytesValue))
+		err = decoder.Decode(fieldValue.Interface())
+	}
+	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
+	return
+}
+
+// Value implements serializer interface
+func (GobSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
+	buf := new(bytes.Buffer)
+	err := gob.NewEncoder(buf).Encode(fieldValue)
+	return buf.Bytes(), err
 }

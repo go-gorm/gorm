@@ -293,6 +293,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
+	if field.GORMDataType == "" {
+		field.GORMDataType = field.DataType
+	}
+
 	if val, ok := field.TagSettings["TYPE"]; ok {
 		switch DataType(strings.ToLower(val)) {
 		case Bool, Int, Uint, Float, String, Time, Bytes:
@@ -300,10 +304,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		default:
 			field.DataType = DataType(val)
 		}
-	}
-
-	if field.GORMDataType == "" {
-		field.GORMDataType = field.DataType
 	}
 
 	if field.Size == 0 {

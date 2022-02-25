@@ -59,6 +59,12 @@ func Update(config *Config) func(db *gorm.DB) {
 			return
 		}
 
+		if db.Statement.Schema != nil {
+			for _, c := range db.Statement.Schema.UpdateClauses {
+				db.Statement.AddClause(c)
+			}
+		}
+
 		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(180)
 			db.Statement.AddClauseIfNotExists(clause.Update{})
@@ -68,22 +74,10 @@ func Update(config *Config) func(db *gorm.DB) {
 				return
 			}
 
-		}
-
-		if db.Statement.Schema != nil {
-			for _, c := range db.Statement.Schema.UpdateClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.Len() == 0 {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
-		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-			db.AddError(gorm.ErrMissingWhereClause)
-			return
-		}
+		checkMissingWhereConditions(db)
 
 		if !db.DryRun && db.Error == nil {
 			if ok, mode := hasReturning(db, supportReturning); ok {
@@ -232,10 +226,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano()})
 						} else if field.AutoUpdateTime == schema.UnixMillisecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.UnixNano() / 1e6})
-						} else if field.GORMDataType == schema.Time {
-							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
-						} else {
+						} else if field.AutoUpdateTime == schema.UnixSecond {
 							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now.Unix()})
+						} else {
+							set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: now})
 						}
 					}
 				}
@@ -264,10 +258,10 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 									value = stmt.DB.NowFunc().UnixNano()
 								} else if field.AutoUpdateTime == schema.UnixMillisecond {
 									value = stmt.DB.NowFunc().UnixNano() / 1e6
-								} else if field.GORMDataType == schema.Time {
-									value = stmt.DB.NowFunc()
-								} else {
+								} else if field.AutoUpdateTime == schema.UnixSecond {
 									value = stmt.DB.NowFunc().Unix()
+								} else {
+									value = stmt.DB.NowFunc()
 								}
 								isZero = false
 							}
