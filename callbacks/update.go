@@ -59,6 +59,12 @@ func Update(config *Config) func(db *gorm.DB) {
 			return
 		}
 
+		if db.Statement.Schema != nil {
+			for _, c := range db.Statement.Schema.UpdateClauses {
+				db.Statement.AddClause(c)
+			}
+		}
+
 		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(180)
 			db.Statement.AddClauseIfNotExists(clause.Update{})
@@ -68,22 +74,10 @@ func Update(config *Config) func(db *gorm.DB) {
 				return
 			}
 
-		}
-
-		if db.Statement.Schema != nil {
-			for _, c := range db.Statement.Schema.UpdateClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.Len() == 0 {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
-		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok {
-			db.AddError(gorm.ErrMissingWhereClause)
-			return
-		}
+		checkMissingWhereConditions(db)
 
 		if !db.DryRun && db.Error == nil {
 			if ok, mode := hasReturning(db, supportReturning); ok {
