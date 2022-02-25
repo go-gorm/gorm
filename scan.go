@@ -272,7 +272,17 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			}
 		case reflect.Struct, reflect.Ptr:
 			if initialized || rows.Next() {
-				db.scanIntoStruct(sch, rows, reflectValue, values, columns, fields, joinFields)
+				if update {
+					db.scanIntoStruct(sch, rows, reflectValue, values, columns, fields, joinFields)
+				} else {
+					elem := reflect.New(reflectValueType)
+					db.scanIntoStruct(sch, rows, elem, values, columns, fields, joinFields)
+					if isPtr {
+						db.Statement.ReflectValue.Set(elem)
+					} else {
+						db.Statement.ReflectValue.Set(elem.Elem())
+					}
+				}
 			}
 		default:
 			db.AddError(rows.Scan(dest))

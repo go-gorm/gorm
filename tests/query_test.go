@@ -1158,3 +1158,39 @@ func TestQueryWithTableAndConditionsAndAllFields(t *testing.T) {
 		t.Errorf("invalid query SQL, got %v", result.Statement.SQL.String())
 	}
 }
+
+type DoubleInt64 struct {
+	data int64
+}
+
+func (t *DoubleInt64) Scan(val interface{}) error {
+	switch v := val.(type) {
+	case int64:
+		t.data = v * 2
+		return nil
+	default:
+		return fmt.Errorf("DoubleInt64 cant not scan with:%v", v)
+	}
+}
+
+// https://github.com/go-gorm/gorm/issues/5091
+func TestQueryScannerWithSingleColumn(t *testing.T) {
+	user := User{Name: "scanner_raw_1", Age: 10}
+	DB.Create(&user)
+
+	var result1 DoubleInt64
+	if err := DB.Model(&User{}).Where("name LIKE ?", "scanner_raw_%").Limit(1).Pluck(
+		"age", &result1).Error; err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+
+	AssertEqual(t, result1.data, 20)
+
+	var result2 DoubleInt64
+	if err := DB.Model(&User{}).Where("name LIKE ?", "scanner_raw_%").Limit(1).Select(
+		"age").Scan(&result2).Error; err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+
+	AssertEqual(t, result2.data, 20)
+}
