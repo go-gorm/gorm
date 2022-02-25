@@ -104,3 +104,19 @@ func hasReturning(tx *gorm.DB, supportReturning bool) (bool, gorm.ScanMode) {
 	}
 	return false, 0
 }
+
+func checkMissingWhereConditions(db *gorm.DB) {
+	if !db.AllowGlobalUpdate && db.Error == nil {
+		where, withCondition := db.Statement.Clauses["WHERE"]
+		if withCondition {
+			if _, withSoftDelete := db.Statement.Clauses["soft_delete_enabled"]; withSoftDelete {
+				whereClause, _ := where.Expression.(clause.Where)
+				withCondition = len(whereClause.Exprs) > 1
+			}
+		}
+		if !withCondition {
+			db.AddError(gorm.ErrMissingWhereClause)
+		}
+		return
+	}
+}
