@@ -68,7 +68,11 @@ func (db *DB) scanIntoStruct(sch *schema.Schema, rows *sql.Rows, reflectValue re
 			values[idx] = &sql.RawBytes{}
 		} else if len(columns) == 1 {
 			sch = nil
-			values[idx] = reflectValue.Interface()
+			if reflectValue.CanAddr() {
+				values[idx] = reflectValue.Addr().Interface()
+			} else {
+				values[idx] = reflectValue.Interface()
+			}
 		} else {
 			values[idx] = &sql.RawBytes{}
 		}
