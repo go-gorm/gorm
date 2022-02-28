@@ -54,10 +54,6 @@ func (db *DB) scanIntoStruct(rows *sql.Rows, reflectValue reflect.Value, values 
 	for idx, field := range fields {
 		if field != nil {
 			values[idx] = field.NewValuePool.Get()
-			defer field.NewValuePool.Put(values[idx])
-			if len(joinFields) == 0 || joinFields[idx][0] == nil {
-				defer field.Set(db.Statement.Context, reflectValue, values[idx])
-			}
 		} else if len(fields) == 1 {
 			if reflectValue.CanAddr() {
 				values[idx] = reflectValue.Addr().Interface()
@@ -70,17 +66,24 @@ func (db *DB) scanIntoStruct(rows *sql.Rows, reflectValue reflect.Value, values 
 	db.RowsAffected++
 	db.AddError(rows.Scan(values...))
 
-	for idx, joinField := range joinFields {
-		if joinField[0] != nil {
-			relValue := joinField[0].ReflectValueOf(db.Statement.Context, reflectValue)
-			if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-				if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
-					return
-				}
+	for idx, field := range fields {
+		if field != nil {
+			if len(joinFields) == 0 || joinFields[idx][0] == nil {
+				field.Set(db.Statement.Context, reflectValue, values[idx])
+			} else {
+				relValue := joinFields[idx][0].ReflectValueOf(db.Statement.Context, reflectValue)
+				if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
+					if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
+						return
+					}
 
-				relValue.Set(reflect.New(relValue.Type().Elem()))
+					relValue.Set(reflect.New(relValue.Type().Elem()))
+				}
+				joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx])
 			}
-			joinField[1].Set(db.Statement.Context, relValue, values[idx])
+
+			// release data to pool
+			field.NewValuePool.Put(values[idx])
 		}
 	}
 }
