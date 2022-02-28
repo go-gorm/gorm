@@ -255,6 +255,7 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 		}
 	}
 }
+
 // FirstOrInit gets the first matched record or initialize a new instance with given conditions (only works with struct or map conditions)
 func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 	queryTx := db.Limit(1).Order(clause.OrderByColumn{
@@ -602,6 +603,8 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	if beginner, ok := tx.Statement.ConnPool.(TxBeginner); ok {
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
 	} else if beginner, ok := tx.Statement.ConnPool.(ConnPoolBeginner); ok {
+		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	} else if beginner, ok := tx.Statement.ConnPool.(TxConnPoolBeginner); ok {
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
 	} else {
 		err = ErrInvalidTransaction
