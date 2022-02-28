@@ -73,6 +73,9 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 	if beginner, ok := db.ConnPool.(TxBeginner); ok {
 		tx, err := beginner.BeginTx(ctx, opt)
 		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
+	} else if beginner, ok := db.ConnPool.(TxConnPoolBeginner); ok {
+		tx, err := beginner.BeginTx(ctx, opt)
+		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
 	}
 	return nil, ErrInvalidTransaction
 }
@@ -115,7 +118,7 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 }
 
 type PreparedStmtTX struct {
-	*sql.Tx
+	Tx
 	PreparedStmtDB *PreparedStmtDB
 }
 
@@ -151,7 +154,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
-		rows, err = tx.Tx.Stmt(stmt.Stmt).QueryContext(ctx, args...)
+		rows, err = tx.Tx.StmtContext(ctx, stmt.Stmt).QueryContext(ctx, args...)
 		if err != nil {
 			tx.PreparedStmtDB.Mux.Lock()
 			defer tx.PreparedStmtDB.Mux.Unlock()
