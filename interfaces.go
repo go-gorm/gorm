@@ -50,11 +50,6 @@ type ConnPoolBeginner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (ConnPool, error)
 }
 
-// TxConnPoolBeginner tx conn pool beginner
-type TxConnPoolBeginner interface {
-	BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error)
-}
-
 // TxCommitter tx committer
 type TxCommitter interface {
 	Commit() error
@@ -64,8 +59,7 @@ type TxCommitter interface {
 // Tx sql.Tx interface
 type Tx interface {
 	ConnPool
-	Commit() error
-	Rollback() error
+	TxCommitter
 	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
 }
 

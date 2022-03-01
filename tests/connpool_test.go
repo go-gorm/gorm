@@ -3,15 +3,12 @@ package tests_test
 import (
 	"context"
 	"database/sql"
-	"log"
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -55,7 +52,7 @@ func (c *wrapperConnPool) Ping() error {
 //	 return c.db.BeginTx(ctx, opts)
 // }
 // You should use BeginTx returned gorm.Tx which could wrap *sql.Tx then you can record all queries.
-func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.Tx, error) {
+func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
 	tx, err := c.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -119,14 +116,7 @@ func TestConnPoolWrapper(t *testing.T) {
 		}
 	}()
 
-	l := logger.New(log.New(os.Stdout, "\r\n", log.LstdFlags), logger.Config{
-		SlowThreshold:             200 * time.Millisecond,
-		LogLevel:                  logger.Info,
-		IgnoreRecordNotFoundError: false,
-		Colorful:                  true,
-	})
-
-	db, err := gorm.Open(mysql.New(mysql.Config{Conn: conn}), &gorm.Config{Logger: l})
+	db, err := gorm.Open(mysql.New(mysql.Config{Conn: conn}))
 	if err != nil {
 		t.Fatalf("Should open db success, but got %v", err)
 	}

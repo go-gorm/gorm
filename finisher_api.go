@@ -600,13 +600,12 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 		opt = opts[0]
 	}
 
-	if beginner, ok := tx.Statement.ConnPool.(TxBeginner); ok {
+	switch beginner := tx.Statement.ConnPool.(type) {
+	case TxBeginner:
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	} else if beginner, ok := tx.Statement.ConnPool.(ConnPoolBeginner); ok {
+	case ConnPoolBeginner:
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	} else if beginner, ok := tx.Statement.ConnPool.(TxConnPoolBeginner); ok {
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	} else {
+	default:
 		err = ErrInvalidTransaction
 	}
 

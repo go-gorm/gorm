@@ -73,9 +73,6 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 	if beginner, ok := db.ConnPool.(TxBeginner); ok {
 		tx, err := beginner.BeginTx(ctx, opt)
 		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
-	} else if beginner, ok := db.ConnPool.(TxConnPoolBeginner); ok {
-		tx, err := beginner.BeginTx(ctx, opt)
-		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
 	}
 	return nil, ErrInvalidTransaction
 }
