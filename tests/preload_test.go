@@ -253,18 +253,24 @@ func TestPreloadGoroutine(t *testing.T) {
 }
 
 func TestPreloadWithDiffModel(t *testing.T) {
+	DB.Migrator().DropTable(&User{}, &Account{})
+	if err := DB.AutoMigrate(&User{}, &Account{}); err != nil {
+		t.Error(err)
+	}
+
 	user := *GetUser("preload_with_diff_model", Config{Account: true})
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
 	}
 
-	CheckUser(t, user, user)
-
 	var result struct {
 		Something string
 		User
 	}
-	DB.Model(&User{}).Select("users.*, 'yo' as something").Preload("Account").Find(&result, user.ID)
+
+	DB.Model(User{}).Preload("Account", clause.Eq{Column: "number", Value: user.Account.Number}).Select(
+		"users.*, 'yo' as something").First(&result, "name = ?", user.Name)
+
 	CheckUser(t, user, result.User)
 }
