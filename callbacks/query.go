@@ -218,6 +218,13 @@ func Preload(db *gorm.DB) {
 		}
 		sort.Strings(preloadNames)
 
+		// different schema
+		if db.Statement.ReflectValue.CanAddr() && db.Statement.Dest != db.Statement.Model {
+			if err := db.Statement.Parse(db.Statement.Dest); err != nil {
+				db.AddError(err)
+			}
+		}
+
 		for _, name := range preloadNames {
 			if rel := db.Statement.Schema.Relationships.Relations[name]; rel != nil {
 				preload(db, rel, append(db.Statement.Preloads[name], db.Statement.Preloads[clause.Associations]...), preloadMap[name])

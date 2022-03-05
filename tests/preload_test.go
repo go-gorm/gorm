@@ -251,3 +251,20 @@ func TestPreloadGoroutine(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestPreloadWithDiffModel(t *testing.T) {
+	user := *GetUser("preload_with_diff_model", Config{Account: true})
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	CheckUser(t, user, user)
+
+	var result struct {
+		Something string
+		User
+	}
+	DB.Model(&User{}).Select("users.*, 'yo' as something").Preload("Account").Find(&result, user.ID)
+	CheckUser(t, user, result.User)
+}
