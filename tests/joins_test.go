@@ -209,10 +209,8 @@ func TestJoinWithSoftDeleted(t *testing.T) {
 	pet := Pet{Name: "A", UserID: &user.ID}
 	DB.Create(&pet)
 
-	DB = DB.Debug()
-
 	var user1 User
-	DB.Debug().Model(&User{}).Joins("NamedPet").First(&user1, user.ID)
+	DB.Model(&User{}).Joins("NamedPet").First(&user1, user.ID)
 	AssertEqual(t, user1.ID, user.ID)
 	AssertEqual(t, user1.NamedPet.ID, pet.ID)
 
