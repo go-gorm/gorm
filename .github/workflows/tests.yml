@@ -24,7 +24,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: go mod package cache
       uses: actions/cache@v2
@@ -67,7 +67,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
 
     - name: go mod package cache
@@ -111,7 +111,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: go mod package cache
       uses: actions/cache@v2
@@ -154,7 +154,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: go mod package cache
       uses: actions/cache@v2
