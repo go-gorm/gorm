@@ -203,21 +203,32 @@ func TestJoinCount(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/4918
 func TestJoinWithSoftDeleted(t *testing.T) {
-	user := User{Name: "TestJoinWithSoftDeleted"}
+	DB = DB.Debug()
+
+	user := GetUser("TestJoinWithSoftDeletedUser", Config{Account: true, NamedPet: true})
 	DB.Create(&user)
 
-	pet := Pet{Name: "A", UserID: &user.ID}
-	DB.Create(&pet)
-
 	var user1 User
-	DB.Model(&User{}).Joins("NamedPet").First(&user1, user.ID)
-	AssertEqual(t, user1.ID, user.ID)
-	AssertEqual(t, user1.NamedPet.ID, pet.ID)
+	DB.Model(&User{}).Joins("NamedPet").Joins("Account").First(&user1, user.ID)
+	if user1.NamedPet == nil || user1.Account.ID == 0 {
+		t.Fatalf("joins NamedPet and Account should not empty:%v", user1)
+	}
 
-	DB.Delete(&pet)
+	// Account should empty
+	DB.Delete(&user1.Account)
+
+	var user2 User
+	DB.Model(&User{}).Joins("NamedPet").Joins("Account").First(&user2, user.ID)
+	if user2.NamedPet == nil || user2.Account.ID != 0 {
+		t.Fatalf("joins Account should not empty:%v", user2)
+	}
+
+	// NamedPet should empty
+	DB.Delete(&user1.NamedPet)
 
 	var user3 User
-	DB.Model(&User{}).Joins("NamedPet").First(&user3, user.ID)
-	AssertEqual(t, user3.ID, user.ID)
-	AssertEqual(t, user3.NamedPet, nil) // soft deleted for join.on
+	DB.Model(&User{}).Joins("NamedPet").Joins("Account").First(&user3, user.ID)
+	if user3.NamedPet != nil || user2.Account.ID != 0 {
+		t.Fatalf("joins NamedPet and Account should not empty:%v", user2)
+	}
 }

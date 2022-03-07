@@ -84,11 +84,12 @@ func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
 	}
 
 	// Modify for Joins[i].ON exprs
-	if _, ok := stmt.Clauses["soft_delete_join_enabled"]; !ok && !stmt.Statement.Unscoped {
-		if c, ok := stmt.Clauses["FROM"]; ok && len(stmt.Joins) > 0 {
+	if c, ok := stmt.Clauses["FROM"]; ok && len(stmt.Joins) > 0 && sd.Field.Schema != nil {
+		joinedRelationName := "soft_delete_join_enabled" + sd.Field.Schema.Table
+		if _, ok := stmt.Clauses[joinedRelationName]; !ok && !stmt.Statement.Unscoped {
 			if fromClause, ok := c.Expression.(clause.From); ok && len(fromClause.Joins) > 0 {
 				for i, j := range fromClause.Joins {
-					if sd.Field.Schema != nil && j.Table.Name == sd.Field.Schema.Table {
+					if j.Table.Name == sd.Field.Schema.Table {
 						j.ON.Exprs = append(j.ON.Exprs, clause.Eq{
 							Column: clause.Column{Table: j.Table.Alias, Name: sd.Field.DBName}, Value: nil,
 						})
@@ -97,7 +98,7 @@ func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
 				}
 			}
 			stmt.Clauses["FROM"] = c
-			stmt.Clauses["soft_delete_join_enabled"] = clause.Clause{}
+			stmt.Clauses[joinedRelationName] = clause.Clause{}
 		}
 	}
 }
