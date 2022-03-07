@@ -348,6 +348,10 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		refName        = rel.Name + "."
 	)
 
+	if _, ok := selectColumns[rel.Name+".*"]; ok {
+		return nil
+	}
+
 	for name, ok := range selectColumns {
 		columnName := ""
 		if strings.HasPrefix(name, refName) {
