@@ -271,6 +271,13 @@ func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 	}
 }
 
+// UpdateModifierJoinClause update join clause for modifier
+func (stmt *Statement) UpdateModifierJoinClause(v clause.Interface) {
+	if optimizer, ok := v.(StatementModifier); ok {
+		optimizer.ModifyStatement(stmt)
+	}
+}
+
 // BuildCondition build condition
 func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []clause.Expression {
 	if s, ok := query.(string); ok {

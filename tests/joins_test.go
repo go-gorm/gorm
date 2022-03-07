@@ -200,3 +200,26 @@ func TestJoinCount(t *testing.T) {
 		t.Fatalf("result's id, %d, doesn't match user's id, %d", result.ID, user.ID)
 	}
 }
+
+// https://github.com/go-gorm/gorm/issues/4918
+func TestJoinWithSoftDeleted(t *testing.T) {
+	user := User{Name: "TestJoinWithSoftDeleted"}
+	DB.Create(&user)
+
+	pet := Pet{Name: "A", UserID: &user.ID}
+	DB.Create(&pet)
+
+	DB = DB.Debug()
+
+	var user1 User
+	DB.Debug().Model(&User{}).Joins("NamedPet").First(&user1, user.ID)
+	AssertEqual(t, user1.ID, user.ID)
+	AssertEqual(t, user1.NamedPet.ID, pet.ID)
+
+	DB.Delete(&pet)
+
+	var user3 User
+	DB.Model(&User{}).Joins("NamedPet").First(&user3, user.ID)
+	AssertEqual(t, user3.ID, user.ID)
+	AssertEqual(t, user3.NamedPet, nil) // soft deleted for join.on
+}

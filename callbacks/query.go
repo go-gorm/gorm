@@ -107,6 +107,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
+			joinQueryClauses := make([]clause.Interface, 0)
 			for _, join := range db.Statement.Joins {
 				if db.Statement.Schema == nil {
 					joins = append(joins, clause.Join{
@@ -160,6 +161,10 @@ func BuildQuerySQL(db *gorm.DB) {
 						exprs = append(exprs, clause.Expr{SQL: onSQL, Vars: vars})
 					}
 
+					if len(relation.FieldSchema.QueryClauses) > 0 {
+						joinQueryClauses = append(joinQueryClauses, relation.FieldSchema.QueryClauses...)
+					}
+
 					joins = append(joins, clause.Join{
 						Type:  clause.LeftJoin,
 						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
@@ -172,8 +177,14 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
-			db.Statement.Joins = nil
 			db.Statement.AddClause(clause.From{Joins: joins})
+
+			if len(joinQueryClauses) > 0 {
+				for _, c := range joinQueryClauses {
+					db.Statement.UpdateModifierJoinClause(c)
+				}
+			}
+			db.Statement.Joins = nil
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
 		}
