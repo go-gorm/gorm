@@ -446,7 +446,7 @@ func TestSelectWithCreate(t *testing.T) {
 
 func TestOmitWithCreate(t *testing.T) {
 	user := *GetUser("omit_create", Config{Account: true, Pets: 3, Toys: 3, Company: true, Manager: true, Team: 3, Languages: 3, Friends: 4})
-	DB.Omit("Account", "Toys", "Manager", "Birthday").Create(&user)
+	DB.Omit("Account.*", "Toys", "Manager", "Birthday").Create(&user)
 
 	var result User
 	DB.Preload("Account").Preload("Pets").Preload("Toys").Preload("Company").Preload("Manager").Preload("Team").Preload("Languages").Preload("Friends").First(&result, user.ID)

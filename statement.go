@@ -674,6 +674,7 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 
 	// omit columns
 	for _, omit := range stmt.Omits {
+		omit = strings.TrimSuffix(omit, ".*")
 		if stmt.Schema == nil {
 			results[omit] = false
 		} else if omit == "*" {
