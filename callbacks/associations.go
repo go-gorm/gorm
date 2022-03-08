@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -347,6 +348,13 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
 		refName        = rel.Name + "."
 	)
+
+	// stop save association loop
+	savedRelKey := fmt.Sprintf("gorm:saved_relation_%s", rel.Name)
+	if _, ok := db.Get(savedRelKey); ok {
+		return nil
+	}
+	db.Set(savedRelKey, true)
 
 	for name, ok := range selectColumns {
 		columnName := ""
