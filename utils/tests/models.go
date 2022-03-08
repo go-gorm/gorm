@@ -87,6 +87,7 @@ type Parent struct {
 	FavChild   *Child
 	Children   []*Child
 }
+
 type Child struct {
 	gorm.Model
 	Name     string
