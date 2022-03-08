@@ -236,6 +236,7 @@ func TestSaveBelongsCircularReference(t *testing.T) {
 	DB.First(&parent1, parent.ID)
 	AssertObjEqual(t, parent, parent1, "ID", "FavChildID")
 
+	// Save and Updates is the same
 	DB.Updates(&parent)
 	DB.First(&parent1, parent.ID)
 	AssertObjEqual(t, parent, parent1, "ID", "FavChildID")
