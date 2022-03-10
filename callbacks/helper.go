@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"reflect"
 	"sort"
 
 	"gorm.io/gorm"
@@ -119,4 +120,48 @@ func checkMissingWhereConditions(db *gorm.DB) {
 		}
 		return
 	}
+}
+
+type VisitMap = map[reflect.Value]bool
+
+// Check if circular values
+func LoadOrStoreVisitMap(origin *VisitMap, v interface{}) (loaded bool) {
+	if v == nil {
+		return
+	}
+	value := reflect.ValueOf(v)
+	return loadOrStoreVisitMap(origin, value)
+}
+
+func loadOrStoreVisitMap(vistMap *VisitMap, v reflect.Value) (loaded bool) {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		sameCount := 0
+		for i := 0; i < v.Len(); i++ {
+			subv := v.Index(i)
+			if subv.CanAddr() {
+				if loadOrStoreVisitMap(vistMap, subv) {
+					sameCount++
+				}
+			}
+		}
+		// all slice item already visited
+		if v.Len() == sameCount {
+			return true
+		}
+	case reflect.Struct, reflect.Interface:
+		if v.CanAddr() {
+			p := v.Addr()
+			if _, ok := (*vistMap)[p]; ok {
+				return true
+			} else {
+				(*vistMap)[p] = true
+			}
+		}
+	}
+	return false
 }

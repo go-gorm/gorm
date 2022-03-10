@@ -1,7 +1,6 @@
 package callbacks
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -350,11 +349,9 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 	)
 
 	// stop save association loop
-	savedRelKey := fmt.Sprintf("gorm:saved_relation_%s", rel.Name)
-	if _, ok := db.Get(savedRelKey); ok {
+	if checkAssociationsSaved(db, values) {
 		return nil
 	}
-	db.Set(savedRelKey, true)
 
 	for name, ok := range selectColumns {
 		columnName := ""
@@ -397,4 +394,24 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 	}
 
 	return db.AddError(tx.Create(values).Error)
+}
+
+// check association values has been saved
+func checkAssociationsSaved(db *gorm.DB, values interface{}) (saved bool) {
+	visitMapStoreKey := "gorm:saved_association_map"
+	var vistMap VisitMap
+	if visit, ok := db.Get(visitMapStoreKey); ok {
+		if v, ok := visit.(VisitMap); ok {
+			vistMap = v
+			if LoadOrStoreVisitMap(&vistMap, values) {
+				return true
+			}
+		}
+	} else {
+		vistMap = make(VisitMap)
+		LoadOrStoreVisitMap(&vistMap, values)
+	}
+
+	db.Set(visitMapStoreKey, vistMap)
+	return false
 }
