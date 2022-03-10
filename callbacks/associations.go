@@ -397,6 +397,8 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 }
 
 // check association values has been saved
+// if values kind is Struct, check it has been saved.
+// if values kind is Slice/Array, check all item has been saved.
 func checkAssociationsSaved(db *gorm.DB, values interface{}) (saved bool) {
 	visitMapStoreKey := "gorm:saved_association_map"
 	var vistMap VisitMap
