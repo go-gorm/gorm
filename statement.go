@@ -647,51 +647,39 @@ var nameMatcher = regexp.MustCompile(`^[\W]?(?:[a-z_]+?)[\W]?\.[\W]?([a-z_]+?)[\
 
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
 func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool) {
-	results := map[string]bool{}
 	notRestricted := false
-
-	// select columns
-	for _, column := range stmt.Selects {
-		if stmt.Schema == nil {
-			results[column] = true
-		} else if column == "*" {
-			notRestricted = true
-			for _, dbName := range stmt.Schema.DBNames {
-				results[dbName] = true
+	results := map[string]bool{}
+	filter := func(columns []string, selected bool) {
+		for _, column := range columns {
+			switch {
+			case stmt.Schema == nil:
+				results[column] = selected
+			case column == "*":
+				notRestricted = selected
+				for _, dbName := range stmt.Schema.DBNames {
+					results[dbName] = selected
+				}
+			case column == clause.Associations:
+				for _, rel := range stmt.Schema.Relationships.Relations {
+					results[rel.Name] = selected
+				}
+			default:
+				if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
+					results[field.DBName] = selected
+				} else if matches := nameMatcher.FindStringSubmatch(column); len(matches) == 2 {
+					results[matches[1]] = selected
+				} else {
+					results[column] = selected
+				}
 			}
-		} else if column == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				results[rel.Name] = true
-			}
-		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
-			results[field.DBName] = true
-		} else if matches := nameMatcher.FindStringSubmatch(column); len(matches) == 2 {
-			results[matches[1]] = true
-		} else {
-			results[column] = true
 		}
 	}
 
 	// omit columns
-	for _, omit := range stmt.Omits {
-		if stmt.Schema == nil {
-			results[omit] = false
-		} else if omit == "*" {
-			for _, dbName := range stmt.Schema.DBNames {
-				results[dbName] = false
-			}
-		} else if omit == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				results[rel.Name] = false
-			}
-		} else if field := stmt.Schema.LookUpField(omit); field != nil && field.DBName != "" {
-			results[field.DBName] = false
-		} else if matches := nameMatcher.FindStringSubmatch(omit); len(matches) == 2 {
-			results[matches[1]] = false
-		} else {
-			results[omit] = false
-		}
-	}
+	filter(stmt.Omits, false)
+
+	// select columns
+	filter(stmt.Selects, true)
 
 	if stmt.Schema != nil {
 		for _, field := range stmt.Schema.FieldsByName {
