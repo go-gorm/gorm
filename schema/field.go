@@ -465,24 +465,33 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	// ValueOf returns field's value and if it is zero
-	field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
-		v = reflect.Indirect(v)
-		for _, fieldIdx := range field.StructField.Index {
-			if fieldIdx >= 0 {
-				v = v.Field(fieldIdx)
-			} else {
-				v = v.Field(-fieldIdx - 1)
-
-				if !v.IsNil() {
-					v = v.Elem()
+	fieldIndex := field.StructField.Index[0]
+	switch {
+	case len(field.StructField.Index) == 1 && fieldIndex > 0:
+		field.ValueOf = func(ctx context.Context, value reflect.Value) (interface{}, bool) {
+			fieldValue := reflect.Indirect(value).Field(fieldIndex)
+			return fieldValue.Interface(), fieldValue.IsZero()
+		}
+	default:
+		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
+			v = reflect.Indirect(v)
+			for _, fieldIdx := range field.StructField.Index {
+				if fieldIdx >= 0 {
+					v = v.Field(fieldIdx)
 				} else {
-					return nil, true
+					v = v.Field(-fieldIdx - 1)
+
+					if !v.IsNil() {
+						v = v.Elem()
+					} else {
+						return nil, true
+					}
 				}
 			}
-		}
 
-		fv, zero := v.Interface(), v.IsZero()
-		return fv, zero
+			fv, zero := v.Interface(), v.IsZero()
+			return fv, zero
+		}
 	}
 
 	if field.Serializer != nil {
@@ -509,24 +518,31 @@ func (field *Field) setupValuerAndSetter() {
 	}
 
 	// ReflectValueOf returns field's reflect value
-	field.ReflectValueOf = func(ctx context.Context, v reflect.Value) reflect.Value {
-		v = reflect.Indirect(v)
-		for idx, fieldIdx := range field.StructField.Index {
-			if fieldIdx >= 0 {
-				v = v.Field(fieldIdx)
-			} else {
-				v = v.Field(-fieldIdx - 1)
+	switch {
+	case len(field.StructField.Index) == 1 && fieldIndex > 0:
+		field.ReflectValueOf = func(ctx context.Context, value reflect.Value) reflect.Value {
+			return reflect.Indirect(value).Field(fieldIndex)
+		}
+	default:
+		field.ReflectValueOf = func(ctx context.Context, v reflect.Value) reflect.Value {
+			v = reflect.Indirect(v)
+			for idx, fieldIdx := range field.StructField.Index {
+				if fieldIdx >= 0 {
+					v = v.Field(fieldIdx)
+				} else {
+					v = v.Field(-fieldIdx - 1)
 
-				if v.IsNil() {
-					v.Set(reflect.New(v.Type().Elem()))
-				}
+					if v.IsNil() {
+						v.Set(reflect.New(v.Type().Elem()))
+					}
 
-				if idx < len(field.StructField.Index)-1 {
-					v = v.Elem()
+					if idx < len(field.StructField.Index)-1 {
+						v = v.Elem()
+					}
 				}
 			}
+			return v
 		}
-		return v
 	}
 
 	fallbackSetter := func(ctx context.Context, value reflect.Value, v interface{}, setter func(context.Context, reflect.Value, interface{}) error) (err error) {

@@ -56,6 +56,13 @@ type TxCommitter interface {
 	Rollback() error
 }
 
+// Tx sql.Tx interface
+type Tx interface {
+	ConnPool
+	TxCommitter
+	StmtContext(ctx context.Context, stmt *sql.Stmt) *sql.Stmt
+}
+
 // Valuer gorm valuer interface
 type Valuer interface {
 	GormValue(context.Context, *DB) clause.Expr
