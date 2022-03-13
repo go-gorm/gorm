@@ -2,12 +2,13 @@ package tests_test
 
 import (
 	"fmt"
+	"gorm.io/gorm"
+	"gorm.io/gorm/callbacks"
+	. "gorm.io/gorm/utils/tests"
 	"reflect"
 	"runtime"
 	"strings"
 	"testing"
-
-	"gorm.io/gorm"
 )
 
 func assertCallbacks(v interface{}, fnames []string) (result bool, msg string) {
@@ -167,4 +168,27 @@ func TestCallbacks(t *testing.T) {
 			t.Errorf("callbacks tests #%v failed, got %v", idx+1, msg)
 		}
 	}
+}
+
+func TestLoadOrStoreVisitMap(t *testing.T) {
+	var vistMap callbacks.VisitMap
+	var loaded bool
+
+	type testM struct {
+		Name string
+	}
+	t1 := testM{Name: "t1"}
+	t2 := testM{Name: "t2"}
+	t3 := testM{Name: "t3"}
+
+	vistMap = make(callbacks.VisitMap)
+	loaded = callbacks.LoadOrStoreVisitMap(&vistMap, &t1)
+	AssertEqual(t, loaded, false)
+	loaded = callbacks.LoadOrStoreVisitMap(&vistMap, &t1)
+	AssertEqual(t, loaded, true)
+	// t1 already exist but t2 not
+	loaded = callbacks.LoadOrStoreVisitMap(&vistMap, []*testM{&t1, &t2, &t3})
+	AssertEqual(t, loaded, false)
+	loaded = callbacks.LoadOrStoreVisitMap(&vistMap, []*testM{&t2, &t3})
+	AssertEqual(t, loaded, true)
 }
