@@ -181,7 +181,7 @@ func TestScanToEmbedded(t *testing.T) {
 		Joins("inner join person_addresses on people.id = person_addresses.person_id").
 		Joins("inner join addresses on person_addresses.address_id = addresses.id").
 		Find(&personAddressInfoList).Error; err != nil {
-		t.Errorf("Failed, got error: %v", err)
+		t.Errorf("Failed to run join query, got error: %v", err)
 	}
 
 	for _, info := range personAddressInfoList {
