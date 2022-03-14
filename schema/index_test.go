@@ -81,6 +81,7 @@ func TestParseIndex(t *testing.T) {
 		},
 		"type": {
 			Name:   "type",
+			Type:   "",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name7"}}},
 		},
 	}
