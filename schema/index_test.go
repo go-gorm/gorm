@@ -18,6 +18,7 @@ type UserIndex struct {
 	Age          int64  `gorm:"index:profile,expression:ABS(age),option:WITH PARSER parser_name"`
 	OID          int64  `gorm:"index:idx_id;index:idx_oid,unique"`
 	MemberNumber string `gorm:"index:idx_id,priority:1"`
+	Name7        string `gorm:"index:type"`
 }
 
 func TestParseIndex(t *testing.T) {
@@ -77,6 +78,11 @@ func TestParseIndex(t *testing.T) {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID"}}},
+		},
+		"type": {
+			Name:   "type",
+			Type:   "",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name7"}}},
 		},
 	}
 
