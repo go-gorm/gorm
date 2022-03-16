@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -58,6 +59,109 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
 		tx.Statement.Table = name
 	}
+	return
+}
+
+// Recursive specify recursive common table expressions
+func (db *DB) Recursive(name string, args ...interface{}) (tx *DB) {
+	return db.with(name, true, args...)
+}
+
+// With specify common table expressions
+//
+//	db.With("cte", "SELECT id, `name` FROM users")
+//	db.With("cte", gorm.Expr("SELECT id, `name` FROM users"))
+//	db.With("cte", db.Select("id", "name").Table("users"))
+//	db.With("cte", "id", "name", "SELECT id, `name` FROM users")
+//	db.With("cte", "id, name", "SELECT id, `name` FROM users")
+//	db.With("cte", []string{"id", "name"}, "SELECT id, `name` FROM users")
+func (db *DB) With(name string, args ...interface{}) (tx *DB) {
+	return db.with(name, false, args...)
+}
+
+// with clause
+//
+//	db.with("cte", false, "SELECT id, `name` FROM users")
+//	db.with("cte", false, gorm.Expr("SELECT id, `name` FROM users"))
+//	db.with("cte", false, db.Select("id", "name").Table("users"))
+//	db.with("cte", false, "id", "name", "SELECT id, `name` FROM users")
+//	db.with("cte", false, "id, name", "SELECT id, `name` FROM users")
+//	db.with("cte", false, []string{"id", "name"}, "SELECT id, `name` FROM users")
+func (db *DB) with(name string, recursive bool, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+
+	if len(args) == 0 {
+		tx.AddError(errors.New("with clause must have subquery"))
+		return
+	}
+
+	// parse optional columns
+	columns := make([]string, 0, len(args)-1)
+	switch arg := args[0].(type) {
+	case string:
+		switch len(args) {
+		case 1:
+			// args[0] is subquery
+			break
+		case 2:
+			// args[0] is single column or comma-separated string
+			columns = strings.FieldsFunc(arg, func(r rune) bool {
+				return r == ',' || r == ' '
+			})
+		default:
+			// args[:len(args)-1] is []string
+			for idx := 0; idx < len(args)-1; idx++ {
+				col, ok := args[idx].(string)
+				if !ok {
+					tx.AddError(fmt.Errorf("unsupported with column type %T", args[idx]))
+					return
+				}
+				if strings.Contains(col, ",") {
+					tx.AddError(fmt.Errorf("unsupported mixed string type"))
+					return
+				}
+				columns = append(columns, col)
+			}
+		}
+	case []string:
+		for _, col := range arg {
+			if strings.Contains(col, ",") {
+				tx.AddError(fmt.Errorf("unsupported mixed string type"))
+				return
+			}
+		}
+		columns = arg
+	default:
+		// specify optional columns field with a wrong type
+		if len(args) > 1 {
+			tx.AddError(fmt.Errorf("unsupported with column type %T", arg))
+			return
+		}
+	}
+
+	// parse subquery
+	var subquery clause.Expression
+	switch arg := args[len(args)-1].(type) {
+	case clause.Expression:
+		subquery = arg
+	case string:
+		subquery = clause.Expr{SQL: arg}
+	case *DB:
+		subquery = clause.Expr{SQL: "?", Vars: []interface{}{arg}, WithoutParentheses: true}
+	default:
+		tx.AddError(fmt.Errorf("unsupported with subquery type %T", arg))
+		return
+	}
+
+	// add with clause
+	tx.Statement.AddClause(clause.With{
+		Recursive: recursive,
+		Exprs: []clause.Expression{clause.WithExpression{
+			Name:    name,
+			Columns: columns,
+			Expr:    subquery,
+		}},
+	})
 	return
 }
 

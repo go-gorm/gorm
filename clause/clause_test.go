@@ -17,15 +17,15 @@ var db, _ = gorm.Open(tests.DummyDialector{}, nil)
 func checkBuildClauses(t *testing.T, clauses []clause.Interface, result string, vars []interface{}) {
 	var (
 		buildNames    []string
-		buildNamesMap = map[string]bool{}
+		buildNamesSet = map[string]struct{}{}
 		user, _       = schema.Parse(&tests.User{}, &sync.Map{}, db.NamingStrategy)
 		stmt          = gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
 	)
 
 	for _, c := range clauses {
-		if _, ok := buildNamesMap[c.Name()]; !ok {
+		if _, ok := buildNamesSet[c.Name()]; !ok {
 			buildNames = append(buildNames, c.Name())
-			buildNamesMap[c.Name()] = true
+			buildNamesSet[c.Name()] = struct{}{}
 		}
 
 		stmt.AddClause(c)
