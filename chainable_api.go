@@ -124,13 +124,23 @@ func (db *DB) with(name string, recursive bool, args ...interface{}) (tx *DB) {
 			}
 		}
 	case []string:
-		for _, col := range arg {
-			if strings.Contains(col, ",") {
-				tx.AddError(fmt.Errorf("unsupported mixed string type"))
-				return
+		switch len(args) {
+		case 1:
+			tx.AddError(fmt.Errorf("unsupported with subquery type %T", arg))
+			return
+		case 2:
+			// arg[0] is columns ans arg[1] is subquery
+			for _, col := range arg {
+				if strings.Contains(col, ",") {
+					tx.AddError(fmt.Errorf("unsupported mixed string type"))
+					return
+				}
 			}
+			columns = arg
+		default:
+			tx.AddError(fmt.Errorf("unsupported multiple columns %v", args[1:len(args)-1]))
+			return
 		}
-		columns = arg
 	default:
 		// specify optional columns field with a wrong type
 		if len(args) > 1 {
