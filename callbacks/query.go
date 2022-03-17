@@ -145,19 +145,33 @@ func BuildQuerySQL(db *gorm.DB) {
 						}
 					}
 
-					if join.On != nil {
-						onStmt := gorm.Statement{Table: tableAliasName, DB: db}
-						join.On.Build(&onStmt)
-						onSQL := onStmt.SQL.String()
-						vars := onStmt.Vars
-						for idx, v := range onStmt.Vars {
-							bindvar := strings.Builder{}
-							onStmt.Vars = vars[0 : idx+1]
-							db.Dialector.BindVarTo(&bindvar, &onStmt, v)
-							onSQL = strings.Replace(onSQL, bindvar.String(), "?", 1)
+					{
+						onStmt := gorm.Statement{Table: tableAliasName, DB: db, Clauses: map[string]clause.Clause{}}
+						for _, c := range relation.FieldSchema.QueryClauses {
+							onStmt.AddClause(c)
 						}
 
-						exprs = append(exprs, clause.Expr{SQL: onSQL, Vars: vars})
+						if join.On != nil {
+							onStmt.AddClause(join.On)
+						}
+
+						if cs, ok := onStmt.Clauses["WHERE"]; ok {
+							if where, ok := cs.Expression.(clause.Where); ok {
+								where.Build(&onStmt)
+
+								if onSQL := onStmt.SQL.String(); onSQL != "" {
+									vars := onStmt.Vars
+									for idx, v := range vars {
+										bindvar := strings.Builder{}
+										onStmt.Vars = vars[0 : idx+1]
+										db.Dialector.BindVarTo(&bindvar, &onStmt, v)
+										onSQL = strings.Replace(onSQL, bindvar.String(), "?", 1)
+									}
+
+									exprs = append(exprs, clause.Expr{SQL: onSQL, Vars: vars})
+								}
+							}
+						}
 					}
 
 					joins = append(joins, clause.Join{
@@ -172,8 +186,8 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
-			db.Statement.Joins = nil
 			db.Statement.AddClause(clause.From{Joins: joins})
+			db.Statement.Joins = nil
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
 		}
