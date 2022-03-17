@@ -69,7 +69,7 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 					}
 
 					if elems.Len() > 0 {
-						if saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, nil) == nil {
+						if saveAssociations(db, rel, elems, selectColumns, restricted, nil) == nil {
 							for i := 0; i < elems.Len(); i++ {
 								setupReferences(objs[i], elems.Index(i))
 							}
@@ -82,7 +82,7 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 							rv = rv.Addr()
 						}
 
-						if saveAssociations(db, rel, rv.Interface(), selectColumns, restricted, nil) == nil {
+						if saveAssociations(db, rel, rv, selectColumns, restricted, nil) == nil {
 							setupReferences(db.Statement.ReflectValue, rv)
 						}
 					}
@@ -146,7 +146,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 							assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 						}
 
-						saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, assignmentColumns)
+						saveAssociations(db, rel, elems, selectColumns, restricted, assignmentColumns)
 					}
 				case reflect.Struct:
 					if _, zero := rel.Field.ValueOf(db.Statement.Context, db.Statement.ReflectValue); !zero {
@@ -166,7 +166,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 							assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 						}
 
-						saveAssociations(db, rel, f.Interface(), selectColumns, restricted, assignmentColumns)
+						saveAssociations(db, rel, f, selectColumns, restricted, assignmentColumns)
 					}
 				}
 			}
@@ -237,7 +237,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 						assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 					}
 
-					saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, assignmentColumns)
+					saveAssociations(db, rel, elems, selectColumns, restricted, assignmentColumns)
 				}
 			}
 
@@ -304,7 +304,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				// optimize elems of reflect value length
 				if elemLen := elems.Len(); elemLen > 0 {
 					if v, ok := selectColumns[rel.Name+".*"]; !ok || v {
-						saveAssociations(db, rel, elems.Interface(), selectColumns, restricted, nil)
+						saveAssociations(db, rel, elems, selectColumns, restricted, nil)
 					}
 
 					for i := 0; i < elemLen; i++ {
@@ -341,11 +341,17 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, selectColumns map[
 	return
 }
 
-func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{}, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
+func saveAssociations(db *gorm.DB, rel *schema.Relationship, rValues reflect.Value, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
+	// stop save association loop
+	if checkAssociationsSaved(db, rValues) {
+		return nil
+	}
+
 	var (
 		selects, omits []string
 		onConflict     = onConflictOption(db.Statement, rel.FieldSchema, selectColumns, restricted, defaultUpdatingColumns)
 		refName        = rel.Name + "."
+		values         = rValues.Interface()
 	)
 
 	for name, ok := range selectColumns {
@@ -389,4 +395,25 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, values interface{},
 	}
 
 	return db.AddError(tx.Create(values).Error)
+}
+
+// check association values has been saved
+// if values kind is Struct, check it has been saved
+// if values kind is Slice/Array, check all items have been saved
+var visitMapStoreKey = "gorm:saved_association_map"
+
+func checkAssociationsSaved(db *gorm.DB, values reflect.Value) bool {
+	if visit, ok := db.Get(visitMapStoreKey); ok {
+		if v, ok := visit.(*visitMap); ok {
+			if loadOrStoreVisitMap(v, values) {
+				return true
+			}
+		}
+	} else {
+		vistMap := make(visitMap)
+		loadOrStoreVisitMap(&vistMap, values)
+		db.Set(visitMapStoreKey, &vistMap)
+	}
+
+	return false
 }

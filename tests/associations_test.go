@@ -220,3 +220,44 @@ func TestFullSaveAssociations(t *testing.T) {
 		t.Errorf("Failed to preload AppliesToProduct")
 	}
 }
+
+func TestSaveBelongsCircularReference(t *testing.T) {
+	parent := Parent{}
+	DB.Create(&parent)
+
+	child := Child{ParentID: &parent.ID, Parent: &parent}
+	DB.Create(&child)
+
+	parent.FavChildID = child.ID
+	parent.FavChild = &child
+	DB.Save(&parent)
+
+	var parent1 Parent
+	DB.First(&parent1, parent.ID)
+	AssertObjEqual(t, parent, parent1, "ID", "FavChildID")
+
+	// Save and Updates is the same
+	DB.Updates(&parent)
+	DB.First(&parent1, parent.ID)
+	AssertObjEqual(t, parent, parent1, "ID", "FavChildID")
+}
+
+func TestSaveHasManyCircularReference(t *testing.T) {
+	parent := Parent{}
+	DB.Create(&parent)
+
+	child := Child{ParentID: &parent.ID, Parent: &parent, Name: "HasManyCircularReference"}
+	child1 := Child{ParentID: &parent.ID, Parent: &parent, Name: "HasManyCircularReference1"}
+
+	parent.Children = []*Child{&child, &child1}
+	DB.Save(&parent)
+
+	var children []*Child
+	DB.Where("parent_id = ?", parent.ID).Find(&children)
+	if len(children) != len(parent.Children) ||
+		children[0].ID != parent.Children[0].ID ||
+		children[1].ID != parent.Children[1].ID {
+		t.Errorf("circular reference children save not equal children:%v parent.Children:%v",
+			children, parent.Children)
+	}
+}

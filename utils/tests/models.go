@@ -80,3 +80,17 @@ type Order struct {
 	Coupon   *Coupon
 	CouponID string
 }
+
+type Parent struct {
+	gorm.Model
+	FavChildID uint
+	FavChild   *Child
+	Children   []*Child
+}
+
+type Child struct {
+	gorm.Model
+	Name     string
+	ParentID *uint
+	Parent   *Parent
+}
