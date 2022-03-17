@@ -130,7 +130,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		writer.WriteByte('(')
 		for idx, d := range v {
 			if idx > 0 {
-				writer.WriteString(",")
+				writer.WriteByte(',')
 			}
 			stmt.QuoteTo(writer, d)
 		}
@@ -143,7 +143,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		writer.WriteByte('(')
 		for idx, d := range v {
 			if idx > 0 {
-				writer.WriteString(",")
+				writer.WriteByte(',')
 			}
 			stmt.DB.Dialector.QuoteTo(writer, d)
 		}
