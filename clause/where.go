@@ -72,9 +72,9 @@ func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 		}
 
 		if wrapInParentheses {
-			builder.WriteString(`(`)
+			builder.WriteByte('(')
 			expr.Build(builder)
-			builder.WriteString(`)`)
+			builder.WriteByte(')')
 			wrapInParentheses = false
 		} else {
 			expr.Build(builder)
