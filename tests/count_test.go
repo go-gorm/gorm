@@ -150,8 +150,16 @@ func TestCount(t *testing.T) {
 		Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).
 		Preload("Toys", func(db *gorm.DB) *gorm.DB {
 			return db.Table("toys").Select("name")
-		}).Count(&count12).Error; err != gorm.ErrPreloadNotAllowed {
-		t.Errorf("should returns preload not allowed error, but got %v", err)
+		}).Count(&count12).Error; err == nil {
+		t.Errorf("error should raise when using preload without schema")
 	}
-	
+
+	var count13 int64
+	if err := DB.Model(User{}).
+		Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).
+		Preload("Toys", func(db *gorm.DB) *gorm.DB {
+			return db.Table("toys").Select("name")
+		}).Count(&count13).Error; err != nil {
+		t.Errorf("no error should raise when using count with preload, but got %v", err)
+	}
 }

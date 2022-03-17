@@ -369,10 +369,6 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 
 func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
-	if len(tx.Statement.Preloads) > 0 {
-		tx.AddError(ErrPreloadNotAllowed)
-		return
-	}
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
 		defer func() {

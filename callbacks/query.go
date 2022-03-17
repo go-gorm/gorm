@@ -186,6 +186,11 @@ func BuildQuerySQL(db *gorm.DB) {
 
 func Preload(db *gorm.DB) {
 	if db.Error == nil && len(db.Statement.Preloads) > 0 {
+		if db.Statement.Schema == nil {
+			db.AddError(fmt.Errorf("%w when using preload", gorm.ErrModelValueRequired))
+			return
+		}
+
 		preloadMap := map[string]map[string][]interface{}{}
 		for name := range db.Statement.Preloads {
 			preloadFields := strings.Split(name, ".")
