@@ -156,10 +156,11 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 		}
 	default:
 		var (
-			fields       = make([]*schema.Field, len(columns))
-			joinFields   [][2]*schema.Field
-			sch          = db.Statement.Schema
-			reflectValue = db.Statement.ReflectValue
+			fields             = make([]*schema.Field, len(columns))
+			selectedColumnsMap = make(map[string]int, len(columns))
+			joinFields         [][2]*schema.Field
+			sch                = db.Statement.Schema
+			reflectValue       = db.Statement.ReflectValue
 		)
 
 		if reflectValue.Kind() == reflect.Interface {
@@ -194,7 +195,18 @@ func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
 			if sch != nil {
 				for idx, column := range columns {
 					if field := sch.LookUpField(column); field != nil && field.Readable {
-						fields[idx] = field
+						if curIndex, ok := selectedColumnsMap[column]; ok {
+							for fieldIndex, selectField := range sch.Fields[curIndex:] {
+								if selectField.DBName == column && selectField.Readable {
+									selectedColumnsMap[column] = curIndex + fieldIndex + 1
+									fields[idx] = selectField
+									break
+								}
+							}
+						} else {
+							fields[idx] = field
+							selectedColumnsMap[column] = idx
+						}
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
