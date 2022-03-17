@@ -240,6 +240,10 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 						if f.Readable {
 							if v, isZero := f.ValueOf(tx.Statement.Context, reflectValue); !isZero {
 								if field := tx.Statement.Schema.LookUpField(f.Name); field != nil {
+									// serializer should use default implementation of ValueOf when assign to value
+									if field.Serializer != nil {
+										v, _ = field.DefaultValueOf(tx.Statement.Context, reflectValue)
+									}
 									tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, v))
 								}
 							}
