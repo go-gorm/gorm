@@ -435,39 +435,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 // create valuer, setter when parse struct
 func (field *Field) setupValuerAndSetter() {
 	// Setup NewValuePool
-	var fieldValue = reflect.New(field.FieldType).Interface()
-	if field.Serializer != nil {
-		field.NewValuePool = &sync.Pool{
-			New: func() interface{} {
-				return &serializer{
-					Field:      field,
-					Serializer: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
-				}
-			},
-		}
-	} else if _, ok := fieldValue.(sql.Scanner); !ok {
-		// set default NewValuePool
-		switch field.IndirectFieldType.Kind() {
-		case reflect.String:
-			field.NewValuePool = stringPool
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			field.NewValuePool = intPool
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			field.NewValuePool = uintPool
-		case reflect.Float32, reflect.Float64:
-			field.NewValuePool = floatPool
-		case reflect.Bool:
-			field.NewValuePool = boolPool
-		default:
-			if field.IndirectFieldType == TimeReflectType {
-				field.NewValuePool = timePool
-			}
-		}
-	}
-
-	if field.NewValuePool == nil {
-		field.NewValuePool = poolInitializer(reflect.PtrTo(field.IndirectFieldType))
-	}
+	field.setupNewValuePool()
 
 	// ValueOf returns field's value and if it is zero
 	fieldIndex := field.StructField.Index[0]
@@ -512,7 +480,7 @@ func (field *Field) setupValuerAndSetter() {
 				s = field.Serializer
 			}
 
-			return serializer{
+			return &serializer{
 				Field:           field,
 				SerializeValuer: s,
 				Destination:     v,
@@ -943,7 +911,9 @@ func (field *Field) setupValuerAndSetter() {
 
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			if s, ok := v.(*serializer); ok {
-				if err = s.Serializer.Scan(ctx, field, value, s.value); err == nil {
+				if s.fieldValue != nil {
+					err = oldFieldSetter(ctx, value, s.fieldValue)
+				} else if err = s.Serializer.Scan(ctx, field, value, s.value); err == nil {
 					if sameElemType {
 						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(s.Serializer).Elem())
 						s.Serializer = reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface)
@@ -956,6 +926,46 @@ func (field *Field) setupValuerAndSetter() {
 				err = oldFieldSetter(ctx, value, v)
 			}
 			return
+		}
+	}
+}
+
+func (field *Field) setupNewValuePool() {
+	var fieldValue = reflect.New(field.FieldType).Interface()
+	if field.Serializer != nil {
+		field.NewValuePool = &sync.Pool{
+			New: func() interface{} {
+				return &serializer{
+					Field:      field,
+					Serializer: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
+				}
+			},
+		}
+	} else if _, ok := fieldValue.(sql.Scanner); !ok {
+		field.setupDefaultNewValuePool()
+	}
+
+	if field.NewValuePool == nil {
+		field.NewValuePool = poolInitializer(reflect.PtrTo(field.IndirectFieldType))
+	}
+}
+
+func (field *Field) setupDefaultNewValuePool() {
+	// set default NewValuePool
+	switch field.IndirectFieldType.Kind() {
+	case reflect.String:
+		field.NewValuePool = stringPool
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		field.NewValuePool = intPool
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		field.NewValuePool = uintPool
+	case reflect.Float32, reflect.Float64:
+		field.NewValuePool = floatPool
+	case reflect.Bool:
+		field.NewValuePool = boolPool
+	default:
+		if field.IndirectFieldType == TimeReflectType {
+			field.NewValuePool = timePool
 		}
 	}
 }
