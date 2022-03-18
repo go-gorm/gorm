@@ -237,9 +237,20 @@ func Preload(db *gorm.DB) {
 		}
 		sort.Strings(preloadNames)
 
+		preloadDB := db.Session(&gorm.Session{Context: db.Statement.Context, NewDB: true, SkipHooks: db.Statement.SkipHooks, Initialized: true})
+		db.Statement.Settings.Range(func(k, v interface{}) bool {
+			preloadDB.Statement.Settings.Store(k, v)
+			return true
+		})
+
+		if err := preloadDB.Statement.Parse(db.Statement.Dest); err != nil {
+			return
+		}
+		preloadDB.Statement.ReflectValue = db.Statement.ReflectValue
+
 		for _, name := range preloadNames {
-			if rel := db.Statement.Schema.Relationships.Relations[name]; rel != nil {
-				preload(db, rel, append(db.Statement.Preloads[name], db.Statement.Preloads[clause.Associations]...), preloadMap[name])
+			if rel := preloadDB.Statement.Schema.Relationships.Relations[name]; rel != nil {
+				db.AddError(preload(preloadDB.Table("").Session(&gorm.Session{}), rel, append(db.Statement.Preloads[name], db.Statement.Preloads[clause.Associations]...), preloadMap[name]))
 			} else {
 				db.AddError(fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
 			}

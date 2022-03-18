@@ -54,9 +54,12 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 	} else if tables := strings.Split(name, "."); len(tables) == 2 {
 		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
 		tx.Statement.Table = tables[1]
-	} else {
+	} else if name != "" {
 		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
 		tx.Statement.Table = name
+	} else {
+		tx.Statement.TableExpr = nil
+		tx.Statement.Table = ""
 	}
 	return
 }
