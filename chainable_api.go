@@ -93,7 +93,11 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 				return
 			}
 		}
-		delete(tx.Statement.Clauses, "SELECT")
+
+		if clause, ok := tx.Statement.Clauses["SELECT"]; ok {
+			clause.Expression = nil
+			tx.Statement.Clauses["SELECT"] = clause
+		}
 	case string:
 		if strings.Count(v, "?") >= len(args) && len(args) > 0 {
 			tx.Statement.AddClause(clause.Select{
@@ -123,7 +127,10 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 				}
 			}
 
-			delete(tx.Statement.Clauses, "SELECT")
+			if clause, ok := tx.Statement.Clauses["SELECT"]; ok {
+				clause.Expression = nil
+				tx.Statement.Clauses["SELECT"] = clause
+			}
 		}
 	default:
 		tx.AddError(fmt.Errorf("unsupported select args %v %v", query, args))
