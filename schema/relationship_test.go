@@ -491,6 +491,26 @@ func TestEmbeddedRelation(t *testing.T) {
 	}
 }
 
+func TestVariableRelation(t *testing.T) {
+	var result struct {
+		User
+	}
+
+	checkStructRelation(t, &result, Relation{
+		Name: "Account", Type: schema.HasOne, Schema: "", FieldSchema: "Account",
+		References: []Reference{
+			{"ID", "", "UserID", "Account", "", true},
+		},
+	})
+
+	checkStructRelation(t, &result, Relation{
+		Name: "Company", Type: schema.BelongsTo, Schema: "", FieldSchema: "Company",
+		References: []Reference{
+			{"ID", "Company", "CompanyID", "", "", false},
+		},
+	})
+}
+
 func TestSameForeignKey(t *testing.T) {
 	type UserAux struct {
 		gorm.Model
