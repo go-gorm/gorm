@@ -583,7 +583,9 @@ func TestPluck(t *testing.T) {
 	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Order("name desc").Pluck("name", &names2).Error; err != nil {
 		t.Errorf("got error when pluck name: %v", err)
 	}
-	AssertEqual(t, names, sort.Reverse(sort.StringSlice(names2)))
+
+	sort.Slice(names2, func(i, j int) bool { return names2[i] < names2[j] })
+	AssertEqual(t, names, names2)
 
 	var ids []int
 	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("id", &ids).Error; err != nil {
