@@ -259,7 +259,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		} else if fieldValue.Type().ConvertibleTo(TimePtrReflectType) {
 			field.DataType = Time
 		}
-		if field.HasDefaultValue && !skipParseDefaultValue && field.DataType == Time {
+		if field.HasDefaultValue && !skipParseDefaultValue && field.DataType == Time && !strings.Contains(strings.ToUpper(field.DefaultValue), "CURRENT_TIMESTAMP") {
 			if field.DefaultValueInterface, err = now.Parse(field.DefaultValue); err != nil {
 				schema.err = fmt.Errorf("failed to parse default value `%v` for field %v", field.DefaultValue, field.Name)
 			}
