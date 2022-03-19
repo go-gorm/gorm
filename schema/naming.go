@@ -85,9 +85,9 @@ func (ns NamingStrategy) IndexName(table, column string) string {
 }
 
 func (ns NamingStrategy) formatName(prefix, table, name string) string {
-	formattedName := strings.Replace(strings.Join([]string{
+	formattedName := strings.ReplaceAll(strings.Join([]string{
 		prefix, table, name,
-	}, "_"), ".", "_", -1)
+	}, "_"), ".", "_")
 
 	if utf8.RuneCountInString(formattedName) > 64 {
 		h := sha1.New()
