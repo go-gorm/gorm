@@ -19,7 +19,7 @@ func TestPostgres(t *testing.T) {
 		Name      string         `gorm:"check:name_checker,name <> ''"`
 		Test      uuid.UUID      `gorm:"type:uuid;not null;default:gen_random_uuid()"`
 		CreatedAt time.Time      `gorm:"type:TIMESTAMP WITHOUT TIME ZONE"`
-		UpdatedAt time.Time      `gorm:"type:TIMESTAMP WITHOUT TIME ZONE"`
+		UpdatedAt time.Time      `gorm:"type:TIMESTAMP WITHOUT TIME ZONE;default:current_timestamp"`
 		Things    pq.StringArray `gorm:"type:text[]"`
 	}
 

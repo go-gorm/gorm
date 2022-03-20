@@ -260,8 +260,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.DataType = Time
 		}
 		if field.HasDefaultValue && !skipParseDefaultValue && field.DataType == Time {
-			if field.DefaultValueInterface, err = now.Parse(field.DefaultValue); err != nil {
-				schema.err = fmt.Errorf("failed to parse default value `%v` for field %v", field.DefaultValue, field.Name)
+			if t, err := now.Parse(field.DefaultValue); err == nil {
+				field.DefaultValueInterface = t
 			}
 		}
 	case reflect.Array, reflect.Slice:
