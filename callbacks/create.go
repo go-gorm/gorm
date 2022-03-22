@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// BeforeCreate before create hooks
 func BeforeCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -31,6 +32,7 @@ func BeforeCreate(db *gorm.DB) {
 	}
 }
 
+// Create create hook
 func Create(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.CreateClauses, "RETURNING")
 
@@ -146,20 +148,21 @@ func Create(config *Config) func(db *gorm.DB) {
 	}
 }
 
+// AfterCreate after create hooks
 func AfterCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
-			if db.Statement.Schema.AfterSave {
-				if i, ok := value.(AfterSaveInterface); ok {
-					called = true
-					db.AddError(i.AfterSave(tx))
-				}
-			}
-
 			if db.Statement.Schema.AfterCreate {
 				if i, ok := value.(AfterCreateInterface); ok {
 					called = true
 					db.AddError(i.AfterCreate(tx))
+				}
+			}
+
+			if db.Statement.Schema.AfterSave {
+				if i, ok := value.(AfterSaveInterface); ok {
+					called = true
+					db.AddError(i.AfterSave(tx))
 				}
 			}
 			return called

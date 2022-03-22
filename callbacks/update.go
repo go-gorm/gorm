@@ -29,6 +29,7 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 	}
 }
 
+// BeforeUpdate before update hooks
 func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -51,6 +52,7 @@ func BeforeUpdate(db *gorm.DB) {
 	}
 }
 
+// Update update hook
 func Update(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.UpdateClauses, "RETURNING")
 
@@ -99,9 +101,17 @@ func Update(config *Config) func(db *gorm.DB) {
 	}
 }
 
+// AfterUpdate after update hooks
 func AfterUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
+			if db.Statement.Schema.AfterUpdate {
+				if i, ok := value.(AfterUpdateInterface); ok {
+					called = true
+					db.AddError(i.AfterUpdate(tx))
+				}
+			}
+
 			if db.Statement.Schema.AfterSave {
 				if i, ok := value.(AfterSaveInterface); ok {
 					called = true
@@ -109,12 +119,6 @@ func AfterUpdate(db *gorm.DB) {
 				}
 			}
 
-			if db.Statement.Schema.AfterUpdate {
-				if i, ok := value.(AfterUpdateInterface); ok {
-					called = true
-					db.AddError(i.AfterUpdate(tx))
-				}
-			}
 			return called
 		})
 	}
