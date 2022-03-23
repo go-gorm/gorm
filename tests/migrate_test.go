@@ -258,7 +258,7 @@ func TestMigrateTable(t *testing.T) {
 	DB.Migrator().DropTable("new_table_structs")
 
 	if DB.Migrator().HasTable(&NewTableStruct{}) {
-		t.Fatal("should not found droped table")
+		t.Fatal("should not found dropped table")
 	}
 }
 

@@ -360,7 +360,7 @@ func TestToSQL(t *testing.T) {
 	})
 	assertEqualSQL(t, `SELECT * FROM "users" WHERE id = 100 AND "users"."deleted_at" IS NULL ORDER BY age desc LIMIT 10`, sql)
 
-	// after model chagned
+	// after model changed
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
@@ -426,13 +426,13 @@ func TestToSQL(t *testing.T) {
 	})
 	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo',"age"=100 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
-	// after model chagned
+	// after model changed
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
 }
 
-// assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect speicals.
+// assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect specials.
 func assertEqualSQL(t *testing.T, expected string, actually string) {
 	t.Helper()
 
@@ -440,7 +440,7 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 	expected = replaceQuoteInSQL(expected)
 	actually = replaceQuoteInSQL(actually)
 
-	// ignore updated_at value, becase it's generated in Gorm inernal, can't to mock value on update.
+	// ignore updated_at value, because it's generated in Gorm internal, can't to mock value on update.
 	updatedAtRe := regexp.MustCompile(`(?i)"updated_at"=".+?"`)
 	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"=?`)
 	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
@@ -462,7 +462,7 @@ func replaceQuoteInSQL(sql string) string {
 	// convert single quote into double quote
 	sql = strings.ReplaceAll(sql, `'`, `"`)
 
-	// convert dialect speical quote into double quote
+	// convert dialect special quote into double quote
 	switch DB.Dialector.Name() {
 	case "postgres":
 		sql = strings.ReplaceAll(sql, `"`, `"`)
