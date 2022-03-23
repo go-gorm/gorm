@@ -562,7 +562,7 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 
 				switch destValue.Kind() {
 				case reflect.Struct:
-					field.Set(stmt.Context, destValue, value)
+					stmt.AddError(field.Set(stmt.Context, destValue, value))
 				default:
 					stmt.AddError(ErrInvalidData)
 				}
@@ -572,10 +572,10 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 			case reflect.Slice, reflect.Array:
 				if len(fromCallbacks) > 0 {
 					for i := 0; i < stmt.ReflectValue.Len(); i++ {
-						field.Set(stmt.Context, stmt.ReflectValue.Index(i), value)
+						stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue.Index(i), value))
 					}
 				} else {
-					field.Set(stmt.Context, stmt.ReflectValue.Index(stmt.CurDestIndex), value)
+					stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue.Index(stmt.CurDestIndex), value))
 				}
 			case reflect.Struct:
 				if !stmt.ReflectValue.CanAddr() {
@@ -583,7 +583,7 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 					return
 				}
 
-				field.Set(stmt.Context, stmt.ReflectValue, value)
+				stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue, value))
 			}
 		} else {
 			stmt.AddError(ErrInvalidField)

@@ -121,7 +121,7 @@ func Create(config *Config) func(db *gorm.DB) {
 
 						_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, rv)
 						if isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID)
+							db.AddError(db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID))
 							insertID -= db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 						}
 					}
@@ -133,7 +133,7 @@ func Create(config *Config) func(db *gorm.DB) {
 						}
 
 						if _, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, rv); isZero {
-							db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID)
+							db.AddError(db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, rv, insertID))
 							insertID += db.Statement.Schema.PrioritizedPrimaryField.AutoIncrementIncrement
 						}
 					}
@@ -141,7 +141,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			case reflect.Struct:
 				_, isZero := db.Statement.Schema.PrioritizedPrimaryField.ValueOf(db.Statement.Context, db.Statement.ReflectValue)
 				if isZero {
-					db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, db.Statement.ReflectValue, insertID)
+					db.AddError(db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, db.Statement.ReflectValue, insertID))
 				}
 			}
 		}
@@ -227,13 +227,13 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 					if values.Values[i][idx], isZero = field.ValueOf(stmt.Context, rv); isZero {
 						if field.DefaultValueInterface != nil {
 							values.Values[i][idx] = field.DefaultValueInterface
-							field.Set(stmt.Context, rv, field.DefaultValueInterface)
+							stmt.AddError(field.Set(stmt.Context, rv, field.DefaultValueInterface))
 						} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
-							field.Set(stmt.Context, rv, curTime)
+							stmt.AddError(field.Set(stmt.Context, rv, curTime))
 							values.Values[i][idx], _ = field.ValueOf(stmt.Context, rv)
 						}
 					} else if field.AutoUpdateTime > 0 && updateTrackTime {
-						field.Set(stmt.Context, rv, curTime)
+						stmt.AddError(field.Set(stmt.Context, rv, curTime))
 						values.Values[i][idx], _ = field.ValueOf(stmt.Context, rv)
 					}
 				}
@@ -267,13 +267,13 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				if values.Values[0][idx], isZero = field.ValueOf(stmt.Context, stmt.ReflectValue); isZero {
 					if field.DefaultValueInterface != nil {
 						values.Values[0][idx] = field.DefaultValueInterface
-						field.Set(stmt.Context, stmt.ReflectValue, field.DefaultValueInterface)
+						stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue, field.DefaultValueInterface))
 					} else if field.AutoCreateTime > 0 || field.AutoUpdateTime > 0 {
-						field.Set(stmt.Context, stmt.ReflectValue, curTime)
+						stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue, curTime))
 						values.Values[0][idx], _ = field.ValueOf(stmt.Context, stmt.ReflectValue)
 					}
 				} else if field.AutoUpdateTime > 0 && updateTrackTime {
-					field.Set(stmt.Context, stmt.ReflectValue, curTime)
+					stmt.AddError(field.Set(stmt.Context, stmt.ReflectValue, curTime))
 					values.Values[0][idx], _ = field.ValueOf(stmt.Context, stmt.ReflectValue)
 				}
 			}

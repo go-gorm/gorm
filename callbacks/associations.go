@@ -159,9 +159,9 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 						for _, ref := range rel.References {
 							if ref.OwnPrimaryKey {
 								fv, _ := ref.PrimaryKey.ValueOf(db.Statement.Context, db.Statement.ReflectValue)
-								ref.ForeignKey.Set(db.Statement.Context, f, fv)
+								db.AddError(ref.ForeignKey.Set(db.Statement.Context, f, fv))
 							} else if ref.PrimaryValue != "" {
-								ref.ForeignKey.Set(db.Statement.Context, f, ref.PrimaryValue)
+								db.AddError(ref.ForeignKey.Set(db.Statement.Context, f, ref.PrimaryValue))
 							}
 							assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
 						}
@@ -193,9 +193,9 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 							for _, ref := range rel.References {
 								if ref.OwnPrimaryKey {
 									pv, _ := ref.PrimaryKey.ValueOf(db.Statement.Context, v)
-									ref.ForeignKey.Set(db.Statement.Context, elem, pv)
+									db.AddError(ref.ForeignKey.Set(db.Statement.Context, elem, pv))
 								} else if ref.PrimaryValue != "" {
-									ref.ForeignKey.Set(db.Statement.Context, elem, ref.PrimaryValue)
+									db.AddError(ref.ForeignKey.Set(db.Statement.Context, elem, ref.PrimaryValue))
 								}
 							}
 
@@ -261,12 +261,12 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					for _, ref := range rel.References {
 						if ref.OwnPrimaryKey {
 							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.Context, obj)
-							ref.ForeignKey.Set(db.Statement.Context, joinValue, fv)
+							db.AddError(ref.ForeignKey.Set(db.Statement.Context, joinValue, fv))
 						} else if ref.PrimaryValue != "" {
-							ref.ForeignKey.Set(db.Statement.Context, joinValue, ref.PrimaryValue)
+							db.AddError(ref.ForeignKey.Set(db.Statement.Context, joinValue, ref.PrimaryValue))
 						} else {
 							fv, _ := ref.PrimaryKey.ValueOf(db.Statement.Context, elem)
-							ref.ForeignKey.Set(db.Statement.Context, joinValue, fv)
+							db.AddError(ref.ForeignKey.Set(db.Statement.Context, joinValue, fv))
 						}
 					}
 					joins = reflect.Append(joins, joinValue)

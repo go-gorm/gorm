@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
 
@@ -567,8 +568,8 @@ func (field *Field) setupValuerAndSetter() {
 				if v, err = valuer.Value(); err == nil {
 					err = setter(ctx, value, v)
 				}
-			} else {
-				return fmt.Errorf("failed to set value %+v to field %s", v, field.Name)
+			} else if _, ok := v.(clause.Expr); !ok {
+				return fmt.Errorf("failed to set value %#v to field %s", v, field.Name)
 			}
 		}
 

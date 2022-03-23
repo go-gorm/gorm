@@ -69,7 +69,7 @@ func (db *DB) scanIntoStruct(rows *sql.Rows, reflectValue reflect.Value, values 
 	for idx, field := range fields {
 		if field != nil {
 			if len(joinFields) == 0 || joinFields[idx][0] == nil {
-				field.Set(db.Statement.Context, reflectValue, values[idx])
+				db.AddError(field.Set(db.Statement.Context, reflectValue, values[idx]))
 			} else {
 				relValue := joinFields[idx][0].ReflectValueOf(db.Statement.Context, reflectValue)
 				if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
@@ -79,7 +79,7 @@ func (db *DB) scanIntoStruct(rows *sql.Rows, reflectValue reflect.Value, values 
 
 					relValue.Set(reflect.New(relValue.Type().Elem()))
 				}
-				joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx])
+				db.AddError(joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx]))
 			}
 
 			// release data to pool

@@ -21,7 +21,7 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 			if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
 				for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
 					if _, ok := dest[rel.Name]; ok {
-						rel.Field.Set(db.Statement.Context, db.Statement.ReflectValue, dest[rel.Name])
+						db.AddError(rel.Field.Set(db.Statement.Context, db.Statement.ReflectValue, dest[rel.Name]))
 					}
 				}
 			}

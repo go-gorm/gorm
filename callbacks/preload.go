@@ -123,17 +123,17 @@ func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 	case reflect.Struct:
 		switch rel.Type {
 		case schema.HasMany, schema.Many2Many:
-			rel.Field.Set(tx.Statement.Context, reflectValue, reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 10).Interface())
+			tx.AddError(rel.Field.Set(tx.Statement.Context, reflectValue, reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 10).Interface()))
 		default:
-			rel.Field.Set(tx.Statement.Context, reflectValue, reflect.New(rel.Field.FieldType).Interface())
+			tx.AddError(rel.Field.Set(tx.Statement.Context, reflectValue, reflect.New(rel.Field.FieldType).Interface()))
 		}
 	case reflect.Slice, reflect.Array:
 		for i := 0; i < reflectValue.Len(); i++ {
 			switch rel.Type {
 			case schema.HasMany, schema.Many2Many:
-				rel.Field.Set(tx.Statement.Context, reflectValue.Index(i), reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 10).Interface())
+				tx.AddError(rel.Field.Set(tx.Statement.Context, reflectValue.Index(i), reflect.MakeSlice(rel.Field.IndirectFieldType, 0, 10).Interface()))
 			default:
-				rel.Field.Set(tx.Statement.Context, reflectValue.Index(i), reflect.New(rel.Field.FieldType).Interface())
+				tx.AddError(rel.Field.Set(tx.Statement.Context, reflectValue.Index(i), reflect.New(rel.Field.FieldType).Interface()))
 			}
 		}
 	}
@@ -158,12 +158,12 @@ func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 			reflectFieldValue = reflect.Indirect(reflectFieldValue)
 			switch reflectFieldValue.Kind() {
 			case reflect.Struct:
-				rel.Field.Set(tx.Statement.Context, data, elem.Interface())
+				tx.AddError(rel.Field.Set(tx.Statement.Context, data, elem.Interface()))
 			case reflect.Slice, reflect.Array:
 				if reflectFieldValue.Type().Elem().Kind() == reflect.Ptr {
-					rel.Field.Set(tx.Statement.Context, data, reflect.Append(reflectFieldValue, elem).Interface())
+					tx.AddError(rel.Field.Set(tx.Statement.Context, data, reflect.Append(reflectFieldValue, elem).Interface()))
 				} else {
-					rel.Field.Set(tx.Statement.Context, data, reflect.Append(reflectFieldValue, elem.Elem()).Interface())
+					tx.AddError(rel.Field.Set(tx.Statement.Context, data, reflect.Append(reflectFieldValue, elem.Elem()).Interface()))
 				}
 			}
 		}
