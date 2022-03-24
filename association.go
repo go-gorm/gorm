@@ -187,8 +187,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			tx := association.DB.Model(reflect.New(rel.Schema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, rel.Schema.PrimaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs)
-			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			if pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs); len(pvalues) > 0 {
+				conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			} else {
+				return ErrPrimaryKeyRequired
+			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, primaryFields)
 			relColumn, relValues := schema.ToQueryValues(rel.Schema.Table, foreignKeys, rvs)
@@ -199,8 +202,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			tx := association.DB.Model(reflect.New(rel.FieldSchema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, primaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
-			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			if pcolumn, pvalues := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs); len(pvalues) > 0 {
+				conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			} else {
+				return ErrPrimaryKeyRequired
+			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, rel.FieldSchema.PrimaryFields)
 			relColumn, relValues := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, rvs)
@@ -229,8 +235,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			}
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, primaryFields)
-			pcolumn, pvalues := schema.ToQueryValues(rel.JoinTable.Table, joinPrimaryKeys, pvs)
-			conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			if pcolumn, pvalues := schema.ToQueryValues(rel.JoinTable.Table, joinPrimaryKeys, pvs); len(pvalues) > 0 {
+				conds = append(conds, clause.IN{Column: pcolumn, Values: pvalues})
+			} else {
+				return ErrPrimaryKeyRequired
+			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, relPrimaryFields)
 			relColumn, relValues := schema.ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs)
