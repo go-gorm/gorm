@@ -44,7 +44,7 @@ func (ct ColumnType) DatabaseTypeName() string {
 	return ct.SQLColumnType.DatabaseTypeName()
 }
 
-// ColumnType returns the database type of the column. lke `varchar(16)`
+// ColumnType returns the database type of the column. like `varchar(16)`
 func (ct ColumnType) ColumnType() (columnType string, ok bool) {
 	return ct.ColumnTypeValue.String, ct.ColumnTypeValue.Valid
 }

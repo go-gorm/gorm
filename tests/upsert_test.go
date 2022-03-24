@@ -319,7 +319,7 @@ func TestUpdateWithMissWhere(t *testing.T) {
 	tx := DB.Session(&gorm.Session{DryRun: true}).Save(&user)
 
 	if err := tx.Error; err != nil {
-		t.Fatalf("failed to update user,missing where condtion,err=%+v", err)
+		t.Fatalf("failed to update user,missing where condition,err=%+v", err)
 	}
 
 	if !regexp.MustCompile("WHERE .id. = [^ ]+$").MatchString(tx.Statement.SQL.String()) {

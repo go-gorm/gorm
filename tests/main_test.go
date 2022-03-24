@@ -43,10 +43,8 @@ func TestExceptionsWithInvalidSql(t *testing.T) {
 func TestSetAndGet(t *testing.T) {
 	if value, ok := DB.Set("hello", "world").Get("hello"); !ok {
 		t.Errorf("Should be able to get setting after set")
-	} else {
-		if value.(string) != "world" {
-			t.Errorf("Setted value should not be changed")
-		}
+	} else if value.(string) != "world" {
+		t.Errorf("Set value should not be changed")
 	}
 
 	if _, ok := DB.Get("non_existing"); ok {
