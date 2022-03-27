@@ -12,6 +12,9 @@ import (
 
 // BeforeCreate before create hooks
 func BeforeCreate(db *gorm.DB) {
+	if !db.Statement.ReflectValue.CanAddr() {
+		return
+	}
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.BeforeSave {
@@ -150,6 +153,10 @@ func Create(config *Config) func(db *gorm.DB) {
 
 // AfterCreate after create hooks
 func AfterCreate(db *gorm.DB) {
+	if !db.Statement.ReflectValue.CanAddr() {
+		return
+	}
+
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
 			if db.Statement.Schema.AfterCreate {
