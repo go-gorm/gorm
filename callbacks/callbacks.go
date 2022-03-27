@@ -24,6 +24,10 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 		return !db.SkipDefaultTransaction
 	}
 
+	canAddr := func(db *gorm.DB) bool {
+		return db.Statement.ReflectValue.CanAddr()
+	}
+
 	if len(config.CreateClauses) == 0 {
 		config.CreateClauses = createClauses
 	}
@@ -39,11 +43,11 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 
 	createCallback := db.Callback().Create()
 	createCallback.Match(enableTransaction).Register("gorm:begin_transaction", BeginTransaction)
-	createCallback.Register("gorm:before_create", BeforeCreate)
+	createCallback.Match(canAddr).Register("gorm:before_create", BeforeCreate)
 	createCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(true))
 	createCallback.Register("gorm:create", Create(config))
 	createCallback.Register("gorm:save_after_associations", SaveAfterAssociations(true))
-	createCallback.Register("gorm:after_create", AfterCreate)
+	createCallback.Match(canAddr).Register("gorm:after_create", AfterCreate)
 	createCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 	createCallback.Clauses = config.CreateClauses
 
@@ -65,11 +69,11 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	updateCallback := db.Callback().Update()
 	updateCallback.Match(enableTransaction).Register("gorm:begin_transaction", BeginTransaction)
 	updateCallback.Register("gorm:setup_reflect_value", SetupUpdateReflectValue)
-	updateCallback.Register("gorm:before_update", BeforeUpdate)
+	updateCallback.Match(canAddr).Register("gorm:before_update", BeforeUpdate)
 	updateCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(false))
 	updateCallback.Register("gorm:update", Update(config))
 	updateCallback.Register("gorm:save_after_associations", SaveAfterAssociations(false))
-	updateCallback.Register("gorm:after_update", AfterUpdate)
+	updateCallback.Match(canAddr).Register("gorm:after_update", AfterUpdate)
 	updateCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 	updateCallback.Clauses = config.UpdateClauses
 
