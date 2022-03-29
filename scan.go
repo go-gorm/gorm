@@ -50,7 +50,7 @@ func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns 
 	}
 }
 
-func (db *DB) scanIntoStruct(rows *sql.Rows, reflectValue reflect.Value, values []interface{}, fields []*schema.Field, joinFields [][2]*schema.Field) {
+func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []interface{}, fields []*schema.Field, joinFields [][2]*schema.Field) {
 	for idx, field := range fields {
 		if field != nil {
 			values[idx] = field.NewValuePool.Get()
@@ -99,7 +99,7 @@ const (
 )
 
 // Scan scan rows into db statement
-func Scan(rows *sql.Rows, db *DB, mode ScanMode) {
+func Scan(rows Rows, db *DB, mode ScanMode) {
 	var (
 		columns, _          = rows.Columns()
 		values              = make([]interface{}, len(columns))
