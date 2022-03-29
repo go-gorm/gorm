@@ -20,8 +20,10 @@ func Query(db *gorm.DB) {
 				db.AddError(err)
 				return
 			}
+			defer func() {
+				db.AddError(rows.Close())
+			}()
 			gorm.Scan(rows, db, 0)
-			db.AddError(rows.Close())
 		}
 	}
 }
