@@ -24,7 +24,7 @@ func join(joinType string, db *DB, model interface{}, alias ...string) *jexpr {
 			return &jexpr{expr: " " + joinType + " JOIN (" + val.expr + ") " + al, args: val.args}
 		}
 	}
-	return &jexpr{expr: " " + joinType + " JOIN " + db.T(model) + " " + al}
+	return &jexpr{expr: " " + joinType + " JOIN " + db.QT(model) + " " + al}
 }
 
 func (db *DB) InnerJoin(model interface{}, alias ...string) *jexpr {
