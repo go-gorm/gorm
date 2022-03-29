@@ -366,7 +366,7 @@ func TestCreateInvalidSlice(t *testing.T) {
 		nil,
 	}
 
-	if err := DB.Create(&users).Error; !errors.Is(err, gorm.ErrInvalidData) {
+	if err := DB.Create(&users).Error; !errors.Is(err, gorm.ErrInvalidValue) {
 		t.Errorf("should returns error invalid data when creating from slice that contains invalid data")
 	}
 }
