@@ -136,6 +136,25 @@ func TestCreateFromMap(t *testing.T) {
 	if err := DB.Where("name = ?", "create_from_map_3").First(&result3).Error; err != nil || result3.Age != 20 {
 		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
 	}
+
+	datas2 := []gorm.M{
+		{"Name": "create_from_M_1", "Age": 21},
+		{"name": "create_from_M_2", "Age": 22},
+	}
+
+	if err := DB.Model(&User{}).Create(&datas2).Error; err != nil {
+		t.Fatalf("failed to create data from slice of map, got error: %v", err)
+	}
+
+	var result4 User
+	if err := DB.Where("name = ?", "create_from_M_1").First(&result4).Error; err != nil || result4.Age != 21 {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
+
+	var result5 User
+	if err := DB.Where("name = ?", "create_from_M_2").First(&result5).Error; err != nil || result5.Age != 22 {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
 }
 
 func TestCreateWithAssociations(t *testing.T) {

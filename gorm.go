@@ -16,6 +16,15 @@ import (
 // for Config.cacheStore store PreparedStmtDB key
 const preparedStmtDBKey = "preparedStmt"
 
+// M is a convenient alias for a map[string]interface{} map, useful for
+// dealing with GORM in a native way.  For instance:
+//
+//     gorm.M{"a": 1, "b": true}
+//
+// There's no special handling for this type in addition to what's done anyway
+// for an equivalent map type.
+type M = map[string]interface{}
+
 // Config GORM config
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
