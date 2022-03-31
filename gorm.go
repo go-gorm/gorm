@@ -124,8 +124,8 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 
 	for _, opt := range opts {
 		if opt != nil {
-			if err := opt.Apply(config); err != nil {
-				return nil, err
+			if applyErr := opt.Apply(config); applyErr != nil {
+				return nil, applyErr
 			}
 			defer func(opt Option) {
 				if errr := opt.AfterInitialize(db); errr != nil {
