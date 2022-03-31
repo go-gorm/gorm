@@ -207,7 +207,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 	return tx
 }
 
-func (tx *DB) assignInterfacesToValue(values ...interface{}) {
+func (db *DB) assignInterfacesToValue(values ...interface{}) {
 	for _, value := range values {
 		switch v := value.(type) {
 		case []clause.Expression:
@@ -215,40 +215,40 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 				if eq, ok := expr.(clause.Eq); ok {
 					switch column := eq.Column.(type) {
 					case string:
-						if field := tx.Statement.Schema.LookUpField(column); field != nil {
-							tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, eq.Value))
+						if field := db.Statement.Schema.LookUpField(column); field != nil {
+							db.AddError(field.Set(db.Statement.Context, db.Statement.ReflectValue, eq.Value))
 						}
 					case clause.Column:
-						if field := tx.Statement.Schema.LookUpField(column.Name); field != nil {
-							tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, eq.Value))
+						if field := db.Statement.Schema.LookUpField(column.Name); field != nil {
+							db.AddError(field.Set(db.Statement.Context, db.Statement.ReflectValue, eq.Value))
 						}
 					}
 				} else if andCond, ok := expr.(clause.AndConditions); ok {
-					tx.assignInterfacesToValue(andCond.Exprs)
+					db.assignInterfacesToValue(andCond.Exprs)
 				}
 			}
 		case clause.Expression, map[string]string, map[interface{}]interface{}, map[string]interface{}:
-			if exprs := tx.Statement.BuildCondition(value); len(exprs) > 0 {
-				tx.assignInterfacesToValue(exprs)
+			if exprs := db.Statement.BuildCondition(value); len(exprs) > 0 {
+				db.assignInterfacesToValue(exprs)
 			}
 		default:
-			if s, err := schema.Parse(value, tx.cacheStore, tx.NamingStrategy); err == nil {
+			if s, err := schema.Parse(value, db.cacheStore, db.NamingStrategy); err == nil {
 				reflectValue := reflect.Indirect(reflect.ValueOf(value))
 				switch reflectValue.Kind() {
 				case reflect.Struct:
 					for _, f := range s.Fields {
 						if f.Readable {
-							if v, isZero := f.ValueOf(tx.Statement.Context, reflectValue); !isZero {
-								if field := tx.Statement.Schema.LookUpField(f.Name); field != nil {
-									tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, v))
+							if v, isZero := f.ValueOf(db.Statement.Context, reflectValue); !isZero {
+								if field := db.Statement.Schema.LookUpField(f.Name); field != nil {
+									db.AddError(field.Set(db.Statement.Context, db.Statement.ReflectValue, v))
 								}
 							}
 						}
 					}
 				}
 			} else if len(values) > 0 {
-				if exprs := tx.Statement.BuildCondition(values[0], values[1:]...); len(exprs) > 0 {
-					tx.assignInterfacesToValue(exprs)
+				if exprs := db.Statement.BuildCondition(values[0], values[1:]...); len(exprs) > 0 {
+					db.assignInterfacesToValue(exprs)
 				}
 				return
 			}
