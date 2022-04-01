@@ -96,9 +96,11 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 
 		// inline joins
+		tables := []clause.Table{}
 		joins := []clause.Join{}
 		if fromClause, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
 			joins = fromClause.Joins
+			tables = fromClause.Tables
 		}
 
 		if len(db.Statement.Joins) != 0 || len(joins) != 0 {
@@ -188,7 +190,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
-			db.Statement.AddClause(clause.From{Joins: joins})
+			db.Statement.AddClause(clause.From{Tables: tables, Joins: joins})
 			db.Statement.Joins = nil
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
