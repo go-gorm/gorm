@@ -263,7 +263,6 @@ func TestSaveHasManyCircularReference(t *testing.T) {
 }
 
 func TestAssociationError(t *testing.T) {
-	DB = DB.Debug()
 	user := *GetUser("TestAssociationError", Config{Pets: 2, Company: true, Account: true, Languages: 2})
 	DB.Create(&user)
 
