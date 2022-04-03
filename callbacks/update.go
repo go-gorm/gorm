@@ -107,9 +107,9 @@ func Update(config *Config) func(db *gorm.DB) {
 
 // AfterUpdate after update hooks
 func AfterUpdate(db *gorm.DB) {
-	if !db.Statement.ReflectValue.CanAddr() {
-		return
-	}
+	//if !db.Statement.ReflectValue.CanAddr() {
+	//	return
+	//}
 
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {

@@ -255,7 +255,7 @@ func TestUseDBInHooks(t *testing.T) {
 	}
 
 	testPanic := Product2{Name: "testPanic", Price: 100}
-	DB.Create(testPanic)
+	DB.Create(&testPanic)
 	DB.Model(Product2{}).Where("name", "testPanic").Update("name", "testPanic1")
 
 	var result Product2
