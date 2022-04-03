@@ -31,9 +31,9 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 
 // BeforeUpdate before update hooks
 func BeforeUpdate(db *gorm.DB) {
-	if !db.Statement.ReflectValue.CanAddr() {
-		return
-	}
+	//if !db.Statement.ReflectValue.CanAddr() {
+	//	return
+	//}
 
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
