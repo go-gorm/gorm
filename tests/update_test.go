@@ -763,7 +763,3 @@ func TestUpdateReturning(t *testing.T) {
 		t.Errorf("failed to return updated age column")
 	}
 }
-
-func TestAfterCreateWithPanic(t *testing.T)  {
-	DB.Model(User{}).Where("name=?", "update-1").Update("name", "update-1-1")
-}

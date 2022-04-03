@@ -254,6 +254,10 @@ func TestUseDBInHooks(t *testing.T) {
 		t.Fatalf("Failed to create product, got error: %v", err)
 	}
 
+	testPanic := Product2{Name: "testPanic", Price: 100}
+	DB.Create(testPanic)
+	DB.Model(Product2{}).Where("name", "testPanic").Update("name", "testPanic1")
+
 	var result Product2
 	if err := DB.First(&result, "name = ?", "Nice").Error; err != nil {
 		t.Fatalf("Failed to query product, got error: %v", err)

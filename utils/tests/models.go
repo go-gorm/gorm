@@ -31,10 +31,6 @@ type User struct {
 	Active    bool
 }
 
-func (u *User) AfterCreate(tx *gorm.DB) error {
-	return nil
-}
-
 type Account struct {
 	gorm.Model
 	UserID sql.NullInt64
