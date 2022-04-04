@@ -223,7 +223,7 @@ func (tx *DB) assignInterfacesToValue(values ...interface{}) {
 							tx.AddError(field.Set(tx.Statement.Context, tx.Statement.ReflectValue, eq.Value))
 						}
 					}
-				} else if andCond, ok := expr.(clause.AndConditions); ok {
+				} else if andCond, okk := expr.(clause.AndConditions); okk {
 					tx.assignInterfacesToValue(andCond.Exprs)
 				}
 			}
@@ -264,7 +264,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 	if tx = queryTx.Find(dest, conds...); queryTx.RowsAffected == 0 {
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
-			if where, ok := c.Expression.(clause.Where); ok {
+			if where, okk := c.Expression.(clause.Where); okk {
 				tx.assignInterfacesToValue(where.Exprs)
 			}
 		}
@@ -290,7 +290,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	if tx = queryTx.Find(dest, conds...); tx.Error == nil {
 		if tx.RowsAffected == 0 {
 			if c, ok := tx.Statement.Clauses["WHERE"]; ok {
-				if where, ok := c.Expression.(clause.Where); ok {
+				if where, okk := c.Expression.(clause.Where); okk {
 					tx.assignInterfacesToValue(where.Exprs)
 				}
 			}
@@ -411,7 +411,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	}
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
-		if _, ok := db.Statement.Clauses["GROUP BY"]; !ok {
+		if _, okk := db.Statement.Clauses["GROUP BY"]; !okk {
 			delete(tx.Statement.Clauses, "ORDER BY")
 			defer func() {
 				tx.Statement.Clauses["ORDER BY"] = orderByClause
