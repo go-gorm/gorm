@@ -502,7 +502,7 @@ func (association *Association) buildCondition() *DB {
 
 	if association.Relationship.JoinTable != nil {
 		if !tx.Statement.Unscoped && len(association.Relationship.JoinTable.QueryClauses) > 0 {
-			joinStmt := Statement{DB: tx, Schema: association.Relationship.JoinTable, Table: association.Relationship.JoinTable.Table, Clauses: map[string]clause.Clause{}}
+			joinStmt := Statement{DB: tx, Context: tx.Statement.Context, Schema: association.Relationship.JoinTable, Table: association.Relationship.JoinTable.Table, Clauses: map[string]clause.Clause{}}
 			for _, queryClause := range association.Relationship.JoinTable.QueryClauses {
 				joinStmt.AddClause(queryClause)
 			}

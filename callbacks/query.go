@@ -96,12 +96,12 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 
 		// inline joins
-		joins := []clause.Join{}
-		if fromClause, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
-			joins = fromClause.Joins
+		fromClause := clause.From{}
+		if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+			fromClause = v
 		}
 
-		if len(db.Statement.Joins) != 0 || len(joins) != 0 {
+		if len(db.Statement.Joins) != 0 || len(fromClause.Joins) != 0 {
 			if len(db.Statement.Selects) == 0 && len(db.Statement.Omits) == 0 && db.Statement.Schema != nil {
 				clauseSelect.Columns = make([]clause.Column, len(db.Statement.Schema.DBNames))
 				for idx, dbName := range db.Statement.Schema.DBNames {
@@ -111,7 +111,7 @@ func BuildQuerySQL(db *gorm.DB) {
 
 			for _, join := range db.Statement.Joins {
 				if db.Statement.Schema == nil {
-					joins = append(joins, clause.Join{
+					fromClause.Joins = append(fromClause.Joins, clause.Join{
 						Expression: clause.NamedExpr{SQL: join.Name, Vars: join.Conds},
 					})
 				} else if relation, ok := db.Statement.Schema.Relationships.Relations[join.Name]; ok {
@@ -176,19 +176,19 @@ func BuildQuerySQL(db *gorm.DB) {
 						}
 					}
 
-					joins = append(joins, clause.Join{
+					fromClause.Joins = append(fromClause.Joins, clause.Join{
 						Type:  clause.LeftJoin,
 						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
 						ON:    clause.Where{Exprs: exprs},
 					})
 				} else {
-					joins = append(joins, clause.Join{
+					fromClause.Joins = append(fromClause.Joins, clause.Join{
 						Expression: clause.NamedExpr{SQL: join.Name, Vars: join.Conds},
 					})
 				}
 			}
 
-			db.Statement.AddClause(clause.From{Joins: joins})
+			db.Statement.AddClause(fromClause)
 			db.Statement.Joins = nil
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
