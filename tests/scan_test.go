@@ -184,11 +184,34 @@ func TestScanToEmbedded(t *testing.T) {
 		t.Errorf("Failed to run join query, got error: %v", err)
 	}
 
+	personMatched := false
+	addressMatched := false
+
 	for _, info := range personAddressInfoList {
-		if info.Person != nil {
-			if info.Person.ID == person1.ID && info.Person.Name != person1.Name {
+		if info.Person == nil {
+			t.Fatalf("Failed, expected not nil, got person nil")
+		}
+		if info.Address == nil {
+			t.Fatalf("Failed, expected not nil, got address nil")
+		}
+		if info.Person.ID == person1.ID {
+			personMatched = true
+			if info.Person.Name != person1.Name {
 				t.Errorf("Failed, expected %v, got %v", person1.Name, info.Person.Name)
 			}
 		}
+		if info.Address.ID == address1.ID {
+			addressMatched = true
+			if info.Address.Name != address1.Name {
+				t.Errorf("Failed, expected %v, got %v", address1.Name, info.Address.Name)
+			}
+		}
+	}
+
+	if !personMatched {
+		t.Errorf("Failed, no person matched")
+	}
+	if !addressMatched {
+		t.Errorf("Failed, no address matched")
 	}
 }
