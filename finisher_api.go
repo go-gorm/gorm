@@ -74,6 +74,10 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 	tx.Statement.Dest = value
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(value))
+	for reflectValue.Kind() == reflect.Ptr || reflectValue.Kind() == reflect.Interface {
+		reflectValue = reflect.Indirect(reflectValue)
+	}
+
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
 		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
