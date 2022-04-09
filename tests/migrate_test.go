@@ -577,6 +577,10 @@ func TestMigrateColumnOrder(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/5047
 func TestMigrateSercialColumn(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
 	type Event struct {
 		ID  uint `gorm:"primarykey"`
 		UID uint32
