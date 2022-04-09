@@ -574,3 +574,49 @@ func TestMigrateColumnOrder(t *testing.T) {
 		}
 	}
 }
+
+// https://github.com/go-gorm/gorm/issues/5047
+func TestMigrateSercialColumn(t *testing.T) {
+	type Event struct {
+		ID  uint `gorm:"primarykey"`
+		UID uint32
+	}
+
+	type Event1 struct {
+		ID  uint   `gorm:"primarykey"`
+		UID uint32 `gorm:"not null;autoIncrement"`
+	}
+
+	type Event2 struct {
+		ID  uint   `gorm:"primarykey"`
+		UID uint16 `gorm:"not null;autoIncrement"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&Event{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+
+	err = DB.Table("events").AutoMigrate(&Event1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = DB.Table("events").AutoMigrate(&Event2{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	DB.Table("events").Save(&Event2{})
+	DB.Table("events").Save(&Event2{})
+	DB.Table("events").Save(&Event2{})
+
+	events := make([]*Event, 0)
+	DB.Table("events").Find(&events)
+
+	AssertEqual(t, 3, len(events))
+	for _, v := range events {
+		AssertEqual(t, v.ID, v.UID)
+	}
+}
