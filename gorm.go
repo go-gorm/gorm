@@ -210,13 +210,20 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 }
 
 func (db *DB) Close() error {
-	sdb, isSdb := db.ConnPool.(*sql.DB)
-	stmt, isStmt := db.ConnPool.(*PreparedStmtDB)
+
+	db.cacheStore.Delete(preparedStmtDBKey)
+	return close(db.ConnPool)
+
+}
+
+func close(cp ConnPool) error {
+	sdb, isSdb := cp.(*sql.DB)
+	stmt, isStmt := cp.(*PreparedStmtDB)
+
 	switch {
 	case isSdb:
 		return sdb.Close()
 	case isStmt:
-		db.cacheStore.Delete(preparedStmtDBKey)
 		for _, v := range stmt.Stmts {
 			v.Close()
 		}
@@ -227,7 +234,6 @@ func (db *DB) Close() error {
 		return sdb.Close()
 	}
 	return nil
-
 }
 
 // Session create new db session
