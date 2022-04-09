@@ -209,6 +209,27 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	return
 }
 
+func (db *DB) Close() error {
+	sdb, isSdb := db.ConnPool.(*sql.DB)
+	stmt, isStmt := db.ConnPool.(*PreparedStmtDB)
+	switch {
+	case isSdb:
+		return sdb.Close()
+	case isStmt:
+		db.cacheStore.Delete(preparedStmtDBKey)
+		for _, v := range stmt.Stmts {
+			v.Close()
+		}
+		sdb, err := stmt.GetDBConn()
+		if err != nil {
+			return err
+		}
+		return sdb.Close()
+	}
+	return nil
+
+}
+
 // Session create new db session
 func (db *DB) Session(config *Session) *DB {
 	var (
