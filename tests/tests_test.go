@@ -18,10 +18,32 @@ import (
 
 var DB *gorm.DB
 
-func tearDown() {
-	gorm.Close(DB)
-}
+func TestClose(t *testing.T) {
+	if DB != nil {
+		err := gorm.Close(DB)
+		if err != nil {
+			t.Errorf("gorm close meet error:%+v\n", err)
+		}
+		if DB, err = OpenTestConnection(); err != nil {
+			log.Printf("failed to connect database, got error %v", err)
+			os.Exit(1)
+		} else {
+			sqlDB, err := DB.DB()
+			if err != nil {
+				log.Printf("failed to connect database, got error %v", err)
+				os.Exit(1)
+			}
 
+			err = sqlDB.Ping()
+			if err != nil {
+				log.Printf("failed to ping sqlDB, got error %v", err)
+				os.Exit(1)
+			}
+		}
+
+	}
+
+}
 func init() {
 	var err error
 	if DB, err = OpenTestConnection(); err != nil {
