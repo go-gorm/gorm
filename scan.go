@@ -74,7 +74,7 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 				relValue := joinFields[idx][0].ReflectValueOf(db.Statement.Context, reflectValue)
 				if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
 					if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
-						return
+						continue
 					}
 
 					relValue.Set(reflect.New(relValue.Type().Elem()))
