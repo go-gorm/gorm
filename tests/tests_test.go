@@ -18,6 +18,10 @@ import (
 
 var DB *gorm.DB
 
+func tearDown() {
+	gorm.Close(DB)
+}
+
 func init() {
 	var err error
 	if DB, err = OpenTestConnection(); err != nil {
