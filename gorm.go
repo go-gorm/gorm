@@ -209,7 +209,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	return
 }
 
-func (db *DB) Close() error {
+func Close(db *DB) error {
 
 	db.cacheStore.Delete(preparedStmtDBKey)
 	return close(db.ConnPool)
