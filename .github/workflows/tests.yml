@@ -8,6 +8,9 @@ on:
     branches-ignore:
       - 'gh-pages'
 
+permissions:
+  contents: read
+
 jobs:
   # Label of the container job
   sqlite:
