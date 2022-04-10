@@ -224,7 +224,8 @@ func close(cp ConnPool) error {
 	case isSdb:
 		return sdb.Close()
 	case isStmt:
-		for _, v := range stmt.Stmts {
+		for k, v := range stmt.Stmts {
+			delete(stmt.Stmts, k)
 			v.Close()
 		}
 		sdb, err := stmt.GetDBConn()
