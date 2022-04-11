@@ -21,6 +21,7 @@ type SerializerStruct struct {
 	Contracts       map[string]interface{} `gorm:"serializer:json"`
 	JobInfo         Job                    `gorm:"type:bytes;serializer:gob"`
 	CreatedTime     int64                  `gorm:"serializer:unixtime;type:time"` // store time in db, use int as field type
+	UpdatedTime     *int64                 `gorm:"serializer:unixtime;type:time"` // store time in db, use int as field type
 	EncryptedString EncryptedString
 }
 
@@ -58,6 +59,7 @@ func TestSerializer(t *testing.T) {
 	}
 
 	createdAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	updatedAt := createdAt.Unix()
 
 	data := SerializerStruct{
 		Name:            []byte("jinzhu"),
@@ -65,6 +67,7 @@ func TestSerializer(t *testing.T) {
 		Contracts:       map[string]interface{}{"name": "jinzhu", "age": 10},
 		EncryptedString: EncryptedString("pass"),
 		CreatedTime:     createdAt.Unix(),
+		UpdatedTime:     &updatedAt,
 		JobInfo: Job{
 			Title:    "programmer",
 			Number:   9920,
