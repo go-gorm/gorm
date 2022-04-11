@@ -932,7 +932,6 @@ func (field *Field) setupValuerAndSetter() {
 }
 
 func (field *Field) setupNewValuePool() {
-	var fieldValue = reflect.New(field.FieldType).Interface()
 	if field.Serializer != nil {
 		field.NewValuePool = &sync.Pool{
 			New: func() interface{} {
@@ -942,31 +941,9 @@ func (field *Field) setupNewValuePool() {
 				}
 			},
 		}
-	} else if _, ok := fieldValue.(sql.Scanner); !ok {
-		field.setupDefaultNewValuePool()
 	}
 
 	if field.NewValuePool == nil {
 		field.NewValuePool = poolInitializer(reflect.PtrTo(field.IndirectFieldType))
-	}
-}
-
-func (field *Field) setupDefaultNewValuePool() {
-	// set default NewValuePool
-	switch field.IndirectFieldType.Kind() {
-	case reflect.String:
-		field.NewValuePool = stringPool
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		field.NewValuePool = intPool
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		field.NewValuePool = uintPool
-	case reflect.Float32, reflect.Float64:
-		field.NewValuePool = floatPool
-	case reflect.Bool:
-		field.NewValuePool = boolPool
-	default:
-		if field.IndirectFieldType == TimeReflectType {
-			field.NewValuePool = timePool
-		}
 	}
 }
