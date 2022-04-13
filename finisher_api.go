@@ -326,6 +326,9 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 			}
 
 			return tx.Model(dest).Updates(assigns)
+		} else {
+			// can not use Find RowsAffected
+			tx.RowsAffected = 0
 		}
 	}
 	return tx
