@@ -526,3 +526,17 @@ func TestCreateNilPointer(t *testing.T) {
 		t.Fatalf("it is not ErrInvalidValue")
 	}
 }
+
+func TestFirstOrCreateRowsAffected(t *testing.T) {
+	user := User{Name: "TestFirstOrCreateRowsAffected"}
+
+	res := DB.FirstOrCreate(&user, "name = ?", user.Name)
+	if res.Error != nil || res.RowsAffected != 1 {
+		t.Fatalf("first or create rows affect err:%v rows:%d", res.Error, res.RowsAffected)
+	}
+
+	res = DB.FirstOrCreate(&user, "name = ?", user.Name)
+	if res.Error != nil || res.RowsAffected != 0 {
+		t.Fatalf("first or create rows affect err:%v rows:%d", res.Error, res.RowsAffected)
+	}
+}
