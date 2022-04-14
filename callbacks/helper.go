@@ -125,7 +125,7 @@ func checkMissingWhereConditions(db *gorm.DB) {
 type visitMap = map[reflect.Value]bool
 
 // Check if circular values, return true if loaded
-func loadOrStoreVisitMap(vistMap *visitMap, v reflect.Value) (loaded bool) {
+func loadOrStoreVisitMap(visitMap *visitMap, v reflect.Value) (loaded bool) {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -134,17 +134,17 @@ func loadOrStoreVisitMap(vistMap *visitMap, v reflect.Value) (loaded bool) {
 	case reflect.Slice, reflect.Array:
 		loaded = true
 		for i := 0; i < v.Len(); i++ {
-			if !loadOrStoreVisitMap(vistMap, v.Index(i)) {
+			if !loadOrStoreVisitMap(visitMap, v.Index(i)) {
 				loaded = false
 			}
 		}
 	case reflect.Struct, reflect.Interface:
 		if v.CanAddr() {
 			p := v.Addr()
-			if _, ok := (*vistMap)[p]; ok {
+			if _, ok := (*visitMap)[p]; ok {
 				return true
 			}
-			(*vistMap)[p] = true
+			(*visitMap)[p] = true
 		}
 	}
 
