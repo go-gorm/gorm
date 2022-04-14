@@ -187,7 +187,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		if limit, ok := c.Expression.(clause.Limit); ok {
 			totalSize = limit.Limit
 
-			if batchSize > totalSize {
+			if totalSize > 0 && batchSize > totalSize {
 				batchSize = totalSize
 			}
 

@@ -330,14 +330,24 @@ func TestFindInBatchesWithOffsetLimit(t *testing.T) {
 		AssertEqual(t, results[i], targetUsers[i])
 	}
 
+	var sub1 []User
 	// limit < batchSize
-	if result := DB.Limit(5).Where("name = ?", users[0].Name).FindInBatches(&sub, 10, func(tx *gorm.DB, batch int) error {
+	if result := DB.Limit(5).Where("name = ?", users[0].Name).FindInBatches(&sub1, 10, func(tx *gorm.DB, batch int) error {
 		return nil
 	}); result.Error != nil || result.RowsAffected != 5 {
 		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
 
-	if result := DB.Limit(4).Where("name = ?", users[0].Name).FindInBatches(&sub, 2, func(tx *gorm.DB, batch int) error {
+	var sub2 []User
+	// only offset
+	if result := DB.Offset(3).Where("name = ?", users[0].Name).FindInBatches(&sub2, 2, func(tx *gorm.DB, batch int) error {
+		return nil
+	}); result.Error != nil || result.RowsAffected != 7 {
+		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	var sub3 []User
+	if result := DB.Limit(4).Where("name = ?", users[0].Name).FindInBatches(&sub3, 2, func(tx *gorm.DB, batch int) error {
 		return nil
 	}); result.Error != nil || result.RowsAffected != 4 {
 		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
