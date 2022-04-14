@@ -181,6 +181,21 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		batch        int
 	)
 
+	// user specified offset or limit
+	var totalSize int
+	if c, ok := tx.Statement.Clauses["LIMIT"]; ok {
+		if limit, ok := c.Expression.(clause.Limit); ok {
+			totalSize = limit.Limit
+
+			if batchSize > totalSize {
+				batchSize = totalSize
+			}
+
+			// reset to offset to 0 in next batch
+			tx = tx.Offset(-1).Session(&Session{})
+		}
+	}
+
 	for {
 		result := queryDB.Limit(batchSize).Find(dest)
 		rowsAffected += result.RowsAffected
@@ -194,6 +209,16 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		if tx.Error != nil || int(result.RowsAffected) < batchSize {
 			break
+		}
+
+		if totalSize > 0 {
+			if totalSize/batchSize == batch {
+				batchSize = totalSize % batchSize
+			}
+
+			if totalSize <= int(rowsAffected) {
+				break
+			}
 		}
 
 		// Optimize for-break
