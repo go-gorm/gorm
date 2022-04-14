@@ -105,7 +105,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
 			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
-			if err := tx.Session(&Session{}).Take(result).Error; errors.Is(err, ErrRecordNotFound) {
+			if result := tx.Session(&Session{}).Limit(1).Find(result); result.RowsAffected == 0 {
 				return tx.Create(value)
 			}
 		}
