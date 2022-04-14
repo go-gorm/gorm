@@ -212,12 +212,11 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		}
 
 		if totalSize > 0 {
-			if totalSize/batchSize == batch {
-				batchSize = totalSize % batchSize
-			}
-
 			if totalSize <= int(rowsAffected) {
 				break
+			}
+			if totalSize/batchSize == batch {
+				batchSize = totalSize % batchSize
 			}
 		}
 

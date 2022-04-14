@@ -336,6 +336,12 @@ func TestFindInBatchesWithOffsetLimit(t *testing.T) {
 	}); result.Error != nil || result.RowsAffected != 5 {
 		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
+
+	if result := DB.Limit(4).Where("name = ?", users[0].Name).FindInBatches(&sub, 2, func(tx *gorm.DB, batch int) error {
+		return nil
+	}); result.Error != nil || result.RowsAffected != 4 {
+		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
 }
 
 func TestFindInBatchesWithError(t *testing.T) {
