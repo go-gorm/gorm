@@ -576,7 +576,7 @@ func TestMigrateColumnOrder(t *testing.T) {
 }
 
 // https://github.com/go-gorm/gorm/issues/5047
-func TestMigrateSercialColumn(t *testing.T) {
+func TestMigrateSerialColumn(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
