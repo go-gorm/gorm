@@ -243,6 +243,21 @@ func TestGroupConditions(t *testing.T) {
 	if !strings.HasSuffix(result, expects) {
 		t.Errorf("expects: %v, got %v", expects, result)
 	}
+
+	stmt2 := dryRunDB.Where(
+		DB.Scopes(NameIn1And2),
+	).Or(
+		DB.Where("pizza = ?", "hawaiian").Where("size = ?", "xlarge"),
+	).Find(&Pizza{}).Statement
+
+	execStmt2 := dryRunDB.Exec(`WHERE name in ? OR (pizza = ? AND size = ?)`, []string{"ScopeUser1", "ScopeUser2"}, "hawaiian", "xlarge").Statement
+
+	result2 := DB.Dialector.Explain(stmt2.SQL.String(), stmt2.Vars...)
+	expects2 := DB.Dialector.Explain(execStmt2.SQL.String(), execStmt2.Vars...)
+
+	if !strings.HasSuffix(result2, expects2) {
+		t.Errorf("expects: %v, got %v", expects2, result2)
+	}
 }
 
 func TestCombineStringConditions(t *testing.T) {

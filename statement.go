@@ -312,6 +312,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		case clause.Expression:
 			conds = append(conds, v)
 		case *DB:
+			for _, scope := range v.Statement.scopes {
+				v = scope(v)
+			}
+
 			if cs, ok := v.Statement.Clauses["WHERE"]; ok {
 				if where, ok := cs.Expression.(clause.Where); ok {
 					if len(where.Exprs) == 1 {
