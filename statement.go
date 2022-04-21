@@ -605,10 +605,10 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	changed := func(field *schema.Field) bool {
 		fieldValue, _ := field.ValueOf(stmt.Context, modelValue)
 		if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-			if mapV, mapOk := stmt.Dest.(map[string]interface{}); mapOk {
-				if fv, ok := mapV[field.Name]; ok {
+			if mv, mok := stmt.Dest.(map[string]interface{}); mok {
+				if fv, ok := mv[field.Name]; ok {
 					return !utils.AssertEqual(fv, fieldValue)
-				} else if fv, ok := mapV[field.DBName]; ok {
+				} else if fv, ok := mv[field.DBName]; ok {
 					return !utils.AssertEqual(fv, fieldValue)
 				}
 			} else {
