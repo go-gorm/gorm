@@ -99,7 +99,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
-				columnTypes, _ := m.DB.Migrator().ColumnTypes(value)
+				columnTypes, err := m.DB.Migrator().ColumnTypes(value)
+				if err != nil {
+					return err
+				}
 
 				for _, dbName := range stmt.Schema.DBNames {
 					field := stmt.Schema.FieldsByDBName[dbName]
