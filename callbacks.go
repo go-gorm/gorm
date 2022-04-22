@@ -132,7 +132,7 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if stmt.SQL.Len() > 0 {
 		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
-			return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
+			return stmt.SQL.String(), db.RowsAffected
 		}, db.Error)
 	}
 
