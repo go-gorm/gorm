@@ -25,6 +25,7 @@ func TestToDBName(t *testing.T) {
 		"SHA256Hash":                "sha256_hash",
 		"SHA256HASH":                "sha256_hash",
 		"ThisIsActuallyATestSoWeMayBeAbleToUseThisCodeInGormPackageAlsoIdCanBeUsedAtTheEndAsID": "this_is_actually_a_test_so_we_may_be_able_to_use_this_code_in_gorm_package_also_id_can_be_used_at_the_end_as_id",
+		"UDP_TCP_SQL": "udp_tcp_sql",
 	}
 
 	ns := NamingStrategy{}
