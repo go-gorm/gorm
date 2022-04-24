@@ -375,13 +375,19 @@ func TestSetColumn(t *testing.T) {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
+	// Code changed, price should changed
+	DB.Model(&product).Select("Name", "Code", "Price").Updates(Product3{Name: "Product New4", Code: ""})
+	if product.Name != "Product New4" || product.Price != 320 || product.Code != "" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
 	DB.Model(&product).UpdateColumns(Product3{Code: "L1215"})
-	if product.Price != 270 || product.Code != "L1215" {
+	if product.Price != 320 || product.Code != "L1215" {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
 	DB.Model(&product).Session(&gorm.Session{SkipHooks: true}).Updates(Product3{Code: "L1216"})
-	if product.Price != 270 || product.Code != "L1216" {
+	if product.Price != 320 || product.Code != "L1216" {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
