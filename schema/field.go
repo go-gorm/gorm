@@ -528,6 +528,9 @@ func (field *Field) setupValuerAndSetter() {
 			reflectValType := reflectV.Type()
 
 			if reflectValType.AssignableTo(field.FieldType) {
+				if reflectV.Kind() == reflect.Ptr && reflectV.Elem().Kind() == reflect.Ptr {
+					reflectV = reflect.Indirect(reflectV)
+				}
 				field.ReflectValueOf(ctx, value).Set(reflectV)
 				return
 			} else if reflectValType.ConvertibleTo(field.FieldType) {
