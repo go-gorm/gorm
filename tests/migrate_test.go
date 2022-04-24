@@ -602,11 +602,23 @@ func TestMigrateSerialColumn(t *testing.T) {
 		t.Errorf("DropTable err:%v", err)
 	}
 
+	// create sequence
 	err = DB.Table("events").AutoMigrate(&Event1{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
 
+	// delete sequence
+	err = DB.Table("events").AutoMigrate(&Event{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	// update sequence
+	err = DB.Table("events").AutoMigrate(&Event1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
 	err = DB.Table("events").AutoMigrate(&Event2{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
