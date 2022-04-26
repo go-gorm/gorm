@@ -290,7 +290,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
 
-	if tx = queryTx.Find(dest, conds...); queryTx.RowsAffected == 0 {
+	if tx = queryTx.Find(dest, conds...); tx.RowsAffected == 0 {
 		if c, ok := tx.Statement.Clauses["WHERE"]; ok {
 			if where, ok := c.Expression.(clause.Where); ok {
 				tx.assignInterfacesToValue(where.Exprs)
@@ -312,25 +312,26 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 
 // FirstOrCreate gets the first matched record or create a new one with given conditions (only works with struct, map conditions)
 func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
-	queryTx := db.Limit(1).Order(clause.OrderByColumn{
+	tx = db.getInstance()
+	queryTx := db.Session(&Session{}).Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
-	if tx = queryTx.Find(dest, conds...); tx.Error == nil {
-		if tx.RowsAffected == 0 {
-			if c, ok := tx.Statement.Clauses["WHERE"]; ok {
+	if result := queryTx.Find(dest, conds...); result.Error == nil {
+		if result.RowsAffected == 0 {
+			if c, ok := result.Statement.Clauses["WHERE"]; ok {
 				if where, ok := c.Expression.(clause.Where); ok {
-					tx.assignInterfacesToValue(where.Exprs)
+					result.assignInterfacesToValue(where.Exprs)
 				}
 			}
 
 			// initialize with attrs, conds
-			if len(tx.Statement.attrs) > 0 {
-				tx.assignInterfacesToValue(tx.Statement.attrs...)
+			if len(db.Statement.attrs) > 0 {
+				result.assignInterfacesToValue(db.Statement.attrs...)
 			}
 
 			// initialize with attrs, conds
-			if len(tx.Statement.assigns) > 0 {
-				tx.assignInterfacesToValue(tx.Statement.assigns...)
+			if len(db.Statement.assigns) > 0 {
+				result.assignInterfacesToValue(db.Statement.assigns...)
 			}
 
 			return tx.Create(dest)
@@ -351,8 +352,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 
 			return tx.Model(dest).Updates(assigns)
 		} else {
-			// can not use Find RowsAffected
-			tx.RowsAffected = 0
+			tx.Error = result.Error
 		}
 	}
 	return tx
