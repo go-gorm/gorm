@@ -639,9 +639,19 @@ func TestMigrateSerialColumn(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/5300
 func TestMigrateWithSpecialName(t *testing.T) {
-	DB.AutoMigrate(&Coupon{})
-	DB.Table("coupon_product_1").AutoMigrate(&CouponProduct{})
-	DB.Table("coupon_product_2").AutoMigrate(&CouponProduct{})
+	var err error
+	err = DB.AutoMigrate(&Coupon{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+	err = DB.Table("coupon_product_1").AutoMigrate(&CouponProduct{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+	err = DB.Table("coupon_product_2").AutoMigrate(&CouponProduct{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
 
 	AssertEqual(t, true, DB.Migrator().HasTable("coupons"))
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_1"))
