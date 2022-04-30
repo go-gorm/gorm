@@ -246,7 +246,13 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 		sortCallback  func(*callback) error
 	)
 	sort.Slice(cs, func(i, j int) bool {
-		return cs[j].before == "*" || cs[j].after == "*"
+		if cs[j].before == "*" && cs[i].before != "*" {
+			return true
+		}
+		if cs[j].after == "*" && cs[i].after != "*" {
+			return true
+		}
+		return false
 	})
 
 	for _, c := range cs {
