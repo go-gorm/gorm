@@ -78,6 +78,24 @@ func TestCancelTransaction(t *testing.T) {
 	}
 }
 
+func TestGetContextTransaction(t *testing.T) {
+	type ctxValue string
+	passThrough := ctxValue("passThrough")
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, passThrough, "passed")
+
+	user := *GetUser("get_context", Config{})
+	DB.Create(&user)
+
+	_ = DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		p := tx.Context().Value(passThrough).(string)
+		if p != "passed" {
+			t.Fatalf("Transaction did not contain the passThrough context value from context() function")
+		}
+		return nil
+	})
+}
+
 func TestTransactionWithBlock(t *testing.T) {
 	assertPanic := func(f func()) {
 		defer func() {

@@ -298,6 +298,11 @@ func (db *DB) WithContext(ctx context.Context) *DB {
 	return db.Session(&Session{Context: ctx})
 }
 
+// Context returns the db.Statement.Context
+func (db *DB) Context() context.Context {
+	return db.Statement.Context
+}
+
 // Debug start debug mode
 func (db *DB) Debug() (tx *DB) {
 	return db.Session(&Session{
