@@ -466,14 +466,20 @@ type Product4 struct {
 
 type ProductItem struct {
 	gorm.Model
-	Code       string
-	Product4ID uint
+	Code               string
+	Product4ID         uint
+	AfterFindCallTimes int
 }
 
 func (pi ProductItem) BeforeCreate(*gorm.DB) error {
 	if pi.Code == "invalid" {
 		return errors.New("invalid item")
 	}
+	return nil
+}
+
+func (pi *ProductItem) AfterFind(*gorm.DB) error {
+	pi.AfterFindCallTimes = pi.AfterFindCallTimes + 1
 	return nil
 }
 
@@ -497,5 +503,14 @@ func TestFailedToSaveAssociationShouldRollback(t *testing.T) {
 
 	if err := DB.First(&Product4{}, "name = ?", product.Name).Error; err != nil {
 		t.Errorf("should find product, but got error %v", err)
+	}
+
+	var productWithItem Product4
+	if err := DB.Session(&gorm.Session{SkipHooks: true}).Preload("Item").First(&productWithItem, "name = ?", product.Name).Error; err != nil {
+		t.Errorf("should find product, but got error %v", err)
+	}
+
+	if productWithItem.Item.AfterFindCallTimes != 0 {
+		t.Fatalf("AfterFind should not be called times:%d", productWithItem.Item.AfterFindCallTimes)
 	}
 }
