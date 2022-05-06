@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -57,6 +58,14 @@ func removeSettingFromTag(tag reflect.StructTag, names ...string) reflect.Struct
 		tag = reflect.StructTag(regexp.MustCompile(`(?i)(gorm:.*?)(`+name+`(:.*?)?)(;|("))`).ReplaceAllString(string(tag), "${1}${5}"))
 	}
 	return tag
+}
+
+func appendSettingFromTag(tag reflect.StructTag, value string) reflect.StructTag {
+	t := tag.Get("gorm")
+	if strings.Contains(t, value) {
+		return tag
+	}
+	return reflect.StructTag(fmt.Sprintf(`gorm:"%s;%s"`, value, t))
 }
 
 // GetRelationsValues get relations's values from a reflect value
