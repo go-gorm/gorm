@@ -680,6 +680,8 @@ func TestPrimarykeyID(t *testing.T) {
 		t.Fatalf("DropTable err:%v", err)
 	}
 
+	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
 	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
 	if err != nil {
 		t.Fatalf("AutoMigrate err:%v", err)
