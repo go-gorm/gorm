@@ -47,7 +47,7 @@ func CheckTruth(vals ...string) bool {
 }
 
 func CheckColumnDefaultNull(val string) bool {
-	if val == "" || !strings.EqualFold(val, "NULL") {
+	if val == "" || strings.EqualFold(val, "NULL") {
 		return true
 	}
 	return false

@@ -449,11 +449,13 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	if v, ok := columnType.DefaultValue(); ok &&
-		utils.CheckColumnDefaultNull(v) != utils.CheckColumnDefaultNull(field.DefaultValue) {
-		// not primary key
-		if !field.PrimaryKey {
-			alterColumn = true
+	if v, ok := columnType.DefaultValue(); ok && v != field.DefaultValue {
+		// not all equal null
+		if !(utils.CheckColumnDefaultNull(v) && utils.CheckColumnDefaultNull(field.DefaultValue)) {
+			// not primary key
+			if !field.PrimaryKey {
+				alterColumn = true
+			}
 		}
 	}
 

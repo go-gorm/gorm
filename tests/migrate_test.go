@@ -687,7 +687,7 @@ func TestUniqueColumn(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest{}, "name"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_1"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
-	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_3"))
 
 	type UniqueTest2 struct {
 		ID   string `gorm:"primary_key"`
@@ -712,5 +712,5 @@ func TestUniqueColumn(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest2{}, "name"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_1"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_2"))
-	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_2"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_3"))
 }
