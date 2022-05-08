@@ -659,6 +659,10 @@ func TestMigrateWithSpecialName(t *testing.T) {
 }
 
 func TestUniqueColumn(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		return
+	}
+
 	type UniqueTest struct {
 		ID   string `gorm:"primary_key"`
 		Name string `gorm:"unique"`
