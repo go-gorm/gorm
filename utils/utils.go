@@ -46,6 +46,13 @@ func CheckTruth(vals ...string) bool {
 	return false
 }
 
+func CheckColumnDefaultNull(val string) bool {
+	if val == "" || !strings.EqualFold(val, "NULL") {
+		return true
+	}
+	return false
+}
+
 func ToStringKey(values ...interface{}) string {
 	results := make([]string, len(values))
 

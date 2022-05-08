@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils"
 )
 
 var (
@@ -448,7 +449,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	if v, ok := columnType.DefaultValue(); ok && v != field.DefaultValue {
+	if v, ok := columnType.DefaultValue(); ok &&
+		utils.CheckColumnDefaultNull(v) != utils.CheckColumnDefaultNull(field.DefaultValue) {
 		// not primary key
 		if !field.PrimaryKey {
 			alterColumn = true

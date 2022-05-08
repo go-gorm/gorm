@@ -657,3 +657,56 @@ func TestMigrateWithSpecialName(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_1"))
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_2"))
 }
+
+func TestUniqueColumn(t *testing.T) {
+	type UniqueTest struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&UniqueTest{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&UniqueTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&UniqueTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest{}, "name"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_1"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
+
+	type UniqueTest2 struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique;default:NULL"`
+	}
+
+	err = DB.Migrator().DropTable(&UniqueTest2{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&UniqueTest2{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&UniqueTest2{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest2{}, "name"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_1"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_2"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest2{}, "name_2"))
+}
