@@ -42,7 +42,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 
 			switch rel.Type {
 			case schema.HasOne, schema.HasMany:
-				queryConds := rel.ToQueryConditions(db.Statement.ReflectValue)
+				queryConds := rel.ToQueryConditions(db.Statement.Context, db.Statement.ReflectValue)
 				modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
 				tx := db.Session(&gorm.Session{NewDB: true}).Model(modelValue)
 				withoutConditions := false
@@ -97,7 +97,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 					}
 				}
 
-				_, foreignValues := schema.GetIdentityFieldValuesMap(db.Statement.ReflectValue, foreignFields)
+				_, foreignValues := schema.GetIdentityFieldValuesMap(db.Statement.Context, db.Statement.ReflectValue, foreignFields)
 				column, values := schema.ToQueryValues(table, relForeignKeys, foreignValues)
 				queryConds = append(queryConds, clause.IN{Column: column, Values: values})
 
@@ -118,12 +118,18 @@ func Delete(config *Config) func(db *gorm.DB) {
 			return
 		}
 
+		if db.Statement.Schema != nil {
+			for _, c := range db.Statement.Schema.DeleteClauses {
+				db.Statement.AddClause(c)
+			}
+		}
+
 		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(100)
 			db.Statement.AddClauseIfNotExists(clause.Delete{})
 
 			if db.Statement.Schema != nil {
-				_, queryValues := schema.GetIdentityFieldValuesMap(db.Statement.ReflectValue, db.Statement.Schema.PrimaryFields)
+				_, queryValues := schema.GetIdentityFieldValuesMap(db.Statement.Context, db.Statement.ReflectValue, db.Statement.Schema.PrimaryFields)
 				column, values := schema.ToQueryValues(db.Statement.Table, db.Statement.Schema.PrimaryFieldDBNames, queryValues)
 
 				if len(values) > 0 {
@@ -131,7 +137,7 @@ func Delete(config *Config) func(db *gorm.DB) {
 				}
 
 				if db.Statement.ReflectValue.CanAddr() && db.Statement.Dest != db.Statement.Model && db.Statement.Model != nil {
-					_, queryValues = schema.GetIdentityFieldValuesMap(reflect.ValueOf(db.Statement.Model), db.Statement.Schema.PrimaryFields)
+					_, queryValues = schema.GetIdentityFieldValuesMap(db.Statement.Context, reflect.ValueOf(db.Statement.Model), db.Statement.Schema.PrimaryFields)
 					column, values = schema.ToQueryValues(db.Statement.Table, db.Statement.Schema.PrimaryFieldDBNames, queryValues)
 
 					if len(values) > 0 {
@@ -141,22 +147,11 @@ func Delete(config *Config) func(db *gorm.DB) {
 			}
 
 			db.Statement.AddClauseIfNotExists(clause.From{})
-		}
 
-		if db.Statement.Schema != nil {
-			for _, c := range db.Statement.Schema.DeleteClauses {
-				db.Statement.AddClause(c)
-			}
-		}
-
-		if db.Statement.SQL.Len() == 0 {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
-		if _, ok := db.Statement.Clauses["WHERE"]; !db.AllowGlobalUpdate && !ok && db.Error == nil {
-			db.AddError(gorm.ErrMissingWhereClause)
-			return
-		}
+		checkMissingWhereConditions(db)
 
 		if !db.DryRun && db.Error == nil {
 			ok, mode := hasReturning(db, supportReturning)

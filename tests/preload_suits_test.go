@@ -1335,7 +1335,7 @@ func TestNilPointerSlice(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(got[0], want) && !reflect.DeepEqual(got[1], want) {
-		t.Errorf("got %s; want array containing %s", toJSONString(got), toJSONString(want))
+		t.Fatalf("got %s; want array containing %s", toJSONString(got), toJSONString(want))
 	}
 
 	if !reflect.DeepEqual(got[0], want2) && !reflect.DeepEqual(got[1], want2) {

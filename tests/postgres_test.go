@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -15,9 +16,11 @@ func TestPostgres(t *testing.T) {
 
 	type Harumph struct {
 		gorm.Model
-		Name   string         `gorm:"check:name_checker,name <> ''"`
-		Test   uuid.UUID      `gorm:"type:uuid;not null;default:gen_random_uuid()"`
-		Things pq.StringArray `gorm:"type:text[]"`
+		Name      string         `gorm:"check:name_checker,name <> ''"`
+		Test      uuid.UUID      `gorm:"type:uuid;not null;default:gen_random_uuid()"`
+		CreatedAt time.Time      `gorm:"type:TIMESTAMP WITHOUT TIME ZONE"`
+		UpdatedAt time.Time      `gorm:"type:TIMESTAMP WITHOUT TIME ZONE;default:current_timestamp"`
+		Things    pq.StringArray `gorm:"type:text[]"`
 	}
 
 	if err := DB.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto;").Error; err != nil {
@@ -46,6 +49,15 @@ func TestPostgres(t *testing.T) {
 	}
 
 	if err := DB.Where("id = $1", harumph.ID).First(&Harumph{}).Error; err != nil || harumph.Name != "jinzhu" {
+		t.Errorf("No error should happen, but got %v", err)
+	}
+
+	harumph.Name = "jinzhu1"
+	if err := DB.Save(&harumph).Error; err != nil {
+		t.Errorf("Failed to update date, got error %v", err)
+	}
+
+	if err := DB.First(&result, "id = ?", harumph.ID).Error; err != nil || harumph.Name != "jinzhu1" {
 		t.Errorf("No error should happen, but got %v", err)
 	}
 }

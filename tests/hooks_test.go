@@ -375,13 +375,19 @@ func TestSetColumn(t *testing.T) {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
+	// Code changed, price should changed
+	DB.Model(&product).Select("Name", "Code", "Price").Updates(Product3{Name: "Product New4", Code: ""})
+	if product.Name != "Product New4" || product.Price != 320 || product.Code != "" {
+		t.Errorf("invalid data after update, got %+v", product)
+	}
+
 	DB.Model(&product).UpdateColumns(Product3{Code: "L1215"})
-	if product.Price != 270 || product.Code != "L1215" {
+	if product.Price != 320 || product.Code != "L1215" {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
 	DB.Model(&product).Session(&gorm.Session{SkipHooks: true}).Updates(Product3{Code: "L1216"})
-	if product.Price != 270 || product.Code != "L1216" {
+	if product.Price != 320 || product.Code != "L1216" {
 		t.Errorf("invalid data after update, got %+v", product)
 	}
 
@@ -460,14 +466,20 @@ type Product4 struct {
 
 type ProductItem struct {
 	gorm.Model
-	Code       string
-	Product4ID uint
+	Code               string
+	Product4ID         uint
+	AfterFindCallTimes int
 }
 
 func (pi ProductItem) BeforeCreate(*gorm.DB) error {
 	if pi.Code == "invalid" {
 		return errors.New("invalid item")
 	}
+	return nil
+}
+
+func (pi *ProductItem) AfterFind(*gorm.DB) error {
+	pi.AfterFindCallTimes = pi.AfterFindCallTimes + 1
 	return nil
 }
 
@@ -491,5 +503,14 @@ func TestFailedToSaveAssociationShouldRollback(t *testing.T) {
 
 	if err := DB.First(&Product4{}, "name = ?", product.Name).Error; err != nil {
 		t.Errorf("should find product, but got error %v", err)
+	}
+
+	var productWithItem Product4
+	if err := DB.Session(&gorm.Session{SkipHooks: true}).Preload("Item").First(&productWithItem, "name = ?", product.Name).Error; err != nil {
+		t.Errorf("should find product, but got error %v", err)
+	}
+
+	if productWithItem.Item.AfterFindCallTimes != 0 {
+		t.Fatalf("AfterFind should not be called times:%d", productWithItem.Item.AfterFindCallTimes)
 	}
 }

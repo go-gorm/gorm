@@ -59,6 +59,7 @@ type Config struct {
 	cacheStore *sync.Map
 }
 
+// Apply update config to new config
 func (c *Config) Apply(config *Config) error {
 	if config != c {
 		*config = *c
@@ -66,6 +67,7 @@ func (c *Config) Apply(config *Config) error {
 	return nil
 }
 
+// AfterInitialize initialize plugins after db connected
 func (c *Config) AfterInitialize(db *DB) error {
 	if db != nil {
 		for _, plugin := range c.Plugins {
@@ -77,6 +79,7 @@ func (c *Config) AfterInitialize(db *DB) error {
 	return nil
 }
 
+// Option gorm option interface
 type Option interface {
 	Apply(*Config) error
 	AfterInitialize(*DB) error
@@ -96,6 +99,7 @@ type Session struct {
 	DryRun                   bool
 	PrepareStmt              bool
 	NewDB                    bool
+	Initialized              bool
 	SkipHooks                bool
 	SkipDefaultTransaction   bool
 	DisableNestedTransaction bool
@@ -120,8 +124,8 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 
 	for _, opt := range opts {
 		if opt != nil {
-			if err := opt.Apply(config); err != nil {
-				return nil, err
+			if applyErr := opt.Apply(config); applyErr != nil {
+				return nil, applyErr
 			}
 			defer func(opt Option) {
 				if errr := opt.AfterInitialize(db); errr != nil {
@@ -282,6 +286,10 @@ func (db *DB) Session(config *Session) *DB {
 		tx.Config.NowFunc = config.NowFunc
 	}
 
+	if config.Initialized {
+		tx = tx.getInstance()
+	}
+
 	return tx
 }
 
@@ -376,10 +384,12 @@ func (db *DB) getInstance() *DB {
 	return db
 }
 
+// Expr returns clause.Expr, which can be used to pass SQL expression as params
 func Expr(expr string, args ...interface{}) clause.Expr {
 	return clause.Expr{SQL: expr, Vars: args}
 }
 
+// SetupJoinTable setup join table schema
 func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
 	var (
 		tx                      = db.getInstance()
@@ -430,6 +440,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	return nil
 }
 
+// Use use plugin
 func (db *DB) Use(plugin Plugin) error {
 	name := plugin.Name()
 	if _, ok := db.Plugins[name]; ok {
@@ -451,7 +462,7 @@ func (db *DB) Use(plugin Plugin) error {
 //			.First(&User{})
 // })
 func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
-	tx := queryFn(db.Session(&Session{DryRun: true}))
+	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}))
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)

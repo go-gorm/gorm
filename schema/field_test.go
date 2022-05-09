@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"context"
 	"database/sql"
 	"reflect"
 	"sync"
@@ -57,7 +58,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
@@ -80,7 +81,7 @@ func TestFieldValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues2 {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
@@ -132,7 +133,7 @@ func TestPointerFieldValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
@@ -151,7 +152,7 @@ func TestPointerFieldValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues2 {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
@@ -202,7 +203,7 @@ func TestAdvancedDataTypeValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}
@@ -219,7 +220,7 @@ func TestAdvancedDataTypeValuerAndSetter(t *testing.T) {
 	}
 
 	for k, v := range newValues2 {
-		if err := userSchema.FieldsByDBName[k].Set(reflectValue, v); err != nil {
+		if err := userSchema.FieldsByDBName[k].Set(context.Background(), reflectValue, v); err != nil {
 			t.Errorf("no error should happen when assign value to field %v, but got %v", k, err)
 		}
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestWithSingleConnection(t *testing.T) {
-	var expectedName = "test"
+	expectedName := "test"
 	var actualName string
 
 	setSQL, getSQL := getSetSQL(DB.Dialector.Name())
@@ -27,7 +27,6 @@ func TestWithSingleConnection(t *testing.T) {
 		}
 		return nil
 	})
-
 	if err != nil {
 		t.Errorf(fmt.Sprintf("WithSingleConnection should work, but got err %v", err))
 	}

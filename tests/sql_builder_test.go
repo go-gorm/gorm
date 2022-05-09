@@ -168,6 +168,59 @@ func TestDryRun(t *testing.T) {
 	}
 }
 
+type ageInt int8
+
+func (ageInt) String() string {
+	return "age"
+}
+
+type ageBool bool
+
+func (ageBool) String() string {
+	return "age"
+}
+
+type ageUint64 uint64
+
+func (ageUint64) String() string {
+	return "age"
+}
+
+type ageFloat float64
+
+func (ageFloat) String() string {
+	return "age"
+}
+
+func TestExplainSQL(t *testing.T) {
+	user := *GetUser("explain-sql", Config{})
+	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
+
+	stmt := dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageInt(8)}).Statement
+	sql := DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=8,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageUint64(10241024)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=10241024,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageBool(false)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=false,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+
+	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageFloat(0.12345678)}).Statement
+	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	if !regexp.MustCompile(`.*age.*=0.123457,`).MatchString(sql) {
+		t.Errorf("Failed to generate sql, got %v", sql)
+	}
+}
+
 func TestGroupConditions(t *testing.T) {
 	type Pizza struct {
 		ID   uint
@@ -189,6 +242,21 @@ func TestGroupConditions(t *testing.T) {
 
 	if !strings.HasSuffix(result, expects) {
 		t.Errorf("expects: %v, got %v", expects, result)
+	}
+
+	stmt2 := dryRunDB.Where(
+		DB.Scopes(NameIn1And2),
+	).Or(
+		DB.Where("pizza = ?", "hawaiian").Where("size = ?", "xlarge"),
+	).Find(&Pizza{}).Statement
+
+	execStmt2 := dryRunDB.Exec(`WHERE name in ? OR (pizza = ? AND size = ?)`, []string{"ScopeUser1", "ScopeUser2"}, "hawaiian", "xlarge").Statement
+
+	result2 := DB.Dialector.Explain(stmt2.SQL.String(), stmt2.Vars...)
+	expects2 := DB.Dialector.Explain(execStmt2.SQL.String(), execStmt2.Vars...)
+
+	if !strings.HasSuffix(result2, expects2) {
+		t.Errorf("expects: %v, got %v", expects2, result2)
 	}
 }
 
@@ -307,7 +375,7 @@ func TestToSQL(t *testing.T) {
 	})
 	assertEqualSQL(t, `SELECT * FROM "users" WHERE id = 100 AND "users"."deleted_at" IS NULL ORDER BY age desc LIMIT 10`, sql)
 
-	// after model chagned
+	// after model changed
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
@@ -373,13 +441,13 @@ func TestToSQL(t *testing.T) {
 	})
 	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo',"age"=100 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
-	// after model chagned
+	// after model changed
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
 }
 
-// assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect speicals.
+// assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect specials.
 func assertEqualSQL(t *testing.T, expected string, actually string) {
 	t.Helper()
 
@@ -387,7 +455,7 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 	expected = replaceQuoteInSQL(expected)
 	actually = replaceQuoteInSQL(actually)
 
-	// ignore updated_at value, becase it's generated in Gorm inernal, can't to mock value on update.
+	// ignore updated_at value, because it's generated in Gorm internal, can't to mock value on update.
 	updatedAtRe := regexp.MustCompile(`(?i)"updated_at"=".+?"`)
 	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"=?`)
 	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
@@ -407,16 +475,16 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 
 func replaceQuoteInSQL(sql string) string {
 	// convert single quote into double quote
-	sql = strings.Replace(sql, `'`, `"`, -1)
+	sql = strings.ReplaceAll(sql, `'`, `"`)
 
-	// convert dialect speical quote into double quote
+	// convert dialect special quote into double quote
 	switch DB.Dialector.Name() {
 	case "postgres":
-		sql = strings.Replace(sql, `"`, `"`, -1)
+		sql = strings.ReplaceAll(sql, `"`, `"`)
 	case "mysql", "sqlite":
-		sql = strings.Replace(sql, "`", `"`, -1)
+		sql = strings.ReplaceAll(sql, "`", `"`)
 	case "sqlserver":
-		sql = strings.Replace(sql, `'`, `"`, -1)
+		sql = strings.ReplaceAll(sql, `'`, `"`)
 	}
 
 	return sql

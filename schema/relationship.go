@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -234,7 +235,8 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: ownField.StructField.PkgPath,
 			Type:    ownField.StructField.Type,
-			Tag:     removeSettingFromTag(ownField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
+			Tag: removeSettingFromTag(appendSettingFromTag(ownField.StructField.Tag, "primaryKey"),
+				"column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -257,7 +259,8 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			Name:    joinFieldName,
 			PkgPath: relField.StructField.PkgPath,
 			Type:    relField.StructField.Type,
-			Tag:     removeSettingFromTag(relField.StructField.Tag, "column", "autoincrement", "index", "unique", "uniqueindex"),
+			Tag: removeSettingFromTag(appendSettingFromTag(relField.StructField.Tag, "primaryKey"),
+				"column", "autoincrement", "index", "unique", "uniqueindex"),
 		})
 	}
 
@@ -415,6 +418,10 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 		}
 	} else {
 		var primaryFields []*Field
+		var primarySchemaName = primarySchema.Name
+		if primarySchemaName == "" {
+			primarySchemaName = relation.FieldSchema.Name
+		}
 
 		if len(relation.primaryKeys) > 0 {
 			for _, primaryKey := range relation.primaryKeys {
@@ -427,7 +434,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 		}
 
 		for _, primaryField := range primaryFields {
-			lookUpName := primarySchema.Name + primaryField.Name
+			lookUpName := primarySchemaName + primaryField.Name
 			if gl == guessBelongs {
 				lookUpName = field.Name + primaryField.Name
 			}
@@ -576,7 +583,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	return &constraint
 }
 
-func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []clause.Expression) {
+func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue reflect.Value) (conds []clause.Expression) {
 	table := rel.FieldSchema.Table
 	foreignFields := []*Field{}
 	relForeignKeys := []string{}
@@ -616,7 +623,7 @@ func (rel *Relationship) ToQueryConditions(reflectValue reflect.Value) (conds []
 		}
 	}
 
-	_, foreignValues := GetIdentityFieldValuesMap(reflectValue, foreignFields)
+	_, foreignValues := GetIdentityFieldValuesMap(ctx, reflectValue, foreignFields)
 	column, values := ToQueryValues(table, relForeignKeys, foreignValues)
 
 	conds = append(conds, clause.IN{Column: column, Values: values})

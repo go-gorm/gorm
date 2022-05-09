@@ -3,7 +3,6 @@ package schema
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -86,16 +85,16 @@ func (ns NamingStrategy) IndexName(table, column string) string {
 }
 
 func (ns NamingStrategy) formatName(prefix, table, name string) string {
-	formattedName := strings.Replace(strings.Join([]string{
+	formattedName := strings.ReplaceAll(strings.Join([]string{
 		prefix, table, name,
-	}, "_"), ".", "_", -1)
+	}, "_"), ".", "_")
 
 	if utf8.RuneCountInString(formattedName) > 64 {
 		h := sha1.New()
 		h.Write([]byte(formattedName))
 		bs := h.Sum(nil)
 
-		formattedName = fmt.Sprintf("%v%v%v", prefix, table, name)[0:56] + hex.EncodeToString(bs)[:8]
+		formattedName = formattedName[0:56] + hex.EncodeToString(bs)[:8]
 	}
 	return formattedName
 }
@@ -120,7 +119,13 @@ func (ns NamingStrategy) toDBName(name string) string {
 	}
 
 	if ns.NameReplacer != nil {
-		name = ns.NameReplacer.Replace(name)
+		tmpName := ns.NameReplacer.Replace(name)
+
+		if tmpName == "" {
+			return name
+		}
+
+		name = tmpName
 	}
 
 	if ns.NoLowerCase {
@@ -168,7 +173,7 @@ func (ns NamingStrategy) toDBName(name string) string {
 }
 
 func (ns NamingStrategy) toSchemaName(name string) string {
-	result := strings.Replace(strings.Title(strings.Replace(name, "_", " ", -1)), " ", "", -1)
+	result := strings.ReplaceAll(strings.Title(strings.ReplaceAll(name, "_", " ")), " ", "")
 	for _, initialism := range commonInitialisms {
 		result = regexp.MustCompile(strings.Title(strings.ToLower(initialism))+"([A-Z]|$|_)").ReplaceAllString(result, initialism+"$1")
 	}

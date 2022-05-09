@@ -144,4 +144,22 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Where("name = ?", "count-4").Group("name").Count(&count11).Error; err != nil || count11 != 1 {
 		t.Fatalf("Count should be 3, but got count: %v err %v", count11, err)
 	}
+
+	var count12 int64
+	if err := DB.Table("users").
+		Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).
+		Preload("Toys", func(db *gorm.DB) *gorm.DB {
+			return db.Table("toys").Select("name")
+		}).Count(&count12).Error; err == nil {
+		t.Errorf("error should raise when using preload without schema")
+	}
+
+	var count13 int64
+	if err := DB.Model(User{}).
+		Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).
+		Preload("Toys", func(db *gorm.DB) *gorm.DB {
+			return db.Table("toys").Select("name")
+		}).Count(&count13).Error; err != nil {
+		t.Errorf("no error should raise when using count with preload, but got %v", err)
+	}
 }

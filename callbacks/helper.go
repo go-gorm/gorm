@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"reflect"
 	"sort"
 
 	"gorm.io/gorm"
@@ -103,4 +104,49 @@ func hasReturning(tx *gorm.DB, supportReturning bool) (bool, gorm.ScanMode) {
 		}
 	}
 	return false, 0
+}
+
+func checkMissingWhereConditions(db *gorm.DB) {
+	if !db.AllowGlobalUpdate && db.Error == nil {
+		where, withCondition := db.Statement.Clauses["WHERE"]
+		if withCondition {
+			if _, withSoftDelete := db.Statement.Clauses["soft_delete_enabled"]; withSoftDelete {
+				whereClause, _ := where.Expression.(clause.Where)
+				withCondition = len(whereClause.Exprs) > 1
+			}
+		}
+		if !withCondition {
+			db.AddError(gorm.ErrMissingWhereClause)
+		}
+		return
+	}
+}
+
+type visitMap = map[reflect.Value]bool
+
+// Check if circular values, return true if loaded
+func loadOrStoreVisitMap(visitMap *visitMap, v reflect.Value) (loaded bool) {
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		loaded = true
+		for i := 0; i < v.Len(); i++ {
+			if !loadOrStoreVisitMap(visitMap, v.Index(i)) {
+				loaded = false
+			}
+		}
+	case reflect.Struct, reflect.Interface:
+		if v.CanAddr() {
+			p := v.Addr()
+			if _, ok := (*visitMap)[p]; ok {
+				return true
+			}
+			(*visitMap)[p] = true
+		}
+	}
+
+	return
 }

@@ -2,7 +2,7 @@ version: '3'
 
 services:
   mysql:
-    image: 'mysql:latest'
+    image: 'mysql/mysql-server:latest'
     ports:
       - 9910:3306
     environment:
@@ -20,7 +20,7 @@ services:
       - POSTGRES_USER=gorm
       - POSTGRES_PASSWORD=gorm
   mssql:
-    image: 'mcmoe/mssqldocker:latest'
+    image: '${MSSQL_IMAGE:-mcmoe/mssqldocker}:latest'
     ports:
       - 9930:1433
     environment:

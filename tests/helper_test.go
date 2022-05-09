@@ -19,6 +19,7 @@ type Config struct {
 	Team      int
 	Languages int
 	Friends   int
+	NamedPet  bool
 }
 
 func GetUser(name string, config Config) *User {
@@ -63,6 +64,10 @@ func GetUser(name string, config Config) *User {
 
 	for i := 0; i < config.Friends; i++ {
 		user.Friends = append(user.Friends, GetUser(name+"_friend_"+strconv.Itoa(i+1), Config{}))
+	}
+
+	if config.NamedPet {
+		user.NamedPet = &Pet{Name: name + "_namepet"}
 	}
 
 	return &user

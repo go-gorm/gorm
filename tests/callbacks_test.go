@@ -38,6 +38,7 @@ func c2(*gorm.DB) {}
 func c3(*gorm.DB) {}
 func c4(*gorm.DB) {}
 func c5(*gorm.DB) {}
+func c6(*gorm.DB) {}
 
 func TestCallbacks(t *testing.T) {
 	type callback struct {
@@ -166,5 +167,39 @@ func TestCallbacks(t *testing.T) {
 		if ok, msg := assertCallbacks(callbacks.Create(), data.results); !ok {
 			t.Errorf("callbacks tests #%v failed, got %v", idx+1, msg)
 		}
+	}
+}
+
+func TestPluginCallbacks(t *testing.T) {
+	db, _ := gorm.Open(nil, nil)
+	createCallback := db.Callback().Create()
+
+	createCallback.Before("*").Register("plugin_1_fn1", c1)
+	createCallback.After("*").Register("plugin_1_fn2", c2)
+
+	if ok, msg := assertCallbacks(createCallback, []string{"c1", "c2"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	// plugin 2
+	createCallback.Before("*").Register("plugin_2_fn1", c3)
+	if ok, msg := assertCallbacks(createCallback, []string{"c3", "c1", "c2"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	createCallback.After("*").Register("plugin_2_fn2", c4)
+	if ok, msg := assertCallbacks(createCallback, []string{"c3", "c1", "c2", "c4"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	// plugin 3
+	createCallback.Before("*").Register("plugin_3_fn1", c5)
+	if ok, msg := assertCallbacks(createCallback, []string{"c5", "c3", "c1", "c2", "c4"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	createCallback.After("*").Register("plugin_3_fn2", c6)
+	if ok, msg := assertCallbacks(createCallback, []string{"c5", "c3", "c1", "c2", "c4", "c6"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
 	}
 }

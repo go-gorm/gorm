@@ -31,7 +31,7 @@ func (s ExampleStruct) Value() (driver.Value, error) {
 }
 
 func format(v []byte, escaper string) string {
-	return escaper + strings.Replace(string(v), escaper, "\\"+escaper, -1) + escaper
+	return escaper + strings.ReplaceAll(string(v), escaper, "\\"+escaper) + escaper
 }
 
 func TestExplainSQL(t *testing.T) {

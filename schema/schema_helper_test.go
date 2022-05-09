@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -203,7 +204,7 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[string]interface{}) {
 	for k, v := range values {
 		t.Run("CheckField/"+k, func(t *testing.T) {
-			fv, _ := s.FieldsByDBName[k].ValueOf(value)
+			fv, _ := s.FieldsByDBName[k].ValueOf(context.Background(), value)
 			tests.AssertEqual(t, v, fv)
 		})
 	}

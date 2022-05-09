@@ -18,6 +18,37 @@ type UserIndex struct {
 	Age          int64  `gorm:"index:profile,expression:ABS(age),option:WITH PARSER parser_name"`
 	OID          int64  `gorm:"index:idx_id;index:idx_oid,unique"`
 	MemberNumber string `gorm:"index:idx_id,priority:1"`
+	Name7        string `gorm:"index:type"`
+
+	// Composite Index: Flattened structure.
+	Data0A string `gorm:"index:,composite:comp_id0"`
+	Data0B string `gorm:"index:,composite:comp_id0"`
+
+	// Composite Index: Nested structure.
+	Data1A string `gorm:"index:,composite:comp_id1"`
+	CompIdxLevel1C
+
+	// Composite Index: Unique and priority.
+	Data2A string `gorm:"index:,unique,composite:comp_id2,priority:2"`
+	CompIdxLevel2C
+}
+
+type CompIdxLevel1C struct {
+	CompIdxLevel1B
+	Data1C string `gorm:"index:,composite:comp_id1"`
+}
+
+type CompIdxLevel1B struct {
+	Data1B string `gorm:"index:,composite:comp_id1"`
+}
+
+type CompIdxLevel2C struct {
+	CompIdxLevel2B
+	Data2C string `gorm:"index:,unique,composite:comp_id2,priority:1"`
+}
+
+type CompIdxLevel2B struct {
+	Data2B string `gorm:"index:,unique,composite:comp_id2,priority:3"`
 }
 
 func TestParseIndex(t *testing.T) {
@@ -77,6 +108,41 @@ func TestParseIndex(t *testing.T) {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID"}}},
+		},
+		"type": {
+			Name:   "type",
+			Type:   "",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name7"}}},
+		},
+		"idx_user_indices_comp_id0": {
+			Name: "idx_user_indices_comp_id0",
+			Type: "",
+			Fields: []schema.IndexOption{{
+				Field: &schema.Field{Name: "Data0A"},
+			}, {
+				Field: &schema.Field{Name: "Data0B"},
+			}},
+		},
+		"idx_user_indices_comp_id1": {
+			Name: "idx_user_indices_comp_id1",
+			Fields: []schema.IndexOption{{
+				Field: &schema.Field{Name: "Data1A"},
+			}, {
+				Field: &schema.Field{Name: "Data1B"},
+			}, {
+				Field: &schema.Field{Name: "Data1C"},
+			}},
+		},
+		"idx_user_indices_comp_id2": {
+			Name:  "idx_user_indices_comp_id2",
+			Class: "UNIQUE",
+			Fields: []schema.IndexOption{{
+				Field: &schema.Field{Name: "Data2C"},
+			}, {
+				Field: &schema.Field{Name: "Data2A"},
+			}, {
+				Field: &schema.Field{Name: "Data2B"},
+			}},
 		},
 	}
 
