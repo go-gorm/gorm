@@ -657,3 +657,39 @@ func TestMigrateWithSpecialName(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_1"))
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_2"))
 }
+
+// https://github.com/go-gorm/gorm/issues/5320
+func TestPrimarykeyID(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	type MissPKLanguage struct {
+		ID   string `gorm:"type:uuid;default:uuid_generate_v4()"`
+		Name string
+	}
+
+	type MissPKUser struct {
+		ID              string           `gorm:"type:uuid;default:uuid_generate_v4()"`
+		MissPKLanguages []MissPKLanguage `gorm:"many2many:miss_pk_user_languages;"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("DropTable err:%v", err)
+	}
+
+	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	// patch
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+}
