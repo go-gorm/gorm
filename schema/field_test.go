@@ -332,3 +332,24 @@ func TestTypeAliasField(t *testing.T) {
 		checkSchemaField(t, alias, f, func(f *schema.Field) {})
 	}
 }
+
+type UniqueIndexStruct struct {
+	ID  int64 `gorm:"uniqueIndex:uk@test"`
+	Age int64 `gorm:"unique"`
+}
+
+func TestUniqueIndexTag(t *testing.T) {
+	schema, err := schema.Parse(&UniqueIndexStruct{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("Failed to parse TestUniqueIndexTag with permission, got error %v", err)
+	}
+
+	tests.AssertEqual(t, len(schema.Fields), 2)
+	for _, field := range schema.Fields {
+		if field.Name == "ID" {
+			tests.AssertEqual(t, field.UniqueIndex, true)
+		} else {
+			tests.AssertEqual(t, field.UniqueIndex, false)
+		}
+	}
+}
