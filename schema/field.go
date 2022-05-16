@@ -68,6 +68,7 @@ type Field struct {
 	DefaultValue           string
 	DefaultValueInterface  interface{}
 	NotNull                bool
+	UniqueIndex            bool
 	Unique                 bool
 	Comment                string
 	Size                   int
@@ -114,6 +115,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
 		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
+		UniqueIndex:            utils.CheckTruth(tagSetting["UNIQUEINDEX"]),
 		Comment:                tagSetting["COMMENT"],
 		AutoIncrementIncrement: 1,
 	}
