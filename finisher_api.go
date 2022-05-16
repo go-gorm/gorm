@@ -696,16 +696,3 @@ func (db *DB) Exec(sql string, values ...interface{}) (tx *DB) {
 
 	return tx.callbacks.Raw().Execute(tx)
 }
-
-// ExecRaw Do no processing and execute the original sql
-func (db *DB) ExecRaw(sql string, values ...interface{}) (tx *DB) {
-	tx = db.getInstance()
-
-	builder := strings.Builder{}
-	builder.WriteString(sql)
-
-	tx.Statement.SQL = builder
-	tx.Statement.Vars = values
-
-	return tx.callbacks.Raw().Execute(tx)
-}
