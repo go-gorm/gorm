@@ -308,6 +308,135 @@ func (db *DB) GroupConcat(e *expr, separator string, orderExpr *expr) string {
 	return db.GroupConcatExpr(e, separator, orderExpr).expr
 }
 
+type TimeUnit int
+
+var (
+	TimeUnitYear        TimeUnit = 0
+	TimeUnitQuarter     TimeUnit = 1
+	TimeUnitMonth       TimeUnit = 2
+	TimeUnitDay         TimeUnit = 3
+	TimeUnitWeek        TimeUnit = 4
+	TimeUnitHour        TimeUnit = 5
+	TimeUnitMinute      TimeUnit = 6
+	TimeUnitSecond      TimeUnit = 7
+	TimeUnitMicrosecond TimeUnit = 8
+)
+
+func (t TimeUnit) String(dialect string) string {
+	switch dialect {
+	case "mysql":
+		switch t {
+		case TimeUnitYear:
+			return "YEAR"
+		case TimeUnitQuarter:
+			return "QUARTER"
+		case TimeUnitMonth:
+			return "MONTH"
+		case TimeUnitDay:
+			return "WEEK"
+		case TimeUnitWeek:
+			return "DAY"
+		case TimeUnitHour:
+			return "HOUR"
+		case TimeUnitMinute:
+			return "MINUTE"
+		case TimeUnitSecond:
+			return "SECOND"
+		case TimeUnitMicrosecond:
+			return "MICROSECOND"
+		}
+	case "mssql":
+		switch t {
+		case TimeUnitYear:
+			return "year"
+		case TimeUnitQuarter:
+			return "quarter"
+		case TimeUnitMonth:
+			return "month"
+		case TimeUnitDay:
+			return "day"
+		case TimeUnitWeek:
+			return "week"
+		case TimeUnitHour:
+			return "hour"
+		case TimeUnitMinute:
+			return "minute"
+		case TimeUnitSecond:
+			return "second"
+		case TimeUnitMicrosecond:
+			return "microsecond"
+		}
+	}
+	return "unkown time unit"
+}
+
+func (db *DB) TimestampDiffExpr(unit TimeUnit, timestamp1 interface{}, timestamp2 interface{}) *expr {
+	e := &expr{expr: ""}
+
+	dialect := db.Dialect().GetName()
+	switch dialect {
+	case "mysql":
+		e.expr = "TIMESTAMPDIFF("
+	case "mssql":
+		e.expr = "DATEDIFF("
+	default:
+		panic(fmt.Sprintf("TIMESTAMPDIFF not supported for %s", dialect))
+
+	}
+	e.expr += unit.String(dialect) + ","
+
+	if exp, ok := timestamp1.(*expr); ok {
+		e.expr += exp.expr
+		e.args = append(e.args, exp.args...)
+	} else {
+		e.expr += "?"
+		e.args = append(e.args, timestamp1)
+	}
+
+	e.expr += ","
+
+	if exp, ok := timestamp2.(*expr); ok {
+		e.expr += exp.expr
+		e.args = append(e.args, exp.args...)
+	} else {
+		e.expr += "?"
+		e.args = append(e.args, timestamp2)
+	}
+
+	e.expr += ")"
+
+	return e
+}
+
+func (db *DB) TimestampDiff(unit TimeUnit, timestamp1 interface{}, timestamp2 interface{}) string {
+	return db.TimestampDiffExpr(unit, timestamp1, timestamp2).expr
+}
+
+func (db *DB) CoalesceExpr(stmts ...interface{}) *expr {
+	e := &expr{expr: "COALESCE("}
+
+	for i, stmt := range stmts {
+		if i != 0 {
+			e.expr += ", "
+		}
+
+		if exp, ok := stmt.(*expr); ok {
+			e.expr += exp.expr
+			e.args = append(e.args, exp.args...)
+		} else {
+			e.expr += "?"
+			e.args = append(e.args, stmt)
+		}
+	}
+
+	e.expr += ")"
+	return e
+}
+
+func (db *DB) Coalesce(stmts ...interface{}) string {
+	return db.CoalesceExpr(stmts...).expr
+}
+
 func Order(stmts ...interface{}) *expr {
 	e := &expr{expr: "ORDER BY "}
 	for i, stmt := range stmts {
