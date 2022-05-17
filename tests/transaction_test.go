@@ -3,9 +3,10 @@ package tests_test
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
-	"testing"
 )
 
 func TestTransaction(t *testing.T) {
