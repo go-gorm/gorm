@@ -262,6 +262,25 @@ func TestMigrateTable(t *testing.T) {
 	}
 }
 
+func TestMigrateWithQuotedIndex(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		t.Skip()
+	}
+
+	type QuotedIndexStruct struct {
+		gorm.Model
+		Name string `gorm:"size:255;index:AS"` // AS is one of MySQL reserved words
+	}
+
+	if err := DB.Migrator().DropTable(&QuotedIndexStruct{}); err != nil {
+		t.Fatalf("Failed to drop table, got error %v", err)
+	}
+
+	if err := DB.AutoMigrate(&QuotedIndexStruct{}); err != nil {
+		t.Fatalf("Failed to auto migrate, but got error %v", err)
+	}
+}
+
 func TestMigrateIndexes(t *testing.T) {
 	type IndexStruct struct {
 		gorm.Model
