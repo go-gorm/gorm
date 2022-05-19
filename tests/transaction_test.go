@@ -367,3 +367,33 @@ func TestTransactionOnClosedConn(t *testing.T) {
 		t.Errorf("should returns error when commit with closed conn, got error %v", err)
 	}
 }
+
+func TestTransactionWithHooks(t *testing.T) {
+	user := GetUser("tTestTransactionWithHooks", Config{Account: true})
+	DB.Create(&user)
+
+	var err error
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&User{}).Limit(1).Transaction(func(tx2 *gorm.DB) error {
+			return tx2.Scan(&User{}).Error
+		})
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// method with hooks
+	err = DB.Transaction(func(tx1 *gorm.DB) error {
+		// callMethod do
+		tx2 := tx1.Find(&User{}).Session(&gorm.Session{NewDB: true})
+		// trx in hooks
+		return tx2.Transaction(func(tx3 *gorm.DB) error {
+			return tx3.Where("user_id", user.ID).Delete(&Account{}).Error
+		})
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+}

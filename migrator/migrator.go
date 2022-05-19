@@ -223,7 +223,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 					}
 
 					createTableSQL += ","
-					values = append(values, clause.Expr{SQL: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
+					values = append(values, clause.Column{Name: idx.Name}, tx.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt))
 				}
 			}
 
