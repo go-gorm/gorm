@@ -17,6 +17,11 @@ import (
 )
 
 var DB *gorm.DB
+var (
+	mysqlDSN     = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
+	postgresDSN  = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+	sqlserverDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+)
 
 func init() {
 	var err error
@@ -49,13 +54,13 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 	case "mysql":
 		log.Println("testing mysql...")
 		if dbDSN == "" {
-			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
+			dbDSN = mysqlDSN
 		}
 		db, err = gorm.Open(mysql.Open(dbDSN), &gorm.Config{})
 	case "postgres":
 		log.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+			dbDSN = postgresDSN
 		}
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
@@ -72,7 +77,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// GO
 		log.Println("testing sqlserver...")
 		if dbDSN == "" {
-			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+			dbDSN = sqlserverDSN
 		}
 		db, err = gorm.Open(sqlserver.Open(dbDSN), &gorm.Config{})
 	default:
