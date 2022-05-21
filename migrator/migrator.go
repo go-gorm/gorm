@@ -448,10 +448,20 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	if v, ok := columnType.DefaultValue(); ok && v != field.DefaultValue {
-		// not primary key
-		if !field.PrimaryKey {
+	if !field.PrimaryKey {
+		dv, dvNotNull := columnType.DefaultValue()
+		if dvNotNull && field.DefaultValueInterface == nil {
+			// defalut value -> null
 			alterColumn = true
+		} else if !dvNotNull && field.DefaultValueInterface != nil {
+			// null -> default value
+			alterColumn = true
+		} else if dv != field.DefaultValue {
+			// default value not equal
+			// not both null
+			if !(field.DefaultValueInterface == nil && !dvNotNull) {
+				alterColumn = true
+			}
 		}
 	}
 
