@@ -95,6 +95,16 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "name1 = ? AND name2 = ?;",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
 	}, {
+		SQL:          "name1 = @name1\r\n AND name2 = @name2",
+		Vars:         []interface{}{map[string]interface{}{"name1": "jinzhu", "name2": "jinzhu"}},
+		Result:       "name1 = ?\r\n AND name2 = ?",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
+	}, {
+		SQL:          "name1 = @name1\r AND name2 = @name2",
+		Vars:         []interface{}{map[string]interface{}{"name1": "jinzhu", "name2": "jinzhu"}},
+		Result:       "name1 = ?\r AND name2 = ?",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
+	}, {
 		SQL:    "?",
 		Vars:   []interface{}{clause.Column{Table: "table", Name: "col"}},
 		Result: "`table`.`col`",
