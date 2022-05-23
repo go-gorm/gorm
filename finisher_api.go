@@ -354,6 +354,8 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 		} else {
 			tx.Error = result.Error
 		}
+	} else {
+		tx.Error = result.Error
 	}
 	return tx
 }
