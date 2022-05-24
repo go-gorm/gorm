@@ -196,6 +196,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				for idx, column := range columns {
 					if field := sch.LookUpField(column); field != nil && field.Readable {
 						if curIndex, ok := selectedColumnsMap[column]; ok {
+							fields[idx] = field // handle duplicate fields
 							for fieldIndex, selectField := range sch.Fields[curIndex+1:] {
 								if selectField.DBName == column && selectField.Readable {
 									selectedColumnsMap[column] = curIndex + fieldIndex + 1

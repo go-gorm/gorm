@@ -214,4 +214,11 @@ func TestScanToEmbedded(t *testing.T) {
 	if !addressMatched {
 		t.Errorf("Failed, no address matched")
 	}
+
+	personDupField := Person{ID: person1.ID}
+	if err := DB.Select("people.id, people.*").
+		First(&personDupField).Error; err != nil {
+		t.Errorf("Failed to run join query, got error: %v", err)
+	}
+	AssertEqual(t, person1, personDupField)
 }
