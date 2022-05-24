@@ -351,8 +351,6 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 			}
 
 			return tx.Model(dest).Updates(assigns)
-		} else {
-			tx.Error = result.Error
 		}
 	} else {
 		tx.Error = result.Error
