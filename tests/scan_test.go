@@ -221,4 +221,21 @@ func TestScanToEmbedded(t *testing.T) {
 		t.Errorf("Failed to run join query, got error: %v", err)
 	}
 	AssertEqual(t, person1, personDupField)
+
+	user := User{
+		Name: "TestScanToEmbedded_1",
+		Manager: &User{Name: "TestScanToEmbedded_1_m1",
+			Manager: &User{Name: "TestScanToEmbedded_1_m1_m1"},
+		},
+	}
+	DB.Create(&user)
+
+	type UserScan struct {
+		ID        uint
+		Name      string
+		ManagerID *uint
+	}
+	var user2 UserScan
+	err := DB.Raw("SELECT * FROM users INNER JOIN users Manager ON users.manager_id = Manager.id WHERE users.id = ?", user.ID).Scan(&user2).Error
+	AssertEqual(t, err, nil)
 }
