@@ -224,7 +224,8 @@ func TestScanToEmbedded(t *testing.T) {
 
 	user := User{
 		Name: "TestScanToEmbedded_1",
-		Manager: &User{Name: "TestScanToEmbedded_1_m1",
+		Manager: &User{
+			Name:    "TestScanToEmbedded_1_m1",
 			Manager: &User{Name: "TestScanToEmbedded_1_m1_m1"},
 		},
 	}
