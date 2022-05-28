@@ -193,14 +193,21 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			// Not Pluck
 			if sch != nil {
+				schFieldsCount := len(sch.Fields)
 				for idx, column := range columns {
 					if field := sch.LookUpField(column); field != nil && field.Readable {
 						if curIndex, ok := selectedColumnsMap[column]; ok {
-							for fieldIndex, selectField := range sch.Fields[curIndex+1:] {
-								if selectField.DBName == column && selectField.Readable {
-									selectedColumnsMap[column] = curIndex + fieldIndex + 1
-									fields[idx] = selectField
-									break
+							fields[idx] = field // handle duplicate fields
+							offset := curIndex + 1
+							// handle sch inconsistent with database
+							// like Raw(`...`).Scan
+							if schFieldsCount > offset {
+								for fieldIndex, selectField := range sch.Fields[offset:] {
+									if selectField.DBName == column && selectField.Readable {
+										selectedColumnsMap[column] = curIndex + fieldIndex + 1
+										fields[idx] = selectField
+										break
+									}
 								}
 							}
 						} else {
