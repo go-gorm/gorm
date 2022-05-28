@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -712,6 +713,141 @@ func TestPrimarykeyID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AutoMigrate err:%v", err)
 	}
+}
+
+func TestUniqueColumn(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		return
+	}
+
+	type UniqueTest struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique"`
+	}
+
+	type UniqueTest2 struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique;default:NULL"`
+	}
+
+	type UniqueTest3 struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique;default:''"`
+	}
+
+	type UniqueTest4 struct {
+		ID   string `gorm:"primary_key"`
+		Name string `gorm:"unique;default:'123'"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&UniqueTest{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&UniqueTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	// null -> null
+	err = DB.AutoMigrate(&UniqueTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	ct, err := findColumnType(&UniqueTest{}, "name")
+	if err != nil {
+		t.Fatalf("findColumnType err:%v", err)
+	}
+
+	value, ok := ct.DefaultValue()
+	AssertEqual(t, "", value)
+	AssertEqual(t, false, ok)
+
+	// null -> null
+	err = DB.Table("unique_tests").AutoMigrate(&UniqueTest2{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	// not trigger alert column
+	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest{}, "name"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_1"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
+
+	ct, err = findColumnType(&UniqueTest{}, "name")
+	if err != nil {
+		t.Fatalf("findColumnType err:%v", err)
+	}
+
+	value, ok = ct.DefaultValue()
+	AssertEqual(t, "", value)
+	AssertEqual(t, false, ok)
+
+	// null -> empty string
+	err = DB.Table("unique_tests").AutoMigrate(&UniqueTest3{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	ct, err = findColumnType(&UniqueTest{}, "name")
+	if err != nil {
+		t.Fatalf("findColumnType err:%v", err)
+	}
+
+	value, ok = ct.DefaultValue()
+	AssertEqual(t, "", value)
+	AssertEqual(t, true, ok)
+
+	//  empty string -> 123
+	err = DB.Table("unique_tests").AutoMigrate(&UniqueTest4{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	ct, err = findColumnType(&UniqueTest{}, "name")
+	if err != nil {
+		t.Fatalf("findColumnType err:%v", err)
+	}
+
+	value, ok = ct.DefaultValue()
+	AssertEqual(t, "123", value)
+	AssertEqual(t, true, ok)
+
+	//  123 -> null
+	err = DB.Table("unique_tests").AutoMigrate(&UniqueTest2{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	ct, err = findColumnType(&UniqueTest{}, "name")
+	if err != nil {
+		t.Fatalf("findColumnType err:%v", err)
+	}
+
+	value, ok = ct.DefaultValue()
+	AssertEqual(t, "", value)
+	AssertEqual(t, false, ok)
+
+}
+
+func findColumnType(dest interface{}, columnName string) (
+	foundColumn gorm.ColumnType, err error) {
+	columnTypes, err := DB.Migrator().ColumnTypes(dest)
+	if err != nil {
+		err = fmt.Errorf("ColumnTypes err:%v", err)
+		return
+	}
+
+	for _, c := range columnTypes {
+		if c.Name() == columnName {
+			foundColumn = c
+			break
+		}
+	}
+	return
 }
 
 func TestInvalidCachedPlan(t *testing.T) {
