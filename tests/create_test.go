@@ -476,6 +476,13 @@ func TestOmitWithCreate(t *testing.T) {
 	CheckUser(t, result2, user2)
 }
 
+func TestFirstOrCreateNotExistsTable(t *testing.T) {
+	company := Company{Name: "first_or_create_if_not_exists_table"}
+	if err := DB.Table("not_exists").FirstOrCreate(&company).Error; err == nil {
+		t.Errorf("not exists table, but err is nil")
+	}
+}
+
 func TestFirstOrCreateWithPrimaryKey(t *testing.T) {
 	company := Company{ID: 100, Name: "company100_with_primarykey"}
 	DB.FirstOrCreate(&company)
