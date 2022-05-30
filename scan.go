@@ -237,6 +237,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			var elem reflect.Value
+			recyclableStruct := reflect.New(reflectValueType)
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
@@ -261,7 +262,11 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 						}
 					}
 				} else {
-					elem = reflect.New(reflectValueType)
+					if isPtr {
+						elem = reflect.New(reflectValueType)
+					} else {
+						elem = recyclableStruct
+					}
 				}
 
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
