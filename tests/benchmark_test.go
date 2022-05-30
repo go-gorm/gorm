@@ -24,6 +24,16 @@ func BenchmarkFind(b *testing.B) {
 	}
 }
 
+func BenchmarkScan(b *testing.B) {
+	user := *GetUser("find", Config{})
+	DB.Create(&user)
+
+	var u User
+	for x := 0; x < b.N; x++ {
+		DB.Raw("select * from users where id = ?", user.ID).Scan(&u)
+	}
+}
+
 func BenchmarkUpdate(b *testing.B) {
 	user := *GetUser("find", Config{})
 	DB.Create(&user)
