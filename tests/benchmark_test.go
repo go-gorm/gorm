@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "gorm.io/gorm/utils/tests"
@@ -25,12 +26,24 @@ func BenchmarkFind(b *testing.B) {
 }
 
 func BenchmarkScan(b *testing.B) {
-	user := *GetUser("find", Config{})
+	user := *GetUser("scan", Config{})
 	DB.Create(&user)
 
 	var u User
 	for x := 0; x < b.N; x++ {
 		DB.Raw("select * from users where id = ?", user.ID).Scan(&u)
+	}
+}
+
+func BenchmarkScanSlice(b *testing.B) {
+	for i := 0; i < 10_000; i++ {
+		user := *GetUser(fmt.Sprintf("scan-%d", i), Config{})
+		DB.Create(&user)
+	}
+
+	var u []User
+	for x := 0; x < b.N; x++ {
+		DB.Raw("select * from users").Scan(&u)
 	}
 }
 
