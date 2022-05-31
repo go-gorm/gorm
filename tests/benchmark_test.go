@@ -30,6 +30,7 @@ func BenchmarkScan(b *testing.B) {
 	DB.Create(&user)
 
 	var u User
+	b.ResetTimer()
 	for x := 0; x < b.N; x++ {
 		DB.Raw("select * from users where id = ?", user.ID).Scan(&u)
 	}
@@ -42,6 +43,20 @@ func BenchmarkScanSlice(b *testing.B) {
 	}
 
 	var u []User
+	b.ResetTimer()
+	for x := 0; x < b.N; x++ {
+		DB.Raw("select * from users").Scan(&u)
+	}
+}
+
+func BenchmarkScanSlicePointer(b *testing.B) {
+	for i := 0; i < 10_000; i++ {
+		user := *GetUser(fmt.Sprintf("scan-%d", i), Config{})
+		DB.Create(&user)
+	}
+
+	var u []*User
+	b.ResetTimer()
 	for x := 0; x < b.N; x++ {
 		DB.Raw("select * from users").Scan(&u)
 	}
