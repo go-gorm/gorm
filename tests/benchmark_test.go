@@ -37,7 +37,7 @@ func BenchmarkScan(b *testing.B) {
 }
 
 func BenchmarkScanSlice(b *testing.B) {
-	DB.Exec("delete * from users")
+	DB.Exec("delete from users")
 	for i := 0; i < 10_000; i++ {
 		user := *GetUser(fmt.Sprintf("scan-%d", i), Config{})
 		DB.Create(&user)
@@ -51,7 +51,7 @@ func BenchmarkScanSlice(b *testing.B) {
 }
 
 func BenchmarkScanSlicePointer(b *testing.B) {
-	DB.Exec("delete * from users")
+	DB.Exec("delete from users")
 	for i := 0; i < 10_000; i++ {
 		user := *GetUser(fmt.Sprintf("scan-%d", i), Config{})
 		DB.Create(&user)
