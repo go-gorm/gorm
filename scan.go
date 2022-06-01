@@ -262,7 +262,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 						}
 					}
 				} else {
-					if isPtr {
+					if isPtr && db.RowsAffected > 0 {
 						elem = reflect.New(reflectValueType)
 					} else {
 						elem = recyclableStruct
