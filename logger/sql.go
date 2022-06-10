@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	tmFmtWithMS = "2006-01-02 15:04:05.999"
+	tmFmtWithMS = "2006-01-02 15:04:05.999 Z0700"
 	tmFmtZero   = "0000-00-00 00:00:00"
 	nullStr     = "NULL"
 )
@@ -30,7 +30,7 @@ func isPrintable(s string) bool {
 
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
-// ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
+// ExplainSQL generate SQL strings with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var (
 		convertParams func(interface{}, int)
@@ -42,21 +42,9 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		case bool:
 			vars[idx] = strconv.FormatBool(v)
 		case time.Time:
-			if v.IsZero() {
-				vars[idx] = escaper + tmFmtZero + escaper
-			} else {
-				vars[idx] = escaper + v.Format(tmFmtWithMS) + escaper
-			}
+			vars[idx] = formatTime(&v, escaper)
 		case *time.Time:
-			if v != nil {
-				if v.IsZero() {
-					vars[idx] = escaper + tmFmtZero + escaper
-				} else {
-					vars[idx] = escaper + v.Format(tmFmtWithMS) + escaper
-				}
-			} else {
-				vars[idx] = nullStr
-			}
+			vars[idx] = formatTime(v, escaper)
 		case driver.Valuer:
 			reflectValue := reflect.ValueOf(v)
 			if v != nil && reflectValue.IsValid() && ((reflectValue.Kind() == reflect.Ptr && !reflectValue.IsNil()) || reflectValue.Kind() != reflect.Ptr) {
@@ -144,4 +132,15 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 	}
 
 	return sql
+}
+
+func formatTime(v *time.Time, escaper string) string {
+	if v == nil {
+		return nullStr
+	}
+	if v.IsZero() {
+		return escaper + tmFmtZero + escaper
+	} else {
+		return escaper + v.Format(tmFmtWithMS) + escaper
+	}
 }
