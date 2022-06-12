@@ -1258,3 +1258,54 @@ func TestQueryScannerWithSingleColumn(t *testing.T) {
 
 	AssertEqual(t, result2.data, 20)
 }
+
+func TestQueryResetNullValue(t *testing.T) {
+	type QueryResetNullValue struct {
+		ID      int
+		Name    string     `gorm:"default:NULL"`
+		Flag    bool       `gorm:"default:NULL"`
+		Number1 int64      `gorm:"default:NULL"`
+		Number2 uint64     `gorm:"default:NULL"`
+		Number3 float64    `gorm:"default:NULL"`
+		Now     *time.Time `gorm:"defalut:NULL"`
+	}
+
+	DB.Migrator().DropTable(&QueryResetNullValue{})
+	DB.AutoMigrate(&QueryResetNullValue{})
+
+	now := time.Now()
+	q1 := QueryResetNullValue{
+		Name:    "name",
+		Flag:    true,
+		Number1: 100,
+		Number2: 200,
+		Number3: 300.1,
+		Now:     &now,
+	}
+
+	q2 := QueryResetNullValue{}
+
+	var err error
+	err = DB.Create(&q1).Error
+	if err != nil {
+		t.Errorf("failed to create:%v", err)
+	}
+
+	err = DB.Create(&q2).Error
+	if err != nil {
+		t.Errorf("failed to create:%v", err)
+	}
+
+	var qs []QueryResetNullValue
+	err = DB.Find(&qs).Error
+	if err != nil {
+		t.Errorf("failed to find:%v", err)
+	}
+
+	if len(qs) != 2 {
+		t.Fatalf("find count not equal:%d", len(qs))
+	}
+
+	AssertEqual(t, q1, qs[0])
+	AssertEqual(t, q2, qs[1])
+}
