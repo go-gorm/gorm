@@ -1260,6 +1260,11 @@ func TestQueryScannerWithSingleColumn(t *testing.T) {
 }
 
 func TestQueryResetNullValue(t *testing.T) {
+	type QueryResetItem struct {
+		ID   string `gorm:"type:varchar(5)"`
+		Name string
+	}
+
 	type QueryResetNullValue struct {
 		ID      int
 		Name    string     `gorm:"default:NULL"`
@@ -1268,10 +1273,14 @@ func TestQueryResetNullValue(t *testing.T) {
 		Number2 uint64     `gorm:"default:NULL"`
 		Number3 float64    `gorm:"default:NULL"`
 		Now     *time.Time `gorm:"defalut:NULL"`
+		Item1Id string
+		Item1   *QueryResetItem `gorm:"references:ID"`
+		Item2Id string
+		Item2   *QueryResetItem `gorm:"references:ID"`
 	}
 
-	DB.Migrator().DropTable(&QueryResetNullValue{})
-	DB.AutoMigrate(&QueryResetNullValue{})
+	DB.Migrator().DropTable(&QueryResetNullValue{}, &QueryResetItem{})
+	DB.AutoMigrate(&QueryResetNullValue{}, &QueryResetItem{})
 
 	now := time.Now()
 	q1 := QueryResetNullValue{
@@ -1281,9 +1290,26 @@ func TestQueryResetNullValue(t *testing.T) {
 		Number2: 200,
 		Number3: 300.1,
 		Now:     &now,
+		Item1: &QueryResetItem{
+			ID:   "u_1_1",
+			Name: "item_1_1",
+		},
+		Item2: &QueryResetItem{
+			ID:   "u_1_2",
+			Name: "item_1_2",
+		},
 	}
 
-	q2 := QueryResetNullValue{}
+	q2 := QueryResetNullValue{
+		Item1: &QueryResetItem{
+			ID:   "u_2_1",
+			Name: "item_2_1",
+		},
+		Item2: &QueryResetItem{
+			ID:   "u_2_2",
+			Name: "item_2_2",
+		},
+	}
 
 	var err error
 	err = DB.Create(&q1).Error
@@ -1297,7 +1323,7 @@ func TestQueryResetNullValue(t *testing.T) {
 	}
 
 	var qs []QueryResetNullValue
-	err = DB.Find(&qs).Error
+	err = DB.Joins("Item1").Joins("Item2").Find(&qs).Error
 	if err != nil {
 		t.Errorf("failed to find:%v", err)
 	}
