@@ -66,18 +66,23 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 	db.RowsAffected++
 	db.AddError(rows.Scan(values...))
 
+	joinedSchemaMap := make(map[*schema.Field]interface{}, 0)
 	for idx, field := range fields {
 		if field != nil {
 			if len(joinFields) == 0 || joinFields[idx][0] == nil {
 				db.AddError(field.Set(db.Statement.Context, reflectValue, values[idx]))
 			} else {
-				relValue := joinFields[idx][0].ReflectValueOf(db.Statement.Context, reflectValue)
-				if relValue.Kind() == reflect.Ptr && relValue.IsNil() {
-					if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
-						continue
-					}
+				joinSchema := joinFields[idx][0]
+				relValue := joinSchema.ReflectValueOf(db.Statement.Context, reflectValue)
+				if relValue.Kind() == reflect.Ptr {
+					if _, ok := joinedSchemaMap[joinSchema]; !ok {
+						if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
+							continue
+						}
 
-					relValue.Set(reflect.New(relValue.Type().Elem()))
+						relValue.Set(reflect.New(relValue.Type().Elem()))
+						joinedSchemaMap[joinSchema] = nil
+					}
 				}
 				db.AddError(joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx]))
 			}
