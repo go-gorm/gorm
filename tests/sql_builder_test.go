@@ -403,7 +403,7 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Create(user)
 	})
-	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
+	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00 Z','2021-10-18 00:00:00 Z',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
 
 	// save
 	user = &User{Name: "foo", Age: 20}
@@ -412,7 +412,7 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Save(user)
 	})
-	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
+	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00 Z','2021-10-18 00:00:00 Z',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
 
 	// updates
 	user = &User{Name: "bar", Age: 22}
@@ -421,13 +421,13 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).Updates(user)
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "created_at"='2021-10-18 00:00:00',"updated_at"='2021-10-18 19:50:09.438',"name"='bar',"age"=22 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "created_at"='2021-10-18 00:00:00 Z',"updated_at"='2021-10-18 19:50:09.438 Z',"name"='bar',"age"=22 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// update
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).Update("name", "Foo bar")
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo bar',"updated_at"='2021-10-18 19:50:09.438' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo bar',"updated_at"='2021-10-18 19:50:09.438 Z' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// UpdateColumn
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
