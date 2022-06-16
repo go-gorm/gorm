@@ -50,6 +50,7 @@ type ColumnType interface {
 	Comment() (value string, ok bool)
 	DefaultValue() (value string, ok bool)
 }
+
 type Index interface {
 	Table() string
 	Name() string

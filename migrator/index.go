@@ -12,12 +12,12 @@ type Index struct {
 	OptionValue     string
 }
 
-// Table returns the table name of the index.
+// Table return the table name of the index.
 func (idx Index) Table() string {
 	return idx.TableName
 }
 
-// Name returns the name  of the index.
+// Name return the name  of the index.
 func (idx Index) Name() string {
 	return idx.NameValue
 }
@@ -32,10 +32,9 @@ func (idx Index) PrimaryKey() (isPrimaryKey bool, ok bool) {
 	return idx.PrimaryKeyValue.Bool, idx.PrimaryKeyValue.Valid
 }
 
-// Unique reports whether the index is unique or not.
+// Unique returns whether the index is unique or not.
 func (idx Index) Unique() (unique bool, ok bool) {
 	return idx.UniqueValue.Bool, idx.UniqueValue.Valid
-
 }
 
 // Option return the optional attribute fo the index
