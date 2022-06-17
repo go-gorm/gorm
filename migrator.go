@@ -51,6 +51,15 @@ type ColumnType interface {
 	DefaultValue() (value string, ok bool)
 }
 
+type Index interface {
+	Table() string
+	Name() string
+	Columns() []string
+	PrimaryKey() (isPrimaryKey bool, ok bool)
+	Unique() (unique bool, ok bool)
+	Option() string
+}
+
 // Migrator migrator interface
 type Migrator interface {
 	// AutoMigrate
@@ -90,4 +99,5 @@ type Migrator interface {
 	DropIndex(dst interface{}, name string) error
 	HasIndex(dst interface{}, name string) bool
 	RenameIndex(dst interface{}, oldName, newName string) error
+	GetIndexes(dst interface{}) ([]Index, error)
 }
