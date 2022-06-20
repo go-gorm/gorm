@@ -37,10 +37,14 @@ func TestWhereCloneCorruption(t *testing.T) {
 
 func TestNameMatcher(t *testing.T) {
 	for k, v := range map[string]string{
-		"table.name":     "name",
-		"`table`.`name`": "name",
-		"'table'.'name'": "name",
-		"'table'.name":   "name",
+		"table.name":         "name",
+		"`table`.`name`":     "name",
+		"'table'.'name'":     "name",
+		"'table'.name":       "name",
+		"table1.name_23":     "name_23",
+		"`table_1`.`name23`": "name23",
+		"'table23'.'name_1'": "name_1",
+		"'table23'.name1":    "name1",
 	} {
 		if matches := nameMatcher.FindStringSubmatch(k); len(matches) < 2 || matches[1] != v {
 			t.Errorf("failed to match value: %v, got %v, expect: %v", k, matches, v)
