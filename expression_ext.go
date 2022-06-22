@@ -205,13 +205,7 @@ func Concat(stmts ...interface{}) *expr {
 			e.expr += ", "
 		}
 
-		if exp, ok := stmt.(*expr); ok {
-			e.expr += exp.expr
-			e.args = append(e.args, exp.args...)
-		} else {
-			e.expr += "?"
-			e.args = append(e.args, stmt)
-		}
+		addStatementToExpression(e, stmt)
 	}
 
 	e.expr += ")"
@@ -384,28 +378,22 @@ func (db *DB) TimestampDiffExpr(unit TimeUnit, timestamp1 interface{}, timestamp
 
 	}
 	e.expr += unit.String(dialect) + ","
-
-	if exp, ok := timestamp1.(*expr); ok {
-		e.expr += exp.expr
-		e.args = append(e.args, exp.args...)
-	} else {
-		e.expr += "?"
-		e.args = append(e.args, timestamp1)
-	}
-
+	addStatementToExpression(e, timestamp1)
 	e.expr += ","
-
-	if exp, ok := timestamp2.(*expr); ok {
-		e.expr += exp.expr
-		e.args = append(e.args, exp.args...)
-	} else {
-		e.expr += "?"
-		e.args = append(e.args, timestamp2)
-	}
-
+	addStatementToExpression(e, timestamp2)
 	e.expr += ")"
 
 	return e
+}
+
+func addStatementToExpression(e *expr, stm interface{}) {
+	if exp, ok := stm.(*expr); ok {
+		e.expr += exp.expr
+		e.args = append(e.args, exp.args...)
+	} else {
+		e.expr += "?"
+		e.args = append(e.args, stm)
+	}
 }
 
 func (db *DB) TimestampDiff(unit TimeUnit, timestamp1 interface{}, timestamp2 interface{}) string {
@@ -420,13 +408,7 @@ func (db *DB) CoalesceExpr(stmts ...interface{}) *expr {
 			e.expr += ", "
 		}
 
-		if exp, ok := stmt.(*expr); ok {
-			e.expr += exp.expr
-			e.args = append(e.args, exp.args...)
-		} else {
-			e.expr += "?"
-			e.args = append(e.args, stmt)
-		}
+		addStatementToExpression(e, stmt)
 	}
 
 	e.expr += ")"
@@ -443,13 +425,7 @@ func Order(stmts ...interface{}) *expr {
 		if i != 0 {
 			e.expr += ", "
 		}
-		if exp, ok := stmt.(*expr); ok {
-			e.expr += exp.expr
-			e.args = append(e.args, exp.args...)
-		} else {
-			e.expr += "?"
-			e.args = append(e.args, stmt)
-		}
+		addStatementToExpression(e, stmt)
 	}
 	return e
 }
