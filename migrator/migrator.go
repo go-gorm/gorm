@@ -73,6 +73,10 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 		expr.SQL += " NOT NULL"
 	}
 
+	if field.AutoIncrement {
+		expr.SQL += " AUTO_INCREMENT"
+	}
+
 	if field.Unique {
 		expr.SQL += " UNIQUE"
 	}
