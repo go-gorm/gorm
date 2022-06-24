@@ -2,6 +2,7 @@ package gorm
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -15,12 +16,13 @@ import (
 func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
-			"create": {db: db},
-			"query":  {db: db},
-			"update": {db: db},
-			"delete": {db: db},
-			"row":    {db: db},
-			"raw":    {db: db},
+			"create":      {db: db},
+			"query":       {db: db},
+			"update":      {db: db},
+			"delete":      {db: db},
+			"row":         {db: db},
+			"raw":         {db: db},
+			"transaction": {db: db},
 		},
 	}
 }
@@ -70,6 +72,29 @@ func (cs *callbacks) Row() *processor {
 
 func (cs *callbacks) Raw() *processor {
 	return cs.processors["raw"]
+}
+
+func (cs *callbacks) Transaction() *processor {
+	return cs.processors["transaction"]
+}
+
+func (p *processor) Begin(tx *DB, opt *sql.TxOptions) *DB {
+	var err error
+
+	switch beginner := tx.Statement.ConnPool.(type) {
+	case TxBeginner:
+		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	case ConnPoolBeginner:
+		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	default:
+		err = ErrInvalidTransaction
+	}
+
+	if err != nil {
+		tx.AddError(err)
+	}
+
+	return tx
 }
 
 func (p *processor) Execute(db *DB) *DB {

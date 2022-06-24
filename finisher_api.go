@@ -619,27 +619,13 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 		// clone statement
 		tx  = db.getInstance().Session(&Session{Context: db.Statement.Context, NewDB: db.clone == 1})
 		opt *sql.TxOptions
-		err error
 	)
 
 	if len(opts) > 0 {
 		opt = opts[0]
 	}
 
-	switch beginner := tx.Statement.ConnPool.(type) {
-	case TxBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	case ConnPoolBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	default:
-		err = ErrInvalidTransaction
-	}
-
-	if err != nil {
-		tx.AddError(err)
-	}
-
-	return tx
+	return tx.callbacks.Transaction().Begin(tx, opt)
 }
 
 // Commit commit a transaction
