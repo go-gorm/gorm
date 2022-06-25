@@ -950,7 +950,7 @@ func (field *Field) setupNewValuePool() {
 			New: func() interface{} {
 				return &serializer{
 					Field:      field,
-					Serializer: reflect.New(reflect.Indirect(reflect.ValueOf(field.Serializer)).Type()).Interface().(SerializerInterface),
+					Serializer: field.Serializer,
 				}
 			},
 		}
