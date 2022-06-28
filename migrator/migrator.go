@@ -15,7 +15,6 @@ import (
 )
 
 var (
-	regRealDataType = regexp.MustCompile(`[^\d](\d+)[^\d]?`)
 	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
 )
 
@@ -404,10 +403,15 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 // MigrateColumn migrate column
 func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnType gorm.ColumnType) error {
 	// found, smart migrate
-	fullDataType := strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)
+	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
 
 	alterColumn := false
+
+	// check type
+	if !field.PrimaryKey && !strings.HasPrefix(fullDataType, realDataType) {
+		alterColumn = true
+	}
 
 	// check size
 	if length, ok := columnType.Length(); length != int64(field.Size) {
@@ -416,9 +420,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		} else {
 			// has size in data type and not equal
 			// Since the following code is frequently called in the for loop, reg optimization is needed here
-			matches := regRealDataType.FindAllStringSubmatch(realDataType, -1)
 			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
-			if (len(matches) == 1 && matches[0][1] != fmt.Sprint(field.Size) || !field.PrimaryKey) &&
+			if !field.PrimaryKey &&
 				(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
 				alterColumn = true
 			}

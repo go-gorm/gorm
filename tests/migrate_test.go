@@ -884,3 +884,42 @@ func TestInvalidCachedPlan(t *testing.T) {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
 }
+
+func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
+	type DiffType struct {
+		ID   uint
+		Name string `gorm:"type:varchar(20)"`
+	}
+
+	type DiffType1 struct {
+		ID   uint
+		Name string `gorm:"type:text"`
+	}
+
+	var err error
+	DB.Migrator().DropTable(&DiffType{})
+
+	err = DB.AutoMigrate(&DiffType{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	ct, err := findColumnType(&DiffType{}, "name")
+	if err != nil {
+		t.Errorf("findColumnType err:%v", err)
+	}
+
+	AssertEqual(t, "varchar", strings.ToLower(ct.DatabaseTypeName()))
+
+	err = DB.Table("diff_types").AutoMigrate(&DiffType1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	ct, err = findColumnType(&DiffType{}, "name")
+	if err != nil {
+		t.Errorf("findColumnType err:%v", err)
+	}
+
+	AssertEqual(t, "text", strings.ToLower(ct.DatabaseTypeName()))
+}
