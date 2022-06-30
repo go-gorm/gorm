@@ -278,7 +278,7 @@ func (e *expr) SumExpr() *expr {
 }
 
 func (e *expr) ReplaceExpr(search string,replace string) *expr {
-	e.expr = "REPLACE(" + e.expr + ",'?','?')"
+	e.expr = "REPLACE(" + e.expr + ",?,?)"
 	e.args = append(e.args, search, replace)	
 	return e
 }
