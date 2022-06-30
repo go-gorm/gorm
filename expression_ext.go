@@ -277,6 +277,11 @@ func (e *expr) SumExpr() *expr {
 	return e
 }
 
+func (e *expr) ReplaceExpr(search string,replace string) *expr {
+	e.expr = fmt.Sprintf("REPLACE(%s,'%s','%s')",e.expr,search,replace);
+	return e
+}
+
 func (db *DB) GroupConcatExpr(e *expr, separator string, orderExpr *expr) *expr {
 	e.args = append(e.args, orderExpr.args...)
 
