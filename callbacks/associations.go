@@ -253,6 +253,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					fieldType = reflect.PtrTo(fieldType)
 				}
 				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
+				distinctElems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 				joins := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.JoinTable.ModelType)), 0, 10)
 				objs := []reflect.Value{}
 
@@ -272,19 +273,31 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					joins = reflect.Append(joins, joinValue)
 				}
 
+				identityMap := map[string]bool{}
 				appendToElems := func(v reflect.Value) {
 					if _, zero := rel.Field.ValueOf(db.Statement.Context, v); !zero {
 						f := reflect.Indirect(rel.Field.ReflectValueOf(db.Statement.Context, v))
-
 						for i := 0; i < f.Len(); i++ {
 							elem := f.Index(i)
-
-							objs = append(objs, v)
-							if isPtr {
-								elems = reflect.Append(elems, elem)
-							} else {
-								elems = reflect.Append(elems, elem.Addr())
+							if !isPtr {
+								elem = elem.Addr()
 							}
+							objs = append(objs, v)
+							elems = reflect.Append(elems, elem)
+
+							relPrimaryValues := make([]interface{}, 0, len(rel.FieldSchema.PrimaryFields))
+							for _, pf := range rel.FieldSchema.PrimaryFields {
+								if pfv, ok := pf.ValueOf(db.Statement.Context, elem); !ok {
+									relPrimaryValues = append(relPrimaryValues, pfv)
+								}
+							}
+
+							cacheKey := utils.ToStringKey(relPrimaryValues)
+							if len(relPrimaryValues) != len(rel.FieldSchema.PrimaryFields) || !identityMap[cacheKey] {
+								identityMap[cacheKey] = true
+								distinctElems = reflect.Append(distinctElems, elem)
+							}
+
 						}
 					}
 				}
@@ -304,7 +317,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				// optimize elems of reflect value length
 				if elemLen := elems.Len(); elemLen > 0 {
 					if v, ok := selectColumns[rel.Name+".*"]; !ok || v {
-						saveAssociations(db, rel, elems, selectColumns, restricted, nil)
+						saveAssociations(db, rel, distinctElems, selectColumns, restricted, nil)
 					}
 
 					for i := 0; i < elemLen; i++ {
