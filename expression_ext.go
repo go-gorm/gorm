@@ -278,7 +278,8 @@ func (e *expr) SumExpr() *expr {
 }
 
 func (e *expr) ReplaceExpr(search string,replace string) *expr {
-	e.expr = fmt.Sprintf("REPLACE(%s,'%s','%s')",e.expr,search,replace);
+	e.expr = "REPLACE(" + e.expr + ",'?','?')"
+	e.args = append(e.args, search, replace)	
 	return e
 }
 
