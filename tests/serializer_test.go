@@ -113,7 +113,6 @@ func TestSerializer(t *testing.T) {
 	}
 
 	AssertEqual(t, result, data)
-
 }
 
 func TestSerializerAssignFirstOrCreate(t *testing.T) {
@@ -152,7 +151,7 @@ func TestSerializerAssignFirstOrCreate(t *testing.T) {
 	}
 	AssertEqual(t, result, out)
 
-	//update record
+	// update record
 	data.Roles = append(data.Roles, "r3")
 	data.JobInfo.Location = "Gates Hillman Complex"
 	if err := DB.Assign(data).FirstOrCreate(&out).Error; err != nil {
