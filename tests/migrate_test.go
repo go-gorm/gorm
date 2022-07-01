@@ -830,11 +830,11 @@ func TestUniqueColumn(t *testing.T) {
 	value, ok = ct.DefaultValue()
 	AssertEqual(t, "", value)
 	AssertEqual(t, false, ok)
-
 }
 
 func findColumnType(dest interface{}, columnName string) (
-	foundColumn gorm.ColumnType, err error) {
+	foundColumn gorm.ColumnType, err error,
+) {
 	columnTypes, err := DB.Migrator().ColumnTypes(dest)
 	if err != nil {
 		err = fmt.Errorf("ColumnTypes err:%v", err)

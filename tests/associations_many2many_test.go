@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -323,4 +324,30 @@ func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
 	// Clear
 	DB.Model(&users).Association("Team").Clear()
 	AssertAssociationCount(t, users, "Team", 0, "After Clear")
+}
+
+func TestDuplicateMany2ManyAssociation(t *testing.T) {
+	user1 := User{Name: "TestDuplicateMany2ManyAssociation-1", Languages: []Language{
+		{Code: "TestDuplicateMany2ManyAssociation-language-1"},
+		{Code: "TestDuplicateMany2ManyAssociation-language-2"},
+	}}
+
+	user2 := User{Name: "TestDuplicateMany2ManyAssociation-1", Languages: []Language{
+		{Code: "TestDuplicateMany2ManyAssociation-language-1"},
+		{Code: "TestDuplicateMany2ManyAssociation-language-3"},
+	}}
+	users := []*User{&user1, &user2}
+	var err error
+	err = DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(users).Error
+	AssertEqual(t, nil, err)
+
+	var findUser1 User
+	err = DB.Preload("Languages").Where("id = ?", user1.ID).First(&findUser1).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user1, findUser1)
+
+	var findUser2 User
+	err = DB.Preload("Languages").Where("id = ?", user2.ID).First(&findUser2).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user2, findUser2)
 }
