@@ -91,7 +91,7 @@ func (p *processor) Begin(tx *DB, opt *sql.TxOptions) *DB {
 	}
 
 	if err != nil {
-		tx.AddError(err)
+		_ = tx.AddError(err)
 	}
 
 	return tx
