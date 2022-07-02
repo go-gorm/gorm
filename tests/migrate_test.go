@@ -923,3 +923,39 @@ func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
 
 	AssertEqual(t, "text", strings.ToLower(ct.DatabaseTypeName()))
 }
+
+func TestMigrateArrayTypeModel(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	type ArrayTypeModel struct {
+		ID              uint
+		Number          string     `gorm:"type:varchar(51);NOT NULL"`
+		TextArray       []string   `gorm:"type:text[];NOT NULL"`
+		NestedTextArray [][]string `gorm:"type:text[][]"`
+		NestedIntArray  [][]int64  `gorm:"type:integer[3][3]"`
+	}
+
+	var err error
+	DB.Migrator().DropTable(&ArrayTypeModel{})
+
+	err = DB.AutoMigrate(&ArrayTypeModel{})
+	AssertEqual(t, nil, err)
+
+	ct, err := findColumnType(&ArrayTypeModel{}, "number")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "varchar", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "text_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "text[]", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "nested_text_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "text[]", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
+}
