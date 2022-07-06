@@ -79,6 +79,15 @@ func (cs *callbacks) Transaction() *processor {
 }
 
 func (p *processor) Begin(tx *DB, opt *sql.TxOptions) *DB {
+	// call scopes
+	for len(tx.Statement.scopes) > 0 {
+		scopes := tx.Statement.scopes
+		tx.Statement.scopes = nil
+		for _, scope := range scopes {
+			tx = scope(tx)
+		}
+	}
+
 	tx.InstanceSet("gorm:transaction_options", opt)
 
 	for _, f := range p.fns {
