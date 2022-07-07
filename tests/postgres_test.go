@@ -9,6 +9,56 @@ import (
 	"gorm.io/gorm"
 )
 
+func TestPostgresReturningIDWhichHasStringType(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip()
+	}
+
+	type Yasuo struct {
+		ID        string `gorm:"default:gen_random_uuid()"`
+		Name      string
+		CreatedAt time.Time `gorm:"type:TIMESTAMP WITHOUT TIME ZONE"`
+		UpdatedAt time.Time `gorm:"type:TIMESTAMP WITHOUT TIME ZONE;default:current_timestamp"`
+	}
+
+	if err := DB.Exec("CREATE EXTENSION IF NOT EXISTS pgcrypto;").Error; err != nil {
+		t.Errorf("Failed to create extension pgcrypto, got error %v", err)
+	}
+
+	DB.Migrator().DropTable(&Yasuo{})
+
+	if err := DB.AutoMigrate(&Yasuo{}); err != nil {
+		t.Fatalf("Failed to migrate for uuid default value, got error: %v", err)
+	}
+
+	yasuo := Yasuo{Name: "jinzhu"}
+	if err := DB.Create(&yasuo).Error; err != nil {
+		t.Fatalf("should be able to create data, but got %v", err)
+	}
+
+	if yasuo.ID == "" {
+		t.Fatal("should be able to has ID, but got zero value")
+	}
+
+	var result Yasuo
+	if err := DB.First(&result, "id = ?", yasuo.ID).Error; err != nil || yasuo.Name != "jinzhu" {
+		t.Errorf("No error should happen, but got %v", err)
+	}
+
+	if err := DB.Where("id = $1", yasuo.ID).First(&Yasuo{}).Error; err != nil || yasuo.Name != "jinzhu" {
+		t.Errorf("No error should happen, but got %v", err)
+	}
+
+	yasuo.Name = "jinzhu1"
+	if err := DB.Save(&yasuo).Error; err != nil {
+		t.Errorf("Failed to update date, got error %v", err)
+	}
+
+	if err := DB.First(&result, "id = ?", yasuo.ID).Error; err != nil || yasuo.Name != "jinzhu1" {
+		t.Errorf("No error should happen, but got %v", err)
+	}
+}
+
 func TestPostgres(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		t.Skip()
