@@ -158,21 +158,21 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		switch stmt.ReflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			if size := stmt.ReflectValue.Len(); size > 0 {
-				var primaryKeyExprs []clause.Expression
+				var isZero bool
 				for i := 0; i < size; i++ {
-					exprs := make([]clause.Expression, len(stmt.Schema.PrimaryFields))
-					var notZero bool
-					for idx, field := range stmt.Schema.PrimaryFields {
-						value, isZero := field.ValueOf(stmt.Context, stmt.ReflectValue.Index(i))
-						exprs[idx] = clause.Eq{Column: field.DBName, Value: value}
-						notZero = notZero || !isZero
-					}
-					if notZero {
-						primaryKeyExprs = append(primaryKeyExprs, clause.And(exprs...))
+					for _, field := range stmt.Schema.PrimaryFields {
+						_, isZero = field.ValueOf(stmt.Context, stmt.ReflectValue.Index(i))
+						if !isZero {
+							break
+						}
 					}
 				}
 
-				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.And(clause.Or(primaryKeyExprs...))}})
+				if !isZero {
+					_, primaryValues := schema.GetIdentityFieldValuesMap(stmt.Context, stmt.ReflectValue, stmt.Schema.PrimaryFields)
+					column, values := schema.ToQueryValues("", stmt.Schema.PrimaryFieldDBNames, primaryValues)
+					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
+				}
 			}
 		case reflect.Struct:
 			for _, field := range stmt.Schema.PrimaryFields {
