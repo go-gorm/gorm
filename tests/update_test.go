@@ -122,6 +122,14 @@ func TestUpdate(t *testing.T) {
 	} else {
 		CheckUser(t, result4, *user)
 	}
+
+	if rowsAffected := DB.Model([]User{result4}).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 1 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
+
+	if rowsAffected := DB.Model(users).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 3 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
 }
 
 func TestUpdates(t *testing.T) {

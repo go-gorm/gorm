@@ -172,7 +172,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 					}
 				}
 
-				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(primaryKeyExprs...)}})
+				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.And(clause.Or(primaryKeyExprs...))}})
 			}
 		case reflect.Struct:
 			for _, field := range stmt.Schema.PrimaryFields {
