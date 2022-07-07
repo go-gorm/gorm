@@ -1,6 +1,8 @@
 package callbacks
 
 import (
+	"database/sql"
+
 	"gorm.io/gorm"
 )
 
@@ -29,4 +31,34 @@ func CommitOrRollbackTransaction(db *gorm.DB) {
 			db.Statement.ConnPool = db.ConnPool
 		}
 	}
+}
+
+func Begin(tx *gorm.DB) {
+	err := tx.Error
+
+	if err != nil {
+		return
+	}
+
+	var opt *sql.TxOptions
+
+	if v, ok := tx.InstanceGet("gorm:transaction_options"); ok {
+		if txOpts, ok := v.(*sql.TxOptions); ok {
+			opt = txOpts
+		}
+	}
+
+	switch beginner := tx.Statement.ConnPool.(type) {
+	case gorm.TxBeginner:
+		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	case gorm.ConnPoolBeginner:
+		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	default:
+		err = gorm.ErrInvalidTransaction
+	}
+
+	if err != nil {
+		_ = tx.AddError(err)
+	}
+
 }

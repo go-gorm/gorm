@@ -79,19 +79,19 @@ func (cs *callbacks) Transaction() *processor {
 }
 
 func (p *processor) Begin(tx *DB, opt *sql.TxOptions) *DB {
-	var err error
-
-	switch beginner := tx.Statement.ConnPool.(type) {
-	case TxBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	case ConnPoolBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
-	default:
-		err = ErrInvalidTransaction
+	// call scopes
+	for len(tx.Statement.scopes) > 0 {
+		scopes := tx.Statement.scopes
+		tx.Statement.scopes = nil
+		for _, scope := range scopes {
+			tx = scope(tx)
+		}
 	}
 
-	if err != nil {
-		_ = tx.AddError(err)
+	tx.InstanceSet("gorm:transaction_options", opt)
+
+	for _, f := range p.fns {
+		f(tx)
 	}
 
 	return tx
