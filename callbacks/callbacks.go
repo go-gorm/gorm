@@ -82,5 +82,5 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	rawCallback.Clauses = config.QueryClauses
 
 	transactionCallback := db.Callback().Transaction()
-	transactionCallback.Register("gorm:begin", Begin)
+	_ = transactionCallback.Register("gorm:begin", Begin)
 }
