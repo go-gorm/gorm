@@ -292,6 +292,61 @@ func TestFindInBatches(t *testing.T) {
 	}
 }
 
+func TestFindInBatchesWithCompositePrimarykey(t *testing.T) {
+	type CompositeModel struct {
+		Name      string `gorm:"primaryKey"`
+		Gender    int    `gorm:"primaryKey"`
+		Cond      string
+		DeletedAt gorm.DeletedAt `gorm:"index"`
+	}
+	DB.Migrator().DropTable(&CompositeModel{})
+	DB.AutoMigrate(&CompositeModel{})
+
+	models := []CompositeModel{
+		{Name: "Composite_0", Gender: 0, Cond: "test"},
+		{Name: "Composite_0", Gender: 1, Cond: "test"},
+		{Name: "Composite_0", Gender: 2, Cond: "test"},
+		{Name: "Composite_1", Gender: 1, Cond: "test"},
+		{Name: "Composite_1", Gender: 2, Cond: "test"},
+		{Name: "Composite_1", Gender: 3, Cond: "test"},
+		{Name: "Composite_2", Gender: 1, Cond: "test"},
+	}
+
+	DB.Create(&models)
+	DB.Delete(&models[0])
+
+	var (
+		sub, results []CompositeModel
+		totalBatch   int
+	)
+
+	if result := DB.Where("cond = ?", models[0].Cond).FindInBatches(&sub, 2, func(tx *gorm.DB, batch int) error {
+		totalBatch += batch
+
+		if tx.RowsAffected != 2 {
+			t.Errorf("Incorrect affected rows, expects: 2, got %v", tx.RowsAffected)
+		}
+
+		if len(sub) != 2 {
+			t.Errorf("Incorrect users length, expects: 2, got %v", len(sub))
+		}
+
+		results = append(results, sub...)
+		return nil
+	}); result.Error != nil || result.RowsAffected != 6 {
+		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	if totalBatch != 6 {
+		t.Errorf("incorrect total batch, expects: %v, got %v", 6, totalBatch)
+	}
+
+	targets := models[1:]
+	for i := 0; i < len(targets); i++ {
+		AssertEqual(t, results[i], targets[i])
+	}
+}
+
 func TestFindInBatchesWithOffsetLimit(t *testing.T) {
 	users := []User{
 		*GetUser("find_in_batches_with_offset_limit", Config{}),

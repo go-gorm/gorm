@@ -173,7 +173,7 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 // FindInBatches find records in batches
 func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
 	var (
-		tx = db.Order(clause.OrderByColumn{
+		tx = db.Session(&Session{}).Order(clause.OrderByColumn{
 			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 		}).Session(&Session{})
 		queryDB      = tx
@@ -183,9 +183,11 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 	// user specified offset or limit
 	var totalSize int
+	var totalOffset int
 	if c, ok := tx.Statement.Clauses["LIMIT"]; ok {
 		if limit, ok := c.Expression.(clause.Limit); ok {
 			totalSize = limit.Limit
+			totalOffset = limit.Offset
 
 			if totalSize > 0 && batchSize > totalSize {
 				batchSize = totalSize
@@ -222,17 +224,57 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		// Optimize for-break
 		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+		if result.Statement.Schema.PrioritizedPrimaryField != nil {
+			primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+			queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
+		} else if len(result.Statement.Schema.PrimaryFields) > 0 {
+			offset := totalOffset + int(rowsAffected)
+			queryDB = getCPKBatchesQuery(db.Session(&Session{}), result.Statement.Schema, offset, batchSize)
+		} else {
 			tx.AddError(ErrPrimaryKeyRequired)
 			break
 		}
-
-		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
-		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
 	tx.RowsAffected = rowsAffected
 	return tx
+}
+
+// use subquery and offset limit to query composite primarykey
+// so it not support Save in FindInBatches callback func like this case:
+// https://github.com/go-gorm/gorm/blob/master/tests/query_test.go#L275
+// it will generate sql like this:
+// SELECT table.* FROM table INNER JOIN (&{subquery}) sub ON sub.&{primarykey} = table.&{primarykey}
+func getCPKBatchesQuery(subTx *DB, sch *schema.Schema, offset, limit int) *DB {
+	queryTx := subTx.Session(&Session{NewDB: true})
+	// subquery conditions like DeletedAt
+	for _, c := range sch.QueryClauses {
+		subTx.Statement.AddClause(c)
+	}
+
+	subqueryAlias := "sub"
+	// order conditions
+	subOrderConds := make([]clause.OrderByColumn, len(sch.PrimaryFieldDBNames))
+	// on conditions
+	onConds := make([]clause.Expression, len(sch.PrimaryFieldDBNames))
+	for i, pkname := range sch.PrimaryFieldDBNames {
+		onConds[i] = clause.Eq{
+			Column: clause.Column{Table: sch.Table, Name: pkname},
+			Value:  clause.Column{Table: subqueryAlias, Name: pkname},
+		}
+		subOrderConds[i] = clause.OrderByColumn{
+			Column: clause.Column{Table: clause.CurrentTable, Name: pkname},
+		}
+	}
+
+	return queryTx.Table(sch.Table).Select("?.*", clause.Expr{SQL: sch.Table}).Joins("INNER JOIN (?) ? ON ?",
+		// all conditions are judged in subquery
+		subTx.Table(sch.Table).Select(sch.PrimaryFieldDBNames).Offset(offset).Limit(limit).Clauses(clause.OrderBy{
+			Columns: subOrderConds,
+		}),
+		clause.Expr{SQL: subqueryAlias},
+		clause.And(onConds...),
+	)
 }
 
 func (db *DB) assignInterfacesToValue(values ...interface{}) {
