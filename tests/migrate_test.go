@@ -8,7 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
@@ -958,4 +961,90 @@ func TestMigrateArrayTypeModel(t *testing.T) {
 	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
 	AssertEqual(t, nil, err)
 	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
+}
+
+type mockMigrator struct {
+	gorm.Migrator
+}
+
+func (mm mockMigrator) AlterColumn(dst interface{}, field string) error {
+	err := mm.Migrator.AlterColumn(dst, field)
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("trigger alter column error, field:%s", field)
+}
+
+type mockDialector struct {
+	gorm.Dialector
+	m gorm.Migrator
+}
+
+func (md mockDialector) Migrator(db *gorm.DB) gorm.Migrator {
+	return mockMigrator{
+		Migrator: md.m,
+	}
+}
+
+func (mm mockMigrator) AutoMigrate(dst ...interface{}) error {
+	switch dm := mm.Migrator.(type) {
+	case postgres.Migrator:
+		d := mockDialector{
+			Dialector: postgres.Dialector{},
+			m:         mm,
+		}
+		dm.DB.Dialector = d
+	case mysql.Migrator:
+		d := mockDialector{
+			Dialector: mysql.Dialector{},
+			m:         mm,
+		}
+		dm.DB.Dialector = d
+	case sqlite.Migrator:
+		d := mockDialector{
+			Dialector: sqlite.Dialector{},
+			m:         mm,
+		}
+		dm.DB.Dialector = d
+	case sqlserver.Migrator:
+		d := mockDialector{
+			Dialector: sqlserver.Dialector{},
+			m:         mm,
+		}
+		dm.DB.Dialector = d
+	}
+
+	return mm.Migrator.AutoMigrate(dst...)
+}
+
+func TestMigrateDonotAlterColumn(t *testing.T) {
+	var wrapMockMigrator = func(m gorm.Migrator) mockMigrator {
+		return mockMigrator{
+			Migrator: m,
+		}
+	}
+	m := DB.Migrator()
+	mockM := wrapMockMigrator(m)
+
+	type NotTriggerUpdate struct {
+		ID  uint
+		F1  uint16
+		F2  uint32
+		F3  int
+		F4  int64
+		F5  string
+		F6  float32
+		F7  float64
+		F8  time.Time
+		F9  bool
+		F10 []byte
+	}
+
+	var err error
+	err = mockM.DropTable(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
+	err = mockM.AutoMigrate(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
+	err = mockM.AutoMigrate(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
 }
