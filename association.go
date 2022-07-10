@@ -507,7 +507,9 @@ func (association *Association) buildCondition() *DB {
 				joinStmt.AddClause(queryClause)
 			}
 			joinStmt.Build("WHERE")
-			tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
+			if len(joinStmt.SQL.String()) > 0 {
+				tx.Clauses(clause.Expr{SQL: strings.Replace(joinStmt.SQL.String(), "WHERE ", "", 1), Vars: joinStmt.Vars})
+			}
 		}
 
 		tx = tx.Session(&Session{QueryFields: true}).Clauses(clause.From{Joins: []clause.Join{{
