@@ -88,7 +88,9 @@ func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value,
 			return fmt.Errorf("failed to unmarshal JSONB value: %#v", dbValue)
 		}
 
-		err = json.Unmarshal(bytes, fieldValue.Interface())
+		if len(bytes) > 0 {
+			err = json.Unmarshal(bytes, fieldValue.Interface())
+		}
 	}
 
 	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
@@ -142,8 +144,10 @@ func (GobSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, 
 		default:
 			return fmt.Errorf("failed to unmarshal gob value: %#v", dbValue)
 		}
-		decoder := gob.NewDecoder(bytes.NewBuffer(bytesValue))
-		err = decoder.Decode(fieldValue.Interface())
+		if len(bytesValue) > 0 {
+			decoder := gob.NewDecoder(bytes.NewBuffer(bytesValue))
+			err = decoder.Decode(fieldValue.Interface())
+		}
 	}
 	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
 	return

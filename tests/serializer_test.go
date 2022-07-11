@@ -113,6 +113,14 @@ func TestSerializer(t *testing.T) {
 	}
 
 	AssertEqual(t, result, data)
+
+	if err := DB.Model(&result).Update("roles", "").Error; err != nil {
+		t.Fatalf("failed to update data's roles, got error %v", err)
+	}
+
+	if err := DB.First(&result, data.ID).Error; err != nil {
+		t.Fatalf("failed to query data, got error %v", err)
+	}
 }
 
 func TestSerializerAssignFirstOrCreate(t *testing.T) {
