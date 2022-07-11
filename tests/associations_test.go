@@ -1,6 +1,8 @@
 package tests_test
 
 import (
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 	"testing"
 
 	"gorm.io/gorm"
@@ -283,4 +285,67 @@ func TestAssociationError(t *testing.T) {
 	// many to many
 	err = DB.Model(&emptyUser).Association("Languages").Delete(&user1.Languages)
 	AssertEqual(t, err, gorm.ErrPrimaryKeyRequired)
+}
+
+type (
+	myType           string
+	emptyQueryClause struct {
+		Field *schema.Field
+	}
+)
+
+func (myType) QueryClauses(f *schema.Field) []clause.Interface {
+	return []clause.Interface{emptyQueryClause{Field: f}}
+}
+
+func (sd emptyQueryClause) Name() string {
+	return "empty"
+}
+
+func (sd emptyQueryClause) Build(clause.Builder) {
+}
+
+func (sd emptyQueryClause) MergeClause(*clause.Clause) {
+}
+
+func (sd emptyQueryClause) ModifyStatement(stmt *gorm.Statement) {
+	//do nothing
+}
+
+func TestAssociationEmptyQueryClause(t *testing.T) {
+
+	type Organization struct {
+		gorm.Model
+		Name string
+	}
+	type Region struct {
+		gorm.Model
+		Name          string
+		Organizations []Organization `gorm:"many2many:region_orgs;"`
+	}
+	type RegionOrg struct {
+		RegionId       uint
+		OrganizationId uint
+		Empty          myType
+	}
+	if err := DB.SetupJoinTable(&Region{}, "Organizations", &RegionOrg{}); err != nil {
+		t.Fatalf("Failed to set up join table, got error: %s", err)
+	}
+	if err := DB.Migrator().DropTable(&Organization{}, &Region{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %s", err)
+	}
+	if err := DB.AutoMigrate(&Organization{}, &Region{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+	region := &Region{Name: "Region1"}
+	if err := DB.Create(region).Error; err != nil {
+		t.Fatalf("fail to create region %v", err)
+	}
+	var orgs []Organization
+
+	if err := DB.Model(&Region{}).Association("Organizations").Find(&orgs); err != nil {
+		t.Fatalf("fail to find region organizations %v", err)
+	} else {
+		AssertEqual(t, len(orgs), 0)
+	}
 }
