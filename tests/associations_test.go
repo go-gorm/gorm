@@ -1,9 +1,10 @@
 package tests_test
 
 import (
+	"testing"
+
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
-	"testing"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
@@ -309,11 +310,10 @@ func (sd emptyQueryClause) MergeClause(*clause.Clause) {
 }
 
 func (sd emptyQueryClause) ModifyStatement(stmt *gorm.Statement) {
-	//do nothing
+	// do nothing
 }
 
 func TestAssociationEmptyQueryClause(t *testing.T) {
-
 	type Organization struct {
 		gorm.Model
 		Name string
