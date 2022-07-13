@@ -672,7 +672,7 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 			}
 		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {
 			results[field.DBName] = true
-		} else if matches := nameMatcher.FindStringSubmatch(column); len(matches) == 3 && matches[1] == stmt.Table {
+		} else if matches := nameMatcher.FindStringSubmatch(column); len(matches) == 3 && (matches[1] == stmt.Table || matches[1] == "") {
 			results[matches[2]] = true
 		} else {
 			results[column] = true
