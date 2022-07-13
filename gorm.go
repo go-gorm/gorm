@@ -249,7 +249,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt := v.(*PreparedStmtDB)
 			tx.Statement.ConnPool = &PreparedStmtDB{
-				ConnPool: db.Config.ConnPool,
+				ConnPool: db.Statement.ConnPool,
 				Mux:      preparedStmt.Mux,
 				Stmts:    preparedStmt.Stmts,
 			}
