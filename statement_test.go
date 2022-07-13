@@ -47,6 +47,8 @@ func TestNameMatcher(t *testing.T) {
 		"'table23'.name1":    "name1",
 		"'name1'":            "name1",
 		"`name_1`":           "name_1",
+		"`Name_1`":           "Name_1",
+		"`Table`.`nAme`":     "nAme",
 	} {
 		if matches := nameMatcher.FindStringSubmatch(k); len(matches) < 2 || matches[1] != v {
 			t.Errorf("failed to match value: %v, got %v, expect: %v", k, matches, v)
