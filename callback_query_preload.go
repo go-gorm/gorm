@@ -242,16 +242,17 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 		return
 	}
 
-	// find relations
-	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(results, preloadConditions...).Error)
+	uniquePrimaryKeysMap := map[interface{}]bool{}
+	for _, key := range toQueryValues(primaryKeys) {
+		uniquePrimaryKeysMap[indirect(reflect.ValueOf(key)).Interface()] = true
+	}
 
-	// assign find results
-	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
-		indirectScopeValue = scope.IndirectValue()
-	)
+	uniquePrimaryKeys := make([]interface{}, 0, len(uniquePrimaryKeysMap))
+	for key := range uniquePrimaryKeysMap {
+		uniquePrimaryKeys = append(uniquePrimaryKeys, key)
+	}
 
+	indirectScopeValue := scope.IndirectValue()
 	foreignFieldToObjects := make(map[string][]*reflect.Value)
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
@@ -261,17 +262,39 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 		}
 	}
 
-	for i := 0; i < resultsValue.Len(); i++ {
-		result := resultsValue.Index(i)
-		if indirectScopeValue.Kind() == reflect.Slice {
-			valueString := toString(getValueFromFields(result, relation.AssociationForeignFieldNames))
-			if objects, found := foreignFieldToObjects[valueString]; found {
-				for _, object := range objects {
-					object.FieldByName(field.Name).Set(result)
-				}
-			}
+	// need to query relations in chunk of 2000
+	// to avoid exceeding the mssql parameter limit of 2100
+	chunkSize := 2000
+	for i := 0; i < len(uniquePrimaryKeys); i += chunkSize {
+		var primaryKeyChunk []interface{}
+		if chunkSize > len(uniquePrimaryKeys)-i {
+			primaryKeyChunk = uniquePrimaryKeys[i:]
 		} else {
-			scope.Err(field.Set(result))
+			primaryKeyChunk = uniquePrimaryKeys[i : i+chunkSize]
+		}
+
+		// find relations
+		results := makeSlice(field.Struct.Type)
+		queryMarks := "?" + strings.Repeat(",?", len(primaryKeyChunk)-1)
+		scope.Err(preloadDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), queryMarks), primaryKeyChunk...).Find(results, preloadConditions...).Error)
+
+		// assign find results
+		var (
+			resultsValue = indirect(reflect.ValueOf(results))
+		)
+
+		for i := 0; i < resultsValue.Len(); i++ {
+			result := resultsValue.Index(i)
+			if indirectScopeValue.Kind() == reflect.Slice {
+				valueString := toString(getValueFromFields(result, relation.AssociationForeignFieldNames))
+				if objects, found := foreignFieldToObjects[valueString]; found {
+					for _, object := range objects {
+						object.FieldByName(field.Name).Set(result)
+					}
+				}
+			} else {
+				scope.Err(field.Set(result))
+			}
 		}
 	}
 }
