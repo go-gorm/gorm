@@ -3,10 +3,9 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
-
-	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
