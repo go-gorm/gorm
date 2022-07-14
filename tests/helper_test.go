@@ -80,6 +80,7 @@ func CheckPet(t *testing.T, pet Pet, expect Pet) {
 			t.Fatalf("errors happened when query: %v", err)
 		} else {
 			AssertObjEqual(t, newPet, pet, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Name")
+			AssertObjEqual(t, newPet, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Name")
 		}
 	}
 
@@ -174,6 +175,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 				var manager User
 				DB.First(&manager, "id = ?", *user.ManagerID)
 				AssertObjEqual(t, manager, user.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+				AssertObjEqual(t, manager, expect.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
 			}
 		} else if user.ManagerID != nil {
 			t.Errorf("Manager should not be created for zero value, got: %+v", user.ManagerID)
