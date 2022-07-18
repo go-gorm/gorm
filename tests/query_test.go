@@ -257,7 +257,7 @@ func TestFindInBatches(t *testing.T) {
 		totalBatch int
 	)
 
-	if result := DB.Where("name = ?", users[0].Name).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
+	if result := DB.Table("users as u").Where("name = ?", users[0].Name).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
 		totalBatch += batch
 
 		if tx.RowsAffected != 2 {
@@ -273,7 +273,7 @@ func TestFindInBatches(t *testing.T) {
 		}
 
 		if err := tx.Save(results).Error; err != nil {
-			t.Errorf("failed to save users, got error %v", err)
+			t.Fatalf("failed to save users, got error %v", err)
 		}
 
 		return nil
