@@ -30,6 +30,8 @@ func isPrintable(s string) bool {
 
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
+var numericPlaceholderRe = regexp.MustCompile(`\$\d+\$`)
+
 // ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var (
@@ -138,9 +140,18 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		sql = newSQL.String()
 	} else {
 		sql = numericPlaceholder.ReplaceAllString(sql, "$$$1$$")
-		for idx, v := range vars {
-			sql = strings.Replace(sql, "$"+strconv.Itoa(idx+1)+"$", v, 1)
-		}
+
+		sql = numericPlaceholderRe.ReplaceAllStringFunc(sql, func(v string) string {
+			num := v[1 : len(v)-1]
+			n, _ := strconv.Atoi(num)
+
+			// position var start from 1 ($1, $2)
+			n -= 1
+			if n >= 0 && n <= len(vars)-1 {
+				return vars[n]
+			}
+			return v
+		})
 	}
 
 	return sql
