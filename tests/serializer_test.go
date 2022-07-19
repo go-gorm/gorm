@@ -103,6 +103,48 @@ func TestSerializer(t *testing.T) {
 		CustomSerializerString: "world",
 	}
 
+	data.JobInfo = Job{}
+	if err := DB.Create(&data).Error; err != nil {
+		t.Fatalf("failed to create data, got error %v", err)
+	}
+
+	var result SerializerStruct
+	if err := DB.First(&result, data.ID).Error; err != nil {
+		t.Fatalf("failed to query data, got error %v", err)
+	}
+
+	AssertEqual(t, result, data)
+
+	if err := DB.Model(&result).Update("roles", "").Error; err != nil {
+		t.Fatalf("failed to update data's roles, got error %v", err)
+	}
+
+	if err := DB.First(&result, data.ID).Error; err != nil {
+		t.Fatalf("failed to query data, got error %v", err)
+	}
+}
+
+func TestSerializerZeroValue(t *testing.T) {
+	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
+	DB.Migrator().DropTable(&SerializerStruct{})
+	if err := DB.Migrator().AutoMigrate(&SerializerStruct{}); err != nil {
+		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
+	}
+
+	createdAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	updatedAt := createdAt.Unix()
+
+	data := SerializerStruct{
+		Name:                   []byte("jinzhu"),
+		Roles:                  []string{"r1", "r2"},
+		Contracts:              map[string]interface{}{"name": "jinzhu", "age": 10},
+		EncryptedString:        EncryptedString("pass"),
+		CreatedTime:            createdAt.Unix(),
+		UpdatedTime:            &updatedAt,
+		JobInfo:                Job{},
+		CustomSerializerString: "world",
+	}
+
 	if err := DB.Create(&data).Error; err != nil {
 		t.Fatalf("failed to create data, got error %v", err)
 	}
