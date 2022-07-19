@@ -122,6 +122,9 @@ func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect
 	switch v := fieldValue.(type) {
 	case int64, int, uint, uint64, int32, uint32, int16, uint16, *int64, *int, *uint, *uint64, *int32, *uint32, *int16, *uint16:
 		rv := reflect.ValueOf(v)
+		if rv.Kind() == reflect.Ptr && rv.IsNil() {
+			return nil, nil
+		}
 		if rv.IsZero() {
 			return time.Unix(0, 0), nil
 		}

@@ -131,19 +131,7 @@ func TestSerializerZeroValue(t *testing.T) {
 		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
-	createdAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	updatedAt := createdAt.Unix()
-
-	data := SerializerStruct{
-		Name:                   []byte("jinzhu"),
-		Roles:                  []string{"r1", "r2"},
-		Contracts:              map[string]interface{}{"name": "jinzhu", "age": 10},
-		EncryptedString:        EncryptedString("pass"),
-		CreatedTime:            createdAt.Unix(),
-		UpdatedTime:            &updatedAt,
-		JobInfo:                Job{},
-		CustomSerializerString: "world",
-	}
+	data := SerializerStruct{}
 
 	if err := DB.Create(&data).Error; err != nil {
 		t.Fatalf("failed to create data, got error %v", err)
