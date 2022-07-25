@@ -403,18 +403,14 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				}
 
 				if ef.PrimaryKey {
-					if val, ok := ef.TagSettings["PRIMARYKEY"]; ok && utils.CheckTruth(val) {
-						ef.PrimaryKey = true
-					} else if val, ok := ef.TagSettings["PRIMARY_KEY"]; ok && utils.CheckTruth(val) {
-						ef.PrimaryKey = true
-					} else {
+					if !utils.CheckTruth(ef.TagSettings["PRIMARYKEY"], ef.TagSettings["PRIMARY_KEY"]) {
 						ef.PrimaryKey = false
 
 						if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
 							ef.AutoIncrement = false
 						}
 
-						if ef.DefaultValue == "" {
+						if !ef.AutoIncrement && ef.DefaultValue == "" {
 							ef.HasDefaultValue = false
 						}
 					}
