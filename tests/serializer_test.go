@@ -103,7 +103,6 @@ func TestSerializer(t *testing.T) {
 		CustomSerializerString: "world",
 	}
 
-	data.JobInfo = Job{}
 	if err := DB.Create(&data).Error; err != nil {
 		t.Fatalf("failed to create data, got error %v", err)
 	}
