@@ -271,9 +271,9 @@ func (e *expr) SumExpr() *expr {
 	return e
 }
 
-func (e *expr) ReplaceExpr(search string,replace string) *expr {
+func (e *expr) ReplaceExpr(search string, replace string) *expr {
 	e.expr = "REPLACE(" + e.expr + ",?,?)"
-	e.args = append(e.args, search, replace)	
+	e.args = append(e.args, search, replace)
 	return e
 }
 
@@ -434,8 +434,18 @@ func (e *expr) Max() string {
 	return "MAX(" + e.expr + ")"
 }
 
+func (e *expr) MaxExpr() *expr {
+	e.expr = "MAX(" + e.expr + ")"
+	return e
+}
+
 func (e *expr) Min() string {
 	return "MIN(" + e.expr + ")"
+}
+
+func (e *expr) MinExpr() *expr {
+	e.expr = "MIN(" + e.expr + ")"
+	return e
 }
 
 func (e *expr) LowerExpr() *expr {
@@ -581,6 +591,18 @@ func (db *DB) SelectFields(fields ...string) *DB {
 	selects := strings.Join(fields, ", ")
 
 	return db.clone().Select(selects)
+}
+
+func (db *DB) SelectExprs(fields ...interface{}) *DB {
+	e := &expr{}
+	for i, field := range fields {
+		if i != 0 {
+			e.expr += ", "
+		}
+		addStatementToExpression(e, field)
+	}
+
+	return db.clone().Select(e.expr, e.args...)
 }
 
 func (e *expr) Intersect(e2 *expr) *expr {
