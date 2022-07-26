@@ -112,7 +112,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		schemaCacheKey = modelType
 	}
 
-	// Load exist schmema cache, return if exists
+	// Load exist schema cache, return if exists
 	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
@@ -146,7 +146,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
 
-	// Load exist schmema cache, return if exists
+	// Load exist schema cache, return if exists
 	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
