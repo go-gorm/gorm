@@ -468,9 +468,6 @@ func (field *Field) setupValuerAndSetter() {
 		oldValuerOf := field.ValueOf
 		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
 			value, zero := oldValuerOf(ctx, v)
-			if zero {
-				return value, zero
-			}
 
 			s, ok := value.(SerializerValuerInterface)
 			if !ok {
@@ -483,7 +480,7 @@ func (field *Field) setupValuerAndSetter() {
 				Destination:     v,
 				Context:         ctx,
 				fieldValue:      value,
-			}, false
+			}, zero
 		}
 	}
 

@@ -119,9 +119,15 @@ func (UnixSecondSerializer) Scan(ctx context.Context, field *Field, dst reflect.
 
 // Value implements serializer interface
 func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (result interface{}, err error) {
+	rv := reflect.ValueOf(fieldValue)
 	switch v := fieldValue.(type) {
-	case int64, int, uint, uint64, int32, uint32, int16, uint16, *int64, *int, *uint, *uint64, *int32, *uint32, *int16, *uint16:
-		result = time.Unix(reflect.Indirect(reflect.ValueOf(v)).Int(), 0)
+	case int64, int, uint, uint64, int32, uint32, int16, uint16:
+		result = time.Unix(reflect.Indirect(rv).Int(), 0)
+	case *int64, *int, *uint, *uint64, *int32, *uint32, *int16, *uint16:
+		if rv.IsZero() {
+			return nil, nil
+		}
+		result = time.Unix(reflect.Indirect(rv).Int(), 0)
 	default:
 		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", v)
 	}
