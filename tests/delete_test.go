@@ -256,3 +256,15 @@ func TestDeleteReturning(t *testing.T) {
 		t.Errorf("failed to delete data, current count %v", count)
 	}
 }
+
+func TestDeleteReturningTry(t *testing.T) {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+		return
+	}
+	
+	var results []Company
+	DB.Clauses(clauses.Returing{}).Where(&Company{Name: "try"}).Delete(&results)
+	// len(results) == 0 and the raw sql does not contain RETURING
+
+
+}
