@@ -394,10 +394,14 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 						selected := selectedColumns[field.DBName] || selectedColumns[field.Name]
 						if selected || (!restricted && field.Readable) {
 							if v, isZero := field.ValueOf(stmt.Context, reflectValue); !isZero || selected {
+								tableName := clause.CurrentTable
+								if e, ok := arg.(schema.Tabler); ok {
+									tableName = e.TableName()
+								}
 								if field.DBName != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: tableName, Name: field.DBName}, Value: v})
 								} else if field.DataType != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: tableName, Name: field.Name}, Value: v})
 								}
 							}
 						}
