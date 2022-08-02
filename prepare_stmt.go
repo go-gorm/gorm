@@ -61,7 +61,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	db.PreparedSQL = append(db.PreparedSQL, query)
 	db.Mux.Unlock()
 
-	return cacheStmt, err
+	return cacheStmt, nil
 }
 
 func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (ConnPool, error) {
