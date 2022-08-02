@@ -50,23 +50,18 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	}
 	db.Mux.RUnlock()
 
-	db.Mux.Lock()
-	defer db.Mux.Unlock()
-
-	// double check
-	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
-		return stmt, nil
-	} else if ok {
-		go stmt.Close()
-	}
-
 	stmt, err := conn.PrepareContext(ctx, query)
-	if err == nil {
-		db.Stmts[query] = Stmt{Stmt: stmt, Transaction: isTransaction}
-		db.PreparedSQL = append(db.PreparedSQL, query)
+	if err != nil {
+		return Stmt{}, err
 	}
 
-	return db.Stmts[query], err
+	cacheStmt := Stmt{Stmt: stmt, Transaction: isTransaction}
+	db.Mux.Lock()
+	db.Stmts[query] = cacheStmt
+	db.PreparedSQL = append(db.PreparedSQL, query)
+	db.Mux.Unlock()
+
+	return cacheStmt, err
 }
 
 func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (ConnPool, error) {

@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -87,4 +88,28 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
 	tx2.Commit()
+}
+
+func TestPreparedStmtDeadlock(t *testing.T) {
+	tx, err := OpenTestConnection()
+	AssertEqual(t, err, nil)
+
+	sqlDB, _ := tx.DB()
+	sqlDB.SetMaxOpenConns(1)
+
+	tx = tx.Session(&gorm.Session{PrepareStmt: true})
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < 2; i++ {
+		wg.Add(1)
+		go func(j int) {
+			user := User{Name: "jinzhu"}
+			tx.Create(&user)
+
+			var result User
+			tx.First(&result)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
 }
