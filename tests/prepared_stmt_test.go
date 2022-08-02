@@ -102,14 +102,14 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 	wg := sync.WaitGroup{}
 	for i := 0; i < 2; i++ {
 		wg.Add(1)
-		go func(j int) {
+		go func() {
 			user := User{Name: "jinzhu"}
 			tx.Create(&user)
 
 			var result User
 			tx.First(&result)
 			wg.Done()
-		}(i)
+		}()
 	}
 	wg.Wait()
 }
