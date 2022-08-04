@@ -64,8 +64,8 @@ type Language struct {
 type Coupon struct {
 	ID               int              `gorm:"primarykey; size:255"`
 	AppliesToProduct []*CouponProduct `gorm:"foreignKey:CouponId;constraint:OnDelete:CASCADE"`
-	AmountOff        uint32           `gorm:"amount_off"`
-	PercentOff       float32          `gorm:"percent_off"`
+	AmountOff        uint32           `gorm:"column:amount_off"`
+	PercentOff       float32          `gorm:"column:percent_off"`
 }
 
 type CouponProduct struct {
