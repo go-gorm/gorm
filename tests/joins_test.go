@@ -241,7 +241,13 @@ func TestInnerJoins(t *testing.T) {
 	AssertEqual(t, err, nil)
 	CheckUser(t, user2, user)
 
-	// NamedPet is nil
+	// inner join and NamedPet is nil
 	err = DB.InnerJoins("NamedPet").InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user2, "users.name = ?", user.Name).Error
 	AssertEqual(t, err, gorm.ErrRecordNotFound)
+
+	// mixed inner join and left join
+	var user3 User
+	err = DB.Joins("NamedPet").InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user3, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, nil)
+	CheckUser(t, user3, user)
 }
