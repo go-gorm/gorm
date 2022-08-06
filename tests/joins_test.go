@@ -229,3 +229,19 @@ func TestJoinWithSoftDeleted(t *testing.T) {
 		t.Fatalf("joins NamedPet and Account should not empty:%v", user2)
 	}
 }
+
+func TestInnerJoins(t *testing.T) {
+	user := *GetUser("inner-joins-1", Config{Company: true, Manager: true, Account: true, NamedPet: false})
+
+	DB.Create(&user)
+
+	var user2 User
+	var err error
+	err = DB.InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user2, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, nil)
+	CheckUser(t, user2, user)
+
+	// NamedPet is nil
+	err = DB.InnerJoins("NamedPet").InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user2, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, gorm.ErrRecordNotFound)
+}
