@@ -388,7 +388,9 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 	return tx.callbacks.Update().Execute(tx)
 }
 
-// Delete delete value match given conditions, if the value has primary key, then will including the primary key as condition
+// Delete deletes value matching given conditions. If value contains primary key it is included in the conditions.
+// If value includes a deleted_at field, then Delete performs a soft delete instead by setting deleted_at with the current
+// time if null.
 func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
