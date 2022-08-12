@@ -413,7 +413,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	relation, ok := modelSchema.Relationships.Relations[field]
 	isRelation := ok && relation.JoinTable != nil
 	if !isRelation {
-		return fmt.Errorf("failed to found relation: %s", field)
+		return fmt.Errorf("failed to find relation: %s", field)
 	}
 
 	for _, ref := range relation.References {
