@@ -58,8 +58,20 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	}
 	db.Mux.RUnlock()
 
-	// cache preparing stmt first
 	db.Mux.Lock()
+	// double check
+	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
+		db.Mux.Unlock()
+		// wait for other goroutines prepared
+		<-stmt.prepared
+		if stmt.prepareErr != nil {
+			return Stmt{}, stmt.prepareErr
+		}
+
+		return *stmt, nil
+	}
+
+	// cache preparing stmt first
 	cacheStmt := Stmt{Transaction: isTransaction, prepared: make(chan struct{})}
 	db.Stmts[query] = &cacheStmt
 	db.Mux.Unlock()
