@@ -229,7 +229,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	if field := schema.PrioritizedPrimaryField; field != nil {
-		switch field.GORMDataType {
+		switch field.DataType {
 		case Int, Uint:
 			if _, ok := field.TagSettings["AUTOINCREMENT"]; !ok {
 				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
