@@ -100,7 +100,7 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 	tx = tx.Session(&gorm.Session{PrepareStmt: true})
 
 	wg := sync.WaitGroup{}
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			user := User{Name: "jinzhu"}
