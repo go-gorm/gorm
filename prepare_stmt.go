@@ -79,8 +79,9 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	// prepare completed
 	defer close(cacheStmt.prepared)
 
-	// Reason why cannot lock conn.PrepareContext (suppose the maxopen is 1).
-	// 1. g1 begin tx, now `db.ConnPool` db.numOpen == 1
+	// Reason why cannot lock conn.PrepareContext
+	// suppose the maxopen is 1, g1 is creating record and g2 is querying record.
+	// 1. g1 begin tx, g1 is requeued because of waiting for the system call, now `db.ConnPool` db.numOpen == 1.
 	// 2. g2 select lock `conn.PrepareContext(ctx, query)`, now db.numOpen == db.maxOpen , wait for release.
 	// 3. g1 tx exec insert, wait for unlock `conn.PrepareContext(ctx, query)` to finish tx and release.
 	stmt, err := conn.PrepareContext(ctx, query)
