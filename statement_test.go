@@ -37,18 +37,18 @@ func TestWhereCloneCorruption(t *testing.T) {
 
 func TestNameMatcher(t *testing.T) {
 	for k, v := range map[string][]string{
-		"table.name":         []string{"table", "name"},
-		"`table`.`name`":     []string{"table", "name"},
-		"'table'.'name'":     []string{"table", "name"},
-		"'table'.name":       []string{"table", "name"},
-		"table1.name_23":     []string{"table1", "name_23"},
-		"`table_1`.`name23`": []string{"table_1", "name23"},
-		"'table23'.'name_1'": []string{"table23", "name_1"},
-		"'table23'.name1":    []string{"table23", "name1"},
-		"'name1'":            []string{"", "name1"},
-		"`name_1`":           []string{"", "name_1"},
-		"`Name_1`":           []string{"", "Name_1"},
-		"`Table`.`nAme`":     []string{"Table", "nAme"},
+		"table.name":         {"table", "name"},
+		"`table`.`name`":     {"table", "name"},
+		"'table'.'name'":     {"table", "name"},
+		"'table'.name":       {"table", "name"},
+		"table1.name_23":     {"table1", "name_23"},
+		"`table_1`.`name23`": {"table_1", "name23"},
+		"'table23'.'name_1'": {"table23", "name_1"},
+		"'table23'.name1":    {"table23", "name1"},
+		"'name1'":            {"", "name1"},
+		"`name_1`":           {"", "name_1"},
+		"`Name_1`":           {"", "Name_1"},
+		"`Table`.`nAme`":     {"Table", "nAme"},
 	} {
 		if matches := nameMatcher.FindStringSubmatch(k); len(matches) < 3 || matches[1] != v[0] || matches[2] != v[1] {
 			t.Errorf("failed to match value: %v, got %v, expect: %v", k, matches, v)
