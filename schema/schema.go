@@ -123,7 +123,11 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	modelValue := reflect.New(modelType)
 	tableName := namer.TableName(modelType.Name())
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
-		tableName = tabler.TableName()
+		if value.Kind() == reflect.Ptr {
+			tableName = dest.(Tabler).TableName()
+		} else {
+			tableName = tabler.TableName()
+		}
 	}
 	if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
