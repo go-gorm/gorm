@@ -498,7 +498,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 		tx.AddError(rows.Close())
 	}
 
-	currentLogger.Trace(tx.Statement.Context, newLogger.BeginAt, func() (string, int64) {
+	currentLogger.Trace(tx.Statement.Context, newLogger.BeginAt, func(...logger.Config) (string, int64) {
 		return newLogger.SQL, tx.RowsAffected
 	}, tx.Error)
 	tx.Logger = currentLogger

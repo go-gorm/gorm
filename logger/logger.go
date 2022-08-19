@@ -55,6 +55,7 @@ type Config struct {
 	SlowThreshold             time.Duration
 	Colorful                  bool
 	IgnoreRecordNotFoundError bool
+	ParameterizedQueries      bool
 	LogLevel                  LogLevel
 }
 
@@ -64,7 +65,7 @@ type Interface interface {
 	Info(context.Context, string, ...interface{})
 	Warn(context.Context, string, ...interface{})
 	Error(context.Context, string, ...interface{})
-	Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error)
+	Trace(ctx context.Context, begin time.Time, fc func(config ...Config) (sql string, rowsAffected int64), err error)
 }
 
 var (
@@ -149,7 +150,7 @@ func (l logger) Error(ctx context.Context, msg string, data ...interface{}) {
 }
 
 // Trace print sql message
-func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+func (l logger) Trace(ctx context.Context, begin time.Time, fc func(config ...Config) (string, int64), err error) {
 	if l.LogLevel <= Silent {
 		return
 	}
@@ -157,14 +158,14 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 	elapsed := time.Since(begin)
 	switch {
 	case err != nil && l.LogLevel >= Error && (!errors.Is(err, ErrRecordNotFound) || !l.IgnoreRecordNotFoundError):
-		sql, rows := fc()
+		sql, rows := fc(l.Config)
 		if rows == -1 {
 			l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, "-", sql)
 		} else {
 			l.Printf(l.traceErrStr, utils.FileWithLineNum(), err, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
 	case elapsed > l.SlowThreshold && l.SlowThreshold != 0 && l.LogLevel >= Warn:
-		sql, rows := fc()
+		sql, rows := fc(l.Config)
 		slowLog := fmt.Sprintf("SLOW SQL >= %v", l.SlowThreshold)
 		if rows == -1 {
 			l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, "-", sql)
@@ -172,7 +173,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (string, i
 			l.Printf(l.traceWarnStr, utils.FileWithLineNum(), slowLog, float64(elapsed.Nanoseconds())/1e6, rows, sql)
 		}
 	case l.LogLevel == Info:
-		sql, rows := fc()
+		sql, rows := fc(l.Config)
 		if rows == -1 {
 			l.Printf(l.traceStr, utils.FileWithLineNum(), float64(elapsed.Nanoseconds())/1e6, "-", sql)
 		} else {
@@ -195,7 +196,7 @@ func (l traceRecorder) New() *traceRecorder {
 }
 
 // Trace implement logger interface
-func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func(config ...Config) (string, int64), err error) {
 	l.BeginAt = begin
 	l.SQL, l.RowsAffected = fc()
 	l.Err = err

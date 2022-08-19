@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -131,8 +132,12 @@ func (p *processor) Execute(db *DB) *DB {
 	}
 
 	if stmt.SQL.Len() > 0 {
-		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
-			return stmt.SQL.String(), db.RowsAffected
+		db.Logger.Trace(stmt.Context, curTime, func(config ...logger.Config) (string, int64) {
+			if len(config) > 0 && config[0].ParameterizedQueries {
+				return stmt.SQL.String(), db.RowsAffected
+			} else {
+				return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...), db.RowsAffected
+			}
 		}, db.Error)
 	}
 
