@@ -243,10 +243,13 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		case reflect.Slice, reflect.Array:
 			var elem reflect.Value
 			recyclableStruct := reflect.New(reflectValueType)
+			isArrayKind := reflectValue.Kind() == reflect.Array
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
-				db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
+				if !isArrayKind {
+					db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
+				}
 			}
 
 			for initialized || rows.Next() {
@@ -277,10 +280,15 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
 
 				if !update {
-					if isPtr {
+					if !isPtr {
+						elem = elem.Elem()
+					}
+					if !isArrayKind {
 						reflectValue = reflect.Append(reflectValue, elem)
 					} else {
-						reflectValue = reflect.Append(reflectValue, elem.Elem())
+						if reflectValue.Len() >= int(db.RowsAffected) {
+							reflectValue.Index(int(db.RowsAffected - 1)).Set(elem)
+						}
 					}
 				}
 			}
