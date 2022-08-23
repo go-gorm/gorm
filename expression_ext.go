@@ -65,6 +65,13 @@ func (db *DB) LA(model interface{}, alias string, name string) *expr {
 	return &expr{expr: scope.Quote(alias) + "." + scope.Quote(field.DBName)}
 }
 
+func (db *DB) LAO(model interface{}, alias string, name string) *expr {
+	if alias == "" {
+		return db.L(model, name)
+	}
+	return db.LA(model, alias, name)
+}
+
 func (db *DB) QuoteExpr(table string, column string) *expr {
 	scope := db.NewScope(nil)
 	return &expr{expr: scope.Quote(table) + "." + scope.Quote(column)}
@@ -90,6 +97,13 @@ func (db *DB) CA(model interface{}, alias string, names ...string) string {
 	}
 
 	return strings.Join(columns, ", ")
+}
+
+func (db *DB) CAO(model interface{}, alias string, names ...string) string {
+	if alias == "" {
+		return db.CQ(model, names...)
+	}
+	return db.CA(model, alias, names...)
 }
 
 func (db *DB) CQ(model interface{}, names ...string) string {
