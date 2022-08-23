@@ -526,19 +526,35 @@ func (s *DB) Rollback() *DB {
 }
 
 // WrapInTx wraps a method in a transaction
-func (s *DB) WrapInTx(f func(tx *DB) error) error {
+func (s *DB) WrapInTx(f func(tx *DB) error) (err error) {
 	if _, ok := s.db.(*sql.Tx); ok {
 		// Already in a transaction
 		return f(s)
 	} else {
 		// Lets start a new transaction
 		tx := s.Begin()
-		if err := f(tx); err != nil {
-			tx.Rollback()
-			return err
+		if err = tx.Error; err != nil {
+			return
 		}
-		tx.Commit()
-		return nil
+		panicked := true
+		defer func() {
+			if panicked || err != nil {
+				rollbackErr := tx.Rollback().Error
+				if rollbackErr != nil {
+					if err == nil {
+						err = rollbackErr
+					} else {
+						err = fmt.Errorf("Transacton code and rollback failed: %s; %s", err, rollbackErr)
+					}
+				}
+			}
+		}()
+		err = f(tx)
+		if err == nil {
+			err = tx.Commit().Error
+		}
+		panicked = false
+		return
 	}
 }
 
