@@ -248,7 +248,11 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
-				db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
+				sliceCap := reflectValue.Cap()
+				if sliceCap <= 0 {
+					sliceCap = 20
+				}
+				db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, sliceCap))
 			}
 
 			for initialized || rows.Next() {
