@@ -172,6 +172,10 @@ func (m Migrator) GetTables() (tableList []string, err error) {
 
 // CreateTable create table in database for values
 func (m Migrator) CreateTable(values ...interface{}) error {
+	if m.DB.DryRunMigration {
+		return fmt.Errorf("create table %#v: %w", values, gorm.ErrDryRunModeUnsupported)
+	}
+
 	for _, value := range m.ReorderModels(values, false) {
 		tx := m.DB.Session(&gorm.Session{})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
@@ -263,6 +267,10 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 
 // DropTable drop table for values
 func (m Migrator) DropTable(values ...interface{}) error {
+	if m.DB.DryRunMigration {
+		return fmt.Errorf("drop table %#v: %w", values, gorm.ErrDryRunModeUnsupported)
+	}
+
 	values = m.ReorderModels(values, false)
 	for i := len(values) - 1; i >= 0; i-- {
 		tx := m.DB.Session(&gorm.Session{})
@@ -289,6 +297,10 @@ func (m Migrator) HasTable(value interface{}) bool {
 
 // RenameTable rename table from oldName to newName
 func (m Migrator) RenameTable(oldName, newName interface{}) error {
+	if m.DB.DryRunMigration {
+		return fmt.Errorf("rename table %s -> %s: %w", oldName, newName, gorm.ErrDryRunModeUnsupported)
+	}
+
 	var oldTable, newTable interface{}
 	if v, ok := oldName.(string); ok {
 		oldTable = clause.Table{Name: v}
@@ -325,6 +337,10 @@ func (m Migrator) AddColumn(value interface{}, name string) error {
 		}
 
 		if !f.IgnoreMigration {
+			if m.DB.DryRunMigration {
+				return fmt.Errorf("add column %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+			}
+
 			return m.DB.Exec(
 				"ALTER TABLE ? ADD ? ?",
 				m.CurrentTable(stmt), clause.Column{Name: f.DBName}, m.DB.Migrator().FullDataTypeOf(f),
@@ -342,6 +358,10 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 			name = field.DBName
 		}
 
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("drop column %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+		}
+
 		return m.DB.Exec(
 			"ALTER TABLE ? DROP COLUMN ?", m.CurrentTable(stmt), clause.Column{Name: name},
 		).Error
@@ -352,6 +372,10 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 func (m Migrator) AlterColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if field := stmt.Schema.LookUpField(field); field != nil {
+			if m.DB.DryRunMigration {
+				return fmt.Errorf("alter column %s in table %s: %w", field.Name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+			}
+
 			fileType := m.FullDataTypeOf(field)
 			return m.DB.Exec(
 				"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
@@ -391,6 +415,10 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 
 		if field := stmt.Schema.LookUpField(newName); field != nil {
 			newName = field.DBName
+		}
+
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("rename column %s -> %s in table %s: %w", oldName, newName, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
 		}
 
 		return m.DB.Exec(
@@ -478,6 +506,9 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	if alterColumn && !field.IgnoreMigration {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("migrate column %s in table %T: %w", field.Name, value, gorm.ErrDryRunModeUnsupported)
+		}
 		return m.DB.Migrator().AlterColumn(value, field.Name)
 	}
 
@@ -593,6 +624,10 @@ func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ 
 // CreateConstraint create constraint
 func (m Migrator) CreateConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("create constraint %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+		}
+
 		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
 		if chk != nil {
 			return m.DB.Exec(
@@ -617,6 +652,10 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 // DropConstraint drop constraint
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("drop constraint %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+		}
+
 		constraint, chk, table := m.GuessConstraintAndTable(stmt, name)
 		if constraint != nil {
 			name = constraint.Name
@@ -679,6 +718,10 @@ type BuildIndexOptionsInterface interface {
 func (m Migrator) CreateIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if idx := stmt.Schema.LookIndex(name); idx != nil {
+			if m.DB.DryRunMigration {
+				return fmt.Errorf("create index %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+			}
+
 			opts := m.DB.Migrator().(BuildIndexOptionsInterface).BuildIndexOptions(idx.Fields, stmt)
 			values := []interface{}{clause.Column{Name: idx.Name}, m.CurrentTable(stmt), opts}
 
@@ -710,6 +753,10 @@ func (m Migrator) CreateIndex(value interface{}, name string) error {
 // DropIndex drop index `name`
 func (m Migrator) DropIndex(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("drop index %s in table %s: %w", name, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+		}
+
 		if idx := stmt.Schema.LookIndex(name); idx != nil {
 			name = idx.Name
 		}
@@ -739,6 +786,10 @@ func (m Migrator) HasIndex(value interface{}, name string) bool {
 // RenameIndex rename index from oldName to newName
 func (m Migrator) RenameIndex(value interface{}, oldName, newName string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("rename index %s -> %s in table %s: %w", oldName, newName, m.CurrentTable(stmt), gorm.ErrDryRunModeUnsupported)
+		}
+
 		return m.DB.Exec(
 			"ALTER TABLE ? RENAME INDEX ? TO ?",
 			m.CurrentTable(stmt), clause.Column{Name: oldName}, clause.Column{Name: newName},
