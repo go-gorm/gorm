@@ -63,13 +63,13 @@ func TestPostgres(t *testing.T) {
 }
 
 type Post struct {
-	ID         uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4();autoincrement"`
+	ID         uuid.UUID `gorm:"primary_key;type:uuid;autoincrement"`
 	Title      string
 	Categories []*Category `gorm:"Many2Many:post_categories"`
 }
 
 type Category struct {
-	ID    uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4();autoincrement"`
+	ID    uuid.UUID `gorm:"primary_key;type:uuid;autoincrement"`
 	Title string
 	Posts []*Post `gorm:"Many2Many:post_categories"`
 }
