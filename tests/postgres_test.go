@@ -65,13 +65,13 @@ func TestPostgres(t *testing.T) {
 type Post struct {
 	ID         uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4();autoincrement"`
 	Title      string
-	Categories []*Category `gorm:"Many2Many:post_categories"`
+	Categories []*Category `gorm:"Many2Many:posts_categories"`
 }
 
 type Category struct {
 	ID    uuid.UUID `gorm:"primary_key;type:uuid;default:uuid_generate_v4();autoincrement"`
 	Title string
-	Posts []*Post `gorm:"Many2Many:post_categories"`
+	Posts []*Post `gorm:"Many2Many:posts_categories"`
 }
 
 func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
@@ -83,7 +83,7 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 		t.Fatalf("Failed to create 'uuid-ossp' extension, but got error %v", err)
 	}
 
-	DB.Migrator().DropTable(&Post{}, &Category{}, "post_categories")
+	DB.Migrator().DropTable(&Post{}, &Category{}, "posts_categories")
 	DB.AutoMigrate(&Post{}, &Category{})
 
 	post := Post{
@@ -94,7 +94,7 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 		},
 	}
 
-	if err := DB.Table("posts").Create(&post).Error; err != nil {
+	if err := DB.Create(&post).Error; err != nil {
 		t.Errorf("Failed, got error: %v", err)
 	}
 }
