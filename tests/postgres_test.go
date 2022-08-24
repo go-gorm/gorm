@@ -84,7 +84,9 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 	}
 
 	DB.Migrator().DropTable(&Post{}, &Category{}, "post_categories")
-	DB.AutoMigrate(&Post{}, &Category{})
+	if err := DB.AutoMigrate(&Post{}, &Category{}).Error(); err != nil {
+		t.Log(err)
+	}
 
 	post := Post{
 		Title: "Hello World",
