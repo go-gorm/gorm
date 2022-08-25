@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -958,4 +959,65 @@ func TestMigrateArrayTypeModel(t *testing.T) {
 	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
 	AssertEqual(t, nil, err)
 	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
+}
+
+type Origin struct {
+	ID   int64  `gorm:"primaryKey"`
+	Data string `gorm:"null"`
+}
+
+func (Origin) TableName() string {
+	return "test"
+}
+
+func TestDryRunAutoMigrate(t *testing.T) {
+	type ChangeColumn struct {
+		Origin `gorm:"-"`
+		ID     int64 `gorm:"primaryKey"`
+		Data   int64 `gorm:""`
+	}
+
+	type AddIndex struct {
+		Origin `gorm:"-"`
+		ID     int64  `gorm:"primaryKey"`
+		Data   string `gorm:"null;index"`
+	}
+
+	type AddConstraint struct {
+		Origin `gorm:"-"`
+		ID     int64  `gorm:"primaryKey"`
+		Data   string `gorm:"null;check:,data <> 'migrate'"`
+	}
+
+	var tests = []struct {
+		from, to  interface{}
+		dryrunErr bool
+	}{
+		{&Origin{}, &Origin{}, false},
+		{&Origin{}, &ChangeColumn{}, true},
+		{&Origin{}, &AddIndex{}, true},
+		{&Origin{}, &AddConstraint{}, true},
+	}
+
+	for _, test := range tests {
+		name := strings.ReplaceAll(fmt.Sprintf("%T", test.to), "*", "")
+		t.Run(name, func(t *testing.T) {
+			DB.Migrator().DropTable(test.from, test.to)
+			t.Cleanup(func() {
+				DB.Migrator().DropTable(test.from, test.to)
+			})
+
+			err := DB.Migrator().CreateTable(test.from)
+			AssertEqual(t, nil, err)
+
+			err = DB.Session(&gorm.Session{DryRunMigration: true}).AutoMigrate(test.to)
+			if err != nil {
+				t.Log("migrate error:", err)
+			}
+			AssertEqual(t, test.dryrunErr, errors.Is(err, gorm.ErrDryRunModeUnsupported))
+
+			err = DB.AutoMigrate(test.to)
+			AssertEqual(t, false, errors.Is(err, gorm.ErrDryRunModeUnsupported))
+		})
+	}
 }

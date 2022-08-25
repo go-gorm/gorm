@@ -94,6 +94,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, true) {
 		tx := m.DB.Session(&gorm.Session{})
 		if !tx.Migrator().HasTable(value) {
+			if tx.DryRunMigration {
+				return fmt.Errorf("create table for model %T: %w", value, gorm.ErrDryRunModeUnsupported)
+			}
+
 			if err := tx.Migrator().CreateTable(value); err != nil {
 				return err
 			}
@@ -117,6 +121,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 					if foundColumn == nil {
 						// not found, add column
+						if tx.DryRunMigration {
+							return fmt.Errorf("create column for model %T: %w", value, gorm.ErrDryRunModeUnsupported)
+						}
+
 						if err := tx.Migrator().AddColumn(value, dbName); err != nil {
 							return err
 						}
@@ -130,6 +138,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					if !m.DB.Config.DisableForeignKeyConstraintWhenMigrating {
 						if constraint := rel.ParseConstraint(); constraint != nil &&
 							constraint.Schema == stmt.Schema && !tx.Migrator().HasConstraint(value, constraint.Name) {
+							if tx.DryRunMigration {
+								return fmt.Errorf("create constraint %s for model %T: %w", constraint.Name, value, gorm.ErrDryRunModeUnsupported)
+							}
+
 							if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
 								return err
 							}
@@ -139,6 +151,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 				for _, chk := range stmt.Schema.ParseCheckConstraints() {
 					if !tx.Migrator().HasConstraint(value, chk.Name) {
+						if tx.DryRunMigration {
+							return fmt.Errorf("create constraint %s for model %T: %w", chk.Name, value, gorm.ErrDryRunModeUnsupported)
+						}
+
 						if err := tx.Migrator().CreateConstraint(value, chk.Name); err != nil {
 							return err
 						}
@@ -147,6 +163,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 				for _, idx := range stmt.Schema.ParseIndexes() {
 					if !tx.Migrator().HasIndex(value, idx.Name) {
+						if tx.DryRunMigration {
+							return fmt.Errorf("create index %s for model %T: %w", idx.Name, value, gorm.ErrDryRunModeUnsupported)
+						}
+
 						if err := tx.Migrator().CreateIndex(value, idx.Name); err != nil {
 							return err
 						}
@@ -478,6 +498,10 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	if alterColumn && !field.IgnoreMigration {
+		if m.DB.DryRunMigration {
+			return fmt.Errorf("alter column %s for model %T: %w", field.Name, value, gorm.ErrDryRunModeUnsupported)
+		}
+
 		return m.DB.Migrator().AlterColumn(value, field.Name)
 	}
 

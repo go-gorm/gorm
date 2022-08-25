@@ -31,6 +31,8 @@ type Config struct {
 	NowFunc func() time.Time
 	// DryRun generate sql without execute
 	DryRun bool
+	// DryRunMigration prevent AutoMigrate() to change the schema
+	DryRunMigration bool
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
 	// DisableAutomaticPing
@@ -97,6 +99,7 @@ type DB struct {
 // Session session config when create session with Session() method
 type Session struct {
 	DryRun                   bool
+	DryRunMigration          bool
 	PrepareStmt              bool
 	NewDB                    bool
 	Initialized              bool
@@ -272,6 +275,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.DryRun {
 		tx.Config.DryRun = true
+	}
+
+	if config.DryRunMigration {
+		tx.Config.DryRunMigration = true
 	}
 
 	if config.QueryFields {
@@ -457,10 +464,12 @@ func (db *DB) Use(plugin Plugin) error {
 // ToSQL for generate SQL string.
 //
 // db.ToSQL(func(tx *gorm.DB) *gorm.DB {
-// 		return tx.Model(&User{}).Where(&User{Name: "foo", Age: 20})
-// 			.Limit(10).Offset(5)
-//			.Order("name ASC")
-//			.First(&User{})
+//
+//	return tx.Model(&User{}).Where(&User{Name: "foo", Age: 20})
+//		.Limit(10).Offset(5)
+//		.Order("name ASC")
+//		.First(&User{})
+//
 // })
 func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
 	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}))
