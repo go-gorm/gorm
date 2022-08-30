@@ -10,10 +10,11 @@ import (
 )
 
 // Model specify the model you would like to run db operations
-//    // update all users's name to `hello`
-//    db.Model(&User{}).Update("name", "hello")
-//    // if user's primary key is non-blank, will use it as condition, then will only update the user's name to `hello`
-//    db.Model(&user).Update("name", "hello")
+//
+//	// update all users's name to `hello`
+//	db.Model(&User{}).Update("name", "hello")
+//	// if user's primary key is non-blank, will use it as condition, then will only update the user's name to `hello`
+//	db.Model(&user).Update("name", "hello")
 func (db *DB) Model(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Model = value
@@ -94,9 +95,9 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 			}
 		}
 
-		if clause, ok := tx.Statement.Clauses["SELECT"]; ok {
-			clause.Expression = nil
-			tx.Statement.Clauses["SELECT"] = clause
+		if c, ok := tx.Statement.Clauses["SELECT"]; ok {
+			c.Expression = nil
+			tx.Statement.Clauses["SELECT"] = c
 		}
 	case string:
 		if strings.Count(v, "?") >= len(args) && len(args) > 0 {
@@ -127,9 +128,9 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 				}
 			}
 
-			if clause, ok := tx.Statement.Clauses["SELECT"]; ok {
-				clause.Expression = nil
-				tx.Statement.Clauses["SELECT"] = clause
+			if c, ok := tx.Statement.Clauses["SELECT"]; ok {
+				c.Expression = nil
+				tx.Statement.Clauses["SELECT"] = c
 			}
 		}
 	default:
@@ -179,9 +180,10 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 }
 
 // Joins specify Joins conditions
-//     db.Joins("Account").Find(&user)
-//     db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
-//     db.Joins("Account", DB.Select("id").Where("user_id = users.id AND name = ?", "someName").Model(&Account{}))
+//
+//	db.Joins("Account").Find(&user)
+//	db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
+//	db.Joins("Account", DB.Select("id").Where("user_id = users.id AND name = ?", "someName").Model(&Account{}))
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 
@@ -219,8 +221,9 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 }
 
 // Order specify order when retrieve records from database
-//     db.Order("name DESC")
-//     db.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: true})
+//
+//	db.Order("name DESC")
+//	db.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: true})
 func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 
@@ -256,17 +259,18 @@ func (db *DB) Offset(offset int) (tx *DB) {
 }
 
 // Scopes pass current database connection to arguments `func(DB) DB`, which could be used to add conditions dynamically
-//     func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
-//         return db.Where("amount > ?", 1000)
-//     }
 //
-//     func OrderStatus(status []string) func (db *gorm.DB) *gorm.DB {
-//         return func (db *gorm.DB) *gorm.DB {
-//             return db.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
-//         }
-//     }
+//	func AmountGreaterThan1000(db *gorm.DB) *gorm.DB {
+//	    return db.Where("amount > ?", 1000)
+//	}
 //
-//     db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
+//	func OrderStatus(status []string) func (db *gorm.DB) *gorm.DB {
+//	    return func (db *gorm.DB) *gorm.DB {
+//	        return db.Scopes(AmountGreaterThan1000).Where("status in (?)", status)
+//	    }
+//	}
+//
+//	db.Scopes(AmountGreaterThan1000, OrderStatus([]string{"paid", "shipped"})).Find(&orders)
 func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.scopes = append(tx.Statement.scopes, funcs...)
@@ -274,7 +278,8 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 }
 
 // Preload preload associations with given conditions
-//    db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
+//
+//	db.Preload("Orders", "state NOT IN (?)", "cancelled").Find(&users)
 func (db *DB) Preload(query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Preloads == nil {
