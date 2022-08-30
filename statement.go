@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"sort"
@@ -78,7 +79,10 @@ func (stmt *Statement) WriteQuoted(value interface{}) {
 func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	write := func(raw bool, str string) {
 		if raw {
-			writer.WriteString(str)
+			_, err := writer.WriteString(str)
+			if err != nil {
+				log.Fatalf("Unexpected error %v\n", err)
+			}
 		} else {
 			stmt.DB.Dialector.QuoteTo(writer, str)
 		}
@@ -540,8 +544,9 @@ func (stmt *Statement) clone() *Statement {
 }
 
 // SetColumn set column's value
-//   stmt.SetColumn("Name", "jinzhu") // Hooks Method
-//   stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
+//
+//	stmt.SetColumn("Name", "jinzhu") // Hooks Method
+//	stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
 func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks ...bool) {
 	if v, ok := stmt.Dest.(map[string]interface{}); ok {
 		v[name] = value
