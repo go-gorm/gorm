@@ -437,8 +437,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	// check nullable
 	if nullable, ok := columnType.Nullable(); ok && nullable == field.NotNull {
-		// not primary key & database is nullable
-		if !field.PrimaryKey && nullable {
+		// not primary key
+		if !field.PrimaryKey {
 			alterColumn = true
 		}
 	}
