@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
+	regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
 )
 
 // Migrator m struct
