@@ -66,30 +66,32 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 	db.RowsAffected++
 	db.AddError(rows.Scan(values...))
 
-	joinedSchemaMap := make(map[*schema.Field]interface{}, 0)
+	joinedSchemaMap := make(map[*schema.Field]interface{})
 	for idx, field := range fields {
-		if field != nil {
-			if len(joinFields) == 0 || joinFields[idx][0] == nil {
-				db.AddError(field.Set(db.Statement.Context, reflectValue, values[idx]))
-			} else {
-				joinSchema := joinFields[idx][0]
-				relValue := joinSchema.ReflectValueOf(db.Statement.Context, reflectValue)
-				if relValue.Kind() == reflect.Ptr {
-					if _, ok := joinedSchemaMap[joinSchema]; !ok {
-						if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
-							continue
-						}
-
-						relValue.Set(reflect.New(relValue.Type().Elem()))
-						joinedSchemaMap[joinSchema] = nil
-					}
-				}
-				db.AddError(joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx]))
-			}
-
-			// release data to pool
-			field.NewValuePool.Put(values[idx])
+		if field == nil {
+			continue
 		}
+
+		if len(joinFields) == 0 || joinFields[idx][0] == nil {
+			db.AddError(field.Set(db.Statement.Context, reflectValue, values[idx]))
+		} else {
+			joinSchema := joinFields[idx][0]
+			relValue := joinSchema.ReflectValueOf(db.Statement.Context, reflectValue)
+			if relValue.Kind() == reflect.Ptr {
+				if _, ok := joinedSchemaMap[joinSchema]; !ok {
+					if value := reflect.ValueOf(values[idx]).Elem(); value.Kind() == reflect.Ptr && value.IsNil() {
+						continue
+					}
+
+					relValue.Set(reflect.New(relValue.Type().Elem()))
+					joinedSchemaMap[joinSchema] = nil
+				}
+			}
+			db.AddError(joinFields[idx][1].Set(db.Statement.Context, relValue, values[idx]))
+		}
+
+		// release data to pool
+		field.NewValuePool.Put(values[idx])
 	}
 }
 
