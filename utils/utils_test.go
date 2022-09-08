@@ -29,3 +29,23 @@ func TestToStringKey(t *testing.T) {
 		}
 	}
 }
+
+func TestContains(t *testing.T) {
+	tests := []struct {
+		elems  interface{}
+		elem   interface{}
+		target bool
+	}{
+		{elems: []string{"INSERT", "VALUES", "ON CONFLICT", "RETURNING"}, elem: "RETURNING", target: true},
+		{elems: []string{"INSERT", "VALUES", "ON CONFLICT"}, elem: "RETURNING", target: false},
+		{elems: []int{1, 2, 3}, elem: 1, target: true},
+		{elems: []interface{}{1, 2.0, "3"}, elem: 2.0, target: true},
+	}
+
+	for _, test := range tests {
+		exists := Contains(test.elems, test.elem)
+		if exists != test.target {
+			t.Errorf("%v not exist %v", test.elems, test.elem)
+		}
+	}
+}

@@ -69,9 +69,14 @@ func ToStringKey(values ...interface{}) string {
 	return strings.Join(results, "_")
 }
 
-func Contains(elems []string, elem string) bool {
-	for _, e := range elems {
-		if elem == e {
+func Contains(elems interface{}, elem interface{}) bool {
+	reflectValue := reflect.ValueOf(elems)
+	if reflectValue.Kind() != reflect.Slice && reflectValue.Kind() != reflect.Array {
+		return false
+	}
+
+	for i := 0; i < reflectValue.Len(); i++ {
+		if reflectValue.Index(i).Interface() == elem {
 			return true
 		}
 	}
