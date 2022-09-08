@@ -248,11 +248,13 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
-				sliceCap := reflectValue.Cap()
-				if sliceCap <= 0 {
-					sliceCap = 20
+				// if the slice cap is externally initialized, the externally initialized slice is directly used here
+				if reflectValue.Cap() == 0 {
+					db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
+				} else {
+					reflectValue.SetLen(0)
+					db.Statement.ReflectValue.Set(reflectValue)
 				}
-				db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, sliceCap))
 			}
 
 			for initialized || rows.Next() {
