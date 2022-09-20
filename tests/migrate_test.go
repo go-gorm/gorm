@@ -959,3 +959,41 @@ func TestMigrateArrayTypeModel(t *testing.T) {
 	AssertEqual(t, nil, err)
 	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
 }
+
+func TestMigrateSameEmbeddedFieldName(t *testing.T) {
+	type UserStat struct {
+		GroundDestroyCount int
+	}
+
+	type GameUser struct {
+		gorm.Model
+		StatAb UserStat `gorm:"embedded;embeddedPrefix:stat_ab_"`
+	}
+
+	type UserStat1 struct {
+		GroundDestroyCount string
+	}
+
+	type GroundRate struct {
+		GroundDestroyCount int
+	}
+
+	type GameUser1 struct {
+		gorm.Model
+		StatAb       UserStat1  `gorm:"embedded;embeddedPrefix:stat_ab_"`
+		GroundRateRb GroundRate `gorm:"embedded;embeddedPrefix:rate_ground_rb_"`
+	}
+
+	DB.Migrator().DropTable(&GameUser{})
+	err := DB.AutoMigrate(&GameUser{})
+	AssertEqual(t, nil, err)
+
+	err = DB.Table("game_users").AutoMigrate(&GameUser1{})
+	AssertEqual(t, nil, err)
+
+	_, err = findColumnType(&GameUser{}, "stat_ab_ground_destory_count")
+	AssertEqual(t, nil, err)
+
+	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destory_count")
+	AssertEqual(t, nil, err)
+}
