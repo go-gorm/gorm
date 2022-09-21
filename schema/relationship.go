@@ -191,7 +191,8 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		err             error
 		joinTableFields []reflect.StructField
 		fieldsMap       = map[string]*Field{}
-		ownFieldsMap    = map[string]bool{} // fix self join many2many
+		ownFieldsMap    = map[string]*Field{} // fix self join many2many
+		referFieldsMap  = map[string]*Field{}
 		joinForeignKeys = toColumns(field.TagSettings["JOINFOREIGNKEY"])
 		joinReferences  = toColumns(field.TagSettings["JOINREFERENCES"])
 	)
@@ -229,7 +230,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			joinFieldName = strings.Title(joinForeignKeys[idx])
 		}
 
-		ownFieldsMap[joinFieldName] = true
+		ownFieldsMap[joinFieldName] = ownField
 		fieldsMap[joinFieldName] = ownField
 		joinTableFields = append(joinTableFields, reflect.StructField{
 			Name:    joinFieldName,
@@ -242,9 +243,6 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 
 	for idx, relField := range refForeignFields {
 		joinFieldName := strings.Title(relation.FieldSchema.Name) + relField.Name
-		if len(joinReferences) > idx {
-			joinFieldName = strings.Title(joinReferences[idx])
-		}
 
 		if _, ok := ownFieldsMap[joinFieldName]; ok {
 			if field.Name != relation.FieldSchema.Name {
@@ -254,14 +252,22 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 			}
 		}
 
-		fieldsMap[joinFieldName] = relField
-		joinTableFields = append(joinTableFields, reflect.StructField{
-			Name:    joinFieldName,
-			PkgPath: relField.StructField.PkgPath,
-			Type:    relField.StructField.Type,
-			Tag: removeSettingFromTag(appendSettingFromTag(relField.StructField.Tag, "primaryKey"),
-				"column", "autoincrement", "index", "unique", "uniqueindex"),
-		})
+		if len(joinReferences) > idx {
+			joinFieldName = strings.Title(joinReferences[idx])
+		}
+
+		referFieldsMap[joinFieldName] = relField
+
+		if _, ok := fieldsMap[joinFieldName]; !ok {
+			fieldsMap[joinFieldName] = relField
+			joinTableFields = append(joinTableFields, reflect.StructField{
+				Name:    joinFieldName,
+				PkgPath: relField.StructField.PkgPath,
+				Type:    relField.StructField.Type,
+				Tag: removeSettingFromTag(appendSettingFromTag(relField.StructField.Tag, "primaryKey"),
+					"column", "autoincrement", "index", "unique", "uniqueindex"),
+			})
+		}
 	}
 
 	joinTableFields = append(joinTableFields, reflect.StructField{
@@ -317,31 +323,37 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 				f.Size = fieldsMap[f.Name].Size
 			}
 			relation.JoinTable.PrimaryFields = append(relation.JoinTable.PrimaryFields, f)
-			ownPrimaryField := schema == fieldsMap[f.Name].Schema && ownFieldsMap[f.Name]
 
-			if ownPrimaryField {
+			if of, ok := ownFieldsMap[f.Name]; ok {
 				joinRel := relation.JoinTable.Relationships.Relations[relName]
 				joinRel.Field = relation.Field
 				joinRel.References = append(joinRel.References, &Reference{
-					PrimaryKey: fieldsMap[f.Name],
+					PrimaryKey: of,
 					ForeignKey: f,
 				})
-			} else {
+
+				relation.References = append(relation.References, &Reference{
+					PrimaryKey:    of,
+					ForeignKey:    f,
+					OwnPrimaryKey: true,
+				})
+			}
+
+			if rf, ok := referFieldsMap[f.Name]; ok {
 				joinRefRel := relation.JoinTable.Relationships.Relations[relRefName]
 				if joinRefRel.Field == nil {
 					joinRefRel.Field = relation.Field
 				}
 				joinRefRel.References = append(joinRefRel.References, &Reference{
-					PrimaryKey: fieldsMap[f.Name],
+					PrimaryKey: rf,
+					ForeignKey: f,
+				})
+
+				relation.References = append(relation.References, &Reference{
+					PrimaryKey: rf,
 					ForeignKey: f,
 				})
 			}
-
-			relation.References = append(relation.References, &Reference{
-				PrimaryKey:    fieldsMap[f.Name],
-				ForeignKey:    f,
-				OwnPrimaryKey: ownPrimaryField,
-			})
 		}
 	}
 }
