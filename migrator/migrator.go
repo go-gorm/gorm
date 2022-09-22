@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	regFullDataType = regexp.MustCompile(`[^\d]*(\d+)[^\d]?`)
+	regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
 )
 
 // Migrator m struct
@@ -135,12 +135,12 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 							}
 						}
 					}
+				}
 
-					for _, chk := range stmt.Schema.ParseCheckConstraints() {
-						if !tx.Migrator().HasConstraint(value, chk.Name) {
-							if err := tx.Migrator().CreateConstraint(value, chk.Name); err != nil {
-								return err
-							}
+				for _, chk := range stmt.Schema.ParseCheckConstraints() {
+					if !tx.Migrator().HasConstraint(value, chk.Name) {
+						if err := tx.Migrator().CreateConstraint(value, chk.Name); err != nil {
+							return err
 						}
 					}
 				}
@@ -478,7 +478,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	if alterColumn && !field.IgnoreMigration {
-		return m.DB.Migrator().AlterColumn(value, field.Name)
+		return m.DB.Migrator().AlterColumn(value, field.DBName)
 	}
 
 	return nil
