@@ -411,12 +411,18 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	if !field.PrimaryKey {
 		// check type
 		var isSameType bool
-		aliases := m.DB.Migrator().GetTypeAliases(realDataType)
-		aliases = append(aliases, realDataType)
-		for _, alias := range aliases {
-			if strings.HasPrefix(fullDataType, alias) {
-				isSameType = true
-				break
+		if strings.HasPrefix(fullDataType, realDataType) {
+			isSameType = true
+		}
+
+		// check type aliases
+		if !isSameType {
+			aliases := m.DB.Migrator().GetTypeAliases(realDataType)
+			for _, alias := range aliases {
+				if strings.HasPrefix(fullDataType, alias) {
+					isSameType = true
+					break
+				}
 			}
 		}
 
