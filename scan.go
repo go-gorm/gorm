@@ -243,15 +243,18 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
-			var elem reflect.Value
-			recyclableStruct := reflect.New(reflectValueType)
+			var (
+				elem             reflect.Value
+				recyclableStruct = reflect.New(reflectValueType)
+				isArrayKind      = reflectValue.Kind() == reflect.Array
+			)
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
 				// if the slice cap is externally initialized, the externally initialized slice is directly used here
 				if reflectValue.Cap() == 0 {
 					db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
-				} else {
+				} else if !isArrayKind {
 					reflectValue.SetLen(0)
 					db.Statement.ReflectValue.Set(reflectValue)
 				}
@@ -285,10 +288,15 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
 
 				if !update {
-					if isPtr {
-						reflectValue = reflect.Append(reflectValue, elem)
+					if !isPtr {
+						elem = elem.Elem()
+					}
+					if isArrayKind {
+						if reflectValue.Len() >= int(db.RowsAffected) {
+							reflectValue.Index(int(db.RowsAffected - 1)).Set(elem)
+						}
 					} else {
-						reflectValue = reflect.Append(reflectValue, elem.Elem())
+						reflectValue = reflect.Append(reflectValue, elem)
 					}
 				}
 			}
