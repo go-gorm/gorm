@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -87,4 +88,20 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
 	tx2.Commit()
+}
+
+func TestPreparedStmtInTransaction(t *testing.T) {
+	user := User{Name: "jinzhu"}
+
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		tx.Session(&gorm.Session{PrepareStmt: true}).Create(&user)
+		return errors.New("test")
+	}); err == nil {
+		t.Error(err)
+	}
+
+	var result User
+	if err := DB.First(&result, user.ID).Error; err == nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
 }
