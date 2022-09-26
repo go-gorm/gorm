@@ -374,9 +374,9 @@ func TestExprToString(t *testing.T) {
 			clause.And(clause.Gt{Column: "age", Value: 18}, clause.Lt{Column: "age", Value: 21}),
 		}
 		gotSQL := tx.ExprToString(clause.And(exprs...))
-		return tx.Where("name LIKE ?", "jesse*").Where(gotSQL).Find(&[]User{})
+		return tx.Where("start_time >= ?", 1234).Where(gotSQL).Find(&[]User{})
 	})
-	wantSQL = "SELECT * FROM `users` WHERE name LIKE \"jesse*\" AND (((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))) AND `users`.`deleted_at` IS NULL"
+	wantSQL = "SELECT * FROM `users` WHERE start_time >= 1234 AND (((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))) AND `users`.`deleted_at` IS NULL"
 	if wantSQL != sql {
 		t.Fatalf("want: %s \n, got: %s", wantSQL, sql)
 	}
