@@ -3,7 +3,7 @@ package tests_test
 import (
 	"testing"
 
-	"gorm.io/gorm"
+	"github.com/brucewangviki/gorm"
 )
 
 func TestReturningWithNullToZeroValues(t *testing.T) {

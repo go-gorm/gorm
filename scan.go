@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"gorm.io/gorm/schema"
+	"github.com/brucewangviki/gorm/schema"
 )
 
 // prepareValues prepare values slice

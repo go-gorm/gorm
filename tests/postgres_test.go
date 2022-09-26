@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	"gorm.io/gorm"
+	"github.com/brucewangviki/gorm"
 )
 
 func TestPostgresReturningIDWhichHasStringType(t *testing.T) {

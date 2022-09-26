@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"gorm.io/gorm/clause"
-	"gorm.io/gorm/utils"
+	"github.com/brucewangviki/gorm/clause"
+	"github.com/brucewangviki/gorm/utils"
 )
 
 // Model specify the model you would like to run db operations
