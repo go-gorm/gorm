@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gorm.io/driver/mysql"
+
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/jinzhu/now"
+
 	"gorm.io/gorm/logger"
 )
 
