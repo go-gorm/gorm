@@ -398,6 +398,12 @@ func Expr(expr string, args ...interface{}) clause.Expr {
 	return clause.Expr{SQL: expr, Vars: args}
 }
 
+// ExprToString clause.Expression Build to SQL String
+func (db *DB) ExprToString(expr clause.Expression) string {
+	expr.Build(db.Statement)
+	return db.Dialector.Explain(db.Statement.SQL.String(), db.Statement.Vars...)
+}
+
 // SetupJoinTable setup join table schema
 func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
 	var (

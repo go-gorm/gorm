@@ -357,6 +357,18 @@ func TestFromWithJoins(t *testing.T) {
 	}
 }
 
+func TestExprToString(t *testing.T) {
+	exprs := []clause.Expression{
+		clause.And(clause.Gt{Column: "age", Value: 10}, clause.Lt{Column: "age", Value: 18}),
+		clause.And(clause.Gt{Column: "age", Value: 18}, clause.Lt{Column: "age", Value: 21}),
+	}
+	wantSQL := "((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))"
+	gotSQL := DB.ExprToString(clause.And(exprs...))
+	if wantSQL != gotSQL {
+		t.Errorf("want: %s \n, got: %s", wantSQL, gotSQL)
+	}
+}
+
 func TestToSQL(t *testing.T) {
 	// By default DB.DryRun should false
 	if DB.DryRun {
