@@ -400,8 +400,12 @@ func Expr(expr string, args ...interface{}) clause.Expr {
 
 // ExprToString clause.Expression Build to SQL String
 func (db *DB) ExprToString(expr clause.Expression) string {
-	expr.Build(db.Statement)
-	return db.Dialector.Explain(db.Statement.SQL.String(), db.Statement.Vars...)
+	stmt := &Statement{
+		DB:      db,
+		Clauses: map[string]clause.Clause{},
+	}
+	expr.Build(stmt)
+	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
 }
 
 // SetupJoinTable setup join table schema

@@ -365,7 +365,20 @@ func TestExprToString(t *testing.T) {
 	wantSQL := "((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))"
 	gotSQL := DB.ExprToString(clause.And(exprs...))
 	if wantSQL != gotSQL {
-		t.Errorf("want: %s \n, got: %s", wantSQL, gotSQL)
+		t.Fatalf("want: %s \n, got: %s", wantSQL, gotSQL)
+	}
+
+	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		exprs := []clause.Expression{
+			clause.And(clause.Gt{Column: "age", Value: 10}, clause.Lt{Column: "age", Value: 18}),
+			clause.And(clause.Gt{Column: "age", Value: 18}, clause.Lt{Column: "age", Value: 21}),
+		}
+		gotSQL := tx.ExprToString(clause.And(exprs...))
+		return tx.Where("name LIKE ?", "jesse*").Where(gotSQL).Find(&[]User{})
+	})
+	wantSQL = "SELECT * FROM `users` WHERE name LIKE \"jesse*\" AND (((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))) AND `users`.`deleted_at` IS NULL"
+	if wantSQL != sql {
+		t.Fatalf("want: %s \n, got: %s", wantSQL, sql)
 	}
 }
 
