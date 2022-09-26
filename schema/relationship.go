@@ -160,7 +160,8 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 
 		primaryKeyField := schema.PrioritizedPrimaryField
 		if len(relation.foreignKeys) > 0 {
-			if primaryKeyField = schema.LookUpField(relation.foreignKeys[0]); primaryKeyField == nil || len(relation.foreignKeys) > 1 {
+			primaryKeyField = schema.LookUpField(relation.foreignKeys[0])
+			if primaryKeyField == nil || len(relation.foreignKeys) > 1 {
 				schema.err = fmt.Errorf("invalid polymorphic foreign keys %+v for %v on field %s", relation.foreignKeys, schema, field.Name)
 			}
 		}

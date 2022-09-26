@@ -102,7 +102,7 @@ func TestTransactionWithBlock(t *testing.T) {
 		return errors.New("the error message")
 	})
 
-	if err.Error() != "the error message" {
+	if err != nil && err.Error() != "the error message" {
 		t.Fatalf("Transaction return error will equal the block returns error")
 	}
 
