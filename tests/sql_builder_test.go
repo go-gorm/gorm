@@ -365,7 +365,7 @@ func TestExprToString(t *testing.T) {
 	wantSQL := "((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))"
 	gotSQL := DB.ExprToString(clause.And(exprs...))
 	if wantSQL != gotSQL {
-		t.Fatalf("want: %s \n, got: %s", wantSQL, gotSQL)
+		t.Errorf("want: %s \n, got: %s", wantSQL, gotSQL)
 	}
 
 	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
@@ -378,7 +378,7 @@ func TestExprToString(t *testing.T) {
 	})
 	wantSQL = "SELECT * FROM `users` WHERE start_time >= 1234 AND (((`age` > 10 AND `age` < 18) AND (`age` > 18 AND `age` < 21))) AND `users`.`deleted_at` IS NULL"
 	if wantSQL != sql {
-		t.Fatalf("want: %s \n, got: %s", wantSQL, sql)
+		t.Errorf("want: %s \n, got: %s", wantSQL, sql)
 	}
 }
 

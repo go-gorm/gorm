@@ -401,11 +401,11 @@ func Expr(expr string, args ...interface{}) clause.Expr {
 // ExprToString clause.Expression Build to SQL String
 func (db *DB) ExprToString(expr clause.Expression) string {
 	stmt := &Statement{
-		DB:      db,
+		DB:      db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}),
 		Clauses: map[string]clause.Clause{},
 	}
 	expr.Build(stmt)
-	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+	return stmt.DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
 }
 
 // SetupJoinTable setup join table schema
