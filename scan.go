@@ -200,28 +200,20 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			// Not Pluck
 			if sch != nil {
-				schFieldsCount := len(sch.Fields)
 				for idx, column := range columns {
-					if field := sch.LookUpField(column); field != nil && field.Readable {
-						if curIndex, ok := selectedColumnsMap[column]; ok {
-							fields[idx] = field // handle duplicate fields
-							offset := curIndex + 1
-							// handle sch inconsistent with database
-							// like Raw(`...`).Scan
-							if schFieldsCount > offset {
-								for fieldIndex, selectField := range sch.Fields[offset:] {
-									if selectField.DBName == column && selectField.Readable {
-										selectedColumnsMap[column] = curIndex + fieldIndex + 1
-										fields[idx] = selectField
-										break
-									}
-								}
+					for i, field := range sch.Fields[selectedColumnsMap[column]:] {
+						if field.DBName == column {
+							if field.Readable {
+								fields[idx] = field
+								selectedColumnsMap[column] += i + 1
 							}
-						} else {
-							fields[idx] = field
-							selectedColumnsMap[column] = idx
+							break
 						}
-					} else if names := strings.Split(column, "__"); len(names) > 1 {
+					}
+					if fields[idx] != nil {
+						continue
+					}
+					if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := sch.Relationships.Relations[names[0]]; ok {
 							if field := rel.FieldSchema.LookUpField(strings.Join(names[1:], "__")); field != nil && field.Readable {
 								fields[idx] = field

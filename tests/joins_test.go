@@ -3,6 +3,7 @@ package tests_test
 import (
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"gorm.io/gorm"
@@ -227,5 +228,34 @@ func TestJoinWithSoftDeleted(t *testing.T) {
 	DB.Model(&User{}).Joins("NamedPet").Joins("Account").First(&user3, user.ID)
 	if user3.NamedPet != nil || user2.Account.ID != 0 {
 		t.Fatalf("joins NamedPet and Account should not empty:%v", user2)
+	}
+}
+
+func TestJoinWithSameColumnName(t *testing.T) {
+	user := GetUser("TestJoinWithSameColumnName", Config{
+		Languages: 1,
+		Pets:      1,
+	})
+	DB.Create(user)
+	type UserSpeak struct {
+		UserID       uint
+		LanguageCode string
+	}
+	type Result struct {
+		User
+		UserSpeak
+		Language
+		Pet
+	}
+	results := make([]Result, 0, 1)
+	DB.Select("*").Table("users").Joins("JOIN user_speaks ON user_speaks.user_id = users.id").
+		Joins("JOIN languages ON languages.code = user_speaks.language_code").
+		Joins("LEFT OUTER JOIN pets ON pets.user_id = users.id").Find(&results)
+	if len(results) == 0 {
+		t.Fatalf("no record find")
+	} else if results[0].Pet.UserID == nil {
+		t.Fatalf("wrong user id in pet")
+	} else if !strings.Contains(results[0].Pet.Name, "_pet_") {
+		t.Fatalf("wrong pet name")
 	}
 }
