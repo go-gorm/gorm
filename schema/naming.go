@@ -19,6 +19,7 @@ type Namer interface {
 	RelationshipFKName(Relationship) string
 	CheckerName(table, column string) string
 	IndexName(table, column string) string
+	Force() bool
 }
 
 // Replacer replacer interface like strings.Replacer
@@ -32,6 +33,12 @@ type NamingStrategy struct {
 	SingularTable bool
 	NameReplacer  Replacer
 	NoLowerCase   bool
+	Forced        bool
+}
+
+// Force be forced to use the strategy
+func (ns NamingStrategy) Force() bool {
+	return ns.Forced
 }
 
 // TableName convert string to table name
