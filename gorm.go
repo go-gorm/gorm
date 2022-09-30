@@ -179,7 +179,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 
 	preparedStmt := &PreparedStmtDB{
 		ConnPool:    db.ConnPool,
-		Stmts:       map[string]Stmt{},
+		Stmts:       map[string](*Stmt){},
 		Mux:         &sync.RWMutex{},
 		PreparedSQL: make([]string, 0, 100),
 	}
