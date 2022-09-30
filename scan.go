@@ -163,11 +163,10 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		}
 	default:
 		var (
-			fields             = make([]*schema.Field, len(columns))
-			selectedColumnsMap = make(map[string]int, len(columns))
-			joinFields         [][2]*schema.Field
-			sch                = db.Statement.Schema
-			reflectValue       = db.Statement.ReflectValue
+			fields       = make([]*schema.Field, len(columns))
+			joinFields   [][2]*schema.Field
+			sch          = db.Statement.Schema
+			reflectValue = db.Statement.ReflectValue
 		)
 
 		if reflectValue.Kind() == reflect.Interface {
@@ -200,26 +199,24 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			// Not Pluck
 			if sch != nil {
-				schFieldsCount := len(sch.Fields)
+				matchedFieldCount := make(map[string]int, len(columns))
 				for idx, column := range columns {
 					if field := sch.LookUpField(column); field != nil && field.Readable {
-						if curIndex, ok := selectedColumnsMap[column]; ok {
-							fields[idx] = field // handle duplicate fields
-							offset := curIndex + 1
-							// handle sch inconsistent with database
-							// like Raw(`...`).Scan
-							if schFieldsCount > offset {
-								for fieldIndex, selectField := range sch.Fields[offset:] {
-									if selectField.DBName == column && selectField.Readable {
-										selectedColumnsMap[column] = curIndex + fieldIndex + 1
+						fields[idx] = field
+						if count, ok := matchedFieldCount[column]; ok {
+							// handle duplicate fields
+							for _, selectField := range sch.Fields {
+								if selectField.DBName == column && selectField.Readable {
+									if count == 0 {
+										matchedFieldCount[column]++
 										fields[idx] = selectField
 										break
 									}
+									count--
 								}
 							}
 						} else {
-							fields[idx] = field
-							selectedColumnsMap[column] = idx
+							matchedFieldCount[column] = 1
 						}
 					} else if names := strings.Split(column, "__"); len(names) > 1 {
 						if rel, ok := sch.Relationships.Relations[names[0]]; ok {
