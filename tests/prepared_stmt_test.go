@@ -3,6 +3,7 @@ package tests_test
 import (
 	"context"
 	"sync"
+	"errors"
 	"testing"
 	"time"
 
@@ -150,4 +151,20 @@ func TestPreparedStmtError(t *testing.T) {
 	AssertEqual(t, ok, true)
 	AssertEqual(t, len(conn.Stmts), 0)
 	AssertEqual(t, sqlDB.Stats().InUse, 0)
+}
+
+func TestPreparedStmtInTransaction(t *testing.T) {
+	user := User{Name: "jinzhu"}
+
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		tx.Session(&gorm.Session{PrepareStmt: true}).Create(&user)
+		return errors.New("test")
+	}); err == nil {
+		t.Error(err)
+	}
+
+	var result User
+	if err := DB.First(&result, user.ID).Error; err == nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
 }

@@ -650,7 +650,7 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	return false
 }
 
-var nameMatcher = regexp.MustCompile(`^(?:[\W]?([A-Za-z_0-9]+?)[\W]?\.)?[\W]?([A-Za-z_0-9]+?)[\W]?$`)
+var nameMatcher = regexp.MustCompile(`^(?:\W?(\w+?)\W?\.)?\W?(\w+?)\W?$`)
 
 // SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
 func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool) {
