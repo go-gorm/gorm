@@ -206,7 +206,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 								}
 							}
 
-							cacheKey := utils.ToStringKey(relPrimaryValues)
+							cacheKey := utils.ToStringKey(relPrimaryValues...)
 							if len(relPrimaryValues) != len(rel.FieldSchema.PrimaryFields) || !identityMap[cacheKey] {
 								identityMap[cacheKey] = true
 								if isPtr {
@@ -292,7 +292,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 								}
 							}
 
-							cacheKey := utils.ToStringKey(relPrimaryValues)
+							cacheKey := utils.ToStringKey(relPrimaryValues...)
 							if len(relPrimaryValues) != len(rel.FieldSchema.PrimaryFields) || !identityMap[cacheKey] {
 								identityMap[cacheKey] = true
 								distinctElems = reflect.Append(distinctElems, elem)

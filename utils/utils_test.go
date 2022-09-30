@@ -12,3 +12,20 @@ func TestIsValidDBNameChar(t *testing.T) {
 		}
 	}
 }
+
+func TestToStringKey(t *testing.T) {
+	cases := []struct {
+		values []interface{}
+		key    string
+	}{
+		{[]interface{}{"a"}, "a"},
+		{[]interface{}{1, 2, 3}, "1_2_3"},
+		{[]interface{}{[]interface{}{1, 2, 3}}, "[1 2 3]"},
+		{[]interface{}{[]interface{}{"1", "2", "3"}}, "[1 2 3]"},
+	}
+	for _, c := range cases {
+		if key := ToStringKey(c.values...); key != c.key {
+			t.Errorf("%v: expected %v, got %v", c.values, c.key, key)
+		}
+	}
+}

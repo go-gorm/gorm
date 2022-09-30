@@ -168,3 +168,29 @@ func TestEmbeddedRelations(t *testing.T) {
 		}
 	}
 }
+
+func TestEmbeddedTagSetting(t *testing.T) {
+	type Tag1 struct {
+		Id int64 `gorm:"autoIncrement"`
+	}
+	type Tag2 struct {
+		Id int64
+	}
+
+	type EmbeddedTag struct {
+		Tag1 Tag1 `gorm:"Embedded;"`
+		Tag2 Tag2 `gorm:"Embedded;EmbeddedPrefix:t2_"`
+		Name string
+	}
+
+	DB.Migrator().DropTable(&EmbeddedTag{})
+	err := DB.Migrator().AutoMigrate(&EmbeddedTag{})
+	AssertEqual(t, err, nil)
+
+	t1 := EmbeddedTag{Name: "embedded_tag"}
+	err = DB.Save(&t1).Error
+	AssertEqual(t, err, nil)
+	if t1.Tag1.Id == 0 {
+		t.Errorf("embedded struct's primary field should be rewrited")
+	}
+}

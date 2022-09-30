@@ -307,6 +307,8 @@ func TestSelectWithUpdate(t *testing.T) {
 	if utils.AssertEqual(result.UpdatedAt, user.UpdatedAt) {
 		t.Fatalf("Update struct should update UpdatedAt, was %+v, got %+v", result.UpdatedAt, user.UpdatedAt)
 	}
+
+	AssertObjEqual(t, result, User{Name: "update_with_select"}, "Name", "Age")
 }
 
 func TestSelectWithUpdateWithMap(t *testing.T) {

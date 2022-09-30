@@ -2,6 +2,8 @@ package tests_test
 
 import (
 	"context"
+	"sync"
+	"errors"
 	"testing"
 	"time"
 
@@ -87,4 +89,82 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
 	tx2.Commit()
+}
+
+func TestPreparedStmtDeadlock(t *testing.T) {
+	tx, err := OpenTestConnection()
+	AssertEqual(t, err, nil)
+
+	sqlDB, _ := tx.DB()
+	sqlDB.SetMaxOpenConns(1)
+
+	tx = tx.Session(&gorm.Session{PrepareStmt: true})
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			user := User{Name: "jinzhu"}
+			tx.Create(&user)
+
+			var result User
+			tx.First(&result)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	AssertEqual(t, ok, true)
+	AssertEqual(t, len(conn.Stmts), 2)
+	for _, stmt := range conn.Stmts {
+		if stmt == nil {
+			t.Fatalf("stmt cannot bee nil")
+		}
+	}
+
+	AssertEqual(t, sqlDB.Stats().InUse, 0)
+}
+
+func TestPreparedStmtError(t *testing.T) {
+	tx, err := OpenTestConnection()
+	AssertEqual(t, err, nil)
+
+	sqlDB, _ := tx.DB()
+	sqlDB.SetMaxOpenConns(1)
+
+	tx = tx.Session(&gorm.Session{PrepareStmt: true})
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			// err prepare
+			tag := Tag{Locale: "zh"}
+			tx.Table("users").Find(&tag)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	AssertEqual(t, ok, true)
+	AssertEqual(t, len(conn.Stmts), 0)
+	AssertEqual(t, sqlDB.Stats().InUse, 0)
+}
+
+func TestPreparedStmtInTransaction(t *testing.T) {
+	user := User{Name: "jinzhu"}
+
+	if err := DB.Transaction(func(tx *gorm.DB) error {
+		tx.Session(&gorm.Session{PrepareStmt: true}).Create(&user)
+		return errors.New("test")
+	}); err == nil {
+		t.Error(err)
+	}
+
+	var result User
+	if err := DB.First(&result, user.ID).Error; err == nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
 }
