@@ -244,7 +244,7 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 // Limit specify the number of records to be retrieved
 func (db *DB) Limit(limit int) (tx *DB) {
 	tx = db.getInstance()
-	tx.Statement.AddClause(clause.Limit{Limit: limit})
+	tx.Statement.AddClause(clause.Limit{Limit: &limit})
 	return
 }
 
