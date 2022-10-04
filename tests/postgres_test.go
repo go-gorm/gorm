@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 func TestPostgresReturningIDWhichHasStringType(t *testing.T) {
@@ -146,5 +147,55 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 
 	if err := DB.Create(&post).Error; err != nil {
 		t.Errorf("Failed, got error: %v", err)
+	}
+}
+
+func TestPostgresOnConstraint(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip()
+	}
+
+	type Thing struct {
+		gorm.Model
+		SomeID  string
+		OtherID string
+		Data    string
+	}
+
+	DB.Migrator().DropTable(&Thing{})
+	DB.Migrator().CreateTable(&Thing{})
+	if err := DB.Exec("ALTER TABLE things ADD CONSTRAINT some_id_other_id_unique UNIQUE (some_id, other_id)").Error; err != nil {
+		t.Error(err)
+	}
+
+	thing := Thing{
+		SomeID:  "1234",
+		OtherID: "1234",
+		Data:    "something",
+	}
+
+	DB.Create(&thing)
+
+	thing2 := Thing{
+		SomeID:  "1234",
+		OtherID: "1234",
+		Data:    "something else",
+	}
+
+	result := DB.Clauses(clause.OnConflict{
+		OnConstraint: "some_id_other_id_unique",
+		UpdateAll:    true,
+	}).Create(&thing2)
+	if result.Error != nil {
+		t.Errorf("creating second thing: %v", result.Error)
+	}
+
+	var things []Thing
+	if err := DB.Find(&things).Error; err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+
+	if len(things) > 1 {
+		t.Errorf("expected 1 thing got more")
 	}
 }
