@@ -16,27 +16,27 @@ func (OnConflict) Name() string {
 
 // Build build onConflict clause
 func (onConflict OnConflict) Build(builder Builder) {
-	if len(onConflict.Columns) > 0 {
-		builder.WriteByte('(')
-		for idx, column := range onConflict.Columns {
-			if idx > 0 {
-				builder.WriteByte(',')
-			}
-			builder.WriteQuoted(column)
-		}
-		builder.WriteString(`) `)
-	}
-
-	if len(onConflict.TargetWhere.Exprs) > 0 {
-		builder.WriteString(" WHERE ")
-		onConflict.TargetWhere.Build(builder)
-		builder.WriteByte(' ')
-	}
-
 	if onConflict.OnConstraint != "" {
 		builder.WriteString("ON CONSTRAINT ")
 		builder.WriteString(onConflict.OnConstraint)
 		builder.WriteByte(' ')
+	} else {
+		if len(onConflict.Columns) > 0 {
+			builder.WriteByte('(')
+			for idx, column := range onConflict.Columns {
+				if idx > 0 {
+					builder.WriteByte(',')
+				}
+				builder.WriteQuoted(column)
+			}
+			builder.WriteString(`) `)
+		}
+
+		if len(onConflict.TargetWhere.Exprs) > 0 {
+			builder.WriteString(" WHERE ")
+			onConflict.TargetWhere.Build(builder)
+			builder.WriteByte(' ')
+		}
 	}
 
 	if onConflict.DoNothing {
