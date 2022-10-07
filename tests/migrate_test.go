@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
