@@ -28,7 +28,7 @@ func TestMigrate(t *testing.T) {
 	}
 
 	if err := DB.AutoMigrate(allModels...); err != nil {
-		t.Fatalf("Failed to auto migrate, but got error %v", err)
+		t.Fatalf("Failed to auto migrate, got error %v", err)
 	}
 
 	if tables, err := DB.Migrator().GetTables(); err != nil {
