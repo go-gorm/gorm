@@ -8,6 +8,7 @@ import (
 	"github.com/lib/pq"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	. "gorm.io/gorm/utils/tests"
 )
 
 func TestPostgresReturningIDWhichHasStringType(t *testing.T) {
@@ -198,4 +199,19 @@ func TestPostgresOnConstraint(t *testing.T) {
 	if len(things) > 1 {
 		t.Errorf("expected 1 thing got more")
 	}
+}
+
+type CompanyNew struct {
+	ID   int
+	Name int
+}
+
+func TestAlterColumnDataType(t *testing.T) {
+	DB.AutoMigrate(Company{})
+
+	if err := DB.Table("companies").Migrator().AlterColumn(CompanyNew{}, "name"); err != nil {
+		t.Fatalf("failed to alter column from string to int, got error %v", err)
+	}
+
+	DB.AutoMigrate(Company{})
 }

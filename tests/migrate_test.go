@@ -400,7 +400,7 @@ func TestMigrateColumns(t *testing.T) {
 					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 				if v, ok := columnType.DefaultValue(); !sqlserver && (!ok || v != "hello") {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
 				}
 				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my code2") {
 					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
