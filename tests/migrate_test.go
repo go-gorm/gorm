@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
@@ -77,23 +76,21 @@ func TestMigrate(t *testing.T) {
 
 }
 
-type Smallint int8
-
 func TestAutoMigrateInt8PG(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
 
 	type MigrateInt struct {
-		Int8 Smallint
+		Int8 int8
 	}
 
 	tracer := Tracer{
 		Logger: DB.Config.Logger,
 		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 			sql, _ := fc()
-			if strings.HasPrefix(sql, `ALTER TABLE "migrate_ints" ALTER COLUMN "int8" TYPE smallint`) {
-				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
+			if sql == "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint" {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema")
 			}
 		},
 	}
@@ -441,7 +438,7 @@ func TestMigrateColumns(t *testing.T) {
 					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 				if v, ok := columnType.DefaultValue(); !sqlserver && (!ok || v != "hello") {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my code2") {
 					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
@@ -871,11 +868,11 @@ func TestUniqueColumn(t *testing.T) {
 	value, ok = ct.DefaultValue()
 	AssertEqual(t, "", value)
 	AssertEqual(t, false, ok)
+
 }
 
 func findColumnType(dest interface{}, columnName string) (
-	foundColumn gorm.ColumnType, err error,
-) {
+	foundColumn gorm.ColumnType, err error) {
 	columnTypes, err := DB.Migrator().ColumnTypes(dest)
 	if err != nil {
 		err = fmt.Errorf("ColumnTypes err:%v", err)
@@ -924,117 +921,4 @@ func TestInvalidCachedPlan(t *testing.T) {
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
-}
-
-func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
-	type DiffType struct {
-		ID   uint
-		Name string `gorm:"type:varchar(20)"`
-	}
-
-	type DiffType1 struct {
-		ID   uint
-		Name string `gorm:"type:text"`
-	}
-
-	var err error
-	DB.Migrator().DropTable(&DiffType{})
-
-	err = DB.AutoMigrate(&DiffType{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	ct, err := findColumnType(&DiffType{}, "name")
-	if err != nil {
-		t.Errorf("findColumnType err:%v", err)
-	}
-
-	AssertEqual(t, "varchar", strings.ToLower(ct.DatabaseTypeName()))
-
-	err = DB.Table("diff_types").AutoMigrate(&DiffType1{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	ct, err = findColumnType(&DiffType{}, "name")
-	if err != nil {
-		t.Errorf("findColumnType err:%v", err)
-	}
-
-	AssertEqual(t, "text", strings.ToLower(ct.DatabaseTypeName()))
-}
-
-func TestMigrateArrayTypeModel(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
-		return
-	}
-
-	type ArrayTypeModel struct {
-		ID              uint
-		Number          string     `gorm:"type:varchar(51);NOT NULL"`
-		TextArray       []string   `gorm:"type:text[];NOT NULL"`
-		NestedTextArray [][]string `gorm:"type:text[][]"`
-		NestedIntArray  [][]int64  `gorm:"type:integer[3][3]"`
-	}
-
-	var err error
-	DB.Migrator().DropTable(&ArrayTypeModel{})
-
-	err = DB.AutoMigrate(&ArrayTypeModel{})
-	AssertEqual(t, nil, err)
-
-	ct, err := findColumnType(&ArrayTypeModel{}, "number")
-	AssertEqual(t, nil, err)
-	AssertEqual(t, "varchar", ct.DatabaseTypeName())
-
-	ct, err = findColumnType(&ArrayTypeModel{}, "text_array")
-	AssertEqual(t, nil, err)
-	AssertEqual(t, "text[]", ct.DatabaseTypeName())
-
-	ct, err = findColumnType(&ArrayTypeModel{}, "nested_text_array")
-	AssertEqual(t, nil, err)
-	AssertEqual(t, "text[]", ct.DatabaseTypeName())
-
-	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
-	AssertEqual(t, nil, err)
-	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
-}
-
-func TestMigrateSameEmbeddedFieldName(t *testing.T) {
-	type UserStat struct {
-		GroundDestroyCount int
-	}
-
-	type GameUser struct {
-		gorm.Model
-		StatAb UserStat `gorm:"embedded;embeddedPrefix:stat_ab_"`
-	}
-
-	type UserStat1 struct {
-		GroundDestroyCount string
-	}
-
-	type GroundRate struct {
-		GroundDestroyCount int
-	}
-
-	type GameUser1 struct {
-		gorm.Model
-		StatAb       UserStat1  `gorm:"embedded;embeddedPrefix:stat_ab_"`
-		GroundRateRb GroundRate `gorm:"embedded;embeddedPrefix:rate_ground_rb_"`
-	}
-
-	DB.Migrator().DropTable(&GameUser{})
-	err := DB.AutoMigrate(&GameUser{})
-	AssertEqual(t, nil, err)
-
-	err = DB.Table("game_users").AutoMigrate(&GameUser1{})
-	AssertEqual(t, nil, err)
-
-	_, err = findColumnType(&GameUser{}, "stat_ab_ground_destory_count")
-	AssertEqual(t, nil, err)
-
-	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destory_count")
-	AssertEqual(t, nil, err)
 }
