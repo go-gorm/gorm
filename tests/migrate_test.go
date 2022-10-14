@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
@@ -89,8 +90,8 @@ func TestAutoMigrateInt8PG(t *testing.T) {
 		Logger: DB.Config.Logger,
 		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 			sql, _ := fc()
-			if sql == "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint" {
-				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema")
+			if strings.HasPrefix(sql, "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
 			}
 		},
 	}
