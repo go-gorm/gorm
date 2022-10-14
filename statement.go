@@ -194,6 +194,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				writer.WriteByte(')')
 			} else {
 				writer.WriteString("(NULL)")
+				stmt.Vars = append(stmt.Vars, v)
 			}
 		case *DB:
 			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
