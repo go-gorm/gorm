@@ -77,21 +77,23 @@ func TestMigrate(t *testing.T) {
 
 }
 
+type Smallint int8
+
 func TestAutoMigrateInt8PG(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
 
 	type MigrateInt struct {
-		Int8 int8
+		Int8 Smallint
 	}
 
 	tracer := Tracer{
 		Logger: DB.Config.Logger,
 		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 			sql, _ := fc()
-			if sql == "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint" {
-				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema")
+			if strings.HasPrefix(sql, `ALTER TABLE "migrate_ints" ALTER COLUMN "int8" TYPE smallint`) {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
 			}
 		},
 	}
