@@ -367,7 +367,7 @@ func TestToSQL(t *testing.T) {
 		t.Skip("Skip SQL Server for this test, because it too difference with other dialects.")
 	}
 
-	date, _ := time.Parse("2006-01-02", "2021-10-18")
+	date, _ := time.ParseInLocation("2006-01-02", "2021-10-18", time.Local)
 
 	// find
 	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
