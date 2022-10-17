@@ -1360,7 +1360,7 @@ func TestQueryResetNullValue(t *testing.T) {
 	AssertEqual(t, q2, qs[1])
 }
 
-func TestFuncDateWihtoutTimeSQLITE(t *testing.T) {
+func TestFuncDateWihtoutTime(t *testing.T) {
 	users := []User{
 		*GetUser("find", Config{}),
 		*GetUser("find", Config{}),
@@ -1376,8 +1376,10 @@ func TestFuncDateWihtoutTimeSQLITE(t *testing.T) {
 			Birthday string
 			Name     string
 		}
-		var fn clause.FuncDateWithoutTime = clause.FuncDateWithoutTime{Database: "sqlite", Field: "birthday"}
+
+		var fn clause.FuncDateWithoutTime = clause.FuncDateWithoutTime{Database: clause.Database(DB.Dialector.Name()), Field: "birthday"}
 		var sql string = fn.GetSql()
+
 		if err := DB.Model(&User{}).Select([]string{sql, "name"}).Where("name = ?", "find").First(&first).Error; err != nil {
 			t.Errorf("errors happened when query first: %v", err)
 		} else {
