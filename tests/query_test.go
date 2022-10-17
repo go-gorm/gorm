@@ -1359,3 +1359,32 @@ func TestQueryResetNullValue(t *testing.T) {
 	AssertEqual(t, q1, qs[0])
 	AssertEqual(t, q2, qs[1])
 }
+
+func TestFuncDateWihtoutTimeSQLITE(t *testing.T) {
+	users := []User{
+		*GetUser("find", Config{}),
+		*GetUser("find", Config{}),
+		*GetUser("find", Config{}),
+	}
+
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create users: %v", err)
+	}
+
+	t.Run("First with Function", func(t *testing.T) {
+		var first struct {
+			Birthday string
+			Name     string
+		}
+		var fn clause.FuncDateWithoutTime = clause.FuncDateWithoutTime{Database: "sqlite", Field: "birthday"}
+		var sql string = fn.GetSql()
+		if err := DB.Model(&User{}).Select([]string{sql, "name"}).Where("name = ?", "find").First(&first).Error; err != nil {
+			t.Errorf("errors happened when query first: %v", err)
+		} else {
+			now := time.Now().Format("2006-01-02")
+			AssertEqual(t, &first.Birthday, now)
+			AssertEqual(t, &first.Name, "find")
+
+		}
+	})
+}
