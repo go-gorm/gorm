@@ -100,6 +100,9 @@ func (JSONSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value,
 // Value implements serializer interface
 func (JSONSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
 	result, err := json.Marshal(fieldValue)
+	if string(result) == "null" {
+		return nil, err
+	}
 	return string(result), err
 }
 
