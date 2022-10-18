@@ -179,6 +179,10 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			} else {
 				stmt.AddVar(writer, v.GormValue(stmt.Context, stmt.DB))
 			}
+		case clause.Interface:
+			c := clause.Clause{Name: v.Name()}
+			v.MergeClause(&c)
+			c.Build(stmt)
 		case clause.Expression:
 			v.Build(stmt)
 		case driver.Valuer:

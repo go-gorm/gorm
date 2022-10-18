@@ -445,6 +445,14 @@ func TestToSQL(t *testing.T) {
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
+
+	// UpdateColumns
+	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Raw("SELECT * FROM users ?", clause.OrderBy{
+			Columns: []clause.OrderByColumn{{Column: clause.Column{Name: "id", Raw: true}, Desc: true}},
+		})
+	})
+	assertEqualSQL(t, `SELECT * FROM users ORDER BY id DESC`, sql)
 }
 
 // assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect specials.
