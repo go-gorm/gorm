@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
@@ -71,6 +73,44 @@ func TestMigrate(t *testing.T) {
 		if !DB.Migrator().HasConstraint(indexes[0], indexes[1]) {
 			t.Fatalf("Failed to find index for many2many for %v %v", indexes[0], indexes[1])
 		}
+	}
+
+}
+
+func TestAutoMigrateInt8PG(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	type Smallint int8
+
+	type MigrateInt struct {
+		Int8 Smallint
+	}
+
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
+			}
+		},
+	}
+
+	DB.Migrator().DropTable(&MigrateInt{})
+
+	// The first AutoMigrate to make table with field with correct type
+	if err := DB.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
+	}
+
+	// make new session to set custom logger tracer
+	session := DB.Session(&gorm.Session{Logger: tracer})
+
+	// The second AutoMigrate to catch an error
+	if err := session.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
 	}
 }
 
