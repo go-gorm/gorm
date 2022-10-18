@@ -348,3 +348,45 @@ func TestAssociationEmptyQueryClause(t *testing.T) {
 		AssertEqual(t, len(orgs), 0)
 	}
 }
+
+type AssociationEmptyUser struct {
+	ID   uint
+	Name string
+	Pets []AssociationEmptyPet
+}
+
+type AssociationEmptyPet struct {
+	AssociationEmptyUserID *uint  `gorm:"uniqueIndex:uniq_user_id_name"`
+	Name                   string `gorm:"uniqueIndex:uniq_user_id_name;size:256"`
+}
+
+func TestAssociationEmptyPrimaryKey(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		t.Skip()
+	}
+	DB.Migrator().DropTable(&AssociationEmptyUser{}, &AssociationEmptyPet{})
+	DB.AutoMigrate(&AssociationEmptyUser{}, &AssociationEmptyPet{})
+
+	id := uint(100)
+	user := AssociationEmptyUser{
+		ID:   id,
+		Name: "jinzhu",
+		Pets: []AssociationEmptyPet{
+			{AssociationEmptyUserID: &id, Name: "bar"},
+			{AssociationEmptyUserID: &id, Name: "foo"},
+		},
+	}
+
+	err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Create(&user).Error
+	if err != nil {
+		t.Fatalf("Failed to create, got error: %v", err)
+	}
+
+	var result AssociationEmptyUser
+	err = DB.Preload("Pets").First(&result, &id).Error
+	if err != nil {
+		t.Fatalf("Failed to find, got error: %v", err)
+	}
+
+	AssertEqual(t, result, user)
+}
