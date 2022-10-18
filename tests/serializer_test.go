@@ -19,6 +19,7 @@ type SerializerStruct struct {
 	Name                   []byte                 `gorm:"json"`
 	Roles                  Roles                  `gorm:"serializer:json"`
 	Roles2                 *Roles                 `gorm:"serializer:json"`
+	Roles3                 *Roles                 `gorm:"serializer:json;not null"`
 	Contracts              map[string]interface{} `gorm:"serializer:json"`
 	JobInfo                Job                    `gorm:"type:bytes;serializer:gob"`
 	CreatedTime            int64                  `gorm:"serializer:unixtime;type:time"` // store time in db, use int as field type
@@ -109,7 +110,7 @@ func TestSerializer(t *testing.T) {
 	}
 
 	var result SerializerStruct
-	if err := DB.Where("roles2 IS NULL").First(&result, data.ID).Error; err != nil {
+	if err := DB.Where("roles2 IS NULL AND roles3 = ?", "").First(&result, data.ID).Error; err != nil {
 		t.Fatalf("failed to query data, got error %v", err)
 	}
 
