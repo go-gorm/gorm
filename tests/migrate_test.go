@@ -850,12 +850,47 @@ func findColumnType(dest interface{}, columnName string) (
 	return
 }
 
-func TestInvalidCachedPlan(t *testing.T) {
+func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
 
 	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
+	if err != nil {
+		t.Errorf("Open err:%v", err)
+	}
+
+	type Object1 struct{}
+	type Object2 struct {
+		Field1 string
+	}
+	type Object3 struct {
+		Field2 string
+	}
+	db.Migrator().DropTable("objects")
+
+	err = db.Table("objects").AutoMigrate(&Object1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").AutoMigrate(&Object2{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").AutoMigrate(&Object3{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+}
+
+func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{PrepareStmt: true})
 	if err != nil {
 		t.Errorf("Open err:%v", err)
 	}
