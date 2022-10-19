@@ -406,17 +406,14 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
 
-	alterColumn := false
+	var (
+		alterColumn, isSameType bool
+	)
 
 	if !field.PrimaryKey {
 		// check type
-		var isSameType bool
-		if strings.HasPrefix(fullDataType, realDataType) {
-			isSameType = true
-		}
-
-		// check type aliases
-		if !isSameType {
+		if !strings.HasPrefix(fullDataType, realDataType) {
+			// check type aliases
 			aliases := m.DB.Migrator().GetTypeAliases(realDataType)
 			for _, alias := range aliases {
 				if strings.HasPrefix(fullDataType, alias) {
@@ -424,32 +421,34 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 					break
 				}
 			}
-		}
 
-		if !isSameType {
-			alterColumn = true
-		}
-	}
-
-	// check size
-	if length, ok := columnType.Length(); length != int64(field.Size) {
-		if length > 0 && field.Size > 0 {
-			alterColumn = true
-		} else {
-			// has size in data type and not equal
-			// Since the following code is frequently called in the for loop, reg optimization is needed here
-			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
-			if !field.PrimaryKey &&
-				(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
+			if !isSameType {
 				alterColumn = true
 			}
 		}
 	}
 
-	// check precision
-	if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
-		if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
-			alterColumn = true
+	if !isSameType {
+		// check size
+		if length, ok := columnType.Length(); length != int64(field.Size) {
+			if length > 0 && field.Size > 0 {
+				alterColumn = true
+			} else {
+				// has size in data type and not equal
+				// Since the following code is frequently called in the for loop, reg optimization is needed here
+				matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
+				if !field.PrimaryKey &&
+					(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
+					alterColumn = true
+				}
+			}
+		}
+
+		// check precision
+		if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
+			if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
+				alterColumn = true
+			}
 		}
 	}
 
