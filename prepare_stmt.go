@@ -44,6 +44,18 @@ func (db *PreparedStmtDB) Close() {
 	}
 }
 
+func (db *PreparedStmtDB) Reset() {
+	db.Mux.Lock()
+	defer db.Mux.Unlock()
+	for query, stmt := range db.Stmts {
+		delete(db.Stmts, query)
+		go stmt.Close()
+	}
+
+	db.PreparedSQL = make([]string, 0, 100)
+	db.Stmts = map[string](*Stmt){}
+}
+
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
 	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
