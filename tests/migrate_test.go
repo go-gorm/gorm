@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,6 +13,7 @@ import (
 	"gorm.io/driver/postgres"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -934,13 +936,26 @@ func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
 	if err != nil {
 		t.Errorf("Open err:%v", err)
 	}
+	if debug := os.Getenv("DEBUG"); debug == "true" {
+		db.Logger = db.Logger.LogMode(logger.Info)
+	} else if debug == "false" {
+		db.Logger = db.Logger.LogMode(logger.Silent)
+	}
 
-	type Object1 struct{}
+	type Object1 struct {
+		ID uint
+	}
 	type Object2 struct {
-		Field1 string
+		ID     uint
+		Field1 int `gorm:"type:int8"`
 	}
 	type Object3 struct {
-		Field2 string
+		ID     uint
+		Field1 int `gorm:"type:int4"`
+	}
+	type Object4 struct {
+		ID     uint
+		Field2 int
 	}
 	db.Migrator().DropTable("objects")
 
@@ -948,15 +963,42 @@ func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
+	err = db.Table("objects").Create(&Object1{}).Error
+	if err != nil {
+		t.Errorf("create err:%v", err)
+	}
 
+	// AddColumn
 	err = db.Table("objects").AutoMigrate(&Object2{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
 
+	err = db.Table("objects").Take(&Object2{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	// AlterColumn
 	err = db.Table("objects").AutoMigrate(&Object3{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object3{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	// AddColumn
+	err = db.Table("objects").AutoMigrate(&Object4{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
 	}
 }
 
