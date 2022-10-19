@@ -47,7 +47,8 @@ func (db *PreparedStmtDB) Close() {
 func (db *PreparedStmtDB) Reset() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
-	for _, stmt := range db.Stmts {
+	for query, stmt := range db.Stmts {
+		delete(db.Stmts, query)
 		go stmt.Close()
 	}
 
