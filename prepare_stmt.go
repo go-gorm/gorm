@@ -45,7 +45,12 @@ func (db *PreparedStmtDB) Close() {
 }
 
 func (db *PreparedStmtDB) Reset() {
-	db.Close()
+	db.Mux.Lock()
+	defer db.Mux.Unlock()
+	for _, stmt := range db.Stmts {
+		go stmt.Close()
+	}
+
 	db.PreparedSQL = make([]string, 0, 100)
 	db.Stmts = map[string](*Stmt){}
 }
