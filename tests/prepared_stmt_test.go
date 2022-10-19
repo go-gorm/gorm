@@ -171,16 +171,17 @@ func TestPreparedStmtInTransaction(t *testing.T) {
 
 func TestPreparedStmtReset(t *testing.T) {
 	tx := DB.Session(&gorm.Session{PrepareStmt: true})
+
+	user := *GetUser("prepared_stmt_reset", Config{})
+	tx = tx.Create(&user)
+
 	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
 	if !ok {
 		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
 	}
 
-	user := *GetUser("prepared_stmt_reset", Config{})
-	tx.Create(&user)
-
 	pdb.Mux.Lock()
-	if len(pdb.PreparedSQL) == 0 || len(pdb.Stmts) == 0 {
+	if len(pdb.Stmts) == 0 {
 		pdb.Mux.Unlock()
 		t.Fatalf("prepared stmt can not be empty")
 	}
@@ -189,7 +190,7 @@ func TestPreparedStmtReset(t *testing.T) {
 	pdb.Reset()
 	pdb.Mux.Lock()
 	defer pdb.Mux.Unlock()
-	if len(pdb.PreparedSQL) != 0 || len(pdb.Stmts) != 0 {
+	if len(pdb.Stmts) != 0 {
 		t.Fatalf("prepared stmt should be empty")
 	}
 }
