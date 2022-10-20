@@ -302,5 +302,4 @@ func TestJoinArgsWithDB(t *testing.T) {
 		t.Fatal("Pet ID can not be empty")
 	}
 	AssertEqual(t, user4.NamedPet.Name, "")
-
 }
