@@ -1000,6 +1000,26 @@ func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
 	if err != nil {
 		t.Errorf("take err:%v", err)
 	}
+
+	db.Table("objects").Migrator().RenameColumn(&Object4{}, "field2", "field3")
+	if err != nil {
+		t.Errorf("RenameColumn err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	db.Table("objects").Migrator().DropColumn(&Object4{}, "field3")
+	if err != nil {
+		t.Errorf("RenameColumn err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
 }
 
 func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
