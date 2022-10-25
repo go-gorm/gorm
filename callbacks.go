@@ -73,15 +73,6 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) *DB {
-	// call scopes
-	for len(db.Statement.scopes) > 0 {
-		scopes := db.Statement.scopes
-		db.Statement.scopes = nil
-		for _, scope := range scopes {
-			db = scope(db)
-		}
-	}
-
 	var (
 		curTime           = time.Now()
 		stmt              = db.Statement
@@ -100,13 +91,12 @@ func (p *processor) Execute(db *DB) *DB {
 		stmt.Dest = stmt.Model
 	}
 
+	var modelParseError error
 	// parse model values
 	if stmt.Model != nil {
-		if err := stmt.Parse(stmt.Model); err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0)) {
-			if errors.Is(err, schema.ErrUnsupportedDataType) && stmt.Table == "" && stmt.TableExpr == nil {
-				db.AddError(fmt.Errorf("%w: Table not set, please set it like: db.Model(&user) or db.Table(\"users\")", err))
-			} else {
-				db.AddError(err)
+		if modelParseError = stmt.Parse(stmt.Model); modelParseError != nil && (!errors.Is(modelParseError, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0)) {
+			if !errors.Is(modelParseError, schema.ErrUnsupportedDataType) || stmt.Table != "" || stmt.TableExpr != nil {
+				_ = db.AddError(modelParseError)
 			}
 		}
 	}
@@ -122,8 +112,21 @@ func (p *processor) Execute(db *DB) *DB {
 			stmt.ReflectValue = stmt.ReflectValue.Elem()
 		}
 		if !stmt.ReflectValue.IsValid() {
-			db.AddError(ErrInvalidValue)
+			_ = db.AddError(ErrInvalidValue)
 		}
+	}
+
+	// call scopes
+	for len(db.Statement.scopes) > 0 {
+		scopes := db.Statement.scopes
+		db.Statement.scopes = nil
+		for _, scope := range scopes {
+			db = scope(db)
+		}
+	}
+
+	if stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0 {
+		_ = db.AddError(fmt.Errorf("%w: Table not set, please set it like: db.Model(&user) or db.Table(\"users\")", modelParseError))
 	}
 
 	for _, f := range p.fns {
