@@ -82,6 +82,8 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 // ParseWithSpecialTableName get data type from dialector with extra schema table
 func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+	cacheStore = &sync.Map{} // refresh cache store
+
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
