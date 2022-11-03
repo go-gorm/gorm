@@ -2,8 +2,8 @@ package tests_test
 
 import (
 	"context"
-	"sync"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -166,5 +166,31 @@ func TestPreparedStmtInTransaction(t *testing.T) {
 	var result User
 	if err := DB.First(&result, user.ID).Error; err == nil {
 		t.Errorf("Failed, got error: %v", err)
+	}
+}
+
+func TestPreparedStmtReset(t *testing.T) {
+	tx := DB.Session(&gorm.Session{PrepareStmt: true})
+
+	user := *GetUser("prepared_stmt_reset", Config{})
+	tx = tx.Create(&user)
+
+	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	if !ok {
+		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
+	}
+
+	pdb.Mux.Lock()
+	if len(pdb.Stmts) == 0 {
+		pdb.Mux.Unlock()
+		t.Fatalf("prepared stmt can not be empty")
+	}
+	pdb.Mux.Unlock()
+
+	pdb.Reset()
+	pdb.Mux.Lock()
+	defer pdb.Mux.Unlock()
+	if len(pdb.Stmts) != 0 {
+		t.Fatalf("prepared stmt should be empty")
 	}
 }

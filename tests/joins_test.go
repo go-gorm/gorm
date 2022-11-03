@@ -260,3 +260,46 @@ func TestJoinWithSameColumnName(t *testing.T) {
 		t.Fatalf("wrong pet name")
 	}
 }
+
+func TestJoinArgsWithDB(t *testing.T) {
+	user := *GetUser("joins-args-db", Config{Pets: 2})
+	DB.Save(&user)
+
+	// test where
+	var user1 User
+	onQuery := DB.Where(&Pet{Name: "joins-args-db_pet_2"})
+	if err := DB.Joins("NamedPet", onQuery).Where("users.name = ?", user.Name).First(&user1).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+
+	AssertEqual(t, user1.NamedPet.Name, "joins-args-db_pet_2")
+
+	// test where and omit
+	onQuery2 := DB.Where(&Pet{Name: "joins-args-db_pet_2"}).Omit("Name")
+	var user2 User
+	if err := DB.Joins("NamedPet", onQuery2).Where("users.name = ?", user.Name).First(&user2).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+	AssertEqual(t, user2.NamedPet.ID, user1.NamedPet.ID)
+	AssertEqual(t, user2.NamedPet.Name, "")
+
+	// test where and select
+	onQuery3 := DB.Where(&Pet{Name: "joins-args-db_pet_2"}).Select("Name")
+	var user3 User
+	if err := DB.Joins("NamedPet", onQuery3).Where("users.name = ?", user.Name).First(&user3).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+	AssertEqual(t, user3.NamedPet.ID, 0)
+	AssertEqual(t, user3.NamedPet.Name, "joins-args-db_pet_2")
+
+	// test select
+	onQuery4 := DB.Select("ID")
+	var user4 User
+	if err := DB.Joins("NamedPet", onQuery4).Where("users.name = ?", user.Name).First(&user4).Error; err != nil {
+		t.Fatalf("Failed to load with joins on, got error: %v", err)
+	}
+	if user4.NamedPet.ID == 0 {
+		t.Fatal("Pet ID can not be empty")
+	}
+	AssertEqual(t, user4.NamedPet.Name, "")
+}

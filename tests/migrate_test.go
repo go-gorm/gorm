@@ -1,8 +1,10 @@
 package tests_test
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -74,6 +77,44 @@ func TestMigrate(t *testing.T) {
 		if !DB.Migrator().HasConstraint(indexes[0], indexes[1]) {
 			t.Fatalf("Failed to find index for many2many for %v %v", indexes[0], indexes[1])
 		}
+	}
+
+}
+
+func TestAutoMigrateInt8PG(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	type Smallint int8
+
+	type MigrateInt struct {
+		Int8 Smallint
+	}
+
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
+			}
+		},
+	}
+
+	DB.Migrator().DropTable(&MigrateInt{})
+
+	// The first AutoMigrate to make table with field with correct type
+	if err := DB.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
+	}
+
+	// make new session to set custom logger tracer
+	session := DB.Session(&gorm.Session{Logger: tracer})
+
+	// The second AutoMigrate to catch an error
+	if err := session.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
 	}
 }
 
@@ -403,7 +444,7 @@ func TestMigrateColumns(t *testing.T) {
 					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
 				if v, ok := columnType.DefaultValue(); !sqlserver && (!ok || v != "hello") {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
 				}
 				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my code2") {
 					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
@@ -853,7 +894,7 @@ func findColumnType(dest interface{}, columnName string) (
 	return
 }
 
-func TestInvalidCachedPlan(t *testing.T) {
+func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
@@ -885,6 +926,101 @@ func TestInvalidCachedPlan(t *testing.T) {
 	err = db.Table("objects").AutoMigrate(&Object3{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
+	}
+}
+
+func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{PrepareStmt: true})
+	if err != nil {
+		t.Errorf("Open err:%v", err)
+	}
+	if debug := os.Getenv("DEBUG"); debug == "true" {
+		db.Logger = db.Logger.LogMode(logger.Info)
+	} else if debug == "false" {
+		db.Logger = db.Logger.LogMode(logger.Silent)
+	}
+
+	type Object1 struct {
+		ID uint
+	}
+	type Object2 struct {
+		ID     uint
+		Field1 int `gorm:"type:int8"`
+	}
+	type Object3 struct {
+		ID     uint
+		Field1 int `gorm:"type:int4"`
+	}
+	type Object4 struct {
+		ID     uint
+		Field2 int
+	}
+	db.Migrator().DropTable("objects")
+
+	err = db.Table("objects").AutoMigrate(&Object1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+	err = db.Table("objects").Create(&Object1{}).Error
+	if err != nil {
+		t.Errorf("create err:%v", err)
+	}
+
+	// AddColumn
+	err = db.Table("objects").AutoMigrate(&Object2{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object2{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	// AlterColumn
+	err = db.Table("objects").AutoMigrate(&Object3{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object3{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	// AddColumn
+	err = db.Table("objects").AutoMigrate(&Object4{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	db.Table("objects").Migrator().RenameColumn(&Object4{}, "field2", "field3")
+	if err != nil {
+		t.Errorf("RenameColumn err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
+	}
+
+	db.Table("objects").Migrator().DropColumn(&Object4{}, "field3")
+	if err != nil {
+		t.Errorf("RenameColumn err:%v", err)
+	}
+
+	err = db.Table("objects").Take(&Object4{}).Error
+	if err != nil {
+		t.Errorf("take err:%v", err)
 	}
 }
 

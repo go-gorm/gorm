@@ -8,6 +8,10 @@ import (
 )
 
 func TestLimit(t *testing.T) {
+	limit0 := 0
+	limit10 := 10
+	limit50 := 50
+	limitNeg10 := -10
 	results := []struct {
 		Clauses []clause.Interface
 		Result  string
@@ -15,10 +19,14 @@ func TestLimit(t *testing.T) {
 	}{
 		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{
-				Limit:  10,
+				Limit:  &limit10,
 				Offset: 20,
 			}},
 			"SELECT * FROM `users` LIMIT 10 OFFSET 20", nil,
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit0}},
+			"SELECT * FROM `users` LIMIT 0", nil,
 		},
 		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}},
@@ -29,23 +37,23 @@ func TestLimit(t *testing.T) {
 			"SELECT * FROM `users` OFFSET 30", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}, clause.Limit{Limit: 10}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}, clause.Limit{Limit: &limit10}},
 			"SELECT * FROM `users` LIMIT 10 OFFSET 20", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: 10, Offset: 20}, clause.Limit{Offset: 30}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Offset: 30}},
 			"SELECT * FROM `users` LIMIT 10 OFFSET 30", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: 10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Offset: -10}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Offset: -10}},
 			"SELECT * FROM `users` LIMIT 10", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: 10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Limit: -10}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Limit: &limitNeg10}},
 			"SELECT * FROM `users` OFFSET 30", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: 10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Limit: 50}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Limit: &limit50}},
 			"SELECT * FROM `users` LIMIT 50 OFFSET 30", nil,
 		},
 	}
