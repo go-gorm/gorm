@@ -78,7 +78,7 @@ func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
 		}
 
 		stmt.AddClause(clause.Where{Exprs: []clause.Expression{
-			clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: sd.Field.DBName}, Value: nil},
+			clause.Eq{Column: clause.Column{Name: sd.Field.DBName}, Value: nil},
 		}})
 		stmt.Clauses["soft_delete_enabled"] = clause.Clause{}
 	}
