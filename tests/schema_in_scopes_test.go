@@ -49,3 +49,43 @@ func TestSchemaAccessibleFromScopes(t *testing.T) {
 		t.Errorf("invalid schema found, expected non-nil schema")
 	}
 }
+
+func TestSetModelInScope(t *testing.T) {
+	users := []User{
+		*GetUser("model-scope-1", Config{}),
+		*GetUser("model-scope-2", Config{}),
+	}
+
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create users: %v", err)
+	}
+
+	scope := func(db *gorm.DB) *gorm.DB {
+		return db.Model(&User{})
+	}
+
+	var results []map[string]interface{}
+	tx := DB.Scopes(scope)
+	tx = tx.Select("name", "age").Where("name like ?", "model-scope-%").Find(&results)
+	if err := tx.Error; err != nil {
+		t.Errorf("failed to query users, got error: %v", err)
+	}
+
+	expects := []User{
+		{Name: "model-scope-1", Age: 18},
+		{Name: "model-scope-2", Age: 18},
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("invalid results length found, expects: %v, got %v", len(expects), len(results))
+	}
+
+	expectedTableName := "users"
+	if tx.Statement.Table != expectedTableName {
+		t.Errorf("invalid table name found, expects: %v, got %v", expectedTableName, tx.Statement.Table)
+	}
+
+	if tx.Statement.Schema == nil {
+		t.Errorf("invalid schema found, expected non-nil schema")
+	}
+}

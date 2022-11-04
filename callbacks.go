@@ -84,22 +84,7 @@ func (p *processor) Execute(db *DB) *DB {
 		resetBuildClauses = true
 	}
 
-	// assign model values
-	if stmt.Model == nil {
-		stmt.Model = stmt.Dest
-	} else if stmt.Dest == nil {
-		stmt.Dest = stmt.Model
-	}
-
-	var modelParseError error
-	// parse model values
-	if stmt.Model != nil {
-		if modelParseError = stmt.Parse(stmt.Model); modelParseError != nil && (!errors.Is(modelParseError, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0)) {
-			if !errors.Is(modelParseError, schema.ErrUnsupportedDataType) || stmt.Table != "" || stmt.TableExpr != nil {
-				_ = db.AddError(modelParseError)
-			}
-		}
-	}
+	modelParseError := p.parseModelValue(db, stmt)
 
 	// assign stmt.ReflectValue
 	if stmt.Dest != nil {
@@ -123,6 +108,11 @@ func (p *processor) Execute(db *DB) *DB {
 		for _, scope := range scopes {
 			db = scope(db)
 		}
+	}
+
+	// parse model again if the model has been set in scopes
+	if stmt.Schema == nil && (modelParseError == nil || errors.Is(modelParseError, schema.ErrUnsupportedDataType)) {
+		modelParseError = p.parseModelValue(db, stmt)
 	}
 
 	if stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0 {
@@ -149,6 +139,29 @@ func (p *processor) Execute(db *DB) *DB {
 	}
 
 	return db
+}
+
+func (p *processor) parseModelValue(db *DB, stmt *Statement) error {
+	p.assignModelValues(stmt)
+
+	var err error
+	if stmt.Model != nil {
+		err = stmt.Parse(stmt.Model)
+		if err != nil && (!errors.Is(err, schema.ErrUnsupportedDataType) || (stmt.Table == "" && stmt.TableExpr == nil && stmt.SQL.Len() == 0)) {
+			if !errors.Is(err, schema.ErrUnsupportedDataType) || stmt.Table != "" || stmt.TableExpr != nil {
+				_ = db.AddError(err)
+			}
+		}
+	}
+	return err
+}
+
+func (p *processor) assignModelValues(stmt *Statement) {
+	if stmt.Model == nil {
+		stmt.Model = stmt.Dest
+	} else if stmt.Dest == nil {
+		stmt.Dest = stmt.Model
+	}
 }
 
 func (p *processor) Get(name string) func(*DB) {
