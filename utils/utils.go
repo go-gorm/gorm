@@ -23,11 +23,11 @@ func sourceDir(file string) string {
 	dir := filepath.Dir(file)
 	dir = filepath.Dir(dir)
 
-	parent := filepath.Dir(dir)
-	if filepath.Base(parent) == "gorm.io" {
-		return parent
+	s := filepath.Dir(dir)
+	if filepath.Base(s) != "gorm.io" {
+		s = dir
 	}
-	return dir
+	return s + string(filepath.Separator)
 }
 
 // FileWithLineNum return the file name and line number of the current file
