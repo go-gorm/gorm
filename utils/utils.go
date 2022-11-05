@@ -27,7 +27,7 @@ func sourceDir(file string) string {
 	if filepath.Base(s) != "gorm.io" {
 		s = dir
 	}
-	return s + string(filepath.Separator)
+	return filepath.ToSlash(s) + "/"
 }
 
 // FileWithLineNum return the file name and line number of the current file
