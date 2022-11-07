@@ -1,9 +1,8 @@
-//go:build windows
-// +build windows
-
 package utils
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSourceDir(t *testing.T) {
 	cases := []struct {
