@@ -186,46 +186,68 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 		return
 	}
 
+	uniquePrimaryKeysMap := map[interface{}]bool{}
+	for _, key := range toQueryValues(primaryKeys) {
+		uniquePrimaryKeysMap[indirect(reflect.ValueOf(key)).Interface()] = true
+	}
+
+	uniquePrimaryKeys := make([]interface{}, 0, len(uniquePrimaryKeysMap))
+	for key := range uniquePrimaryKeysMap {
+		uniquePrimaryKeys = append(uniquePrimaryKeys, key)
+	}
+
 	// preload conditions
 	preloadDB, preloadConditions := scope.generatePreloadDBWithConditions(conditions)
 
-	// find relations
-	query := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.ForeignDBNames), toQueryMarks(primaryKeys))
-	values := toQueryValues(primaryKeys)
-	if relation.PolymorphicType != "" {
-		query += fmt.Sprintf(" AND %v = ?", scope.Quote(relation.PolymorphicDBName))
-		values = append(values, relation.PolymorphicValue)
-	}
+	indirectScopeValue := scope.IndirectValue()
 
-	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(query, values...).Find(results, preloadConditions...).Error)
-
-	// assign find results
-	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
-		indirectScopeValue = scope.IndirectValue()
-	)
-
-	if indirectScopeValue.Kind() == reflect.Slice {
-		preloadMap := make(map[string][]reflect.Value)
-		for i := 0; i < resultsValue.Len(); i++ {
-			result := resultsValue.Index(i)
-			foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
-			preloadMap[toString(foreignValues)] = append(preloadMap[toString(foreignValues)], result)
+	// need to query relations in chunk of 2000
+	// to avoid exceeding the mssql parameter limit of 2100
+	chunkSize := 2000
+	for i := 0; i < len(uniquePrimaryKeys); i += chunkSize {
+		var primaryKeyChunk []interface{}
+		if chunkSize > len(uniquePrimaryKeys)-i {
+			primaryKeyChunk = uniquePrimaryKeys[i:]
+		} else {
+			primaryKeyChunk = uniquePrimaryKeys[i : i+chunkSize]
 		}
 
-		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
-			objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
-			f := object.FieldByName(field.Name)
-			if results, ok := preloadMap[toString(objectRealValue)]; ok {
-				f.Set(reflect.Append(f, results...))
-			} else {
-				f.Set(reflect.MakeSlice(f.Type(), 0, 0))
+		// find relations
+		queryMarks := "?" + strings.Repeat(",?", len(primaryKeyChunk)-1)
+		query := fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.ForeignDBNames), queryMarks)
+		values := primaryKeyChunk
+		if relation.PolymorphicType != "" {
+			query += fmt.Sprintf(" AND %v = ?", scope.Quote(relation.PolymorphicDBName))
+			values = append(values, relation.PolymorphicValue)
+		}
+
+		results := makeSlice(field.Struct.Type)
+		scope.Err(preloadDB.Where(query, values...).Find(results, preloadConditions...).Error)
+
+		// assign find results
+		resultsValue := indirect(reflect.ValueOf(results))
+
+		if indirectScopeValue.Kind() == reflect.Slice {
+			preloadMap := make(map[string][]reflect.Value)
+			for i := 0; i < resultsValue.Len(); i++ {
+				result := resultsValue.Index(i)
+				foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
+				preloadMap[toString(foreignValues)] = append(preloadMap[toString(foreignValues)], result)
 			}
+
+			for j := 0; j < indirectScopeValue.Len(); j++ {
+				object := indirect(indirectScopeValue.Index(j))
+				objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
+				f := object.FieldByName(field.Name)
+				if results, ok := preloadMap[toString(objectRealValue)]; ok {
+					f.Set(reflect.Append(f, results...))
+				} else {
+					f.Set(reflect.MakeSlice(f.Type(), 0, 0))
+				}
+			}
+		} else {
+			scope.Err(field.Set(resultsValue))
 		}
-	} else {
-		scope.Err(field.Set(resultsValue))
 	}
 }
 
