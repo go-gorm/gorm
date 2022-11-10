@@ -36,6 +36,12 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 
 [You can help to deliver a better GORM, check out things you can do](https://gorm.io/contribute.html)
 
+## Contributors
+
+Thank you for contributing to the GORM framework!
+
+[![Contributors](https://contrib.rocks/image?repo=go-gorm/gorm)](https://github.com/go-gorm/gorm/graphs/contributors)
+
 ## License
 
 © Jinzhu, 2013~time.Now
