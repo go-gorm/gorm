@@ -8,7 +8,7 @@ require (
 	github.com/lib/pq v1.10.7
 	golang.org/x/crypto v0.0.0-20221012134737-56aed061732a // indirect
 	golang.org/x/text v0.4.0 // indirect
-	gorm.io/driver/mysql v1.4.3
+	gorm.io/driver/mysql v1.4.4
 	gorm.io/driver/postgres v1.4.4
 	gorm.io/driver/sqlite v1.4.3
 	gorm.io/driver/sqlserver v1.4.1
