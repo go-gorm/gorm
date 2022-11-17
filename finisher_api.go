@@ -231,7 +231,11 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 			break
 		}
 
-		primaryValue, _ := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+		primaryValue, zero := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+		if zero {
+			tx.AddError(ErrPrimaryKeyRequired)
+			break
+		}
 		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
@@ -514,8 +518,9 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 }
 
 // Pluck queries a single column from a model, returning in the slice dest. E.g.:
-//     var ages []int64
-//     db.Model(&users).Pluck("age", &ages)
+//
+//	var ages []int64
+//	db.Model(&users).Pluck("age", &ages)
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model != nil {

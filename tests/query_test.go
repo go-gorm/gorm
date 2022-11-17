@@ -408,6 +408,13 @@ func TestFindInBatchesWithError(t *testing.T) {
 	if totalBatch != 0 {
 		t.Fatalf("incorrect total batch, expected: %v, got: %v", 0, totalBatch)
 	}
+
+	if result := DB.Omit("id").Where("name = ?", users[0].Name).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
+		totalBatch += batch
+		return nil
+	}); result.Error != gorm.ErrPrimaryKeyRequired {
+		t.Fatal("expected errors to have occurred, but nothing happened")
+	}
 }
 
 func TestFillSmallerStruct(t *testing.T) {
