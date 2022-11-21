@@ -1,6 +1,11 @@
+//go:build unix
+// +build unix
+
 package utils
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSourceDir(t *testing.T) {
 	cases := []struct {
