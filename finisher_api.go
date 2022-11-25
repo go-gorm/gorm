@@ -326,45 +326,48 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	queryTx := db.Session(&Session{}).Limit(1).Order(clause.OrderByColumn{
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
-	if result := queryTx.Find(dest, conds...); result.Error == nil {
-		if result.RowsAffected == 0 {
-			if c, ok := result.Statement.Clauses["WHERE"]; ok {
-				if where, ok := c.Expression.(clause.Where); ok {
-					result.assignInterfacesToValue(where.Exprs)
-				}
-			}
 
-			// initialize with attrs, conds
-			if len(db.Statement.attrs) > 0 {
-				result.assignInterfacesToValue(db.Statement.attrs...)
-			}
-
-			// initialize with attrs, conds
-			if len(db.Statement.assigns) > 0 {
-				result.assignInterfacesToValue(db.Statement.assigns...)
-			}
-
-			return tx.Create(dest)
-		} else if len(db.Statement.assigns) > 0 {
-			exprs := tx.Statement.BuildCondition(db.Statement.assigns[0], db.Statement.assigns[1:]...)
-			assigns := map[string]interface{}{}
-			for _, expr := range exprs {
-				if eq, ok := expr.(clause.Eq); ok {
-					switch column := eq.Column.(type) {
-					case string:
-						assigns[column] = eq.Value
-					case clause.Column:
-						assigns[column.Name] = eq.Value
-					default:
-					}
-				}
-			}
-
-			return tx.Model(dest).Updates(assigns)
-		}
-	} else {
+	result := queryTx.Find(dest, conds...)
+	if result.Error != nil {
 		tx.Error = result.Error
 	}
+
+	if result.RowsAffected == 0 {
+		if c, ok := result.Statement.Clauses["WHERE"]; ok {
+			if where, ok := c.Expression.(clause.Where); ok {
+				result.assignInterfacesToValue(where.Exprs)
+			}
+		}
+
+		// initialize with attrs, conds
+		if len(db.Statement.attrs) > 0 {
+			result.assignInterfacesToValue(db.Statement.attrs...)
+		}
+
+		// initialize with attrs, conds
+		if len(db.Statement.assigns) > 0 {
+			result.assignInterfacesToValue(db.Statement.assigns...)
+		}
+
+		return tx.Create(dest)
+	} else if len(db.Statement.assigns) > 0 {
+		exprs := tx.Statement.BuildCondition(db.Statement.assigns[0], db.Statement.assigns[1:]...)
+		assigns := map[string]interface{}{}
+		for _, expr := range exprs {
+			if eq, ok := expr.(clause.Eq); ok {
+				switch column := eq.Column.(type) {
+				case string:
+					assigns[column] = eq.Value
+				case clause.Column:
+					assigns[column.Name] = eq.Value
+				default:
+				}
+			}
+		}
+
+		return tx.Model(dest).Updates(assigns)
+	}
+
 	return tx
 }
 
