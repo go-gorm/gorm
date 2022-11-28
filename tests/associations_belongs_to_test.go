@@ -249,5 +249,4 @@ func TestBelongsToDefaultValue(t *testing.T) {
 	}
 	err := DB.Create(&user).Error
 	AssertEqual(t, err, nil)
-
 }
