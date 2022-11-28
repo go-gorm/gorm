@@ -330,6 +330,7 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	result := queryTx.Find(dest, conds...)
 	if result.Error != nil {
 		tx.Error = result.Error
+		return tx
 	}
 
 	if result.RowsAffected == 0 {
@@ -360,7 +361,6 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 					assigns[column] = eq.Value
 				case clause.Column:
 					assigns[column.Name] = eq.Value
-				default:
 				}
 			}
 		}
