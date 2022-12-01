@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -223,4 +224,29 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 	DB.Model(&users[0]).Association("Company").Delete(&company)
 	AssertAssociationCount(t, users[0], "Company", 0, "After Delete")
 	AssertAssociationCount(t, users[1], "Company", 1, "After other user Delete")
+}
+
+func TestBelongsToDefaultValue(t *testing.T) {
+	type Org struct {
+		ID string
+	}
+	type BelongsToUser struct {
+		OrgID string
+		Org   Org `gorm:"default:NULL"`
+	}
+
+	tx := DB.Session(&gorm.Session{})
+	tx.Config.DisableForeignKeyConstraintWhenMigrating = true
+	AssertEqual(t, DB.Config.DisableForeignKeyConstraintWhenMigrating, false)
+
+	tx.Migrator().DropTable(&BelongsToUser{}, &Org{})
+	tx.AutoMigrate(&BelongsToUser{}, &Org{})
+
+	user := &BelongsToUser{
+		Org: Org{
+			ID: "BelongsToUser_Org_1",
+		},
+	}
+	err := DB.Create(&user).Error
+	AssertEqual(t, err, nil)
 }
