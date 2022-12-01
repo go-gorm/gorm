@@ -98,6 +98,10 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 // ScanMode scan data mode
 type ScanMode uint8
 
+type Scanner interface {
+	Scan(values []interface{}, columns []string)
+}
+
 // scan modes
 const (
 	ScanInitialized         ScanMode = 1 << 0 // 1
@@ -118,6 +122,17 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 	db.RowsAffected = 0
 
 	switch dest := db.Statement.Dest.(type) {
+	case Scanner:
+		columnTypes, _ := rows.ColumnTypes()
+		for initialized || rows.Next() {
+			prepareValues(values, db, columnTypes, columns)
+
+			initialized = false
+			db.RowsAffected++
+			db.AddError(rows.Scan(values...))
+
+			dest.Scan(values,columns)
+		}
 	case map[string]interface{}, *map[string]interface{}:
 		if initialized || rows.Next() {
 			columnTypes, _ := rows.ColumnTypes()
