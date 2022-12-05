@@ -89,9 +89,9 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 	expectAuthors := []string{"Edward", "George"}
 	for i, post := range egPosts {
-		t.Log(i, post)
+		t.Log(i, post.Author)
 		if want := expectAuthors[i]; post.Author.Name != want {
-			t.Errorf("expected author %s got %s", post.Author.Name, want)
+			t.Errorf("expected author %s got %s", want, post.Author.Name)
 		}
 	}
 
