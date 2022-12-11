@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	db_sql "database/sql"
 	"regexp"
 	"strings"
 	"testing"
@@ -310,6 +311,30 @@ func TestCombineStringConditions(t *testing.T) {
 	sql = dryRunDB.Not("a = ? or b = ?", "a", "b").Unscoped().Find(&User{}).Statement.SQL.String()
 	if !regexp.MustCompile(`WHERE NOT \(a = .+ or b = .+\)$`).MatchString(sql) {
 		t.Fatalf("invalid sql generated, got %v", sql)
+	}
+
+	query := &User{Name: "asdf", Age: 10}
+	sql2 := dryRunDB.Where(query).Find(&User{}).Statement.SQL.String()
+	//fmt.Println("fmt2: ", sql2)
+
+	sqlStatement := dryRunDB.Where(query).Find(&User{}).Statement
+	sqlStr := sqlStatement.SQL.String()
+	//fmt.Println("sqlStr: ", sqlStr)
+
+	rawRes := dryRunDB.Raw(sqlStr, "asdf", 10)
+	boundSqlStr := rawRes.Statement.SQL.String()
+	//fmt.Println("boundSqlStr: ", boundSqlStr)
+	if boundSqlStr != "SELECT * FROM `users` WHERE `users`.`name` = \"asdf\" AND `users`.`age` = 10 AND `users`.`deleted_at` IS NULL" {
+		t.Fatalf("invalid sql generated, got %v", boundSqlStr)
+	}
+
+	nameArg := db_sql.Named("Name", "asdf")
+	ageArg := db_sql.Named("Age", 10)
+	rawRes = dryRunDB.Raw(sqlStr, nameArg, ageArg)
+	boundSqlStr = rawRes.Statement.SQL.String()
+	//fmt.Println("boundSqlStr: ", boundSqlStr)
+	if boundSqlStr != "SELECT * FROM `users` WHERE `users`.`name` = \"asdf\" AND `users`.`age` = 10 AND `users`.`deleted_at` IS NULL" {
+		t.Fatalf("invalid sql generated, got %v", boundSqlStr)
 	}
 }
 
