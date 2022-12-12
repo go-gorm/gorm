@@ -41,4 +41,6 @@ var (
 	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
 	// ErrPreloadNotAllowed preload is not allowed when count is used
 	ErrPreloadNotAllowed = errors.New("preload is not allowed when count is used")
+	// ErrReflect err Reflect
+	ErrReflect = errors.New("reflect err")
 )

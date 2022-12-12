@@ -75,7 +75,12 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(value))
 	for reflectValue.Kind() == reflect.Ptr || reflectValue.Kind() == reflect.Interface {
-		reflectValue = reflect.Indirect(reflectValue)
+		reflectIndirect := reflect.Indirect(reflectValue)
+		if reflectValue == reflectIndirect {
+			tx.AddError(ErrReflect)
+			return
+		}
+		reflectValue = reflectIndirect
 	}
 
 	switch reflectValue.Kind() {
