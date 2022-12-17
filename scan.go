@@ -131,7 +131,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
 
-			dest.Scan(values,columns)
+			dest.Scan(values, columns)
 		}
 	case map[string]interface{}, *map[string]interface{}:
 		if initialized || rows.Next() {
