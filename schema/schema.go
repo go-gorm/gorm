@@ -230,7 +230,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	for _, field := range schema.Fields {
-		if field.HasDefaultValue && field.DefaultValueInterface == nil {
+		if field.DataType != "" && field.HasDefaultValue && field.DefaultValueInterface == nil {
 			schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 		}
 	}
