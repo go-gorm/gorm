@@ -65,7 +65,6 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 
 	db.RowsAffected++
 	db.AddError(rows.Scan(values...))
-
 	joinedSchemaMap := make(map[*schema.Field]interface{})
 	for idx, field := range fields {
 		if field == nil {
@@ -241,9 +240,8 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			var (
-				elem             reflect.Value
-				recyclableStruct = reflect.New(reflectValueType)
-				isArrayKind      = reflectValue.Kind() == reflect.Array
+				elem        reflect.Value
+				isArrayKind = reflectValue.Kind() == reflect.Array
 			)
 
 			if !update || reflectValue.Len() == 0 {
@@ -275,11 +273,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 						}
 					}
 				} else {
-					if isPtr && db.RowsAffected > 0 {
-						elem = reflect.New(reflectValueType)
-					} else {
-						elem = recyclableStruct
-					}
+					elem = reflect.New(reflectValueType)
 				}
 
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
