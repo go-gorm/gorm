@@ -10,10 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
-	"gorm.io/driver/sqlite"
-	"gorm.io/driver/sqlserver"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -759,6 +756,32 @@ func TestPrimarykeyID(t *testing.T) {
 	}
 }
 
+func TestCurrentTimestamp(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		return
+	}
+	type CurrentTimestampTest struct {
+		ID     string     `gorm:"primary_key"`
+		TimeAt *time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;unique"`
+	}
+	var err error
+	err = DB.Migrator().DropTable(&CurrentTimestampTest{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+	err = DB.AutoMigrate(&CurrentTimestampTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&CurrentTimestampTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+	AssertEqual(t, true, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at_2"))
+}
+
 func TestUniqueColumn(t *testing.T) {
 	if DB.Dialector.Name() != "mysql" {
 		return
@@ -1109,48 +1132,6 @@ func (mm mockMigrator) AlterColumn(dst interface{}, field string) error {
 		return err
 	}
 	return fmt.Errorf("trigger alter column error, field: %s", field)
-}
-
-type mockDialector struct {
-	gorm.Dialector
-	m gorm.Migrator
-}
-
-func (md mockDialector) Migrator(db *gorm.DB) gorm.Migrator {
-	return mockMigrator{
-		Migrator: md.m,
-	}
-}
-
-func (mm mockMigrator) AutoMigrate(dst ...interface{}) error {
-	switch dm := mm.Migrator.(type) {
-	case postgres.Migrator:
-		d := mockDialector{
-			Dialector: postgres.Dialector{},
-			m:         mm,
-		}
-		dm.DB.Dialector = d
-	case mysql.Migrator:
-		d := mockDialector{
-			Dialector: mysql.Dialector{},
-			m:         mm,
-		}
-		dm.DB.Dialector = d
-	case sqlite.Migrator:
-		d := mockDialector{
-			Dialector: sqlite.Dialector{},
-			m:         mm,
-		}
-		dm.DB.Dialector = d
-	case sqlserver.Migrator:
-		d := mockDialector{
-			Dialector: sqlserver.Dialector{},
-			m:         mm,
-		}
-		dm.DB.Dialector = d
-	}
-
-	return mm.Migrator.AutoMigrate(dst...)
 }
 
 func TestMigrateDonotAlterColumn(t *testing.T) {
