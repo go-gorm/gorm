@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gorm.io/driver/postgres"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -29,7 +28,7 @@ func TestMigrate(t *testing.T) {
 	}
 
 	if err := DB.AutoMigrate(allModels...); err != nil {
-		t.Fatalf("Failed to auto migrate, but got error %v", err)
+		t.Fatalf("Failed to auto migrate, got error %v", err)
 	}
 
 	if tables, err := DB.Migrator().GetTables(); err != nil {
@@ -1121,6 +1120,50 @@ func TestMigrateArrayTypeModel(t *testing.T) {
 	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
 	AssertEqual(t, nil, err)
 	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
+}
+
+type mockMigrator struct {
+	gorm.Migrator
+}
+
+func (mm mockMigrator) AlterColumn(dst interface{}, field string) error {
+	err := mm.Migrator.AlterColumn(dst, field)
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("trigger alter column error, field: %s", field)
+}
+
+func TestMigrateDonotAlterColumn(t *testing.T) {
+	var wrapMockMigrator = func(m gorm.Migrator) mockMigrator {
+		return mockMigrator{
+			Migrator: m,
+		}
+	}
+	m := DB.Migrator()
+	mockM := wrapMockMigrator(m)
+
+	type NotTriggerUpdate struct {
+		ID  uint
+		F1  uint16
+		F2  uint32
+		F3  int
+		F4  int64
+		F5  string
+		F6  float32
+		F7  float64
+		F8  time.Time
+		F9  bool
+		F10 []byte
+	}
+
+	var err error
+	err = mockM.DropTable(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
+	err = mockM.AutoMigrate(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
+	err = mockM.AutoMigrate(&NotTriggerUpdate{})
+	AssertEqual(t, err, nil)
 }
 
 func TestMigrateSameEmbeddedFieldName(t *testing.T) {
