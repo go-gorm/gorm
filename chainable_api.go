@@ -55,7 +55,7 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	return
 }
 
-var tableRegexp = regexp.MustCompile(`(?i).+? AS (\w+)\s*(?:$|,)`)
+var tableRegexp = regexp.MustCompile(`(?i).+?(?: AS )?(\w+)\s*(?:$|,)`)
 
 // Table specify the table you would like to run db operations
 //

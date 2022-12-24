@@ -32,6 +32,11 @@ func TestTable(t *testing.T) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
 	}
 
+	r = dryDB.Table("user u").Select("name").Find(&User{}).Statement
+	if !regexp.MustCompile("SELECT .name. FROM user u WHERE .u.\\..deleted_at. IS NULL").MatchString(r.Statement.SQL.String()) {
+		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
+	}
+
 	r = dryDB.Table("`people`").Table("`user`").Find(&User{}).Statement
 	if !regexp.MustCompile("SELECT \\* FROM `user`").MatchString(r.Statement.SQL.String()) {
 		t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
