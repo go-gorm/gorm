@@ -49,12 +49,12 @@ type Statement struct {
 }
 
 type join struct {
-	Name    string
-	Conds   []interface{}
-	On      *clause.Where
-	Selects []string
-	Omits   []string
-  JoinType clause.JoinType
+	Name     string
+	Conds    []interface{}
+	On       *clause.Where
+	Selects  []string
+	Omits    []string
+	JoinType clause.JoinType
 }
 
 // StatementModifier statement modifier interface
