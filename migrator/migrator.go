@@ -445,7 +445,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	if !isSameType {
+	if !isSameType && fullDataType != "mediumtext" && fullDataType != "longtext" {
 		// check size
 		if length, ok := columnType.Length(); length != int64(field.Size) {
 			if length > 0 && field.Size > 0 {
@@ -473,14 +473,6 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	if nullable, ok := columnType.Nullable(); ok && nullable == field.NotNull {
 		// not primary key & database is nullable
 		if !field.PrimaryKey && nullable {
-			alterColumn = true
-		}
-	}
-
-	// check unique
-	if unique, ok := columnType.Unique(); ok && unique != field.Unique {
-		// not primary key
-		if !field.PrimaryKey {
 			alterColumn = true
 		}
 	}
