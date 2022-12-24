@@ -32,15 +32,14 @@ type Config struct {
 	gorm.Dialector
 }
 
-type printSQLLogger struct{}
+type printSQLLogger struct {
+	logger.Interface
+}
 
-func (l *printSQLLogger) LogMode(ll logger.LogLevel) logger.Interface                { return l }
-func (l *printSQLLogger) Info(ctx context.Context, log string, args ...interface{})  {}
-func (l *printSQLLogger) Warn(ctx context.Context, log string, args ...interface{})  {}
-func (l *printSQLLogger) Error(ctx context.Context, log string, args ...interface{}) {}
 func (l *printSQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	sql, _ := fc()
 	fmt.Println(sql + ";")
+	l.Interface.Trace(ctx, begin, fc, err)
 }
 
 // GormDataTypeInterface gorm data type interface
@@ -109,7 +108,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 		execTx := queryTx
 		if m.DB.DryRun {
 			queryTx.DryRun = false
-			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{}})
+			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
 		}
 		if !queryTx.Migrator().HasTable(value) {
 			if err := execTx.Migrator().CreateTable(value); err != nil {
