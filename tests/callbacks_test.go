@@ -113,6 +113,9 @@ func TestCallbacks(t *testing.T) {
 
 	for idx, data := range datas {
 		db, err := gorm.Open(nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
 		callbacks := db.Callback()
 
 		for _, c := range data.callbacks {

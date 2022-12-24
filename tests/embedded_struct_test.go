@@ -36,7 +36,7 @@ func TestEmbeddedStruct(t *testing.T) {
 
 	type EngadgetPost struct {
 		BasePost BasePost `gorm:"Embedded"`
-		Author   Author   `gorm:"Embedded;EmbeddedPrefix:author_"` // Embedded struct
+		Author   *Author  `gorm:"Embedded;EmbeddedPrefix:author_"` // Embedded struct
 		ImageUrl string
 	}
 
@@ -74,13 +74,27 @@ func TestEmbeddedStruct(t *testing.T) {
 		t.Errorf("embedded struct's value should be scanned correctly")
 	}
 
-	DB.Save(&EngadgetPost{BasePost: BasePost{Title: "engadget_news"}})
+	DB.Save(&EngadgetPost{BasePost: BasePost{Title: "engadget_news"}, Author: &Author{Name: "Edward"}})
+	DB.Save(&EngadgetPost{BasePost: BasePost{Title: "engadget_article"}, Author: &Author{Name: "George"}})
 	var egNews EngadgetPost
 	if err := DB.First(&egNews, "title = ?", "engadget_news").Error; err != nil {
 		t.Errorf("no error should happen when query with embedded struct, but got %v", err)
 	} else if egNews.BasePost.Title != "engadget_news" {
 		t.Errorf("embedded struct's value should be scanned correctly")
 	}
+
+	var egPosts []EngadgetPost
+	if err := DB.Order("author_name asc").Find(&egPosts).Error; err != nil {
+		t.Fatalf("no error should happen when query with embedded struct, but got %v", err)
+	}
+	expectAuthors := []string{"Edward", "George"}
+	for i, post := range egPosts {
+		t.Log(i, post.Author)
+		if want := expectAuthors[i]; post.Author.Name != want {
+			t.Errorf("expected author %s got %s", want, post.Author.Name)
+		}
+	}
+
 }
 
 func TestEmbeddedPointerTypeStruct(t *testing.T) {

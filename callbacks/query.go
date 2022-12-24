@@ -117,12 +117,20 @@ func BuildQuerySQL(db *gorm.DB) {
 				} else if relation, ok := db.Statement.Schema.Relationships.Relations[join.Name]; ok {
 					tableAliasName := relation.Name
 
+					columnStmt := gorm.Statement{
+						Table: tableAliasName, DB: db, Schema: relation.FieldSchema,
+						Selects: join.Selects, Omits: join.Omits,
+					}
+
+					selectColumns, restricted := columnStmt.SelectAndOmitColumns(false, false)
 					for _, s := range relation.FieldSchema.DBNames {
-						clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
-							Table: tableAliasName,
-							Name:  s,
-							Alias: tableAliasName + "__" + s,
-						})
+						if v, ok := selectColumns[s]; (ok && v) || (!ok && !restricted) {
+							clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
+								Table: tableAliasName,
+								Name:  s,
+								Alias: tableAliasName + "__" + s,
+							})
+						}
 					}
 
 					exprs := make([]clause.Expression, len(relation.References))

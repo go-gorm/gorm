@@ -71,6 +71,10 @@ type Tabler interface {
 	TableName() string
 }
 
+type TablerWithNamer interface {
+	TableName(Namer) string
+}
+
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
@@ -124,6 +128,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	tableName := namer.TableName(modelType.Name())
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
+	}
+	if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
+		tableName = tabler.TableName(namer)
 	}
 	if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
@@ -223,7 +230,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	for _, field := range schema.Fields {
-		if field.HasDefaultValue && field.DefaultValueInterface == nil {
+		if field.DataType != "" && field.HasDefaultValue && field.DefaultValueInterface == nil {
 			schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 		}
 	}
@@ -238,6 +245,14 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 				field.HasDefaultValue = true
 				field.AutoIncrement = true
+			}
+		case String:
+			if _, ok := field.TagSettings["PRIMARYKEY"]; !ok {
+				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+					schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+				}
+
+				field.HasDefaultValue = true
 			}
 		}
 	}

@@ -10,7 +10,7 @@ import (
 
 func checkStructRelation(t *testing.T, data interface{}, relations ...Relation) {
 	if s, err := schema.Parse(data, &sync.Map{}, schema.NamingStrategy{}); err != nil {
-		t.Errorf("Failed to parse schema")
+		t.Errorf("Failed to parse schema, got error %v", err)
 	} else {
 		for _, rel := range relations {
 			checkSchemaRelation(t, s, rel)
@@ -301,6 +301,33 @@ func TestMany2ManyOverrideForeignKey(t *testing.T) {
 		References: []Reference{
 			{"Refer", "User", "UserRefer", "user_profiles", "", true},
 			{"UserRefer", "Profile", "ProfileUserRefer", "user_profiles", "", false},
+		},
+	})
+}
+
+func TestMany2ManySharedForeignKey(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name         string
+		Kind         string
+		ProfileRefer uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profiles []Profile `gorm:"many2many:user_profiles;foreignKey:Refer,Kind;joinForeignKey:UserRefer,Kind;References:ProfileRefer,Kind;joinReferences:ProfileR,Kind"`
+		Kind     string
+		Refer    uint
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profiles", Type: schema.Many2Many, Schema: "User", FieldSchema: "Profile",
+		JoinTable: JoinTable{Name: "user_profiles", Table: "user_profiles"},
+		References: []Reference{
+			{"Refer", "User", "UserRefer", "user_profiles", "", true},
+			{"Kind", "User", "Kind", "user_profiles", "", true},
+			{"ProfileRefer", "Profile", "ProfileR", "user_profiles", "", false},
+			{"Kind", "Profile", "Kind", "user_profiles", "", false},
 		},
 	})
 }

@@ -9,10 +9,12 @@ import (
 type Stmt struct {
 	*sql.Stmt
 	Transaction bool
+	prepared    chan struct{}
+	prepareErr  error
 }
 
 type PreparedStmtDB struct {
-	Stmts       map[string]Stmt
+	Stmts       map[string]*Stmt
 	PreparedSQL []string
 	Mux         *sync.RWMutex
 	ConnPool
@@ -42,31 +44,72 @@ func (db *PreparedStmtDB) Close() {
 	}
 }
 
+func (db *PreparedStmtDB) Reset() {
+	db.Mux.Lock()
+	defer db.Mux.Unlock()
+
+	for _, stmt := range db.Stmts {
+		go stmt.Close()
+	}
+	db.PreparedSQL = make([]string, 0, 100)
+	db.Stmts = make(map[string]*Stmt)
+}
+
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
 	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
 		db.Mux.RUnlock()
-		return stmt, nil
+		// wait for other goroutines prepared
+		<-stmt.prepared
+		if stmt.prepareErr != nil {
+			return Stmt{}, stmt.prepareErr
+		}
+
+		return *stmt, nil
 	}
 	db.Mux.RUnlock()
 
 	db.Mux.Lock()
-	defer db.Mux.Unlock()
-
 	// double check
 	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
-		return stmt, nil
-	} else if ok {
-		go stmt.Close()
+		db.Mux.Unlock()
+		// wait for other goroutines prepared
+		<-stmt.prepared
+		if stmt.prepareErr != nil {
+			return Stmt{}, stmt.prepareErr
+		}
+
+		return *stmt, nil
 	}
 
+	// cache preparing stmt first
+	cacheStmt := Stmt{Transaction: isTransaction, prepared: make(chan struct{})}
+	db.Stmts[query] = &cacheStmt
+	db.Mux.Unlock()
+
+	// prepare completed
+	defer close(cacheStmt.prepared)
+
+	// Reason why cannot lock conn.PrepareContext
+	// suppose the maxopen is 1, g1 is creating record and g2 is querying record.
+	// 1. g1 begin tx, g1 is requeue because of waiting for the system call, now `db.ConnPool` db.numOpen == 1.
+	// 2. g2 select lock `conn.PrepareContext(ctx, query)`, now db.numOpen == db.maxOpen , wait for release.
+	// 3. g1 tx exec insert, wait for unlock `conn.PrepareContext(ctx, query)` to finish tx and release.
 	stmt, err := conn.PrepareContext(ctx, query)
-	if err == nil {
-		db.Stmts[query] = Stmt{Stmt: stmt, Transaction: isTransaction}
-		db.PreparedSQL = append(db.PreparedSQL, query)
+	if err != nil {
+		cacheStmt.prepareErr = err
+		db.Mux.Lock()
+		delete(db.Stmts, query)
+		db.Mux.Unlock()
+		return Stmt{}, err
 	}
 
-	return db.Stmts[query], err
+	db.Mux.Lock()
+	cacheStmt.Stmt = stmt
+	db.PreparedSQL = append(db.PreparedSQL, query)
+	db.Mux.Unlock()
+
+	return cacheStmt, nil
 }
 
 func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (ConnPool, error) {

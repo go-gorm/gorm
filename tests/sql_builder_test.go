@@ -367,7 +367,7 @@ func TestToSQL(t *testing.T) {
 		t.Skip("Skip SQL Server for this test, because it too difference with other dialects.")
 	}
 
-	date, _ := time.Parse("2006-01-02", "2021-10-18")
+	date, _ := time.ParseInLocation("2006-01-02", "2021-10-18", time.Local)
 
 	// find
 	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
@@ -445,6 +445,14 @@ func TestToSQL(t *testing.T) {
 	if DB.Statement.DryRun || DB.DryRun {
 		t.Fatal("Failed expect DB.DryRun and DB.Statement.ToSQL to be false")
 	}
+
+	// UpdateColumns
+	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Raw("SELECT * FROM users ?", clause.OrderBy{
+			Columns: []clause.OrderByColumn{{Column: clause.Column{Name: "id", Raw: true}, Desc: true}},
+		})
+	})
+	assertEqualSQL(t, `SELECT * FROM users ORDER BY id DESC`, sql)
 }
 
 // assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect specials.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -68,8 +68,8 @@ type Interface interface {
 }
 
 var (
-	// Discard Discard logger will print any log to ioutil.Discard
-	Discard = New(log.New(ioutil.Discard, "", log.LstdFlags), Config{})
+	// Discard Discard logger will print any log to io.Discard
+	Discard = New(log.New(io.Discard, "", log.LstdFlags), Config{})
 	// Default Default logger
 	Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
 		SlowThreshold:             200 * time.Millisecond,

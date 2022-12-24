@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils/tests"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -144,4 +146,28 @@ func TestTableWithAllFields(t *testing.T) {
 	}
 
 	AssertEqual(t, r.Statement.Vars, []interface{}{2, 4, 1, 3})
+}
+
+type UserWithTableNamer struct {
+	gorm.Model
+	Name string
+}
+
+func (UserWithTableNamer) TableName(namer schema.Namer) string {
+	return namer.TableName("user")
+}
+
+func TestTableWithNamer(t *testing.T) {
+	var db, _ = gorm.Open(tests.DummyDialector{}, &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix: "t_",
+		}})
+
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&UserWithTableNamer{}).Find(&UserWithTableNamer{})
+	})
+
+	if !regexp.MustCompile("SELECT \\* FROM `t_users`").MatchString(sql) {
+		t.Errorf("Table with namer, got %v", sql)
+	}
 }
