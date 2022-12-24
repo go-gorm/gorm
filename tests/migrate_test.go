@@ -1108,7 +1108,7 @@ func (mm mockMigrator) AlterColumn(dst interface{}, field string) error {
 	if err != nil {
 		return err
 	}
-	return fmt.Errorf("trigger alter column error, field:%s", field)
+	return fmt.Errorf("trigger alter column error, field: %s", field)
 }
 
 type mockDialector struct {
