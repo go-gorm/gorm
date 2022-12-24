@@ -185,7 +185,7 @@ func BuildQuerySQL(db *gorm.DB) {
 					}
 
 					fromClause.Joins = append(fromClause.Joins, clause.Join{
-						Type:  clause.LeftJoin,
+						Type:  join.JoinType,
 						Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
 						ON:    clause.Where{Exprs: exprs},
 					})

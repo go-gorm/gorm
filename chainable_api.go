@@ -235,6 +235,16 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 //	db.Joins("JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
 //	db.Joins("Account", DB.Select("id").Where("user_id = users.id AND name = ?", "someName").Model(&Account{}))
 func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
+	return joins(db, clause.LeftJoin, query, args...)
+}
+
+// InnerJoins specify inner joins conditions
+// db.InnerJoins("Account").Find(&user)
+func (db *DB) InnerJoins(query string, args ...interface{}) (tx *DB) {
+	return joins(db, clause.InnerJoin, query, args...)
+}
+
+func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(args) == 1 {
@@ -248,7 +258,7 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 		}
 	}
 
-	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args})
+	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args, JoinType: joinType})
 	return
 }
 

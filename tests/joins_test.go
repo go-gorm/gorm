@@ -230,6 +230,28 @@ func TestJoinWithSoftDeleted(t *testing.T) {
 	}
 }
 
+func TestInnerJoins(t *testing.T) {
+	user := *GetUser("inner-joins-1", Config{Company: true, Manager: true, Account: true, NamedPet: false})
+
+	DB.Create(&user)
+
+	var user2 User
+	var err error
+	err = DB.InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user2, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, nil)
+	CheckUser(t, user2, user)
+
+	// inner join and NamedPet is nil
+	err = DB.InnerJoins("NamedPet").InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user2, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, gorm.ErrRecordNotFound)
+
+	// mixed inner join and left join
+	var user3 User
+	err = DB.Joins("NamedPet").InnerJoins("Company").InnerJoins("Manager").InnerJoins("Account").First(&user3, "users.name = ?", user.Name).Error
+	AssertEqual(t, err, nil)
+	CheckUser(t, user3, user)
+}
+
 func TestJoinWithSameColumnName(t *testing.T) {
 	user := GetUser("TestJoinWithSameColumnName", Config{
 		Languages: 1,
