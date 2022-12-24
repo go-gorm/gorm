@@ -470,17 +470,19 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	// check default value
 	if !field.PrimaryKey {
+		currentDefaultNotNull := field.HasDefaultValue && !strings.EqualFold(field.DefaultValue, "NULL")
 		dv, dvNotNull := columnType.DefaultValue()
-		if dvNotNull && field.DefaultValueInterface == nil {
+		if dvNotNull && !currentDefaultNotNull {
 			// defalut value -> null
 			alterColumn = true
-		} else if !dvNotNull && field.DefaultValueInterface != nil {
+		} else if !dvNotNull && currentDefaultNotNull {
 			// null -> default value
 			alterColumn = true
-		} else if dv != field.DefaultValue {
+		} else if (field.GORMDataType != schema.Time && dv != field.DefaultValue) ||
+			(field.GORMDataType == schema.Time && !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()"))) {
 			// default value not equal
 			// not both null
-			if !(field.DefaultValueInterface == nil && !dvNotNull) {
+			if currentDefaultNotNull || dvNotNull {
 				alterColumn = true
 			}
 		}

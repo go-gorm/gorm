@@ -757,6 +757,32 @@ func TestPrimarykeyID(t *testing.T) {
 	}
 }
 
+func TestCurrentTimestamp(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		return
+	}
+	type CurrentTimestampTest struct {
+		ID     string     `gorm:"primary_key"`
+		TimeAt *time.Time `gorm:"type:datetime;not null;default:CURRENT_TIMESTAMP;unique"`
+	}
+	var err error
+	err = DB.Migrator().DropTable(&CurrentTimestampTest{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+	err = DB.AutoMigrate(&CurrentTimestampTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	err = DB.AutoMigrate(&CurrentTimestampTest{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+	AssertEqual(t, true, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at_2"))
+}
+
 func TestUniqueColumn(t *testing.T) {
 	if DB.Dialector.Name() != "mysql" {
 		return
