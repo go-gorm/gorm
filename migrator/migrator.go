@@ -424,32 +424,49 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
 
-	alterColumn := false
+	var (
+		alterColumn, isSameType bool
+	)
 
-	// check type
-	if !field.PrimaryKey && !strings.HasPrefix(fullDataType, realDataType) {
-		alterColumn = true
-	}
+	if !field.PrimaryKey {
+		// check type
+		if !strings.HasPrefix(fullDataType, realDataType) {
+			// check type aliases
+			aliases := m.DB.Migrator().GetTypeAliases(realDataType)
+			for _, alias := range aliases {
+				if strings.HasPrefix(fullDataType, alias) {
+					isSameType = true
+					break
+				}
+			}
 
-	// check size
-	if length, ok := columnType.Length(); length != int64(field.Size) {
-		if length > 0 && field.Size > 0 {
-			alterColumn = true
-		} else {
-			// has size in data type and not equal
-			// Since the following code is frequently called in the for loop, reg optimization is needed here
-			matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
-			if !field.PrimaryKey &&
-				(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
+			if !isSameType {
 				alterColumn = true
 			}
 		}
 	}
 
-	// check precision
-	if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
-		if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
-			alterColumn = true
+	if !isSameType {
+		// check size
+		if length, ok := columnType.Length(); length != int64(field.Size) {
+			if length > 0 && field.Size > 0 {
+				alterColumn = true
+			} else {
+				// has size in data type and not equal
+				// Since the following code is frequently called in the for loop, reg optimization is needed here
+				matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
+				if !field.PrimaryKey &&
+					(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
+					alterColumn = true
+				}
+			}
+		}
+
+		// check precision
+		if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
+			if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
+				alterColumn = true
+			}
 		}
 	}
 
@@ -471,17 +488,19 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	// check default value
 	if !field.PrimaryKey {
+		currentDefaultNotNull := field.HasDefaultValue && !strings.EqualFold(field.DefaultValue, "NULL")
 		dv, dvNotNull := columnType.DefaultValue()
-		if dvNotNull && field.DefaultValueInterface == nil {
+		if dvNotNull && !currentDefaultNotNull {
 			// defalut value -> null
 			alterColumn = true
-		} else if !dvNotNull && field.DefaultValueInterface != nil {
+		} else if !dvNotNull && currentDefaultNotNull {
 			// null -> default value
 			alterColumn = true
-		} else if dv != field.DefaultValue {
+		} else if (field.GORMDataType != schema.Time && dv != field.DefaultValue) ||
+			(field.GORMDataType == schema.Time && !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()"))) {
 			// default value not equal
 			// not both null
-			if !(field.DefaultValueInterface == nil && !dvNotNull) {
+			if currentDefaultNotNull || dvNotNull {
 				alterColumn = true
 			}
 		}
@@ -496,7 +515,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	if alterColumn && !field.IgnoreMigration {
-		return m.DB.Migrator().AlterColumn(value, field.Name)
+		return m.DB.Migrator().AlterColumn(value, field.DBName)
 	}
 
 	return nil
@@ -880,4 +899,9 @@ func (m Migrator) CurrentTable(stmt *gorm.Statement) interface{} {
 // GetIndexes return Indexes []gorm.Index and execErr error
 func (m Migrator) GetIndexes(dst interface{}) ([]gorm.Index, error) {
 	return nil, errors.New("not support")
+}
+
+// GetTypeAliases return database type aliases
+func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
+	return nil
 }
