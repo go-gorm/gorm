@@ -8,9 +8,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
@@ -28,6 +30,16 @@ type Config struct {
 	CreateIndexAfterCreateTable bool
 	DB                          *gorm.DB
 	gorm.Dialector
+}
+
+type printSQLLogger struct {
+	logger.Interface
+}
+
+func (l *printSQLLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+	sql, _ := fc()
+	fmt.Println(sql + ";")
+	l.Interface.Trace(ctx, begin, fc, err)
 }
 
 // GormDataTypeInterface gorm data type interface
@@ -92,14 +104,19 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 // AutoMigrate auto migrate values
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, true) {
-		tx := m.DB.Session(&gorm.Session{})
-		if !tx.Migrator().HasTable(value) {
-			if err := tx.Migrator().CreateTable(value); err != nil {
+		queryTx := m.DB.Session(&gorm.Session{})
+		execTx := queryTx
+		if m.DB.DryRun {
+			queryTx.DryRun = false
+			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
+		}
+		if !queryTx.Migrator().HasTable(value) {
+			if err := execTx.Migrator().CreateTable(value); err != nil {
 				return err
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) (errr error) {
-				columnTypes, err := m.DB.Migrator().ColumnTypes(value)
+				columnTypes, err := queryTx.Migrator().ColumnTypes(value)
 				if err != nil {
 					return err
 				}
@@ -117,10 +134,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 
 					if foundColumn == nil {
 						// not found, add column
-						if err := tx.Migrator().AddColumn(value, dbName); err != nil {
+						if err := execTx.Migrator().AddColumn(value, dbName); err != nil {
 							return err
 						}
-					} else if err := m.DB.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
+					} else if err := execTx.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
 						// found, smart migrate
 						return err
 					}
@@ -129,8 +146,8 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				for _, rel := range stmt.Schema.Relationships.Relations {
 					if !m.DB.Config.DisableForeignKeyConstraintWhenMigrating {
 						if constraint := rel.ParseConstraint(); constraint != nil &&
-							constraint.Schema == stmt.Schema && !tx.Migrator().HasConstraint(value, constraint.Name) {
-							if err := tx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+							constraint.Schema == stmt.Schema && !queryTx.Migrator().HasConstraint(value, constraint.Name) {
+							if err := execTx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
 								return err
 							}
 						}
@@ -138,16 +155,16 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				}
 
 				for _, chk := range stmt.Schema.ParseCheckConstraints() {
-					if !tx.Migrator().HasConstraint(value, chk.Name) {
-						if err := tx.Migrator().CreateConstraint(value, chk.Name); err != nil {
+					if !queryTx.Migrator().HasConstraint(value, chk.Name) {
+						if err := execTx.Migrator().CreateConstraint(value, chk.Name); err != nil {
 							return err
 						}
 					}
 				}
 
 				for _, idx := range stmt.Schema.ParseIndexes() {
-					if !tx.Migrator().HasIndex(value, idx.Name) {
-						if err := tx.Migrator().CreateIndex(value, idx.Name); err != nil {
+					if !queryTx.Migrator().HasIndex(value, idx.Name) {
+						if err := execTx.Migrator().CreateIndex(value, idx.Name); err != nil {
 							return err
 						}
 					}
