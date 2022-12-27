@@ -1203,3 +1203,67 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destory_count")
 	AssertEqual(t, nil, err)
 }
+
+func TestMigrateIgnoreRelations(t *testing.T) {
+	type RelationModel1 struct {
+		ID uint
+	}
+	type RelationModel2 struct {
+		ID uint
+	}
+	type RelationModel3 struct {
+		ID               uint
+		RelationModel1ID uint
+		RelationModel1   *RelationModel1
+		RelationModel2ID uint
+		RelationModel2   *RelationModel2 `gorm:"-:migration"`
+	}
+
+	var err error
+	_ = DB.Migrator().DropTable(&RelationModel1{}, &RelationModel2{}, &RelationModel3{})
+
+	tx := DB.Session(&gorm.Session{})
+	tx.IgnoreRelationshipsWhenMigrating = true
+
+	err = tx.AutoMigrate(&RelationModel3{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	// RelationModel3 should be existed
+	_, err = findColumnType(&RelationModel3{}, "id")
+	AssertEqual(t, nil, err)
+
+	// RelationModel1 should not be existed
+	_, err = findColumnType(&RelationModel1{}, "id")
+	if err == nil {
+		t.Errorf("RelationModel1 should not be migrated")
+	}
+
+	// RelationModel2 should not be existed
+	_, err = findColumnType(&RelationModel2{}, "id")
+	if err == nil {
+		t.Errorf("RelationModel2 should not be migrated")
+	}
+
+	tx.IgnoreRelationshipsWhenMigrating = false
+
+	err = tx.AutoMigrate(&RelationModel3{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	// RelationModel3 should be existed
+	_, err = findColumnType(&RelationModel3{}, "id")
+	AssertEqual(t, nil, err)
+
+	// RelationModel1 should be existed
+	_, err = findColumnType(&RelationModel1{}, "id")
+	AssertEqual(t, nil, err)
+
+	// RelationModel2 should not be existed
+	_, err = findColumnType(&RelationModel2{}, "id")
+	if err == nil {
+		t.Errorf("RelationModel2 should not be migrated")
+	}
+}
