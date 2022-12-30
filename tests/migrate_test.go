@@ -1203,3 +1203,74 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destory_count")
 	AssertEqual(t, nil, err)
 }
+
+func TestMigrateDefaultNullString(t *testing.T) {
+	if DB.Dialector.Name() == "sqlite" || DB.Dialector.Name() == "sqlserver" {
+		// sqlite and sqlserver driver treats NULL and 'NULL' the same
+		t.Skip("skip sqlite and sqlserver")
+	}
+
+	type NullModel struct {
+		ID      uint
+		Content string `gorm:"default:null"`
+	}
+
+	type NullStringModel struct {
+		ID      uint
+		Content string `gorm:"default:'null'"`
+	}
+
+	tableName := "null_string_model"
+
+	DB.Migrator().DropTable(tableName)
+
+	err := DB.Table(tableName).AutoMigrate(&NullModel{})
+	AssertEqual(t, err, nil)
+
+	// default null -> 'null'
+	err = DB.Table(tableName).AutoMigrate(&NullStringModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err := findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	defVal, ok := columnType.DefaultValue()
+	AssertEqual(t, defVal, "null")
+	AssertEqual(t, ok, true)
+
+	// default 'null' -> 'null'
+	session := DB.Session(&gorm.Session{Logger: Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE") {
+				t.Errorf("shouldn't execute: sql=%s", sql)
+			}
+		},
+	}})
+	err = session.Table(tableName).AutoMigrate(&NullStringModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err = findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	defVal, ok = columnType.DefaultValue()
+	AssertEqual(t, defVal, "null")
+	AssertEqual(t, ok, true)
+
+	// default 'null' -> null
+	err = DB.Table(tableName).AutoMigrate(&NullModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err = findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	if DB.Dialector.Name() == "postgres" {
+		// TODO postgres migrator.AlterColumn has a bug that it treats 'NULL' and NULL the same
+		// see https://github.com/go-gorm/postgres/blob/915abc3969652fd88d6f4133edaba9af2894e3b2/migrator.go#L329
+		return
+	}
+	defVal, ok = columnType.DefaultValue()
+	AssertEqual(t, defVal, "")
+	AssertEqual(t, ok, false)
+}
