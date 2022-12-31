@@ -16,7 +16,7 @@ jobs:
       ACTIONS_STEP_DEBUG: true
     steps:
     - name: Close Stale Issues
-      uses: actions/stale@v6
+      uses: actions/stale@v7
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-message: "This issue has been automatically marked as stale because it has been open 360 days with no activity. Remove stale label or comment or this will be closed in 180 days"
