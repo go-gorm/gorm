@@ -1265,11 +1265,6 @@ func TestMigrateDefaultNullString(t *testing.T) {
 	columnType, err = findColumnType(tableName, "content")
 	AssertEqual(t, err, nil)
 
-	if DB.Dialector.Name() == "postgres" {
-		// TODO postgres migrator.AlterColumn has a bug that it treats 'NULL' and NULL the same
-		// see https://github.com/go-gorm/postgres/blob/915abc3969652fd88d6f4133edaba9af2894e3b2/migrator.go#L329
-		return
-	}
 	defVal, ok = columnType.DefaultValue()
 	AssertEqual(t, defVal, "")
 	AssertEqual(t, ok, false)
