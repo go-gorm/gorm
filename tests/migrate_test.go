@@ -1204,6 +1204,72 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 	AssertEqual(t, nil, err)
 }
 
+func TestMigrateDefaultNullString(t *testing.T) {
+	if DB.Dialector.Name() == "sqlserver" {
+		// sqlserver driver treats NULL and 'NULL' the same
+		t.Skip("skip sqlserver")
+	}
+
+	type NullModel struct {
+		ID      uint
+		Content string `gorm:"default:null"`
+	}
+
+	type NullStringModel struct {
+		ID      uint
+		Content string `gorm:"default:'null'"`
+	}
+
+	tableName := "null_string_model"
+
+	DB.Migrator().DropTable(tableName)
+
+	err := DB.Table(tableName).AutoMigrate(&NullModel{})
+	AssertEqual(t, err, nil)
+
+	// default null -> 'null'
+	err = DB.Table(tableName).AutoMigrate(&NullStringModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err := findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	defVal, ok := columnType.DefaultValue()
+	AssertEqual(t, defVal, "null")
+	AssertEqual(t, ok, true)
+
+	// default 'null' -> 'null'
+	session := DB.Session(&gorm.Session{Logger: Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE") {
+				t.Errorf("shouldn't execute: sql=%s", sql)
+			}
+		},
+	}})
+	err = session.Table(tableName).AutoMigrate(&NullStringModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err = findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	defVal, ok = columnType.DefaultValue()
+	AssertEqual(t, defVal, "null")
+	AssertEqual(t, ok, true)
+
+	// default 'null' -> null
+	err = DB.Table(tableName).AutoMigrate(&NullModel{})
+	AssertEqual(t, err, nil)
+
+	columnType, err = findColumnType(tableName, "content")
+	AssertEqual(t, err, nil)
+
+	defVal, ok = columnType.DefaultValue()
+	AssertEqual(t, defVal, "")
+	AssertEqual(t, ok, false)
+}
+
 func TestMigrateIgnoreRelations(t *testing.T) {
 	type RelationModel1 struct {
 		ID uint

@@ -493,7 +493,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	// check default value
 	if !field.PrimaryKey {
-		currentDefaultNotNull := field.HasDefaultValue && !strings.EqualFold(field.DefaultValue, "NULL")
+		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
 		dv, dvNotNull := columnType.DefaultValue()
 		if dvNotNull && !currentDefaultNotNull {
 			// defalut value -> null
