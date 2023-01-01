@@ -1205,8 +1205,8 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 }
 
 func TestMigrateDefaultNullString(t *testing.T) {
-	if DB.Dialector.Name() == "sqlite" || DB.Dialector.Name() == "sqlserver" {
-		// sqlite and sqlserver driver treats NULL and 'NULL' the same
+	if DB.Dialector.Name() == "sqlserver" {
+		// sqlserver driver treats NULL and 'NULL' the same
 		t.Skip("skip sqlite and sqlserver")
 	}
 
