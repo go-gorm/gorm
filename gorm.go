@@ -37,6 +37,8 @@ type Config struct {
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
 	DisableForeignKeyConstraintWhenMigrating bool
+	// IgnoreRelationshipsWhenMigrating
+	IgnoreRelationshipsWhenMigrating bool
 	// DisableNestedTransaction disable nested transaction
 	DisableNestedTransaction bool
 	// AllowGlobalUpdate allow global update
