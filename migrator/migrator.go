@@ -143,8 +143,11 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					}
 				}
 
-				for _, rel := range stmt.Schema.Relationships.Relations {
-					if !m.DB.Config.DisableForeignKeyConstraintWhenMigrating {
+				if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
+					for _, rel := range stmt.Schema.Relationships.Relations {
+						if rel.Field.IgnoreMigration {
+							continue
+						}
 						if constraint := rel.ParseConstraint(); constraint != nil &&
 							constraint.Schema == stmt.Schema && !queryTx.Migrator().HasConstraint(value, constraint.Name) {
 							if err := execTx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
@@ -244,8 +247,11 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				}
 			}
 
-			for _, rel := range stmt.Schema.Relationships.Relations {
-				if !m.DB.DisableForeignKeyConstraintWhenMigrating {
+			if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
+				for _, rel := range stmt.Schema.Relationships.Relations {
+					if rel.Field.IgnoreMigration {
+						continue
+					}
 					if constraint := rel.ParseConstraint(); constraint != nil {
 						if constraint.Schema == stmt.Schema {
 							sql, vars := buildConstraint(constraint)
@@ -818,26 +824,31 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		}
 		parsedSchemas[dep.Statement.Schema] = true
 
-		for _, rel := range dep.Schema.Relationships.Relations {
-			if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
-				dep.Depends = append(dep.Depends, c.ReferenceSchema)
-			}
+		if !m.DB.IgnoreRelationshipsWhenMigrating {
+			for _, rel := range dep.Schema.Relationships.Relations {
+				if rel.Field.IgnoreMigration {
+					continue
+				}
+				if c := rel.ParseConstraint(); c != nil && c.Schema == dep.Statement.Schema && c.Schema != c.ReferenceSchema {
+					dep.Depends = append(dep.Depends, c.ReferenceSchema)
+				}
 
-			if rel.Type == schema.HasOne || rel.Type == schema.HasMany {
-				beDependedOn[rel.FieldSchema] = true
-			}
+				if rel.Type == schema.HasOne || rel.Type == schema.HasMany {
+					beDependedOn[rel.FieldSchema] = true
+				}
 
-			if rel.JoinTable != nil {
-				// append join value
-				defer func(rel *schema.Relationship, joinValue interface{}) {
-					if !beDependedOn[rel.FieldSchema] {
-						dep.Depends = append(dep.Depends, rel.FieldSchema)
-					} else {
-						fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-						parseDependence(fieldValue, autoAdd)
-					}
-					parseDependence(joinValue, autoAdd)
-				}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
+				if rel.JoinTable != nil {
+					// append join value
+					defer func(rel *schema.Relationship, joinValue interface{}) {
+						if !beDependedOn[rel.FieldSchema] {
+							dep.Depends = append(dep.Depends, rel.FieldSchema)
+						} else {
+							fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+							parseDependence(fieldValue, autoAdd)
+						}
+						parseDependence(joinValue, autoAdd)
+					}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
+				}
 			}
 		}
 
