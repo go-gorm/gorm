@@ -39,6 +39,11 @@ func TestSoftDelete(t *testing.T) {
 		t.Fatalf("invalid sql generated, got %v", sql)
 	}
 
+	sql = DB.Session(&gorm.Session{DryRun: true}).Table("user u").Select("name").Find(&User{}).Statement.SQL.String()
+	if !regexp.MustCompile(`SELECT .name. FROM user u WHERE .u.\..deleted_at. IS NULL`).MatchString(sql) {
+		t.Errorf("Table with escape character, got %v", sql)
+	}
+
 	if DB.First(&User{}, "name = ?", user.Name).Error == nil {
 		t.Errorf("Can't find a soft deleted record")
 	}

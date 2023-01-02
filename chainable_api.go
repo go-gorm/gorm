@@ -55,7 +55,7 @@ func (db *DB) Clauses(conds ...clause.Expression) (tx *DB) {
 	return
 }
 
-var tableRegexp = regexp.MustCompile(`(?i).+? AS (\w+)\s*(?:$|,)`)
+var tableRegexp = regexp.MustCompile(`(?i)(?:.+? AS (\w+)\s*(?:$|,)|^\w+\s+(\w+)$)`)
 
 // Table specify the table you would like to run db operations
 //
@@ -65,8 +65,12 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if strings.Contains(name, " ") || strings.Contains(name, "`") || len(args) > 0 {
 		tx.Statement.TableExpr = &clause.Expr{SQL: name, Vars: args}
-		if results := tableRegexp.FindStringSubmatch(name); len(results) == 2 {
-			tx.Statement.Table = results[1]
+		if results := tableRegexp.FindStringSubmatch(name); len(results) == 3 {
+			if results[1] != "" {
+				tx.Statement.Table = results[1]
+			} else {
+				tx.Statement.Table = results[2]
+			}
 		}
 	} else if tables := strings.Split(name, "."); len(tables) == 2 {
 		tx.Statement.TableExpr = &clause.Expr{SQL: tx.Statement.Quote(name)}
