@@ -1270,6 +1270,38 @@ func TestMigrateDefaultNullString(t *testing.T) {
 	AssertEqual(t, ok, false)
 }
 
+func TestMigrateMySQLWithCustomizedTypes(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		t.Skip()
+	}
+
+	type MyTable struct {
+		Def string `gorm:"size:512;index:idx_def,unique"`
+		Abc string `gorm:"size:65000000"`
+	}
+
+	DB.Migrator().DropTable("my_tables")
+
+	sql := "CREATE TABLE `my_tables` (`def` varchar(512),`abc` longtext,UNIQUE INDEX `idx_def` (`def`))"
+	if err := DB.Exec(sql).Error; err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+
+	session := DB.Session(&gorm.Session{Logger: Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE") {
+				t.Errorf("shouldn't execute: sql=%s", sql)
+			}
+		},
+	}})
+
+	if err := session.AutoMigrate(&MyTable{}); err != nil {
+		t.Errorf("Failed, got error: %v", err)
+	}
+}
+
 func TestMigrateIgnoreRelations(t *testing.T) {
 	type RelationModel1 struct {
 		ID uint

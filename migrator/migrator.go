@@ -120,7 +120,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				if err != nil {
 					return err
 				}
-
+				var (
+					parseIndexes          = stmt.Schema.ParseIndexes()
+					parseCheckConstraints = stmt.Schema.ParseCheckConstraints()
+				)
 				for _, dbName := range stmt.Schema.DBNames {
 					field := stmt.Schema.FieldsByDBName[dbName]
 					var foundColumn gorm.ColumnType
@@ -157,7 +160,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					}
 				}
 
-				for _, chk := range stmt.Schema.ParseCheckConstraints() {
+				for _, chk := range parseCheckConstraints {
 					if !queryTx.Migrator().HasConstraint(value, chk.Name) {
 						if err := execTx.Migrator().CreateConstraint(value, chk.Name); err != nil {
 							return err
@@ -165,7 +168,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					}
 				}
 
-				for _, idx := range stmt.Schema.ParseIndexes() {
+				for _, idx := range parseIndexes {
 					if !queryTx.Migrator().HasIndex(value, idx.Name) {
 						if err := execTx.Migrator().CreateIndex(value, idx.Name); err != nil {
 							return err
@@ -430,7 +433,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
 
 	var (
-		alterColumn, isSameType bool
+		alterColumn bool
+		isSameType  = fullDataType == realDataType
 	)
 
 	if !field.PrimaryKey {

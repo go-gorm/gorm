@@ -129,6 +129,7 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 				}
 
 				if (k == "UNIQUEINDEX") || settings["UNIQUE"] != "" {
+					field.Unique = true
 					settings["CLASS"] = "UNIQUE"
 				}
 
