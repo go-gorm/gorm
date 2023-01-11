@@ -65,7 +65,11 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 			}
 		}
 	}
-
+	for _, index := range indexes {
+		if index.Class == "UNIQUE" && len(index.Fields) == 1 {
+			index.Fields[0].Field.Unique = true
+		}
+	}
 	return indexes
 }
 
@@ -129,7 +133,6 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 				}
 
 				if (k == "UNIQUEINDEX") || settings["UNIQUE"] != "" {
-					field.Unique = true
 					settings["CLASS"] = "UNIQUE"
 				}
 
