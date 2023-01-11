@@ -65,7 +65,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_name": {
 			Name:   "idx_name",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2"}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", Unique: true}}},
 		},
 		"idx_user_indices_name3": {
 			Name:  "idx_user_indices_name3",
@@ -81,7 +81,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_user_indices_name4": {
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4"}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", Unique: true}}},
 		},
 		"idx_user_indices_name5": {
 			Name:    "idx_user_indices_name5",
@@ -102,12 +102,12 @@ func TestParseIndex(t *testing.T) {
 		},
 		"idx_id": {
 			Name:   "idx_id",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID"}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", Unique: true}}},
 		},
 		"idx_oid": {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID"}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", Unique: true}}},
 		},
 		"type": {
 			Name:   "type",
@@ -167,6 +167,9 @@ func TestParseIndex(t *testing.T) {
 			rf := v.Fields[idx]
 			if rf.Field.Name != ef.Field.Name {
 				t.Fatalf("index field should equal, expects %v, got %v", rf.Field.Name, ef.Field.Name)
+			}
+			if rf.Field.Unique != ef.Field.Unique {
+				t.Fatalf("index field '%s' should equal, expects %v, got %v", rf.Field.Name, rf.Field.Unique, ef.Field.Unique)
 			}
 
 			for _, name := range []string{"Expression", "Sort", "Collate", "Length"} {
