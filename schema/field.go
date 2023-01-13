@@ -113,7 +113,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		AutoIncrement:          utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
 		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
-		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
+		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"], tagSetting["UNIQUEINDEX"]),
 		Comment:                tagSetting["COMMENT"],
 		AutoIncrementIncrement: 1,
 	}
