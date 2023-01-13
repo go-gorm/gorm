@@ -14,6 +14,7 @@ type ColumnType struct {
 	PrimaryKeyValue    sql.NullBool
 	UniqueValue        sql.NullBool
 	AutoIncrementValue sql.NullBool
+	AutoRandomValue    sql.NullBool
 	LengthValue        sql.NullInt64
 	DecimalSizeValue   sql.NullInt64
 	ScaleValue         sql.NullInt64
@@ -57,6 +58,11 @@ func (ct ColumnType) PrimaryKey() (isPrimaryKey bool, ok bool) {
 // AutoIncrement returns the column is auto increment or not.
 func (ct ColumnType) AutoIncrement() (isAutoIncrement bool, ok bool) {
 	return ct.AutoIncrementValue.Bool, ct.AutoIncrementValue.Valid
+}
+
+// AutoRandom returns the column is auto random or not.
+func (ct ColumnType) AutoRandom() (isAutoRandom bool, ok bool) {
+	return ct.AutoRandomValue.Bool, ct.AutoRandomValue.Valid
 }
 
 // Length returns the column type length for variable length column types

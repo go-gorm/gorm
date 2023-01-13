@@ -42,6 +42,7 @@ type ColumnType interface {
 	ColumnType() (columnType string, ok bool) // varchar(64)
 	PrimaryKey() (isPrimaryKey bool, ok bool)
 	AutoIncrement() (isAutoIncrement bool, ok bool)
+	AutoRandom() (isAutoRandom bool, ok bool)
 	Length() (length int64, ok bool)
 	DecimalSize() (precision int64, scale int64, ok bool)
 	Nullable() (nullable bool, ok bool)

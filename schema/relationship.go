@@ -123,16 +123,17 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 }
 
 // User has many Toys, its `Polymorphic` is `Owner`, Pet has one Toy, its `Polymorphic` is `Owner`
-//     type User struct {
-//       Toys []Toy `gorm:"polymorphic:Owner;"`
-//     }
-//     type Pet struct {
-//       Toy Toy `gorm:"polymorphic:Owner;"`
-//     }
-//     type Toy struct {
-//       OwnerID   int
-//       OwnerType string
-//     }
+//
+//	type User struct {
+//	  Toys []Toy `gorm:"polymorphic:Owner;"`
+//	}
+//	type Pet struct {
+//	  Toy Toy `gorm:"polymorphic:Owner;"`
+//	}
+//	type Toy struct {
+//	  OwnerID   int
+//	  OwnerType string
+//	}
 func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Field, polymorphic string) {
 	relation.Polymorphic = &Polymorphic{
 		Value:           schema.Table,
@@ -641,7 +642,7 @@ func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue ref
 }
 
 func copyableDataType(str DataType) bool {
-	for _, s := range []string{"auto_increment", "primary key"} {
+	for _, s := range []string{"increment", "primary key"} {
 		if strings.Contains(strings.ToLower(string(str)), s) {
 			return false
 		}

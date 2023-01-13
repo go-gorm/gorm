@@ -59,6 +59,7 @@ type Field struct {
 	PrimaryKey             bool
 	AutoIncrement          bool
 	AutoIncrementIncrement int64
+	AutoRandom             bool
 	Creatable              bool
 	Updatable              bool
 	Readable               bool
@@ -111,7 +112,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Readable:               true,
 		PrimaryKey:             utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"]),
 		AutoIncrement:          utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
-		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
+		AutoRandom:             utils.CheckTruth(tagSetting["AUTORANDOM"]),
+		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"], tagSetting["AUTORANDOM"]),
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
 		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
 		Comment:                tagSetting["COMMENT"],
@@ -406,11 +408,13 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 					if !utils.CheckTruth(ef.TagSettings["PRIMARYKEY"], ef.TagSettings["PRIMARY_KEY"]) {
 						ef.PrimaryKey = false
 
-						if val, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(val) {
+						if autoIncrVal, ok := ef.TagSettings["AUTOINCREMENT"]; !ok || !utils.CheckTruth(autoIncrVal) {
 							ef.AutoIncrement = false
+						} else if autoRandVal, ok := ef.TagSettings["AUTORANDOM"]; !ok || !utils.CheckTruth(autoRandVal) {
+							ef.AutoRandom = false
 						}
 
-						if !ef.AutoIncrement && ef.DefaultValue == "" {
+						if !ef.AutoIncrement && !ef.AutoRandom && ef.DefaultValue == "" {
 							ef.HasDefaultValue = false
 						}
 					}

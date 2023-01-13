@@ -239,12 +239,15 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		switch field.GORMDataType {
 		case Int, Uint:
 			if _, ok := field.TagSettings["AUTOINCREMENT"]; !ok {
-				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
-					schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
-				}
+				// also not have AUTORANDOM tag
+				if _, ok := field.TagSettings["AUTORANDOM"]; !ok {
+					if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+						schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+					}
 
-				field.HasDefaultValue = true
-				field.AutoIncrement = true
+					field.HasDefaultValue = true
+					field.AutoIncrement = true
+				}
 			}
 		case String:
 			if _, ok := field.TagSettings["PRIMARYKEY"]; !ok {
