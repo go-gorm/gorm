@@ -642,7 +642,7 @@ func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue ref
 }
 
 func copyableDataType(str DataType) bool {
-	for _, s := range []string{"increment", "primary key"} {
+	for _, s := range []string{"auto_increment", "auto_random", "primary key"} {
 		if strings.Contains(strings.ToLower(string(str)), s) {
 			return false
 		}
