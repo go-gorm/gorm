@@ -120,8 +120,9 @@ func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
 	})
 	if len(conds) > 0 {
-		if len(conds) == 1 {
-			cond := []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{conds[0]}}}
+		pkValue, ok := conds[0].(string)
+		if len(conds) == 1 && ok {
+			cond := []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{pkValue}}}
 			tx.Statement.AddClause(clause.Where{Exprs: cond})
 		} else {
 			if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
@@ -432,8 +433,9 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if len(conds) > 0 {
-		if len(conds) == 1 {
-			cond := []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{conds[0]}}}
+		pkValue, ok := conds[0].(string)
+		if len(conds) == 1 && ok {
+			cond := []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{pkValue}}}
 			tx.Statement.AddClause(clause.Where{Exprs: cond})
 		} else {
 			if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
