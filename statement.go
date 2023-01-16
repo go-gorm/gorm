@@ -287,7 +287,12 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				return nil
 			}
 
-			if len(args) == 0 || (len(args) > 0 && strings.Contains(s, "?")) {
+			// The primary key type is not int, but string or uuid (#5984)
+			if len(args) == 0 {
+				return []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{s}}}
+			}
+
+			if len(args) > 0 && strings.Contains(s, "?") {
 				// looks like a where condition
 				return []clause.Expression{clause.Expr{SQL: s, Vars: args}}
 			}
