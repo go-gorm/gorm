@@ -287,9 +287,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				return nil
 			}
 
-			//The primary key type is not int, but string or uuid (#5984)
 			if len(args) == 0 && (!strings.Contains(s, "?") && !strings.Contains(s, "@")) {
-				// if it is a string, then treats it as primary key
+				// The primary key type is not int, but string or uuid (#5984)
 				return []clause.Expression{clause.IN{Column: clause.PrimaryColumn, Values: []interface{}{s}}}
 			}
 
