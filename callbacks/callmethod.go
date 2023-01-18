@@ -13,11 +13,18 @@ func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 		case reflect.Slice, reflect.Array:
 			db.Statement.CurDestIndex = 0
 			for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-				fc(reflect.Indirect(db.Statement.ReflectValue.Index(i)).Addr().Interface(), tx)
+				value := reflect.Indirect(db.Statement.ReflectValue.Index(i))
+				if value.CanAddr() {
+					fc(value.Addr().Interface(), tx)
+				} else {
+					fc(value.Interface(), tx)
+				}
 				db.Statement.CurDestIndex++
 			}
 		case reflect.Struct:
-			fc(db.Statement.ReflectValue.Addr().Interface(), tx)
+			if db.Statement.ReflectValue.CanAddr() {
+				fc(db.Statement.ReflectValue.Addr().Interface(), tx)
+			}
 		}
 	}
 }
