@@ -72,7 +72,7 @@ var (
 	// Discard Discard logger will print any log to io.Discard
 	Discard = New(log.New(io.Discard, "", log.LstdFlags), Config{})
 	// Default Default logger
-	Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
+	Default = New(log.New(os.Stderr, "\r\n", log.LstdFlags), Config{
 		SlowThreshold:             200 * time.Millisecond,
 		LogLevel:                  Warn,
 		IgnoreRecordNotFoundError: false,
