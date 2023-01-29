@@ -347,10 +347,12 @@ func (db *DB) Callback() *callbacks {
 
 // AddError add error to db
 func (db *DB) AddError(err error) error {
+	translatedErr := TranslateErr(db.Dialector.Name(), err)
+
 	if db.Error == nil {
-		db.Error = err
-	} else if err != nil {
-		db.Error = fmt.Errorf("%v; %w", db.Error, err)
+		db.Error = translatedErr
+	} else if translatedErr != nil {
+		db.Error = fmt.Errorf("%v; %w", db.Error, translatedErr)
 	}
 	return db.Error
 }
