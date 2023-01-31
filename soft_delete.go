@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"reflect"
 
+	"github.com/jinzhu/now"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 )
@@ -45,11 +46,27 @@ func (n *DeletedAt) UnmarshalJSON(b []byte) error {
 }
 
 func (DeletedAt) QueryClauses(f *schema.Field) []clause.Interface {
-	return []clause.Interface{SoftDeleteQueryClause{Field: f}}
+	return []clause.Interface{SoftDeleteQueryClause{Field: f, ZeroValue: parseZeroValueTag(f)}}
+}
+
+func parseZeroValueTag(f *schema.Field) sql.NullString {
+	// parse zeroValue tag if not nil
+	tagSetting := schema.ParseTagSetting(f.Tag.Get("gorm"), ";")
+	zeroValueTag := tagSetting["ZEROVALUE"]
+	zeroValue := sql.NullString{Valid: false}
+	if len(zeroValueTag) > 0 {
+		// validate it
+		_, err := now.Parse(zeroValueTag)
+		if err == nil {
+			zeroValue = sql.NullString{String: zeroValueTag, Valid: true}
+		}
+	}
+	return zeroValue
 }
 
 type SoftDeleteQueryClause struct {
-	Field *schema.Field
+	ZeroValue sql.NullString
+	Field     *schema.Field
 }
 
 func (sd SoftDeleteQueryClause) Name() string {
@@ -78,18 +95,19 @@ func (sd SoftDeleteQueryClause) ModifyStatement(stmt *Statement) {
 		}
 
 		stmt.AddClause(clause.Where{Exprs: []clause.Expression{
-			clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: sd.Field.DBName}, Value: nil},
+			clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: sd.Field.DBName}, Value: sd.ZeroValue},
 		}})
 		stmt.Clauses["soft_delete_enabled"] = clause.Clause{}
 	}
 }
 
 func (DeletedAt) UpdateClauses(f *schema.Field) []clause.Interface {
-	return []clause.Interface{SoftDeleteUpdateClause{Field: f}}
+	return []clause.Interface{SoftDeleteUpdateClause{Field: f, ZeroValue: parseZeroValueTag(f)}}
 }
 
 type SoftDeleteUpdateClause struct {
-	Field *schema.Field
+	ZeroValue sql.NullString
+	Field     *schema.Field
 }
 
 func (sd SoftDeleteUpdateClause) Name() string {
@@ -109,11 +127,12 @@ func (sd SoftDeleteUpdateClause) ModifyStatement(stmt *Statement) {
 }
 
 func (DeletedAt) DeleteClauses(f *schema.Field) []clause.Interface {
-	return []clause.Interface{SoftDeleteDeleteClause{Field: f}}
+	return []clause.Interface{SoftDeleteDeleteClause{Field: f, ZeroValue: parseZeroValueTag(f)}}
 }
 
 type SoftDeleteDeleteClause struct {
-	Field *schema.Field
+	ZeroValue sql.NullString
+	Field     *schema.Field
 }
 
 func (sd SoftDeleteDeleteClause) Name() string {
