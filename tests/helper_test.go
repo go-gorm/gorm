@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -234,4 +235,14 @@ func CheckUser(t *testing.T, user User, expect User) {
 			AssertObjEqual(t, friend, expect.Friends[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
 		}
 	})
+}
+
+func tidbSkip(t *testing.T, reason string) {
+	if isTiDB() {
+		t.Skipf("This test case skipped, because of TiDB '%s'", reason)
+	}
+}
+
+func isTiDB() bool {
+	return os.Getenv("GORM_DIALECT") == "tidb"
 }

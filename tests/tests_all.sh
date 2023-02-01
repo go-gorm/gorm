@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-dialects=("sqlite" "mysql" "postgres" "sqlserver")
+dialects=("sqlite" "mysql" "postgres" "sqlserver" "tidb")
 
 if [[ $(pwd) == *"gorm/tests"* ]]; then
   cd ..

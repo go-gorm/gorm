@@ -29,3 +29,8 @@ services:
       - MSSQL_DB=gorm
       - MSSQL_USER=gorm
       - MSSQL_PASSWORD=LoremIpsum86
+  tidb:
+    image: 'pingcap/tidb:v6.5.0'
+    ports:
+      - 9940:4000
+    command: /tidb-server -store unistore -path "" -lease 0s > tidb.log 2>&1 &

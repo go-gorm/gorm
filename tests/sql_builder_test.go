@@ -29,7 +29,7 @@ func TestRow(t *testing.T) {
 	}
 
 	table := "gorm.users"
-	if DB.Dialector.Name() != "mysql" {
+	if DB.Dialector.Name() != "mysql" || isTiDB() {
 		table = "users" // other databases doesn't support select with `database.table`
 	}
 

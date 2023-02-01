@@ -95,6 +95,8 @@ func TestMany2ManyAssociation(t *testing.T) {
 }
 
 func TestMany2ManyOmitAssociations(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	user := *GetUser("many2many_omit_associations", Config{Languages: 2})
 
 	if err := DB.Omit("Languages.*").Create(&user).Error; err == nil {
