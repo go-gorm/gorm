@@ -50,18 +50,12 @@ func (DeletedAt) QueryClauses(f *schema.Field) []clause.Interface {
 }
 
 func parseZeroValueTag(f *schema.Field) sql.NullString {
-	// parse zeroValue tag if not nil
-	tagSetting := schema.ParseTagSetting(f.Tag.Get("gorm"), ";")
-	zeroValueTag := tagSetting["ZEROVALUE"]
-	zeroValue := sql.NullString{Valid: false}
-	if len(zeroValueTag) > 0 {
-		// validate it
-		_, err := now.Parse(zeroValueTag)
-		if err == nil {
-			zeroValue = sql.NullString{String: zeroValueTag, Valid: true}
+	if v, ok := f.TagSettings["ZEROVALUE"]; ok {
+		if _, err := now.Parse(v); err == nil {
+			return sql.NullString{String: v, Valid: true}
 		}
 	}
-	return zeroValue
+	return sql.NullString{Valid: false}
 }
 
 type SoftDeleteQueryClause struct {
