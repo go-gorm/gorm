@@ -311,6 +311,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 	conds := make([]clause.Expression, 0, 4)
 	args = append([]interface{}{query}, args...)
 	for idx, arg := range args {
+		if arg == nil {
+			continue
+		}
 		if valuer, ok := arg.(driver.Valuer); ok {
 			arg, _ = valuer.Value()
 		}
