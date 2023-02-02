@@ -35,6 +35,13 @@ func TestWhereCloneCorruption(t *testing.T) {
 	}
 }
 
+func TestNilCondition(t *testing.T) {
+	s := new(Statement)
+	if len(s.BuildCondition(nil)) != 0 {
+		t.Errorf("Nil condition should be empty")
+	}
+}
+
 func TestNameMatcher(t *testing.T) {
 	for k, v := range map[string][]string{
 		"table.name":         {"table", "name"},
