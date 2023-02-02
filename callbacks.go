@@ -93,6 +93,10 @@ func (p *processor) Execute(db *DB) *DB {
 		resetBuildClauses = true
 	}
 
+	if optimizer, ok := db.Statement.Dest.(StatementModifier); ok {
+		optimizer.ModifyStatement(stmt)
+	}
+
 	// assign model values
 	if stmt.Model == nil {
 		stmt.Model = stmt.Dest
