@@ -1366,3 +1366,16 @@ func TestQueryResetNullValue(t *testing.T) {
 	AssertEqual(t, q1, qs[0])
 	AssertEqual(t, q2, qs[1])
 }
+
+func TestQueryError(t *testing.T) {
+	type P struct{}
+	var p1 P
+	err := DB.Take(&p1, 1).Error
+	AssertEqual(t, err, gorm.ErrModelValueRequired)
+
+	var p2 interface{}
+
+	err = DB.Table("ps").Clauses(clause.Eq{Column: clause.Column{
+		Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: 1}).Scan(&p2).Error
+	AssertEqual(t, err, gorm.ErrModelValueRequired)
+}
