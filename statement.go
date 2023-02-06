@@ -121,7 +121,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			} else if len(stmt.Schema.DBNames) > 0 {
 				write(v.Raw, stmt.Schema.DBNames[0])
 			} else {
-				stmt.DB.AddError(ErrModelValueRequired) //nolint:typecheck
+				stmt.DB.AddError(ErrModelValueRequired) //nolint:typecheck,errcheck
 			}
 		} else {
 			write(v.Raw, v.Name)
