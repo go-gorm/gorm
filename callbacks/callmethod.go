@@ -17,6 +17,9 @@ func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 				db.Statement.CurDestIndex++
 			}
 		case reflect.Struct:
+			if !db.Statement.ReflectValue.CanAddr() {
+				db.Statement.ReflectValue = reflect.New(db.Statement.ReflectValue.Type()).Elem()
+			}
 			fc(db.Statement.ReflectValue.Addr().Interface(), tx)
 		}
 	}
