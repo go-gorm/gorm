@@ -1371,7 +1371,7 @@ func TestQueryError(t *testing.T) {
 	type P struct{}
 	var p1 P
 	err := DB.Take(&p1, 1).Error
-	AssertEqual(t, err, gorm.ErrModelValueRequired)
+	AssertEqual(t, err, gorm.ErrModelAccessibleFieldsRequired)
 
 	var p2 interface{}
 
