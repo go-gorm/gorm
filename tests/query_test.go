@@ -1376,6 +1376,7 @@ func TestQueryError(t *testing.T) {
 	var p2 interface{}
 
 	err = DB.Table("ps").Clauses(clause.Eq{Column: clause.Column{
-		Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: 1}).Scan(&p2).Error
+		Table: clause.CurrentTable, Name: clause.PrimaryKey,
+	}, Value: 1}).Scan(&p2).Error
 	AssertEqual(t, err, gorm.ErrModelValueRequired)
 }
