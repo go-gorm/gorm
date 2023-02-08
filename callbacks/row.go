@@ -7,7 +7,7 @@ import (
 func RowQuery(db *gorm.DB) {
 	if db.Error == nil {
 		BuildQuerySQL(db)
-		if db.DryRun {
+		if db.DryRun || db.Error != nil {
 			return
 		}
 

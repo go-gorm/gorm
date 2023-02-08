@@ -120,6 +120,8 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 				write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
 			} else if len(stmt.Schema.DBNames) > 0 {
 				write(v.Raw, stmt.Schema.DBNames[0])
+			} else {
+				stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck
 			}
 		} else {
 			write(v.Raw, v.Name)
