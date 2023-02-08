@@ -71,6 +71,8 @@ func TestAssociationNotNullClear(t *testing.T) {
 }
 
 func TestForeignKeyConstraints(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	type Profile struct {
 		ID       uint
 		Name     string
@@ -126,6 +128,8 @@ func TestForeignKeyConstraints(t *testing.T) {
 }
 
 func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	type Profile struct {
 		ID    uint
 		Name  string

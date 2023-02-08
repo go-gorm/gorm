@@ -138,6 +138,7 @@ func TestBelongsToAssociation(t *testing.T) {
 	unexistCompanyID := company.ID + 9999999
 	user = User{Name: "invalid-user-with-invalid-belongs-to-foreign-key", CompanyID: &unexistCompanyID}
 	if err := DB.Create(&user).Error; err == nil {
+		tidbSkip(t, "not support the foreign key feature")
 		t.Errorf("should have gotten foreign key violation error")
 	}
 }
