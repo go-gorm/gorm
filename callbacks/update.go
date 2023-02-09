@@ -137,7 +137,9 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	case reflect.Slice, reflect.Array:
 		assignValue = func(field *schema.Field, value interface{}) {
 			for i := 0; i < stmt.ReflectValue.Len(); i++ {
-				field.Set(stmt.Context, stmt.ReflectValue.Index(i), value)
+				if stmt.ReflectValue.CanAddr() {
+					field.Set(stmt.Context, stmt.ReflectValue.Index(i), value)
+				}
 			}
 		}
 	case reflect.Struct:

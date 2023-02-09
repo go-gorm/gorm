@@ -540,7 +540,17 @@ func TestUpdateCallbacks(t *testing.T) {
 	}
 
 	DB.Model(Product5{}).Where("id", p.ID).Update("name", "update_name_2")
+	if beforeUpdateCall != 1 {
+		t.Fatalf("before update should not be called")
+	}
+
+	DB.Model([1]*Product5{&p}).Update("name", "update_name_3")
 	if beforeUpdateCall != 2 {
 		t.Fatalf("before update should be called")
+	}
+
+	DB.Model([1]Product5{p}).Update("name", "update_name_4")
+	if beforeUpdateCall != 2 {
+		t.Fatalf("before update should not be called")
 	}
 }

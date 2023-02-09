@@ -134,7 +134,11 @@ func GetIdentityFieldValuesMap(ctx context.Context, reflectValue reflect.Value, 
 			elem := reflectValue.Index(i)
 			elemKey := elem.Interface()
 			if elem.Kind() != reflect.Ptr {
-				elemKey = elem.Addr().Interface()
+				if elem.CanAddr() {
+					elemKey = elem.Addr().Interface()
+				} else {
+					elemKey = elem.Interface()
+				}
 			}
 
 			if _, ok := loaded[elemKey]; ok {
