@@ -356,24 +356,29 @@ func TestDuplicateMany2ManyAssociation(t *testing.T) {
 }
 
 func TestConcurrentMany2ManyAssociation(t *testing.T) {
+	db, err := OpenTestConnection()
+	if err != nil {
+		t.Fatalf("open test connection failed, err: %+v", err)
+	}
+
 	var count = 3
 
 	var languages []Language
 	for i := 0; i < count; i++ {
 		language := Language{Code: fmt.Sprintf("consurrent %d", i)}
-		DB.Create(&language)
+		db.Create(&language)
 		languages = append(languages, language)
 	}
 
 	user := User{}
-	DB.Create(&user)
-	DB.Preload("Languages").FirstOrCreate(&user)
+	db.Create(&user)
+	db.Preload("Languages").FirstOrCreate(&user)
 
 	var wg sync.WaitGroup
 	for i := 0; i < count; i++ {
 		wg.Add(1)
 		go func(user User, language Language) {
-			err := DB.Model(&user).Association("Languages").Append(&language)
+			err := db.Model(&user).Association("Languages").Append(&language)
 			AssertEqual(t, err, nil)
 
 			wg.Done()
@@ -382,7 +387,7 @@ func TestConcurrentMany2ManyAssociation(t *testing.T) {
 	wg.Wait()
 
 	var find User
-	err := DB.Preload(clause.Associations).Where("id = ?", user.ID).First(&find).Error
+	err = db.Preload(clause.Associations).Where("id = ?", user.ID).First(&find).Error
 	AssertEqual(t, err, nil)
 	AssertAssociationCount(t, find, "Languages", int64(count), "after concurrent append")
 }
