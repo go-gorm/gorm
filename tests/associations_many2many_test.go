@@ -361,7 +361,7 @@ func TestConcurrentMany2ManyAssociation(t *testing.T) {
 		t.Fatalf("open test connection failed, err: %+v", err)
 	}
 
-	var count = 3
+	count := 3
 
 	var languages []Language
 	for i := 0; i < count; i++ {
