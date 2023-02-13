@@ -9,7 +9,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	gorm.io/driver/mysql v1.4.6
-	gorm.io/driver/postgres v1.4.6
+	gorm.io/driver/postgres v1.4.7
 	gorm.io/driver/sqlite v1.4.4
 	gorm.io/driver/sqlserver v1.4.2
 	gorm.io/gorm v1.24.5
