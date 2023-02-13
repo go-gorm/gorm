@@ -534,22 +534,34 @@ func TestUpdateCallbacks(t *testing.T) {
 	p := Product5{Name: "unique_code"}
 	DB.Model(&Product5{}).Create(&p)
 
-	DB.Model(&Product5{}).Where("id", p.ID).Update("name", "update_name_1")
+	err := DB.Model(&Product5{}).Where("id", p.ID).Update("name", "update_name_1").Error
+	if err != nil {
+		t.Fatalf("should update success, but got err %v", err)
+	}
 	if beforeUpdateCall != 1 {
 		t.Fatalf("before update should be called")
 	}
 
-	DB.Model(Product5{}).Where("id", p.ID).Update("name", "update_name_2")
+	err = DB.Model(Product5{}).Where("id", p.ID).Update("name", "update_name_2").Error
+	if !errors.Is(err, gorm.ErrInvalidValue) {
+		t.Fatalf("should got RecordNotFound, but got %v", err)
+	}
 	if beforeUpdateCall != 1 {
 		t.Fatalf("before update should not be called")
 	}
 
-	DB.Model([1]*Product5{&p}).Update("name", "update_name_3")
+	err = DB.Model([1]*Product5{&p}).Update("name", "update_name_3").Error
+	if err != nil {
+		t.Fatalf("should update success, but got err %v", err)
+	}
 	if beforeUpdateCall != 2 {
 		t.Fatalf("before update should be called")
 	}
 
-	DB.Model([1]Product5{p}).Update("name", "update_name_4")
+	err = DB.Model([1]Product5{p}).Update("name", "update_name_4").Error
+	if !errors.Is(err, gorm.ErrInvalidValue) {
+		t.Fatalf("should got RecordNotFound, but got %v", err)
+	}
 	if beforeUpdateCall != 2 {
 		t.Fatalf("before update should not be called")
 	}
