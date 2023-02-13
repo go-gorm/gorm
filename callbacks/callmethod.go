@@ -17,6 +17,7 @@ func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 					fc(value.Addr().Interface(), tx)
 				} else {
 					db.AddError(gorm.ErrInvalidValue)
+					return
 				}
 				db.Statement.CurDestIndex++
 			}
