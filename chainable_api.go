@@ -253,7 +253,10 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
-			j := join{Name: query, Conds: args, Selects: db.Statement.Selects, Omits: db.Statement.Omits}
+			j := join{
+				Name: query, Conds: args, Selects: db.Statement.Selects,
+				Omits: db.Statement.Omits, JoinType: joinType,
+			}
 			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
 				j.On = &where
 			}
