@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"gorm.io/gorm"
 	"os"
 	"sort"
 	"strconv"
@@ -74,10 +75,18 @@ func GetUser(name string, config Config) *User {
 	return &user
 }
 
+func CheckPetUnscoped(t *testing.T, pet Pet, expect Pet) {
+	doCheckPet(t, pet, expect, true)
+}
+
 func CheckPet(t *testing.T, pet Pet, expect Pet) {
+	doCheckPet(t, pet, expect, false)
+}
+
+func doCheckPet(t *testing.T, pet Pet, expect Pet, unscoped bool) {
 	if pet.ID != 0 {
 		var newPet Pet
-		if err := DB.Where("id = ?", pet.ID).First(&newPet).Error; err != nil {
+		if err := db(unscoped).Where("id = ?", pet.ID).First(&newPet).Error; err != nil {
 			t.Fatalf("errors happened when query: %v", err)
 		} else {
 			AssertObjEqual(t, newPet, pet, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Name")
@@ -94,10 +103,18 @@ func CheckPet(t *testing.T, pet Pet, expect Pet) {
 	}
 }
 
+func CheckUserUnscoped(t *testing.T, user User, expect User) {
+	doCheckUser(t, user, expect, true)
+}
+
 func CheckUser(t *testing.T, user User, expect User) {
+	doCheckUser(t, user, expect, false)
+}
+
+func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 	if user.ID != 0 {
 		var newUser User
-		if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
+		if err := db(unscoped).Where("id = ?", user.ID).First(&newUser).Error; err != nil {
 			t.Fatalf("errors happened when query: %v", err)
 		} else {
 			AssertObjEqual(t, newUser, user, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
@@ -114,7 +131,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 				t.Errorf("Account's foreign key should be saved")
 			} else {
 				var account Account
-				DB.First(&account, "user_id = ?", user.ID)
+				db(unscoped).First(&account, "user_id = ?", user.ID)
 				AssertObjEqual(t, account, user.Account, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Number")
 			}
 		}
@@ -137,7 +154,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 			if pet == nil || expect.Pets[idx] == nil {
 				t.Errorf("pets#%v should equal, expect: %v, got %v", idx, expect.Pets[idx], pet)
 			} else {
-				CheckPet(t, *pet, *expect.Pets[idx])
+				doCheckPet(t, *pet, *expect.Pets[idx], unscoped)
 			}
 		}
 	})
@@ -174,7 +191,7 @@ func CheckUser(t *testing.T, user User, expect User) {
 				t.Errorf("Manager's foreign key should be saved")
 			} else {
 				var manager User
-				DB.First(&manager, "id = ?", *user.ManagerID)
+				db(unscoped).First(&manager, "id = ?", *user.ManagerID)
 				AssertObjEqual(t, manager, user.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
 				AssertObjEqual(t, manager, expect.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
 			}
@@ -245,4 +262,12 @@ func tidbSkip(t *testing.T, reason string) {
 
 func isTiDB() bool {
 	return os.Getenv("GORM_DIALECT") == "tidb"
+}
+
+func db(unscoped bool) *gorm.DB {
+	if unscoped {
+		return DB.Unscoped()
+	} else {
+		return DB
+	}
 }

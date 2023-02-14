@@ -269,3 +269,40 @@ func TestPreloadWithDiffModel(t *testing.T) {
 
 	CheckUser(t, user, result.User)
 }
+
+func TestNestedPreloadWithUnscoped(t *testing.T) {
+	user := *GetUser("nested_preload", Config{Pets: 1})
+	pet := user.Pets[0]
+	pet.Toy = Toy{Name: "toy_nested_preload_" + strconv.Itoa(1)}
+	pet.Toy = Toy{Name: "toy_nested_preload_" + strconv.Itoa(2)}
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	var user2 User
+	DB.Preload("Pets.Toy").Find(&user2, "id = ?", user.ID)
+	CheckUser(t, user2, user)
+
+	DB.Delete(&pet)
+
+	var user3 User
+	DB.Preload(clause.Associations+"."+clause.Associations).Find(&user3, "id = ?", user.ID)
+	if len(user3.Pets) != 0 {
+		t.Fatalf("User.Pet[0] was deleted and should not exist.")
+	}
+
+	var user4 *User
+	DB.Preload("Pets.Toy").Find(&user4, "id = ?", user.ID)
+	if len(user4.Pets) != 0 {
+		t.Fatalf("User.Pet[0] was deleted and should not exist.")
+	}
+
+	var user5 User
+	DB.Unscoped().Preload(clause.Associations+"."+clause.Associations).Find(&user5, "id = ?", user.ID)
+	CheckUserUnscoped(t, user5, user)
+
+	var user6 *User
+	DB.Unscoped().Preload("Pets.Toy").Find(&user6, "id = ?", user.ID)
+	CheckUserUnscoped(t, *user6, user)
+}

@@ -257,6 +257,7 @@ func Preload(db *gorm.DB) {
 			return
 		}
 		preloadDB.Statement.ReflectValue = db.Statement.ReflectValue
+		preloadDB.Statement.Unscoped = db.Statement.Unscoped
 
 		for _, name := range preloadNames {
 			if rel := preloadDB.Statement.Schema.Relationships.Relations[name]; rel != nil {
