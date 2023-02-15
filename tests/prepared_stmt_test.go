@@ -51,6 +51,14 @@ func TestPreparedStmt(t *testing.T) {
 	if err := tx.Find(&result3, user2.ID).Error; err != nil {
 		t.Fatalf("no error should happen but got %v", err)
 	}
+
+	user3 := *GetUser("prepared_stmt_transaction", Config{})
+	err := tx.Transaction(func(tx1 *gorm.DB) error {
+		return tx1.Transaction(func(tx2 *gorm.DB) error {
+			return tx2.Create(&user3).Error
+		})
+	})
+	AssertEqual(t, nil, err)
 }
 
 func TestPreparedStmtFromTransaction(t *testing.T) {

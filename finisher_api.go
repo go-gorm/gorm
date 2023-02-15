@@ -617,7 +617,7 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
-		if !db.DisableNestedTransaction {
+		if !db.DisableNestedTransaction && (db.PrepareStmt && !db.DisablePrepareNestedTransaction) {
 			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
 			if err != nil {
 				return
