@@ -49,16 +49,18 @@ func TestSelect(t *testing.T) {
 					Exprs: []clause.Expression{
 						clause.Expr{
 							SQL: "? as name",
-							Vars: []interface{}{clause.Eq{
-								Column: clause.Column{Name: "age"},
-								Value:  18,
-							},
+							Vars: []interface{}{
+								clause.Eq{
+									Column: clause.Column{Name: "age"},
+									Value:  18,
+								},
 							},
 						},
 					},
 				},
 			}, clause.From{}},
-			"SELECT `age` = ? as name FROM `users`", []interface{}{18},
+			"SELECT `age` = ? as name FROM `users`",
+			[]interface{}{18},
 		},
 	}
 

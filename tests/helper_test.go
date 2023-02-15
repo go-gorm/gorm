@@ -1,13 +1,14 @@
 package tests_test
 
 import (
-	"gorm.io/gorm"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
 
 	. "gorm.io/gorm/utils/tests"
 )
