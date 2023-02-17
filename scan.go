@@ -96,8 +96,8 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 						relValue.Set(reflect.New(relValue.Type().Elem()))
 						joinedNestedSchemaMap[fullRelsName] = nil
 					}
-					currentReflectValue = relValue
 				}
+				currentReflectValue = relValue
 			}
 
 			if !isNilPtrValue { // ignore if value is nil
