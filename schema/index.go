@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"gorm.io/gorm/utils"
 	"sort"
 	"strconv"
 	"strings"
@@ -103,7 +104,7 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 					tag        = strings.Join(v[1:], ":")
 					idx        = strings.Index(tag, ",")
 					tagSetting = strings.Join(strings.Split(tag, ",")[1:], ",")
-					settings   = ParseTagSetting(tagSetting, ",")
+					settings   = utils.ParseTagSetting(tagSetting, ",")
 					length, _  = strconv.Atoi(settings["LENGTH"])
 				)
 

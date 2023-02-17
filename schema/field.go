@@ -93,7 +93,7 @@ type Field struct {
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	var (
 		err        error
-		tagSetting = ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";")
+		tagSetting = utils.ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";")
 	)
 
 	field := &Field{
@@ -141,7 +141,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 				if rv.Kind() == reflect.Struct && !rvType.ConvertibleTo(TimeReflectType) {
 					for i := 0; i < rvType.NumField(); i++ {
-						for key, value := range ParseTagSetting(rvType.Field(i).Tag.Get("gorm"), ";") {
+						for key, value := range utils.ParseTagSetting(rvType.Field(i).Tag.Get("gorm"), ";") {
 							if _, ok := field.TagSettings[key]; !ok {
 								field.TagSettings[key] = value
 							}

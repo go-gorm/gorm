@@ -3,6 +3,7 @@ package schema_test
 import (
 	"context"
 	"fmt"
+	"gorm.io/gorm/utils"
 	"reflect"
 	"strings"
 	"testing"
@@ -44,7 +45,7 @@ func checkSchemaField(t *testing.T, s *schema.Schema, f *schema.Field, fc func(*
 
 		if f.TagSettings == nil {
 			if f.Tag != "" {
-				f.TagSettings = schema.ParseTagSetting(f.Tag.Get("gorm"), ";")
+				f.TagSettings = utils.ParseTagSetting(f.Tag.Get("gorm"), ";")
 			} else {
 				f.TagSettings = map[string]string{}
 			}

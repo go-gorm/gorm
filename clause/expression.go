@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"go/ast"
+	"gorm.io/gorm/utils"
 	"reflect"
 )
 
@@ -107,7 +108,11 @@ func (expr NamedExpr) Build(builder Builder) {
 					modelType := reflectValue.Type()
 					for i := 0; i < modelType.NumField(); i++ {
 						if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
-							namedMap[fieldStruct.Name] = reflectValue.Field(i).Interface()
+							fieldName, exist := utils.ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";")["COLUMN"]
+							if !exist {
+								fieldName = fieldStruct.Name
+							}
+							namedMap[fieldName] = reflectValue.Field(i).Interface()
 
 							if fieldStruct.Anonymous {
 								appendFieldsToMap(reflectValue.Field(i))
