@@ -86,6 +86,14 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? @notexist",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu"},
 	}, {
+		SQL: "@@test AND name1 = @Name1 AND name2 = @Name2 AND name3 = @Name1 @notexist",
+		Vars: []interface{}{struct {
+			Name1Alias string `gorm:"column:Name1;just:for;fun" not_exist:"meaningless"`
+			Name2Alias int    `gorm:"column:Name2;use:less;whitespace "`
+		}{Name1Alias: "houbaron", Name2Alias: 2}},
+		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? @notexist",
+		ExpectedVars: []interface{}{"houbaron", 2, "houbaron"},
+	}, {
 		SQL:    "create table ? (? ?, ? ?)",
 		Vars:   []interface{}{},
 		Result: "create table ? (? ?, ? ?)",
