@@ -1,9 +1,12 @@
 package tests_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -352,4 +355,41 @@ func TestDuplicateMany2ManyAssociation(t *testing.T) {
 	err = DB.Preload("Languages").Where("id = ?", user2.ID).First(&findUser2).Error
 	AssertEqual(t, nil, err)
 	AssertEqual(t, user2, findUser2)
+}
+
+func TestConcurrentMany2ManyAssociation(t *testing.T) {
+	db, err := OpenTestConnection()
+	if err != nil {
+		t.Fatalf("open test connection failed, err: %+v", err)
+	}
+
+	count := 3
+
+	var languages []Language
+	for i := 0; i < count; i++ {
+		language := Language{Code: fmt.Sprintf("consurrent %d", i)}
+		db.Create(&language)
+		languages = append(languages, language)
+	}
+
+	user := User{}
+	db.Create(&user)
+	db.Preload("Languages").FirstOrCreate(&user)
+
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(user User, language Language) {
+			err := db.Model(&user).Association("Languages").Append(&language)
+			AssertEqual(t, err, nil)
+
+			wg.Done()
+		}(user, languages[i])
+	}
+	wg.Wait()
+
+	var find User
+	err = db.Preload(clause.Associations).Where("id = ?", user.ID).First(&find).Error
+	AssertEqual(t, err, nil)
+	AssertAssociationCount(t, find, "Languages", int64(count), "after concurrent append")
 }
