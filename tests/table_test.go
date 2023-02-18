@@ -158,10 +158,11 @@ func (UserWithTableNamer) TableName(namer schema.Namer) string {
 }
 
 func TestTableWithNamer(t *testing.T) {
-	var db, _ = gorm.Open(tests.DummyDialector{}, &gorm.Config{
+	db, _ := gorm.Open(tests.DummyDialector{}, &gorm.Config{
 		NamingStrategy: schema.NamingStrategy{
 			TablePrefix: "t_",
-		}})
+		},
+	})
 
 	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&UserWithTableNamer{}).Find(&UserWithTableNamer{})

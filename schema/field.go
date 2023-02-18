@@ -174,7 +174,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = String
 		field.Serializer = v
 	} else {
-		var serializerName = field.TagSettings["JSON"]
+		serializerName := field.TagSettings["JSON"]
 		if serializerName == "" {
 			serializerName = field.TagSettings["SERIALIZER"]
 		}

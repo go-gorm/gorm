@@ -16,9 +16,7 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-var (
-	regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
-)
+var regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
 
 // Migrator m struct
 type Migrator struct {

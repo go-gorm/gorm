@@ -94,7 +94,6 @@ func TestEmbeddedStruct(t *testing.T) {
 			t.Errorf("expected author %s got %s", want, post.Author.Name)
 		}
 	}
-
 }
 
 func TestEmbeddedPointerTypeStruct(t *testing.T) {

@@ -75,7 +75,6 @@ func TestMigrate(t *testing.T) {
 			t.Fatalf("Failed to find index for many2many for %v %v", indexes[0], indexes[1])
 		}
 	}
-
 }
 
 func TestAutoMigrateInt8PG(t *testing.T) {
@@ -1267,7 +1266,7 @@ func (mm mockMigrator) AlterColumn(dst interface{}, field string) error {
 }
 
 func TestMigrateDonotAlterColumn(t *testing.T) {
-	var wrapMockMigrator = func(m gorm.Migrator) mockMigrator {
+	wrapMockMigrator := func(m gorm.Migrator) mockMigrator {
 		return mockMigrator{
 			Migrator: m,
 		}
