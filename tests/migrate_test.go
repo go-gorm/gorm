@@ -256,9 +256,10 @@ func TestMigrateWithIndexComment(t *testing.T) {
 
 func TestMigrateWithUniqueIndex(t *testing.T) {
 	type UserWithUniqueIndex struct {
-		ID   int
-		Name string    `gorm:"size:20;index:idx_name,unique"`
-		Date time.Time `gorm:"index:idx_name,unique"`
+		ID    int
+		Name  string    `gorm:"size:20;index:idx_name,unique"`
+		Date  time.Time `gorm:"index:idx_name,unique"`
+		UName string    `gorm:"uniqueIndex;size:255"`
 	}
 
 	DB.Migrator().DropTable(&UserWithUniqueIndex{})
@@ -267,6 +268,18 @@ func TestMigrateWithUniqueIndex(t *testing.T) {
 	}
 
 	if !DB.Migrator().HasIndex(&UserWithUniqueIndex{}, "idx_name") {
+		t.Errorf("Failed to find created index")
+	}
+
+	if !DB.Migrator().HasIndex(&UserWithUniqueIndex{}, "idx_user_with_unique_indices_u_name") {
+		t.Errorf("Failed to find created index")
+	}
+
+	if err := DB.AutoMigrate(&UserWithUniqueIndex{}); err != nil {
+		t.Fatalf("failed to migrate, got %v", err)
+	}
+
+	if !DB.Migrator().HasIndex(&UserWithUniqueIndex{}, "idx_user_with_unique_indices_u_name") {
 		t.Errorf("Failed to find created index")
 	}
 }
