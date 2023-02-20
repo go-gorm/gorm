@@ -4,11 +4,37 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils/tests"
 )
+
+func TestParseCustomTypeSchema(t *testing.T) {
+	type Product struct {
+		Date     time.Time `gorm:"type:date"`
+		Time     time.Time `gorm:"type:time"`
+		DateTime time.Time
+	}
+	product, err := schema.Parse(&Product{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse product, got err %v", err)
+	}
+
+	fields := []schema.Field{
+		{Name: "Date", DBName: "date", BindNames: []string{"Date"}, DataType: "date", CustomDataType: "date", Tag: `gorm:"type:date"`, TagSettings: map[string]string{"TYPE": "date"}},
+		{Name: "Time", DBName: "time", BindNames: []string{"Time"}, DataType: schema.Time, CustomDataType: "time", Tag: `gorm:"type:time"`, TagSettings: map[string]string{"TYPE": "time"}},
+		{Name: "DateTime", DBName: "date_time", BindNames: []string{"DateTime"}, DataType: schema.Time},
+	}
+	for _, f := range fields {
+		checkSchemaField(t, product, &f, func(field *schema.Field) {
+			f.Creatable = true
+			f.Updatable = true
+			f.Readable = true
+		})
+	}
+}
 
 func TestParseSchema(t *testing.T) {
 	user, err := schema.Parse(&tests.User{}, &sync.Map{}, schema.NamingStrategy{})
