@@ -41,8 +41,6 @@ type Config struct {
 	IgnoreRelationshipsWhenMigrating bool
 	// DisableNestedTransaction disable nested transaction
 	DisableNestedTransaction bool
-	// DisablePrepareNestedTransaction disable nested transaction in prepare statement
-	DisablePrepareNestedTransaction bool
 	// AllowGlobalUpdate allow global update
 	AllowGlobalUpdate bool
 	// QueryFields executes the SQL query with all fields of the table

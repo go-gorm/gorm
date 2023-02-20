@@ -62,7 +62,7 @@ func TestPreparedStmt(t *testing.T) {
 
 		tx1.Transaction(func(tx2 *gorm.DB) error {
 			tx2.Create(&users[1])
-			return errors.New("rollback user2") // Rollback user3
+			return errors.New("rollback user2") // not support prepare savepoint
 		})
 
 		tx1.Transaction(func(tx2 *gorm.DB) error {
@@ -76,7 +76,7 @@ func TestPreparedStmt(t *testing.T) {
 	var psUsers []User
 	err = tx.Where("name like ?", "prepared_stmt_transaction%").Find(&psUsers).Error
 	AssertEqual(t, nil, err)
-	AssertEqual(t, 2, len(psUsers))
+	AssertEqual(t, 3, len(psUsers))
 }
 
 func TestPreparedStmtFromTransaction(t *testing.T) {
