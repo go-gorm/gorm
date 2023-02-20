@@ -27,11 +27,11 @@ func TestParseCustomTypeSchema(t *testing.T) {
 		{Name: "Time", DBName: "time", BindNames: []string{"Time"}, DataType: schema.Time, CustomDataType: "time", Tag: `gorm:"type:time"`, TagSettings: map[string]string{"TYPE": "time"}},
 		{Name: "DateTime", DBName: "date_time", BindNames: []string{"DateTime"}, DataType: schema.Time},
 	}
-	for _, f := range fields {
-		checkSchemaField(t, product, &f, func(field *schema.Field) {
-			f.Creatable = true
-			f.Updatable = true
-			f.Readable = true
+	for i := range fields {
+		checkSchemaField(t, product, &fields[i], func(field *schema.Field) {
+			field.Creatable = true
+			field.Updatable = true
+			field.Readable = true
 		})
 	}
 }
