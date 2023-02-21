@@ -23,9 +23,9 @@ func TestParseCustomTypeSchema(t *testing.T) {
 	}
 
 	fields := []schema.Field{
-		{Name: "Date", DBName: "date", BindNames: []string{"Date"}, DataType: "date", CustomDataType: "date", Tag: `gorm:"type:date"`, TagSettings: map[string]string{"TYPE": "date"}},
-		{Name: "Time", DBName: "time", BindNames: []string{"Time"}, DataType: schema.Time, CustomDataType: "time", Tag: `gorm:"type:time"`, TagSettings: map[string]string{"TYPE": "time"}},
-		{Name: "DateTime", DBName: "date_time", BindNames: []string{"DateTime"}, DataType: schema.Time},
+		{Name: "Date", DBName: "date", BindNames: []string{"Date"}, DataType: "date", IsTaggedType: true, Tag: `gorm:"type:date"`, TagSettings: map[string]string{"TYPE": "date"}},
+		{Name: "Time", DBName: "time", BindNames: []string{"Time"}, DataType: schema.Time, IsTaggedType: true, Tag: `gorm:"type:time"`, TagSettings: map[string]string{"TYPE": "time"}},
+		{Name: "DateTime", DBName: "date_time", BindNames: []string{"DateTime"}, DataType: schema.Time, IsTaggedType: false},
 	}
 	for i := range fields {
 		checkSchemaField(t, product, &fields[i], func(field *schema.Field) {

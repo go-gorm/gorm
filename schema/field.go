@@ -56,7 +56,7 @@ type Field struct {
 	BindNames              []string
 	DataType               DataType
 	GORMDataType           DataType
-	CustomDataType         DataType
+	IsTaggedType           bool
 	PrimaryKey             bool
 	AutoIncrement          bool
 	AutoIncrementIncrement int64
@@ -311,7 +311,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		default:
 			field.DataType = DataType(val)
 		}
-		field.CustomDataType = DataType(val)
+		field.IsTaggedType = true
 	}
 
 	if field.Size == 0 {
