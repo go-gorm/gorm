@@ -218,7 +218,7 @@ func TestFind(t *testing.T) {
 
 	// test array
 	var models2 [3]User
-	if err := DB.Where("name in (?)", []string{"find"}).Find(&models2).Error; err != nil || len(models2) != 3 {
+	if err := DB.Where("name in (?)", []string{"find"}).Find(&models2).Error; err != nil {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models2))
 	} else {
 		for idx, user := range users {
@@ -230,7 +230,7 @@ func TestFind(t *testing.T) {
 
 	// test smaller array
 	var models3 [2]User
-	if err := DB.Where("name in (?)", []string{"find"}).Find(&models3).Error; err != nil || len(models3) != 2 {
+	if err := DB.Where("name in (?)", []string{"find"}).Find(&models3).Error; err != nil {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models3))
 	} else {
 		for idx, user := range users[:2] {
