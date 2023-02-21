@@ -10,7 +10,7 @@ import (
 
 func TestDialectorWithErrorTranslatorSupport(t *testing.T) {
 	translatedErr := errors.New("translated error")
-	var db, _ = gorm.Open(tests.DummyDialector{TranslatedErr: translatedErr})
+	db, _ := gorm.Open(tests.DummyDialector{TranslatedErr: translatedErr})
 
 	err := db.AddError(errors.New("some random error"))
 	if !errors.Is(err, translatedErr) {
