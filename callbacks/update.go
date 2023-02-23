@@ -245,11 +245,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		}
 	default:
 		updatingSchema := stmt.Schema
+		var isDiffSchema bool
 		if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 			// different schema
 			updatingStmt := &gorm.Statement{DB: stmt.DB}
 			if err := updatingStmt.Parse(stmt.Dest); err == nil {
 				updatingSchema = updatingStmt.Schema
+				isDiffSchema = true
 			}
 		}
 
@@ -276,7 +278,13 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 							if (ok || !isZero) && field.Updatable {
 								set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
-								assignValue(field, value)
+								assignField := field
+								if isDiffSchema {
+									if originField := stmt.Schema.LookUpField(dbName); originField != nil {
+										assignField = originField
+									}
+								}
+								assignValue(assignField, value)
 							}
 						}
 					} else {
