@@ -571,6 +571,7 @@ func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
 	m.DB.Statement.AddVar(sql, option.Query)
 
 	if option.CheckOption != "" {
+		sql.WriteString(" ")
 		sql.WriteString(option.CheckOption)
 	}
 	return m.DB.Exec(sql.String()).Error
