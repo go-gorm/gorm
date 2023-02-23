@@ -644,6 +644,27 @@ func TestMigrateColumns(t *testing.T) {
 	}
 }
 
+func TestMigrateView(t *testing.T) {
+	DB.Save(GetUser("joins-args-db", Config{Pets: 2}))
+
+	query := DB.Model(&User{}).
+		Select("users.id as users_id, users.name as users_name, pets.id as pets_id, pets.name as pets_name").
+		Joins("inner join pets on pets.user_id = users.id")
+
+	if err := DB.Migrator().CreateView("users_pets", gorm.ViewOption{Query: query}); err != nil {
+		t.Fatalf("Failed to crate view, got %v", err)
+	}
+
+	var count int64
+	if err := DB.Table("users_pets").Count(&count).Error; err != nil {
+		t.Fatalf("should found created view")
+	}
+
+	if err := DB.Migrator().DropView("users_pets"); err != nil {
+		t.Fatalf("Failed to drop view, got %v", err)
+	}
+}
+
 func TestMigrateConstraint(t *testing.T) {
 	names := []string{"Account", "fk_users_account", "Pets", "fk_users_pets", "Company", "fk_users_company", "Team", "fk_users_team", "Languages", "fk_users_languages"}
 

@@ -559,12 +559,28 @@ func (m Migrator) ColumnTypes(value interface{}) ([]gorm.ColumnType, error) {
 
 // CreateView create view
 func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
-	return gorm.ErrNotImplemented
+	sql := new(strings.Builder)
+	sql.WriteString("CREATE ")
+	if option.Replace {
+		sql.WriteString("OR REPLACE ")
+	}
+	sql.WriteString("VIEW ")
+	m.QuoteTo(sql, name)
+	sql.WriteString(" AS ")
+
+	m.DB.Statement.AddVar(sql, option.Query)
+
+	if option.CheckOption != "" {
+		sql.WriteString(" WITH ")
+		sql.WriteString(option.CheckOption)
+		sql.WriteString(" CHECK OPTION")
+	}
+	return m.DB.Exec(sql.String()).Error
 }
 
 // DropView drop view
 func (m Migrator) DropView(name string) error {
-	return gorm.ErrNotImplemented
+	return m.DB.Exec("DROP VIEW IF EXISTS ?", clause.Table{Name: name}).Error
 }
 
 func buildConstraint(constraint *schema.Constraint) (sql string, results []interface{}) {
