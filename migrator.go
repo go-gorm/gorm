@@ -30,8 +30,8 @@ func (db *DB) AutoMigrate(dst ...interface{}) error {
 
 // ViewOption view option
 type ViewOption struct {
-	Replace     bool
-	CheckOption string
+	Replace     bool   // CREATE [ OR REPLACE ]
+	CheckOption string // WITH [ CASCADED | LOCAL ] CHECK OPTION
 	Query       *DB
 }
 
