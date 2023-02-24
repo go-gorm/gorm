@@ -557,8 +557,23 @@ func (m Migrator) ColumnTypes(value interface{}) ([]gorm.ColumnType, error) {
 	return columnTypes, execErr
 }
 
-// CreateView create view
+// CreateView create view from Query in gorm.ViewOption.
+// Query in gorm.ViewOption is a [subquery]
+//
+//	// CREATE VIEW `user_view` AS SELECT * FROM `users` WHERE age > 20
+//	q := DB.Model(&User{}).Where("age > ?", 20)
+//	DB.Debug().Migrator().CreateView("user_view", gorm.ViewOption{Query: q})
+//
+//	// CREATE OR REPLACE VIEW `users_view` AS SELECT * FROM `users` WITH CHECK OPTION
+//	q := DB.Model(&User{})
+//	DB.Debug().Migrator().CreateView("user_view", gorm.ViewOption{Query: q, Replace: true, CheckOption: "WITH CHECK OPTION"})
+//
+// [subquery]: https://gorm.io/docs/advanced_query.html#SubQuery
 func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
+	if option.Query == nil {
+		return gorm.ErrSubQueryRequired
+	}
+
 	sql := new(strings.Builder)
 	sql.WriteString("CREATE ")
 	if option.Replace {
@@ -574,7 +589,7 @@ func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
 		sql.WriteString(" ")
 		sql.WriteString(option.CheckOption)
 	}
-	return m.DB.Exec(sql.String()).Error
+	return m.DB.Exec(m.Explain(sql.String(), m.DB.Statement.Vars...)).Error
 }
 
 // DropView drop view

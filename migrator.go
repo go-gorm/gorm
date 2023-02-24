@@ -30,9 +30,9 @@ func (db *DB) AutoMigrate(dst ...interface{}) error {
 
 // ViewOption view option
 type ViewOption struct {
-	Replace     bool   // CREATE [ OR REPLACE ]
-	CheckOption string // WITH [ CASCADED | LOCAL ] CHECK OPTION
-	Query       *DB
+	Replace     bool   // If true, exec `CREATE`. If false, exec `CREATE OR REPLACE`
+	CheckOption string // optional. e.g. `WITH [ CASCADED | LOCAL ] CHECK OPTION`
+	Query       *DB    // required subquery.
 }
 
 // ColumnType column type interface
