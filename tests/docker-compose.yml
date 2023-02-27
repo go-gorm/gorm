@@ -4,7 +4,7 @@ services:
   mysql:
     image: 'mysql/mysql-server:latest'
     ports:
-      - 9910:3306
+      - "9910:3306"
     environment:
       - MYSQL_DATABASE=gorm
       - MYSQL_USER=gorm
@@ -13,7 +13,7 @@ services:
   postgres:
     image: 'postgres:latest'
     ports:
-      - 9920:5432
+      - "9920:5432"
     environment:
       - TZ=Asia/Shanghai
       - POSTGRES_DB=gorm
@@ -22,7 +22,7 @@ services:
   mssql:
     image: '${MSSQL_IMAGE:-mcmoe/mssqldocker}:latest'
     ports:
-      - 9930:1433
+      - "9930:1433"
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=LoremIpsum86
@@ -32,5 +32,5 @@ services:
   tidb:
     image: 'pingcap/tidb:v6.5.0'
     ports:
-      - 9940:4000
+      - "9940:4000"
     command: /tidb-server -store unistore -path "" -lease 0s > tidb.log 2>&1 &
