@@ -1509,3 +1509,36 @@ func TestMigrateIgnoreRelations(t *testing.T) {
 		t.Errorf("RelationModel2 should not be migrated")
 	}
 }
+
+func TestMigrateView(t *testing.T) {
+	DB.Save(GetUser("joins-args-db", Config{Pets: 2}))
+
+	if err := DB.Migrator().CreateView("invalid_users_pets", gorm.ViewOption{Query: nil}); err != gorm.ErrSubQueryRequired {
+		t.Fatalf("no view should be created, got %v", err)
+	}
+
+	query := DB.Model(&User{}).
+		Select("users.id as users_id, users.name as users_name, pets.id as pets_id, pets.name as pets_name").
+		Joins("inner join pets on pets.user_id = users.id")
+
+	if err := DB.Migrator().CreateView("users_pets", gorm.ViewOption{Query: query}); err != nil {
+		t.Fatalf("Failed to crate view, got %v", err)
+	}
+
+	var count int64
+	if err := DB.Table("users_pets").Count(&count).Error; err != nil {
+		t.Fatalf("should found created view")
+	}
+
+	if err := DB.Migrator().DropView("users_pets"); err != nil {
+		t.Fatalf("Failed to drop view, got %v", err)
+	}
+
+	query = DB.Model(&User{}).Where("age > ?", 20)
+	if err := DB.Migrator().CreateView("users_view", gorm.ViewOption{Query: query}); err != nil {
+		t.Fatalf("Failed to crate view, got %v", err)
+	}
+	if err := DB.Migrator().DropView("users_view"); err != nil {
+		t.Fatalf("Failed to drop view, got %v", err)
+	}
+}

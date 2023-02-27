@@ -23,6 +23,8 @@ var (
 	ErrModelValueRequired = errors.New("model value required")
 	// ErrModelAccessibleFieldsRequired model accessible fields required
 	ErrModelAccessibleFieldsRequired = errors.New("model accessible fields required")
+	// ErrSubQueryRequired sub query required
+	ErrSubQueryRequired = errors.New("sub query required")
 	// ErrInvalidData unsupported data
 	ErrInvalidData = errors.New("unsupported data")
 	// ErrUnsupportedDriver unsupported driver
