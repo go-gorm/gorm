@@ -1543,21 +1543,23 @@ func TestMigrateView(t *testing.T) {
 	}
 }
 
-func TestMigrateExistingSmallintBoolColumnPG(t *testing.T) {
+func TestMigrateExistingBoolColumnPG(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
 		return
 	}
 
 	type ColumnStruct struct {
 		gorm.Model
-		Name     string
-		IsActive bool `gorm:"type:smallint"`
+		Name         string
+		StringBool   string
+		SmallintBool int `gorm:"type:smallint"`
 	}
 
 	type ColumnStruct2 struct {
 		gorm.Model
-		Name     string
-		IsActive bool // change existing boolean column from smallint or other to boolean
+		Name         string
+		StringBool   bool // change existing boolean column from string to boolean
+		SmallintBool bool // change existing boolean column from smallint or other to boolean
 	}
 
 	DB.Migrator().DropTable(&ColumnStruct{})
@@ -1582,7 +1584,12 @@ func TestMigrateExistingSmallintBoolColumnPG(t *testing.T) {
 				if v, ok := columnType.PrimaryKey(); !ok || !v {
 					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
 				}
-			case "is_active":
+			case "string_bool":
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+			case "smallint_bool":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
 					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
