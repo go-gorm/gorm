@@ -101,14 +101,13 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 			tx.Statement.Selects = append(tx.Statement.Selects, "*")
 		}
 
-		tx = tx.callbacks.Update().Execute(tx)
+		updateTx := tx.callbacks.Update().Execute(tx.Session(&Session{Initialized: true}))
 
-		if tx.Error == nil && tx.RowsAffected == 0 && !tx.DryRun && !selectedUpdate {
-			result := reflect.New(tx.Statement.Schema.ModelType).Interface()
-			if result := tx.Session(&Session{}).Limit(1).Find(result); result.RowsAffected == 0 {
-				return tx.Create(value)
-			}
+		if updateTx.Error == nil && updateTx.RowsAffected == 0 && !updateTx.DryRun && !selectedUpdate {
+			return tx.Create(value)
 		}
+
+		return updateTx
 	}
 
 	return
