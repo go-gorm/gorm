@@ -347,6 +347,10 @@ func (db *DB) Callback() *callbacks {
 
 // AddError add error to db
 func (db *DB) AddError(err error) error {
+	if errTranslator, ok := db.Dialector.(ErrorTranslator); ok {
+		err = errTranslator.Translate(err)
+	}
+
 	if db.Error == nil {
 		db.Error = err
 	} else if err != nil {

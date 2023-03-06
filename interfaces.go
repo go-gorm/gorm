@@ -86,3 +86,7 @@ type Rows interface {
 	Err() error
 	Close() error
 }
+
+type ErrorTranslator interface {
+	Translate(err error) error
+}
