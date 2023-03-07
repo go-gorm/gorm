@@ -225,6 +225,16 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
 	}
 
+	// If there are multiple primary keys, the AUTOINCREMENT field is prioritized
+	if schema.PrioritizedPrimaryField == nil && len(schema.PrimaryFields) > 1 {
+		for _, field := range schema.PrimaryFields {
+			if _, ok := field.TagSettings["AUTOINCREMENT"]; ok {
+				schema.PrioritizedPrimaryField = field
+				break
+			}
+		}
+	}
+
 	for _, field := range schema.PrimaryFields {
 		schema.PrimaryFieldDBNames = append(schema.PrimaryFieldDBNames, field.DBName)
 	}
