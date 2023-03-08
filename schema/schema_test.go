@@ -318,5 +318,4 @@ func TestCompositePrimaryKeyWithAutoIncrement(t *testing.T) {
 		f.Updatable = true
 		f.Readable = true
 	})
-
 }

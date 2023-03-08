@@ -547,3 +547,33 @@ func TestFirstOrCreateRowsAffected(t *testing.T) {
 		t.Fatalf("first or create rows affect err:%v rows:%d", res.Error, res.RowsAffected)
 	}
 }
+
+func TestCreateWithAutoIncrementCompositeKey(t *testing.T) {
+	type CompositeKeyProduct struct {
+		ProductID    int `gorm:"primaryKey;autoIncrement:true;"` // primary key
+		LanguageCode int `gorm:"primaryKey;"`                    // primary key
+		Code         string
+		Name         string
+	}
+
+	err := DB.Migrator().DropTable(&CompositeKeyProduct{})
+	if err = DB.AutoMigrate(&CompositeKeyProduct{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	prod := &CompositeKeyProduct{
+		LanguageCode: 56,
+		Code:         "Code56",
+		Name:         "ProductName56",
+	}
+	if err := DB.Create(&prod).Error; err != nil {
+		t.Fatalf("failed to create, got error %v", err)
+	}
+
+	newProd := &CompositeKeyProduct{}
+	if err := DB.First(&newProd).Error; err != nil {
+		t.Fatalf("errors happened when query: %v", err)
+	} else {
+		AssertObjEqual(t, newProd, prod, "ProductID", "LanguageCode", "Code", "Name")
+	}
+}
