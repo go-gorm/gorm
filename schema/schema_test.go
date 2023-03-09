@@ -301,6 +301,12 @@ func TestCompositePrimaryKeyWithAutoIncrement(t *testing.T) {
 		Code         string
 		Name         string
 	}
+	type ProductNonAutoIncrement struct {
+		ProductID    uint `gorm:"primaryKey;autoIncrement:false"`
+		LanguageCode uint `gorm:"primaryKey"`
+		Code         string
+		Name         string
+	}
 
 	product, err := schema.Parse(&Product{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
@@ -318,4 +324,13 @@ func TestCompositePrimaryKeyWithAutoIncrement(t *testing.T) {
 		f.Updatable = true
 		f.Readable = true
 	})
+
+	productNonAutoIncrement, err := schema.Parse(&ProductNonAutoIncrement{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse productNonAutoIncrement struct with composite primary key, got error %v", err)
+	}
+
+	if productNonAutoIncrement.PrioritizedPrimaryField != nil {
+		t.Fatalf("PrioritizedPrimaryField of non autoincrement composite key should be nil")
+	}
 }

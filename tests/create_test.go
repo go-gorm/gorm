@@ -556,8 +556,7 @@ func TestCreateWithAutoIncrementCompositeKey(t *testing.T) {
 		Name         string
 	}
 
-	err := DB.Migrator().DropTable(&CompositeKeyProduct{})
-	if err = DB.AutoMigrate(&CompositeKeyProduct{}); err != nil {
+	if err := DB.AutoMigrate(&CompositeKeyProduct{}); err != nil {
 		t.Fatalf("failed to migrate, got error %v", err)
 	}
 
