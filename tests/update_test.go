@@ -773,3 +773,16 @@ func TestUpdateReturning(t *testing.T) {
 		t.Errorf("failed to return updated age column")
 	}
 }
+
+func TestUpdateWithDiffSchema(t *testing.T) {
+	user := GetUser("update-diff-schema-1", Config{})
+	DB.Create(&user)
+
+	type UserTemp struct {
+		Name string
+	}
+
+	err := DB.Model(&user).Updates(&UserTemp{Name: "update-diff-schema-2"}).Error
+	AssertEqual(t, err, nil)
+	AssertEqual(t, "update-diff-schema-2", user.Name)
+}
