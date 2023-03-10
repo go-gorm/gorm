@@ -250,8 +250,18 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	if schema.PrioritizedPrimaryField == nil && len(schema.PrimaryFields) == 1 {
-		schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
+	if schema.PrioritizedPrimaryField == nil {
+		if len(schema.PrimaryFields) == 1 {
+			schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
+		} else if len(schema.PrimaryFields) > 1 {
+			// If there are multiple primary keys, the AUTOINCREMENT field is prioritized
+			for _, field := range schema.PrimaryFields {
+				if field.AutoIncrement {
+					schema.PrioritizedPrimaryField = field
+					break
+				}
+			}
+		}
 	}
 
 	for _, field := range schema.PrimaryFields {
