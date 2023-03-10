@@ -36,37 +36,32 @@ import (
 //	}
 func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[string]map[string][]interface{} {
 	preloadMap := map[string]map[string][]interface{}{}
+	setPreloadMap := func(name, value string, args []interface{}) {
+		if _, ok := preloadMap[name]; !ok {
+			preloadMap[name] = map[string][]interface{}{}
+		}
+		if value != "" {
+			preloadMap[name][value] = args
+		}
+	}
 
 	for name, args := range preloads {
 		preloadFields := strings.Split(name, ".")
 		value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), ".")
 		if preloadFields[0] == clause.Associations {
 			for _, relation := range s.Relationships.Relations {
-				if _, ok := preloadMap[relation.Name]; !ok {
-					preloadMap[relation.Name] = map[string][]interface{}{}
-				}
-
-				if value != "" {
-					preloadMap[relation.Name][value] = args
+				if relation.Schema == s {
+					setPreloadMap(relation.Name, value, args)
 				}
 			}
 
 			for embedded, embeddedRelations := range s.Relationships.EmbeddedRelations {
-				if _, ok := preloadMap[embedded]; !ok {
-					preloadMap[embedded] = map[string][]interface{}{}
-				}
 				for _, value := range embeddedValues(embeddedRelations) {
-					preloadMap[embedded][value] = args
+					setPreloadMap(embedded, value, args)
 				}
 			}
 		} else {
-			if _, ok := preloadMap[preloadFields[0]]; !ok {
-				preloadMap[preloadFields[0]] = map[string][]interface{}{}
-			}
-
-			if value != "" {
-				preloadMap[preloadFields[0]][value] = args
-			}
+			setPreloadMap(preloadFields[0], value, args)
 		}
 	}
 	return preloadMap
@@ -76,7 +71,7 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	if embeddedRelations == nil {
 		return nil
 	}
-	var names []string
+	names := make([]string, 0, len(embeddedRelations.Relations)+len(embeddedRelations.EmbeddedRelations))
 	for _, relation := range embeddedRelations.Relations {
 		// skip first struct name
 		names = append(names, strings.Join(relation.Field.BindNames[1:], "."))
@@ -87,7 +82,9 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	return names
 }
 
-func preloadEmbedded(tx *gorm.DB, relationships *schema.Relationships, s *schema.Schema, preloads map[string][]interface{}, as []interface{}) error {
+func preloadEmbedded(
+	tx *gorm.DB, relationships *schema.Relationships, s *schema.Schema, preloads map[string][]interface{}, as []interface{},
+) error {
 	if relationships == nil {
 		return nil
 	}
@@ -102,7 +99,7 @@ func preloadEmbedded(tx *gorm.DB, relationships *schema.Relationships, s *schema
 				return err
 			}
 		} else {
-			return fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, s.Name)
+			return fmt.Errorf("%s: %w (embedded) for schema %s", name, gorm.ErrUnsupportedRelation, s.Name)
 		}
 	}
 	return nil
