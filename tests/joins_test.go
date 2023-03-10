@@ -325,3 +325,66 @@ func TestJoinArgsWithDB(t *testing.T) {
 	}
 	AssertEqual(t, user4.NamedPet.Name, "")
 }
+
+func TestNestedJoins(t *testing.T) {
+	users := []User{
+		{
+			Name:     "nested-joins-1",
+			Manager:  GetUser("nested-joins-manager-1", Config{Company: true, NamedPet: true}),
+			NamedPet: &Pet{Name: "nested-joins-namepet-1", Toy: Toy{Name: "nested-joins-namepet-toy-1"}},
+		},
+		{
+			Name:     "nested-joins-2",
+			Manager:  GetUser("nested-joins-manager-2", Config{Company: true, NamedPet: true}),
+			NamedPet: &Pet{Name: "nested-joins-namepet-2", Toy: Toy{Name: "nested-joins-namepet-toy-2"}},
+		},
+	}
+
+	DB.Create(&users)
+
+	var userIDs []uint
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID)
+	}
+
+	var users2 []User
+	if err := DB.
+		Joins("Manager").
+		Joins("Manager.Company").
+		Joins("Manager.NamedPet").
+		Joins("NamedPet").
+		Joins("NamedPet.Toy").
+		Find(&users2, "users.id IN ?", userIDs).Error; err != nil {
+		t.Fatalf("Failed to load with joins, got error: %v", err)
+	} else if len(users2) != len(users) {
+		t.Fatalf("Failed to load join users, got: %v, expect: %v", len(users2), len(users))
+	}
+
+	sort.Slice(users2, func(i, j int) bool {
+		return users2[i].ID > users2[j].ID
+	})
+
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].ID > users[j].ID
+	})
+
+	for idx, user := range users {
+		// user
+		CheckUser(t, user, users2[idx])
+		if users2[idx].Manager == nil {
+			t.Fatalf("Failed to load Manager")
+		}
+		// manager
+		CheckUser(t, *user.Manager, *users2[idx].Manager)
+		// user pet
+		if users2[idx].NamedPet == nil {
+			t.Fatalf("Failed to load NamedPet")
+		}
+		CheckPet(t, *user.NamedPet, *users2[idx].NamedPet)
+		// manager pet
+		if users2[idx].Manager.NamedPet == nil {
+			t.Fatalf("Failed to load NamedPet")
+		}
+		CheckPet(t, *user.Manager.NamedPet, *users2[idx].Manager.NamedPet)
+	}
+}
