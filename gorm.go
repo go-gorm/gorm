@@ -354,7 +354,7 @@ func (db *DB) AddError(err error) error {
 
 		if db.Error == nil {
 			db.Error = err
-		} else if err != nil {
+		} else {
 			db.Error = fmt.Errorf("%v; %w", db.Error, err)
 		}
 	}
