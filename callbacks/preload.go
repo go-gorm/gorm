@@ -82,9 +82,7 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	return names
 }
 
-func preloadEmbedded(
-	tx *gorm.DB, relationships *schema.Relationships, s *schema.Schema, preloads map[string][]interface{}, as []interface{},
-) error {
+func preloadEmbedded(tx *gorm.DB, relationships *schema.Relationships, s *schema.Schema, preloads map[string][]interface{}, as []interface{}) error {
 	if relationships == nil {
 		return nil
 	}

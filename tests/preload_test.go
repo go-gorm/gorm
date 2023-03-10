@@ -312,33 +312,33 @@ func TestEmbedPreload(t *testing.T) {
 		ID   int `gorm:"primaryKey"`
 		Name string
 	}
-	type Address struct {
+	type EmbeddedAddress struct {
 		ID        int
 		Name      string
 		CountryID *int
 		Country   *Country
 	}
 	type NestedAddress struct {
-		Address
+		EmbeddedAddress
 	}
 	type Org struct {
 		ID              int
-		PostalAddress   Address `gorm:"embedded;embeddedPrefix:postal_address_"`
-		VisitingAddress Address `gorm:"embedded;embeddedPrefix:visiting_address_"`
+		PostalAddress   EmbeddedAddress `gorm:"embedded;embeddedPrefix:postal_address_"`
+		VisitingAddress EmbeddedAddress `gorm:"embedded;embeddedPrefix:visiting_address_"`
 		AddressID       *int
-		Address         *Address
+		Address         *EmbeddedAddress
 		NestedAddress   NestedAddress `gorm:"embedded;embeddedPrefix:nested_address_"`
 	}
 
-	DB.Migrator().DropTable(&Org{}, &Address{}, &Country{})
-	DB.AutoMigrate(&Org{}, &Address{}, &Country{})
+	DB.Migrator().DropTable(&Org{}, &EmbeddedAddress{}, &Country{})
+	DB.AutoMigrate(&Org{}, &EmbeddedAddress{}, &Country{})
 
 	org := Org{
-		PostalAddress:   Address{Name: "a1", Country: &Country{Name: "c1"}},
-		VisitingAddress: Address{Name: "a2", Country: &Country{Name: "c2"}},
-		Address:         &Address{Name: "a3", Country: &Country{Name: "c3"}},
+		PostalAddress:   EmbeddedAddress{Name: "a1", Country: &Country{Name: "c1"}},
+		VisitingAddress: EmbeddedAddress{Name: "a2", Country: &Country{Name: "c2"}},
+		Address:         &EmbeddedAddress{Name: "a3", Country: &Country{Name: "c3"}},
 		NestedAddress: NestedAddress{
-			Address: Address{Name: "a4", Country: &Country{Name: "c4"}},
+			EmbeddedAddress: EmbeddedAddress{Name: "a4", Country: &Country{Name: "c4"}},
 		},
 	}
 	if err := DB.Create(&org).Error; err != nil {
@@ -355,13 +355,13 @@ func TestEmbedPreload(t *testing.T) {
 			preloads: map[string][]interface{}{"Address.Country": {}},
 			expect: Org{
 				ID: org.ID,
-				PostalAddress: Address{
+				PostalAddress: EmbeddedAddress{
 					ID:        org.PostalAddress.ID,
 					Name:      org.PostalAddress.Name,
 					CountryID: org.PostalAddress.CountryID,
 					Country:   nil,
 				},
-				VisitingAddress: Address{
+				VisitingAddress: EmbeddedAddress{
 					ID:        org.VisitingAddress.ID,
 					Name:      org.VisitingAddress.Name,
 					CountryID: org.VisitingAddress.CountryID,
@@ -369,7 +369,7 @@ func TestEmbedPreload(t *testing.T) {
 				},
 				AddressID: org.AddressID,
 				Address:   org.Address,
-				NestedAddress: NestedAddress{Address{
+				NestedAddress: NestedAddress{EmbeddedAddress{
 					ID:        org.NestedAddress.ID,
 					Name:      org.NestedAddress.Name,
 					CountryID: org.NestedAddress.CountryID,
@@ -382,7 +382,7 @@ func TestEmbedPreload(t *testing.T) {
 			expect: Org{
 				ID:            org.ID,
 				PostalAddress: org.PostalAddress,
-				VisitingAddress: Address{
+				VisitingAddress: EmbeddedAddress{
 					ID:        org.VisitingAddress.ID,
 					Name:      org.VisitingAddress.Name,
 					CountryID: org.VisitingAddress.CountryID,
@@ -390,7 +390,7 @@ func TestEmbedPreload(t *testing.T) {
 				},
 				AddressID: org.AddressID,
 				Address:   nil,
-				NestedAddress: NestedAddress{Address{
+				NestedAddress: NestedAddress{EmbeddedAddress{
 					ID:        org.NestedAddress.ID,
 					Name:      org.NestedAddress.Name,
 					CountryID: org.NestedAddress.CountryID,
@@ -399,16 +399,16 @@ func TestEmbedPreload(t *testing.T) {
 			},
 		}, {
 			name:     "nested address country",
-			preloads: map[string][]interface{}{"NestedAddress.Address.Country": {}},
+			preloads: map[string][]interface{}{"NestedAddress.EmbeddedAddress.Country": {}},
 			expect: Org{
 				ID: org.ID,
-				PostalAddress: Address{
+				PostalAddress: EmbeddedAddress{
 					ID:        org.PostalAddress.ID,
 					Name:      org.PostalAddress.Name,
 					CountryID: org.PostalAddress.CountryID,
 					Country:   nil,
 				},
-				VisitingAddress: Address{
+				VisitingAddress: EmbeddedAddress{
 					ID:        org.VisitingAddress.ID,
 					Name:      org.VisitingAddress.Name,
 					CountryID: org.VisitingAddress.CountryID,
