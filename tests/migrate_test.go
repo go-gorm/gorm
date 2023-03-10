@@ -1542,3 +1542,59 @@ func TestMigrateView(t *testing.T) {
 		t.Fatalf("Failed to drop view, got %v", err)
 	}
 }
+
+func TestMigrateExistingBoolColumnPG(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		return
+	}
+
+	type ColumnStruct struct {
+		gorm.Model
+		Name         string
+		StringBool   string
+		SmallintBool int `gorm:"type:smallint"`
+	}
+
+	type ColumnStruct2 struct {
+		gorm.Model
+		Name         string
+		StringBool   bool // change existing boolean column from string to boolean
+		SmallintBool bool // change existing boolean column from smallint or other to boolean
+	}
+
+	DB.Migrator().DropTable(&ColumnStruct{})
+
+	if err := DB.AutoMigrate(&ColumnStruct{}); err != nil {
+		t.Errorf("Failed to migrate, got %v", err)
+	}
+
+	if err := DB.Table("column_structs").AutoMigrate(&ColumnStruct2{}); err != nil {
+		t.Fatalf("no error should happened when auto migrate column, but got %v", err)
+	}
+
+	if columnTypes, err := DB.Migrator().ColumnTypes(&ColumnStruct{}); err != nil {
+		t.Fatalf("no error should returns for ColumnTypes")
+	} else {
+		stmt := &gorm.Statement{DB: DB}
+		stmt.Parse(&ColumnStruct2{})
+
+		for _, columnType := range columnTypes {
+			switch columnType.Name() {
+			case "id":
+				if v, ok := columnType.PrimaryKey(); !ok || !v {
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+				}
+			case "string_bool":
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+			case "smallint_bool":
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+			}
+		}
+	}
+}

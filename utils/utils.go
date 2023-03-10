@@ -131,3 +131,20 @@ func ToString(value interface{}) string {
 	}
 	return ""
 }
+
+const nestedRelationSplit = "__"
+
+// NestedRelationName nested relationships like `Manager__Company`
+func NestedRelationName(prefix, name string) string {
+	return prefix + nestedRelationSplit + name
+}
+
+// SplitNestedRelationName Split nested relationships to `[]string{"Manager","Company"}`
+func SplitNestedRelationName(name string) []string {
+	return strings.Split(name, nestedRelationSplit)
+}
+
+// JoinNestedRelationNames nested relationships like `Manager__Company`
+func JoinNestedRelationNames(relationNames []string) string {
+	return strings.Join(relationNames, nestedRelationSplit)
+}
