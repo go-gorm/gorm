@@ -35,7 +35,6 @@ type Statement struct {
 	Omits                []string // omit columns
 	Joins                []join
 	Preloads             map[string][]interface{}
-	QueryTypes           QueryTypes
 	Settings             sync.Map
 	ConnPool             ConnPool
 	Schema               *schema.Schema
@@ -88,19 +87,19 @@ func (q *QueryTypes) Pop() bool {
 	return element.Value.(bool)
 }
 
-func (q *QueryTypes) clone() QueryTypes {
+func (q *QueryTypes) Clone() interface{} {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
 	if q.list == nil {
-		return QueryTypes{}
+		return &QueryTypes{}
 	}
 
 	cloneList := list.New()
 	for e := q.list.Front(); e != nil; e = e.Next() {
 		cloneList.PushFront(e.Value)
 	}
-	return QueryTypes{list: cloneList}
+	return &QueryTypes{list: cloneList}
 }
 
 // StatementModifier statement modifier interface
@@ -589,14 +588,20 @@ func (stmt *Statement) clone() *Statement {
 		copy(newStmt.scopes, stmt.scopes)
 	}
 
-	newStmt.QueryTypes = stmt.QueryTypes.clone()
-
 	stmt.Settings.Range(func(k, v interface{}) bool {
-		newStmt.Settings.Store(k, v)
+		if cloneable, ok := v.(Cloneable); ok {
+			newStmt.Settings.Store(k, cloneable.Clone())
+		} else {
+			newStmt.Settings.Store(k, v)
+		}
 		return true
 	})
 
 	return newStmt
+}
+
+type Cloneable interface {
+	Clone() interface{}
 }
 
 // SetColumn set column's value

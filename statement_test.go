@@ -64,13 +64,13 @@ func TestNameMatcher(t *testing.T) {
 }
 
 func TestQueryTypes(t *testing.T) {
-	types := QueryTypes{}
+	types := &QueryTypes{}
 	values := []bool{true, false, false, true}
 	for _, value := range values {
 		types.Push(value)
 	}
 
-	clone := types.clone()
+	clone := types.Clone().(*QueryTypes)
 	for _, value := range values {
 		actual := clone.Pop()
 		if actual != value {
