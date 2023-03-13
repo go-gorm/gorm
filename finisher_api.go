@@ -499,7 +499,8 @@ func (db *DB) Count(count *int64) (tx *DB) {
 }
 
 func (db *DB) Row() *sql.Row {
-	tx := db.getInstance().PushQueryType(false)
+	tx := db.getInstance()
+	tx.Statement.QueryTypes.Push(false)
 	tx = tx.callbacks.Row().Execute(tx)
 	row, ok := tx.Statement.Dest.(*sql.Row)
 	if !ok && tx.DryRun {
@@ -509,7 +510,8 @@ func (db *DB) Row() *sql.Row {
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.getInstance().PushQueryType(true)
+	tx := db.getInstance()
+	tx.Statement.QueryTypes.Push(true)
 	tx = tx.callbacks.Row().Execute(tx)
 	rows, ok := tx.Statement.Dest.(*sql.Rows)
 	if !ok && tx.DryRun && tx.Error == nil {

@@ -11,7 +11,7 @@ func RowQuery(db *gorm.DB) {
 			return
 		}
 
-		if isRows := db.PopQueryType(); isRows {
+		if isRows := db.Statement.QueryTypes.Pop(); isRows {
 			db.Statement.Dest, db.Error = db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 		} else {
 			db.Statement.Dest = db.Statement.ConnPool.QueryRowContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)

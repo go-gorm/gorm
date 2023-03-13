@@ -34,6 +34,7 @@ type Statement struct {
 	Omits                []string // omit columns
 	Joins                []join
 	Preloads             map[string][]interface{}
+	QueryTypes           QueryTypes
 	Settings             sync.Map
 	ConnPool             ConnPool
 	Schema               *schema.Schema
@@ -46,7 +47,6 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
-	queryTypes           []bool
 }
 
 type join struct {
@@ -56,6 +56,43 @@ type join struct {
 	Selects  []string
 	Omits    []string
 	JoinType clause.JoinType
+}
+
+type QueryTypes struct {
+	mux    sync.Mutex
+	values []bool
+}
+
+func (q *QueryTypes) Push(isRows bool) {
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	q.values = append(q.values, isRows)
+}
+
+func (q *QueryTypes) Pop() bool {
+	q.mux.Lock()
+	defer q.mux.Unlock()
+
+	if len(q.values) == 0 {
+		return false
+	}
+
+	value := q.values[len(q.values)-1]
+	q.values = q.values[:len(q.values)-1]
+	return value
+}
+
+func (q *QueryTypes) clone() QueryTypes {
+	q.mux.Lock()
+	defer q.mux.Unlock()
+
+	if len(q.values) == 0 {
+		return QueryTypes{}
+	}
+
+	values := make([]bool, len(q.values))
+	copy(values, q.values)
+	return QueryTypes{values: values}
 }
 
 // StatementModifier statement modifier interface
@@ -544,10 +581,7 @@ func (stmt *Statement) clone() *Statement {
 		copy(newStmt.scopes, stmt.scopes)
 	}
 
-	if len(stmt.queryTypes) > 0 {
-		newStmt.queryTypes = make([]bool, len(stmt.queryTypes))
-		copy(newStmt.queryTypes, stmt.queryTypes)
-	}
+	newStmt.QueryTypes = stmt.QueryTypes.clone()
 
 	stmt.Settings.Range(func(k, v interface{}) bool {
 		newStmt.Settings.Store(k, v)
