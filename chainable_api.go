@@ -205,6 +205,20 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+// When add conditions when condition is true
+//
+//	// Find the first user with name jinzhu
+//	db.When(true, func(db *gorm.DB) *gorm.DB {
+//		return db.Where("name = ?", "jinzhu")
+//	}).First(&user)
+func (db *DB) When(condition bool, fn func(*DB) *DB) *DB {
+	if condition {
+		return fn(db)
+	}
+
+	return db
+}
+
 // Not add NOT conditions
 //
 // Not works similarly to where, and has the same syntax.
