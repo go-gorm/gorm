@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"container/list"
 	"context"
 	"database/sql"
 	"database/sql/driver"
@@ -59,40 +60,47 @@ type join struct {
 }
 
 type QueryTypes struct {
-	mux    sync.Mutex
-	values []bool
+	mux  sync.Mutex
+	list *list.List
 }
 
 func (q *QueryTypes) Push(isRows bool) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
-	q.values = append(q.values, isRows)
+	if q.list == nil {
+		q.list = list.New()
+	}
+	q.list.PushBack(isRows)
 }
 
 func (q *QueryTypes) Pop() bool {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	if len(q.values) == 0 {
+	if q.list == nil {
 		return false
 	}
-
-	value := q.values[len(q.values)-1]
-	q.values = q.values[:len(q.values)-1]
-	return value
+	element := q.list.Back()
+	if element == nil {
+		return false
+	}
+	q.list.Remove(element)
+	return element.Value.(bool)
 }
 
 func (q *QueryTypes) clone() QueryTypes {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 
-	if len(q.values) == 0 {
+	if q.list == nil {
 		return QueryTypes{}
 	}
 
-	values := make([]bool, len(q.values))
-	copy(values, q.values)
-	return QueryTypes{values: values}
+	cloneList := list.New()
+	for e := q.list.Front(); e != nil; e = e.Next() {
+		cloneList.PushFront(e.Value)
+	}
+	return QueryTypes{list: cloneList}
 }
 
 // StatementModifier statement modifier interface

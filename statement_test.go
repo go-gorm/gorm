@@ -62,3 +62,23 @@ func TestNameMatcher(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryTypes(t *testing.T) {
+	types := QueryTypes{}
+	values := []bool{true, false, false, true}
+	for _, value := range values {
+		types.Push(value)
+	}
+
+	clone := types.clone()
+	for _, value := range values {
+		actual := clone.Pop()
+		if actual != value {
+			t.Errorf("failed to pop, got %v, expect %v", actual, value)
+		}
+	}
+
+	if clone.list.Len() != 0 || clone.Pop() {
+		t.Errorf("clone list should be empty")
+	}
+}
