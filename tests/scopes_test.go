@@ -71,4 +71,15 @@ func TestScopes(t *testing.T) {
 	if err := DB.Scopes(userTable).Select("max(id)").Scan(&maxId).Error; err != nil {
 		t.Errorf("select max(id)")
 	}
+
+	var user User
+	if err := DB.Scopes(func(db *gorm.DB) *gorm.DB {
+		var maxID int64
+		if err := db.Raw("select max(id) from users").Scan(&maxID).Error; err != nil {
+			return db
+		}
+		return db.Raw("select * from users where id = ?", maxID)
+	}).Scan(&user).Error; err != nil {
+		t.Errorf("failed to find user, got err: %v", err)
+	}
 }

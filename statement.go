@@ -46,6 +46,7 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+	queryTypes           []bool
 }
 
 type join struct {
@@ -541,6 +542,11 @@ func (stmt *Statement) clone() *Statement {
 	if len(stmt.scopes) > 0 {
 		newStmt.scopes = make([]func(*DB) *DB, len(stmt.scopes))
 		copy(newStmt.scopes, stmt.scopes)
+	}
+
+	if len(stmt.queryTypes) > 0 {
+		newStmt.queryTypes = make([]bool, len(stmt.queryTypes))
+		copy(newStmt.queryTypes, stmt.queryTypes)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {

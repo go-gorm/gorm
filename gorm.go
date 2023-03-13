@@ -340,6 +340,22 @@ func (db *DB) InstanceGet(key string) (interface{}, bool) {
 	return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 }
 
+func (db *DB) PushQueryType(rows bool) *DB {
+	tx := db.getInstance()
+	tx.Statement.queryTypes = append(tx.Statement.queryTypes, rows)
+	return tx
+}
+
+func (db *DB) PopQueryType() bool {
+	length := len(db.Statement.queryTypes)
+	if length == 0 {
+		return false
+	}
+	value := db.Statement.queryTypes[length-1]
+	db.Statement.queryTypes = db.Statement.queryTypes[:length-1]
+	return value
+}
+
 // Callback returns callback manager
 func (db *DB) Callback() *callbacks {
 	return db.callbacks
