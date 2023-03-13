@@ -1380,3 +1380,40 @@ func TestQueryError(t *testing.T) {
 	}, Value: 1}).Scan(&p2).Error
 	AssertEqual(t, err, gorm.ErrModelValueRequired)
 }
+
+func TestWhen(t *testing.T) {
+	users := []User{
+		{Name: "when_1", Age: 10},
+		{Name: "when_2", Age: 20},
+		{Name: "when_3", Age: 30},
+		{Name: "when_3", Age: 40},
+	}
+
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create users: %v", err)
+	}
+
+	t.Run("When True", func(t *testing.T) {
+		var trueUser User
+		if err := DB.Where("name LIKE ?", "when%").
+			When(true, func(db *gorm.DB) *gorm.DB {
+				return db.Where("age <= ?", 20)
+			}).Order("age Desc").First(&trueUser).Error; err != nil {
+			t.Errorf("Failed, got error: %v", err)
+		} else {
+			CheckUser(t, trueUser, users[1])
+		}
+	})
+
+	t.Run("When False", func(t *testing.T) {
+		var falseUser User
+		if err := DB.Where("name LIKE ?", "when%").
+			When(false, func(db *gorm.DB) *gorm.DB {
+				return db.Where("age <= ?", 20)
+			}).Order("age Desc").First(&falseUser).Error; err != nil {
+			t.Errorf("Failed, got error: %v", err)
+		} else {
+			CheckUser(t, falseUser, users[3])
+		}
+	})
+}
