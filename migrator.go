@@ -12,13 +12,7 @@ func (db *DB) Migrator() Migrator {
 	tx := db.getInstance()
 
 	// apply scopes to migrator
-	for len(tx.Statement.scopes) > 0 {
-		scopes := tx.Statement.scopes
-		tx.Statement.scopes = nil
-		for _, scope := range scopes {
-			tx = scope(tx)
-		}
-	}
+	tx.executeScopes(false)
 
 	return tx.Dialector.Migrator(tx.Session(&Session{}))
 }
