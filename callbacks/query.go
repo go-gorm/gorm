@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"time"
 )
 
 func Query(db *gorm.DB) {
@@ -17,7 +16,6 @@ func Query(db *gorm.DB) {
 		BuildQuerySQL(db)
 
 		var _query = func(db *gorm.DB) {
-			time.Sleep(5 * time.Second)
 			if !db.DryRun && db.Error == nil {
 				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 				if err != nil {
