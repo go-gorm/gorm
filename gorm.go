@@ -56,9 +56,12 @@ type Config struct {
 	Dialector
 	// Plugins registered plugins
 	Plugins map[string]Plugin
+	// Ease database load by grouping identical queries
+	Ease bool
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
+	easeQueue  *sync.Map
 }
 
 // Apply update config to new config
@@ -165,6 +168,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 
 	if config.cacheStore == nil {
 		config.cacheStore = &sync.Map{}
+	}
+
+	if config.Ease && config.easeQueue == nil {
+		config.easeQueue = &sync.Map{}
 	}
 
 	db = &DB{Config: config, clone: 1}
@@ -483,4 +490,27 @@ func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+}
+
+func (db *DB) Ease(cb func(*DB)) *DB {
+	hash := db.Statement.SQL.String()
+
+	eq := &easedTask{
+		wg: &sync.WaitGroup{},
+		db: db,
+	}
+	eq.wg.Add(1)
+
+	var runner, ok = db.easeQueue.LoadOrStore(hash, eq)
+	et := runner.(*easedTask)
+
+	if !ok {
+		cb(db)
+		et.wg.Done()
+		db.easeQueue.Delete(hash)
+		return db
+	}
+
+	et.wg.Wait()
+	return et.db
 }

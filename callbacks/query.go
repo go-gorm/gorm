@@ -2,31 +2,46 @@ package callbacks
 
 import (
 	"fmt"
-	"reflect"
-	"sort"
-	"strings"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
+	"reflect"
+	"sort"
+	"strings"
+	"time"
 )
 
 func Query(db *gorm.DB) {
 	if db.Error == nil {
 		BuildQuerySQL(db)
 
-		if !db.DryRun && db.Error == nil {
-			rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
-			if err != nil {
-				db.AddError(err)
-				return
+		var _query = func(db *gorm.DB) {
+			time.Sleep(5 * time.Second)
+			if !db.DryRun && db.Error == nil {
+				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
+				if err != nil {
+					db.AddError(err)
+					return
+				}
+				defer func() {
+					db.AddError(rows.Close())
+				}()
+				gorm.Scan(rows, db, 0)
 			}
-			defer func() {
-				db.AddError(rows.Close())
-			}()
-			gorm.Scan(rows, db, 0)
 		}
+
+		if db.Config.Ease {
+			eqDb := db.Ease(_query)
+			if db.Statement.Dest != eqDb.Statement.Dest {
+				if err := deepCopy(eqDb.Statement.Dest, db.Statement.Dest); err != nil {
+					db.AddError(err)
+				}
+			}
+			return
+		}
+
+		_query(db)
 	}
 }
 
