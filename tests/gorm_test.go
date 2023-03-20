@@ -1,9 +1,13 @@
 package tests_test
 
 import (
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/utils/tests"
 )
 
 func TestReturningWithNullToZeroValues(t *testing.T) {
@@ -89,5 +93,78 @@ func TestReturningWithNullToZeroValues(t *testing.T) {
 			t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
 		}
 
+	}
+}
+
+func TestEaserSameQueryTwice(t *testing.T) {
+	db, _ := gorm.Open(tests.DummyDialector{}, &gorm.Config{
+		Ease: true,
+	})
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	var incr uint32
+
+	testQuery := func(d *gorm.DB) {
+		time.Sleep(time.Second)
+		atomic.AddUint32(&incr, 1)
+	}
+
+	go func() {
+		db.Ease(testQuery)
+		wg.Done()
+	}()
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		db.Ease(testQuery)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	if incr != 1 {
+		t.Error("easer had to run the query only once")
+	}
+}
+
+func TestEaserTwoDifferentQueries(t *testing.T) {
+	db, _ := gorm.Open(tests.DummyDialector{}, &gorm.Config{
+		Ease: true,
+	})
+
+	wg := &sync.WaitGroup{}
+	mu := &sync.Mutex{}
+	wg.Add(2)
+
+	var incr uint32 = 0
+
+	testQuery := func(d *gorm.DB) {
+		time.Sleep(time.Second)
+		atomic.AddUint32(&incr, 1)
+	}
+
+	go func() {
+		mu.Lock()
+		db.Statement.SQL.WriteString("q1")
+		db.Ease(testQuery)
+		mu.Unlock()
+		wg.Done()
+	}()
+
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		mu.Lock()
+		db.Statement.SQL.WriteString("q2")
+		db.Ease(testQuery)
+		mu.Unlock()
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	if incr != 2 {
+		t.Error("easer had to run two separate queries")
 	}
 }
