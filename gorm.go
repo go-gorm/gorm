@@ -57,11 +57,11 @@ type Config struct {
 	// Plugins registered plugins
 	Plugins map[string]Plugin
 	// Ease database load by grouping identical queries
-	Ease      bool
-	EaseQueue *sync.Map
+	Ease bool
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
+	easeQueue  *sync.Map
 }
 
 // Apply update config to new config
@@ -170,8 +170,8 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		config.cacheStore = &sync.Map{}
 	}
 
-	if config.Ease && config.EaseQueue == nil {
-		config.EaseQueue = &sync.Map{}
+	if config.Ease && config.easeQueue == nil {
+		config.easeQueue = &sync.Map{}
 	}
 
 	db = &DB{Config: config, clone: 1}
@@ -501,13 +501,13 @@ func (db *DB) Ease(cb func(*DB)) *DB {
 	}
 	eq.wg.Add(1)
 
-	var runner, ok = db.EaseQueue.LoadOrStore(hash, eq)
+	var runner, ok = db.easeQueue.LoadOrStore(hash, eq)
 	et := runner.(*easedTask)
 
 	if !ok {
 		cb(db)
 		et.wg.Done()
-		db.EaseQueue.Delete(hash)
+		db.easeQueue.Delete(hash)
 		return db
 	}
 

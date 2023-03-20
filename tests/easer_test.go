@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"gorm.io/gorm"
+	"gorm.io/gorm/utils/tests"
 	"sync"
 	"testing"
 	"time"
@@ -9,8 +10,9 @@ import (
 
 func TestEaser(t *testing.T) {
 	t.Run("once", func(t *testing.T) {
-		db1 := DB.Unscoped()
-		db1.Config.EaseQueue = &sync.Map{}
+		db1, _ := gorm.Open(tests.DummyDialector{}, &gorm.Config{
+			Ease: true,
+		})
 
 		wg := &sync.WaitGroup{}
 		wg.Add(2)
@@ -40,8 +42,9 @@ func TestEaser(t *testing.T) {
 		}
 	})
 	t.Run("twice", func(t *testing.T) {
-		db1 := DB.Unscoped()
-		db1.Config.EaseQueue = &sync.Map{}
+		db1, _ := gorm.Open(tests.DummyDialector{}, &gorm.Config{
+			Ease: true,
+		})
 
 		wg := &sync.WaitGroup{}
 		wg.Add(2)
