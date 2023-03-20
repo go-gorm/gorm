@@ -33,9 +33,7 @@ func TestDeepCopy(t *testing.T) {
 			}
 			dstStruct := supportedMockStruct{}
 
-			err := deepCopy(srcStruct, &dstStruct)
-
-			if err != nil {
+			if err := deepCopy(srcStruct, &dstStruct); err != nil {
 				t.Errorf("deepCopy returned an unexpected error %+v", err)
 			}
 
@@ -60,9 +58,7 @@ func TestDeepCopy(t *testing.T) {
 			}
 			dstStruct := unsupportedMockStruct{}
 
-			err := deepCopy(srcStruct, &dstStruct)
-
-			if err == nil {
+			if err := deepCopy(srcStruct, &dstStruct); err == nil {
 				t.Error("deepCopy was expected to fail copying an structure with unexported fields")
 			}
 		})
@@ -76,9 +72,7 @@ func TestDeepCopy(t *testing.T) {
 			}
 			dstMap := make(map[string]string)
 
-			err := deepCopy(srcMap, &dstMap)
-
-			if err != nil {
+			if err := deepCopy(srcMap, &dstMap); err != nil {
 				t.Errorf("deepCopy returned an unexpected error %+v", err)
 			}
 
@@ -108,9 +102,7 @@ func TestDeepCopy(t *testing.T) {
 			}
 			dstMap := make(map[string]supportedMockStruct)
 
-			err := deepCopy(srcMap, &dstMap)
-
-			if err != nil {
+			if err := deepCopy(srcMap, &dstMap); err != nil {
 				t.Errorf("deepCopy returned an unexpected error %+v", err)
 			}
 
@@ -125,9 +117,7 @@ func TestDeepCopy(t *testing.T) {
 			srcSlice := []string{"A", "B", "C"}
 			dstSlice := make([]string, len(srcSlice))
 
-			err := deepCopy(srcSlice, &dstSlice)
-
-			if err != nil {
+			if err := deepCopy(srcSlice, &dstSlice); err != nil {
 				t.Errorf("deepCopy returned an unexpected error %+v", err)
 			}
 
@@ -162,9 +152,7 @@ func TestDeepCopy(t *testing.T) {
 			}
 			dstSlice := make([]supportedMockStruct, len(srcSlice))
 
-			err := deepCopy(srcSlice, &dstSlice)
-
-			if err != nil {
+			if err := deepCopy(srcSlice, &dstSlice); err != nil {
 				t.Errorf("deepCopy returned an unexpected error %+v", err)
 			}
 
@@ -185,9 +173,7 @@ func TestDeepCopy(t *testing.T) {
 		}
 		dstStruct := &supportedMockStruct{}
 
-		err := deepCopy(srcStruct, dstStruct)
-
-		if err != nil {
+		if err := deepCopy(srcStruct, dstStruct); err != nil {
 			t.Errorf("deepCopy returned an unexpected error %+v", err)
 		}
 
@@ -200,9 +186,7 @@ func TestDeepCopy(t *testing.T) {
 		src := "a string"
 		dst := 123
 
-		err := deepCopy(src, &dst)
-
-		if err == nil {
+		if err := deepCopy(src, &dst); err == nil {
 			t.Error("deepCopy did not return an error when provided mismatched types")
 		}
 	})

@@ -501,7 +501,7 @@ func (db *DB) Ease(cb func(*DB)) *DB {
 	}
 	eq.wg.Add(1)
 
-	var runner, ok = db.easeQueue.LoadOrStore(hash, eq)
+	runner, ok := db.easeQueue.LoadOrStore(hash, eq)
 	et := runner.(*easedTask)
 
 	if !ok {

@@ -2,20 +2,21 @@ package callbacks
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
+	"strings"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
-	"reflect"
-	"sort"
-	"strings"
 )
 
 func Query(db *gorm.DB) {
 	if db.Error == nil {
 		BuildQuerySQL(db)
 
-		var _query = func(db *gorm.DB) {
+		_query := func(db *gorm.DB) {
 			if !db.DryRun && db.Error == nil {
 				rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)
 				if err != nil {
