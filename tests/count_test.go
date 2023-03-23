@@ -11,6 +11,32 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+func TestCountWithGroup(t *testing.T) {
+	DB.Create([]Company{
+		{Name: "company_count_group_a"},
+		{Name: "company_count_group_a"},
+		{Name: "company_count_group_a"},
+		{Name: "company_count_group_b"},
+		{Name: "company_count_group_c"},
+	})
+
+	var count1 int64
+	if err := DB.Model(&Company{}).Where("name = ?", "company_count_group_a").Group("name").Count(&count1).Error; err != nil {
+		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+	if count1 != 1 {
+		t.Errorf("Count with group should be 1, but got count: %v", count1)
+	}
+
+	var count2 int64
+	if err := DB.Debug().Model(&Company{}).Where("name in ?", []string{"company_count_group_b", "company_count_group_c"}).Group("name").Count(&count2).Error; err != nil {
+		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+	}
+	if count2 != 2 {
+		t.Errorf("Count with group should be 2, but got count: %v", count2)
+	}
+}
+
 func TestCount(t *testing.T) {
 	var (
 		user1                 = *GetUser("count-1", Config{})
@@ -141,8 +167,8 @@ func TestCount(t *testing.T) {
 	}
 	DB.Create(sameUsers)
 
-	if err := DB.Model(&User{}).Where("name = ?", "count-4").Group("name").Count(&count11).Error; err != nil || count11 != int64(len(sameUsers)) {
-		t.Fatalf("Count should be 3, but got count: %v err %v", count11, err)
+	if err := DB.Model(&User{}).Where("name = ?", "count-4").Group("name").Count(&count11).Error; err != nil || count11 != 1 {
+		t.Fatalf("Count should be 1, but got count: %v err %v", count11, err)
 	}
 
 	var count12 int64
