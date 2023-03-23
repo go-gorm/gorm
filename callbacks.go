@@ -74,7 +74,9 @@ func (cs *callbacks) Raw() *processor {
 
 func (p *processor) Execute(db *DB) *DB {
 	// call scopes
-	db = db.executeScopes(false)
+	for len(db.Statement.scopes) > 0 {
+		db = db.executeScopes()
+	}
 
 	var (
 		curTime           = time.Now()

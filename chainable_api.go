@@ -366,7 +366,7 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 	return tx
 }
 
-func (db *DB) executeScopes(keepScopes bool) (tx *DB) {
+func (db *DB) executeScopes() (tx *DB) {
 	tx = db.getInstance()
 	scopes := db.Statement.scopes
 	if len(scopes) == 0 {
@@ -392,9 +392,6 @@ func (db *DB) executeScopes(keepScopes bool) (tx *DB) {
 
 	for _, condition := range conditions {
 		tx.Statement.AddClause(condition)
-	}
-	if keepScopes {
-		tx.Statement.scopes = scopes
 	}
 	return tx
 }

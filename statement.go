@@ -324,7 +324,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		case clause.Expression:
 			conds = append(conds, v)
 		case *DB:
-			v.executeScopes(true)
+			v.executeScopes()
 
 			if cs, ok := v.Statement.Clauses["WHERE"]; ok && cs.Expression != nil {
 				if where, ok := cs.Expression.(clause.Where); ok {
