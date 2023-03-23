@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
@@ -65,7 +65,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
@@ -109,7 +109,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
@@ -152,7 +152,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
@@ -184,7 +184,7 @@ jobs:
           version: ${{matrix.dbversion}}
 
       - name: Set up Go 1.x
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
 
