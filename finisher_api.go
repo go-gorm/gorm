@@ -35,9 +35,10 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 		var rowsAffected int64
 		tx = db.getInstance()
 
+		// the reflection length judgment of the optimized value
+		reflectLen := reflectValue.Len()
+
 		callFc := func(tx *DB) error {
-			// the reflection length judgment of the optimized value
-			reflectLen := reflectValue.Len()
 			for i := 0; i < reflectLen; i += batchSize {
 				ends := i + batchSize
 				if ends > reflectLen {
@@ -55,7 +56,7 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 			return nil
 		}
 
-		if tx.SkipDefaultTransaction {
+		if tx.SkipDefaultTransaction || reflectLen <= batchSize {
 			tx.AddError(callFc(tx.Session(&Session{})))
 		} else {
 			tx.AddError(tx.Transaction(callFc))
