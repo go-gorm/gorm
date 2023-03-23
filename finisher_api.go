@@ -106,7 +106,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		updateTx := tx.callbacks.Update().Execute(tx.Session(&Session{Initialized: true}))
 
 		if updateTx.Error == nil && updateTx.RowsAffected == 0 && !updateTx.DryRun && !selectedUpdate {
-			return tx.Create(value)
+			return tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(value)
 		}
 
 		return updateTx

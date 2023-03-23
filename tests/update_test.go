@@ -610,6 +610,25 @@ func TestUpdateFromSubQuery(t *testing.T) {
 	}
 }
 
+func TestIdempotentSave(t *testing.T) {
+	create := Company{
+		Name: "company_idempotent",
+	}
+	DB.Create(&create)
+
+	var company Company
+	if err := DB.Find(&company, "id = ?", create.ID).Error; err != nil {
+		t.Fatalf("failed to find created company, got err: %v", err)
+	}
+
+	if err := DB.Save(&company).Error; err != nil || company.ID != create.ID {
+		t.Errorf("failed to save company, got err: %v", err)
+	}
+	if err := DB.Save(&company).Error; err != nil || company.ID != create.ID {
+		t.Errorf("failed to save company, got err: %v", err)
+	}
+}
+
 func TestSave(t *testing.T) {
 	user := *GetUser("save", Config{})
 	DB.Create(&user)
