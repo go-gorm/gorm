@@ -17,12 +17,12 @@ func (idx Index) Table() string {
 	return idx.TableName
 }
 
-// Name return the name  of the index.
+// Name return the name of the index.
 func (idx Index) Name() string {
 	return idx.NameValue
 }
 
-// Columns return the columns fo the index
+// Columns return the columns of the index
 func (idx Index) Columns() []string {
 	return idx.ColumnList
 }
@@ -37,7 +37,7 @@ func (idx Index) Unique() (unique bool, ok bool) {
 	return idx.UniqueValue.Bool, idx.UniqueValue.Valid
 }
 
-// Option return the optional attribute fo the index
+// Option return the optional attribute of the index
 func (idx Index) Option() string {
 	return idx.OptionValue
 }
