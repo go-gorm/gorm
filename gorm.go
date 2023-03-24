@@ -47,6 +47,8 @@ type Config struct {
 	QueryFields bool
 	// CreateBatchSize default create batch size
 	CreateBatchSize int
+	// TranslateError enabling error translation
+	TranslateError bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -348,8 +350,10 @@ func (db *DB) Callback() *callbacks {
 // AddError add error to db
 func (db *DB) AddError(err error) error {
 	if err != nil {
-		if errTranslator, ok := db.Dialector.(ErrorTranslator); ok {
-			err = errTranslator.Translate(err)
+		if db.Config.TranslateError {
+			if errTranslator, ok := db.Dialector.(ErrorTranslator); ok {
+				err = errTranslator.Translate(err)
+			}
 		}
 
 		if db.Error == nil {
