@@ -32,6 +32,15 @@ func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	return nil, ErrInvalidDB
 }
 
+func (db *PreparedStmtDB) Ping() error {
+	sqldb, err := db.GetDBConn()
+	if err != nil {
+		return err
+	}
+
+	return sqldb.Ping()
+}
+
 func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
