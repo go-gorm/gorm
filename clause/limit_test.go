@@ -29,6 +29,10 @@ func TestLimit(t *testing.T) {
 			"SELECT * FROM `users` LIMIT 0", nil,
 		},
 		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit0}, clause.Limit{Offset: 0}},
+			"SELECT * FROM `users` LIMIT 0", nil,
+		},
+		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}},
 			"SELECT * FROM `users` OFFSET 20", nil,
 		},
