@@ -325,7 +325,7 @@ func (db *DB) Debug() (tx *DB) {
 	})
 }
 
-// Debug start debug mode
+// Skip the output statement
 func (db *DB) SkipOutput() (tx *DB) {
 	tx = db.getInstance()
 	return tx.Session(&Session{
