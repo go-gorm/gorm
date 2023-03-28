@@ -49,7 +49,8 @@ type Config struct {
 	CreateBatchSize int
 	// TranslateError enabling error translation
 	TranslateError bool
-
+	// SkipOutputStatement disable OUTPUT clause when inserting a row
+	SkipOutputStatement bool
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
 	// ConnPool db conn pool
@@ -110,6 +111,7 @@ type Session struct {
 	AllowGlobalUpdate        bool
 	FullSaveAssociations     bool
 	QueryFields              bool
+	SkipOutputStatement      bool
 	Context                  context.Context
 	Logger                   logger.Interface
 	NowFunc                  func() time.Time
@@ -224,6 +226,11 @@ func (db *DB) Session(config *Session) *DB {
 			clone:     1,
 		}
 	)
+
+	if config.SkipOutputStatement {
+		tx.Config.SkipOutputStatement = true
+	}
+
 	if config.CreateBatchSize > 0 {
 		tx.Config.CreateBatchSize = config.CreateBatchSize
 	}
@@ -315,6 +322,14 @@ func (db *DB) Debug() (tx *DB) {
 	tx = db.getInstance()
 	return tx.Session(&Session{
 		Logger: db.Logger.LogMode(logger.Info),
+	})
+}
+
+// Debug start debug mode
+func (db *DB) SkipOutput() (tx *DB) {
+	tx = db.getInstance()
+	return tx.Session(&Session{
+		SkipOutputStatement: true,
 	})
 }
 
