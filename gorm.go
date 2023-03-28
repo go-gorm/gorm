@@ -144,7 +144,20 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	if config.NamingStrategy == nil {
-		config.NamingStrategy = schema.NamingStrategy{}
+		// Set default value of IdentifierMaxLength according to the database type
+		identifierMaxLength := 64
+		switch dialector.Name() {
+		case "mysql":
+			identifierMaxLength = 64
+		case "postgres":
+			identifierMaxLength = 63
+		case "sqlite":
+			identifierMaxLength = 64
+		case "sqlserver":
+			identifierMaxLength = 128
+		}
+
+		config.NamingStrategy = schema.NamingStrategy{NamingStrategyConfig: schema.NamingStrategyConfig{IdentifierMaxLength: identifierMaxLength}}
 	}
 
 	if config.Logger == nil {

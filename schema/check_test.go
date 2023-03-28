@@ -15,7 +15,7 @@ type UserCheck struct {
 }
 
 func TestParseCheck(t *testing.T) {
-	user, err := schema.Parse(&UserCheck{}, &sync.Map{}, schema.NamingStrategy{})
+	user, err := schema.Parse(&UserCheck{}, &sync.Map{}, schema.NamingStrategy{NamingStrategyConfig: schema.NamingStrategyConfig{IdentifierMaxLength: 64}})
 	if err != nil {
 		t.Fatalf("failed to parse user check, got error %v", err)
 	}

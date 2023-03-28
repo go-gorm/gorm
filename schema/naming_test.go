@@ -57,9 +57,10 @@ func TestToDBName(t *testing.T) {
 
 func TestNamingStrategy(t *testing.T) {
 	ns := NamingStrategy{
-		TablePrefix:   "public.",
-		SingularTable: true,
-		NameReplacer:  strings.NewReplacer("CID", "Cid"),
+		TablePrefix:          "public.",
+		SingularTable:        true,
+		NameReplacer:         strings.NewReplacer("CID", "Cid"),
+		NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 64},
 	}
 	idxName := ns.IndexName("public.table", "name")
 
@@ -111,7 +112,8 @@ func TestCustomReplacer(t *testing.T) {
 				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
 			},
 		},
-		NoLowerCase: false,
+		NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 64},
+		NoLowerCase:          false,
 	}
 
 	idxName := ns.IndexName("public.table", "name")
@@ -155,7 +157,8 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 				return strings.NewReplacer("CID", "_Cid").Replace(replaced)
 			},
 		},
-		NoLowerCase: true,
+		NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 64},
+		NoLowerCase:          true,
 	}
 
 	idxName := ns.IndexName("public.table", "name")
@@ -189,11 +192,25 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 	}
 }
 
-func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
-	ns := NamingStrategy{}
+func TestFormatNameWithStringLongerThanMaxIdentifierLength(t *testing.T) {
+	ns := NamingStrategy{NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 63}}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVer180f2c67" {
+		t.Errorf("invalid formatted name generated, got %v", formattedName)
+	}
+
+	ns = NamingStrategy{NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 64}}
+
+	formattedName = ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
 	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVery180f2c67" {
+		t.Errorf("invalid formatted name generated, got %v", formattedName)
+	}
+
+	ns = NamingStrategy{NamingStrategyConfig: NamingStrategyConfig{IdentifierMaxLength: 128}}
+
+	formattedName = ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVeryVery81f06061" {
 		t.Errorf("invalid formatted name generated, got %v", formattedName)
 	}
 }

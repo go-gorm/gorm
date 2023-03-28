@@ -52,7 +52,7 @@ type CompIdxLevel2B struct {
 }
 
 func TestParseIndex(t *testing.T) {
-	user, err := schema.Parse(&UserIndex{}, &sync.Map{}, schema.NamingStrategy{})
+	user, err := schema.Parse(&UserIndex{}, &sync.Map{}, schema.NamingStrategy{NamingStrategyConfig: schema.NamingStrategyConfig{IdentifierMaxLength: 64}})
 	if err != nil {
 		t.Fatalf("failed to parse user index, got error %v", err)
 	}

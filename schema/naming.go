@@ -32,6 +32,17 @@ type NamingStrategy struct {
 	SingularTable bool
 	NameReplacer  Replacer
 	NoLowerCase   bool
+	NamingStrategyConfig
+}
+
+// This struct is used to configure the behavior NamingStrategy, according to DB.
+// For example, in MySQL, the maximum length of an identifier is 64 characters.
+// In PostgreSQL, the maximum length of an identifier is 63 characters.
+// In SQL Server, the maximum length of an identifier is 128 characters.
+// In SQLite, the maximum length of an identifier is unlimited.
+// In future, we may add more options to NamingStrategyConfig.
+type NamingStrategyConfig struct {
+	IdentifierMaxLength int
 }
 
 // TableName convert string to table name
@@ -89,12 +100,12 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 		prefix, table, name,
 	}, "_"), ".", "_")
 
-	if utf8.RuneCountInString(formattedName) > 64 {
+	if utf8.RuneCountInString(formattedName) > ns.IdentifierMaxLength {
 		h := sha1.New()
 		h.Write([]byte(formattedName))
 		bs := h.Sum(nil)
 
-		formattedName = formattedName[0:56] + hex.EncodeToString(bs)[:8]
+		formattedName = formattedName[0:ns.IdentifierMaxLength-8] + hex.EncodeToString(bs)[:8]
 	}
 	return formattedName
 }
