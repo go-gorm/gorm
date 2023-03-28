@@ -1,0 +1,35 @@
+---
+# Run this locally with act - https://github.com/nektos/act
+# act -j lintShellScript
+name: Lint Shell scripts
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches: [main, master]
+    paths:
+      - '**.sh'
+      - '**.bash'
+      - '.github/workflows/lint-shell-script.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - '**.sh'
+      - '**.bash'
+      - '.github/workflows/lint-shell-script.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  lintShellScript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
