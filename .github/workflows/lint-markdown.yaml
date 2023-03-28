@@ -1,0 +1,44 @@
+---
+# Run this locally with act - https://github.com/nektos/act
+# act -j lintMarkdown
+name: Lint Markdown
+
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches: [main, master]
+    paths:
+      - '**.md'
+      - '.github/workflows/lint-markdown.yaml'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - '**.md'
+      - '.github/workflows/lint-markdown.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lintMarkdown:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Ruby
+        # See https://github.com/ruby/setup-ruby#versioning
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.0
+
+      - name: Install dependencies
+        run: gem install mdl
+
+      - name: Run tests
+        # Rule list: https://github.com/markdownlint/markdownlint/blob/main/docs/RULES.md
+        # Don't check for line length (MD013)
+        # Don't care about list ordering (MD029)
+        run: mdl --git-recurse --rules ~MD013,~MD029 .
