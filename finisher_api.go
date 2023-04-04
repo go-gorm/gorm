@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strings"
 	"sync"
@@ -24,6 +25,23 @@ func (db *DB) Create(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = value
 	return tx.callbacks.Create().Execute(tx)
+}
+
+func (db *DB) CreateInAutoBatches(value interface{}, maxParameter int) (tx *DB) {
+	reflectValue := reflect.Indirect(reflect.ValueOf(value))
+
+	switch reflectValue.Kind() {
+	case reflect.Slice, reflect.Array:
+		nField := reflect.Indirect(reflectValue.Index(0)).NumField()
+		length := reflectValue.Len()
+		batchSize := int(math.Min(float64(maxParameter/nField), float64(length)))
+		tx = db.CreateInBatches(value, batchSize)
+	default:
+		tx = db.getInstance()
+		tx.Statement.Dest = value
+		tx = tx.callbacks.Create().Execute(tx)
+	}
+	return
 }
 
 // CreateInBatches inserts value in batches of batchSize
