@@ -636,7 +636,6 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 			if err != nil {
 				return
 			}
-
 			defer func() {
 				// Make sure to rollback when panic, Block error or Commit error
 				if panicked || err != nil {
@@ -721,7 +720,21 @@ func (db *DB) Rollback() *DB {
 
 func (db *DB) SavePoint(name string) *DB {
 	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
+		// close prepared statement, because SavePoint not support prepared statement.
+		// e.g. mysql8.0 doc: https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html
+		var (
+			preparedStmtTx   *PreparedStmtTX
+			isPreparedStmtTx bool
+		)
+		// close prepared statement, because SavePoint not support prepared statement.
+		if preparedStmtTx, isPreparedStmtTx = db.Statement.ConnPool.(*PreparedStmtTX); isPreparedStmtTx {
+			db.Statement.ConnPool = preparedStmtTx.Tx
+		}
 		db.AddError(savePointer.SavePoint(db, name))
+		// restore prepared statement
+		if isPreparedStmtTx {
+			db.Statement.ConnPool = preparedStmtTx
+		}
 	} else {
 		db.AddError(ErrUnsupportedDriver)
 	}
@@ -730,7 +743,21 @@ func (db *DB) SavePoint(name string) *DB {
 
 func (db *DB) RollbackTo(name string) *DB {
 	if savePointer, ok := db.Dialector.(SavePointerDialectorInterface); ok {
+		// close prepared statement, because RollbackTo not support prepared statement.
+		// e.g. mysql8.0 doc: https://dev.mysql.com/doc/refman/8.0/en/sql-prepared-statements.html
+		var (
+			preparedStmtTx   *PreparedStmtTX
+			isPreparedStmtTx bool
+		)
+		// close prepared statement, because SavePoint not support prepared statement.
+		if preparedStmtTx, isPreparedStmtTx = db.Statement.ConnPool.(*PreparedStmtTX); isPreparedStmtTx {
+			db.Statement.ConnPool = preparedStmtTx.Tx
+		}
 		db.AddError(savePointer.RollbackTo(db, name))
+		// restore prepared statement
+		if isPreparedStmtTx {
+			db.Statement.ConnPool = preparedStmtTx
+		}
 	} else {
 		db.AddError(ErrUnsupportedDriver)
 	}
