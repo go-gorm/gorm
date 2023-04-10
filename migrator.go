@@ -76,6 +76,7 @@ type Migrator interface {
 	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName interface{}) error
 	GetTables() (tableList []string, err error)
+	GetTableComment(tableName string) (comment string, err error)
 
 	// Columns
 	AddColumn(dst interface{}, field string) error

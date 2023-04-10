@@ -947,3 +947,8 @@ func (m Migrator) GetIndexes(dst interface{}) ([]gorm.Index, error) {
 func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
 	return nil
 }
+
+// GetTableComment return table comment
+func (m Migrator) GetTableComment(tableName string) (string, error) {
+	return "", errors.New("not support")
+}
