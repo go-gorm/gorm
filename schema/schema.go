@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+	"strings"
 	"sync"
 
 	"gorm.io/gorm/clause"
@@ -25,6 +26,7 @@ type Schema struct {
 	PrimaryFieldDBNames       []string
 	Fields                    []*Field
 	FieldsByName              map[string]*Field
+	FieldsByBindName          map[string]*Field // embedded fields is 'Embed.Field'
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
 	Relationships             Relationships
@@ -63,6 +65,27 @@ func (schema Schema) LookUpField(name string) *Field {
 	}
 	if field, ok := schema.FieldsByName[name]; ok {
 		return field
+	}
+	return nil
+}
+
+// LookUpFieldByBindName looks for the closest field in the embedded struct.
+//
+//	type Struct struct {
+//		Embedded struct {
+//			ID string // is selected by LookUpFieldByBindName([]string{"Embedded", "ID"}, "ID")
+//		}
+//		ID string // is selected by LookUpFieldByBindName([]string{"ID"}, "ID")
+//	}
+func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Field {
+	if len(bindNames) == 0 {
+		return nil
+	}
+	for i := len(bindNames) - 1; i >= 0; i-- {
+		find := strings.Join(bindNames[:i], ".") + "." + name
+		if field, ok := schema.FieldsByBindName[find]; ok {
+			return field
+		}
 	}
 	return nil
 }
@@ -140,15 +163,16 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	schema := &Schema{
-		Name:           modelType.Name(),
-		ModelType:      modelType,
-		Table:          tableName,
-		FieldsByName:   map[string]*Field{},
-		FieldsByDBName: map[string]*Field{},
-		Relationships:  Relationships{Relations: map[string]*Relationship{}},
-		cacheStore:     cacheStore,
-		namer:          namer,
-		initialized:    make(chan struct{}),
+		Name:             modelType.Name(),
+		ModelType:        modelType,
+		Table:            tableName,
+		FieldsByName:     map[string]*Field{},
+		FieldsByBindName: map[string]*Field{},
+		FieldsByDBName:   map[string]*Field{},
+		Relationships:    Relationships{Relations: map[string]*Relationship{}},
+		cacheStore:       cacheStore,
+		namer:            namer,
+		initialized:      make(chan struct{}),
 	}
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
@@ -176,6 +200,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			field.DBName = namer.ColumnName(schema.Table, field.Name)
 		}
 
+		bindName := field.BindName()
 		if field.DBName != "" {
 			// nonexistence or shortest path or first appear prioritized if has permission
 			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || ((field.Creatable || field.Updatable || field.Readable) && len(field.BindNames) < len(v.BindNames)) {
@@ -184,6 +209,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				}
 				schema.FieldsByDBName[field.DBName] = field
 				schema.FieldsByName[field.Name] = field
+				schema.FieldsByBindName[bindName] = field
 
 				if v != nil && v.PrimaryKey {
 					for idx, f := range schema.PrimaryFields {
@@ -201,6 +227,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 		if of, ok := schema.FieldsByName[field.Name]; !ok || of.TagSettings["-"] == "-" {
 			schema.FieldsByName[field.Name] = field
+		}
+		if of, ok := schema.FieldsByBindName[bindName]; !ok || of.TagSettings["-"] == "-" {
+			schema.FieldsByBindName[bindName] = field
 		}
 
 		field.setupValuerAndSetter()
@@ -293,6 +322,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 					return schema, schema.err
 				} else {
 					schema.FieldsByName[field.Name] = field
+					schema.FieldsByBindName[field.BindName()] = field
 				}
 			}
 

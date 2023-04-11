@@ -267,32 +267,7 @@ func Preload(db *gorm.DB) {
 			return
 		}
 
-		preloadMap := map[string]map[string][]interface{}{}
-		for name := range db.Statement.Preloads {
-			preloadFields := strings.Split(name, ".")
-			if preloadFields[0] == clause.Associations {
-				for _, rel := range db.Statement.Schema.Relationships.Relations {
-					if rel.Schema == db.Statement.Schema {
-						if _, ok := preloadMap[rel.Name]; !ok {
-							preloadMap[rel.Name] = map[string][]interface{}{}
-						}
-
-						if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
-							preloadMap[rel.Name][value] = db.Statement.Preloads[name]
-						}
-					}
-				}
-			} else {
-				if _, ok := preloadMap[preloadFields[0]]; !ok {
-					preloadMap[preloadFields[0]] = map[string][]interface{}{}
-				}
-
-				if value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), "."); value != "" {
-					preloadMap[preloadFields[0]][value] = db.Statement.Preloads[name]
-				}
-			}
-		}
-
+		preloadMap := parsePreloadMap(db.Statement.Schema, db.Statement.Preloads)
 		preloadNames := make([]string, 0, len(preloadMap))
 		for key := range preloadMap {
 			preloadNames = append(preloadNames, key)
@@ -312,7 +287,9 @@ func Preload(db *gorm.DB) {
 		preloadDB.Statement.Unscoped = db.Statement.Unscoped
 
 		for _, name := range preloadNames {
-			if rel := preloadDB.Statement.Schema.Relationships.Relations[name]; rel != nil {
+			if relations := preloadDB.Statement.Schema.Relationships.EmbeddedRelations[name]; relations != nil {
+				db.AddError(preloadEmbedded(preloadDB.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks}), relations, db.Statement.Schema, preloadMap[name], db.Statement.Preloads[clause.Associations]))
+			} else if rel := preloadDB.Statement.Schema.Relationships.Relations[name]; rel != nil {
 				db.AddError(preload(preloadDB.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks}), rel, append(db.Statement.Preloads[name], db.Statement.Preloads[clause.Associations]...), preloadMap[name]))
 			} else {
 				db.AddError(fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))

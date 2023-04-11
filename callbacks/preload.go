@@ -3,12 +3,105 @@ package callbacks
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
+
+// parsePreloadMap extracts nested preloads. e.g.
+//
+//	// schema has a "k0" relation and a "k7.k8" embedded relation
+//	parsePreloadMap(schema, map[string][]interface{}{
+//		clause.Associations: {"arg1"},
+//		"k1":                {"arg2"},
+//		"k2.k3":             {"arg3"},
+//		"k4.k5.k6":          {"arg4"},
+//	})
+//	// preloadMap is
+//	map[string]map[string][]interface{}{
+//		"k0": {},
+//		"k7": {
+//			"k8": {},
+//		},
+//		"k1": {},
+//		"k2": {
+//			"k3": {"arg3"},
+//		},
+//		"k4": {
+//			"k5.k6": {"arg4"},
+//		},
+//	}
+func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[string]map[string][]interface{} {
+	preloadMap := map[string]map[string][]interface{}{}
+	setPreloadMap := func(name, value string, args []interface{}) {
+		if _, ok := preloadMap[name]; !ok {
+			preloadMap[name] = map[string][]interface{}{}
+		}
+		if value != "" {
+			preloadMap[name][value] = args
+		}
+	}
+
+	for name, args := range preloads {
+		preloadFields := strings.Split(name, ".")
+		value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), ".")
+		if preloadFields[0] == clause.Associations {
+			for _, relation := range s.Relationships.Relations {
+				if relation.Schema == s {
+					setPreloadMap(relation.Name, value, args)
+				}
+			}
+
+			for embedded, embeddedRelations := range s.Relationships.EmbeddedRelations {
+				for _, value := range embeddedValues(embeddedRelations) {
+					setPreloadMap(embedded, value, args)
+				}
+			}
+		} else {
+			setPreloadMap(preloadFields[0], value, args)
+		}
+	}
+	return preloadMap
+}
+
+func embeddedValues(embeddedRelations *schema.Relationships) []string {
+	if embeddedRelations == nil {
+		return nil
+	}
+	names := make([]string, 0, len(embeddedRelations.Relations)+len(embeddedRelations.EmbeddedRelations))
+	for _, relation := range embeddedRelations.Relations {
+		// skip first struct name
+		names = append(names, strings.Join(relation.Field.BindNames[1:], "."))
+	}
+	for _, relations := range embeddedRelations.EmbeddedRelations {
+		names = append(names, embeddedValues(relations)...)
+	}
+	return names
+}
+
+func preloadEmbedded(tx *gorm.DB, relationships *schema.Relationships, s *schema.Schema, preloads map[string][]interface{}, as []interface{}) error {
+	if relationships == nil {
+		return nil
+	}
+	preloadMap := parsePreloadMap(s, preloads)
+	for name := range preloadMap {
+		if embeddedRelations := relationships.EmbeddedRelations[name]; embeddedRelations != nil {
+			if err := preloadEmbedded(tx, embeddedRelations, s, preloadMap[name], as); err != nil {
+				return err
+			}
+		} else if rel := relationships.Relations[name]; rel != nil {
+			if err := preload(tx, rel, append(preloads[name], as), preloadMap[name]); err != nil {
+				return err
+			}
+		} else {
+			return fmt.Errorf("%s: %w (embedded) for schema %s", name, gorm.ErrUnsupportedRelation, s.Name)
+		}
+	}
+	return nil
+}
 
 func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preloads map[string][]interface{}) error {
 	var (

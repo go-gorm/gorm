@@ -89,6 +89,10 @@ type Field struct {
 	NewValuePool           FieldNewValuePool
 }
 
+func (field *Field) BindName() string {
+	return strings.Join(field.BindNames, ".")
+}
+
 // ParseField parses reflect.StructField to Field
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	var (
