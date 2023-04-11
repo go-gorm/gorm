@@ -103,9 +103,16 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 		URL   string
 	}
 
+	type Author struct {
+		ID    string
+		Name  string
+		Email string
+	}
+
 	type HNPost struct {
 		*BasePost
 		Upvotes int32
+		*Author `gorm:"EmbeddedPrefix:user_"` // Embedded struct
 	}
 
 	DB.Migrator().DropTable(&HNPost{})
@@ -122,6 +129,10 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 
 	if hnPost.Title != "embedded_pointer_type" {
 		t.Errorf("Should find correct value for embedded pointer type")
+	}
+
+	if hnPost.Author != nil {
+		t.Errorf("Expected to get back a nil Author but got: %v", hnPost.Author)
 	}
 }
 

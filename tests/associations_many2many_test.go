@@ -393,3 +393,33 @@ func TestConcurrentMany2ManyAssociation(t *testing.T) {
 	AssertEqual(t, err, nil)
 	AssertAssociationCount(t, find, "Languages", int64(count), "after concurrent append")
 }
+
+func TestMany2ManyDuplicateBelongsToAssociation(t *testing.T) {
+	user1 := User{Name: "TestMany2ManyDuplicateBelongsToAssociation-1", Friends: []*User{
+		{Name: "TestMany2ManyDuplicateBelongsToAssociation-friend-1", Company: Company{
+			ID:   1,
+			Name: "Test-company-1",
+		}},
+	}}
+
+	user2 := User{Name: "TestMany2ManyDuplicateBelongsToAssociation-2", Friends: []*User{
+		{Name: "TestMany2ManyDuplicateBelongsToAssociation-friend-2", Company: Company{
+			ID:   1,
+			Name: "Test-company-1",
+		}},
+	}}
+	users := []*User{&user1, &user2}
+	var err error
+	err = DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(users).Error
+	AssertEqual(t, nil, err)
+
+	var findUser1 User
+	err = DB.Preload("Friends.Company").Where("id = ?", user1.ID).First(&findUser1).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user1, findUser1)
+
+	var findUser2 User
+	err = DB.Preload("Friends.Company").Where("id = ?", user2.ID).First(&findUser2).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user2, findUser2)
+}

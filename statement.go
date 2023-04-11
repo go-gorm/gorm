@@ -324,11 +324,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		case clause.Expression:
 			conds = append(conds, v)
 		case *DB:
-			for _, scope := range v.Statement.scopes {
-				v = scope(v)
-			}
+			v.executeScopes()
 
-			if cs, ok := v.Statement.Clauses["WHERE"]; ok {
+			if cs, ok := v.Statement.Clauses["WHERE"]; ok && cs.Expression != nil {
 				if where, ok := cs.Expression.(clause.Where); ok {
 					if len(where.Exprs) == 1 {
 						if orConds, ok := where.Exprs[0].(clause.OrConditions); ok {
@@ -336,8 +334,12 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 						}
 					}
 					conds = append(conds, clause.And(where.Exprs...))
-				} else if cs.Expression != nil {
+				} else {
 					conds = append(conds, cs.Expression)
+				}
+				if v.Statement == stmt {
+					cs.Expression = nil
+					stmt.Statement.Clauses["WHERE"] = cs
 				}
 			}
 		case map[interface{}]interface{}:

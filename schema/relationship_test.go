@@ -518,6 +518,132 @@ func TestEmbeddedRelation(t *testing.T) {
 	}
 }
 
+func TestEmbeddedHas(t *testing.T) {
+	type Toy struct {
+		ID        int
+		Name      string
+		OwnerID   int
+		OwnerType string
+	}
+	type User struct {
+		ID  int
+		Cat struct {
+			Name string
+			Toy  Toy   `gorm:"polymorphic:Owner;"`
+			Toys []Toy `gorm:"polymorphic:Owner;"`
+		} `gorm:"embedded;embeddedPrefix:cat_"`
+		Dog struct {
+			ID     int
+			Name   string
+			UserID int
+			Toy    Toy   `gorm:"polymorphic:Owner;"`
+			Toys   []Toy `gorm:"polymorphic:Owner;"`
+		}
+		Toys []Toy `gorm:"polymorphic:Owner;"`
+	}
+
+	s, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("Failed to parse schema, got error %v", err)
+	}
+
+	checkEmbeddedRelations(t, s.Relationships.EmbeddedRelations, map[string]EmbeddedRelations{
+		"Cat": {
+			Relations: map[string]Relation{
+				"Toy": {
+					Name:        "Toy",
+					Type:        schema.HasOne,
+					Schema:      "User",
+					FieldSchema: "Toy",
+					Polymorphic: Polymorphic{ID: "OwnerID", Type: "OwnerType", Value: "users"},
+					References: []Reference{
+						{ForeignKey: "OwnerType", ForeignSchema: "Toy", PrimaryValue: "users"},
+						{ForeignKey: "OwnerType", ForeignSchema: "Toy", PrimaryValue: "users"},
+					},
+				},
+				"Toys": {
+					Name:        "Toys",
+					Type:        schema.HasMany,
+					Schema:      "User",
+					FieldSchema: "Toy",
+					Polymorphic: Polymorphic{ID: "OwnerID", Type: "OwnerType", Value: "users"},
+					References: []Reference{
+						{ForeignKey: "OwnerType", ForeignSchema: "Toy", PrimaryValue: "users"},
+						{ForeignKey: "OwnerType", ForeignSchema: "Toy", PrimaryValue: "users"},
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestEmbeddedBelongsTo(t *testing.T) {
+	type Country struct {
+		ID   int `gorm:"primaryKey"`
+		Name string
+	}
+	type Address struct {
+		CountryID int
+		Country   Country
+	}
+	type NestedAddress struct {
+		Address
+	}
+	type Org struct {
+		ID              int
+		PostalAddress   Address `gorm:"embedded;embeddedPrefix:postal_address_"`
+		VisitingAddress Address `gorm:"embedded;embeddedPrefix:visiting_address_"`
+		AddressID       int
+		Address         struct {
+			ID int
+			Address
+		}
+		NestedAddress *NestedAddress `gorm:"embedded;embeddedPrefix:nested_address_"`
+	}
+
+	s, err := schema.Parse(&Org{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Errorf("Failed to parse schema, got error %v", err)
+	}
+
+	checkEmbeddedRelations(t, s.Relationships.EmbeddedRelations, map[string]EmbeddedRelations{
+		"PostalAddress": {
+			Relations: map[string]Relation{
+				"Country": {
+					Name: "Country", Type: schema.BelongsTo, Schema: "Org", FieldSchema: "Country",
+					References: []Reference{
+						{PrimaryKey: "ID", PrimarySchema: "Country", ForeignKey: "CountryID", ForeignSchema: "Org"},
+					},
+				},
+			},
+		},
+		"VisitingAddress": {
+			Relations: map[string]Relation{
+				"Country": {
+					Name: "Country", Type: schema.BelongsTo, Schema: "Org", FieldSchema: "Country",
+					References: []Reference{
+						{PrimaryKey: "ID", PrimarySchema: "Country", ForeignKey: "CountryID", ForeignSchema: "Org"},
+					},
+				},
+			},
+		},
+		"NestedAddress": {
+			EmbeddedRelations: map[string]EmbeddedRelations{
+				"Address": {
+					Relations: map[string]Relation{
+						"Country": {
+							Name: "Country", Type: schema.BelongsTo, Schema: "Org", FieldSchema: "Country",
+							References: []Reference{
+								{PrimaryKey: "ID", PrimarySchema: "Country", ForeignKey: "CountryID", ForeignSchema: "Org"},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestVariableRelation(t *testing.T) {
 	var result struct {
 		User
