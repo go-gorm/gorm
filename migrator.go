@@ -1,10 +1,9 @@
 package gorm
 
 import (
-	"reflect"
-
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"reflect"
 )
 
 // Migrator returns migrator
@@ -60,6 +59,16 @@ type Index interface {
 	Option() string
 }
 
+// TableType table type interface
+type TableType interface {
+	Catalog() string
+	Schema() string
+	Name() string
+	Type() string
+	Engine() (engine string, ok bool)
+	Comment() (comment string, ok bool)
+}
+
 // Migrator migrator interface
 type Migrator interface {
 	// AutoMigrate
@@ -76,7 +85,7 @@ type Migrator interface {
 	HasTable(dst interface{}) bool
 	RenameTable(oldName, newName interface{}) error
 	GetTables() (tableList []string, err error)
-	GetTableComment(tableName string) (comment string, err error)
+	TableType(dst interface{}) (TableType, error)
 
 	// Columns
 	AddColumn(dst interface{}, field string) error

@@ -948,7 +948,7 @@ func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
 	return nil
 }
 
-// GetTableComment return table comment
-func (m Migrator) GetTableComment(tableName string) (string, error) {
-	return "", errors.New("not support")
+// TableType return tableType gorm.TableType and execErr error
+func (m Migrator) TableType(dst interface{}) (gorm.TableType, error) {
+	return nil, errors.New("not support")
 }
