@@ -580,8 +580,6 @@ func (field *Field) setupValuerAndSetter() {
 			case **bool:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetBool(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetBool(false)
 				}
 			case bool:
 				field.ReflectValueOf(ctx, value).SetBool(data)
@@ -601,8 +599,6 @@ func (field *Field) setupValuerAndSetter() {
 			case **int64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case int64:
 				field.ReflectValueOf(ctx, value).SetInt(data)
@@ -667,8 +663,6 @@ func (field *Field) setupValuerAndSetter() {
 			case **uint64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case uint64:
 				field.ReflectValueOf(ctx, value).SetUint(data)
@@ -721,8 +715,6 @@ func (field *Field) setupValuerAndSetter() {
 			case **float64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetFloat(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetFloat(0)
 				}
 			case float64:
 				field.ReflectValueOf(ctx, value).SetFloat(data)
@@ -767,8 +759,6 @@ func (field *Field) setupValuerAndSetter() {
 			case **string:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetString(**data)
-				} else {
-					field.ReflectValueOf(ctx, value).SetString("")
 				}
 			case string:
 				field.ReflectValueOf(ctx, value).SetString(data)
