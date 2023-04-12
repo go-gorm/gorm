@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"sync"
-	"sync/atomic"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -612,15 +610,6 @@ func (db *DB) Connection(fc func(tx *DB) error) (err error) {
 	return fc(tx)
 }
 
-var (
-	savepointIdx      int64
-	savepointNamePool = &sync.Pool{
-		New: func() interface{} {
-			return fmt.Sprintf("gorm_%d", atomic.AddInt64(&savepointIdx, 1))
-		},
-	}
-)
-
 // Transaction start a transaction as a block, return error will rollback, otherwise to commit. Transaction executes an
 // arbitrary number of commands in fc within a transaction. On success the changes are committed; if an error occurs
 // they are rolled back.
@@ -630,16 +619,14 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
 		if !db.DisableNestedTransaction {
-			poolName := savepointNamePool.Get()
-			defer savepointNamePool.Put(poolName)
-			err = db.SavePoint(poolName.(string)).Error
+			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
 			if err != nil {
 				return
 			}
 			defer func() {
 				// Make sure to rollback when panic, Block error or Commit error
 				if panicked || err != nil {
-					db.RollbackTo(poolName.(string))
+					db.RollbackTo(fmt.Sprintf("sp%p", fc))
 				}
 			}()
 		}
