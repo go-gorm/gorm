@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -89,7 +88,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		db, err = gorm.Open(mysql.Open(dbDSN), &gorm.Config{})
 	default:
 		log.Println("testing sqlite3...")
-		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
+		db, err = gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	}
 
 	if err != nil {
