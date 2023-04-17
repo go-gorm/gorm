@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v5 v5.3.1 // indirect
 	github.com/jinzhu/now v1.1.5
-	github.com/lib/pq v1.10.7
+	github.com/lib/pq v1.10.8
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/microsoft/go-mssqldb v0.20.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
