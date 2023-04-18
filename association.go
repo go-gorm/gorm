@@ -14,6 +14,7 @@ import (
 type Association struct {
 	DB           *DB
 	Relationship *schema.Relationship
+	Unscope      bool
 	Error        error
 }
 
@@ -38,6 +39,15 @@ func (db *DB) Association(column string) *Association {
 	}
 
 	return association
+}
+
+func (association *Association) Unscoped() *Association {
+	return &Association{
+		DB:           association.DB,
+		Relationship: association.Relationship,
+		Error:        association.Error,
+		Unscope:      true,
+	}
 }
 
 func (association *Association) Find(out interface{}, conds ...interface{}) error {
@@ -75,7 +85,6 @@ func (association *Association) Replace(values ...interface{}) error {
 		switch rel.Type {
 		case schema.BelongsTo:
 			if len(values) == 0 {
-				updateMap := map[string]interface{}{}
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
@@ -85,11 +94,16 @@ func (association *Association) Replace(values ...interface{}) error {
 					association.Error = rel.Field.Set(association.DB.Statement.Context, reflectValue, reflect.Zero(rel.Field.FieldType).Interface())
 				}
 
-				for _, ref := range rel.References {
-					updateMap[ref.ForeignKey.DBName] = nil
+				if association.Unscope {
+					modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+					association.Error = association.DB.Delete(modelValue).Error
+				} else {
+					updateMap := map[string]interface{}{}
+					for _, ref := range rel.References {
+						updateMap[ref.ForeignKey.DBName] = nil
+					}
+					association.Error = association.DB.UpdateColumns(updateMap).Error
 				}
-
-				association.Error = association.DB.UpdateColumns(updateMap).Error
 			}
 		case schema.HasOne, schema.HasMany:
 			var (
@@ -119,7 +133,11 @@ func (association *Association) Replace(values ...interface{}) error {
 
 			if _, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, primaryFields); len(pvs) > 0 {
 				column, values := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs)
-				association.Error = tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap).Error
+				if association.Unscope {
+					association.Error = tx.Where(clause.IN{Column: column, Values: values}).Delete(modelValue).Error
+				} else {
+					association.Error = tx.Where(clause.IN{Column: column, Values: values}).UpdateColumns(updateMap).Error
+				}
 			}
 		case schema.Many2Many:
 			var (
@@ -184,7 +202,8 @@ func (association *Association) Delete(values ...interface{}) error {
 
 		switch rel.Type {
 		case schema.BelongsTo:
-			tx := association.DB.Model(reflect.New(rel.Schema.ModelType).Interface())
+			model := reflect.New(rel.Schema.ModelType).Interface()
+			tx := association.DB.Model(model)
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, rel.Schema.PrimaryFields)
 			if pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs); len(pvalues) > 0 {
@@ -197,9 +216,14 @@ func (association *Association) Delete(values ...interface{}) error {
 			relColumn, relValues := schema.ToQueryValues(rel.Schema.Table, foreignKeys, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
-			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
+			if association.Unscope {
+				association.Error = tx.Clauses(conds...).Delete(model).Error
+			} else {
+				association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
+			}
 		case schema.HasOne, schema.HasMany:
-			tx := association.DB.Model(reflect.New(rel.FieldSchema.ModelType).Interface())
+			model := reflect.New(rel.FieldSchema.ModelType).Interface()
+			tx := association.DB.Model(model)
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, primaryFields)
 			if pcolumn, pvalues := schema.ToQueryValues(rel.FieldSchema.Table, foreignKeys, pvs); len(pvalues) > 0 {
@@ -212,7 +236,11 @@ func (association *Association) Delete(values ...interface{}) error {
 			relColumn, relValues := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
-			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
+			if association.Unscope {
+				association.Error = tx.Clauses(conds...).Delete(model).Error
+			} else {
+				association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
+			}
 		case schema.Many2Many:
 			var (
 				primaryFields, relPrimaryFields     []*schema.Field
