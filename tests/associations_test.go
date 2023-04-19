@@ -416,7 +416,7 @@ func TestAssociationUnscoped(t *testing.T) {
 		Logo: "logo",
 		Contents: []ItemContent{
 			{Name: "name", LanguageCode: "en"},
-			{Name: "الاسم", LanguageCode: "ar"},
+			{Name: "ar name", LanguageCode: "ar"},
 		},
 	}
 	if err := tx.Create(&item).Error; err != nil {
@@ -426,7 +426,7 @@ func TestAssociationUnscoped(t *testing.T) {
 	// test Replace
 	if err := tx.Model(&item).Association("Contents").Unscoped().Replace([]ItemContent{
 		{Name: "updated name", LanguageCode: "en"},
-		{Name: "الاسم المحدث", LanguageCode: "ar"},
+		{Name: "ar updated name", LanguageCode: "ar"},
 		{Name: "le nom", LanguageCode: "fr"},
 	}); err != nil {
 		t.Errorf("failed to replace item content, got error: %v", err)
