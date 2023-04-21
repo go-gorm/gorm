@@ -44,7 +44,7 @@ type SerializerPostgresStruct struct {
 
 func (*SerializerPostgresStruct) TableName() string { return "serializer_structs" }
 
-func model(s *SerializerStruct) interface{} {
+func adaptorSerializerModel(s *SerializerStruct) interface{} {
 	if DB.Dialector.Name() == "postgres" {
 		sps := SerializerPostgresStruct(*s)
 		return &sps
@@ -105,8 +105,8 @@ func (c *CustomSerializer) Value(ctx context.Context, field *schema.Field, dst r
 
 func TestSerializer(t *testing.T) {
 	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
-	DB.Migrator().DropTable(model(&SerializerStruct{}))
-	if err := DB.Migrator().AutoMigrate(model(&SerializerStruct{})); err != nil {
+	DB.Migrator().DropTable(adaptorSerializerModel(&SerializerStruct{}))
+	if err := DB.Migrator().AutoMigrate(adaptorSerializerModel(&SerializerStruct{})); err != nil {
 		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
@@ -151,8 +151,8 @@ func TestSerializer(t *testing.T) {
 
 func TestSerializerZeroValue(t *testing.T) {
 	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
-	DB.Migrator().DropTable(model(&SerializerStruct{}))
-	if err := DB.Migrator().AutoMigrate(model(&SerializerStruct{})); err != nil {
+	DB.Migrator().DropTable(adaptorSerializerModel(&SerializerStruct{}))
+	if err := DB.Migrator().AutoMigrate(adaptorSerializerModel(&SerializerStruct{})); err != nil {
 		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
@@ -180,8 +180,8 @@ func TestSerializerZeroValue(t *testing.T) {
 
 func TestSerializerAssignFirstOrCreate(t *testing.T) {
 	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
-	DB.Migrator().DropTable(model(&SerializerStruct{}))
-	if err := DB.Migrator().AutoMigrate(model(&SerializerStruct{})); err != nil {
+	DB.Migrator().DropTable(adaptorSerializerModel(&SerializerStruct{}))
+	if err := DB.Migrator().AutoMigrate(adaptorSerializerModel(&SerializerStruct{})); err != nil {
 		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
 	}
 
