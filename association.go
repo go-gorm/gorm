@@ -98,6 +98,7 @@ func (association *Association) Replace(values ...interface{}) error {
 				for _, ref := range rel.References {
 					updateMap[ref.ForeignKey.DBName] = nil
 				}
+
 				association.Error = association.DB.UpdateColumns(updateMap).Error
 			}
 		case schema.HasOne, schema.HasMany:
@@ -197,8 +198,7 @@ func (association *Association) Delete(values ...interface{}) error {
 
 		switch rel.Type {
 		case schema.BelongsTo:
-			model := reflect.New(rel.Schema.ModelType).Interface()
-			tx := association.DB.Model(model)
+			tx := association.DB.Model(reflect.New(rel.Schema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, rel.Schema.PrimaryFields)
 			if pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs); len(pvalues) > 0 {
