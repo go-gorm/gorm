@@ -74,14 +74,30 @@ func (association *Association) Append(values ...interface{}) error {
 
 func (association *Association) Replace(values ...interface{}) error {
 	if association.Error == nil {
+		reflectValue := association.DB.Statement.ReflectValue
+		rel := association.Relationship
+
+		var oldBelongsToExpr clause.Expression
+		// we have to record the old BelongsTo value
+		if association.Unscope && rel.Type == schema.BelongsTo {
+			var foreignFields []*schema.Field
+			for _, ref := range rel.References {
+				if !ref.OwnPrimaryKey {
+					foreignFields = append(foreignFields, ref.ForeignKey)
+				}
+			}
+			if _, fvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, foreignFields); len(fvs) > 0 {
+				column, values := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, fvs)
+				oldBelongsToExpr = clause.IN{Column: column, Values: values}
+			}
+		}
+
 		// save associations
 		if association.saveAssociation( /*clear*/ true, values...); association.Error != nil {
 			return association.Error
 		}
 
 		// set old associations's foreign key to null
-		reflectValue := association.DB.Statement.ReflectValue
-		rel := association.Relationship
 		switch rel.Type {
 		case schema.BelongsTo:
 			if len(values) == 0 {
@@ -100,6 +116,9 @@ func (association *Association) Replace(values ...interface{}) error {
 				}
 
 				association.Error = association.DB.UpdateColumns(updateMap).Error
+			}
+			if association.Unscope && oldBelongsToExpr != nil {
+				association.Error = association.DB.Model(nil).Where(oldBelongsToExpr).Delete(reflect.New(rel.FieldSchema.ModelType).Interface()).Error
 			}
 		case schema.HasOne, schema.HasMany:
 			var (
@@ -198,7 +217,8 @@ func (association *Association) Delete(values ...interface{}) error {
 
 		switch rel.Type {
 		case schema.BelongsTo:
-			tx := association.DB.Model(reflect.New(rel.Schema.ModelType).Interface())
+			associationDB := association.DB.Session(&Session{})
+			tx := associationDB.Model(reflect.New(rel.Schema.ModelType).Interface())
 
 			_, pvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, rel.Schema.PrimaryFields)
 			if pcolumn, pvalues := schema.ToQueryValues(rel.Schema.Table, rel.Schema.PrimaryFieldDBNames, pvs); len(pvalues) > 0 {
@@ -212,6 +232,18 @@ func (association *Association) Delete(values ...interface{}) error {
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
 			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
+			if association.Unscope {
+				var foreignFields []*schema.Field
+				for _, ref := range rel.References {
+					if !ref.OwnPrimaryKey {
+						foreignFields = append(foreignFields, ref.ForeignKey)
+					}
+				}
+				if _, fvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, foreignFields); len(fvs) > 0 {
+					column, values := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, fvs)
+					association.Error = associationDB.Model(nil).Where(clause.IN{Column: column, Values: values}).Delete(reflect.New(rel.FieldSchema.ModelType).Interface()).Error
+				}
+			}
 		case schema.HasOne, schema.HasMany:
 			model := reflect.New(rel.FieldSchema.ModelType).Interface()
 			tx := association.DB.Model(model)
