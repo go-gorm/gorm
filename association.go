@@ -85,6 +85,7 @@ func (association *Association) Replace(values ...interface{}) error {
 		switch rel.Type {
 		case schema.BelongsTo:
 			if len(values) == 0 {
+				updateMap := map[string]interface{}{}
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					for i := 0; i < reflectValue.Len(); i++ {
@@ -94,16 +95,10 @@ func (association *Association) Replace(values ...interface{}) error {
 					association.Error = rel.Field.Set(association.DB.Statement.Context, reflectValue, reflect.Zero(rel.Field.FieldType).Interface())
 				}
 
-				if association.Unscope {
-					modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-					association.Error = association.DB.Delete(modelValue).Error
-				} else {
-					updateMap := map[string]interface{}{}
-					for _, ref := range rel.References {
-						updateMap[ref.ForeignKey.DBName] = nil
-					}
-					association.Error = association.DB.UpdateColumns(updateMap).Error
+				for _, ref := range rel.References {
+					updateMap[ref.ForeignKey.DBName] = nil
 				}
+				association.Error = association.DB.UpdateColumns(updateMap).Error
 			}
 		case schema.HasOne, schema.HasMany:
 			var (
@@ -216,11 +211,7 @@ func (association *Association) Delete(values ...interface{}) error {
 			relColumn, relValues := schema.ToQueryValues(rel.Schema.Table, foreignKeys, rvs)
 			conds = append(conds, clause.IN{Column: relColumn, Values: relValues})
 
-			if association.Unscope {
-				association.Error = tx.Clauses(conds...).Delete(model).Error
-			} else {
-				association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
-			}
+			association.Error = tx.Clauses(conds...).UpdateColumns(updateAttrs).Error
 		case schema.HasOne, schema.HasMany:
 			model := reflect.New(rel.FieldSchema.ModelType).Interface()
 			tx := association.DB.Model(model)
