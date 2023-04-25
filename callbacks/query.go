@@ -234,7 +234,12 @@ func BuildQuerySQL(db *gorm.DB) {
 								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, parentTableName, rel))
 								specifiedRelationsName[nestedAlias] = nil
 							}
-							parentTableName = rel.Name
+
+							if parentTableName != clause.CurrentTable {
+								parentTableName = utils.NestedRelationName(parentTableName, rel.Name)
+							} else {
+								parentTableName = rel.Name
+							}
 						}
 					} else {
 						fromClause.Joins = append(fromClause.Joins, clause.Join{
