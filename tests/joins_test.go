@@ -329,8 +329,19 @@ func TestJoinArgsWithDB(t *testing.T) {
 func TestNestedJoins(t *testing.T) {
 	users := []User{
 		{
-			Name:     "nested-joins-1",
-			Manager:  GetUser("nested-joins-manager-1", Config{Company: true, NamedPet: true}),
+			Name: "nested-joins-1",
+			Manager: &User{
+				Name: "nested-joins-manager-1",
+				Company: Company{
+					Name: "nested-joins-manager-company-1",
+				},
+				NamedPet: &Pet{
+					Name: "nested-joins-manager-namepet-1",
+					Toy: Toy{
+						Name: "nested-joins-manager-namepet-toy-1",
+					},
+				},
+			},
 			NamedPet: &Pet{Name: "nested-joins-namepet-1", Toy: Toy{Name: "nested-joins-namepet-toy-1"}},
 		},
 		{
@@ -352,6 +363,7 @@ func TestNestedJoins(t *testing.T) {
 		Joins("Manager").
 		Joins("Manager.Company").
 		Joins("Manager.NamedPet").
+		Joins("Manager.NamedPet.Toy").
 		Joins("NamedPet").
 		Joins("NamedPet.Toy").
 		Find(&users2, "users.id IN ?", userIDs).Error; err != nil {
