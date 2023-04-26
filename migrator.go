@@ -1,9 +1,10 @@
 package gorm
 
 import (
+	"reflect"
+
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
-	"reflect"
 )
 
 // Migrator returns migrator
