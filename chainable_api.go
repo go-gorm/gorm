@@ -178,9 +178,9 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
+		tx.Statement.Omits = append(tx.Statement.Omits, strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)...)
 	} else {
-		tx.Statement.Omits = columns
+		tx.Statement.Omits = append(tx.Statement.Omits, columns...)
 	}
 	return
 }
