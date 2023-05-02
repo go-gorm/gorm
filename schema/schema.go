@@ -115,7 +115,6 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		value = reflect.New(value.Type().Elem())
 	}
 
-	modelValue := reflect.Indirect(value)
 	modelType := reflect.Indirect(value).Type()
 
 	if modelType.Kind() == reflect.Interface {
@@ -150,6 +149,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		return s, s.err
 	}
 
+	modelValue := reflect.New(modelType)
 	tableName := namer.TableName(modelType.Name())
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
@@ -166,7 +166,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	schema := &Schema{
 		Name:             modelType.Name(),
-		ModelValue:       modelValue,
+		ModelValue:       reflect.Indirect(value),
 		ModelType:        modelType,
 		Table:            tableName,
 		FieldsByName:     map[string]*Field{},

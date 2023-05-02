@@ -2,6 +2,10 @@ package tests
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -93,4 +97,63 @@ type Child struct {
 	Name     string
 	ParentID *uint
 	Parent   *Parent
+}
+
+type Meta interface {
+	Scan(src interface{}) error
+	Value() (driver.Value, error)
+	GormDataType() string
+}
+type MotorMeta struct {
+	Power string
+}
+
+func (meta *MotorMeta) Scan(src interface{}) error {
+	bytes, ok := src.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
+	}
+	result := MotorMeta{}
+	err := json.Unmarshal(bytes, &result)
+	*meta = result
+	return err
+}
+func (meta *MotorMeta) Value() (driver.Value, error) {
+	if meta == nil {
+		return nil, nil
+	}
+	res, err := json.Marshal(meta)
+	return string(res), err
+}
+func (MotorMeta) GormDataType() string {
+	return "json"
+}
+
+type ManualMeta struct {
+}
+
+func (meta *ManualMeta) Scan(src interface{}) error {
+	bytes, ok := src.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("Failed to unmarshal JSON value:", src))
+	}
+	result := ManualMeta{}
+	err := json.Unmarshal(bytes, &result)
+	*meta = result
+	return err
+}
+func (meta *ManualMeta) Value() (driver.Value, error) {
+	if meta == nil {
+		return nil, nil
+	}
+	res, err := json.Marshal(meta)
+	return string(res), err
+}
+func (ManualMeta) GormDataType() string {
+	return "json"
+}
+
+type Vehicle struct {
+	gorm.Model
+	Meta Meta
 }
