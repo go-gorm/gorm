@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
@@ -120,6 +121,16 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
 		Comment:                tagSetting["COMMENT"],
 		AutoIncrementIncrement: 1,
+	}
+
+	if field.IndirectFieldType.Kind() == reflect.Interface {
+		f := schema.ModelValue.FieldByName(fieldStruct.Name)
+		if f.IsValid() {
+			e := f.Elem()
+			if e.IsValid() {
+				field.IndirectFieldType = e.Type()
+			}
+		}
 	}
 
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
