@@ -251,3 +251,58 @@ func TestBelongsToDefaultValue(t *testing.T) {
 	err := DB.Create(&user).Error
 	AssertEqual(t, err, nil)
 }
+
+func TestBelongsToAssociationUnscoped(t *testing.T) {
+	type ItemParent struct {
+		gorm.Model
+		Logo string `gorm:"not null;type:varchar(50)"`
+	}
+	type ItemChild struct {
+		gorm.Model
+		Name         string `gorm:"type:varchar(50)"`
+		ItemParentID uint
+		ItemParent   ItemParent
+	}
+
+	tx := DB.Session(&gorm.Session{})
+	tx.Migrator().DropTable(&ItemParent{}, &ItemChild{})
+	tx.AutoMigrate(&ItemParent{}, &ItemChild{})
+
+	item := ItemChild{
+		Name: "name",
+		ItemParent: ItemParent{
+			Logo: "logo",
+		},
+	}
+	if err := tx.Create(&item).Error; err != nil {
+		t.Fatalf("failed to create items, got error: %v", err)
+	}
+
+	tx = tx.Debug()
+
+	// test replace
+	if err := tx.Model(&item).Association("ItemParent").Unscoped().Replace(&ItemParent{
+		Logo: "updated logo",
+	}); err != nil {
+		t.Errorf("failed to replace item parent, got error: %v", err)
+	}
+
+	var parents []ItemParent
+	if err := tx.Find(&parents).Error; err != nil {
+		t.Errorf("failed to find item parent, got error: %v", err)
+	}
+	if len(parents) != 1 {
+		t.Errorf("expected %d parents, got %d", 1, len(parents))
+	}
+
+	// test delete
+	if err := tx.Model(&item).Association("ItemParent").Unscoped().Delete(&parents); err != nil {
+		t.Errorf("failed to delete item parent, got error: %v", err)
+	}
+	if err := tx.Find(&parents).Error; err != nil {
+		t.Errorf("failed to find item parent, got error: %v", err)
+	}
+	if len(parents) != 0 {
+		t.Errorf("expected %d parents, got %d", 0, len(parents))
+	}
+}
