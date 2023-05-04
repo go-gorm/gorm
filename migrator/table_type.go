@@ -14,11 +14,6 @@ type TableType struct {
 	CommentValue sql.NullString
 }
 
-// Catalog returns the catalog of the table.
-func (ct TableType) Catalog() string {
-	return ct.CatalogValue
-}
-
 // Schema returns the schema of the table.
 func (ct TableType) Schema() string {
 	return ct.SchemaValue
@@ -32,11 +27,6 @@ func (ct TableType) Name() string {
 // Type returns the type of the table.
 func (ct TableType) Type() string {
 	return ct.TypeValue
-}
-
-// Engine returns the engine of current table.
-func (ct TableType) Engine() (engine string, ok bool) {
-	return ct.EngineValue.String, ct.EngineValue.Valid
 }
 
 // Comment returns the comment of current table.

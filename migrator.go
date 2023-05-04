@@ -58,11 +58,9 @@ type Index interface {
 
 // TableType table type interface
 type TableType interface {
-	Catalog() string
 	Schema() string
 	Name() string
 	Type() string
-	Engine() (engine string, ok bool)
 	Comment() (comment string, ok bool)
 }
 
