@@ -249,7 +249,7 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 		names, sorted []string
 		sortCallback  func(*callback) error
 	)
-	sort.Slice(cs, func(i, j int) bool {
+	sort.SliceStable(cs, func(i, j int) bool {
 		if cs[j].before == "*" && cs[i].before != "*" {
 			return true
 		}
