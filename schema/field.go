@@ -604,6 +604,22 @@ func (field *Field) setupValuerAndSetter() {
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(**data)
 				}
+			case **int:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				}
+			case **int8:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				}
+			case **int16:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				}
+			case **int32:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				}
 			case int64:
 				field.ReflectValueOf(ctx, value).SetInt(data)
 			case int:
@@ -668,6 +684,22 @@ func (field *Field) setupValuerAndSetter() {
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(**data)
 				}
+			case **uint:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				}
+			case **uint8:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				}
+			case **uint16:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				}
+			case **uint32:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				}
 			case uint64:
 				field.ReflectValueOf(ctx, value).SetUint(data)
 			case uint:
@@ -719,6 +751,10 @@ func (field *Field) setupValuerAndSetter() {
 			case **float64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetFloat(**data)
+				}
+			case **float32:
+				if data != nil && *data != nil {
+					field.ReflectValueOf(ctx, value).SetFloat(float64(**data))
 				}
 			case float64:
 				field.ReflectValueOf(ctx, value).SetFloat(data)
