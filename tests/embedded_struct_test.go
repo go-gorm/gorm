@@ -107,6 +107,7 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 		ID    string
 		Name  string
 		Email string
+		Age   int
 	}
 
 	type HNPost struct {
