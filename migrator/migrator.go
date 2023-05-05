@@ -949,3 +949,8 @@ func (m Migrator) GetIndexes(dst interface{}) ([]gorm.Index, error) {
 func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
 	return nil
 }
+
+// TableType return tableType gorm.TableType and execErr error
+func (m Migrator) TableType(dst interface{}) (gorm.TableType, error) {
+	return nil, errors.New("not support")
+}
