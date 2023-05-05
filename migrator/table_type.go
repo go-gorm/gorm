@@ -6,11 +6,9 @@ import (
 
 // TableType table type implements TableType interface
 type TableType struct {
-	CatalogValue string
 	SchemaValue  string
 	NameValue    string
 	TypeValue    string
-	EngineValue  sql.NullString
 	CommentValue sql.NullString
 }
 
