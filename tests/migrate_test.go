@@ -616,7 +616,7 @@ func TestMigrateColumns(t *testing.T) {
 	}
 
 	if err := DB.Table("column_structs").Migrator().DropColumn(&NewColumnStruct{}, "NewName"); err != nil {
-		t.Fatalf("Failed to add column, got %v", err)
+		t.Fatalf("Failed to drop column, got %v", err)
 	}
 
 	if DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "NewName") {
@@ -628,7 +628,7 @@ func TestMigrateColumns(t *testing.T) {
 	}
 
 	if err := DB.Table("column_structs").Migrator().RenameColumn(&NewColumnStruct{}, "NewName", "new_new_name"); err != nil {
-		t.Fatalf("Failed to add column, got %v", err)
+		t.Fatalf("Failed to rename column, got %v", err)
 	}
 
 	if !DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "new_new_name") {
@@ -636,11 +636,27 @@ func TestMigrateColumns(t *testing.T) {
 	}
 
 	if err := DB.Table("column_structs").Migrator().DropColumn(&NewColumnStruct{}, "new_new_name"); err != nil {
-		t.Fatalf("Failed to add column, got %v", err)
+		t.Fatalf("Failed to drop column, got %v", err)
 	}
 
 	if DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "new_new_name") {
 		t.Fatalf("Found deleted column")
+	}
+
+	if err := DB.Table("column_structs").Migrator().AddColumn(&NewColumnStruct{}, "NewName"); err != nil {
+		t.Fatalf("Failed to add column, got %v", err)
+	}
+
+	if err := DB.Migrator().RenameColumn("column_structs", "new_name", "new_new_name"); err != nil {
+		t.Fatalf("Failed to rename column, got %v", err)
+	}
+
+	if !DB.Migrator().HasColumn("column_structs", "new_new_name") {
+		t.Fatalf("Failed to find added column")
+	}
+
+	if err := DB.Migrator().DropColumn("column_structs", "new_new_name"); err != nil {
+		t.Fatalf("Failed to drop column, got %v", err)
 	}
 }
 
