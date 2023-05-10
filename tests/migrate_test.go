@@ -384,6 +384,22 @@ func TestMigrateIndexes(t *testing.T) {
 	if DB.Migrator().HasIndex(&IndexStruct{}, "idx_users_name_1") {
 		t.Fatalf("Should not find index for user's name after delete")
 	}
+
+	if err := DB.Migrator().CreateIndex(&IndexStruct{}, "Name"); err != nil {
+		t.Fatalf("Got error when tried to create index: %+v", err)
+	}
+
+	if err := DB.Migrator().RenameIndex("index_structs", "idx_index_structs_name", "idx_users_name_1"); err != nil {
+		t.Fatalf("no error should happen when rename index, but got %v", err)
+	}
+
+	if !DB.Migrator().HasIndex("index_structs", "idx_users_name_1") {
+		t.Fatalf("Should find index for user's name after rename")
+	}
+
+	if err := DB.Migrator().DropIndex("index_structs", "idx_users_name_1"); err != nil {
+		t.Fatalf("Failed to drop index for user's name, got err %v", err)
+	}
 }
 
 func TestTiDBMigrateColumns(t *testing.T) {
