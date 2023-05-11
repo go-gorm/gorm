@@ -4,7 +4,9 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
@@ -104,10 +106,14 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 	}
 
 	type Author struct {
-		ID    string
-		Name  string
-		Email string
-		Age   int
+		ID          string
+		Name        string
+		Email       string
+		Age         int
+		Content     Content
+		ContentPtr  *Content
+		Birthday    time.Time
+		BirthdayPtr *time.Time
 	}
 
 	type HNPost struct {
@@ -134,6 +140,48 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 
 	if hnPost.Author != nil {
 		t.Errorf("Expected to get back a nil Author but got: %v", hnPost.Author)
+	}
+
+	now := time.Now()
+	NewPost := HNPost{
+		BasePost: &BasePost{Title: "embedded_pointer_type2"},
+		Author: &Author{
+			Name:        "test",
+			Content:     Content{"test"},
+			ContentPtr:  nil,
+			Birthday:    now,
+			BirthdayPtr: nil,
+		},
+	}
+	DB.Create(&NewPost)
+
+	hnPost = HNPost{}
+	if err := DB.First(&hnPost, "title = ?", NewPost.Title).Error; err != nil {
+		t.Errorf("No error should happen when find embedded pointer type, but got %v", err)
+	}
+
+	if hnPost.Title != NewPost.Title {
+		t.Errorf("Should find correct value for embedded pointer type")
+	}
+
+	if hnPost.Author.Name != NewPost.Author.Name {
+		t.Errorf("Expected to get Author name %v but got: %v", NewPost.Author.Name, hnPost.Author.Name)
+	}
+
+	if !reflect.DeepEqual(NewPost.Author.Content, hnPost.Author.Content) {
+		t.Errorf("Expected to get Author content %v but got: %v", NewPost.Author.Content, hnPost.Author.Content)
+	}
+
+	if hnPost.Author.ContentPtr != nil {
+		t.Errorf("Expected to get nil Author contentPtr but got: %v", hnPost.Author.ContentPtr)
+	}
+
+	if NewPost.Author.Birthday.UnixMilli() != hnPost.Author.Birthday.UnixMilli() {
+		t.Errorf("Expected to get Author birthday with %+v but got: %+v", NewPost.Author.Birthday, hnPost.Author.Birthday)
+	}
+
+	if hnPost.Author.BirthdayPtr != nil {
+		t.Errorf("Expected to get nil Author birthdayPtr but got: %+v", hnPost.Author.BirthdayPtr)
 	}
 }
 
