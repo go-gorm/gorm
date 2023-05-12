@@ -385,6 +385,10 @@ func TestMigrateIndexes(t *testing.T) {
 		t.Fatalf("Should not find index for user's name after delete")
 	}
 
+	if err := DB.Migrator().CreateIndex("index_structs", "idx_index_structs_name"); err == nil {
+		t.Fatalf("should failed to create index with table name")
+	}
+
 	if err := DB.Migrator().CreateIndex(&IndexStruct{}, "Name"); err != nil {
 		t.Fatalf("Got error when tried to create index: %+v", err)
 	}
@@ -562,6 +566,9 @@ func TestMigrateColumns(t *testing.T) {
 	if err := DB.Table("column_structs").Migrator().AlterColumn(&ColumnStruct{}, "Name"); err != nil {
 		t.Fatalf("no error should happened when alter column, but got %v", err)
 	}
+	if err := DB.Migrator().AlterColumn("column_structs", "Name"); err == nil {
+		t.Errorf("should failed to alter column with table name")
+	}
 
 	if err := DB.Table("column_structs").AutoMigrate(&ColumnStruct2{}); err != nil {
 		t.Fatalf("no error should happened when auto migrate column, but got %v", err)
@@ -657,6 +664,10 @@ func TestMigrateColumns(t *testing.T) {
 
 	if DB.Table("column_structs").Migrator().HasColumn(&NewColumnStruct{}, "new_new_name") {
 		t.Fatalf("Found deleted column")
+	}
+
+	if err := DB.Migrator().AddColumn("column_structs", "new_name"); err == nil {
+		t.Fatalf("should failed to add column with table name")
 	}
 
 	if err := DB.Table("column_structs").Migrator().AddColumn(&NewColumnStruct{}, "NewName"); err != nil {
