@@ -142,7 +142,7 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 		t.Errorf("Expected to get back a nil Author but got: %v", hnPost.Author)
 	}
 
-	now := time.Now()
+	now := time.Now().Round(time.Second)
 	NewPost := HNPost{
 		BasePost: &BasePost{Title: "embedded_pointer_type2"},
 		Author: &Author{
@@ -190,18 +190,26 @@ type Content struct {
 }
 
 func (c Content) Value() (driver.Value, error) {
-	return json.Marshal(c)
+	// mssql driver with issue on handling null bytes https://github.com/denisenkom/go-mssqldb/issues/530,
+	b, err := json.Marshal(c)
+	return string(b[:]), err
 }
 
 func (c *Content) Scan(src interface{}) error {
-	b, ok := src.([]byte)
-	if !ok {
-		return errors.New("Embedded.Scan byte assertion failed")
-	}
-
 	var value Content
-	if err := json.Unmarshal(b, &value); err != nil {
-		return err
+	str, ok := src.(string)
+	if !ok {
+		byt, ok := src.([]byte)
+		if !ok {
+			return errors.New("Embedded.Scan byte assertion failed")
+		}
+		if err := json.Unmarshal(byt, &value); err != nil {
+			return err
+		}
+	} else {
+		if err := json.Unmarshal([]byte(str), &value); err != nil {
+			return err
+		}
 	}
 
 	*c = value
