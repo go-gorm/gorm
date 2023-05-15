@@ -846,7 +846,7 @@ func (field *Field) setupValuerAndSetter() {
 			field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
 				case **time.Time:
-					if data != nil {
+					if data != nil && *data != nil {
 						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
 					}
 				case time.Time:
@@ -882,14 +882,12 @@ func (field *Field) setupValuerAndSetter() {
 					reflectV := reflect.ValueOf(v)
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
-						if reflectV.IsNil() || !reflectV.IsValid() {
-							field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							return field.Set(ctx, value, reflectV.Elem().Interface())
-						}
+						return field.Set(ctx, value, reflectV.Elem().Interface())
 					} else {
 						fieldValue := field.ReflectValueOf(ctx, value)
 						if fieldValue.IsNil() {
@@ -910,14 +908,12 @@ func (field *Field) setupValuerAndSetter() {
 					reflectV := reflect.ValueOf(v)
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
+					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
-						if reflectV.IsNil() || !reflectV.IsValid() {
-							field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
-						} else {
-							return field.Set(ctx, value, reflectV.Elem().Interface())
-						}
+						return field.Set(ctx, value, reflectV.Elem().Interface())
 					} else {
 						if valuer, ok := v.(driver.Valuer); ok {
 							v, _ = valuer.Value()
