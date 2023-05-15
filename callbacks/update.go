@@ -72,6 +72,7 @@ func Update(config *Config) func(db *gorm.DB) {
 			db.Statement.AddClauseIfNotExists(clause.Update{})
 			if _, ok := db.Statement.Clauses["SET"]; !ok {
 				if set := ConvertToAssignments(db.Statement); len(set) != 0 {
+					defer delete(db.Statement.Clauses, "SET")
 					db.Statement.AddClause(set)
 				} else {
 					return

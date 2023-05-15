@@ -208,11 +208,15 @@ func TestUpdateColumn(t *testing.T) {
 	CheckUser(t, user1, *users[0])
 	CheckUser(t, user2, *users[1])
 
-	DB.Model(users[1]).UpdateColumn("name", "update_column_02_newnew")
+	DB.Model(users[1]).UpdateColumn("name", "update_column_02_newnew").UpdateColumn("age", 19)
 	AssertEqual(t, lastUpdatedAt.UnixNano(), users[1].UpdatedAt.UnixNano())
 
 	if users[1].Name != "update_column_02_newnew" {
 		t.Errorf("user 2's name should be updated, but got %v", users[1].Name)
+	}
+
+	if users[1].Age != 19 {
+		t.Errorf("user 2's name should be updated, but got %v", users[1].Age)
 	}
 
 	DB.Model(users[1]).UpdateColumn("age", gorm.Expr("age + 100 - 50"))
