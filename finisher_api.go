@@ -533,6 +533,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 			tx.ScanRows(rows, dest)
 		} else {
 			tx.RowsAffected = 0
+			tx.AddError(rows.Err())
 		}
 		tx.AddError(rows.Close())
 	}
