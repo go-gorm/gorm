@@ -15,8 +15,8 @@ func TestDialectorWithErrorTranslatorSupport(t *testing.T) {
 	db, _ := gorm.Open(tests.DummyDialector{TranslatedErr: translatedErr})
 
 	err := db.AddError(untranslatedErr)
-	if errors.Is(err, translatedErr) {
-		t.Fatalf("expected err: %v got err: %v", translatedErr, err)
+	if !errors.Is(err, untranslatedErr) {
+		t.Fatalf("expected err: %v got err: %v", untranslatedErr, err)
 	}
 
 	// it should translate error when the TranslateError flag is true
