@@ -809,3 +809,76 @@ func TestUpdateWithDiffSchema(t *testing.T) {
 	AssertEqual(t, err, nil)
 	AssertEqual(t, "update-diff-schema-2", user.Name)
 }
+
+type TokenOwner struct {
+	ID    int
+	Name  string
+	Token Token `gorm:"foreignKey:UserID"`
+}
+
+func (t *TokenOwner) BeforeSave(tx *gorm.DB) error {
+	t.Name += "_name"
+	return nil
+}
+
+type Token struct {
+	UserID  int    `gorm:"primary_key"`
+	Content string `gorm:"type:varchar(100)"`
+}
+
+func (t *Token) BeforeSave(tx *gorm.DB) error {
+	t.Content += "_encrypted"
+	return nil
+}
+
+func TestSaveWithHooks(t *testing.T) {
+	DB.Migrator().DropTable(&Token{}, &TokenOwner{})
+	DB.AutoMigrate(&Token{}, &TokenOwner{})
+
+	saveTokenOwner := func(owner *TokenOwner) (*TokenOwner, error) {
+		var newOwner TokenOwner
+		if err := DB.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Debug().Session(&gorm.Session{FullSaveAssociations: true}).Save(owner).Error; err != nil {
+				return err
+			}
+			if err := tx.Preload("Token").First(&newOwner, owner.ID).Error; err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		return &newOwner, nil
+	}
+
+	owner := TokenOwner{
+		Name:  "user",
+		Token: Token{Content: "token"},
+	}
+	o1, err := saveTokenOwner(&owner)
+	if err != nil {
+		t.Errorf("failed to save token owner, got error: %v", err)
+	}
+	if o1.Name != "user_name" {
+		t.Errorf(`owner name should be "user_name", but got: "%s"`, o1.Name)
+	}
+	if o1.Token.Content != "token_encrypted" {
+		t.Errorf(`token content should be "token_encrypted", but got: "%s"`, o1.Token.Content)
+	}
+
+	owner = TokenOwner{
+		ID:    owner.ID,
+		Name:  "user",
+		Token: Token{Content: "token2"},
+	}
+	o2, err := saveTokenOwner(&owner)
+	if err != nil {
+		t.Errorf("failed to save token owner, got error: %v", err)
+	}
+	if o2.Name != "user_name" {
+		t.Errorf(`owner name should be "user_name", but got: "%s"`, o2.Name)
+	}
+	if o2.Token.Content != "token2_encrypted" {
+		t.Errorf(`token content should be "token2_encrypted", but got: "%s"`, o2.Token.Content)
+	}
+}
