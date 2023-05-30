@@ -91,7 +91,7 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 	}, "_"), ".", "_")
 
 	if ns.IdentifierMaxLength == 0 {
-		ns.IdentifierMaxLength = 63
+		ns.IdentifierMaxLength = 64
 	}
 
 	if utf8.RuneCountInString(formattedName) > ns.IdentifierMaxLength {

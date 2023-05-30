@@ -768,13 +768,13 @@ func TestParseConstraintNameWithSchemaQualifiedLongTableName(t *testing.T) {
 	s, err := schema.Parse(
 		&Book{},
 		&sync.Map{},
-		schema.NamingStrategy{IdentifierMaxLength: 63},
+		schema.NamingStrategy{IdentifierMaxLength: 64},
 	)
 	if err != nil {
 		t.Fatalf("Failed to parse schema")
 	}
 
-	expectedConstraintName := "fk_my_schema_a_very_very_very_very_very_very_very_very_4db13eec"
+	expectedConstraintName := "fk_my_schema_a_very_very_very_very_very_very_very_very_l4db13eec"
 	constraint := s.Relationships.Relations["Author"].ParseConstraint()
 
 	if constraint.Name != expectedConstraintName {
