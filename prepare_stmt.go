@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"sync"
 )
 
@@ -163,14 +164,14 @@ type PreparedStmtTX struct {
 }
 
 func (tx *PreparedStmtTX) Commit() error {
-	if tx.Tx != nil {
+	if tx.Tx != nil && !reflect.ValueOf(tx.Tx).IsNil() {
 		return tx.Tx.Commit()
 	}
 	return ErrInvalidTransaction
 }
 
 func (tx *PreparedStmtTX) Rollback() error {
-	if tx.Tx != nil {
+	if tx.Tx != nil && !reflect.ValueOf(tx.Tx).IsNil() {
 		return tx.Tx.Rollback()
 	}
 	return ErrInvalidTransaction
