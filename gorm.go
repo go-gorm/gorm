@@ -375,6 +375,10 @@ func (db *DB) AddError(err error) error {
 func (db *DB) DB() (*sql.DB, error) {
 	connPool := db.ConnPool
 
+	if connector, ok := connPool.(SQLConnector); ok && connector != nil {
+		return connector.GetSQLConn(db)
+	}
+
 	if dbConnector, ok := connPool.(GetDBConnector); ok && dbConnector != nil {
 		return dbConnector.GetDBConn()
 	}
