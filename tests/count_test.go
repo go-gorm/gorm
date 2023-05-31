@@ -29,7 +29,7 @@ func TestCountWithGroup(t *testing.T) {
 	}
 
 	var count2 int64
-	if err := DB.Debug().Model(&Company{}).Where("name in ?", []string{"company_count_group_b", "company_count_group_c"}).Group("name").Count(&count2).Error; err != nil {
+	if err := DB.Model(&Company{}).Where("name in ?", []string{"company_count_group_b", "company_count_group_c"}).Group("name").Count(&count2).Error; err != nil {
 		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
 	}
 	if count2 != 2 {

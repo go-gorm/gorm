@@ -429,7 +429,6 @@ func TestEmbedPreload(t *testing.T) {
 		},
 	}
 
-	DB = DB.Debug()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			actual := Org{}

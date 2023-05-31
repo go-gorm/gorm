@@ -373,6 +373,9 @@ func TestMigrateIndexes(t *testing.T) {
 		t.Fatalf("no error should happen when rename index, but got %v", err)
 	}
 
+	if DB.Migrator().HasIndex(&IndexStruct{}, "idx_index_structs_name") {
+		t.Fatalf("Should not find index for user's name after rename")
+	}
 	if !DB.Migrator().HasIndex(&IndexStruct{}, "idx_users_name_1") {
 		t.Fatalf("Should find index for user's name after rename")
 	}
@@ -393,8 +396,15 @@ func TestMigrateIndexes(t *testing.T) {
 		t.Fatalf("Got error when tried to create index: %+v", err)
 	}
 
-	if err := DB.Migrator().RenameIndex("index_structs", "idx_index_structs_name", "idx_users_name_1"); err != nil {
-		t.Fatalf("no error should happen when rename index, but got %v", err)
+	if DB.Dialector.Name() == "mysql" {
+		// mysql RenameIndex doesn't support string table
+		if err := DB.Debug().Migrator().RenameIndex(&IndexStruct{}, "idx_index_structs_name", "idx_users_name_1"); err != nil {
+			t.Fatalf("no error should happen when rename index, but got %v", err)
+		}
+	} else {
+		if err := DB.Debug().Migrator().RenameIndex("index_structs", "idx_index_structs_name", "idx_users_name_1"); err != nil {
+			t.Fatalf("no error should happen when rename index, but got %v", err)
+		}
 	}
 
 	if !DB.Migrator().HasIndex("index_structs", "idx_users_name_1") {
@@ -674,8 +684,15 @@ func TestMigrateColumns(t *testing.T) {
 		t.Fatalf("Failed to add column, got %v", err)
 	}
 
-	if err := DB.Migrator().RenameColumn("column_structs", "new_name", "new_new_name"); err != nil {
-		t.Fatalf("Failed to rename column, got %v", err)
+	if DB.Dialector.Name() == "mysql" {
+		// mysql RenameColumn doesn't support string table
+		if err := DB.Migrator().RenameColumn(&NewColumnStruct{}, "new_name", "new_new_name"); err != nil {
+			t.Fatalf("Failed to rename column, got %v", err)
+		}
+	} else {
+		if err := DB.Migrator().RenameColumn("column_structs", "new_name", "new_new_name"); err != nil {
+			t.Fatalf("Failed to rename column, got %v", err)
+		}
 	}
 
 	if !DB.Migrator().HasColumn("column_structs", "new_new_name") {
