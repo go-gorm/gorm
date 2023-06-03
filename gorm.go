@@ -376,7 +376,9 @@ func (db *DB) DB() (*sql.DB, error) {
 	connPool := db.ConnPool
 
 	if dbConnector, ok := connPool.(GetDBConnector); ok && dbConnector != nil {
-		return dbConnector.GetDBConn()
+		if sqldb, err := dbConnector.GetDBConn(); sqldb != nil && err != nil {
+			return sqldb, err
+		}
 	}
 
 	if sqldb, ok := connPool.(*sql.DB); ok && sqldb != nil {
