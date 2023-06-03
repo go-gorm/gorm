@@ -379,7 +379,7 @@ func (db *DB) DB() (*sql.DB, error) {
 		return dbConnector.GetDBConn()
 	}
 
-	if sqldb, ok := connPool.(*sql.DB); ok {
+	if sqldb, ok := connPool.(*sql.DB); ok && sqldb != nil {
 		return sqldb, nil
 	}
 
