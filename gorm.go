@@ -187,15 +187,9 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		}
 	}
 
-	preparedStmt := &PreparedStmtDB{
-		ConnPool:    db.ConnPool,
-		Stmts:       make(map[string]*Stmt),
-		Mux:         &sync.RWMutex{},
-		PreparedSQL: make([]string, 0, 100),
-	}
-	db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
-
 	if config.PrepareStmt {
+		preparedStmt := NewPreparedStmtDB(db.ConnPool)
+		db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		db.ConnPool = preparedStmt
 	}
 
@@ -256,24 +250,30 @@ func (db *DB) Session(config *Session) *DB {
 	}
 
 	if config.PrepareStmt {
+		var preparedStmt *PreparedStmtDB
+
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
-			preparedStmt := v.(*PreparedStmtDB)
-			switch t := tx.Statement.ConnPool.(type) {
-			case Tx:
-				tx.Statement.ConnPool = &PreparedStmtTX{
-					Tx:             t,
-					PreparedStmtDB: preparedStmt,
-				}
-			default:
-				tx.Statement.ConnPool = &PreparedStmtDB{
-					ConnPool: db.Config.ConnPool,
-					Mux:      preparedStmt.Mux,
-					Stmts:    preparedStmt.Stmts,
-				}
-			}
-			txConfig.ConnPool = tx.Statement.ConnPool
-			txConfig.PrepareStmt = true
+			preparedStmt = v.(*PreparedStmtDB)
+		} else {
+			preparedStmt = NewPreparedStmtDB(db.ConnPool)
+			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
+
+		switch t := tx.Statement.ConnPool.(type) {
+		case Tx:
+			tx.Statement.ConnPool = &PreparedStmtTX{
+				Tx:             t,
+				PreparedStmtDB: preparedStmt,
+			}
+		default:
+			tx.Statement.ConnPool = &PreparedStmtDB{
+				ConnPool: db.Config.ConnPool,
+				Mux:      preparedStmt.Mux,
+				Stmts:    preparedStmt.Stmts,
+			}
+		}
+		txConfig.ConnPool = tx.Statement.ConnPool
+		txConfig.PrepareStmt = true
 	}
 
 	if config.SkipHooks {
