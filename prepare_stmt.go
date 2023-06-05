@@ -21,6 +21,15 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
+func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
+	return &PreparedStmtDB{
+		ConnPool:    connPool,
+		Stmts:       make(map[string]*Stmt),
+		Mux:         &sync.RWMutex{},
+		PreparedSQL: make([]string, 0, 100),
+	}
+}
+
 func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
 		return dbConnector.GetDBConn()
