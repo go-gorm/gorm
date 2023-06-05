@@ -77,6 +77,12 @@ type GetDBConnector interface {
 	GetDBConn() (*sql.DB, error)
 }
 
+// GetDBConnectorWithContext represents SQL db connector which takes into
+// account the current database context
+type GetDBConnectorWithContext interface {
+	GetDBConnWithContext(db *DB) (*sql.DB, error)
+}
+
 // Rows rows interface
 type Rows interface {
 	Columns() ([]string, error)
