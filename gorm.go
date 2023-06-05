@@ -181,7 +181,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		err = config.Dialector.Initialize(db)
 
 		if err != nil {
-			if db, _ := db.DB(); db != nil {
+			if db, err := db.DB(); err == nil {
 				_ = db.Close()
 			}
 		}
@@ -376,10 +376,12 @@ func (db *DB) DB() (*sql.DB, error) {
 	connPool := db.ConnPool
 
 	if dbConnector, ok := connPool.(GetDBConnector); ok && dbConnector != nil {
-		return dbConnector.GetDBConn()
+		if sqldb, err := dbConnector.GetDBConn(); sqldb != nil || err != nil {
+			return sqldb, err
+		}
 	}
 
-	if sqldb, ok := connPool.(*sql.DB); ok {
+	if sqldb, ok := connPool.(*sql.DB); ok && sqldb != nil {
 		return sqldb, nil
 	}
 
