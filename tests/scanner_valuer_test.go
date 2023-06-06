@@ -170,10 +170,10 @@ func (data *EncryptedData) Scan(value interface{}) error {
 			return errors.New("Too short")
 		}
 
-		*data = b[3:]
+		*data = append((*data)[0:], b[3:]...)
 		return nil
 	} else if s, ok := value.(string); ok {
-		*data = []byte(s)[3:]
+		*data = []byte(s[3:])
 		return nil
 	}
 
