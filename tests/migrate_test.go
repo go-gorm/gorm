@@ -1106,7 +1106,7 @@ func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
 		t.Errorf("Open err:%v", err)
 	}
 	if debug := os.Getenv("DEBUG"); debug == "true" {
-		db.Logger = db.Logger.LogMode(logger.Info)
+		db.Logger = db.Logger.LogMode(logger.Silent)
 	} else if debug == "false" {
 		db.Logger = db.Logger.LogMode(logger.Silent)
 	}
