@@ -488,7 +488,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check unique
-	if unique, ok := columnType.Unique(); ok && unique != field.Unique {
+	if unique, ok := columnType.Unique(); ok && !unique && (field.Unique || field.UniqueIndex) {
 		// not primary key
 		if !field.PrimaryKey {
 			alterColumn = true

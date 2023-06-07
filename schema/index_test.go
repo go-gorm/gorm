@@ -65,7 +65,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_name": {
 			Name:   "idx_name",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", UniqueIndex: true}}},
 		},
 		"idx_user_indices_name3": {
 			Name:  "idx_user_indices_name3",
@@ -81,7 +81,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_user_indices_name4": {
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", UniqueIndex: true}}},
 		},
 		"idx_user_indices_name5": {
 			Name:    "idx_user_indices_name5",
@@ -102,12 +102,12 @@ func TestParseIndex(t *testing.T) {
 		},
 		"idx_id": {
 			Name:   "idx_id",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", UniqueIndex: true}}},
 		},
 		"idx_oid": {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", UniqueIndex: true}}},
 		},
 		"type": {
 			Name:   "type",
