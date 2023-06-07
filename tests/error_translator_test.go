@@ -54,6 +54,7 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 		t.Fatalf("failed to create record: %v", err)
 	}
 
+	// check for ErrDuplicatedKey error
 	err = db.Create(&City{Name: "Istanbul"}).Error
 	if !errors.Is(err, gorm.ErrDuplicatedKey) {
 		t.Fatalf("expected err: %v got err: %v", gorm.ErrDuplicatedKey, err)
