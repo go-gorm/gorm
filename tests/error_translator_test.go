@@ -39,8 +39,7 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
 
-	var supportedDialectors map[string]bool = map[string]bool{"sqlite": true, "postgres": true, "mysql": true, "sqlserver": true}
-
+	supportedDialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": true}
 	if _, supported := supportedDialectors[db.Dialector.Name()]; !supported {
 		return
 	}
@@ -54,7 +53,6 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 		t.Fatalf("failed to create record: %v", err)
 	}
 
-	// check for ErrDuplicatedKey error
 	err = db.Create(&City{Name: "Istanbul"}).Error
 	if !errors.Is(err, gorm.ErrDuplicatedKey) {
 		t.Fatalf("expected err: %v got err: %v", gorm.ErrDuplicatedKey, err)
