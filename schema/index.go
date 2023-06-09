@@ -13,8 +13,8 @@ type Index struct {
 	Type    string // btree, hash, gist, spgist, gin, and brin
 	Where   string
 	Comment string
-	Option  string // WITH PARSER parser_name
-	Fields  []IndexOption
+	Option  string        // WITH PARSER parser_name
+	Fields  []IndexOption // Note: IndexOption's Field maybe the same
 }
 
 type IndexOption struct {

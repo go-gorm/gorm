@@ -1608,7 +1608,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 	const table = "unique_struct"
 
 	checkColumnType := func(t *testing.T, fieldName string, unique bool) {
-		columnTypes, err := DB.Debug().Migrator().ColumnTypes(table)
+		columnTypes, err := DB.Migrator().ColumnTypes(table)
 		if err != nil {
 			t.Fatalf("%v: failed to get column types, got error: %v", utils.FileWithLineNum(), err)
 		}
@@ -1749,10 +1749,10 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			if err := DB.Migrator().DropTable(table); err != nil {
 				t.Fatalf("failed to drop table, got error: %v", err)
 			}
-			if err := DB.Debug().Table(table).AutoMigrate(test.from); err != nil {
+			if err := DB.Table(table).AutoMigrate(test.from); err != nil {
 				t.Fatalf("failed to migrate table, got error: %v", err)
 			}
-			if err := DB.Debug().Table(table).AutoMigrate(test.to); err != nil {
+			if err := DB.Table(table).AutoMigrate(test.to); err != nil {
 				t.Fatalf("failed to migrate table, got error: %v", err)
 			}
 			test.checkFunc(t)
