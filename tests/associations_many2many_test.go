@@ -358,7 +358,7 @@ func TestDuplicateMany2ManyAssociation(t *testing.T) {
 }
 
 func TestConcurrentMany2ManyAssociation(t *testing.T) {
-	db, err := OpenTestConnection()
+	db, err := OpenTestConnection(&gorm.Config{})
 	if err != nil {
 		t.Fatalf("open test connection failed, err: %+v", err)
 	}

@@ -27,3 +27,34 @@ func TestDialectorWithErrorTranslatorSupport(t *testing.T) {
 		t.Fatalf("expected err: %v got err: %v", translatedErr, err)
 	}
 }
+
+func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
+	type City struct {
+		gorm.Model
+		Name string `gorm:"unique"`
+	}
+
+	db, err := OpenTestConnection(&gorm.Config{TranslateError: true})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	dialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": true, "sqlserver": true}
+	if supported, found := dialectors[db.Dialector.Name()]; !(found && supported) {
+		return
+	}
+
+	if err = db.AutoMigrate(&City{}); err != nil {
+		t.Fatalf("failed to migrate cities table, got error: %v", err)
+	}
+
+	err = db.Create(&City{Name: "Kabul"}).Error
+	if err != nil {
+		t.Fatalf("failed to create record: %v", err)
+	}
+
+	err = db.Create(&City{Name: "Kabul"}).Error
+	if !errors.Is(err, gorm.ErrDuplicatedKey) {
+		t.Fatalf("expected err: %v got err: %v", gorm.ErrDuplicatedKey, err)
+	}
+}
