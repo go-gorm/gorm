@@ -566,7 +566,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	}
 }
 
-type Constraint struct {
+type FKConstraint struct {
 	Name            string
 	Field           *Field
 	Schema          *Schema
@@ -577,7 +577,31 @@ type Constraint struct {
 	OnUpdate        string
 }
 
-func (rel *Relationship) ParseConstraint() *Constraint {
+func (constraint *FKConstraint) GetName() string { return constraint.Name }
+
+func (constraint *FKConstraint) Build() (sql string, vars []interface{}) {
+	sql = "CONSTRAINT ? FOREIGN KEY ? REFERENCES ??"
+	if constraint.OnDelete != "" {
+		sql += " ON DELETE " + constraint.OnDelete
+	}
+
+	if constraint.OnUpdate != "" {
+		sql += " ON UPDATE " + constraint.OnUpdate
+	}
+
+	var foreignKeys, references []interface{}
+	for _, field := range constraint.ForeignKeys {
+		foreignKeys = append(foreignKeys, clause.Column{Name: field.DBName})
+	}
+
+	for _, field := range constraint.References {
+		references = append(references, clause.Column{Name: field.DBName})
+	}
+	vars = append(vars, clause.Table{Name: constraint.Name}, foreignKeys, clause.Table{Name: constraint.ReferenceSchema.Table}, references)
+	return
+}
+
+func (rel *Relationship) ParseConstraint() *FKConstraint {
 	str := rel.Field.TagSettings["CONSTRAINT"]
 	if str == "-" {
 		return nil
@@ -617,7 +641,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 		name = rel.Schema.namer.RelationshipFKName(*rel)
 	}
 
-	constraint := Constraint{
+	constraint := FKConstraint{
 		Name:     name,
 		Field:    rel.Field,
 		OnUpdate: settings["ONUPDATE"],

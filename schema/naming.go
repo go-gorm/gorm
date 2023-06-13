@@ -19,6 +19,7 @@ type Namer interface {
 	RelationshipFKName(Relationship) string
 	CheckerName(table, column string) string
 	IndexName(table, column string) string
+	UniqueName(table, column string) string
 }
 
 // Replacer replacer interface like strings.Replacer
@@ -83,6 +84,11 @@ func (ns NamingStrategy) CheckerName(table, column string) string {
 // IndexName generate index name
 func (ns NamingStrategy) IndexName(table, column string) string {
 	return ns.formatName("idx", table, ns.toDBName(column))
+}
+
+// UniqueName generate unique constraint name
+func (ns NamingStrategy) UniqueName(table, column string) string {
+	return ns.formatName("uni", table, ns.toDBName(column))
 }
 
 func (ns NamingStrategy) formatName(prefix, table, name string) string {
