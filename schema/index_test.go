@@ -66,7 +66,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_name": {
 			Name:   "idx_name",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", UniqueIndex: "idx_name"}}},
 		},
 		"idx_user_indices_name3": {
 			Name:  "idx_user_indices_name3",
@@ -82,7 +82,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_user_indices_name4": {
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", UniqueIndex: "idx_user_indices_name4"}}},
 		},
 		"idx_user_indices_name5": {
 			Name:    "idx_user_indices_name5",
@@ -103,12 +103,12 @@ func TestParseIndex(t *testing.T) {
 		},
 		"idx_id": {
 			Name:   "idx_id",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
 		"idx_oid": {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
 		"type": {
 			Name:   "type",
@@ -191,7 +191,7 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 		"idx_index_tests_field_c": {
 			Name:   "idx_index_tests_field_c",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldC", UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldC", UniqueIndex: "idx_index_tests_field_c"}}},
 		},
 		"idx_index_tests_field_d": {
 			Name:  "idx_index_tests_field_d",
@@ -225,7 +225,7 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 		"idx_index_tests_field_g": {
 			Name:   "idx_index_tests_field_g",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldG", Unique: true, UniqueIndex: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldG", Unique: true, UniqueIndex: "idx_index_tests_field_g"}}},
 		},
 		"uniq_field_h1_h2": {
 			Name:  "uniq_field_h1_h2",

@@ -15,6 +15,7 @@ import (
 	"gorm.io/driver/postgres"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
@@ -925,7 +926,8 @@ func TestCurrentTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AutoMigrate err:%v", err)
 	}
-	AssertEqual(t, true, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at"))
+	AssertEqual(t, true, DB.Migrator().HasConstraint(&CurrentTimestampTest{}, "uni_current_timestamp_tests_time_at"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&CurrentTimestampTest{}, "time_at_2"))
 }
 
@@ -987,7 +989,8 @@ func TestUniqueColumn(t *testing.T) {
 	}
 
 	// not trigger alert column
-	AssertEqual(t, true, DB.Migrator().HasIndex(&UniqueTest{}, "name"))
+	AssertEqual(t, true, DB.Migrator().HasConstraint(&UniqueTest{}, "uni_unique_tests_name"))
+	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_1"))
 	AssertEqual(t, false, DB.Migrator().HasIndex(&UniqueTest{}, "name_2"))
 
@@ -1648,13 +1651,12 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		if field.Unique != unique {
 			t.Fatalf("%v: %q column %q unique should be %v but got %v", utils.FileWithLineNum(), stmt.Schema.Table, fieldName, unique, field.Unique)
 		}
-		if field.UniqueIndex != uniqueIndex {
+		if (field.UniqueIndex != "") != uniqueIndex {
 			t.Fatalf("%v: %q column %q uniqueIndex should be %v but got %v", utils.FileWithLineNum(), stmt.Schema, fieldName, uniqueIndex, field.UniqueIndex)
 		}
 	}
 
-	// not unique
-	type (
+	type ( // not unique
 		UniqueStruct1 struct {
 			Name string `gorm:"size:10"`
 		}
@@ -1773,5 +1775,27 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			}
 			test.checkFunc(t)
 		})
+	}
+
+	if DB.Dialector.Name() == "mysql" {
+		compatibilityTests := []TestCase{
+			{name: "oldUnique to notUnique", to: UniqueStruct1{}, checkFunc: checkNotUnique},
+			{name: "oldUnique to unique", to: UniqueStruct3{}, checkFunc: checkUnique},
+			{name: "oldUnique to uniqueIndex", to: UniqueStruct5{}, checkFunc: checkUniqueIndex},
+		}
+		for _, test := range compatibilityTests {
+			t.Run(test.name, func(t *testing.T) {
+				if err := DB.Migrator().DropTable(table); err != nil {
+					t.Fatalf("failed to drop table, got error: %v", err)
+				}
+				if err := DB.Exec("CREATE TABLE ? (`name` varchar(10) UNIQUE)", clause.Table{Name: table}).Error; err != nil {
+					t.Fatalf("failed to create table, got error: %v", err)
+				}
+				if err := DB.Debug().Table(table).AutoMigrate(test.to); err != nil {
+					t.Fatalf("failed to migrate table, got error: %v", err)
+				}
+				test.checkFunc(t)
+			})
+		}
 	}
 }

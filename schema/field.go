@@ -69,7 +69,7 @@ type Field struct {
 	DefaultValueInterface  interface{}
 	NotNull                bool
 	Unique                 bool
-	UniqueIndex            bool
+	UniqueIndex            string
 	Comment                string
 	Size                   int
 	Precision              int

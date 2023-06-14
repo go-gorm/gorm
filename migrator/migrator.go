@@ -549,11 +549,28 @@ func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, co
 	}
 
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		// We're currently only receiving boolean values on `Unique` tag,
+		// so the UniqueConstraint name is fixed
 		constraint := m.DB.NamingStrategy.UniqueName(stmt.Table, field.DBName)
-		index := m.DB.NamingStrategy.IndexName(stmt.Table, field.DBName)
-
 		if m.UniqueAffectedByUniqueIndex {
 			if unique {
+				// Clean up redundant unique indexes
+				indexes, _ := queryTx.Migrator().GetIndexes(value)
+				for _, index := range indexes {
+					if uni, ok := index.Unique(); !ok || !uni {
+						continue
+					}
+					if columns := index.Columns(); len(columns) != 1 || columns[0] != field.DBName {
+						continue
+					}
+					if name := index.Name(); name == constraint || name == field.UniqueIndex {
+						continue
+					}
+					if err := execTx.Migrator().DropIndex(value, index.Name()); err != nil {
+						return err
+					}
+				}
+
 				hasConstraint := queryTx.Migrator().HasConstraint(value, constraint)
 				switch {
 				case field.Unique && !hasConstraint:
@@ -567,29 +584,16 @@ func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, co
 					if err := execTx.Migrator().DropConstraint(value, constraint); err != nil {
 						return err
 					}
-					if field.UniqueIndex {
-						if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+					if field.UniqueIndex != "" {
+						if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
 							return err
 						}
 					}
 				}
 
-				hasIndex := queryTx.Migrator().HasIndex(value, index)
-				switch {
-				case field.UniqueIndex && !hasIndex:
-					if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+				if field.UniqueIndex != "" && !queryTx.Migrator().HasIndex(value, field.UniqueIndex) {
+					if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
 						return err
-					}
-				// field isn't UniqueIndex but ColumnType's Unique is reported by UniqueIndex
-				case !field.UniqueIndex && hasIndex:
-					if err := execTx.Migrator().DropIndex(value, index); err != nil {
-						return err
-					}
-					// create normal index
-					if idx := stmt.Schema.LookIndex(index); idx != nil {
-						if err := execTx.Migrator().CreateIndex(value, index); err != nil {
-							return err
-						}
 					}
 				}
 			} else {
@@ -598,8 +602,8 @@ func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, co
 						return err
 					}
 				}
-				if field.UniqueIndex {
-					if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+				if field.UniqueIndex != "" {
+					if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
 						return err
 					}
 				}
