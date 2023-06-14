@@ -26,6 +26,8 @@ type Migrator struct {
 // Config schema config
 type Config struct {
 	CreateIndexAfterCreateTable bool
+	// Unique in ColumnType is affected by UniqueIndex, e.g. MySQL
+	UniqueAffectedByUniqueIndex bool
 	DB                          *gorm.DB
 	gorm.Dialector
 }
@@ -115,9 +117,8 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 					return err
 				}
 				var (
-					parseIndexes           = stmt.Schema.ParseIndexes()
-					parseCheckConstraints  = stmt.Schema.ParseCheckConstraints()
-					parseUniqueConstraints = stmt.Schema.ParseUniqueConstraints()
+					parseIndexes          = stmt.Schema.ParseIndexes()
+					parseCheckConstraints = stmt.Schema.ParseCheckConstraints()
 				)
 				for _, dbName := range stmt.Schema.DBNames {
 					var foundColumn gorm.ColumnType
@@ -153,14 +154,6 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 							if err := execTx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
 								return err
 							}
-						}
-					}
-				}
-
-				for _, uni := range parseUniqueConstraints {
-					if !queryTx.Migrator().HasConstraint(value, uni.Name) {
-						if err := execTx.Migrator().CreateConstraint(value, uni.Name); err != nil {
-							return err
 						}
 					}
 				}
@@ -438,6 +431,10 @@ func (m Migrator) RenameColumn(value interface{}, oldName, newName string) error
 
 // MigrateColumn migrate column
 func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnType gorm.ColumnType) error {
+	if field.IgnoreMigration {
+		return nil
+	}
+
 	// found, smart migrate
 	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
@@ -497,14 +494,6 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	// check unique
-	if unique, ok := columnType.Unique(); ok && !unique && (field.Unique || field.UniqueIndex) {
-		// not primary key
-		if !field.PrimaryKey {
-			alterColumn = true
-		}
-	}
-
 	// check default value
 	if !field.PrimaryKey {
 		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
@@ -533,11 +522,99 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	if alterColumn && !field.IgnoreMigration {
-		return m.DB.Migrator().AlterColumn(value, field.DBName)
+	if alterColumn {
+		if err := m.DB.Migrator().AlterColumn(value, field.DBName); err != nil {
+			return err
+		}
+	}
+
+	if err := m.MigrateColumnUnique(value, field, columnType); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, columnType gorm.ColumnType) error {
+	unique, ok := columnType.Unique()
+	if !ok || field.PrimaryKey {
+		return nil // skip primary key
+	}
+
+	queryTx := m.DB.Session(&gorm.Session{})
+	execTx := queryTx
+	if m.DB.DryRun {
+		queryTx.DryRun = false
+		execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
+	}
+
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		constraint := m.DB.NamingStrategy.UniqueName(stmt.Table, field.DBName)
+		index := m.DB.NamingStrategy.IndexName(stmt.Table, field.DBName)
+
+		if m.UniqueAffectedByUniqueIndex {
+			if unique {
+				hasConstraint := queryTx.Migrator().HasConstraint(value, constraint)
+				switch {
+				case field.Unique && !hasConstraint:
+					if field.Unique {
+						if err := execTx.Migrator().CreateConstraint(value, constraint); err != nil {
+							return err
+						}
+					}
+				// field isn't Unique but ColumnType's Unique is reported by UniqueConstraint.
+				case !field.Unique && hasConstraint:
+					if err := execTx.Migrator().DropConstraint(value, constraint); err != nil {
+						return err
+					}
+					if field.UniqueIndex {
+						if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+							return err
+						}
+					}
+				}
+
+				hasIndex := queryTx.Migrator().HasIndex(value, index)
+				switch {
+				case field.UniqueIndex && !hasIndex:
+					if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+						return err
+					}
+				// field isn't UniqueIndex but ColumnType's Unique is reported by UniqueIndex
+				case !field.UniqueIndex && hasIndex:
+					if err := execTx.Migrator().DropIndex(value, index); err != nil {
+						return err
+					}
+					// create normal index
+					if idx := stmt.Schema.LookIndex(index); idx != nil {
+						if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+							return err
+						}
+					}
+				}
+			} else {
+				if field.Unique {
+					if err := execTx.Migrator().CreateConstraint(value, constraint); err != nil {
+						return err
+					}
+				}
+				if field.UniqueIndex {
+					if err := execTx.Migrator().CreateIndex(value, index); err != nil {
+						return err
+					}
+				}
+				return nil
+			}
+		} else {
+			if unique && !field.Unique {
+				return execTx.Migrator().DropConstraint(value, constraint)
+			}
+			if !unique && field.Unique {
+				return execTx.Migrator().CreateConstraint(value, constraint)
+			}
+		}
+		return nil
+	})
 }
 
 // ColumnTypes return columnTypes []gorm.ColumnType and execErr error
@@ -610,7 +687,22 @@ func (m Migrator) DropView(name string) error {
 }
 
 // GuessConstraintAndTable guess statement's constraint and it's table based on name
-func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ schema.ConstraintInterface, table string) {
+//
+// Deprecated: use GuessConstraintInterfaceAndTable instead.
+func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (*schema.Constraint, *schema.CheckConstraint, string) {
+	constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
+	switch c := constraint.(type) {
+	case *schema.Constraint:
+		return c, nil, table
+	case *schema.CheckConstraint:
+		return nil, c, table
+	default:
+		return nil, nil, table
+	}
+}
+
+// GuessConstraintInterfaceAndTable guess statement's constraint and it's table based on name
+func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name string) (_ schema.ConstraintInterface, table string) {
 	if stmt.Schema == nil {
 		return nil, stmt.Table
 	}
@@ -669,7 +761,7 @@ func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (_ 
 // CreateConstraint create constraint
 func (m Migrator) CreateConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		constraint, table := m.GuessConstraintAndTable(stmt, name)
+		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {
 			vars := []interface{}{clause.Table{Name: table}}
 			if stmt.TableExpr != nil {
@@ -685,7 +777,7 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 // DropConstraint drop constraint
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
-		constraint, table := m.GuessConstraintAndTable(stmt, name)
+		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {
 			name = constraint.GetName()
 		}
@@ -698,7 +790,7 @@ func (m Migrator) HasConstraint(value interface{}, name string) bool {
 	var count int64
 	m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		currentDatabase := m.DB.Migrator().CurrentDatabase()
-		constraint, table := m.GuessConstraintAndTable(stmt, name)
+		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {
 			name = constraint.GetName()
 		}

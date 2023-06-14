@@ -566,7 +566,8 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	}
 }
 
-type FKConstraint struct {
+// Constraint is ForeignKey Constraint
+type Constraint struct {
 	Name            string
 	Field           *Field
 	Schema          *Schema
@@ -577,9 +578,9 @@ type FKConstraint struct {
 	OnUpdate        string
 }
 
-func (constraint *FKConstraint) GetName() string { return constraint.Name }
+func (constraint *Constraint) GetName() string { return constraint.Name }
 
-func (constraint *FKConstraint) Build() (sql string, vars []interface{}) {
+func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 	sql = "CONSTRAINT ? FOREIGN KEY ? REFERENCES ??"
 	if constraint.OnDelete != "" {
 		sql += " ON DELETE " + constraint.OnDelete
@@ -601,7 +602,7 @@ func (constraint *FKConstraint) Build() (sql string, vars []interface{}) {
 	return
 }
 
-func (rel *Relationship) ParseConstraint() *FKConstraint {
+func (rel *Relationship) ParseConstraint() *Constraint {
 	str := rel.Field.TagSettings["CONSTRAINT"]
 	if str == "-" {
 		return nil
@@ -641,7 +642,7 @@ func (rel *Relationship) ParseConstraint() *FKConstraint {
 		name = rel.Schema.namer.RelationshipFKName(*rel)
 	}
 
-	constraint := FKConstraint{
+	constraint := Constraint{
 		Name:     name,
 		Field:    rel.Field,
 		OnUpdate: settings["ONUPDATE"],
