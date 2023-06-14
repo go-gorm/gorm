@@ -1637,7 +1637,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		assert.ElementsMatch(t, expected, indexes)
 	}
 
-	checkField := func(model interface{}, fieldName string, unique, uniqueIndex bool) {
+	checkField := func(model interface{}, fieldName string, unique bool, uniqueIndex string) {
 		stmt := &gorm.Statement{DB: DB}
 		err := stmt.Parse(model)
 		if err != nil {
@@ -1651,7 +1651,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		if field.Unique != unique {
 			t.Fatalf("%v: %q column %q unique should be %v but got %v", utils.FileWithLineNum(), stmt.Schema.Table, fieldName, unique, field.Unique)
 		}
-		if (field.UniqueIndex != "") != uniqueIndex {
+		if field.UniqueIndex != uniqueIndex {
 			t.Fatalf("%v: %q column %q uniqueIndex should be %v but got %v", utils.FileWithLineNum(), stmt.Schema, fieldName, uniqueIndex, field.UniqueIndex)
 		}
 	}
@@ -1664,8 +1664,8 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			Name string `gorm:"size:20"`
 		}
 	)
-	checkField(&UniqueStruct1{}, "name", false, false)
-	checkField(&UniqueStruct2{}, "name", false, false)
+	checkField(&UniqueStruct1{}, "name", false, "")
+	checkField(&UniqueStruct2{}, "name", false, "")
 
 	type ( // unique
 		UniqueStruct3 struct {
@@ -1675,8 +1675,8 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			Name string `gorm:"size:40;unique"`
 		}
 	)
-	checkField(&UniqueStruct3{}, "name", true, false)
-	checkField(&UniqueStruct4{}, "name", true, false)
+	checkField(&UniqueStruct3{}, "name", true, "")
+	checkField(&UniqueStruct4{}, "name", true, "")
 
 	type ( // uniqueIndex
 		UniqueStruct5 struct {
@@ -1690,12 +1690,17 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			NickName string `gorm:"size:70;uniqueIndex:idx_us6_all_names"`
 		}
 	)
-	checkField(&UniqueStruct5{}, "name", false, true)
-	checkField(&UniqueStruct6{}, "name", false, true)
+	checkField(&UniqueStruct5{}, "name", false, "idx_unique_struct5_name")
+	checkField(&UniqueStruct6{}, "name", false, "idx_unique_struct6_name")
 
-	checkField(&UniqueStruct7{}, "name", false, false)
-	checkField(&UniqueStruct7{}, "nick_name", false, false)
-	checkField(&UniqueStruct7{}, "nick_name", false, false)
+	checkField(&UniqueStruct7{}, "name", false, "")
+	checkField(&UniqueStruct7{}, "nick_name", false, "")
+	checkField(&UniqueStruct7{}, "nick_name", false, "")
+
+	type UniqueStruct8 struct { // unique and uniqueIndex
+		Name string `gorm:"size:60;unique;index:my_index,unique;"`
+	}
+	checkField(&UniqueStruct8{}, "name", true, "my_index")
 
 	type TestCase struct {
 		name      string
@@ -1722,21 +1727,37 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		checkColumnType(t, "name", false)
 		checkIndex(t, []gorm.Index{uniqueIndex})
 	}
+	checkUniqueAndUniqueIndex := func(t *testing.T) {
+		checkColumnType(t, "name", true)
+		checkIndex(t, []gorm.Index{uniqueIndex})
+	}
 	if DB.Dialector.Name() == "mysql" {
 		// in mysql, unique equals uniqueIndex
+		uniqueConstraintIndex := &migrator.Index{
+			TableName:       table,
+			NameValue:       DB.Config.NamingStrategy.UniqueName(table, "name"),
+			ColumnList:      []string{"name"},
+			PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
+			UniqueValue:     sql.NullBool{Bool: true, Valid: true},
+		}
+
 		checkUnique = func(t *testing.T) {
 			checkColumnType(t, "name", true)
-			checkIndex(t, []gorm.Index{&migrator.Index{
-				TableName:       table,
-				NameValue:       DB.Config.NamingStrategy.UniqueName(table, "name"),
-				ColumnList:      []string{"name"},
-				PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
-				UniqueValue:     sql.NullBool{Bool: true, Valid: true},
-			}})
+			checkIndex(t, []gorm.Index{uniqueConstraintIndex})
 		}
 		checkUniqueIndex = func(t *testing.T) {
 			checkColumnType(t, "name", true)
 			checkIndex(t, []gorm.Index{uniqueIndex})
+		}
+		checkUniqueAndUniqueIndex = func(t *testing.T) {
+			checkColumnType(t, "name", true)
+			checkIndex(t, []gorm.Index{uniqueConstraintIndex, &migrator.Index{
+				TableName:       table,
+				NameValue:       "my_index",
+				ColumnList:      []string{"name"},
+				PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
+				UniqueValue:     sql.NullBool{Bool: true, Valid: true},
+			}})
 		}
 	}
 
@@ -1744,12 +1765,15 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		{name: "notUnique to notUnique", from: &UniqueStruct1{}, to: &UniqueStruct2{}, checkFunc: checkNotUnique},
 		{name: "notUnique to unique", from: &UniqueStruct1{}, to: &UniqueStruct3{}, checkFunc: checkUnique},
 		{name: "notUnique to uniqueIndex", from: &UniqueStruct1{}, to: &UniqueStruct5{}, checkFunc: checkUniqueIndex},
+		{name: "notUnique to uniqueAndUniqueIndex", from: &UniqueStruct1{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
 		{name: "unique to notUnique", from: &UniqueStruct3{}, to: &UniqueStruct1{}, checkFunc: checkNotUnique},
 		{name: "unique to unique", from: &UniqueStruct3{}, to: &UniqueStruct4{}, checkFunc: checkUnique},
 		{name: "unique to uniqueIndex", from: &UniqueStruct3{}, to: &UniqueStruct5{}, checkFunc: checkUniqueIndex},
+		{name: "unique to uniqueAndUniqueIndex", from: &UniqueStruct3{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
 		{name: "uniqueIndex to notUnique", from: &UniqueStruct5{}, to: &UniqueStruct2{}, checkFunc: checkNotUnique},
 		{name: "uniqueIndex to unique", from: &UniqueStruct5{}, to: &UniqueStruct3{}, checkFunc: checkUnique},
 		{name: "uniqueIndex to uniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct6{}, checkFunc: checkUniqueIndex},
+		{name: "uniqueIndex to uniqueAndUniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
 		{name: "uniqueIndex to multi uniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct7{}, checkFunc: func(t *testing.T) {
 			checkColumnType(t, "name", false)
 			checkColumnType(t, "nick_name", false)
@@ -1782,6 +1806,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			{name: "oldUnique to notUnique", to: UniqueStruct1{}, checkFunc: checkNotUnique},
 			{name: "oldUnique to unique", to: UniqueStruct3{}, checkFunc: checkUnique},
 			{name: "oldUnique to uniqueIndex", to: UniqueStruct5{}, checkFunc: checkUniqueIndex},
+			{name: "oldUnique to uniqueAndUniqueIndex", to: UniqueStruct5{}, checkFunc: checkUniqueAndUniqueIndex},
 		}
 		for _, test := range compatibilityTests {
 			t.Run(test.name, func(t *testing.T) {
