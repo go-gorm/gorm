@@ -1610,33 +1610,6 @@ func TestMigrateExistingBoolColumnPG(t *testing.T) {
 func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 	const table = "unique_struct"
 
-	checkColumnType := func(t *testing.T, fieldName string, unique bool) {
-		columnTypes, err := DB.Migrator().ColumnTypes(table)
-		if err != nil {
-			t.Fatalf("%v: failed to get column types, got error: %v", utils.FileWithLineNum(), err)
-		}
-		var found gorm.ColumnType
-		for _, columnType := range columnTypes {
-			if columnType.Name() == fieldName {
-				found = columnType
-			}
-		}
-		if found == nil {
-			t.Fatalf("%v: failed to find column type %q", utils.FileWithLineNum(), fieldName)
-		}
-		if actualUnique, ok := found.Unique(); !ok || actualUnique != unique {
-			t.Fatalf("%v: column %q unique should be %v but got %v", utils.FileWithLineNum(), fieldName, unique, actualUnique)
-		}
-	}
-
-	checkIndex := func(t *testing.T, expected []gorm.Index) {
-		indexes, err := DB.Migrator().GetIndexes(table)
-		if err != nil {
-			t.Fatalf("%v: failed to get indexes, got error: %v", utils.FileWithLineNum(), err)
-		}
-		assert.ElementsMatch(t, expected, indexes)
-	}
-
 	checkField := func(model interface{}, fieldName string, unique bool, uniqueIndex string) {
 		stmt := &gorm.Statement{DB: DB}
 		err := stmt.Parse(model)
@@ -1698,9 +1671,9 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 	checkField(&UniqueStruct7{}, "nick_name", false, "")
 
 	type UniqueStruct8 struct { // unique and uniqueIndex
-		Name string `gorm:"size:60;unique;index:my_index,unique;"`
+		Name string `gorm:"size:60;unique;index:my_us8_index,unique;"`
 	}
-	checkField(&UniqueStruct8{}, "name", true, "my_index")
+	checkField(&UniqueStruct8{}, "name", true, "my_us8_index")
 
 	type TestCase struct {
 		name      string
@@ -1708,39 +1681,45 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		checkFunc func(t *testing.T)
 	}
 
-	checkNotUnique := func(t *testing.T) {
-		checkColumnType(t, "name", false)
-		checkIndex(t, nil)
-	}
-	checkUnique := func(t *testing.T) {
-		checkColumnType(t, "name", true)
-		checkIndex(t, nil)
-	}
-	uniqueIndex := &migrator.Index{
-		TableName:       table,
-		NameValue:       DB.Config.NamingStrategy.IndexName(table, "name"),
-		ColumnList:      []string{"name"},
-		PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
-		UniqueValue:     sql.NullBool{Bool: true, Valid: true},
-	}
-	checkUniqueIndex := func(t *testing.T) {
-		checkColumnType(t, "name", false)
-		checkIndex(t, []gorm.Index{uniqueIndex})
-	}
-	checkUniqueAndUniqueIndex := func(t *testing.T) {
-		checkColumnType(t, "name", true)
-		checkIndex(t, []gorm.Index{uniqueIndex})
-	}
-	if DB.Dialector.Name() == "mysql" {
-		// in mysql, unique equals uniqueIndex
-		uniqueConstraintIndex := &migrator.Index{
-			TableName:       table,
-			NameValue:       DB.Config.NamingStrategy.UniqueName(table, "name"),
-			ColumnList:      []string{"name"},
-			PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
-			UniqueValue:     sql.NullBool{Bool: true, Valid: true},
+	checkColumnType := func(t *testing.T, fieldName string, unique bool) {
+		columnTypes, err := DB.Migrator().ColumnTypes(table)
+		if err != nil {
+			t.Fatalf("%v: failed to get column types, got error: %v", utils.FileWithLineNum(), err)
 		}
+		var found gorm.ColumnType
+		for _, columnType := range columnTypes {
+			if columnType.Name() == fieldName {
+				found = columnType
+			}
+		}
+		if found == nil {
+			t.Fatalf("%v: failed to find column type %q", utils.FileWithLineNum(), fieldName)
+		}
+		if actualUnique, ok := found.Unique(); !ok || actualUnique != unique {
+			t.Fatalf("%v: column %q unique should be %v but got %v", utils.FileWithLineNum(), fieldName, unique, actualUnique)
+		}
+	}
 
+	checkIndex := func(t *testing.T, expected []gorm.Index) {
+		indexes, err := DB.Migrator().GetIndexes(table)
+		if err != nil {
+			t.Fatalf("%v: failed to get indexes, got error: %v", utils.FileWithLineNum(), err)
+		}
+		assert.ElementsMatch(t, expected, indexes)
+	}
+
+	uniqueIndex := &migrator.Index{TableName: table, NameValue: DB.Config.NamingStrategy.IndexName(table, "name"), ColumnList: []string{"name"}, PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true}, UniqueValue: sql.NullBool{Bool: true, Valid: true}}
+	myIndex := &migrator.Index{TableName: table, NameValue: "my_us8_index", ColumnList: []string{"name"}, PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true}, UniqueValue: sql.NullBool{Bool: true, Valid: true}}
+	mulIndex := &migrator.Index{TableName: table, NameValue: "idx_us6_all_names", ColumnList: []string{"name", "nick_name"}, PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true}, UniqueValue: sql.NullBool{Bool: true, Valid: true}}
+
+	var checkNotUnique, checkUnique, checkUniqueIndex, checkMyIndex, checkMulIndex func(t *testing.T)
+	// UniqueAffectedByUniqueIndex is true
+	if DB.Dialector.Name() == "mysql" {
+		uniqueConstraintIndex := &migrator.Index{TableName: table, NameValue: DB.Config.NamingStrategy.UniqueName(table, "name"), ColumnList: []string{"name"}, PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true}, UniqueValue: sql.NullBool{Bool: true, Valid: true}}
+		checkNotUnique = func(t *testing.T) {
+			checkColumnType(t, "name", false)
+			checkIndex(t, nil)
+		}
 		checkUnique = func(t *testing.T) {
 			checkColumnType(t, "name", true)
 			checkIndex(t, []gorm.Index{uniqueConstraintIndex})
@@ -1749,15 +1728,34 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			checkColumnType(t, "name", true)
 			checkIndex(t, []gorm.Index{uniqueIndex})
 		}
-		checkUniqueAndUniqueIndex = func(t *testing.T) {
+		checkMyIndex = func(t *testing.T) {
 			checkColumnType(t, "name", true)
-			checkIndex(t, []gorm.Index{uniqueConstraintIndex, &migrator.Index{
-				TableName:       table,
-				NameValue:       "my_index",
-				ColumnList:      []string{"name"},
-				PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
-				UniqueValue:     sql.NullBool{Bool: true, Valid: true},
-			}})
+			checkIndex(t, []gorm.Index{uniqueConstraintIndex, myIndex})
+		}
+		checkMulIndex = func(t *testing.T) {
+			checkColumnType(t, "name", false)
+			checkColumnType(t, "nick_name", false)
+			checkIndex(t, []gorm.Index{mulIndex})
+		}
+	} else {
+		checkNotUnique = func(t *testing.T) { checkColumnType(t, "name", false) }
+		checkUnique = func(t *testing.T) { checkColumnType(t, "name", true) }
+		checkUniqueIndex = func(t *testing.T) {
+			checkColumnType(t, "name", false)
+			checkIndex(t, []gorm.Index{uniqueIndex})
+		}
+		checkMyIndex = func(t *testing.T) {
+			checkColumnType(t, "name", true)
+			if !DB.Migrator().HasIndex(table, myIndex.Name()) {
+				t.Errorf("%v: should has index %s but not", utils.FileWithLineNum(), myIndex.Name())
+			}
+		}
+		checkMulIndex = func(t *testing.T) {
+			checkColumnType(t, "name", false)
+			checkColumnType(t, "nick_name", false)
+			if !DB.Migrator().HasIndex(table, mulIndex.Name()) {
+				t.Errorf("%v: should has index %s but not", utils.FileWithLineNum(), mulIndex.Name())
+			}
 		}
 	}
 
@@ -1765,26 +1763,16 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		{name: "notUnique to notUnique", from: &UniqueStruct1{}, to: &UniqueStruct2{}, checkFunc: checkNotUnique},
 		{name: "notUnique to unique", from: &UniqueStruct1{}, to: &UniqueStruct3{}, checkFunc: checkUnique},
 		{name: "notUnique to uniqueIndex", from: &UniqueStruct1{}, to: &UniqueStruct5{}, checkFunc: checkUniqueIndex},
-		{name: "notUnique to uniqueAndUniqueIndex", from: &UniqueStruct1{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
+		{name: "notUnique to uniqueAndUniqueIndex", from: &UniqueStruct1{}, to: &UniqueStruct8{}, checkFunc: checkMyIndex},
 		{name: "unique to notUnique", from: &UniqueStruct3{}, to: &UniqueStruct1{}, checkFunc: checkNotUnique},
 		{name: "unique to unique", from: &UniqueStruct3{}, to: &UniqueStruct4{}, checkFunc: checkUnique},
 		{name: "unique to uniqueIndex", from: &UniqueStruct3{}, to: &UniqueStruct5{}, checkFunc: checkUniqueIndex},
-		{name: "unique to uniqueAndUniqueIndex", from: &UniqueStruct3{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
+		{name: "unique to uniqueAndUniqueIndex", from: &UniqueStruct3{}, to: &UniqueStruct8{}, checkFunc: checkMyIndex},
 		{name: "uniqueIndex to notUnique", from: &UniqueStruct5{}, to: &UniqueStruct2{}, checkFunc: checkNotUnique},
 		{name: "uniqueIndex to unique", from: &UniqueStruct5{}, to: &UniqueStruct3{}, checkFunc: checkUnique},
 		{name: "uniqueIndex to uniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct6{}, checkFunc: checkUniqueIndex},
-		{name: "uniqueIndex to uniqueAndUniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct8{}, checkFunc: checkUniqueAndUniqueIndex},
-		{name: "uniqueIndex to multi uniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct7{}, checkFunc: func(t *testing.T) {
-			checkColumnType(t, "name", false)
-			checkColumnType(t, "nick_name", false)
-			checkIndex(t, []gorm.Index{&migrator.Index{
-				TableName:       table,
-				NameValue:       "idx_us6_all_names",
-				ColumnList:      []string{"name", "nick_name"},
-				PrimaryKeyValue: sql.NullBool{Bool: false, Valid: true},
-				UniqueValue:     sql.NullBool{Bool: true, Valid: true},
-			}})
-		}},
+		{name: "uniqueIndex to uniqueAndUniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct8{}, checkFunc: checkMyIndex},
+		{name: "uniqueIndex to multi uniqueIndex", from: &UniqueStruct5{}, to: &UniqueStruct7{}, checkFunc: checkMulIndex},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -1806,7 +1794,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 			{name: "oldUnique to notUnique", to: UniqueStruct1{}, checkFunc: checkNotUnique},
 			{name: "oldUnique to unique", to: UniqueStruct3{}, checkFunc: checkUnique},
 			{name: "oldUnique to uniqueIndex", to: UniqueStruct5{}, checkFunc: checkUniqueIndex},
-			{name: "oldUnique to uniqueAndUniqueIndex", to: UniqueStruct5{}, checkFunc: checkUniqueAndUniqueIndex},
+			{name: "oldUnique to uniqueAndUniqueIndex", to: UniqueStruct8{}, checkFunc: checkMyIndex},
 		}
 		for _, test := range compatibilityTests {
 			t.Run(test.name, func(t *testing.T) {
@@ -1816,7 +1804,7 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 				if err := DB.Exec("CREATE TABLE ? (`name` varchar(10) UNIQUE)", clause.Table{Name: table}).Error; err != nil {
 					t.Fatalf("failed to create table, got error: %v", err)
 				}
-				if err := DB.Debug().Table(table).AutoMigrate(test.to); err != nil {
+				if err := DB.Table(table).AutoMigrate(test.to); err != nil {
 					t.Fatalf("failed to migrate table, got error: %v", err)
 				}
 				test.checkFunc(t)
