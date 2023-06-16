@@ -44,6 +44,8 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 		return
 	}
 
+	DB.Migrator().DropTable(&City{})
+
 	if err = db.AutoMigrate(&City{}); err != nil {
 		t.Fatalf("failed to migrate cities table, got error: %v", err)
 	}
@@ -60,16 +62,18 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 }
 
 func TestSupportedDialectorWithErrForeignKeyViolated(t *testing.T) {
-	type Country struct {
+	tidbSkip(t, "not support the foreign key feature")
+
+	type City struct {
 		gorm.Model
 		Name string `gorm:"unique"`
 	}
 
-	type City struct {
+	type Museum struct {
 		gorm.Model
-		Name      string `gorm:"unique"`
-		CountryID uint
-		Country   Country `gorm:"Constraint:OnUpdate:CASCADE,OnDelete:CASCADE;FOREIGNKEY:CountryID;References:ID"`
+		Name   string `gorm:"unique"`
+		CityID uint
+		City   City `gorm:"Constraint:OnUpdate:CASCADE,OnDelete:CASCADE;FOREIGNKEY:CityID;References:ID"`
 	}
 
 	db, err := OpenTestConnection(&gorm.Config{TranslateError: true})
@@ -77,28 +81,30 @@ func TestSupportedDialectorWithErrForeignKeyViolated(t *testing.T) {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
 
-	dialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": false, "sqlserver": true}
+	dialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": true, "sqlserver": true}
 	if supported, found := dialectors[db.Dialector.Name()]; !(found && supported) {
 		return
 	}
 
-	if err = db.AutoMigrate(&Country{}, &City{}); err != nil {
+	DB.Migrator().DropTable(&City{}, &Museum{})
+
+	if err = db.AutoMigrate(&City{}, &Museum{}); err != nil {
 		t.Fatalf("failed to migrate countries & cities tables, got error: %v", err)
 	}
 
-	country := &Country{Name: "Netherlands"}
+	city := City{Name: "Amsterdam"}
 
-	err = db.Create(country).Error
-	if err != nil {
-		t.Fatalf("failed to create country: %v", err)
-	}
-
-	err = db.Create(&City{Name: "Amsterdam", CountryID: country.ID}).Error
+	err = db.Create(&city).Error
 	if err != nil {
 		t.Fatalf("failed to create city: %v", err)
 	}
 
-	err = db.Create(&City{Name: "Rotterdam", CountryID: 123}).Error
+	err = db.Create(&Museum{Name: "Eye Filmmuseum", CityID: city.ID}).Error
+	if err != nil {
+		t.Fatalf("failed to create museum: %v", err)
+	}
+
+	err = db.Create(&Museum{Name: "Dungeon", CityID: 123}).Error
 	if !errors.Is(err, gorm.ErrForeignKeyViolated) {
 		t.Fatalf("expected err: %v got err: %v", gorm.ErrForeignKeyViolated, err)
 	}
