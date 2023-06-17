@@ -9,7 +9,6 @@ require (
 	github.com/lib/pq v1.10.8
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/stretchr/testify v1.8.1
-	golang.org/x/crypto v0.8.0 // indirect
 	gorm.io/driver/mysql v1.5.0
 	gorm.io/driver/postgres v1.5.0
 	gorm.io/driver/sqlite v1.5.0
