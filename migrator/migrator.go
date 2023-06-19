@@ -26,8 +26,6 @@ type Migrator struct {
 // Config schema config
 type Config struct {
 	CreateIndexAfterCreateTable bool
-	// Unique in ColumnType is affected by UniqueIndex, e.g. MySQL
-	UniqueAffectedByUniqueIndex bool
 	DB                          *gorm.DB
 	gorm.Dialector
 }
@@ -97,15 +95,20 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 	return
 }
 
+func (m Migrator) GetQueryAndExecTx() (queryTx, execTx *gorm.DB) {
+	queryTx = m.DB.Session(&gorm.Session{})
+	execTx = queryTx
+	if m.DB.DryRun {
+		queryTx.DryRun = false
+		execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
+	}
+	return queryTx, execTx
+}
+
 // AutoMigrate auto migrate values
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, true) {
-		queryTx := m.DB.Session(&gorm.Session{})
-		execTx := queryTx
-		if m.DB.DryRun {
-			queryTx.DryRun = false
-			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
-		}
+		queryTx, execTx := m.GetQueryAndExecTx()
 		if !queryTx.Migrator().HasTable(value) {
 			if err := execTx.Migrator().CreateTable(value); err != nil {
 				return err
@@ -528,7 +531,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	if err := m.MigrateColumnUnique(value, field, columnType); err != nil {
+	if err := m.DB.Migrator().MigrateColumnUnique(value, field, columnType); err != nil {
 		return err
 	}
 
@@ -540,82 +543,16 @@ func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, co
 	if !ok || field.PrimaryKey {
 		return nil // skip primary key
 	}
-
-	queryTx := m.DB.Session(&gorm.Session{})
-	execTx := queryTx
-	if m.DB.DryRun {
-		queryTx.DryRun = false
-		execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
-	}
-
+	// By default, ColumnType's Unique is not affected by UniqueIndex, so we don't care about UniqueIndex.
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		// We're currently only receiving boolean values on `Unique` tag,
 		// so the UniqueConstraint name is fixed
 		constraint := m.DB.NamingStrategy.UniqueName(stmt.Table, field.DBName)
-		if m.UniqueAffectedByUniqueIndex {
-			if unique {
-				// Clean up redundant unique indexes
-				indexes, _ := queryTx.Migrator().GetIndexes(value)
-				for _, index := range indexes {
-					if uni, ok := index.Unique(); !ok || !uni {
-						continue
-					}
-					if columns := index.Columns(); len(columns) != 1 || columns[0] != field.DBName {
-						continue
-					}
-					if name := index.Name(); name == constraint || name == field.UniqueIndex {
-						continue
-					}
-					if err := execTx.Migrator().DropIndex(value, index.Name()); err != nil {
-						return err
-					}
-				}
-
-				hasConstraint := queryTx.Migrator().HasConstraint(value, constraint)
-				switch {
-				case field.Unique && !hasConstraint:
-					if field.Unique {
-						if err := execTx.Migrator().CreateConstraint(value, constraint); err != nil {
-							return err
-						}
-					}
-				// field isn't Unique but ColumnType's Unique is reported by UniqueConstraint.
-				case !field.Unique && hasConstraint:
-					if err := execTx.Migrator().DropConstraint(value, constraint); err != nil {
-						return err
-					}
-					if field.UniqueIndex != "" {
-						if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
-							return err
-						}
-					}
-				}
-
-				if field.UniqueIndex != "" && !queryTx.Migrator().HasIndex(value, field.UniqueIndex) {
-					if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
-						return err
-					}
-				}
-			} else {
-				if field.Unique {
-					if err := execTx.Migrator().CreateConstraint(value, constraint); err != nil {
-						return err
-					}
-				}
-				if field.UniqueIndex != "" {
-					if err := execTx.Migrator().CreateIndex(value, field.UniqueIndex); err != nil {
-						return err
-					}
-				}
-				return nil
-			}
-		} else {
-			if unique && !field.Unique {
-				return execTx.Migrator().DropConstraint(value, constraint)
-			}
-			if !unique && field.Unique {
-				return execTx.Migrator().CreateConstraint(value, constraint)
-			}
+		if unique && !field.Unique {
+			return m.DB.Migrator().DropConstraint(value, constraint)
+		}
+		if !unique && field.Unique {
+			return m.DB.Migrator().CreateConstraint(value, constraint)
 		}
 		return nil
 	})
