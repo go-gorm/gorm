@@ -26,7 +26,7 @@ var (
 
 func init() {
 	var err error
-	if DB, err = OpenTestConnection(); err != nil {
+	if DB, err = OpenTestConnection(&gorm.Config{}); err != nil {
 		log.Printf("failed to connect database, got error %v", err)
 		os.Exit(1)
 	} else {
@@ -49,7 +49,7 @@ func init() {
 	}
 }
 
-func OpenTestConnection() (db *gorm.DB, err error) {
+func OpenTestConnection(cfg *gorm.Config) (db *gorm.DB, err error) {
 	dbDSN := os.Getenv("GORM_DSN")
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
@@ -57,7 +57,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		if dbDSN == "" {
 			dbDSN = mysqlDSN
 		}
-		db, err = gorm.Open(mysql.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(mysql.Open(dbDSN), cfg)
 	case "postgres":
 		log.Println("testing postgres...")
 		if dbDSN == "" {
@@ -66,7 +66,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
 			PreferSimpleProtocol: true,
-		}), &gorm.Config{})
+		}), cfg)
 	case "sqlserver":
 		// go install github.com/microsoft/go-sqlcmd/cmd/sqlcmd@latest
 		// SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930
@@ -80,16 +80,16 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		if dbDSN == "" {
 			dbDSN = sqlserverDSN
 		}
-		db, err = gorm.Open(sqlserver.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(sqlserver.Open(dbDSN), cfg)
 	case "tidb":
 		log.Println("testing tidb...")
 		if dbDSN == "" {
 			dbDSN = tidbDSN
 		}
-		db, err = gorm.Open(mysql.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(mysql.Open(dbDSN), cfg)
 	default:
 		log.Println("testing sqlite3...")
-		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
+		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), cfg)
 	}
 
 	if err != nil {

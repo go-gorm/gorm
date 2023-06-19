@@ -92,7 +92,7 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 }
 
 func TestPreparedStmtDeadlock(t *testing.T) {
-	tx, err := OpenTestConnection()
+	tx, err := OpenTestConnection(&gorm.Config{})
 	AssertEqual(t, err, nil)
 
 	sqlDB, _ := tx.DB()
@@ -127,7 +127,7 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 }
 
 func TestPreparedStmtError(t *testing.T) {
-	tx, err := OpenTestConnection()
+	tx, err := OpenTestConnection(&gorm.Config{})
 	AssertEqual(t, err, nil)
 
 	sqlDB, _ := tx.DB()

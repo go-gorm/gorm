@@ -361,7 +361,7 @@ func TestDisabledNestedTransaction(t *testing.T) {
 }
 
 func TestTransactionOnClosedConn(t *testing.T) {
-	DB, err := OpenTestConnection()
+	DB, err := OpenTestConnection(&gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
