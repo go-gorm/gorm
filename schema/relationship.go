@@ -590,11 +590,12 @@ func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 		sql += " ON UPDATE " + constraint.OnUpdate
 	}
 
-	var foreignKeys, references []interface{}
+	foreignKeys := make([]interface{}, 0, len(constraint.ForeignKeys))
 	for _, field := range constraint.ForeignKeys {
 		foreignKeys = append(foreignKeys, clause.Column{Name: field.DBName})
 	}
 
+	references := make([]interface{}, 0, len(constraint.References))
 	for _, field := range constraint.References {
 		references = append(references, clause.Column{Name: field.DBName})
 	}
