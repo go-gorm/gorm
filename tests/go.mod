@@ -8,6 +8,7 @@ require (
 	github.com/jinzhu/now v1.1.5
 	github.com/lib/pq v1.10.8
 	github.com/mattn/go-sqlite3 v1.14.16 // indirect
+	gorm.io/datatypes v1.2.0
 	gorm.io/driver/mysql v1.5.0
 	gorm.io/driver/postgres v1.5.0
 	gorm.io/driver/sqlite v1.5.0
