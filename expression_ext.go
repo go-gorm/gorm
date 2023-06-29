@@ -601,6 +601,13 @@ func (db *DB) UpdateFields(fields ...string) *DB {
 	return db.clone().Set("gorm:save_associations", false).Set("gorm:association_save_reference", false).Update(sets)
 }
 
+// UpdateFieldsWithoutHooks updates the specified fields of the current model without calling any
+// Update hooks and without touching the UpdatedAt column (if any exists).
+// The specified fields have to be the names of the struct variables.
+func (db *DB) UpdateFieldsWithoutHooks(fields ...string) *DB {
+	return db.clone().Set("gorm:update_column", true).UpdateFields(fields...)
+}
+
 func (db *DB) SelectFields(fields ...string) *DB {
 	selects := strings.Join(fields, ", ")
 
