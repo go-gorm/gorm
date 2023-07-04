@@ -49,4 +49,8 @@ var (
 	ErrDuplicatedKey = errors.New("duplicated key not allowed")
 	// ErrForeignKeyViolated occurs when there is a foreign key constraint violation
 	ErrForeignKeyViolated = errors.New("violates foreign key constraint")
+	// ErrLockTimeout occurs when a statement timed outs while waiting for row or table locks.
+	ErrLockTimeout = errors.New("lock wait timeout")
+	// ErrSerialisationFailure occurs when SERIALIZABLE tx can not be serialised with some other tx
+	ErrSerialisationFailure = errors.New("TX can not be serialized")
 )
