@@ -16,7 +16,7 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.19', '1.18']
+        go: ['^1', '1.19', '1.18']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
