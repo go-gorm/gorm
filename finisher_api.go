@@ -670,8 +670,10 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	switch beginner := tx.Statement.ConnPool.(type) {
 	case TxBeginner:
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.callbacks.Begin().Execute(tx)
 	case ConnPoolBeginner:
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.callbacks.Begin().Execute(tx)
 	default:
 		err = ErrInvalidTransaction
 	}
@@ -687,6 +689,7 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 func (db *DB) Commit() *DB {
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil && !reflect.ValueOf(committer).IsNil() {
 		db.AddError(committer.Commit())
+		db.callbacks.Commit().Execute(db)
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
@@ -698,6 +701,7 @@ func (db *DB) Rollback() *DB {
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		if !reflect.ValueOf(committer).IsNil() {
 			db.AddError(committer.Rollback())
+			db.callbacks.Rollback().Execute(db)
 		}
 	} else {
 		db.AddError(ErrInvalidTransaction)

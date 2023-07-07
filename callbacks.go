@@ -15,12 +15,15 @@ import (
 func initializeCallbacks(db *DB) *callbacks {
 	return &callbacks{
 		processors: map[string]*processor{
-			"create": {db: db},
-			"query":  {db: db},
-			"update": {db: db},
-			"delete": {db: db},
-			"row":    {db: db},
-			"raw":    {db: db},
+			"create":   {db: db},
+			"query":    {db: db},
+			"update":   {db: db},
+			"delete":   {db: db},
+			"row":      {db: db},
+			"raw":      {db: db},
+			"begin":    {db: db},
+			"rollback": {db: db},
+			"commit":   {db: db},
 		},
 	}
 }
@@ -46,6 +49,18 @@ type callback struct {
 	match     func(*DB) bool
 	handler   func(*DB)
 	processor *processor
+}
+
+func (cs *callbacks) Begin() *processor {
+	return cs.processors["begin"]
+}
+
+func (cs *callbacks) Rollback() *processor {
+	return cs.processors["rollback"]
+}
+
+func (cs *callbacks) Commit() *processor {
+	return cs.processors["commit"]
 }
 
 func (cs *callbacks) Create() *processor {
