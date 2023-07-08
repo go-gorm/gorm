@@ -672,6 +672,8 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
 	case ConnPoolBeginner:
 		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+	case TxCommitter:
+		// ignore begin function to continue exist transaction
 	default:
 		err = ErrInvalidTransaction
 	}
