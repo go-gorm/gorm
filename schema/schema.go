@@ -332,7 +332,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	defer func() {
 		if schema.err != nil {
 			logger.Default.Error(context.Background(), schema.err.Error())
-			cacheStore.Delete(modelType)
+			cacheStore.Delete(schemaCacheKey)
 		}
 	}()
 
