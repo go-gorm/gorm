@@ -90,6 +90,10 @@ func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Fie
 	return nil
 }
 
+type DynamicTabler interface {
+	DynamicTableName() string
+}
+
 type Tabler interface {
 	TableName() string
 }
@@ -98,22 +102,15 @@ type TablerWithNamer interface {
 	TableName(Namer) string
 }
 
-// Parse get data type from dialector
-func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
-}
-
-// ParseWithSpecialTableName get data type from dialector with extra schema table
-func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+func getSchemaCacheKeyAndModelType(dest interface{}) (modelType reflect.Type, tableName string, err error) {
 	if dest == nil {
-		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+		return nil, "", fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
-
 	value := reflect.ValueOf(dest)
 	if value.Kind() == reflect.Ptr && value.IsNil() {
 		value = reflect.New(value.Type().Elem())
 	}
-	modelType := reflect.Indirect(value).Type()
+	modelType = reflect.Indirect(value).Type()
 
 	if modelType.Kind() == reflect.Interface {
 		modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
@@ -125,9 +122,29 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	if modelType.Kind() != reflect.Struct {
 		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+			return nil, "", fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 		}
-		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		return nil, "", fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+	}
+
+	if value.CanInterface() {
+		if tabler, ok := value.Interface().(DynamicTabler); ok {
+			tableName = tabler.DynamicTableName()
+		}
+	}
+	return
+}
+
+// Parse get data type from dialector
+func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
+}
+
+// ParseWithSpecialTableName get data type from dialector with extra schema table
+func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+	modelType, tableName, err := getSchemaCacheKeyAndModelType(dest)
+	if err != nil {
+		return nil, err
 	}
 
 	// Cache the Schema for performance,
@@ -135,6 +152,8 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	var schemaCacheKey interface{}
 	if specialTableName != "" {
 		schemaCacheKey = fmt.Sprintf("%p-%s", modelType, specialTableName)
+	} else if tableName != "" {
+		schemaCacheKey = tableName
 	} else {
 		schemaCacheKey = modelType
 	}
@@ -148,15 +167,17 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	modelValue := reflect.New(modelType)
-	tableName := namer.TableName(modelType.Name())
-	if tabler, ok := modelValue.Interface().(Tabler); ok {
-		tableName = tabler.TableName()
-	}
-	if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
-		tableName = tabler.TableName(namer)
-	}
-	if en, ok := namer.(embeddedNamer); ok {
-		tableName = en.Table
+	if tableName == "" {
+		tableName = namer.TableName(modelType.Name())
+		if tabler, ok := modelValue.Interface().(Tabler); ok {
+			tableName = tabler.TableName()
+		}
+		if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
+			tableName = tabler.TableName(namer)
+		}
+		if en, ok := namer.(embeddedNamer); ok {
+			tableName = en.Table
+		}
 	}
 	if specialTableName != "" && specialTableName != tableName {
 		tableName = specialTableName
@@ -350,19 +371,18 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 }
 
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	modelType := reflect.ValueOf(dest).Type()
-	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
-		modelType = modelType.Elem()
+	modelType, tableName, err := getSchemaCacheKeyAndModelType(dest)
+	if err != nil {
+		return nil, err
+	}
+	var schemaCacheKey interface{}
+	if tableName != "" {
+		schemaCacheKey = tableName
+	} else {
+		schemaCacheKey = modelType
 	}
 
-	if modelType.Kind() != reflect.Struct {
-		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
-		}
-		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
-	}
-
-	if v, ok := cacheStore.Load(modelType); ok {
+	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		return v.(*Schema), nil
 	}
 
