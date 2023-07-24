@@ -28,10 +28,11 @@ type Replacer interface {
 
 // NamingStrategy tables, columns naming strategy
 type NamingStrategy struct {
-	TablePrefix   string
-	SingularTable bool
-	NameReplacer  Replacer
-	NoLowerCase   bool
+	TablePrefix         string
+	SingularTable       bool
+	NameReplacer        Replacer
+	NoLowerCase         bool
+	IdentifierMaxLength int
 }
 
 // TableName convert string to table name
@@ -89,12 +90,16 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 		prefix, table, name,
 	}, "_"), ".", "_")
 
-	if utf8.RuneCountInString(formattedName) > 64 {
+	if ns.IdentifierMaxLength == 0 {
+		ns.IdentifierMaxLength = 64
+	}
+
+	if utf8.RuneCountInString(formattedName) > ns.IdentifierMaxLength {
 		h := sha1.New()
 		h.Write([]byte(formattedName))
 		bs := h.Sum(nil)
 
-		formattedName = formattedName[0:56] + hex.EncodeToString(bs)[:8]
+		formattedName = formattedName[0:ns.IdentifierMaxLength-8] + hex.EncodeToString(bs)[:8]
 	}
 	return formattedName
 }

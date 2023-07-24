@@ -57,6 +57,19 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Fatalf("Should be able to find committed record, but got %v", err)
 	}
+
+	t.Run("this is test nested transaction and prepareStmt coexist case", func(t *testing.T) {
+		// enable prepare statement
+		tx3 := DB.Session(&gorm.Session{PrepareStmt: true})
+		if err := tx3.Transaction(func(tx4 *gorm.DB) error {
+			// nested transaction
+			return tx4.Transaction(func(tx5 *gorm.DB) error {
+				return tx5.First(&User{}, "name = ?", "transaction-2").Error
+			})
+		}); err != nil {
+			t.Fatalf("prepare statement and nested transcation coexist" + err.Error())
+		}
+	})
 }
 
 func TestCancelTransaction(t *testing.T) {
@@ -348,7 +361,7 @@ func TestDisabledNestedTransaction(t *testing.T) {
 }
 
 func TestTransactionOnClosedConn(t *testing.T) {
-	DB, err := OpenTestConnection()
+	DB, err := OpenTestConnection(&gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}

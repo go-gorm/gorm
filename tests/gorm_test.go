@@ -3,8 +3,18 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/driver/mysql"
+
 	"gorm.io/gorm"
 )
+
+func TestOpen(t *testing.T) {
+	dsn := "gorm:gorm@tcp(localhost:9910)/gorm?loc=Asia%2FHongKong" // invalid loc
+	_, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err == nil {
+		t.Fatalf("should returns error but got nil")
+	}
+}
 
 func TestReturningWithNullToZeroValues(t *testing.T) {
 	dialect := DB.Dialector.Name()

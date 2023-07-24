@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"reflect"
 	"sync"
 )
 
@@ -18,6 +19,15 @@ type PreparedStmtDB struct {
 	PreparedSQL []string
 	Mux         *sync.RWMutex
 	ConnPool
+}
+
+func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
+	return &PreparedStmtDB{
+		ConnPool:    connPool,
+		Stmts:       make(map[string]*Stmt),
+		Mux:         &sync.RWMutex{},
+		PreparedSQL: make([]string, 0, 100),
+	}
 }
 
 func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
@@ -163,14 +173,14 @@ type PreparedStmtTX struct {
 }
 
 func (tx *PreparedStmtTX) Commit() error {
-	if tx.Tx != nil {
+	if tx.Tx != nil && !reflect.ValueOf(tx.Tx).IsNil() {
 		return tx.Tx.Commit()
 	}
 	return ErrInvalidTransaction
 }
 
 func (tx *PreparedStmtTX) Rollback() error {
-	if tx.Tx != nil {
+	if tx.Tx != nil && !reflect.ValueOf(tx.Tx).IsNil() {
 		return tx.Tx.Rollback()
 	}
 	return ErrInvalidTransaction

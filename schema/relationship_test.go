@@ -768,7 +768,7 @@ func TestParseConstraintNameWithSchemaQualifiedLongTableName(t *testing.T) {
 	s, err := schema.Parse(
 		&Book{},
 		&sync.Map{},
-		schema.NamingStrategy{},
+		schema.NamingStrategy{IdentifierMaxLength: 64},
 	)
 	if err != nil {
 		t.Fatalf("Failed to parse schema")
