@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -658,6 +659,18 @@ func TestOrWithAllFields(t *testing.T) {
 	}
 }
 
+type Int64 int64
+
+func (v Int64) Value() (driver.Value, error) {
+	return v - 1, nil
+}
+
+func (f *Int64) Scan(v interface{}) error {
+	y := v.(int64)
+	*f = Int64(y + 1)
+	return nil
+}
+
 func TestPluck(t *testing.T) {
 	users := []*User{
 		GetUser("pluck-user1", Config{}),
@@ -685,6 +698,11 @@ func TestPluck(t *testing.T) {
 		t.Errorf("got error when pluck id: %v", err)
 	}
 
+	var ids2 []Int64
+	if err := DB.Model(User{}).Where("name like ?", "pluck-user%").Pluck("id", &ids2).Error; err != nil {
+		t.Errorf("got error when pluck id: %v", err)
+	}
+
 	for idx, name := range names {
 		if name != users[idx].Name {
 			t.Errorf("Unexpected result on pluck name, got %+v", names)
@@ -693,6 +711,12 @@ func TestPluck(t *testing.T) {
 
 	for idx, id := range ids {
 		if int(id) != int(users[idx].ID) {
+			t.Errorf("Unexpected result on pluck id, got %+v", ids)
+		}
+	}
+
+	for idx, id := range ids2 {
+		if int(id) != int(users[idx].ID+1) {
 			t.Errorf("Unexpected result on pluck id, got %+v", ids)
 		}
 	}
