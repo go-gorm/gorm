@@ -399,11 +399,12 @@ func (db *DB) getInstance() *DB {
 		if db.clone == 1 {
 			// clone with new statement
 			tx.Statement = &Statement{
-				DB:       tx,
-				ConnPool: db.Statement.ConnPool,
-				Context:  db.Statement.Context,
-				Clauses:  map[string]clause.Clause{},
-				Vars:     make([]interface{}, 0, 8),
+				DB:        tx,
+				ConnPool:  db.Statement.ConnPool,
+				Context:   db.Statement.Context,
+				Clauses:   map[string]clause.Clause{},
+				Vars:      make([]interface{}, 0, 8),
+				SkipHooks: db.Statement.SkipHooks,
 			}
 		} else {
 			// with clone statement
