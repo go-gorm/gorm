@@ -37,3 +37,7 @@ type AfterDeleteInterface interface {
 type AfterFindInterface interface {
 	AfterFind(*gorm.DB) error
 }
+
+type BeforeFindInterface interface {
+	BeforeFind(*gorm.DB) error
+}

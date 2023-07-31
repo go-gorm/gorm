@@ -38,7 +38,7 @@ type Schema struct {
 	BeforeUpdate, AfterUpdate bool
 	BeforeDelete, AfterDelete bool
 	BeforeSave, AfterSave     bool
-	AfterFind                 bool
+	BeforeFind, AfterFind     bool
 	err                       error
 	initialized               chan struct{}
 	namer                     Namer
@@ -288,7 +288,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	callbacks := []string{"BeforeCreate", "AfterCreate", "BeforeUpdate", "AfterUpdate", "BeforeSave", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind"}
+	callbacks := []string{"BeforeCreate", "AfterCreate", "BeforeUpdate", "AfterUpdate", "BeforeSave", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind", "BeforeFind"}
 	for _, name := range callbacks {
 		if methodValue := modelValue.MethodByName(name); methodValue.IsValid() {
 			switch methodValue.Type().String() {
