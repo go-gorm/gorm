@@ -1601,7 +1601,7 @@ func TestMigrateExistingBoolColumnPG(t *testing.T) {
 
 func TestTableType(t *testing.T) {
 	// currently it is only supported for mysql driver
-	if DB.Dialector.Name() != "mysql" {
+	if !isMysql() {
 		return
 	}
 
