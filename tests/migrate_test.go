@@ -1598,3 +1598,48 @@ func TestMigrateExistingBoolColumnPG(t *testing.T) {
 		}
 	}
 }
+
+func TestTableType(t *testing.T) {
+	// currently it is only supported for mysql driver
+	if !isMysql() {
+		return
+	}
+
+	const tblName = "cities"
+	const tblSchema = "gorm"
+	const tblType = "BASE TABLE"
+	const tblComment = "foobar comment"
+
+	type City struct {
+		gorm.Model
+		Name string `gorm:"unique"`
+	}
+
+	DB.Migrator().DropTable(&City{})
+
+	if err := DB.Set("gorm:table_options", fmt.Sprintf("ENGINE InnoDB COMMENT '%s'", tblComment)).AutoMigrate(&City{}); err != nil {
+		t.Fatalf("failed to migrate cities tables, got error: %v", err)
+	}
+
+	tableType, err := DB.Table("cities").Migrator().TableType(&City{})
+	if err != nil {
+		t.Fatalf("failed to get table type, got error %v", err)
+	}
+
+	if tableType.Schema() != tblSchema {
+		t.Fatalf("expected tblSchema to be %s but got %s", tblSchema, tableType.Schema())
+	}
+
+	if tableType.Name() != tblName {
+		t.Fatalf("expected table name to be %s but got %s", tblName, tableType.Name())
+	}
+
+	if tableType.Type() != tblType {
+		t.Fatalf("expected table type to be %s but got %s", tblType, tableType.Type())
+	}
+
+	comment, ok := tableType.Comment()
+	if !ok || comment != tblComment {
+		t.Fatalf("expected comment %s got %s", tblComment, comment)
+	}
+}
