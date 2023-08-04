@@ -246,15 +246,19 @@ func (eq Eq) Build(builder Builder) {
 
 	switch eq.Value.(type) {
 	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
-		builder.WriteString(" IN (")
 		rv := reflect.ValueOf(eq.Value)
-		for i := 0; i < rv.Len(); i++ {
-			if i > 0 {
-				builder.WriteByte(',')
+		if rv.Len() == 0 {
+			builder.WriteString(" IN (NULL)")
+		} else {
+			builder.WriteString(" IN (")
+			for i := 0; i < rv.Len(); i++ {
+				if i > 0 {
+					builder.WriteByte(',')
+				}
+				builder.AddVar(builder, rv.Index(i).Interface())
 			}
-			builder.AddVar(builder, rv.Index(i).Interface())
+			builder.WriteByte(')')
 		}
-		builder.WriteByte(')')
 	default:
 		if eqNil(eq.Value) {
 			builder.WriteString(" IS NULL")
@@ -277,15 +281,19 @@ func (neq Neq) Build(builder Builder) {
 
 	switch neq.Value.(type) {
 	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
-		builder.WriteString(" NOT IN (")
 		rv := reflect.ValueOf(neq.Value)
-		for i := 0; i < rv.Len(); i++ {
-			if i > 0 {
-				builder.WriteByte(',')
+		if rv.Len() == 0 {
+			builder.WriteString(" NOT IN (NULL)")
+		} else {
+			builder.WriteString(" NOT IN (")
+			for i := 0; i < rv.Len(); i++ {
+				if i > 0 {
+					builder.WriteByte(',')
+				}
+				builder.AddVar(builder, rv.Index(i).Interface())
 			}
-			builder.AddVar(builder, rv.Index(i).Interface())
+			builder.WriteByte(')')
 		}
-		builder.WriteByte(')')
 	default:
 		if eqNil(neq.Value) {
 			builder.WriteString(" IS NOT NULL")
