@@ -118,9 +118,11 @@ func TestExplainSQL(t *testing.T) {
 
 		tnano := now.MustParse("2020-02-23T11:10:10.123456789+08:00")
 		var zt time.Time
+
 		sql := "create table users (name, create_at, update_at, delete_at, init_at) values (?, ?, ?, ?, ?)"
 		vars := []interface{}{"jinzhu", tnano, &tnano, zt, &zt}
 		expected := `create table users (name, create_at, update_at, delete_at, init_at) values ("jinzhu", "2020-02-23T11:10:10.123456789+08:00", "2020-02-23T11:10:10.123456789+08:00", "0000-00-00 00:00:00", "0000-00-00 00:00:00")`
+
 		if result := logger.ExplainSQL(sql, nil, `"`, vars...); result != expected {
 			t.Errorf("Explain SQL expects %v, but got %v", expected, result)
 		}

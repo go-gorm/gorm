@@ -13,10 +13,8 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-var (
-	// TimeParamFormat defines the format of the time parameter in ExpalianSQL.
-	TimeParamFormat = "2006-01-02 15:04:05.999"
-)
+// TimeParamFormat defines the format of the time parameter in ExpalianSQL.
+var TimeParamFormat = "2006-01-02 15:04:05.999"
 
 const (
 	tmFmtZero = "0000-00-00 00:00:00"
