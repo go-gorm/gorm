@@ -28,8 +28,10 @@ func isPrintable(s string) bool {
 	return true
 }
 
+// TODO:
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
+// RegEx matches only numeric values
 var numericPlaceholderRe = regexp.MustCompile(`\$\d+\$`)
 
 // ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability

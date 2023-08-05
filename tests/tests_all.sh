@@ -15,6 +15,22 @@ then
   cd ..
 fi
 
+# Function for checking if binary is installed
+check_binary() {
+  if ! which "$1" > /dev/null; then
+    ( >&2 echo "$2" )
+    # Exit with a nonzero code so that the caller knows the script failed.
+    exit 1
+  fi
+}
+
+check_binary "sqlcmd" "$(cat <<EOF
+You will need microsoft/sqlcmd to run this script.
+Install it using your package manager. E.g. for homebrew:
+brew install sqlcmd
+EOF
+)"
+
 # SqlServer for Mac M1
 if [[ -z $GITHUB_ACTION ]]; then
   if [ -d tests ]
