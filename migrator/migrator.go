@@ -25,6 +25,8 @@ import (
 // -"%$#@789"
 var regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
 
+// TODO:? Create const vars for raw sql queries ?
+
 // Migrator m struct
 type Migrator struct {
 	Config

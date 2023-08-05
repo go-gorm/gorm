@@ -28,7 +28,7 @@ func isPrintable(s string) bool {
 	return true
 }
 
-// TODO:
+// A list of Go types that should be converted to SQL primitives
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
 // RegEx matches only numeric values
