@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jinzhu/now"
 	"gorm.io/gorm/logger"
@@ -101,7 +102,6 @@ func TestExplainSQL(t *testing.T) {
 			Vars:          []interface{}{"jinzhu", 1, 0.1753607109, true, []byte("12345"), tt, &tt, nil, "w@g.\"com", myrole, pwd, &js, &es},
 			Result:        fmt.Sprintf(`create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, json_struct, example_struct) values ("jinzhu", 1, 0.1753607109, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.\"com", "admin", "pass", %v, %v)`, format(jsVal, `"`), format(esVal, `"`)),
 		},
-
 	}
 
 	for idx, r := range results {
@@ -109,4 +109,20 @@ func TestExplainSQL(t *testing.T) {
 			t.Errorf("Explain SQL #%v expects %v, but got %v", idx, r.Result, result)
 		}
 	}
+
+	t.Run("customize time format", func(t *testing.T) {
+		orignalFormat := logger.TimeParamFormat
+		t.Cleanup(func() { logger.TimeParamFormat = orignalFormat })
+
+		logger.TimeParamFormat = time.RFC3339Nano
+
+		tnano := now.MustParse("2020-02-23T11:10:10.123456789+08:00")
+		var zt time.Time
+		sql := "create table users (name, create_at, update_at, delete_at, init_at) values (?, ?, ?, ?, ?)"
+		vars := []interface{}{"jinzhu", tnano, &tnano, zt, &zt}
+		expected := `create table users (name, create_at, update_at, delete_at, init_at) values ("jinzhu", "2020-02-23T11:10:10.123456789+08:00", "2020-02-23T11:10:10.123456789+08:00", "0000-00-00 00:00:00", "0000-00-00 00:00:00")`
+		if result := logger.ExplainSQL(sql, nil, `"`, vars...); result != expected {
+			t.Errorf("Explain SQL expects %v, but got %v", expected, result)
+		}
+	})
 }

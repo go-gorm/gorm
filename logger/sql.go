@@ -13,10 +13,14 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+var (
+	// TimeParamFormat defines the format of the time parameter in ExpalianSQL.
+	TimeParamFormat = "2006-01-02 15:04:05.999"
+)
+
 const (
-	tmFmtWithMS = "2006-01-02 15:04:05.999"
-	tmFmtZero   = "0000-00-00 00:00:00"
-	nullStr     = "NULL"
+	tmFmtZero = "0000-00-00 00:00:00"
+	nullStr   = "NULL"
 )
 
 func isPrintable(s string) bool {
@@ -47,14 +51,14 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			if v.IsZero() {
 				vars[idx] = escaper + tmFmtZero + escaper
 			} else {
-				vars[idx] = escaper + v.Format(tmFmtWithMS) + escaper
+				vars[idx] = escaper + v.Format(TimeParamFormat) + escaper
 			}
 		case *time.Time:
 			if v != nil {
 				if v.IsZero() {
 					vars[idx] = escaper + tmFmtZero + escaper
 				} else {
-					vars[idx] = escaper + v.Format(tmFmtWithMS) + escaper
+					vars[idx] = escaper + v.Format(TimeParamFormat) + escaper
 				}
 			} else {
 				vars[idx] = nullStr
