@@ -30,13 +30,17 @@ func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
 	}
 }
 
-func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
-	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
-		return dbConnector.GetDBConn()
-	}
-
+func (db *PreparedStmtDB) GetDBConnWithContext(gormdb *DB) (*sql.DB, error) {
 	if sqldb, ok := db.ConnPool.(*sql.DB); ok {
 		return sqldb, nil
+	}
+
+	if connector, ok := db.ConnPool.(GetDBConnectorWithContext); ok && connector != nil {
+		return connector.GetDBConnWithContext(gormdb)
+	}
+
+	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
+		return dbConnector.GetDBConn()
 	}
 
 	return nil, ErrInvalidDB
@@ -54,15 +58,15 @@ func (db *PreparedStmtDB) Close() {
 	}
 }
 
-func (db *PreparedStmtDB) Reset() {
-	db.Mux.Lock()
-	defer db.Mux.Unlock()
+func (sdb *PreparedStmtDB) Reset() {
+	sdb.Mux.Lock()
+	defer sdb.Mux.Unlock()
 
-	for _, stmt := range db.Stmts {
+	for _, stmt := range sdb.Stmts {
 		go stmt.Close()
 	}
-	db.PreparedSQL = make([]string, 0, 100)
-	db.Stmts = make(map[string]*Stmt)
+	sdb.PreparedSQL = make([]string, 0, 100)
+	sdb.Stmts = make(map[string]*Stmt)
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
