@@ -374,8 +374,10 @@ func (db *DB) AddError(err error) error {
 
 // DB returns `*sql.DB`
 func (db *DB) DB() (*sql.DB, error) {
-	connPool := db.Statement.ConnPool
-
+	connPool := db.ConnPool
+	if db.Statement != nil && db.Statement.ConnPool != nil {
+		connPool = db.Statement.ConnPool
+	}
 	if tx, ok := connPool.(*sql.Tx); ok && tx != nil {
 		return (*sql.DB)(reflect.ValueOf(tx).Elem().FieldByName("db").UnsafePointer()), nil
 	}
