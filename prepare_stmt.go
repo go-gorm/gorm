@@ -30,13 +30,9 @@ func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
 	}
 }
 
-func (db *PreparedStmtDB) GetDBConnWithContext(gormdb *DB) (*sql.DB, error) {
+func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	if sqldb, ok := db.ConnPool.(*sql.DB); ok {
 		return sqldb, nil
-	}
-
-	if connector, ok := db.ConnPool.(GetDBConnectorWithContext); ok && connector != nil {
-		return connector.GetDBConnWithContext(gormdb)
 	}
 
 	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
@@ -131,6 +127,19 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 		tx, err := beginner.BeginTx(ctx, opt)
 		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
 	}
+
+	beginner, ok := db.ConnPool.(ConnPoolBeginner)
+	if !ok {
+		return nil, ErrInvalidTransaction
+	}
+
+	connPool, err := beginner.BeginTx(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
+	if tx, ok := connPool.(Tx); ok {
+		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, nil
+	}
 	return nil, ErrInvalidTransaction
 }
 
@@ -174,6 +183,10 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 type PreparedStmtTX struct {
 	Tx
 	PreparedStmtDB *PreparedStmtDB
+}
+
+func (db *PreparedStmtTX) GetDBConn() (*sql.DB, error) {
+	return db.PreparedStmtDB.GetDBConn()
 }
 
 func (tx *PreparedStmtTX) Commit() error {

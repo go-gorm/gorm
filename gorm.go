@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -374,9 +375,11 @@ func (db *DB) AddError(err error) error {
 // DB returns `*sql.DB`
 func (db *DB) DB() (*sql.DB, error) {
 	connPool := db.ConnPool
-
-	if connector, ok := connPool.(GetDBConnectorWithContext); ok && connector != nil {
-		return connector.GetDBConnWithContext(db)
+	if db.Statement != nil && db.Statement.ConnPool != nil {
+		connPool = db.Statement.ConnPool
+	}
+	if tx, ok := connPool.(*sql.Tx); ok && tx != nil {
+		return (*sql.DB)(reflect.ValueOf(tx).Elem().FieldByName("db").UnsafePointer()), nil
 	}
 
 	if dbConnector, ok := connPool.(GetDBConnector); ok && dbConnector != nil {
