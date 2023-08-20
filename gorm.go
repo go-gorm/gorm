@@ -182,7 +182,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		err = config.Dialector.Initialize(db)
 
 		if err != nil {
-			if db, err := db.DB(); err == nil {
+			if db, _ := db.DB(); db != nil {
 				_ = db.Close()
 			}
 		}
