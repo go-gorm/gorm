@@ -8,6 +8,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"unsafe"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
@@ -379,7 +380,7 @@ func (db *DB) DB() (*sql.DB, error) {
 		connPool = db.Statement.ConnPool
 	}
 	if tx, ok := connPool.(*sql.Tx); ok && tx != nil {
-		return (*sql.DB)(reflect.ValueOf(tx).Elem().FieldByName("db").UnsafePointer()), nil
+		return (*sql.DB)(unsafe.Pointer(reflect.ValueOf(tx).Elem().FieldByName("db").Addr().Pointer())), nil
 	}
 
 	if dbConnector, ok := connPool.(GetDBConnector); ok && dbConnector != nil {
