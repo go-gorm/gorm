@@ -36,6 +36,9 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 		// the reflection length judgment of the optimized value
 		reflectLen := reflectValue.Len()
 
+		statementSql := strings.Builder{}
+		statementVars := make([]interface{}, 0, reflectLen)
+
 		callFc := func(tx *DB) error {
 			for i := 0; i < reflectLen; i += batchSize {
 				ends := i + batchSize
@@ -49,6 +52,11 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 				if subtx.Error != nil {
 					return subtx.Error
 				}
+
+				statementSql.WriteString(subtx.Statement.SQL.String())
+				statementSql.WriteString(";")
+				statementVars = append(statementVars, subtx.Statement.Vars...)
+
 				rowsAffected += subtx.RowsAffected
 			}
 			return nil
@@ -59,6 +67,8 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 		} else {
 			tx.AddError(tx.Transaction(callFc))
 		}
+		tx.Statement.SQL = statementSql
+		tx.Statement.Vars = statementVars
 
 		tx.RowsAffected = rowsAffected
 	default:
