@@ -453,6 +453,28 @@ func TestToSQL(t *testing.T) {
 		})
 	})
 	assertEqualSQL(t, `SELECT * FROM users ORDER BY id DESC`, sql)
+
+	// create batch, models are equal batch size
+	bs := 2
+	m := gorm.Model{
+		CreatedAt: date,
+		UpdatedAt: date,
+	}
+	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Model(&User{}).
+			CreateInBatches(
+				[]User{
+					{
+						Name: "foo", Age: 20, Model: m,
+					},
+					{
+						Name: "bar", Age: 30, Model: m,
+					},
+				},
+				bs,
+			)
+	})
+	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false),('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'bar',30,NULL,NULL,NULL,false) RETURNING "id";`, sql)
 }
 
 // assertEqualSQL for assert that the sql is equal, this method will ignore quote, and dialect specials.
@@ -469,7 +491,7 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
 
 	// ignore RETURNING "id" (only in PostgreSQL)
-	returningRe := regexp.MustCompile(`(?i)RETURNING "id"`)
+	returningRe := regexp.MustCompile(`\s?(?i)RETURNING "id"`)
 	actually = returningRe.ReplaceAllString(actually, ``)
 	expected = returningRe.ReplaceAllString(expected, ``)
 
