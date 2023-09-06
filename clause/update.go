@@ -3,6 +3,7 @@ package clause
 type Update struct {
 	Modifier string
 	Table    Table
+	Joins    []Join
 }
 
 // Name update clause name
@@ -21,6 +22,11 @@ func (update Update) Build(builder Builder) {
 		builder.WriteQuoted(currentTable)
 	} else {
 		builder.WriteQuoted(update.Table)
+	}
+
+	for _, join := range update.Joins {
+		builder.WriteByte(' ')
+		join.Build(builder)
 	}
 }
 

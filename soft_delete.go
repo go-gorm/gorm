@@ -141,30 +141,34 @@ func (sd SoftDeleteDeleteClause) MergeClause(*clause.Clause) {
 
 func (sd SoftDeleteDeleteClause) ModifyStatement(stmt *Statement) {
 	if stmt.SQL.Len() == 0 && !stmt.Statement.Unscoped {
-		curTime := stmt.DB.NowFunc()
-		stmt.AddClause(clause.Set{{Column: clause.Column{Name: sd.Field.DBName}, Value: curTime}})
-		stmt.SetColumn(sd.Field.DBName, curTime, true)
+		if _, ok := stmt.Clauses["SET"]; !ok {
+			curTime := stmt.DB.NowFunc()
+			stmt.AddClause(clause.Set{{Column: clause.Column{Name: sd.Field.DBName}, Value: curTime}})
+			stmt.SetColumn(sd.Field.DBName, curTime, true)
 
-		if stmt.Schema != nil {
-			_, queryValues := schema.GetIdentityFieldValuesMap(stmt.Context, stmt.ReflectValue, stmt.Schema.PrimaryFields)
-			column, values := schema.ToQueryValues(stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
-
-			if len(values) > 0 {
-				stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
-			}
-
-			if stmt.ReflectValue.CanAddr() && stmt.Dest != stmt.Model && stmt.Model != nil {
-				_, queryValues = schema.GetIdentityFieldValuesMap(stmt.Context, reflect.ValueOf(stmt.Model), stmt.Schema.PrimaryFields)
-				column, values = schema.ToQueryValues(stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
+			if stmt.Schema != nil {
+				_, queryValues := schema.GetIdentityFieldValuesMap(stmt.Context, stmt.ReflectValue, stmt.Schema.PrimaryFields)
+				column, values := schema.ToQueryValues(stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
 
 				if len(values) > 0 {
 					stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
+				}
+
+				if stmt.ReflectValue.CanAddr() && stmt.Dest != stmt.Model && stmt.Model != nil {
+					_, queryValues = schema.GetIdentityFieldValuesMap(stmt.Context, reflect.ValueOf(stmt.Model), stmt.Schema.PrimaryFields)
+					column, values = schema.ToQueryValues(stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
+
+					if len(values) > 0 {
+						stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.IN{Column: column, Values: values}}})
+					}
 				}
 			}
 		}
 
 		SoftDeleteQueryClause(sd).ModifyStatement(stmt)
-		stmt.AddClauseIfNotExists(clause.Update{})
+
+		CreateUpdateClause(stmt)
+
 		stmt.Build(stmt.DB.Callback().Update().Clauses...)
 	}
 }
