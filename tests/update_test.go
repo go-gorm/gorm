@@ -882,3 +882,52 @@ func TestSaveWithHooks(t *testing.T) {
 		t.Errorf(`token content should be "token2_encrypted", but got: "%s"`, o2.Token.Content)
 	}
 }
+
+// only postgres, sqlserver, sqlite support update from
+func TestUpdateFrom(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "sqlserver" {
+		return
+	}
+
+	users := []*User{
+		GetUser("update-from-1", Config{Account: true}),
+		GetUser("update-from-2", Config{Account: true}),
+		GetUser("update-from-3", Config{}),
+	}
+
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	} else if users[0].ID == 0 {
+		t.Fatalf("user's primary value should not zero, %v", users[0].ID)
+	} else if users[0].UpdatedAt.IsZero() {
+		t.Fatalf("user's updated at should not zero, %v", users[0].UpdatedAt)
+	}
+
+	if rowsAffected := DB.Model(&User{}).Clauses(clause.From{Tables: []clause.Table{{Name: "accounts"}}}).Where("accounts.user_id = users.id AND accounts.number = ? AND accounts.deleted_at IS NULL", users[0].Account.Number).Update("name", "franco").RowsAffected; rowsAffected != 1 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
+
+	var result User
+	if err := DB.Where("id = ?", users[0].ID).First(&result).Error; err != nil {
+		t.Errorf("errors happened when query before user: %v", err)
+	} else if result.UpdatedAt.UnixNano() == users[0].UpdatedAt.UnixNano() {
+		t.Errorf("user's updated at should be changed, but got %v, was %v", result.UpdatedAt, users[0].UpdatedAt)
+	} else if result.Name != "franco" {
+		t.Errorf("user's name should be updated")
+	}
+
+	if rowsAffected := DB.Model(&User{}).Clauses(clause.From{Tables: []clause.Table{{Name: "accounts"}}}).Where("accounts.user_id = users.id AND accounts.number IN ? AND accounts.deleted_at IS NULL", []string{users[0].Account.Number, users[1].Account.Number}).Update("name", gorm.Expr("accounts.number")).RowsAffected; rowsAffected != 2 {
+		t.Errorf("should update two records, but got %v", rowsAffected)
+	}
+
+	var results []User
+	if err := DB.Preload("Account").Find(&results, []uint{users[0].ID, users[1].ID}).Error; err != nil {
+		t.Errorf("Not error should happen when finding users, but got %v", err)
+	}
+
+	for _, user := range results {
+		if user.Name != user.Account.Number {
+			t.Errorf("user's name should be equal to the account's number %v, but got %v", user.Account.Number, user.Name)
+		}
+	}
+}
