@@ -216,6 +216,7 @@ func TestSoftDeleteReturning(t *testing.T) {
 		GetUser("delete-returning-1", Config{}),
 		GetUser("delete-returning-2", Config{}),
 		GetUser("delete-returning-3", Config{}),
+		GetUser("delete-returning-4", Config{Pets: 1}),
 	}
 	DB.Create(&users)
 
@@ -226,10 +227,26 @@ func TestSoftDeleteReturning(t *testing.T) {
 	}
 
 	var count int64
-	DB.Model(&User{}).Where("name IN ?", []string{users[0].Name, users[1].Name, users[2].Name}).Count(&count)
+	DB.Model(&User{}).Where("name IN ?", []string{users[0].Name, users[1].Name, users[2].Name, users[3].Name}).Count(&count)
+	if count != 2 {
+		t.Errorf("failed to delete data, current count %v", count)
+	}
+
+	var result User
+	if err := DB.Model(&User{}).Where("name = ?", users[3].Name).Clauses(clause.Returning{}).Preload("Pets").Delete(&result).Error; err != nil {
+		t.Errorf("failed to delete data, got %v", err)
+	}
+
+	DB.Model(&User{}).Where("name IN ?", []string{users[0].Name, users[1].Name, users[2].Name, users[3].Name}).Count(&count)
 	if count != 1 {
 		t.Errorf("failed to delete data, current count %v", count)
 	}
+
+	if len(result.Pets) != 1 {
+		t.Errorf("failed to preload pets, got %v", result.Pets)
+	}
+
+	CheckPet(t, *result.Pets[0], *users[3].Pets[0])
 }
 
 func TestDeleteReturning(t *testing.T) {
