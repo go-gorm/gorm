@@ -286,7 +286,9 @@ func Preload(db *gorm.DB) {
 		})
 
 		if err := preloadDB.Statement.Parse(db.Statement.Dest); err != nil {
-			return
+			if err := preloadDB.Statement.Parse(db.Statement.Model); err != nil {
+				return
+			}
 		}
 		preloadDB.Statement.ReflectValue = db.Statement.ReflectValue
 		preloadDB.Statement.Unscoped = db.Statement.Unscoped
