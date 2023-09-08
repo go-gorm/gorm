@@ -765,9 +765,9 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	}
 }
 
-// only sqlite, postgres support returning
+// only sqlite, postgres, sqlserver support returning
 func TestUpdateReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
