@@ -3,8 +3,10 @@ package utils
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"math"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -87,7 +89,30 @@ func (n ModifyAt) Value() (driver.Value, error) {
 	return n.Time.Unix(), nil
 }
 
+type datatypesJSON json.RawMessage
+
+// Value return json value, implement driver.Valuer interface
+func (j datatypesJSON) Value() (driver.Value, error) {
+	if len(j) == 0 {
+		return nil, nil
+	}
+	return []byte(j), nil
+}
+
 func TestAssertEqual(t *testing.T) {
+	type model struct {
+		Raw *datatypesJSON
+	}
+
+	m1 := model{}
+	f1 := reflect.Indirect(reflect.ValueOf(m1)).Field(0)
+	i1 := f1.Interface()
+
+	raw := datatypesJSON("dreggn")
+	m2 := model{Raw: &raw}
+	f2 := reflect.Indirect(reflect.ValueOf(m2)).Field(0)
+	i2 := f2.Interface()
+
 	now := time.Now()
 	assertEqualTests := []struct {
 		name     string
@@ -98,6 +123,7 @@ func TestAssertEqual(t *testing.T) {
 		{"error not equal", errors.New("1"), errors.New("2"), false},
 		{"driver.Valuer equal", ModifyAt{Time: now, Valid: true}, ModifyAt{Time: now, Valid: true}, true},
 		{"driver.Valuer not equal", ModifyAt{Time: now, Valid: true}, ModifyAt{Time: now.Add(time.Second), Valid: true}, false},
+		{"driver.Valuer equal (ptr to nil ptr)", i1, i2, false},
 	}
 	for _, test := range assertEqualTests {
 		t.Run(test.name, func(t *testing.T) {
