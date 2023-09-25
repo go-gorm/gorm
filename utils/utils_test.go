@@ -91,12 +91,8 @@ func (n ModifyAt) Value() (driver.Value, error) {
 
 type datatypesJSON json.RawMessage
 
-// Value return json value, implement driver.Valuer interface
 func (j datatypesJSON) Value() (driver.Value, error) {
-	if len(j) == 0 {
-		return nil, nil
-	}
-	return []byte(j), nil
+	return nil, nil
 }
 
 func TestAssertEqual(t *testing.T) {
@@ -104,10 +100,16 @@ func TestAssertEqual(t *testing.T) {
 		Raw *datatypesJSON
 	}
 
+	// copied from your code
+	// would be the same as var i1 *datatypesJSON
 	m1 := model{}
 	f1 := reflect.Indirect(reflect.ValueOf(m1)).Field(0)
 	i1 := f1.Interface()
 
+	// copied from your code
+	// would be the same as
+	//  k := datatypesJSON("dreggn")
+	//  i2 := &k
 	raw := datatypesJSON("dreggn")
 	m2 := model{Raw: &raw}
 	f2 := reflect.Indirect(reflect.ValueOf(m2)).Field(0)
