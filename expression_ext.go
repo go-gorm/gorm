@@ -559,6 +559,20 @@ func (e *expr) NotIn(values ...interface{}) *expr {
 	return e.in(" NOT", values...)
 }
 
+func (e *expr) OrderByCase(conditions ...interface{}) *expr {
+	e.expr = "(CASE " + e.expr
+
+	for i, condition := range conditions {
+		e.expr += " WHEN ? THEN ?"
+		e.args = append(e.args, condition, i+1)
+	}
+
+	e.expr += " ELSE ? END)"
+	e.args = append(e.args, len(conditions)+1)
+
+	return e
+}
+
 func (e *expr) OrderAsc() string {
 	return e.expr + " ASC "
 }
