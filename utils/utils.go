@@ -96,6 +96,7 @@ func AssertEqual(x, y interface{}) bool {
 	if x == nil || y == nil {
 		return false
 	}
+
 	xval := reflect.ValueOf(x)
 	yval := reflect.ValueOf(y)
 	if xval.Kind() == reflect.Ptr && xval.IsNil() ||
@@ -106,7 +107,6 @@ func AssertEqual(x, y interface{}) bool {
 	if valuer, ok := x.(driver.Valuer); ok {
 		x, _ = valuer.Value()
 	}
-
 	if valuer, ok := y.(driver.Valuer); ok {
 		y, _ = valuer.Value()
 	}
