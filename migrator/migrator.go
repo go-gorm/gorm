@@ -35,6 +35,7 @@ type Migrator struct {
 // Config schema config
 type Config struct {
 	CreateIndexAfterCreateTable bool
+	CreateTableUseIfNotExists   bool
 	DB                          *gorm.DB
 	gorm.Dialector
 }
@@ -212,6 +213,10 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				values                  = []interface{}{m.CurrentTable(stmt)}
 				hasPrimaryKeyInDataType bool
 			)
+
+			if m.CreateTableUseIfNotExists {
+				createTableSQL = "CREATE TABLE IF NOT EXISTS ? ("
+			}
 
 			for _, dbName := range stmt.Schema.DBNames {
 				field := stmt.Schema.FieldsByDBName[dbName]
