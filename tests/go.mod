@@ -8,7 +8,7 @@ require (
 	github.com/lib/pq v1.10.9
 	gorm.io/driver/mysql v1.5.2-0.20230612053416-48b6526a21f0
 	gorm.io/driver/postgres v1.5.3-0.20230607070428-18bc84b75196
-	gorm.io/driver/sqlite v1.5.4-0.20231008025214-74475fc966dd
+	gorm.io/driver/sqlite v1.5.4
 	gorm.io/driver/sqlserver v1.5.2-0.20230613072041-6e2cde390b0a
 	gorm.io/gorm v1.25.4
 )
