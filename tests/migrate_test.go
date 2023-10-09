@@ -862,6 +862,48 @@ func TestMigrateWithSpecialName(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_2"))
 }
 
+// https://github.com/go-gorm/gorm/issues/4760
+func TestMigrateAutoIncrement(t *testing.T) {
+	type AutoIncrementStruct struct {
+		ID     int64   `gorm:"primarykey;autoIncrement"`
+		Field1 uint32  `gorm:"column:field1"`
+		Field2 float32 `gorm:"column:field2"`
+	}
+
+	if err := DB.AutoMigrate(&AutoIncrementStruct{}); err != nil {
+		t.Fatalf("AutoMigrate err: %v", err)
+	}
+
+	const ROWS = 10
+	for idx := 0; idx < ROWS; idx++ {
+		if err := DB.Create(&AutoIncrementStruct{}).Error; err != nil {
+			t.Fatalf("create auto_increment_struct fail, err: %v", err)
+		}
+	}
+
+	rows := make([]*AutoIncrementStruct, 0, ROWS)
+	if err := DB.Order("id ASC").Find(&rows).Error; err != nil {
+		t.Fatalf("find auto_increment_struct fail, err: %v", err)
+	}
+
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	lastID := ids[len(ids)-1]
+
+	if err := DB.Where("id IN (?)", ids).Delete(&AutoIncrementStruct{}).Error; err != nil {
+		t.Fatalf("delete auto_increment_struct fail, err: %v", err)
+	}
+
+	newRow := &AutoIncrementStruct{}
+	if err := DB.Create(newRow).Error; err != nil {
+		t.Fatalf("create auto_increment_struct fail, err: %v", err)
+	}
+
+	AssertEqual(t, newRow.ID, lastID+1)
+}
+
 // https://github.com/go-gorm/gorm/issues/5320
 func TestPrimarykeyID(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
