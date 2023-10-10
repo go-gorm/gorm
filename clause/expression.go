@@ -126,7 +126,7 @@ func (expr NamedExpr) Build(builder Builder) {
 	for _, v := range []byte(expr.SQL) {
 		if v == '@' && !inName {
 			inName = true
-			name = []byte{}
+			name = name[:0]
 		} else if v == ' ' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' || v == '\r' || v == '\n' || v == ';' {
 			if inName {
 				if nv, ok := namedMap[string(name)]; ok {
