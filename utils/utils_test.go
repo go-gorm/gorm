@@ -98,6 +98,7 @@ func TestAssertEqual(t *testing.T) {
 		{"error not equal", errors.New("1"), errors.New("2"), false},
 		{"driver.Valuer equal", ModifyAt{Time: now, Valid: true}, ModifyAt{Time: now, Valid: true}, true},
 		{"driver.Valuer not equal", ModifyAt{Time: now, Valid: true}, ModifyAt{Time: now.Add(time.Second), Valid: true}, false},
+		{"driver.Valuer equal (ptr to nil ptr)", (*ModifyAt)(nil), &ModifyAt{}, false},
 	}
 	for _, test := range assertEqualTests {
 		t.Run(test.name, func(t *testing.T) {
