@@ -27,6 +27,8 @@ var regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
 
 // TODO:? Create const vars for raw sql queries ?
 
+var _ gorm.Migrator = (*Migrator)(nil)
+
 // Migrator m struct
 type Migrator struct {
 	Config
@@ -537,6 +539,26 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	return nil
+}
+
+func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, columnType gorm.ColumnType) error {
+	unique, ok := columnType.Unique()
+	if !ok || field.PrimaryKey {
+		return nil // skip primary key
+	}
+	// By default, ColumnType's Unique is not affected by UniqueIndex, so we don't care about UniqueIndex.
+	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		// We're currently only receiving boolean values on `Unique` tag,
+		// so the UniqueConstraint name is fixed
+		constraint := m.DB.NamingStrategy.UniqueName(stmt.Table, field.DBName)
+		if unique && !field.Unique {
+			return m.DB.Migrator().DropConstraint(value, constraint)
+		}
+		if !unique && field.Unique {
+			return m.DB.Migrator().CreateConstraint(value, constraint)
+		}
+		return nil
+	})
 }
 
 // ColumnTypes return columnTypes []gorm.ColumnType and execErr error
