@@ -89,19 +89,28 @@ func Contains(elems []string, elem string) bool {
 	return false
 }
 
-func AssertEqual(src, dst interface{}) bool {
-	if !reflect.DeepEqual(src, dst) {
-		if valuer, ok := src.(driver.Valuer); ok {
-			src, _ = valuer.Value()
-		}
-
-		if valuer, ok := dst.(driver.Valuer); ok {
-			dst, _ = valuer.Value()
-		}
-
-		return reflect.DeepEqual(src, dst)
+func AssertEqual(x, y interface{}) bool {
+	if reflect.DeepEqual(x, y) {
+		return true
 	}
-	return true
+	if x == nil || y == nil {
+		return false
+	}
+
+	xval := reflect.ValueOf(x)
+	yval := reflect.ValueOf(y)
+	if xval.Kind() == reflect.Ptr && xval.IsNil() ||
+		yval.Kind() == reflect.Ptr && yval.IsNil() {
+		return false
+	}
+
+	if valuer, ok := x.(driver.Valuer); ok {
+		x, _ = valuer.Value()
+	}
+	if valuer, ok := y.(driver.Valuer); ok {
+		y, _ = valuer.Value()
+	}
+	return reflect.DeepEqual(x, y)
 }
 
 func ToString(value interface{}) string {

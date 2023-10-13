@@ -13,6 +13,20 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+type callbackType string
+
+const (
+	callbackTypeBeforeCreate callbackType = "BeforeCreate"
+	callbackTypeBeforeUpdate callbackType = "BeforeUpdate"
+	callbackTypeAfterCreate  callbackType = "AfterCreate"
+	callbackTypeAfterUpdate  callbackType = "AfterUpdate"
+	callbackTypeBeforeSave   callbackType = "BeforeSave"
+	callbackTypeAfterSave    callbackType = "AfterSave"
+	callbackTypeBeforeDelete callbackType = "BeforeDelete"
+	callbackTypeAfterDelete  callbackType = "AfterDelete"
+	callbackTypeAfterFind    callbackType = "AfterFind"
+)
+
 // ErrUnsupportedDataType unsupported data type
 var ErrUnsupportedDataType = errors.New("unsupported data type")
 
@@ -288,14 +302,20 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	callbacks := []string{"BeforeCreate", "AfterCreate", "BeforeUpdate", "AfterUpdate", "BeforeSave", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind"}
-	for _, name := range callbacks {
-		if methodValue := modelValue.MethodByName(name); methodValue.IsValid() {
+	callbackTypes := []callbackType{
+		callbackTypeBeforeCreate, callbackTypeAfterCreate,
+		callbackTypeBeforeUpdate, callbackTypeAfterUpdate,
+		callbackTypeBeforeSave, callbackTypeAfterSave,
+		callbackTypeBeforeDelete, callbackTypeAfterDelete,
+		callbackTypeAfterFind,
+	}
+	for _, cbName := range callbackTypes {
+		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
 			switch methodValue.Type().String() {
 			case "func(*gorm.DB) error": // TODO hack
-				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(name).SetBool(true)
+				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
 			default:
-				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, name, name)
+				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
 		}
 	}
@@ -347,6 +367,39 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	return schema, schema.err
+}
+
+// This unrolling is needed to show to the compiler the exact set of methods
+// that can be used on the modelType.
+// Prior to go1.22 any use of MethodByName would cause the linker to
+// abandon dead code elimination for the entire binary.
+// As of go1.22 the compiler supports one special case of a string constant
+// being passed to MethodByName. For enterprise customers or those building
+// large binaries, this gives a significant reduction in binary size.
+// https://github.com/golang/go/issues/62257
+func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect.Value {
+	switch cbType {
+	case callbackTypeBeforeCreate:
+		return modelType.MethodByName(string(callbackTypeBeforeCreate))
+	case callbackTypeAfterCreate:
+		return modelType.MethodByName(string(callbackTypeAfterCreate))
+	case callbackTypeBeforeUpdate:
+		return modelType.MethodByName(string(callbackTypeBeforeUpdate))
+	case callbackTypeAfterUpdate:
+		return modelType.MethodByName(string(callbackTypeAfterUpdate))
+	case callbackTypeBeforeSave:
+		return modelType.MethodByName(string(callbackTypeBeforeSave))
+	case callbackTypeAfterSave:
+		return modelType.MethodByName(string(callbackTypeAfterSave))
+	case callbackTypeBeforeDelete:
+		return modelType.MethodByName(string(callbackTypeBeforeDelete))
+	case callbackTypeAfterDelete:
+		return modelType.MethodByName(string(callbackTypeAfterDelete))
+	case callbackTypeAfterFind:
+		return modelType.MethodByName(string(callbackTypeAfterFind))
+	default:
+		return reflect.ValueOf(nil)
+	}
 }
 
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {

@@ -16,7 +16,16 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+// This regular expression seeks to find a sequence of digits (\d+) among zero or more non-digit characters (\D*),
+// with a possible trailing non-digit character (\D?).
+
+// For example, values that can pass this regular expression are:
+// - "123"
+// - "abc456"
+// -"%$#@789"
 var regFullDataType = regexp.MustCompile(`\D*(\d+)\D?`)
+
+// TODO:? Create const vars for raw sql queries ?
 
 // Migrator m struct
 type Migrator struct {
@@ -209,7 +218,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 				field := stmt.Schema.FieldsByDBName[dbName]
 				if !field.IgnoreMigration {
 					createTableSQL += "? ?"
-					hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(string(field.DataType)), "PRIMARY KEY")
+					hasPrimaryKeyInDataType = hasPrimaryKeyInDataType || strings.Contains(strings.ToUpper(m.DataTypeOf(field)), "PRIMARY KEY")
 					values = append(values, clause.Column{Name: dbName}, m.DB.Migrator().FullDataTypeOf(field))
 					createTableSQL += ","
 				}

@@ -28,8 +28,10 @@ func isPrintable(s string) bool {
 	return true
 }
 
+// A list of Go types that should be converted to SQL primitives
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
+// RegEx matches only numeric values
 var numericPlaceholderRe = regexp.MustCompile(`\$\d+\$`)
 
 // ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
@@ -93,8 +95,10 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			}
 		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 			vars[idx] = utils.ToString(v)
-		case float64, float32:
-			vars[idx] = fmt.Sprintf("%.6f", v)
+		case float32:
+			vars[idx] = strconv.FormatFloat(float64(v), 'f', -1, 32)
+		case float64:
+			vars[idx] = strconv.FormatFloat(v, 'f', -1, 64)
 		case string:
 			vars[idx] = escaper + strings.ReplaceAll(v, escaper, "\\"+escaper) + escaper
 		default:

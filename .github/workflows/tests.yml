@@ -16,7 +16,7 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.19', '1.18']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
@@ -27,7 +27,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
       uses: actions/cache@v3
@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['mysql:latest', 'mysql:5.7']
-        go: ['1.19', '1.18']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -70,7 +70,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
       uses: actions/cache@v3
@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'mariadb:latest' ]
-        go: [ '1.19', '1.18' ]
+        go: ['1.21', '1.20', '1.19']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -113,7 +113,7 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: go mod package cache
         uses: actions/cache@v3
@@ -128,7 +128,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['postgres:latest', 'postgres:13', 'postgres:12', 'postgres:11', 'postgres:10']
-        go: ['1.19', '1.18']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -156,7 +156,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
       uses: actions/cache@v3
@@ -170,7 +170,7 @@ jobs:
   sqlserver:
     strategy:
       matrix:
-        go: ['1.19', '1.18']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
@@ -199,7 +199,7 @@ jobs:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
       uses: actions/cache@v3
@@ -214,7 +214,7 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'v6.5.0' ]
-        go: [ '1.19', '1.18' ]
+        go: ['1.21', '1.20', '1.19']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -231,7 +231,7 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
 
       - name: go mod package cache

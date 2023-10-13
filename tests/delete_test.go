@@ -206,9 +206,9 @@ func TestDeleteSliceWithAssociations(t *testing.T) {
 	}
 }
 
-// only sqlite, postgres support returning
+// only sqlite, postgres, sqlserver support returning
 func TestSoftDeleteReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
@@ -233,7 +233,7 @@ func TestSoftDeleteReturning(t *testing.T) {
 }
 
 func TestDeleteReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 

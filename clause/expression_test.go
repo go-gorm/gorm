@@ -201,6 +201,11 @@ func TestExpression(t *testing.T) {
 		Result:       "`column-name` NOT IN (?,?)",
 	}, {
 		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []string{}},
+		},
+		Result: "`column-name` IN (NULL)",
+	}, {
+		Expressions: []clause.Expression{
 			clause.Eq{Column: clause.Expr{SQL: "SUM(?)", Vars: []interface{}{clause.Column{Name: "id"}}}, Value: 100},
 		},
 		ExpectedVars: []interface{}{100},
