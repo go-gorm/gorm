@@ -21,5 +21,4 @@ func AfterError(db *gorm.DB) {
 			return false
 		})
 	}
-	return
 }
