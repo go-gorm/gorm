@@ -42,6 +42,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	createCallback.Register("gorm:before_create", BeforeCreate)
 	createCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(true))
 	createCallback.Register("gorm:create", Create(config))
+	createCallback.Register("gorm:after_error", AfterError)
 	createCallback.Register("gorm:save_after_associations", SaveAfterAssociations(true))
 	createCallback.Register("gorm:after_create", AfterCreate)
 	createCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
@@ -49,6 +50,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 
 	queryCallback := db.Callback().Query()
 	queryCallback.Register("gorm:query", Query)
+	queryCallback.Register("gorm:after_error", AfterError)
 	queryCallback.Register("gorm:preload", Preload)
 	queryCallback.Register("gorm:after_query", AfterQuery)
 	queryCallback.Clauses = config.QueryClauses
@@ -58,6 +60,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	deleteCallback.Register("gorm:before_delete", BeforeDelete)
 	deleteCallback.Register("gorm:delete_before_associations", DeleteBeforeAssociations)
 	deleteCallback.Register("gorm:delete", Delete(config))
+	deleteCallback.Register("gorm:after_error", AfterError)
 	deleteCallback.Register("gorm:after_delete", AfterDelete)
 	deleteCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
 	deleteCallback.Clauses = config.DeleteClauses
@@ -68,6 +71,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	updateCallback.Register("gorm:before_update", BeforeUpdate)
 	updateCallback.Register("gorm:save_before_associations", SaveBeforeAssociations(false))
 	updateCallback.Register("gorm:update", Update(config))
+	updateCallback.Register("gorm:after_error", AfterError)
 	updateCallback.Register("gorm:save_after_associations", SaveAfterAssociations(false))
 	updateCallback.Register("gorm:after_update", AfterUpdate)
 	updateCallback.Match(enableTransaction).Register("gorm:commit_or_rollback_transaction", CommitOrRollbackTransaction)
@@ -75,9 +79,11 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 
 	rowCallback := db.Callback().Row()
 	rowCallback.Register("gorm:row", RowQuery)
+	rowCallback.Register("gorm:after_error", AfterError)
 	rowCallback.Clauses = config.QueryClauses
 
 	rawCallback := db.Callback().Raw()
 	rawCallback.Register("gorm:raw", RawExec)
+	rawCallback.Register("gorm:after_error", AfterError)
 	rawCallback.Clauses = config.QueryClauses
 }

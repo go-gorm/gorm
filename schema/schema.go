@@ -25,6 +25,7 @@ const (
 	callbackTypeBeforeDelete callbackType = "BeforeDelete"
 	callbackTypeAfterDelete  callbackType = "AfterDelete"
 	callbackTypeAfterFind    callbackType = "AfterFind"
+	callbackTypeAfterError   callbackType = "AfterError"
 )
 
 // ErrUnsupportedDataType unsupported data type
@@ -53,6 +54,7 @@ type Schema struct {
 	BeforeDelete, AfterDelete bool
 	BeforeSave, AfterSave     bool
 	AfterFind                 bool
+	AfterError                bool
 	err                       error
 	initialized               chan struct{}
 	namer                     Namer
@@ -308,6 +310,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		callbackTypeBeforeSave, callbackTypeAfterSave,
 		callbackTypeBeforeDelete, callbackTypeAfterDelete,
 		callbackTypeAfterFind,
+		callbackTypeAfterError,
 	}
 	for _, cbName := range callbackTypes {
 		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
@@ -397,6 +400,8 @@ func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect
 		return modelType.MethodByName(string(callbackTypeAfterDelete))
 	case callbackTypeAfterFind:
 		return modelType.MethodByName(string(callbackTypeAfterFind))
+	case callbackTypeAfterError:
+		return modelType.MethodByName(string(callbackTypeAfterError))
 	default:
 		return reflect.ValueOf(nil)
 	}
