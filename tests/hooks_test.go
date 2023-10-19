@@ -24,6 +24,7 @@ type Product struct {
 	AfterSaveCallTimes    int64
 	BeforeDeleteCallTimes int64
 	AfterDeleteCallTimes  int64
+	AfterErrorCallTimes   int64
 }
 
 func (s *Product) BeforeCreate(tx *gorm.DB) (err error) {
@@ -88,8 +89,16 @@ func (s *Product) AfterDelete(tx *gorm.DB) (err error) {
 	return
 }
 
+func (s *Product) AfterError(tx *gorm.DB) (err error) {
+	if s.Code == "after_error_error" {
+		err = errors.New("can't handle this error")
+	}
+	s.AfterErrorCallTimes = s.AfterErrorCallTimes + 1
+	return
+}
+
 func (s *Product) GetCallTimes() []int64 {
-	return []int64{s.BeforeCreateCallTimes, s.BeforeSaveCallTimes, s.BeforeUpdateCallTimes, s.AfterCreateCallTimes, s.AfterSaveCallTimes, s.AfterUpdateCallTimes, s.BeforeDeleteCallTimes, s.AfterDeleteCallTimes, s.AfterFindCallTimes}
+	return []int64{s.BeforeCreateCallTimes, s.BeforeSaveCallTimes, s.BeforeUpdateCallTimes, s.AfterCreateCallTimes, s.AfterSaveCallTimes, s.AfterUpdateCallTimes, s.BeforeDeleteCallTimes, s.AfterDeleteCallTimes, s.AfterFindCallTimes, s.AfterErrorCallTimes}
 }
 
 func TestRunCallbacks(t *testing.T) {
@@ -99,18 +108,18 @@ func TestRunCallbacks(t *testing.T) {
 	p := Product{Code: "unique_code", Price: 100}
 	DB.Save(&p)
 
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0, 0}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0, 0, 0}) {
 		t.Fatalf("Callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 0, 0, 0, 0, 1}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 0, 0, 0, 0, 1, 0}) {
 		t.Fatalf("After callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	p.Price = 200
 	DB.Save(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 1, 1, 0, 0, 1}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 1, 1, 0, 0, 1, 0}) {
 		t.Fatalf("After update callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
@@ -121,17 +130,21 @@ func TestRunCallbacks(t *testing.T) {
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0, 2}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0, 2, 0}) {
 		t.Fatalf("After update callbacks values are not saved, %v", p.GetCallTimes())
 	}
 
 	DB.Delete(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2}) {
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2, 0}) {
 		t.Fatalf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
 	}
 
 	if DB.Where("Code = ?", "unique_code").First(&p).Error == nil {
 		t.Fatalf("Can't find a deleted record")
+	}
+
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2, 1}) {
+		t.Fatalf("AfterError should be called because First raises error when doesn't fint, %v", p.GetCallTimes())
 	}
 
 	beforeCallTimes := p.AfterFindCallTimes
@@ -141,6 +154,12 @@ func TestRunCallbacks(t *testing.T) {
 
 	if p.AfterFindCallTimes != beforeCallTimes {
 		t.Fatalf("AfterFind should not be called")
+	}
+
+	DB.Migrator().DropTable(&Product{})
+	DB.Create(&p)
+	if !reflect.DeepEqual(p.GetCallTimes(), []int64{2, 3, 1, 1, 0, 0, 1, 1, 2, 2}) {
+		t.Fatalf("should call BeforeCreate, BeforeSave and AfterError, %v", p.GetCallTimes())
 	}
 }
 
@@ -207,6 +226,14 @@ func TestCallbacksWithErrors(t *testing.T) {
 	DB.Delete(&p5)
 	if err := DB.First(&Product{}, "code = ?", "after_delete_error").Error; err != nil {
 		t.Fatalf("Record shouldn't be deleted because of an error happened in after delete callback")
+	}
+
+	DB.Migrator().DropTable(&Product{})
+	err := DB.Create(&Product{
+		Code: "after_error_error",
+	}).Error
+	if err == nil || !strings.Contains(err.Error(), "can't handle this error") {
+		t.Fatalf("error on AfterError should be appended to the previous error, but got %v", err)
 	}
 }
 
