@@ -36,7 +36,7 @@ func TestSoftDelete(t *testing.T) {
 	}
 
 	sql := DB.Session(&gorm.Session{DryRun: true}).Delete(&user).Statement.SQL.String()
-	if !regexp.MustCompile(`UPDATE .users. SET .deleted_at.=.* WHERE .users.\..id. = .* AND .users.\..deleted_at. IS NULL`).MatchString(sql) {
+	if !regexp.MustCompile(`UPDATE .users. SET .deleted_at. = .* WHERE .users.\..id. = .* AND .users.\..deleted_at. IS NULL`).MatchString(sql) {
 		t.Fatalf("invalid sql generated, got %v", sql)
 	}
 

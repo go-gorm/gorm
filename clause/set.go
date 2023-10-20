@@ -18,9 +18,12 @@ func (set Set) Build(builder Builder) {
 		for idx, assignment := range set {
 			if idx > 0 {
 				builder.WriteByte(',')
+				builder.WriteByte(' ')
 			}
 			builder.WriteQuoted(assignment.Column)
+			builder.WriteByte(' ')
 			builder.WriteByte('=')
+			builder.WriteByte(' ')
 			builder.AddVar(builder, assignment.Value)
 		}
 	} else {

@@ -383,7 +383,7 @@ func TestGORMValuer(t *testing.T) {
 		Point: Point{X: 100, Y: 100},
 	}).Statement
 
-	if !regexp.MustCompile(`UPDATE .user_with_points. SET .name.=.+,.point.=ST_PointFromText\(.+\)`).MatchString(stmt.SQL.String()) {
+	if !regexp.MustCompile(`UPDATE .user_with_points. SET .name. = .+, .point. = ST_PointFromText\(.+\)`).MatchString(stmt.SQL.String()) {
 		t.Errorf("update with sql.Expr, but got %v", stmt.SQL.String())
 	}
 

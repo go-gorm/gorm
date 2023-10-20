@@ -198,25 +198,25 @@ func TestExplainSQL(t *testing.T) {
 
 	stmt := dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageInt(8)}).Statement
 	sql := DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile(`.*age.*=8,`).MatchString(sql) {
+	if !regexp.MustCompile(`.*age.* = 8, `).MatchString(sql) {
 		t.Errorf("Failed to generate sql, got %v", sql)
 	}
 
 	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageUint64(10241024)}).Statement
 	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile(`.*age.*=10241024,`).MatchString(sql) {
+	if !regexp.MustCompile(`.*age.* = 10241024, `).MatchString(sql) {
 		t.Errorf("Failed to generate sql, got %v", sql)
 	}
 
 	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageBool(false)}).Statement
 	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile(`.*age.*=false,`).MatchString(sql) {
+	if !regexp.MustCompile(`.*age.* = false, `).MatchString(sql) {
 		t.Errorf("Failed to generate sql, got %v", sql)
 	}
 
 	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageFloat(0.12345678)}).Statement
 	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile(`.*age.*=0.123457,`).MatchString(sql) {
+	if !regexp.MustCompile(`.*age.* = 0.123457, `).MatchString(sql) {
 		t.Errorf("Failed to generate sql, got %v", sql)
 	}
 }
@@ -421,25 +421,25 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).Updates(user)
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "created_at"='2021-10-18 00:00:00',"updated_at"='2021-10-18 19:50:09.438',"name"='bar',"age"=22 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "created_at" = '2021-10-18 00:00:00', "updated_at" = '2021-10-18 19:50:09.438', "name" = 'bar', "age" = 22 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// update
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).Update("name", "Foo bar")
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo bar',"updated_at"='2021-10-18 19:50:09.438' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "name" = 'Foo bar', "updated_at" = '2021-10-18 19:50:09.438' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// UpdateColumn
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).UpdateColumn("name", "Foo bar")
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo bar' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "name" = 'Foo bar' WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// UpdateColumns
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where("id = ?", 100).UpdateColumns(User{Name: "Foo", Age: 100})
 	})
-	assertEqualSQL(t, `UPDATE "users" SET "name"='Foo',"age"=100 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
+	assertEqualSQL(t, `UPDATE "users" SET "name" = 'Foo', "age" = 100 WHERE id = 100 AND "users"."deleted_at" IS NULL`, sql)
 
 	// after model changed
 	if DB.Statement.DryRun || DB.DryRun {
@@ -464,9 +464,9 @@ func assertEqualSQL(t *testing.T, expected string, actually string) {
 	actually = replaceQuoteInSQL(actually)
 
 	// ignore updated_at value, because it's generated in Gorm internal, can't to mock value on update.
-	updatedAtRe := regexp.MustCompile(`(?i)"updated_at"=".+?"`)
-	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at"=?`)
-	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at"=?`)
+	updatedAtRe := regexp.MustCompile(`(?i)"updated_at" = ".+?"`)
+	actually = updatedAtRe.ReplaceAllString(actually, `"updated_at" = ?`)
+	expected = updatedAtRe.ReplaceAllString(expected, `"updated_at" = ?`)
 
 	// ignore RETURNING "id" (only in PostgreSQL)
 	returningRe := regexp.MustCompile(`(?i)RETURNING "id"`)
