@@ -35,7 +35,6 @@ func TestSet(t *testing.T) {
 		{
 			[]clause.Interface{
 				clause.Update{},
-				clause.Set([]clause.Assignment{{clause.PrimaryColumn, 1}}),
 				clause.Set([]clause.Assignment{
 					{clause.Column{Name: "name"}, "jinzhu"},
 					{clause.Column{Name: "age"}, 18},

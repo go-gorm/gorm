@@ -1,6 +1,8 @@
 package clause
 
-import "sort"
+import (
+	"sort"
+)
 
 type Set []Assignment
 
@@ -28,7 +30,9 @@ func (set Set) Build(builder Builder) {
 		}
 	} else {
 		builder.WriteQuoted(Column{Name: PrimaryKey})
+		builder.WriteByte(' ')
 		builder.WriteByte('=')
+		builder.WriteByte(' ')
 		builder.WriteQuoted(Column{Name: PrimaryKey})
 	}
 }
