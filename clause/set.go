@@ -19,20 +19,15 @@ func (set Set) Build(builder Builder) {
 	if len(set) > 0 {
 		for idx, assignment := range set {
 			if idx > 0 {
-				builder.WriteByte(',')
-				builder.WriteByte(' ')
+				builder.WriteString(", ")
 			}
 			builder.WriteQuoted(assignment.Column)
-			builder.WriteByte(' ')
-			builder.WriteByte('=')
-			builder.WriteByte(' ')
+			builder.WriteString(" = ")
 			builder.AddVar(builder, assignment.Value)
 		}
 	} else {
 		builder.WriteQuoted(Column{Name: PrimaryKey})
-		builder.WriteByte(' ')
-		builder.WriteByte('=')
-		builder.WriteByte(' ')
+		builder.WriteString(" = ")
 		builder.WriteQuoted(Column{Name: PrimaryKey})
 	}
 }
