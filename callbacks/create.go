@@ -148,6 +148,39 @@ func Create(config *Config) func(db *gorm.DB) {
 				}
 			}
 		}
+
+		// append @id column with value for auto-increment primary key
+		// the @id value is correct, when: 1. without setting auto-increment primary key, 2. database AutoIncrementIncrement = 1
+		if db.RowsAffected != 0 && db.Statement.Schema == nil && db.Statement.Dest != nil {
+			insertID, err := result.LastInsertId()
+			insertOk := err == nil && insertID > 0
+			if !insertOk {
+				db.AddError(err)
+				return
+			}
+
+			switch values := db.Statement.Dest.(type) {
+			case map[string]interface{}:
+				values["@id"] = insertID
+			case *map[string]interface{}:
+				(*values)["@id"] = insertID
+			case []map[string]interface{}, *[]map[string]interface{}:
+				mapValues, ok := values.([]map[string]interface{})
+				if !ok {
+					if v, ok := values.(*[]map[string]interface{}); ok {
+						if *v != nil {
+							mapValues = *v
+						}
+					}
+				}
+				for _, mapValue := range mapValues {
+					if mapValue != nil {
+						mapValue["@id"] = insertID
+					}
+					insertID += schema.DefaultAutoIncrementIncrement
+				}
+			}
+		}
 	}
 }
 

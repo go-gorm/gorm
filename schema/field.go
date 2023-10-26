@@ -49,6 +49,8 @@ const (
 	Bytes  DataType = "bytes"
 )
 
+const DefaultAutoIncrementIncrement int64 = 1
+
 // Field is the representation of model schema's field
 type Field struct {
 	Name                   string
@@ -119,7 +121,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
 		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
 		Comment:                tagSetting["COMMENT"],
-		AutoIncrementIncrement: 1,
+		AutoIncrementIncrement: DefaultAutoIncrementIncrement,
 	}
 
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
