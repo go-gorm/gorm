@@ -211,7 +211,7 @@ func (db *DB) AdditionalSelect(selects interface{}) (tx *DB) {
 	case clause.Column:
 		tx.Statement.AdditionalSelects = []clause.Column{v}
 	default:
-		tx.AddError(fmt.Errorf("unsupported additional select args %v", selects))
+		tx.AddError(fmt.Errorf("unsupported additional select args %v", selects)) //nolint:typecheck,errcheck
 	}
 
 	return
