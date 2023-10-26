@@ -259,6 +259,8 @@ func BuildQuerySQL(db *gorm.DB) {
 			db.Statement.AddClauseIfNotExists(clause.From{})
 		}
 
+		clauseSelect.Columns = append(clauseSelect.Columns, db.Statement.AdditionalSelects...)
+
 		db.Statement.AddClauseIfNotExists(clauseSelect)
 
 		db.Statement.Build(db.Statement.BuildClauses...)

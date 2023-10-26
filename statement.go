@@ -30,8 +30,9 @@ type Statement struct {
 	Clauses              map[string]clause.Clause
 	BuildClauses         []string
 	Distinct             bool
-	Selects              []string // selected columns
-	Omits                []string // omit columns
+	Selects              []string        // selected columns
+	AdditionalSelects    []clause.Column // additional selected columns
+	Omits                []string        // omit columns
 	Joins                []join
 	Preloads             map[string][]interface{}
 	Settings             sync.Map

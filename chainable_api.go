@@ -173,6 +173,50 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+// AdditionalSelect specify fields that you want when querying
+//
+// Use AdditionalSelect when you want add a subset of the fields. By default, GORM will select all fields.
+// AdditionalSelect accepts both string arguments and arrays.
+//
+//		// Select name and age of user using multiple arguments
+//		db.AdditionalSelect(clause.Column{
+//			Table: "users",
+//			Name:  "id",
+//			Alias: "user_id",
+//		}, clause.Column{
+//			Table: "users",
+//			Name:  "name",
+//			Alias: "user_name",
+//		}).Find(&users)
+//		// Select name and age of user using an array
+//		db.AdditionalSelect([]clause.Column{
+//	       {
+//	           Table: "users",
+//	           Name:  "id",
+//	           Alias: "user_id",
+//	       },
+//	       {
+//	           Table: "users",
+//	           Name:  "name",
+//	           Alias: "user_name",
+//	       },
+//	   }).Find(&users)
+func (db *DB) AdditionalSelect(selects interface{}) (tx *DB) {
+	tx = db.getInstance()
+
+	switch v := selects.(type) {
+	case []clause.Column:
+		tx.Statement.AdditionalSelects = v
+
+	case clause.Column:
+		tx.Statement.AdditionalSelects = []clause.Column{v}
+	default:
+		tx.AddError(fmt.Errorf("unsupported additional select args %v", selects))
+	}
+
+	return
+}
+
 // Omit specify fields that you want to ignore when creating, updating and querying
 func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
