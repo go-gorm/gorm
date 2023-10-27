@@ -236,8 +236,15 @@ func TestEmbeddedScanValuer(t *testing.T) {
 }
 
 func TestEmbeddedRelations(t *testing.T) {
+	type EmbUser struct {
+		gorm.Model
+		Name      string
+		Age       uint
+		Languages []Language `gorm:"many2many:EmbUserSpeak;"`
+	}
+
 	type AdvancedUser struct {
-		User     `gorm:"embedded"`
+		EmbUser  `gorm:"embedded"`
 		Advanced bool
 	}
 
