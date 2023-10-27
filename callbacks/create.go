@@ -103,9 +103,15 @@ func Create(config *Config) func(db *gorm.DB) {
 		}
 
 		db.RowsAffected, _ = result.RowsAffected()
-		if db.RowsAffected != 0 && db.Statement.Schema != nil &&
-			db.Statement.Schema.PrioritizedPrimaryField != nil &&
-			db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+		if db.RowsAffected == 0 {
+			return
+		}
+
+		if db.Statement.Schema != nil {
+			if db.Statement.Schema.PrioritizedPrimaryField == nil || !db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
+				return
+			}
+
 			insertID, err := result.LastInsertId()
 			insertOk := err == nil && insertID > 0
 			if !insertOk {
@@ -147,11 +153,9 @@ func Create(config *Config) func(db *gorm.DB) {
 					db.AddError(db.Statement.Schema.PrioritizedPrimaryField.Set(db.Statement.Context, db.Statement.ReflectValue, insertID))
 				}
 			}
-		}
-
-		// append @id column with value for auto-increment primary key
-		// the @id value is correct, when: 1. without setting auto-increment primary key, 2. database AutoIncrementIncrement = 1
-		if db.RowsAffected != 0 && db.Statement.Schema == nil && db.Statement.Dest != nil {
+		} else if db.Statement.Dest != nil {
+			// append @id column with value for auto-increment primary key
+			// the @id value is correct, when: 1. without setting auto-increment primary key, 2. database AutoIncrementIncrement = 1
 			insertID, err := result.LastInsertId()
 			insertOk := err == nil && insertID > 0
 			if !insertOk {
