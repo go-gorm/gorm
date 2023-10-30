@@ -3,7 +3,7 @@ module gorm.io/gorm/tests
 go 1.18
 
 require (
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/jinzhu/now v1.1.5
 	github.com/lib/pq v1.10.9
 	gorm.io/driver/mysql v1.5.2-0.20230612053416-48b6526a21f0
