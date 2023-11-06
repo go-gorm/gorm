@@ -128,6 +128,13 @@ func (l *logger) LogMode(level LogLevel) Interface {
 	return &newlogger
 }
 
+// SetConfig Allow setting configs for your own log implementation
+func (l *logger) SetConfig(config Config) Interface {
+	newlogger := *l
+	newlogger.Config = config
+	return &newlogger
+}
+
 // Info print info
 func (l logger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Info {
