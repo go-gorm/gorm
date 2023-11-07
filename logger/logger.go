@@ -153,6 +153,10 @@ func (l *logger) Error(ctx context.Context, msg string, data ...interface{}) {
 //
 //nolint:cyclop
 func (l *logger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	if fc == nil {
+		return
+	}
+
 	if l.LogLevel <= Silent {
 		return
 	}
