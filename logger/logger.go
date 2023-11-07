@@ -66,6 +66,7 @@ type Interface interface {
 	Warn(context.Context, string, ...interface{})
 	Error(context.Context, string, ...interface{})
 	Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error)
+	ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{})
 }
 
 var (
@@ -125,13 +126,6 @@ type logger struct {
 func (l *logger) LogMode(level LogLevel) Interface {
 	newlogger := *l
 	newlogger.LogLevel = level
-	return &newlogger
-}
-
-// SetConfig Allow setting configs for your own log implementation
-func (l *logger) SetConfig(config Config) Interface {
-	newlogger := *l
-	newlogger.Config = config
 	return &newlogger
 }
 
