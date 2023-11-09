@@ -115,7 +115,10 @@ func (m Migrator) migrateTable(queryTx, execTx *gorm.DB, value interface{}) (err
 		return
 	}
 	defer func() {
-		err = execTx.Migrator().ReleaseLock()
+		releaseErr := execTx.Migrator().ReleaseLock()
+		if err == nil {
+			err = releaseErr
+		}
 	}()
 
 	if !queryTx.Migrator().HasTable(value) {
