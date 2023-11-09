@@ -123,7 +123,10 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 		if err := execTx.Migrator().ObtainLock(); err != nil {
 			return err
 		}
-		defer execTx.Migrator().ReleaseLock()
+		defer func() {
+			err := execTx.Migrator().ReleaseLock()
+			execTx.AddError(err)
+		}()
 
 		if !queryTx.Migrator().HasTable(value) {
 			if err := execTx.Migrator().CreateTable(value); err != nil {
