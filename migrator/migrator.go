@@ -119,6 +119,12 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			queryTx.DryRun = false
 			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
 		}
+
+		if err := execTx.Migrator().ObtainLock(); err != nil {
+			return err
+		}
+		defer execTx.Migrator().ReleaseLock()
+
 		if !queryTx.Migrator().HasTable(value) {
 			if err := execTx.Migrator().CreateTable(value); err != nil {
 				return err
@@ -984,4 +990,14 @@ func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
 // TableType return tableType gorm.TableType and execErr error
 func (m Migrator) TableType(dst interface{}) (gorm.TableType, error) {
 	return nil, errors.New("not support")
+}
+
+// ObtainLock obtains a global migration lock
+func (m Migrator) ObtainLock() error {
+	return nil
+}
+
+// ReleaseLock releases the global migration lock
+func (m Migrator) ReleaseLock() error {
+	return nil
 }

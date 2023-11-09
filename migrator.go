@@ -108,4 +108,8 @@ type Migrator interface {
 	HasIndex(dst interface{}, name string) bool
 	RenameIndex(dst interface{}, oldName, newName string) error
 	GetIndexes(dst interface{}) ([]Index, error)
+
+	// Locking
+	ObtainLock() error
+	ReleaseLock() error
 }
