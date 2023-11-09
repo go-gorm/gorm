@@ -110,6 +110,90 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 	return
 }
 
+func (m Migrator) migrateTable(queryTx, execTx *gorm.DB, value interface{}) (err error) {
+	if err = execTx.Migrator().ObtainLock(); err != nil {
+		return
+	}
+	defer func() {
+		err = execTx.Migrator().ReleaseLock()
+	}()
+
+	if !queryTx.Migrator().HasTable(value) {
+		if err = execTx.Migrator().CreateTable(value); err != nil {
+			return err
+		}
+	} else {
+		if err = m.RunWithValue(value, func(stmt *gorm.Statement) error {
+			columnTypes, err := queryTx.Migrator().ColumnTypes(value)
+			if err != nil {
+				return err
+			}
+			var (
+				parseIndexes          = stmt.Schema.ParseIndexes()
+				parseCheckConstraints = stmt.Schema.ParseCheckConstraints()
+			)
+			for _, dbName := range stmt.Schema.DBNames {
+				var foundColumn gorm.ColumnType
+
+				for _, columnType := range columnTypes {
+					if columnType.Name() == dbName {
+						foundColumn = columnType
+						break
+					}
+				}
+
+				if foundColumn == nil {
+					// not found, add column
+					if err = execTx.Migrator().AddColumn(value, dbName); err != nil {
+						return err
+					}
+				} else {
+					// found, smartly migrate
+					field := stmt.Schema.FieldsByDBName[dbName]
+					if err = execTx.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
+						return err
+					}
+				}
+			}
+
+			if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
+				for _, rel := range stmt.Schema.Relationships.Relations {
+					if rel.Field.IgnoreMigration {
+						continue
+					}
+					if constraint := rel.ParseConstraint(); constraint != nil &&
+						constraint.Schema == stmt.Schema && !queryTx.Migrator().HasConstraint(value, constraint.Name) {
+						if err := execTx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			for _, chk := range parseCheckConstraints {
+				if !queryTx.Migrator().HasConstraint(value, chk.Name) {
+					if err := execTx.Migrator().CreateConstraint(value, chk.Name); err != nil {
+						return err
+					}
+				}
+			}
+
+			for _, idx := range parseIndexes {
+				if !queryTx.Migrator().HasIndex(value, idx.Name) {
+					if err := execTx.Migrator().CreateIndex(value, idx.Name); err != nil {
+						return err
+					}
+				}
+			}
+
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // AutoMigrate auto migrate values
 func (m Migrator) AutoMigrate(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, true) {
@@ -120,86 +204,8 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			execTx = m.DB.Session(&gorm.Session{Logger: &printSQLLogger{Interface: m.DB.Logger}})
 		}
 
-		if err := execTx.Migrator().ObtainLock(); err != nil {
+		if err := m.migrateTable(queryTx, execTx, value); err != nil {
 			return err
-		}
-		defer func() {
-			err := execTx.Migrator().ReleaseLock()
-			execTx.AddError(err)
-		}()
-
-		if !queryTx.Migrator().HasTable(value) {
-			if err := execTx.Migrator().CreateTable(value); err != nil {
-				return err
-			}
-		} else {
-			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-				columnTypes, err := queryTx.Migrator().ColumnTypes(value)
-				if err != nil {
-					return err
-				}
-				var (
-					parseIndexes          = stmt.Schema.ParseIndexes()
-					parseCheckConstraints = stmt.Schema.ParseCheckConstraints()
-				)
-				for _, dbName := range stmt.Schema.DBNames {
-					var foundColumn gorm.ColumnType
-
-					for _, columnType := range columnTypes {
-						if columnType.Name() == dbName {
-							foundColumn = columnType
-							break
-						}
-					}
-
-					if foundColumn == nil {
-						// not found, add column
-						if err = execTx.Migrator().AddColumn(value, dbName); err != nil {
-							return err
-						}
-					} else {
-						// found, smartly migrate
-						field := stmt.Schema.FieldsByDBName[dbName]
-						if err = execTx.Migrator().MigrateColumn(value, field, foundColumn); err != nil {
-							return err
-						}
-					}
-				}
-
-				if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
-					for _, rel := range stmt.Schema.Relationships.Relations {
-						if rel.Field.IgnoreMigration {
-							continue
-						}
-						if constraint := rel.ParseConstraint(); constraint != nil &&
-							constraint.Schema == stmt.Schema && !queryTx.Migrator().HasConstraint(value, constraint.Name) {
-							if err := execTx.Migrator().CreateConstraint(value, constraint.Name); err != nil {
-								return err
-							}
-						}
-					}
-				}
-
-				for _, chk := range parseCheckConstraints {
-					if !queryTx.Migrator().HasConstraint(value, chk.Name) {
-						if err := execTx.Migrator().CreateConstraint(value, chk.Name); err != nil {
-							return err
-						}
-					}
-				}
-
-				for _, idx := range parseIndexes {
-					if !queryTx.Migrator().HasIndex(value, idx.Name) {
-						if err := execTx.Migrator().CreateIndex(value, idx.Name); err != nil {
-							return err
-						}
-					}
-				}
-
-				return nil
-			}); err != nil {
-				return err
-			}
 		}
 	}
 
