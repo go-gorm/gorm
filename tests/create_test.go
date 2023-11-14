@@ -621,58 +621,82 @@ func TestCreateFromMapWithoutPK(t *testing.T) {
 	if !isMysql() {
 		t.Skipf("This test case skipped, because of only supportting for mysql")
 	}
-	cases := []string{"create_from_map_with_schema1", "create_from_map_with_schema2"}
-	mapValue1 := map[string]interface{}{"name": cases[0], "age": 1}
-	mapValue2 := map[string]interface{}{"name": cases[1], "age": 1}
 
-	// case 1: one record
-	for i, c := range cases {
-		if i == 0 {
-			if err := DB.Model(&User{}).Create(mapValue1).Error; err != nil {
-				t.Fatalf("failed to create data from map, got error: %v", err)
-			}
-
-			if _, ok := mapValue1["id"]; !ok {
-				t.Fatal("failed to create data from map with table, returning map has no primary key")
-			}
-
-		} else {
-			if err := DB.Model(&User{}).Create(&mapValue2).Error; err != nil {
-				t.Fatalf("failed to create data from map, got error: %v", err)
-			}
-
-			if _, ok := mapValue2["id"]; !ok {
-				t.Fatal("failed to create data from map with table, returning map has no primary key")
-			}
-		}
-
-		var result User
-		if err := DB.Where("name = ?", c).First(&result).Error; err != nil || result.Age != 1 {
-			t.Fatalf("failed to create from map, got error %v", err)
-		}
-
-		var idVal int64
-		if i == 0 {
-			idVal = mapValue1["id"].(int64)
-		} else {
-			idVal = mapValue2["id"].(int64)
-		}
-
-		if int64(result.ID) != idVal {
-			t.Fatal("failed to create data from map with table, @id != id")
-		}
+	// case 1: one record, create from map[string]interface{}
+	mapValue1 := map[string]interface{}{"name": "create_from_map_with_schema1", "age": 1}
+	if err := DB.Model(&User{}).Create(mapValue1).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
 	}
 
-	// case 2: records
+	if _, ok := mapValue1["id"]; !ok {
+		t.Fatal("failed to create data from map with table, returning map has no primary key")
+	}
+
+	var result1 User
+	if err := DB.Where("name = ?", "create_from_map_with_schema1").First(&result1).Error; err != nil || result1.Age != 1 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	var idVal int64
+	_, ok := mapValue1["id"].(uint)
+	if ok {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	idVal, ok = mapValue1["id"].(int64)
+	if !ok {
+		t.Fatal("ret result missing id")
+	}
+
+	if int64(result1.ID) != idVal {
+		t.Fatal("failed to create data from map with table, @id != id")
+	}
+
+	// case2: one record, create from *map[string]interface{}
+	mapValue2 := map[string]interface{}{"name": "create_from_map_with_schema2", "age": 1}
+	if err := DB.Model(&User{}).Create(&mapValue2).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	if _, ok := mapValue2["id"]; !ok {
+		t.Fatal("failed to create data from map with table, returning map has no primary key")
+	}
+
+	var result2 User
+	if err := DB.Where("name = ?", "create_from_map_with_schema2").First(&result2).Error; err != nil || result2.Age != 1 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	_, ok = mapValue2["id"].(uint)
+	if ok {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	idVal, ok = mapValue2["id"].(int64)
+	if !ok {
+		t.Fatal("ret result missing id")
+	}
+
+	if int64(result2.ID) != idVal {
+		t.Fatal("failed to create data from map with table, @id != id")
+	}
+
+	// case 3: records
 	values := []map[string]interface{}{
 		{"name": "create_from_map_with_schema11", "age": 1}, {"name": "create_from_map_with_schema12", "age": 1},
 	}
 
+	beforeLen := len(values)
 	if err := DB.Model(&User{}).Create(&values).Error; err != nil {
 		t.Fatalf("failed to create data from map, got error: %v", err)
 	}
 
-	for i, _ := range values {
+	// mariadb with returning, values will be appended with id map
+	if len(values) == beforeLen*2 {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	for i := range values {
 		v, ok := values[i]["id"]
 		if !ok {
 			t.Fatal("failed to create data from map with table, returning map has no primary key")
@@ -768,5 +792,4 @@ func TestCreateFromMapWithTable(t *testing.T) {
 	if int64(res3["id"].(uint64)) != records[1]["@id"] {
 		t.Fatal("failed to create data from map with table, @id != id")
 	}
-
 }
