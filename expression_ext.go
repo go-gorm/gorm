@@ -285,6 +285,15 @@ func (e *expr) SumExpr() *expr {
 	return e
 }
 
+func (e *expr) Avg() string {
+	return "AVG(" + e.expr + ")"
+}
+
+func (e *expr) AvgExpr() *expr {
+	e.expr = "AVG(" + e.expr + ")"
+	return e
+}
+
 func (e *expr) ReplaceExpr(search string, replace string) *expr {
 	e.expr = "REPLACE(" + e.expr + ",?,?)"
 	e.args = append(e.args, search, replace)
