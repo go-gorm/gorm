@@ -27,6 +27,8 @@ type Replacer interface {
 	Replace(name string) string
 }
 
+var _ Namer = (*NamingStrategy)(nil)
+
 // NamingStrategy tables, columns naming strategy
 type NamingStrategy struct {
 	TablePrefix         string
