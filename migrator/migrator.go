@@ -93,6 +93,10 @@ func (m Migrator) FullDataTypeOf(field *schema.Field) (expr clause.Expr) {
 		expr.SQL += " NOT NULL"
 	}
 
+	if field.Unique {
+		expr.SQL += " UNIQUE"
+	}
+
 	if field.HasDefaultValue && (field.DefaultValueInterface != nil || field.DefaultValue != "") {
 		if field.DefaultValueInterface != nil {
 			defaultStmt := &gorm.Statement{Vars: []interface{}{field.DefaultValueInterface}}
@@ -508,6 +512,14 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
+	// check unique
+	if unique, ok := columnType.Unique(); ok && unique != (field.Unique || field.UniqueIndex != "") {
+		// not primary key
+		if !field.PrimaryKey {
+			alterColumn = true
+		}
+	}
+
 	// check default value
 	if !field.PrimaryKey {
 		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
@@ -536,14 +548,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		}
 	}
 
-	if alterColumn {
-		if err := m.DB.Migrator().AlterColumn(value, field.DBName); err != nil {
-			return err
-		}
-	}
-
-	if err := m.DB.Migrator().MigrateColumnUnique(value, field, columnType); err != nil {
-		return err
+	if alterColumn && !field.IgnoreMigration {
+		return m.DB.Migrator().AlterColumn(value, field.DBName)
 	}
 
 	return nil
@@ -654,6 +660,7 @@ func (m Migrator) GuessConstraintAndTable(stmt *gorm.Statement, name string) (*s
 }
 
 // GuessConstraintInterfaceAndTable guess statement's constraint and it's table based on name
+// nolint:cyclop
 func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name string) (_ schema.ConstraintInterface, table string) {
 	if stmt.Schema == nil {
 		return nil, stmt.Table
