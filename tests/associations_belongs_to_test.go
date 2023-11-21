@@ -278,8 +278,6 @@ func TestBelongsToAssociationUnscoped(t *testing.T) {
 		t.Fatalf("failed to create items, got error: %v", err)
 	}
 
-	tx = tx.Debug()
-
 	// test replace
 	if err := tx.Model(&item).Association("ItemParent").Unscoped().Replace(&ItemParent{
 		Logo: "updated logo",

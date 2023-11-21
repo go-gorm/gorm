@@ -31,12 +31,12 @@ func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
 }
 
 func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
-	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
-		return dbConnector.GetDBConn()
-	}
-
 	if sqldb, ok := db.ConnPool.(*sql.DB); ok {
 		return sqldb, nil
+	}
+
+	if dbConnector, ok := db.ConnPool.(GetDBConnector); ok && dbConnector != nil {
+		return dbConnector.GetDBConn()
 	}
 
 	return nil, ErrInvalidDB
@@ -54,15 +54,15 @@ func (db *PreparedStmtDB) Close() {
 	}
 }
 
-func (db *PreparedStmtDB) Reset() {
-	db.Mux.Lock()
-	defer db.Mux.Unlock()
+func (sdb *PreparedStmtDB) Reset() {
+	sdb.Mux.Lock()
+	defer sdb.Mux.Unlock()
 
-	for _, stmt := range db.Stmts {
+	for _, stmt := range sdb.Stmts {
 		go stmt.Close()
 	}
-	db.PreparedSQL = make([]string, 0, 100)
-	db.Stmts = make(map[string]*Stmt)
+	sdb.PreparedSQL = make([]string, 0, 100)
+	sdb.Stmts = make(map[string]*Stmt)
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
@@ -127,6 +127,19 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 		tx, err := beginner.BeginTx(ctx, opt)
 		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, err
 	}
+
+	beginner, ok := db.ConnPool.(ConnPoolBeginner)
+	if !ok {
+		return nil, ErrInvalidTransaction
+	}
+
+	connPool, err := beginner.BeginTx(ctx, opt)
+	if err != nil {
+		return nil, err
+	}
+	if tx, ok := connPool.(Tx); ok {
+		return &PreparedStmtTX{PreparedStmtDB: db, Tx: tx}, nil
+	}
 	return nil, ErrInvalidTransaction
 }
 
@@ -170,6 +183,10 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 type PreparedStmtTX struct {
 	Tx
 	PreparedStmtDB *PreparedStmtDB
+}
+
+func (db *PreparedStmtTX) GetDBConn() (*sql.DB, error) {
+	return db.PreparedStmtDB.GetDBConn()
 }
 
 func (tx *PreparedStmtTX) Commit() error {

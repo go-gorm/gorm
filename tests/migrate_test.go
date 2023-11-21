@@ -862,6 +862,48 @@ func TestMigrateWithSpecialName(t *testing.T) {
 	AssertEqual(t, true, DB.Migrator().HasTable("coupon_product_2"))
 }
 
+// https://github.com/go-gorm/gorm/issues/4760
+func TestMigrateAutoIncrement(t *testing.T) {
+	type AutoIncrementStruct struct {
+		ID     int64   `gorm:"primarykey;autoIncrement"`
+		Field1 uint32  `gorm:"column:field1"`
+		Field2 float32 `gorm:"column:field2"`
+	}
+
+	if err := DB.AutoMigrate(&AutoIncrementStruct{}); err != nil {
+		t.Fatalf("AutoMigrate err: %v", err)
+	}
+
+	const ROWS = 10
+	for idx := 0; idx < ROWS; idx++ {
+		if err := DB.Create(&AutoIncrementStruct{}).Error; err != nil {
+			t.Fatalf("create auto_increment_struct fail, err: %v", err)
+		}
+	}
+
+	rows := make([]*AutoIncrementStruct, 0, ROWS)
+	if err := DB.Order("id ASC").Find(&rows).Error; err != nil {
+		t.Fatalf("find auto_increment_struct fail, err: %v", err)
+	}
+
+	ids := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		ids = append(ids, row.ID)
+	}
+	lastID := ids[len(ids)-1]
+
+	if err := DB.Where("id IN (?)", ids).Delete(&AutoIncrementStruct{}).Error; err != nil {
+		t.Fatalf("delete auto_increment_struct fail, err: %v", err)
+	}
+
+	newRow := &AutoIncrementStruct{}
+	if err := DB.Create(newRow).Error; err != nil {
+		t.Fatalf("create auto_increment_struct fail, err: %v", err)
+	}
+
+	AssertEqual(t, newRow.ID, lastID+1)
+}
+
 // https://github.com/go-gorm/gorm/issues/5320
 func TestPrimarykeyID(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" {
@@ -1596,5 +1638,50 @@ func TestMigrateExistingBoolColumnPG(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestTableType(t *testing.T) {
+	// currently it is only supported for mysql driver
+	if !isMysql() {
+		return
+	}
+
+	const tblName = "cities"
+	const tblSchema = "gorm"
+	const tblType = "BASE TABLE"
+	const tblComment = "foobar comment"
+
+	type City struct {
+		gorm.Model
+		Name string `gorm:"unique"`
+	}
+
+	DB.Migrator().DropTable(&City{})
+
+	if err := DB.Set("gorm:table_options", fmt.Sprintf("ENGINE InnoDB COMMENT '%s'", tblComment)).AutoMigrate(&City{}); err != nil {
+		t.Fatalf("failed to migrate cities tables, got error: %v", err)
+	}
+
+	tableType, err := DB.Table("cities").Migrator().TableType(&City{})
+	if err != nil {
+		t.Fatalf("failed to get table type, got error %v", err)
+	}
+
+	if tableType.Schema() != tblSchema {
+		t.Fatalf("expected tblSchema to be %s but got %s", tblSchema, tableType.Schema())
+	}
+
+	if tableType.Name() != tblName {
+		t.Fatalf("expected table name to be %s but got %s", tblName, tableType.Name())
+	}
+
+	if tableType.Type() != tblType {
+		t.Fatalf("expected table type to be %s but got %s", tblType, tableType.Type())
+	}
+
+	comment, ok := tableType.Comment()
+	if !ok || comment != tblComment {
+		t.Fatalf("expected comment %s got %s", tblComment, comment)
 	}
 }

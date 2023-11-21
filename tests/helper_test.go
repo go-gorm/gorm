@@ -265,6 +265,10 @@ func isTiDB() bool {
 	return os.Getenv("GORM_DIALECT") == "tidb"
 }
 
+func isMysql() bool {
+	return os.Getenv("GORM_DIALECT") == "mysql"
+}
+
 func db(unscoped bool) *gorm.DB {
 	if unscoped {
 		return DB.Unscoped()

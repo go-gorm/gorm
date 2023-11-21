@@ -765,9 +765,9 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	}
 }
 
-// only sqlite, postgres support returning
+// only sqlite, postgres, sqlserver support returning
 func TestUpdateReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
@@ -838,7 +838,7 @@ func TestSaveWithHooks(t *testing.T) {
 	saveTokenOwner := func(owner *TokenOwner) (*TokenOwner, error) {
 		var newOwner TokenOwner
 		if err := DB.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Debug().Session(&gorm.Session{FullSaveAssociations: true}).Save(owner).Error; err != nil {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(owner).Error; err != nil {
 				return err
 			}
 			if err := tx.Preload("Token").First(&newOwner, owner.ID).Error; err != nil {
