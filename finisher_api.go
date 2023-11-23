@@ -93,7 +93,6 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 						tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
 					}
 					return tx.callbacks.Create().Execute(tx.Set("gorm:update_track_time", true))
-
 				}
 			}
 		}
