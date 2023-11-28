@@ -824,6 +824,8 @@ func (field *Field) setupValuerAndSetter() {
 				case **time.Time:
 					if data != nil && *data != nil {
 						field.Set(ctx, value, *data)
+					}else{
+						field.Set(ctx, value, nil)
 					}
 				case time.Time:
 					field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(v))
