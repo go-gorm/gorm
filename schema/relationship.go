@@ -136,11 +136,7 @@ func hasPolymorphicRelation(tagSettings map[string]string) bool {
 	_, hasType := tagSettings["POLYMORPHICTYPE"]
 	_, hasId := tagSettings["POLYMORPHICID"]
 
-	if hasType && hasId {
-		return true
-	}
-
-	return false
+	return hasType && hasId
 }
 
 func (schema *Schema) setRelation(relation *Relationship) {
