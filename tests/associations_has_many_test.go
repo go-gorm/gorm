@@ -422,7 +422,7 @@ func TestPolymorphicHasManyAssociation(t *testing.T) {
 func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 	users := []User{
 		*GetUser("slice-hasmany-1", Config{Toys: 2}),
-		*GetUser("slice-hasmany-2", Config{Toys: 0}),
+		*GetUser("slice-hasmany-2", Config{Toys: 0, Tools: 2}),
 		*GetUser("slice-hasmany-3", Config{Toys: 4}),
 	}
 
@@ -430,11 +430,20 @@ func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 
 	// Count
 	AssertAssociationCount(t, users, "Toys", 6, "")
+	AssertAssociationCount(t, users, "Tools", 2, "")
 
 	// Find
 	var toys []Toy
 	if DB.Model(&users).Association("Toys").Find(&toys); len(toys) != 6 {
 		t.Errorf("toys count should be %v, but got %v", 6, len(toys))
+	}
+
+	// Find Tools (polymorphic with custom type and id)
+	var tools []Tools
+	DB.Model(&users).Association("Tools").Find(&tools)
+
+	if len(tools) != 2 {
+		t.Errorf("tools count should be %v, but got %v", 2, len(tools))
 	}
 
 	// Append

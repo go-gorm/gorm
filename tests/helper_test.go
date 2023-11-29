@@ -23,6 +23,7 @@ type Config struct {
 	Languages int
 	Friends   int
 	NamedPet  bool
+	Tools     int
 }
 
 func GetUser(name string, config Config) *User {
@@ -45,6 +46,10 @@ func GetUser(name string, config Config) *User {
 
 	for i := 0; i < config.Toys; i++ {
 		user.Toys = append(user.Toys, Toy{Name: name + "_toy_" + strconv.Itoa(i+1)})
+	}
+
+	for i := 0; i < config.Tools; i++ {
+		user.Tools = append(user.Tools, Tools{Name: name + "_tool_" + strconv.Itoa(i+1)})
 	}
 
 	if config.Company {
@@ -118,11 +123,13 @@ func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 		if err := db(unscoped).Where("id = ?", user.ID).First(&newUser).Error; err != nil {
 			t.Fatalf("errors happened when query: %v", err)
 		} else {
-			AssertObjEqual(t, newUser, user, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+			AssertObjEqual(t, newUser, user, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday",
+				"CompanyID", "ManagerID", "Active")
 		}
 	}
 
-	AssertObjEqual(t, user, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+	AssertObjEqual(t, user, expect, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID",
+		"ManagerID", "Active")
 
 	t.Run("Account", func(t *testing.T) {
 		AssertObjEqual(t, user.Account, expect.Account, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Number")
@@ -133,7 +140,8 @@ func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 			} else {
 				var account Account
 				db(unscoped).First(&account, "user_id = ?", user.ID)
-				AssertObjEqual(t, account, user.Account, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID", "Number")
+				AssertObjEqual(t, account, user.Account, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "UserID",
+					"Number")
 			}
 		}
 	})
@@ -193,8 +201,10 @@ func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 			} else {
 				var manager User
 				db(unscoped).First(&manager, "id = ?", *user.ManagerID)
-				AssertObjEqual(t, manager, user.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
-				AssertObjEqual(t, manager, expect.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+				AssertObjEqual(t, manager, user.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age",
+					"Birthday", "CompanyID", "ManagerID", "Active")
+				AssertObjEqual(t, manager, expect.Manager, "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age",
+					"Birthday", "CompanyID", "ManagerID", "Active")
 			}
 		} else if user.ManagerID != nil {
 			t.Errorf("Manager should not be created for zero value, got: %+v", user.ManagerID)
@@ -215,7 +225,8 @@ func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 		})
 
 		for idx, team := range user.Team {
-			AssertObjEqual(t, team, expect.Team[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+			AssertObjEqual(t, team, expect.Team[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age",
+				"Birthday", "CompanyID", "ManagerID", "Active")
 		}
 	})
 
@@ -250,7 +261,8 @@ func doCheckUser(t *testing.T, user User, expect User, unscoped bool) {
 		})
 
 		for idx, friend := range user.Friends {
-			AssertObjEqual(t, friend, expect.Friends[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age", "Birthday", "CompanyID", "ManagerID", "Active")
+			AssertObjEqual(t, friend, expect.Friends[idx], "ID", "CreatedAt", "UpdatedAt", "DeletedAt", "Name", "Age",
+				"Birthday", "CompanyID", "ManagerID", "Active")
 		}
 	})
 }
