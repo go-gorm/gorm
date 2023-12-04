@@ -1,23 +1,16 @@
 package clause
 
-type LockingStrength string
-
 const (
-	LockingStrengthUpdate = LockingStrength("UPDATE")
-	LockingStrengthShare  = LockingStrength("SHARE")
-)
-
-type LockingOptions string
-
-const (
-	LockingOptionsSkipLocked = LockingOptions("SKIP LOCKED")
-	LockingOptionsNoWait     = LockingOptions("NOWAIT")
+	LockingStrengthUpdate    = "UPDATE"
+	LockingStrengthShare     = "SHARE"
+	LockingOptionsSkipLocked = "SKIP LOCKED"
+	LockingOptionsNoWait     = "NOWAIT"
 )
 
 type Locking struct {
-	Strength LockingStrength
+	Strength string
 	Table    Table
-	Options  LockingOptions
+	Options  string
 }
 
 // Name where clause name
@@ -27,7 +20,7 @@ func (locking Locking) Name() string {
 
 // Build build where clause
 func (locking Locking) Build(builder Builder) {
-	builder.WriteString(string(locking.Strength))
+	builder.WriteString(locking.Strength)
 	if locking.Table.Name != "" {
 		builder.WriteString(" OF ")
 		builder.WriteQuoted(locking.Table)
@@ -35,7 +28,7 @@ func (locking Locking) Build(builder Builder) {
 
 	if locking.Options != "" {
 		builder.WriteByte(' ')
-		builder.WriteString(string(locking.Options))
+		builder.WriteString(locking.Options)
 	}
 }
 
