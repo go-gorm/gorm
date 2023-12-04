@@ -34,7 +34,7 @@ func TestMigrate(t *testing.T) {
 	if tables, err := DB.Migrator().GetTables(); err != nil {
 		t.Fatalf("Failed to get database all tables, but got error %v", err)
 	} else {
-		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages"} {
+		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages", "tools"} {
 			hasTable := false
 			for _, t2 := range tables {
 				if t2 == t1 {
