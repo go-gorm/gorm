@@ -1,21 +1,22 @@
 package clause
 
-// Interface clause interface
+// Interface is a clause interface.
 type Interface interface {
 	Name() string
 	Build(Builder)
 	MergeClause(*Clause)
 }
 
-// ClauseBuilder clause builder, allows to customize how to build clause
+// ClauseBuilder is a clause builder that allows customization of how to build a clause.
 type ClauseBuilder func(Clause, Builder)
 
+// Writer is an interface for writing operations.
 type Writer interface {
 	WriteByte(byte) error
 	WriteString(string) (int, error)
 }
 
-// Builder builder interface
+// Builder is a builder interface.
 type Builder interface {
 	Writer
 	WriteQuoted(field interface{})
@@ -23,9 +24,9 @@ type Builder interface {
 	AddError(error) error
 }
 
-// Clause
+// Clause represents a query clause.
 type Clause struct {
-	Name                string // WHERE
+	Name                string
 	BeforeExpression    Expression
 	AfterNameExpression Expression
 	AfterExpression     Expression
@@ -33,7 +34,7 @@ type Clause struct {
 	Builder             ClauseBuilder
 }
 
-// Build build clause
+// Build builds the clause.
 func (c Clause) Build(builder Builder) {
 	if c.Builder != nil {
 		c.Builder(c, builder)
@@ -62,18 +63,20 @@ func (c Clause) Build(builder Builder) {
 	}
 }
 
+// Constants for special names.
 const (
-	PrimaryKey   string = "~~~py~~~" // primary key
-	CurrentTable string = "~~~ct~~~" // current table
-	Associations string = "~~~as~~~" // associations
+	PrimaryKey   = "~~~py~~~" // Primary key
+	CurrentTable = "~~~ct~~~" // Current table
+	Associations = "~~~as~~~" // Associations
 )
 
+// Predefined instances.
 var (
-	currentTable  = Table{Name: CurrentTable}
-	PrimaryColumn = Column{Table: CurrentTable, Name: PrimaryKey}
+	CurrentTableInstance = Table{Name: CurrentTable}
+	PrimaryColumn       = Column{Table: CurrentTable, Name: PrimaryKey}
 )
 
-// Column quote with name
+// Column represents a column with optional table and alias.
 type Column struct {
 	Table string
 	Name  string
@@ -81,7 +84,7 @@ type Column struct {
 	Raw   bool
 }
 
-// Table quote with name
+// Table represents a table with optional alias.
 type Table struct {
 	Name  string
 	Alias string
