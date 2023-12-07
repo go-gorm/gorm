@@ -163,8 +163,8 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 					t.Errorf("schema %v relation's join table tablename expects %v, but got %v", s, relation.JoinTable.Table, r.JoinTable.Table)
 				}
 
-				for _, f := range relation.JoinTable.Fields {
-					checkSchemaField(t, r.JoinTable, &f, nil)
+				for i := range relation.JoinTable.Fields {
+					checkSchemaField(t, r.JoinTable, &relation.JoinTable.Fields[i], nil)
 				}
 			}
 
