@@ -46,8 +46,8 @@ func checkUserSchema(t *testing.T, user *schema.Schema) {
 		{Name: "Active", DBName: "active", BindNames: []string{"Active"}, DataType: schema.Bool},
 	}
 
-	for _, f := range fields {
-		checkSchemaField(t, user, &f, func(f *schema.Field) {
+	for i := range fields {
+		checkSchemaField(t, user, &fields[i], func(f *schema.Field) {
 			f.Creatable = true
 			f.Updatable = true
 			f.Readable = true
@@ -136,8 +136,8 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 		{Name: "Admin", DBName: "admin", BindNames: []string{"Admin"}, DataType: schema.Bool},
 	}
 
-	for _, f := range fields {
-		checkSchemaField(t, user, &f, func(f *schema.Field) {
+	for i := range fields {
+		checkSchemaField(t, user, &fields[i], func(f *schema.Field) {
 			f.Creatable = true
 			f.Updatable = true
 			f.Readable = true
