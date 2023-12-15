@@ -14,16 +14,20 @@ func TestLocking(t *testing.T) {
 		Vars    []interface{}
 	}{
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: "UPDATE"}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: clause.LockingStrengthUpdate}},
 			"SELECT * FROM `users` FOR UPDATE", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: "SHARE", Table: clause.Table{Name: clause.CurrentTable}}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: clause.LockingStrengthShare, Table: clause.Table{Name: clause.CurrentTable}}},
 			"SELECT * FROM `users` FOR SHARE OF `users`", nil,
 		},
 		{
-			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: "UPDATE"}, clause.Locking{Strength: "UPDATE", Options: "NOWAIT"}},
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: clause.LockingStrengthUpdate, Options: clause.LockingOptionsNoWait}},
 			"SELECT * FROM `users` FOR UPDATE NOWAIT", nil,
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Locking{Strength: clause.LockingStrengthUpdate, Options: clause.LockingOptionsSkipLocked}},
+			"SELECT * FROM `users` FOR UPDATE SKIP LOCKED", nil,
 		},
 	}
 
