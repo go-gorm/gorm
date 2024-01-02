@@ -85,6 +85,8 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 
 // preloadEntryPoint enters layer by layer. It will call real preload if it finds the right entry point.
 // If the current relationship is embedded or joined, current query will be ignored.
+//
+//nolint:cyclop
 func preloadEntryPoint(db *gorm.DB, preloadFields, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
 	preloadMap := parsePreloadMap(db.Statement.Schema, preloads)
 
