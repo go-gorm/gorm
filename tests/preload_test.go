@@ -307,6 +307,55 @@ func TestNestedPreloadWithUnscoped(t *testing.T) {
 	CheckUserUnscoped(t, *user6, user)
 }
 
+func TestNestedPreloadWithNestedJoin(t *testing.T) {
+	type (
+		Preload struct {
+			ID       uint
+			Value    string
+			NestedID uint
+		}
+		Join struct {
+			ID       uint
+			Value    string
+			NestedID uint
+		}
+		Nested struct {
+			ID       uint
+			Preloads []*Preload
+			Join     Join
+			ValueID  uint
+		}
+		Value struct {
+			ID     uint
+			Name   string
+			Nested Nested
+		}
+	)
+
+	DB.Migrator().DropTable(&Preload{}, &Join{}, &Nested{}, &Value{})
+	DB.Migrator().AutoMigrate(&Preload{}, &Join{}, &Nested{}, &Value{})
+
+	value := Value{
+		Name: "value",
+		Nested: Nested{
+			Preloads: []*Preload{
+				{Value: "p1"}, {Value: "p2"},
+			},
+			Join: Join{Value: "j1"},
+		},
+	}
+	if err := DB.Create(&value).Error; err != nil {
+		t.Errorf("failed to create value, got err: %v", err)
+	}
+
+	var find Value
+	err := DB.Joins("Nested").Joins("Nested.Join").Preload("Nested.Preloads").First(&find).Error
+	if err != nil {
+		t.Errorf("failed to find org, got err: %v", err)
+	}
+	AssertEqual(t, find, value)
+}
+
 func TestEmbedPreload(t *testing.T) {
 	type Country struct {
 		ID   int `gorm:"primaryKey"`
