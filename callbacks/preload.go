@@ -87,7 +87,7 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 // If the current relationship is embedded or joined, current query will be ignored.
 //
 //nolint:cyclop
-func preloadEntryPoint(db *gorm.DB, preloadFields, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
+func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
 	preloadMap := parsePreloadMap(db.Statement.Schema, preloads)
 
 	// avoid random traversal of the map
@@ -97,26 +97,33 @@ func preloadEntryPoint(db *gorm.DB, preloadFields, joins []string, relationships
 	}
 	sort.Strings(preloadNames)
 
-	joined := func(name string) bool {
-		fullPath := strings.Join(append(preloadFields, name), ".")
+	isJoined := func(name string) (joined bool, nestedJoins []string) {
 		for _, join := range joins {
-			if fullPath == join {
-				return true
+			if _, ok := relationships.Relations[join]; ok && name == join {
+				joined = true
+				continue
+			}
+			joinNames := strings.SplitN(join, ".", 2)
+			if len(joinNames) == 2 {
+				if _, ok := relationships.Relations[joinNames[0]]; ok && name == joinNames[0] {
+					joined = true
+					nestedJoins = append(nestedJoins, joinNames[1])
+				}
 			}
 		}
-		return false
+		return joined, nestedJoins
 	}
 
 	for _, name := range preloadNames {
 		if relations := relationships.EmbeddedRelations[name]; relations != nil {
-			if err := preloadEntryPoint(db, append(preloadFields, name), joins, relations, preloadMap[name], associationsConds); err != nil {
+			if err := preloadEntryPoint(db, joins, relations, preloadMap[name], associationsConds); err != nil {
 				return err
 			}
 		} else if rel := relationships.Relations[name]; rel != nil {
-			if joined(name) {
+			if joined, nestedJoins := isJoined(name); joined {
 				reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, db.Statement.ReflectValue)
 				tx := preloadDB(db, reflectValue, reflectValue.Interface())
-				if err := preloadEntryPoint(tx, append(preloadFields, name), joins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+				if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
 					return err
 				}
 			} else {

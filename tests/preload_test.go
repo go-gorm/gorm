@@ -348,12 +348,20 @@ func TestNestedPreloadWithNestedJoin(t *testing.T) {
 		t.Errorf("failed to create value, got err: %v", err)
 	}
 
-	var find Value
-	err := DB.Joins("Nested").Joins("Nested.Join").Preload("Nested.Preloads").First(&find).Error
+	var find1 Value
+	err := DB.Joins("Nested").Joins("Nested.Join").Preload("Nested.Preloads").First(&find1).Error
 	if err != nil {
-		t.Errorf("failed to find org, got err: %v", err)
+		t.Errorf("failed to find value, got err: %v", err)
 	}
-	AssertEqual(t, find, value)
+	AssertEqual(t, find1, value)
+
+	var find2 Value
+	// Joins will automatically add Nested queries.
+	err = DB.Joins("Nested.Join").Preload("Nested.Preloads").First(&find2).Error
+	if err != nil {
+		t.Errorf("failed to find value, got err: %v", err)
+	}
+	AssertEqual(t, find2, value)
 }
 
 func TestEmbedPreload(t *testing.T) {
