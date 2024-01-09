@@ -334,27 +334,27 @@ func TestTypeAliasField(t *testing.T) {
 }
 
 type UserWithCompositePrimaryKey struct {
-	Foo uint `gorm:"primaryKey,priority:2;autoIncrement:false"`
-	Bar uint `gorm:"primaryKey,priority:1"`
+	Foo uint `gorm:"primaryKey:,priority:2;autoIncrement:false"`
+	Bar uint `gorm:"primaryKey:,priority:1"`
 	Baz uint `gorm:"primaryKey"`
 }
 
 func TestParseFieldWithCompositePrimaryKey(t *testing.T) {
 	user, err := schema.Parse(&UserWithCompositePrimaryKey{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {
-		t.Fatalf("Failed to parse user with permission, got error %v", err)
+		t.Fatalf("Failed to parse user with composite key, got error %v", err)
 	}
 
 	fields := []*schema.Field{
 		{
 			Name: "Foo", DBName: "foo", BindNames: []string{"Foo"}, DataType: schema.Uint, PrimaryKey: true,
 			PrimaryKeyPriority: 2, Creatable: true, Updatable: true, Readable: true, Size: 64,
-			TagSettings: map[string]string{"AUTOINCREMENT": "false", "PRIMARYKEY,PRIORITY": "2"},
+			TagSettings: map[string]string{"AUTOINCREMENT": "false", "PRIMARYKEY": ",priority:2"},
 		},
 		{
 			Name: "Bar", DBName: "bar", BindNames: []string{"Bar"}, DataType: schema.Uint, PrimaryKey: true,
 			PrimaryKeyPriority: 1, Creatable: true, Updatable: true, Readable: true, Size: 64,
-			TagSettings: map[string]string{"PRIMARYKEY,PRIORITY": "1"},
+			TagSettings: map[string]string{"PRIMARYKEY": ",priority:1"},
 		},
 		{Name: "Baz", DBName: "baz", BindNames: []string{"Baz"}, DataType: schema.Uint, PrimaryKey: true,
 			PrimaryKeyPriority: 10, Creatable: true, Updatable: true, Readable: true, Size: 64,

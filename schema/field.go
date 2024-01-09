@@ -127,16 +127,21 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	}
 
 	if field.PrimaryKey {
+		// default priority is 10, to be consistent with composite index
 		field.PrimaryKeyPriority = 10
-	}
 
-	if field.TagSettings["PRIMARYKEY,PRIORITY"] != "" {
-		primaryKeyPriority, err := strconv.Atoi(tagSetting["PRIMARYKEY,PRIORITY"])
-		if err == nil {
-			field.PrimaryKeyPriority = primaryKeyPriority
+		priority := ParseTagSetting(field.TagSettings["PRIMARYKEY"], ",")["PRIORITY"]
+		if priority == "" {
+			priority = ParseTagSetting(field.TagSettings["PRIMARY_KEY"], ",")["PRIORITY"]
+		}
+
+		if priority != "" {
+			primaryKeyPriority, err := strconv.Atoi(priority)
+			if err == nil {
+				field.PrimaryKeyPriority = primaryKeyPriority
+			}
 		}
 	}
-
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
 		field.IndirectFieldType = field.IndirectFieldType.Elem()
 	}
