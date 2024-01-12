@@ -388,7 +388,7 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Where(&User{Name: "foo", Age: 20}).Limit(10).Offset(5).Order("name ASC").First(&User{})
 	})
-	assertEqualSQL(t, `SELECT * FROM "users" WHERE "users"."name" = 'foo' AND "users"."age" = 20 AND "users"."deleted_at" IS NULL ORDER BY name ASC,"users"."id" LIMIT 1 OFFSET 5`, sql)
+	assertEqualSQL(t, `SELECT * FROM "users" WHERE ("users"."name" = 'foo' AND "users"."age" = 20) AND "users"."deleted_at" IS NULL ORDER BY name ASC,"users"."id" LIMIT 1 OFFSET 5`, sql)
 
 	// last and unscoped
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {

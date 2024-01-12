@@ -84,7 +84,9 @@ func TestComplexScopes(t *testing.T) {
 			queryFn: func(tx *gorm.DB) *gorm.DB {
 				return tx.Scopes(
 					func(d *gorm.DB) *gorm.DB { return d.Where("a = 1") },
-					func(d *gorm.DB) *gorm.DB { return d.Where(d.Or("b = 2").Or("c = 3")) },
+					func(d *gorm.DB) *gorm.DB {
+						return d.Where(DB.Or("b = 2").Or("c = 3"))
+					},
 				).Find(&Language{})
 			},
 			expected: `SELECT * FROM "languages" WHERE a = 1 AND (b = 2 OR c = 3)`,
@@ -93,7 +95,9 @@ func TestComplexScopes(t *testing.T) {
 			queryFn: func(tx *gorm.DB) *gorm.DB {
 				return tx.Where("z = 0").Scopes(
 					func(d *gorm.DB) *gorm.DB { return d.Where("a = 1") },
-					func(d *gorm.DB) *gorm.DB { return d.Or(d.Where("b = 2").Or("c = 3")) },
+					func(d *gorm.DB) *gorm.DB {
+						return d.Or(DB.Where("b = 2").Or("c = 3"))
+					},
 				).Find(&Language{})
 			},
 			expected: `SELECT * FROM "languages" WHERE z = 0 AND a = 1 OR (b = 2 OR c = 3)`,
@@ -104,7 +108,7 @@ func TestComplexScopes(t *testing.T) {
 					func(d *gorm.DB) *gorm.DB { return d.Model(&Language{}) },
 					func(d *gorm.DB) *gorm.DB {
 						return d.
-							Or(d.Scopes(
+							Or(DB.Scopes(
 								func(d *gorm.DB) *gorm.DB { return d.Where("a = 1") },
 								func(d *gorm.DB) *gorm.DB { return d.Where("b = 2") },
 							)).
