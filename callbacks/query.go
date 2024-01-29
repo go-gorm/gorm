@@ -3,7 +3,6 @@ package callbacks
 import (
 	"fmt"
 	"reflect"
-	"sort"
 	"strings"
 
 	"gorm.io/gorm"
@@ -254,7 +253,6 @@ func BuildQuerySQL(db *gorm.DB) {
 			}
 
 			db.Statement.AddClause(fromClause)
-			db.Statement.Joins = nil
 		} else {
 			db.Statement.AddClauseIfNotExists(clause.From{})
 		}
@@ -272,38 +270,23 @@ func Preload(db *gorm.DB) {
 			return
 		}
 
-		preloadMap := parsePreloadMap(db.Statement.Schema, db.Statement.Preloads)
-		preloadNames := make([]string, 0, len(preloadMap))
-		for key := range preloadMap {
-			preloadNames = append(preloadNames, key)
+		joins := make([]string, 0, len(db.Statement.Joins))
+		for _, join := range db.Statement.Joins {
+			joins = append(joins, join.Name)
 		}
-		sort.Strings(preloadNames)
 
-		preloadDB := db.Session(&gorm.Session{Context: db.Statement.Context, NewDB: true, SkipHooks: db.Statement.SkipHooks, Initialized: true})
-		db.Statement.Settings.Range(func(k, v interface{}) bool {
-			preloadDB.Statement.Settings.Store(k, v)
-			return true
-		})
-
-		if err := preloadDB.Statement.Parse(db.Statement.Dest); err != nil {
+		tx := preloadDB(db, db.Statement.ReflectValue, db.Statement.Dest)
+		if tx.Error != nil {
 			return
 		}
-		preloadDB.Statement.ReflectValue = db.Statement.ReflectValue
-		preloadDB.Statement.Unscoped = db.Statement.Unscoped
 
-		for _, name := range preloadNames {
-			if relations := preloadDB.Statement.Schema.Relationships.EmbeddedRelations[name]; relations != nil {
-				db.AddError(preloadEmbedded(preloadDB.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks}), relations, db.Statement.Schema, preloadMap[name], db.Statement.Preloads[clause.Associations]))
-			} else if rel := preloadDB.Statement.Schema.Relationships.Relations[name]; rel != nil {
-				db.AddError(preload(preloadDB.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks}), rel, append(db.Statement.Preloads[name], db.Statement.Preloads[clause.Associations]...), preloadMap[name]))
-			} else {
-				db.AddError(fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name))
-			}
-		}
+		db.AddError(preloadEntryPoint(tx, joins, &tx.Statement.Schema.Relationships, db.Statement.Preloads, db.Statement.Preloads[clause.Associations]))
 	}
 }
 
 func AfterQuery(db *gorm.DB) {
+	// clear the joins after query because preload need it
+	db.Statement.Joins = nil
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterFind && db.RowsAffected > 0 {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(AfterFindInterface); ok {
