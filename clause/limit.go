@@ -15,7 +15,6 @@ func (limit Limit) Name() string {
 func (limit Limit) Build(builder Builder) {
 	if limit.Limit != nil && *limit.Limit >= 0 {
 		builder.WriteString("LIMIT ")
-		// builder.WriteString(strconv.Itoa(*limit.Limit))
 		builder.AddVar(builder, *limit.Limit)
 	}
 	if limit.Offset > 0 {
@@ -24,7 +23,6 @@ func (limit Limit) Build(builder Builder) {
 		}
 		builder.WriteString("OFFSET ")
 		builder.AddVar(builder, limit.Offset)
-		// builder.WriteString(strconv.Itoa(limit.Offset))
 	}
 }
 
