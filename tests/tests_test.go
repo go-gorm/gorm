@@ -63,6 +63,7 @@ func OpenTestConnection(cfg *gorm.Config) (db *gorm.DB, err error) {
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
 			PreferSimpleProtocol: true,
+			DriverName:           "postgres",
 		}), cfg)
 	case "sqlserver":
 		// go install github.com/microsoft/go-sqlcmd/cmd/sqlcmd@latest
