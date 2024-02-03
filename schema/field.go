@@ -985,6 +985,6 @@ func (field *Field) setupNewValuePool() {
 	}
 
 	if field.NewValuePool == nil {
-		field.NewValuePool = poolInitializer(reflect.PtrTo(field.IndirectFieldType))
+		field.NewValuePool = poolInitializer(field.IndirectFieldType)
 	}
 }
