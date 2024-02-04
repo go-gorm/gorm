@@ -21,6 +21,12 @@ func (where Where) Name() string {
 
 // Build build where clause
 func (where Where) Build(builder Builder) {
+    if len(where.Exprs) == 1 {
+        if andCondition, ok := where.Exprs[0].(AndConditions); ok {
+           where.Exprs = andCondition.Exprs
+        }
+    }
+
 	// Switch position if the first query expression is a single Or condition
 	for idx, expr := range where.Exprs {
 		if v, ok := expr.(OrConditions); !ok || len(v.Exprs) > 1 {
@@ -146,6 +152,11 @@ func (or OrConditions) Build(builder Builder) {
 func Not(exprs ...Expression) Expression {
 	if len(exprs) == 0 {
 		return nil
+	}
+	if len(exprs) == 1 {
+		if andCondition, ok := exprs[0].(AndConditions); ok {
+			exprs = andCondition.Exprs
+		}
 	}
 	return NotConditions{Exprs: exprs}
 }

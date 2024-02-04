@@ -376,8 +376,12 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	} else if len(db.Statement.assigns) > 0 {
 		exprs := tx.Statement.BuildCondition(db.Statement.assigns[0], db.Statement.assigns[1:]...)
 		assigns := map[string]interface{}{}
-		for _, expr := range exprs {
-			if eq, ok := expr.(clause.Eq); ok {
+		for i := 0; i < len(exprs); i++ {
+			expr := exprs[i]
+
+			if eq, ok := expr.(clause.AndConditions); ok {
+				exprs = append(exprs, eq.Exprs...)
+			} else if eq, ok := expr.(clause.Eq); ok {
 				switch column := eq.Column.(type) {
 				case string:
 					assigns[column] = eq.Value

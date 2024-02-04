@@ -18,7 +18,7 @@ import (
 )
 
 func TestMigrate(t *testing.T) {
-	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}}
+	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Tools{}}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
@@ -34,7 +34,7 @@ func TestMigrate(t *testing.T) {
 	if tables, err := DB.Migrator().GetTables(); err != nil {
 		t.Fatalf("Failed to get database all tables, but got error %v", err)
 	} else {
-		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages"} {
+		for _, t1 := range []string{"users", "accounts", "pets", "companies", "toys", "languages", "tools"} {
 			hasTable := false
 			for _, t2 := range tables {
 				if t2 == t1 {
@@ -93,7 +93,8 @@ func TestAutoMigrateInt8PG(t *testing.T) {
 		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 			sql, _ := fc()
 			if strings.HasPrefix(sql, "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint") {
-				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s", sql)
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s",
+					sql)
 			}
 		},
 	}
@@ -432,40 +433,50 @@ func TestTiDBMigrateColumns(t *testing.T) {
 			switch columnType.Name() {
 			case "id":
 				if v, ok := columnType.PrimaryKey(); !ok || !v {
-					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "name":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
-					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
 				}
 				if length, ok := columnType.Length(); !ok || length != 100 {
-					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), length, 100, columnType)
+					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), length, 100, columnType)
 				}
 			case "age":
 				if v, ok := columnType.DefaultValue(); !ok || v != "18" {
-					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 				if v, ok := columnType.Comment(); !ok || v != "my age" {
-					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "code":
 				if v, ok := columnType.Unique(); !ok || !v {
-					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 				if v, ok := columnType.DefaultValue(); !ok || v != "hello" {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v",
+						columnType.Name(), columnType, v)
 				}
 				if v, ok := columnType.Comment(); !ok || v != "my code2" {
-					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "code2":
 				// Code2 string `gorm:"comment:my code2;default:hello"`
 				if v, ok := columnType.DefaultValue(); !ok || v != "hello" {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v",
+						columnType.Name(), columnType, v)
 				}
 				if v, ok := columnType.Comment(); !ok || v != "my code2" {
-					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			}
 		}
@@ -497,7 +508,8 @@ func TestTiDBMigrateColumns(t *testing.T) {
 		t.Fatalf("Failed to add column, got %v", err)
 	}
 
-	if err := DB.Table("column_structs").Migrator().RenameColumn(&NewColumnStruct{}, "NewName", "new_new_name"); err != nil {
+	if err := DB.Table("column_structs").Migrator().RenameColumn(&NewColumnStruct{}, "NewName",
+		"new_new_name"); err != nil {
 		t.Fatalf("Failed to add column, got %v", err)
 	}
 
@@ -561,36 +573,45 @@ func TestMigrateColumns(t *testing.T) {
 			switch columnType.Name() {
 			case "id":
 				if v, ok := columnType.PrimaryKey(); !ok || !v {
-					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "name":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
-					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
 				}
 				if length, ok := columnType.Length(); !sqlite && (!ok || length != 100) {
-					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), length, 100, columnType)
+					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), length, 100, columnType)
 				}
 			case "age":
 				if v, ok := columnType.DefaultValue(); !ok || v != "18" {
-					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column age default value should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my age") {
-					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column age comment should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "code":
 				if v, ok := columnType.Unique(); !ok || !v {
-					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code unique should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 				if v, ok := columnType.DefaultValue(); !sqlserver && (!ok || v != "hello") {
-					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v", columnType.Name(), columnType, v)
+					t.Fatalf("column code default value should be correct, name: %v, column: %#v, default value: %v",
+						columnType.Name(), columnType, v)
 				}
 				if v, ok := columnType.Comment(); !sqlite && !sqlserver && (!ok || v != "my code2") {
-					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code comment should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "code2":
 				if v, ok := columnType.Unique(); !sqlserver && (!ok || !v) {
-					t.Fatalf("column code2 unique should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column code2 unique should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "code3":
 				// TODO
@@ -627,7 +648,8 @@ func TestMigrateColumns(t *testing.T) {
 		t.Fatalf("Failed to add column, got %v", err)
 	}
 
-	if err := DB.Table("column_structs").Migrator().RenameColumn(&NewColumnStruct{}, "NewName", "new_new_name"); err != nil {
+	if err := DB.Table("column_structs").Migrator().RenameColumn(&NewColumnStruct{}, "NewName",
+		"new_new_name"); err != nil {
 		t.Fatalf("Failed to add column, got %v", err)
 	}
 
@@ -1555,7 +1577,8 @@ func TestMigrateIgnoreRelations(t *testing.T) {
 func TestMigrateView(t *testing.T) {
 	DB.Save(GetUser("joins-args-db", Config{Pets: 2}))
 
-	if err := DB.Migrator().CreateView("invalid_users_pets", gorm.ViewOption{Query: nil}); err != gorm.ErrSubQueryRequired {
+	if err := DB.Migrator().CreateView("invalid_users_pets",
+		gorm.ViewOption{Query: nil}); err != gorm.ErrSubQueryRequired {
 		t.Fatalf("no view should be created, got %v", err)
 	}
 
@@ -1624,17 +1647,20 @@ func TestMigrateExistingBoolColumnPG(t *testing.T) {
 			switch columnType.Name() {
 			case "id":
 				if v, ok := columnType.PrimaryKey(); !ok || !v {
-					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(), columnType)
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
 				}
 			case "string_bool":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
-					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
 				}
 			case "smallint_bool":
 				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
 				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
-					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v", columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
 				}
 			}
 		}
@@ -1659,7 +1685,8 @@ func TestTableType(t *testing.T) {
 
 	DB.Migrator().DropTable(&City{})
 
-	if err := DB.Set("gorm:table_options", fmt.Sprintf("ENGINE InnoDB COMMENT '%s'", tblComment)).AutoMigrate(&City{}); err != nil {
+	if err := DB.Set("gorm:table_options",
+		fmt.Sprintf("ENGINE InnoDB COMMENT '%s'", tblComment)).AutoMigrate(&City{}); err != nil {
 		t.Fatalf("failed to migrate cities tables, got error: %v", err)
 	}
 
