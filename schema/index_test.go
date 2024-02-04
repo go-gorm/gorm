@@ -1,11 +1,11 @@
 package schema_test
 
 import (
-	"reflect"
 	"sync"
 	"testing"
 
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils/tests"
 )
 
 type UserIndex struct {
@@ -19,6 +19,7 @@ type UserIndex struct {
 	OID          int64  `gorm:"index:idx_id;index:idx_oid,unique"`
 	MemberNumber string `gorm:"index:idx_id,priority:1"`
 	Name7        string `gorm:"index:type"`
+	Name8        string `gorm:"index:,length:10;index:,collate:utf8"`
 
 	// Composite Index: Flattened structure.
 	Data0A string `gorm:"index:,composite:comp_id0"`
@@ -65,7 +66,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_name": {
 			Name:   "idx_name",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", UniqueIndex: "idx_name"}}},
 		},
 		"idx_user_indices_name3": {
 			Name:  "idx_user_indices_name3",
@@ -81,7 +82,7 @@ func TestParseIndex(t *testing.T) {
 		"idx_user_indices_name4": {
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", UniqueIndex: "idx_user_indices_name4"}}},
 		},
 		"idx_user_indices_name5": {
 			Name:    "idx_user_indices_name5",
@@ -102,17 +103,26 @@ func TestParseIndex(t *testing.T) {
 		},
 		"idx_id": {
 			Name:   "idx_id",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
 		"idx_oid": {
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", Unique: true}}},
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
 		"type": {
 			Name:   "type",
 			Type:   "",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name7"}}},
+		},
+		"idx_user_indices_name8": {
+			Name: "idx_user_indices_name8",
+			Type: "",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "Name8"}, Length: 10},
+				// Note: Duplicate Columns
+				{Field: &schema.Field{Name: "Name8"}, Collate: "utf8"},
+			},
 		},
 		"idx_user_indices_comp_id0": {
 			Name: "idx_user_indices_comp_id0",
@@ -146,40 +156,109 @@ func TestParseIndex(t *testing.T) {
 		},
 	}
 
-	indices := user.ParseIndexes()
+	CheckIndices(t, results, user.ParseIndexes())
+}
 
-	for k, result := range results {
-		v, ok := indices[k]
-		if !ok {
-			t.Fatalf("Failed to found index %v from parsed indices %+v", k, indices)
-		}
+func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
+	type IndexTest struct {
+		FieldA string `gorm:"unique;index"` // unique and index
+		FieldB string `gorm:"unique"`       // unique
 
-		for _, name := range []string{"Name", "Class", "Type", "Where", "Comment", "Option"} {
-			if reflect.ValueOf(result).FieldByName(name).Interface() != reflect.ValueOf(v).FieldByName(name).Interface() {
-				t.Errorf(
-					"index %v %v should equal, expects %v, got %v",
-					k, name, reflect.ValueOf(result).FieldByName(name).Interface(), reflect.ValueOf(v).FieldByName(name).Interface(),
-				)
-			}
-		}
+		FieldC string `gorm:"index:,unique"`     // uniqueIndex
+		FieldD string `gorm:"uniqueIndex;index"` // uniqueIndex and index
 
-		for idx, ef := range result.Fields {
-			rf := v.Fields[idx]
-			if rf.Field.Name != ef.Field.Name {
-				t.Fatalf("index field should equal, expects %v, got %v", rf.Field.Name, ef.Field.Name)
-			}
-			if rf.Field.Unique != ef.Field.Unique {
-				t.Fatalf("index field '%s' should equal, expects %v, got %v", rf.Field.Name, rf.Field.Unique, ef.Field.Unique)
-			}
+		FieldE1 string `gorm:"uniqueIndex:uniq_field_e1_e2"` // mul uniqueIndex
+		FieldE2 string `gorm:"uniqueIndex:uniq_field_e1_e2"`
 
-			for _, name := range []string{"Expression", "Sort", "Collate", "Length"} {
-				if reflect.ValueOf(ef).FieldByName(name).Interface() != reflect.ValueOf(rf).FieldByName(name).Interface() {
-					t.Errorf(
-						"index %v field #%v's %v should equal, expects %v, got %v", k, idx+1, name,
-						reflect.ValueOf(ef).FieldByName(name).Interface(), reflect.ValueOf(rf).FieldByName(name).Interface(),
-					)
-				}
+		FieldF1 string `gorm:"uniqueIndex:uniq_field_f1_f2;index"` // mul uniqueIndex and index
+		FieldF2 string `gorm:"uniqueIndex:uniq_field_f1_f2;"`
+
+		FieldG string `gorm:"unique;uniqueIndex"` // unique and uniqueIndex
+
+		FieldH1 string `gorm:"unique;uniqueIndex:uniq_field_h1_h2"` // unique and mul uniqueIndex
+		FieldH2 string `gorm:"uniqueIndex:uniq_field_h1_h2"`        // unique and mul uniqueIndex
+	}
+	indexSchema, err := schema.Parse(&IndexTest{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse user index, got error %v", err)
+	}
+	indices := indexSchema.ParseIndexes()
+	CheckIndices(t, map[string]schema.Index{
+		"idx_index_tests_field_a": {
+			Name:   "idx_index_tests_field_a",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldA", Unique: true}}},
+		},
+		"idx_index_tests_field_c": {
+			Name:   "idx_index_tests_field_c",
+			Class:  "UNIQUE",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldC", UniqueIndex: "idx_index_tests_field_c"}}},
+		},
+		"idx_index_tests_field_d": {
+			Name:  "idx_index_tests_field_d",
+			Class: "UNIQUE",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "FieldD"}},
+				// Note: Duplicate Columns
+				{Field: &schema.Field{Name: "FieldD"}},
+			},
+		},
+		"uniq_field_e1_e2": {
+			Name:  "uniq_field_e1_e2",
+			Class: "UNIQUE",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "FieldE1"}},
+				{Field: &schema.Field{Name: "FieldE2"}},
+			},
+		},
+		"idx_index_tests_field_f1": {
+			Name:   "idx_index_tests_field_f1",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldF1"}}},
+		},
+		"uniq_field_f1_f2": {
+			Name:  "uniq_field_f1_f2",
+			Class: "UNIQUE",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "FieldF1"}},
+				{Field: &schema.Field{Name: "FieldF2"}},
+			},
+		},
+		"idx_index_tests_field_g": {
+			Name:   "idx_index_tests_field_g",
+			Class:  "UNIQUE",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldG", Unique: true, UniqueIndex: "idx_index_tests_field_g"}}},
+		},
+		"uniq_field_h1_h2": {
+			Name:  "uniq_field_h1_h2",
+			Class: "UNIQUE",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "FieldH1", Unique: true}},
+				{Field: &schema.Field{Name: "FieldH2"}},
+			},
+		},
+	}, indices)
+}
+
+func CheckIndices(t *testing.T, expected, actual map[string]schema.Index) {
+	for k, ei := range expected {
+		t.Run(k, func(t *testing.T) {
+			ai, ok := actual[k]
+			if !ok {
+				t.Errorf("expected index %q but actual missing", k)
+				return
 			}
-		}
+			tests.AssertObjEqual(t, ai, ei, "Name", "Class", "Type", "Where", "Comment", "Option")
+			if len(ei.Fields) != len(ai.Fields) {
+				t.Errorf("expected index %q field length is %d but actual %d", k, len(ei.Fields), len(ai.Fields))
+				return
+			}
+			for i, ef := range ei.Fields {
+				af := ai.Fields[i]
+				tests.AssertObjEqual(t, af, ef, "Name", "Unique", "UniqueIndex", "Expression", "Sort", "Collate", "Length")
+			}
+		})
+		delete(actual, k)
+	}
+	for k := range actual {
+		t.Errorf("unexpected index %q", k)
 	}
 }

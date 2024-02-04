@@ -605,6 +605,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	}
 }
 
+// Constraint is ForeignKey Constraint
 type Constraint struct {
 	Name            string
 	Field           *Field
@@ -614,6 +615,31 @@ type Constraint struct {
 	References      []*Field
 	OnDelete        string
 	OnUpdate        string
+}
+
+func (constraint *Constraint) GetName() string { return constraint.Name }
+
+func (constraint *Constraint) Build() (sql string, vars []interface{}) {
+	sql = "CONSTRAINT ? FOREIGN KEY ? REFERENCES ??"
+	if constraint.OnDelete != "" {
+		sql += " ON DELETE " + constraint.OnDelete
+	}
+
+	if constraint.OnUpdate != "" {
+		sql += " ON UPDATE " + constraint.OnUpdate
+	}
+
+	foreignKeys := make([]interface{}, 0, len(constraint.ForeignKeys))
+	for _, field := range constraint.ForeignKeys {
+		foreignKeys = append(foreignKeys, clause.Column{Name: field.DBName})
+	}
+
+	references := make([]interface{}, 0, len(constraint.References))
+	for _, field := range constraint.References {
+		references = append(references, clause.Column{Name: field.DBName})
+	}
+	vars = append(vars, clause.Table{Name: constraint.Name}, foreignKeys, clause.Table{Name: constraint.ReferenceSchema.Table}, references)
+	return
 }
 
 func (rel *Relationship) ParseConstraint() *Constraint {
