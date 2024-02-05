@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils/tests"
 )
 
 type UserCheck struct {
@@ -20,7 +21,7 @@ func TestParseCheck(t *testing.T) {
 		t.Fatalf("failed to parse user check, got error %v", err)
 	}
 
-	results := map[string]schema.Check{
+	results := map[string]schema.CheckConstraint{
 		"name_checker": {
 			Name:       "name_checker",
 			Constraint: "name <> 'jinzhu'",
@@ -51,5 +52,33 @@ func TestParseCheck(t *testing.T) {
 				)
 			}
 		}
+	}
+}
+
+func TestParseUniqueConstraints(t *testing.T) {
+	type UserUnique struct {
+		Name1 string `gorm:"unique"`
+		Name2 string `gorm:"uniqueIndex"`
+	}
+
+	user, err := schema.Parse(&UserUnique{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse user unique, got error %v", err)
+	}
+	constraints := user.ParseUniqueConstraints()
+
+	results := map[string]schema.UniqueConstraint{
+		"uni_user_uniques_name1": {
+			Name:  "uni_user_uniques_name1",
+			Field: &schema.Field{Name: "Name1", Unique: true},
+		},
+	}
+	for k, result := range results {
+		v, ok := constraints[k]
+		if !ok {
+			t.Errorf("Failed to found unique constraint %v from parsed constraints %+v", k, constraints)
+		}
+		tests.AssertObjEqual(t, result, v, "Name")
+		tests.AssertObjEqual(t, result.Field, v.Field, "Name", "Unique", "UniqueIndex")
 	}
 }

@@ -89,6 +89,12 @@ type Field struct {
 	Set                    func(context.Context, reflect.Value, interface{}) error
 	Serializer             SerializerInterface
 	NewValuePool           FieldNewValuePool
+
+	// In some db (e.g. MySQL), Unique and UniqueIndex are indistinguishable.
+	// When a column has a (not Mul) UniqueIndex, Migrator always reports its gorm.ColumnType is Unique.
+	// It causes field unnecessarily migration.
+	// Therefore, we need to record the UniqueIndex on this column (exclude Mul UniqueIndex) for MigrateColumnUnique.
+	UniqueIndex string
 }
 
 func (field *Field) BindName() string {
