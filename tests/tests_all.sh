@@ -10,6 +10,8 @@ if [ -d tests ]
 then
   cd tests
   go get -u -t ./...
+  # Temporary, postgres v1.5.5 is a wrong tag. After we fix it, we'll remove this.
+  go get gorm.io/driver/postgres@v1.5.4
   go mod download
   go mod tidy
   cd ..
