@@ -1,7 +1,5 @@
 package clause
 
-import "strconv"
-
 // Limit limit clause
 type Limit struct {
 	Limit  *int
@@ -17,14 +15,14 @@ func (limit Limit) Name() string {
 func (limit Limit) Build(builder Builder) {
 	if limit.Limit != nil && *limit.Limit >= 0 {
 		builder.WriteString("LIMIT ")
-		builder.WriteString(strconv.Itoa(*limit.Limit))
+		builder.AddVar(builder, *limit.Limit)
 	}
 	if limit.Offset > 0 {
 		if limit.Limit != nil && *limit.Limit >= 0 {
 			builder.WriteByte(' ')
 		}
 		builder.WriteString("OFFSET ")
-		builder.WriteString(strconv.Itoa(limit.Offset))
+		builder.AddVar(builder, limit.Offset)
 	}
 }
 
