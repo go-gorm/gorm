@@ -36,5 +36,3 @@ require (
 replace gorm.io/gorm => ../
 
 replace github.com/jackc/pgx/v5 => github.com/jackc/pgx/v5 v5.4.3
-
-replace gorm.io/driver/mysql => github.com/black-06/mysql v0.0.0-20240206083023-198e932a9458
