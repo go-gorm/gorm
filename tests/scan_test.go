@@ -1,10 +1,12 @@
 package tests_test
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
@@ -239,4 +241,63 @@ func TestScanToEmbedded(t *testing.T) {
 	var user2 UserScan
 	err := DB.Raw("SELECT * FROM users INNER JOIN users Manager ON users.manager_id = Manager.id WHERE users.id = ?", user.ID).Scan(&user2).Error
 	AssertEqual(t, err, nil)
+}
+
+func TestScanNilHandling(t *testing.T) {
+	err := DB.Exec(`DELETE FROM null_values`).Error
+	if err != nil {
+		t.Fatalf("error emptying null values: %v", err)
+	}
+
+	for i := 0; i < 100; i++ {
+		if i%2 == 0 {
+			err := DB.Exec(
+				`INSERT INTO null_values (id) VALUES (?)`, i,
+			).Error
+			if err != nil {
+				t.Fatalf("cannot insert record %v", err)
+			}
+		} else {
+			err := DB.Save(&NullValue{
+				Model: gorm.Model{
+					ID: uint(i),
+				},
+				ScannerValue:     NewDummyString(fmt.Sprintf("%d", i)),
+				NullScannerValue: ToPointer(NewDummyString(fmt.Sprintf("%d", i))),
+				IntValue:         i,
+				NullIntValue:     ToPointer(i),
+				TimeValue:        time.Now(),
+				NullTimeValue:    ToPointer(time.Now()),
+			}).Error
+			if err != nil {
+				t.Fatalf("cannot insert record %v", err)
+			}
+		}
+
+	}
+
+	rows, err := DB.Model(&NullValue{}).Order("id asc").Rows()
+	if err != nil {
+		t.Fatalf("cannot query nullvalues: %v", err)
+	}
+
+	defer rows.Close()
+
+	test := NullValue{}
+	for rows.Next() {
+		if err := DB.ScanRows(rows, &test); err != nil {
+			t.Fatalf("cannot scan nullvalues: %v", err)
+		}
+
+		if test.ID%2 == 0 {
+			AssertEqual(t, test.ScannerValue, NewDummyString(""))
+			AssertEqual(t, test.NullScannerValue, nil)
+			AssertEqual(t, test.IntValue, int(0))
+			AssertEqual(t, test.NullIntValue, nil)
+			AssertEqual(t, test.TimeValue, time.Time{})
+			AssertEqual(t, test.NullTimeValue, nil)
+		}
+
+	}
+
 }

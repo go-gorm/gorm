@@ -830,6 +830,8 @@ func (field *Field) setupValuerAndSetter() {
 				case **time.Time:
 					if data != nil && *data != nil {
 						field.Set(ctx, value, *data)
+					} else {
+						field.Set(ctx, value, time.Time{})
 					}
 				case time.Time:
 					field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(v))
@@ -856,6 +858,8 @@ func (field *Field) setupValuerAndSetter() {
 				case **time.Time:
 					if data != nil && *data != nil {
 						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
+					} else {
+						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf((*time.Time)(nil)))
 					}
 				case time.Time:
 					fieldValue := field.ReflectValueOf(ctx, value)
@@ -890,7 +894,11 @@ func (field *Field) setupValuerAndSetter() {
 					reflectV := reflect.ValueOf(v)
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
-					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() { // regression: https://github.com/go-gorm/gorm/pull/6311
+						if field.FieldType.Kind() == reflect.Pointer {
+							// If we have a pointer on the destination side, let's make sure we set it to null
+							field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
+						}
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
@@ -917,6 +925,7 @@ func (field *Field) setupValuerAndSetter() {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)

@@ -332,3 +332,71 @@ func TestTypeAliasField(t *testing.T) {
 		checkSchemaField(t, alias, f, func(f *schema.Field) {})
 	}
 }
+
+func TestScannerNullSupport(t *testing.T) {
+	schema, err := schema.Parse(&tests.NullValue{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("Failed to parse TypeAlias with permission, got error %v", err)
+	}
+
+	// Given that we have an object with non-default values
+	dest := &tests.NullValue{
+		ScannerValue:     tests.NewDummyString("test"),
+		NullScannerValue: &tests.DummyString{},
+		IntValue:         1,
+		NullIntValue:     tests.ToPointer(int(1)),
+		TimeValue:        time.Now(),
+		NullTimeValue:    tests.ToPointer(time.Now()),
+	}
+	reflectValue := reflect.ValueOf(dest)
+
+	// let's assert that we are returning a pointer to a pointer
+	entry := schema.FieldsByName["NullScannerValue"].NewValuePool.Get()
+
+	_, ok := entry.(**tests.DummyString)
+	if !ok {
+		t.Fatalf("scanner pointers are not returned as double pointers, thus null scanning will fail. Scanner: %v", entry)
+	}
+
+	validateScannerNullSetting[tests.DummyString](
+		t, schema, reflectValue,
+		"ScannerValue", &dest.ScannerValue, tests.DummyString{},
+		"NullScannerValue", &dest.NullScannerValue,
+	)
+	// This was not faulty
+	validateScannerNullSetting[int](
+		t, schema, reflectValue,
+		"IntValue", &dest.IntValue, 0,
+		"NullIntValue", &dest.NullIntValue,
+	)
+	validateScannerNullSetting[time.Time](
+		t, schema, reflectValue,
+		"TimeValue", &dest.TimeValue, time.Time{},
+		"NullTimeValue", &dest.NullTimeValue,
+	)
+
+}
+
+func validateScannerNullSetting[T comparable](t *testing.T, schema *schema.Schema, reflectValue reflect.Value,
+	directFieldName string, directFieldPtr *T, directZeroValue T,
+	indirectFieldName string, indirectFieldPtr **T) {
+	var tPtrPtr **T // used to scan into an *T field
+	var tPtr *T     // used to scan into an T field
+
+	err := schema.FieldsByName[directFieldName].Set(context.TODO(), reflectValue, tPtr)
+	if err != nil {
+		t.Fatalf("error setting field: %s", directFieldName)
+	}
+
+	if *directFieldPtr != directZeroValue {
+		t.Fatalf("value didn't got reset to its default value: %s", directFieldName)
+	}
+
+	err = schema.FieldsByName[indirectFieldName].Set(context.TODO(), reflectValue, tPtrPtr)
+	if err != nil {
+		t.Fatalf("error setting field: %s", indirectFieldName)
+	}
+	if *indirectFieldPtr != nil {
+		t.Fatalf("ptr value didn't got reset to its default value: %s", indirectFieldName)
+	}
+}
