@@ -74,7 +74,11 @@ func ToStringKey(values ...interface{}) string {
 		case uint:
 			results[idx] = strconv.FormatUint(uint64(v), 10)
 		default:
-			results[idx] = fmt.Sprint(reflect.Indirect(reflect.ValueOf(v)).Interface())
+			results[idx] = "nil"
+			vv := reflect.ValueOf(v)
+			if vv.IsValid() && !vv.IsZero() {
+				results[idx] = fmt.Sprint(reflect.Indirect(vv).Interface())
+			}
 		}
 	}
 

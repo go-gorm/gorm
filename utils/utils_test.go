@@ -48,8 +48,10 @@ func TestToStringKey(t *testing.T) {
 	}{
 		{[]interface{}{"a"}, "a"},
 		{[]interface{}{1, 2, 3}, "1_2_3"},
+		{[]interface{}{1, nil, 3}, "1_nil_3"},
 		{[]interface{}{[]interface{}{1, 2, 3}}, "[1 2 3]"},
 		{[]interface{}{[]interface{}{"1", "2", "3"}}, "[1 2 3]"},
+		{[]interface{}{[]interface{}{"1", nil, "3"}}, "[1 <nil> 3]"},
 	}
 	for _, c := range cases {
 		if key := ToStringKey(c.values...); key != c.key {
