@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -512,6 +513,19 @@ func (s *DB) Begin() *DB {
 	c := s.clone()
 	if db, ok := c.db.(sqlDb); ok && db != nil {
 		tx, err := db.Begin()
+		c.db = interface{}(tx).(SQLCommon)
+		c.AddError(err)
+	} else {
+		c.AddError(ErrCantStartTransaction)
+	}
+	return c
+}
+
+// BeginTx begins a transaction with options
+func (s *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) *DB {
+	c := s.clone()
+	if db, ok := c.db.(sqlDb); ok && db != nil {
+		tx, err := db.BeginTx(ctx, opts)
 		c.db = interface{}(tx).(SQLCommon)
 		c.AddError(err)
 	} else {
