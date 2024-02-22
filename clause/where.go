@@ -153,6 +153,11 @@ func Not(exprs ...Expression) Expression {
 	if len(exprs) == 0 {
 		return nil
 	}
+	if len(exprs) == 1 {
+		if andCondition, ok := exprs[0].(AndConditions); ok {
+			exprs = andCondition.Exprs
+		}
+	}
 	return NotConditions{Exprs: exprs}
 }
 
@@ -161,19 +166,58 @@ type NotConditions struct {
 }
 
 func (not NotConditions) Build(builder Builder) {
-	if len(not.Exprs) > 1 {
-		builder.WriteByte('(')
+	anyNegationBuilder := false
+	for _, c := range not.Exprs {
+		if _, ok := c.(NegationExpressionBuilder); ok {
+			anyNegationBuilder = true
+			break
+		}
 	}
 
-	for idx, c := range not.Exprs {
-		if idx > 0 {
-			builder.WriteString(AndWithSpace)
+	if anyNegationBuilder {
+		if len(not.Exprs) > 1 {
+			builder.WriteByte('(')
 		}
 
-		if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
-			negationBuilder.NegationBuild(builder)
-		} else {
-			builder.WriteString("NOT ")
+		for idx, c := range not.Exprs {
+			if idx > 0 {
+				builder.WriteString(AndWithSpace)
+			}
+
+			if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
+				negationBuilder.NegationBuild(builder)
+			} else {
+				builder.WriteString("NOT ")
+				e, wrapInParentheses := c.(Expr)
+				if wrapInParentheses {
+					sql := strings.ToUpper(e.SQL)
+					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+						builder.WriteByte('(')
+					}
+				}
+
+				c.Build(builder)
+
+				if wrapInParentheses {
+					builder.WriteByte(')')
+				}
+			}
+		}
+
+		if len(not.Exprs) > 1 {
+			builder.WriteByte(')')
+		}
+	} else {
+		builder.WriteString("NOT ")
+		if len(not.Exprs) > 1 {
+			builder.WriteByte('(')
+		}
+
+		for idx, c := range not.Exprs {
+			if idx > 0 {
+				builder.WriteString(AndWithSpace)
+			}
+
 			e, wrapInParentheses := c.(Expr)
 			if wrapInParentheses {
 				sql := strings.ToUpper(e.SQL)
@@ -188,9 +232,9 @@ func (not NotConditions) Build(builder Builder) {
 				builder.WriteByte(')')
 			}
 		}
-	}
 
-	if len(not.Exprs) > 1 {
-		builder.WriteByte(')')
+		if len(not.Exprs) > 1 {
+			builder.WriteByte(')')
+		}
 	}
 }
