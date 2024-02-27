@@ -95,3 +95,63 @@ func TestConvertMapToValuesForCreate(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertSliceOfMapToValuesForCreate(t *testing.T) {
+	testCase := []struct {
+		name   string
+		input  []map[string]interface{}
+		expect clause.Values
+	}{
+		{
+			name: "Test convert slice of string value",
+			input: []map[string]interface{}{
+				{"name": "my name"},
+			},
+			expect: clause.Values{
+				Columns: []clause.Column{{Name: "name"}},
+				Values:  [][]interface{}{{"my name"}},
+			},
+		},
+		{
+			name: "Test convert slice of int value",
+			input: []map[string]interface{}{
+				{"age": 18},
+			},
+			expect: clause.Values{
+				Columns: []clause.Column{{Name: "age"}},
+				Values:  [][]interface{}{{18}},
+			},
+		},
+		{
+			name: "Test convert slice of float value",
+			input: []map[string]interface{}{
+				{"score": 99.5},
+			},
+			expect: clause.Values{
+				Columns: []clause.Column{{Name: "score"}},
+				Values:  [][]interface{}{{99.5}},
+			},
+		},
+		{
+			name: "Test convert slice of bool value",
+			input: []map[string]interface{}{
+				{"active": true},
+			},
+			expect: clause.Values{
+				Columns: []clause.Column{{Name: "active"}},
+				Values:  [][]interface{}{{true}},
+			},
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := ConvertSliceOfMapToValuesForCreate(&gorm.Statement{}, tc.input)
+
+			if !reflect.DeepEqual(actual, tc.expect) {
+				t.Errorf("expected %v but got %v", tc.expect, actual)
+			}
+		})
+	}
+
+}
