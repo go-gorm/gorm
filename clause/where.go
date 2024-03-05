@@ -21,11 +21,11 @@ func (where Where) Name() string {
 
 // Build build where clause
 func (where Where) Build(builder Builder) {
-    if len(where.Exprs) == 1 {
-        if andCondition, ok := where.Exprs[0].(AndConditions); ok {
-           where.Exprs = andCondition.Exprs
-        }
-    }
+	if len(where.Exprs) == 1 {
+		if andCondition, ok := where.Exprs[0].(AndConditions); ok {
+			where.Exprs = andCondition.Exprs
+		}
+	}
 
 	// Switch position if the first query expression is a single Or condition
 	for idx, expr := range where.Exprs {
@@ -166,19 +166,58 @@ type NotConditions struct {
 }
 
 func (not NotConditions) Build(builder Builder) {
-	if len(not.Exprs) > 1 {
-		builder.WriteByte('(')
+	anyNegationBuilder := false
+	for _, c := range not.Exprs {
+		if _, ok := c.(NegationExpressionBuilder); ok {
+			anyNegationBuilder = true
+			break
+		}
 	}
 
-	for idx, c := range not.Exprs {
-		if idx > 0 {
-			builder.WriteString(AndWithSpace)
+	if anyNegationBuilder {
+		if len(not.Exprs) > 1 {
+			builder.WriteByte('(')
 		}
 
-		if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
-			negationBuilder.NegationBuild(builder)
-		} else {
-			builder.WriteString("NOT ")
+		for idx, c := range not.Exprs {
+			if idx > 0 {
+				builder.WriteString(AndWithSpace)
+			}
+
+			if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
+				negationBuilder.NegationBuild(builder)
+			} else {
+				builder.WriteString("NOT ")
+				e, wrapInParentheses := c.(Expr)
+				if wrapInParentheses {
+					sql := strings.ToUpper(e.SQL)
+					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+						builder.WriteByte('(')
+					}
+				}
+
+				c.Build(builder)
+
+				if wrapInParentheses {
+					builder.WriteByte(')')
+				}
+			}
+		}
+
+		if len(not.Exprs) > 1 {
+			builder.WriteByte(')')
+		}
+	} else {
+		builder.WriteString("NOT ")
+		if len(not.Exprs) > 1 {
+			builder.WriteByte('(')
+		}
+
+		for idx, c := range not.Exprs {
+			if idx > 0 {
+				builder.WriteString(AndWithSpace)
+			}
+
 			e, wrapInParentheses := c.(Expr)
 			if wrapInParentheses {
 				sql := strings.ToUpper(e.SQL)
@@ -193,9 +232,9 @@ func (not NotConditions) Build(builder Builder) {
 				builder.WriteByte(')')
 			}
 		}
-	}
 
-	if len(not.Exprs) > 1 {
-		builder.WriteByte(')')
+		if len(not.Exprs) > 1 {
+			builder.WriteByte(')')
+		}
 	}
 }
