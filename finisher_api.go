@@ -650,7 +650,8 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 
 		if err = fc(tx); err == nil {
 			panicked = false
-			return tx.Commit().Error
+			err = tx.Commit().Error
+			return
 		}
 	}
 
