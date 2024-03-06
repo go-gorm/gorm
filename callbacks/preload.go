@@ -121,10 +121,23 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 			}
 		} else if rel := relationships.Relations[name]; rel != nil {
 			if joined, nestedJoins := isJoined(name); joined {
-				reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, db.Statement.ReflectValue)
-				tx := preloadDB(db, reflectValue, reflectValue.Interface())
-				if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
-					return err
+				switch rv := db.Statement.ReflectValue; rv.Kind() {
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < rv.Len(); i++ {
+						reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv.Index(i))
+						tx := preloadDB(db, reflectValue, reflectValue.Interface())
+						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+							return err
+						}
+					}
+				case reflect.Struct:
+					reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv)
+					tx := preloadDB(db, reflectValue, reflectValue.Interface())
+					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+						return err
+					}
+				default:
+					return gorm.ErrInvalidData
 				}
 			} else {
 				tx := db.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks})

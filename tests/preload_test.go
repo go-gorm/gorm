@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
@@ -362,6 +364,14 @@ func TestNestedPreloadWithNestedJoin(t *testing.T) {
 		t.Errorf("failed to find value, got err: %v", err)
 	}
 	AssertEqual(t, find2, value)
+
+	var finds []Value
+	err = DB.Joins("Nested.Join").Joins("Nested").Preload("Nested.Preloads").Find(&finds).Error
+	if err != nil {
+		t.Errorf("failed to find value, got err: %v", err)
+	}
+	require.Len(t, finds, 1)
+	AssertEqual(t, finds[0], value)
 }
 
 func TestEmbedPreload(t *testing.T) {
