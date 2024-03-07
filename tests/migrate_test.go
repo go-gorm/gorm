@@ -1413,10 +1413,10 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 	err = DB.Table("game_users").AutoMigrate(&GameUser1{})
 	AssertEqual(t, nil, err)
 
-	_, err = findColumnType(&GameUser{}, "stat_ab_ground_destory_count")
+	_, err = findColumnType(&GameUser{}, "stat_ab_ground_destroy_count")
 	AssertEqual(t, nil, err)
 
-	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destory_count")
+	_, err = findColumnType(&GameUser{}, "rate_ground_rb_ground_destroy_count")
 	AssertEqual(t, nil, err)
 }
 

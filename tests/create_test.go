@@ -582,44 +582,44 @@ func TestCreateWithAutoIncrementCompositeKey(t *testing.T) {
 }
 
 func TestCreateOnConflictWithDefaultNull(t *testing.T) {
-	type OnConfilctUser struct {
+	type OnConflictUser struct {
 		ID     string
 		Name   string `gorm:"default:null"`
 		Email  string
 		Mobile string `gorm:"default:'133xxxx'"`
 	}
 
-	err := DB.Migrator().DropTable(&OnConfilctUser{})
+	err := DB.Migrator().DropTable(&OnConflictUser{})
 	AssertEqual(t, err, nil)
-	err = DB.AutoMigrate(&OnConfilctUser{})
+	err = DB.AutoMigrate(&OnConflictUser{})
 	AssertEqual(t, err, nil)
 
-	u := OnConfilctUser{
-		ID:     "on-confilct-user-id",
-		Name:   "on-confilct-user-name",
-		Email:  "on-confilct-user-email",
-		Mobile: "on-confilct-user-mobile",
+	u := OnConflictUser{
+		ID:     "on-conflict-user-id",
+		Name:   "on-conflict-user-name",
+		Email:  "on-conflict-user-email",
+		Mobile: "on-conflict-user-mobile",
 	}
 	err = DB.Create(&u).Error
 	AssertEqual(t, err, nil)
 
-	u.Name = "on-confilct-user-name-2"
-	u.Email = "on-confilct-user-email-2"
+	u.Name = "on-conflict-user-name-2"
+	u.Email = "on-conflict-user-email-2"
 	u.Mobile = ""
 	err = DB.Clauses(clause.OnConflict{UpdateAll: true}).Create(&u).Error
 	AssertEqual(t, err, nil)
 
-	var u2 OnConfilctUser
+	var u2 OnConflictUser
 	err = DB.Where("id = ?", u.ID).First(&u2).Error
 	AssertEqual(t, err, nil)
-	AssertEqual(t, u2.Name, "on-confilct-user-name-2")
-	AssertEqual(t, u2.Email, "on-confilct-user-email-2")
+	AssertEqual(t, u2.Name, "on-conflict-user-name-2")
+	AssertEqual(t, u2.Email, "on-conflict-user-email-2")
 	AssertEqual(t, u2.Mobile, "133xxxx")
 }
 
 func TestCreateFromMapWithoutPK(t *testing.T) {
 	if !isMysql() {
-		t.Skipf("This test case skipped, because of only supportting for mysql")
+		t.Skipf("This test case skipped, because of only supporting for mysql")
 	}
 
 	// case 1: one record, create from map[string]interface{}
