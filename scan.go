@@ -274,7 +274,11 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 			if !update || reflectValue.Len() == 0 {
 				update = false
-				if !isArrayKind {
+				if isArrayKind {
+					for i := 0; i < reflectValue.Len(); i++ {
+						reflectValue.Index(i).Set(reflect.Zero(reflectValue.Index(i).Type()))
+					}
+				} else {
 					// if the slice cap is externally initialized, the externally initialized slice is directly used here
 					if reflectValue.Cap() == 0 {
 						db.Statement.ReflectValue.Set(reflect.MakeSlice(reflectValue.Type(), 0, 20))
