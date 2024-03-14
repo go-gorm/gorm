@@ -185,6 +185,13 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	return
 }
 
+// MapColumns specify column-to-field for customizing how database columns are assigned to struct fields during querying
+func (db *DB) MapColumns(m map[string]string) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.ColumnMapping = m
+	return
+}
+
 // Where add conditions
 //
 // See the [docs] for details on the various formats that where clauses can take. By default, where clauses chain with AND.

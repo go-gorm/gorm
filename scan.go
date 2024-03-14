@@ -131,6 +131,15 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		onConflictDonothing = mode&ScanOnConflictDoNothing != 0
 	)
 
+	if len(db.Statement.ColumnMapping) > 0 {
+		for i, column := range columns {
+			v, ok := db.Statement.ColumnMapping[column]
+			if ok {
+				columns[i] = v
+			}
+		}
+	}
+
 	db.RowsAffected = 0
 
 	switch dest := db.Statement.Dest.(type) {
