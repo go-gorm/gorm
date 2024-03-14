@@ -185,7 +185,7 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	return
 }
 
-// MapColumns specify column-to-field for customizing how database columns are assigned to struct fields during querying
+// MapColumns modify the column names in the query results to facilitate align to the corresponding structural fields
 func (db *DB) MapColumns(m map[string]string) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.ColumnMapping = m
