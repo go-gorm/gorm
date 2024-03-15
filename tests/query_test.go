@@ -1409,3 +1409,22 @@ func TestQueryError(t *testing.T) {
 	}, Value: 1}).Scan(&p2).Error
 	AssertEqual(t, err, gorm.ErrModelValueRequired)
 }
+
+func TestQueryScanToArray(t *testing.T) {
+	err := DB.Create(&User{Name: "testname1", Age: 10}).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	users := [2]*User{{Name: "1"}, {Name: "2"}}
+	err = DB.Model(&User{}).Where("name = ?", "testname1").Find(&users).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	if users[0] == nil || users[0].Name != "testname1" {
+		t.Error("users[0] not covere")
+	}
+	if users[1] != nil {
+		t.Error("users[1] should be empty")
+	}
+}
