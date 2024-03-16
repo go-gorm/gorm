@@ -793,3 +793,30 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Fatal("failed to create data from map with table, @id != id")
 	}
 }
+
+func TestCreateWithSliceWritebackPrimaryKey(t *testing.T) {
+	users := []*User{
+		{
+			Age: 20,
+		},
+		{
+			Model: gorm.Model{
+				ID: 100000,
+			},
+			Age: 21,
+		},
+		{
+			Age: 22,
+		},
+	}
+	err := DB.Create(users).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	if users[1].ID != 100000 {
+		t.Errorf("users[1].ID should be 100000, but got %v", users[1].ID)
+	}
+	if users[2].ID != users[1].ID+1 {
+		t.Errorf("failed to write back primary key, users[2].ID should be %v, but got %v, %v", users[1].ID+1, users[2].ID, users[0].ID)
+	}
+}

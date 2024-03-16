@@ -175,9 +175,33 @@ func Create(config *Config) func(db *gorm.DB) {
 							break
 						}
 
-						if _, isZero := pkField.ValueOf(db.Statement.Context, rv); isZero {
+						if field, isZero := pkField.ValueOf(db.Statement.Context, rv); isZero {
 							db.AddError(pkField.Set(db.Statement.Context, rv, insertID))
 							insertID += pkField.AutoIncrementIncrement
+						} else {
+							// If the primary key is set, the next primary key value is incremented from that primary key
+							switch f := field.(type) {
+							case int:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case int8:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case int16:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case int32:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case int64:
+								insertID = f + pkField.AutoIncrementIncrement
+							case uint:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case uint8:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case uint16:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case uint32:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							case uint64:
+								insertID = int64(f) + pkField.AutoIncrementIncrement
+							}
 						}
 					}
 				}

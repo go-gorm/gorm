@@ -471,8 +471,7 @@ func (field *Field) setupValuerAndSetter() {
 				}
 			}
 
-			fv, zero := v.Interface(), v.IsZero()
-			return fv, zero
+			return v.Interface(), v.IsZero()
 		}
 	}
 
