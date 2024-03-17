@@ -311,9 +311,8 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
 
 				if !update {
-					rows := int(db.RowsAffected)
 					// array index is out of bounds, exits the for loop
-					if isArrayKind && reflectValue.Len() < rows {
+					if isArrayKind && reflectValue.Len() < int(db.RowsAffected) {
 						break
 					}
 
@@ -321,7 +320,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 						elem = elem.Elem()
 					}
 					if isArrayKind {
-						reflectValue.Index(rows - 1).Set(elem)
+						reflectValue.Index(int(db.RowsAffected - 1)).Set(elem)
 					} else {
 						reflectValue = reflect.Append(reflectValue, elem)
 					}
