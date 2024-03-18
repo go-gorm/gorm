@@ -1428,3 +1428,14 @@ func TestQueryScanToArray(t *testing.T) {
 		t.Error("users[1] should be empty")
 	}
 }
+
+func TestQueryScanOfRowsGteArrayLength(t *testing.T) {
+	users := [1]*User{}
+	err := DB.Limit(2).Find(&users).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	if users[0] == nil {
+		t.Error("users[0] not found")
+	}
+}
