@@ -154,8 +154,11 @@ func (p *processor) Execute(db *DB) *DB {
 
 func (p *processor) Get(name string) func(*DB) {
 	for i := len(p.callbacks) - 1; i >= 0; i-- {
-		if v := p.callbacks[i]; v.name == name && !v.remove {
-			return v.handler
+		if v := p.callbacks[i]; v.name == name {
+			if !v.remove {
+				return v.handler
+			}
+			return nil
 		}
 	}
 	return nil

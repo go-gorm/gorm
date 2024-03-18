@@ -206,3 +206,25 @@ func TestPluginCallbacks(t *testing.T) {
 		t.Errorf("callbacks tests failed, got %v", msg)
 	}
 }
+
+func TestCallbacksRemoveAndGet(t *testing.T) {
+	db, _ := gorm.Open(nil, nil)
+	createCallback := db.Callback().Create()
+
+	err := createCallback.Register("plugin_1_fn1", c1)
+
+	if err != nil {
+		t.Errorf("callbacks tests failed, got error: %v", err)
+	}
+	if cb := createCallback.Get("plugin_1_fn1"); reflect.DeepEqual(cb, c1) {
+		t.Errorf("callbacks tests failed, got: %p, want: %p", cb, c1)
+	}
+
+	err = createCallback.Remove("plugin_1_fn1")
+	if err != nil {
+		t.Errorf("callbacks test failed, got error: %v", err)
+	}
+	if cb := createCallback.Get("plugin_1_fn1"); cb != nil {
+		t.Errorf("callbacks test failed. got: %p, want: nil", cb)
+	}
+}
