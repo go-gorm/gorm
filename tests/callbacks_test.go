@@ -212,7 +212,6 @@ func TestCallbacksRemoveAndGet(t *testing.T) {
 	createCallback := db.Callback().Create()
 
 	err := createCallback.Register("plugin_1_fn1", c1)
-
 	if err != nil {
 		t.Errorf("callbacks tests failed, got error: %v", err)
 	}
