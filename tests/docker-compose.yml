@@ -24,6 +24,7 @@ services:
     ports:
       - "9930:1433"
     environment:
+      - TZ=Asia/Shanghai
       - ACCEPT_EULA=Y
       - SA_PASSWORD=LoremIpsum86
       - MSSQL_DB=gorm
