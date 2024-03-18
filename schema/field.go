@@ -664,7 +664,7 @@ func (field *Field) setupValuerAndSetter() {
 				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 					field.ReflectValueOf(ctx, value).SetInt(data.UnixNano())
 				} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
-					field.ReflectValueOf(ctx, value).SetInt(data.UnixNano() / 1e6)
+					field.ReflectValueOf(ctx, value).SetInt(data.UnixMilli())
 				} else {
 					field.ReflectValueOf(ctx, value).SetInt(data.Unix())
 				}
@@ -673,7 +673,7 @@ func (field *Field) setupValuerAndSetter() {
 					if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 						field.ReflectValueOf(ctx, value).SetInt(data.UnixNano())
 					} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
-						field.ReflectValueOf(ctx, value).SetInt(data.UnixNano() / 1e6)
+						field.ReflectValueOf(ctx, value).SetInt(data.UnixMilli())
 					} else {
 						field.ReflectValueOf(ctx, value).SetInt(data.Unix())
 					}
@@ -738,7 +738,7 @@ func (field *Field) setupValuerAndSetter() {
 				if field.AutoCreateTime == UnixNanosecond || field.AutoUpdateTime == UnixNanosecond {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(data.UnixNano()))
 				} else if field.AutoCreateTime == UnixMillisecond || field.AutoUpdateTime == UnixMillisecond {
-					field.ReflectValueOf(ctx, value).SetUint(uint64(data.UnixNano() / 1e6))
+					field.ReflectValueOf(ctx, value).SetUint(uint64(data.UnixMilli()))
 				} else {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(data.Unix()))
 				}

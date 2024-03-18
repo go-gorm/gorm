@@ -351,7 +351,7 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 									case schema.UnixNanosecond:
 										assignment.Value = curTime.UnixNano()
 									case schema.UnixMillisecond:
-										assignment.Value = curTime.UnixNano() / 1e6
+										assignment.Value = curTime.UnixMilli()
 									case schema.UnixSecond:
 										assignment.Value = curTime.Unix()
 									}
