@@ -8,7 +8,7 @@ import (
 )
 
 // reg match english letters and midline
-var regEnLetterAndMidline = regexp.MustCompile(`^\w+$`)
+var regEnLetterAndMidline = regexp.MustCompile(`^[\w-]+$`)
 
 type CheckConstraint struct {
 	Name       string
