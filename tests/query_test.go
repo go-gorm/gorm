@@ -1429,7 +1429,7 @@ func TestQueryScanToArray(t *testing.T) {
 	}
 }
 
-func TestQueryScanOfRowsGteArrayLength(t *testing.T) {
+func TestQueryScanOfRowsGtArrayLength(t *testing.T) {
 	users := [1]*User{}
 	err := DB.Limit(2).Find(&users).Error
 	if err != nil {
