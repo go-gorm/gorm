@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -23,7 +22,10 @@ func TestConvertToCreateValues_DestType_Slice(t *testing.T) {
 	}
 
 	s, err := schema.Parse(&user{}, schemaCache, schema.NamingStrategy{})
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("parse schema error: %v, is not expected", err)
+		return
+	}
 	dest := []*user{
 		{
 			ID:    1,
@@ -55,12 +57,15 @@ func TestConvertToCreateValues_DestType_Slice(t *testing.T) {
 	stmt.Schema = s
 
 	values := ConvertToCreateValues(stmt)
-	assert.EqualValues(t, clause.Values{
+	expected := clause.Values{
 		// column has value + defaultValue column has value (which should have a stable order)
 		Columns: []clause.Column{{Name: "name"}, {Name: "email"}, {Name: "age"}, {Name: "id"}},
 		Values: [][]interface{}{
 			{"alice", "email", 18, 1},
 			{"bob", "email", 19, 2},
 		},
-	}, values)
+	}
+	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected: %v got %v", expected, values)
+	}
 }
