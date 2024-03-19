@@ -281,6 +281,10 @@ func isMysql() bool {
 	return os.Getenv("GORM_DIALECT") == "mysql"
 }
 
+func isSqlite() bool {
+	return os.Getenv("GORM_DIALECT") == "sqlite"
+}
+
 func db(unscoped bool) *gorm.DB {
 	if unscoped {
 		return DB.Unscoped()

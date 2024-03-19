@@ -111,19 +111,23 @@ func Create(config *Config) func(db *gorm.DB) {
 			pkField     *schema.Field
 			pkFieldName = "@id"
 		)
+
+		insertID, err := result.LastInsertId()
+		insertOk := err == nil && insertID > 0
+
+		if !insertOk {
+			if !supportReturning {
+				db.AddError(err)
+			}
+			return
+		}
+
 		if db.Statement.Schema != nil {
 			if db.Statement.Schema.PrioritizedPrimaryField == nil || !db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
 				return
 			}
 			pkField = db.Statement.Schema.PrioritizedPrimaryField
 			pkFieldName = db.Statement.Schema.PrioritizedPrimaryField.DBName
-		}
-
-		insertID, err := result.LastInsertId()
-		insertOk := err == nil && insertID > 0
-		if !insertOk {
-			db.AddError(err)
-			return
 		}
 
 		// append @id column with value for auto-increment primary key
@@ -142,6 +146,11 @@ func Create(config *Config) func(db *gorm.DB) {
 					}
 				}
 			}
+
+			if config.LastInsertIDReversed {
+				insertID -= int64(len(mapValues)-1) * schema.DefaultAutoIncrementIncrement
+			}
+
 			for _, mapValue := range mapValues {
 				if mapValue != nil {
 					mapValue[pkFieldName] = insertID

@@ -713,18 +713,16 @@ func TestCreateFromMapWithoutPK(t *testing.T) {
 }
 
 func TestCreateFromMapWithTable(t *testing.T) {
-	if !isMysql() {
-		t.Skipf("This test case skipped, because of only supportting for mysql")
-	}
-	tableDB := DB.Table("`users`")
+	tableDB := DB.Table("users")
+	supportLastInsertID := isMysql() || isSqlite()
 
 	// case 1: create from map[string]interface{}
-	record := map[string]interface{}{"`name`": "create_from_map_with_table", "`age`": 18}
+	record := map[string]interface{}{"name": "create_from_map_with_table", "age": 18}
 	if err := tableDB.Create(record).Error; err != nil {
 		t.Fatalf("failed to create data from map with table, got error: %v", err)
 	}
 
-	if _, ok := record["@id"]; !ok {
+	if _, ok := record["@id"]; !ok && supportLastInsertID {
 		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
 	}
 
@@ -733,8 +731,8 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Fatalf("failed to create from map, got error %v", err)
 	}
 
-	if int64(res["id"].(uint64)) != record["@id"] {
-		t.Fatal("failed to create data from map with table, @id != id")
+	if _, ok := record["@id"]; ok && fmt.Sprint(res["id"]) != fmt.Sprint(record["@id"]) {
+		t.Fatalf("failed to create data from map with table, @id != id, got %v, expect %v", res["id"], record["@id"])
 	}
 
 	// case 2: create from *map[string]interface{}
@@ -743,7 +741,7 @@ func TestCreateFromMapWithTable(t *testing.T) {
 	if err := tableDB2.Create(&record1).Error; err != nil {
 		t.Fatalf("failed to create data from map, got error: %v", err)
 	}
-	if _, ok := record1["@id"]; !ok {
+	if _, ok := record1["@id"]; !ok && supportLastInsertID {
 		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
 	}
 
@@ -752,7 +750,7 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Fatalf("failed to create from map, got error %v", err)
 	}
 
-	if int64(res1["id"].(uint64)) != record1["@id"] {
+	if _, ok := record1["@id"]; ok && fmt.Sprint(res1["id"]) != fmt.Sprint(record1["@id"]) {
 		t.Fatal("failed to create data from map with table, @id != id")
 	}
 
@@ -767,11 +765,11 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Fatalf("failed to create data from slice of map, got error: %v", err)
 	}
 
-	if _, ok := records[0]["@id"]; !ok {
+	if _, ok := records[0]["@id"]; !ok && supportLastInsertID {
 		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
 	}
 
-	if _, ok := records[1]["@id"]; !ok {
+	if _, ok := records[1]["@id"]; !ok && supportLastInsertID {
 		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
 	}
 
@@ -785,11 +783,11 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
 	}
 
-	if int64(res2["id"].(uint64)) != records[0]["@id"] {
-		t.Fatal("failed to create data from map with table, @id != id")
+	if _, ok := records[0]["@id"]; ok && fmt.Sprint(res2["id"]) != fmt.Sprint(records[0]["@id"]) {
+		t.Errorf("failed to create data from map with table, @id != id, got %v, expect %v", res2["id"], records[0]["@id"])
 	}
 
-	if int64(res3["id"].(uint64)) != records[1]["@id"] {
-		t.Fatal("failed to create data from map with table, @id != id")
+	if _, ok := records[1]["id"]; ok && fmt.Sprint(res3["id"]) != fmt.Sprint(records[1]["@id"]) {
+		t.Errorf("failed to create data from map with table, @id != id")
 	}
 }
