@@ -3,6 +3,8 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
 	"reflect"
 	"sync"
 )
@@ -147,7 +149,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
 		result, err = stmt.ExecContext(ctx, args...)
-		if err != nil {
+		if errors.Is(err, driver.ErrBadConn) {
 			db.Mux.Lock()
 			defer db.Mux.Unlock()
 			go stmt.Close()
@@ -161,7 +163,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
 		rows, err = stmt.QueryContext(ctx, args...)
-		if err != nil {
+		if errors.Is(err, driver.ErrBadConn) {
 			db.Mux.Lock()
 			defer db.Mux.Unlock()
 
@@ -207,7 +209,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
 		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).ExecContext(ctx, args...)
-		if err != nil {
+		if errors.Is(err, driver.ErrBadConn) {
 			tx.PreparedStmtDB.Mux.Lock()
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
@@ -222,7 +224,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
 		rows, err = tx.Tx.StmtContext(ctx, stmt.Stmt).QueryContext(ctx, args...)
-		if err != nil {
+		if errors.Is(err, driver.ErrBadConn) {
 			tx.PreparedStmtDB.Mux.Lock()
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
