@@ -455,7 +455,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	var (
 		alterColumn bool
-		isSameType  = fullDataType == realDataType
+		isSameType  = strings.HasPrefix(fullDataType, realDataType)
 	)
 
 	if !field.PrimaryKey {
