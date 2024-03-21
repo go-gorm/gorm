@@ -7,11 +7,11 @@ require (
 	github.com/jinzhu/now v1.1.5
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.9.0
-	gorm.io/driver/mysql v1.5.5
+	gorm.io/driver/mysql v1.5.6
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/driver/sqlserver v1.5.3
-	gorm.io/gorm v1.25.7
+	gorm.io/gorm v1.25.8
 )
 
 require (

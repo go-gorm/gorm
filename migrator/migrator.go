@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -518,12 +519,18 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		} else if !dvNotNull && currentDefaultNotNull {
 			// null -> default value
 			alterColumn = true
-		} else if (field.GORMDataType != schema.Time && dv != field.DefaultValue) ||
-			(field.GORMDataType == schema.Time && !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()"))) {
-			// default value not equal
-			// not both null
-			if currentDefaultNotNull || dvNotNull {
-				alterColumn = true
+		} else if currentDefaultNotNull || dvNotNull {
+			switch field.GORMDataType {
+			case schema.Time:
+				if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
+					alterColumn = true
+				}
+			case schema.Bool:
+				v1, _ := strconv.ParseBool(dv)
+				v2, _ := strconv.ParseBool(field.DefaultValue)
+				alterColumn = v1 != v2
+			default:
+				alterColumn = dv != field.DefaultValue
 			}
 		}
 	}

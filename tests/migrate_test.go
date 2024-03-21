@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1420,7 +1421,7 @@ func TestMigrateSameEmbeddedFieldName(t *testing.T) {
 	AssertEqual(t, nil, err)
 }
 
-func TestMigrateDefaultNullString(t *testing.T) {
+func TestMigrateWithDefaultValue(t *testing.T) {
 	if DB.Dialector.Name() == "sqlserver" {
 		// sqlserver driver treats NULL and 'NULL' the same
 		t.Skip("skip sqlserver")
@@ -1434,6 +1435,7 @@ func TestMigrateDefaultNullString(t *testing.T) {
 	type NullStringModel struct {
 		ID      uint
 		Content string `gorm:"default:'null'"`
+		Active  bool   `gorm:"default:false"`
 	}
 
 	tableName := "null_string_model"
@@ -1452,6 +1454,14 @@ func TestMigrateDefaultNullString(t *testing.T) {
 
 	defVal, ok := columnType.DefaultValue()
 	AssertEqual(t, defVal, "null")
+	AssertEqual(t, ok, true)
+
+	columnType2, err := findColumnType(tableName, "active")
+	AssertEqual(t, err, nil)
+
+	defVal, ok = columnType2.DefaultValue()
+	bv, _ := strconv.ParseBool(defVal)
+	AssertEqual(t, bv, false)
 	AssertEqual(t, ok, true)
 
 	// default 'null' -> 'null'

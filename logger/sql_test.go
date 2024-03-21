@@ -37,14 +37,18 @@ func format(v []byte, escaper string) string {
 func TestExplainSQL(t *testing.T) {
 	type role string
 	type password []byte
+	type intType int
+	type floatType float64
 	var (
-		tt     = now.MustParse("2020-02-23 11:10:10")
-		myrole = role("admin")
-		pwd    = password("pass")
-		jsVal  = []byte(`{"Name":"test","Val":"test"}`)
-		js     = JSON(jsVal)
-		esVal  = []byte(`{"Name":"test","Val":"test"}`)
-		es     = ExampleStruct{Name: "test", Val: "test"}
+		tt                 = now.MustParse("2020-02-23 11:10:10")
+		myrole             = role("admin")
+		pwd                = password("pass")
+		jsVal              = []byte(`{"Name":"test","Val":"test"}`)
+		js                 = JSON(jsVal)
+		esVal              = []byte(`{"Name":"test","Val":"test"}`)
+		es                 = ExampleStruct{Name: "test", Val: "test"}
+		intVal   intType   = 1
+		floatVal floatType = 1.23
 	)
 
 	results := []struct {
@@ -106,6 +110,18 @@ func TestExplainSQL(t *testing.T) {
 			NumericRegexp: nil,
 			Vars:          []interface{}{"jinzhu", 1, float32(999.99), true, []byte("12345"), tt, &tt, nil, "w@g.\"com", myrole, pwd, &js, &es},
 			Result:        fmt.Sprintf(`create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, json_struct, example_struct) values ("jinzhu", 1, 999.99, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.""com", "admin", "pass", %v, %v)`, format(jsVal, `"`), format(esVal, `"`)),
+		},
+		{
+			SQL:           "create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, int_val) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			NumericRegexp: nil,
+			Vars:          []interface{}{"jinzhu?", 1, 999.99, true, []byte("12345"), tt, &tt, nil, "w@g.\"com", myrole, pwd, intVal},
+			Result:        `create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, int_val) values ("jinzhu?", 1, 999.99, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.""com", "admin", "pass", 1)`,
+		},
+		{
+			SQL:           "create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, float_val) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			NumericRegexp: nil,
+			Vars:          []interface{}{"jinzhu?", 1, 999.99, true, []byte("12345"), tt, &tt, nil, "w@g.\"com", myrole, pwd, floatVal},
+			Result:        `create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, float_val) values ("jinzhu?", 1, 999.99, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.""com", "admin", "pass", 1.230000)`,
 		},
 	}
 
