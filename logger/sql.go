@@ -34,6 +34,19 @@ var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeO
 // RegEx matches only numeric values
 var numericPlaceholderRe = regexp.MustCompile(`\$\d+\$`)
 
+func isNumeric(k reflect.Kind) bool {
+	switch k {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return true
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return true
+	case reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return false
+	}
+}
+
 // ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var (
@@ -110,6 +123,12 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				convertParams(v, idx)
 			} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
 				convertParams(reflect.Indirect(rv).Interface(), idx)
+			} else if isNumeric(rv.Kind()) {
+				if rv.CanInt() || rv.CanUint() {
+					vars[idx] = fmt.Sprintf("%d", rv.Interface())
+				} else {
+					vars[idx] = fmt.Sprintf("%.6f", rv.Interface())
+				}
 			} else {
 				for _, t := range convertibleTypes {
 					if rv.Type().ConvertibleTo(t) {
