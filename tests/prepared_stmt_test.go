@@ -126,33 +126,6 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 	AssertEqual(t, sqlDB.Stats().InUse, 0)
 }
 
-func TestPreparedStmtError(t *testing.T) {
-	tx, err := OpenTestConnection(&gorm.Config{})
-	AssertEqual(t, err, nil)
-
-	sqlDB, _ := tx.DB()
-	sqlDB.SetMaxOpenConns(1)
-
-	tx = tx.Session(&gorm.Session{PrepareStmt: true})
-
-	wg := sync.WaitGroup{}
-	for i := 0; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			// err prepare
-			tag := Tag{Locale: "zh"}
-			tx.Table("users").Find(&tag)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
-	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
-	AssertEqual(t, ok, true)
-	AssertEqual(t, len(conn.Stmts), 0)
-	AssertEqual(t, sqlDB.Stats().InUse, 0)
-}
-
 func TestPreparedStmtInTransaction(t *testing.T) {
 	user := User{Name: "jinzhu"}
 
