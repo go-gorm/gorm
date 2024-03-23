@@ -200,7 +200,6 @@ func (p *processor) compile() (err error) {
 	if len(removedMap) > 0 {
 		callbacks = removeCallbacks(callbacks, removedMap)
 	}
-
 	p.callbacks = callbacks
 
 	if p.fns, err = sortCallbacks(p.callbacks); err != nil {
