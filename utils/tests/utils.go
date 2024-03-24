@@ -126,3 +126,7 @@ func Now() *time.Time {
 	now := time.Now()
 	return &now
 }
+
+func ToPointer[T any](v T) *T {
+	return &v
+}

@@ -30,6 +30,7 @@ type User struct {
 	Languages []Language `gorm:"many2many:UserSpeak;"`
 	Friends   []*User    `gorm:"many2many:user_friends;"`
 	Active    bool
+	Motto     *DummyString
 }
 
 type Account struct {
@@ -101,4 +102,14 @@ type Child struct {
 	Name     string
 	ParentID *uint
 	Parent   *Parent
+}
+
+type NullValue struct {
+	gorm.Model
+	ScannerValue     DummyString
+	NullScannerValue *DummyString
+	IntValue         int
+	NullIntValue     *int
+	TimeValue        time.Time
+	NullTimeValue    *time.Time
 }
