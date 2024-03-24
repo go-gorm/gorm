@@ -257,9 +257,11 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 								continue
 							}
 						}
-						values[idx] = &sql.RawBytes{}
+						var val interface{}
+						values[idx] = &val
 					} else {
-						values[idx] = &sql.RawBytes{}
+						var val interface{}
+						values[idx] = &val
 					}
 				}
 			}
