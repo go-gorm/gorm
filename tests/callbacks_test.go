@@ -91,7 +91,7 @@ func TestCallbacks(t *testing.T) {
 		},
 		{
 			callbacks: []callback{{h: c1}, {h: c2, before: "c4", after: "c5"}, {h: c3}, {h: c4}, {h: c5}, {h: c2, remove: true}},
-			results:   []string{"c1", "c5", "c3", "c4"},
+			results:   []string{"c1", "c3", "c4", "c5"},
 		},
 		{
 			callbacks: []callback{{h: c1}, {name: "c", h: c2}, {h: c3}, {name: "c", h: c4, replace: true}},
@@ -203,6 +203,52 @@ func TestPluginCallbacks(t *testing.T) {
 
 	createCallback.After("*").Register("plugin_3_fn2", c6)
 	if ok, msg := assertCallbacks(createCallback, []string{"c5", "c3", "c1", "c2", "c4", "c6"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+}
+
+func TestCallbacksGet(t *testing.T) {
+	db, _ := gorm.Open(nil, nil)
+	createCallback := db.Callback().Create()
+
+	createCallback.Before("*").Register("c1", c1)
+	if cb := createCallback.Get("c1"); reflect.DeepEqual(cb, c1) {
+		t.Errorf("callbacks tests failed, got: %p, want: %p", cb, c1)
+	}
+
+	createCallback.Remove("c1")
+	if cb := createCallback.Get("c2"); cb != nil {
+		t.Errorf("callbacks test failed. got: %p, want: nil", cb)
+	}
+}
+
+func TestCallbacksRemove(t *testing.T) {
+	db, _ := gorm.Open(nil, nil)
+	createCallback := db.Callback().Create()
+
+	createCallback.Before("*").Register("c1", c1)
+	createCallback.After("*").Register("c2", c2)
+	createCallback.Before("c4").Register("c3", c3)
+	createCallback.After("c2").Register("c4", c4)
+
+	// callbacks: []string{"c1", "c3", "c4", "c2"}
+	createCallback.Remove("c1")
+	if ok, msg := assertCallbacks(createCallback, []string{"c3", "c4", "c2"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	createCallback.Remove("c4")
+	if ok, msg := assertCallbacks(createCallback, []string{"c3", "c2"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	createCallback.Remove("c2")
+	if ok, msg := assertCallbacks(createCallback, []string{"c3"}); !ok {
+		t.Errorf("callbacks tests failed, got %v", msg)
+	}
+
+	createCallback.Remove("c3")
+	if ok, msg := assertCallbacks(createCallback, []string{}); !ok {
 		t.Errorf("callbacks tests failed, got %v", msg)
 	}
 }
