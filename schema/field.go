@@ -59,6 +59,7 @@ type Field struct {
 	DataType               DataType
 	GORMDataType           DataType
 	PrimaryKey             bool
+	PrimaryKeyPriority     int
 	AutoIncrement          bool
 	AutoIncrementIncrement int64
 	Creatable              bool
@@ -109,19 +110,20 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	)
 
 	field := &Field{
-		Name:                   fieldStruct.Name,
-		DBName:                 tagSetting["COLUMN"],
-		BindNames:              []string{fieldStruct.Name},
-		FieldType:              fieldStruct.Type,
-		IndirectFieldType:      fieldStruct.Type,
-		StructField:            fieldStruct,
-		Tag:                    fieldStruct.Tag,
-		TagSettings:            tagSetting,
-		Schema:                 schema,
-		Creatable:              true,
-		Updatable:              true,
-		Readable:               true,
-		PrimaryKey:             utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"]),
+		Name:              fieldStruct.Name,
+		DBName:            tagSetting["COLUMN"],
+		BindNames:         []string{fieldStruct.Name},
+		FieldType:         fieldStruct.Type,
+		IndirectFieldType: fieldStruct.Type,
+		StructField:       fieldStruct,
+		Tag:               fieldStruct.Tag,
+		TagSettings:       tagSetting,
+		Schema:            schema,
+		Creatable:         true,
+		Updatable:         true,
+		Readable:          true,
+		PrimaryKey: utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"],
+			tagSetting["PRIMARYKEY,PRIORITY"]),
 		AutoIncrement:          utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
 		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
@@ -130,6 +132,22 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		AutoIncrementIncrement: DefaultAutoIncrementIncrement,
 	}
 
+	if field.PrimaryKey {
+		// default priority is 10, to be consistent with composite index
+		field.PrimaryKeyPriority = 10
+
+		priority := ParseTagSetting(field.TagSettings["PRIMARYKEY"], ",")["PRIORITY"]
+		if priority == "" {
+			priority = ParseTagSetting(field.TagSettings["PRIMARY_KEY"], ",")["PRIORITY"]
+		}
+
+		if priority != "" {
+			primaryKeyPriority, err := strconv.Atoi(priority)
+			if err == nil {
+				field.PrimaryKeyPriority = primaryKeyPriority
+			}
+		}
+	}
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
 		field.IndirectFieldType = field.IndirectFieldType.Elem()
 	}
