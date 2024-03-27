@@ -182,6 +182,14 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 	return &sql.Row{}
 }
 
+func (db *PreparedStmtDB) Ping() error {
+	conn, err := db.GetDBConn()
+	if err != nil {
+		return err
+	}
+	return conn.Ping()
+}
+
 type PreparedStmtTX struct {
 	Tx
 	PreparedStmtDB *PreparedStmtDB
@@ -243,7 +251,7 @@ func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, arg
 	return &sql.Row{}
 }
 
-func (tx *PreparedStmtDB) Ping() error {
+func (tx *PreparedStmtTX) Ping() error {
 	conn, err := tx.GetDBConn()
 	if err != nil {
 		return err
