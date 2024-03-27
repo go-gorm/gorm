@@ -242,3 +242,11 @@ func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, arg
 	}
 	return &sql.Row{}
 }
+
+func (tx *PreparedStmtDB) Ping() error {
+	conn, err := tx.GetDBConn()
+	if err != nil {
+		return err
+	}
+	return conn.Ping()
+}
