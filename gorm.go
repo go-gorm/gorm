@@ -325,6 +325,14 @@ func (db *DB) Debug() (tx *DB) {
 	})
 }
 
+// Silent start silent mode
+func (db *DB) Silent() (tx *DB) {
+	tx = db.getInstance()
+	return tx.Session(&Session{
+		Logger: db.Logger.LogMode(logger.Silent),
+	})
+}
+
 // Set store value with key into current db instance's context
 func (db *DB) Set(key string, value interface{}) *DB {
 	tx := db.getInstance()
