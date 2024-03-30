@@ -321,7 +321,7 @@ func (db *DB) WithContext(ctx context.Context) *DB {
 func (db *DB) Debug() (tx *DB) {
 	tx = db.getInstance()
 	return tx.Session(&Session{
-		Logger: db.Logger.LogMode(logger.Info),
+		Logger: db.Logger.LogMode(logger.Debug),
 	})
 }
 

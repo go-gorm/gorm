@@ -43,6 +43,8 @@ const (
 	Warn
 	// Info info log level
 	Info
+	// Debug debug log level
+	Debug
 )
 
 // Writer log writer interface
@@ -62,6 +64,7 @@ type Config struct {
 // Interface logger interface
 type Interface interface {
 	LogMode(LogLevel) Interface
+	Debug(context.Context, string, ...interface{})
 	Info(context.Context, string, ...interface{})
 	Warn(context.Context, string, ...interface{})
 	Error(context.Context, string, ...interface{})
@@ -85,6 +88,7 @@ var (
 // New initialize logger
 func New(writer Writer, config Config) Interface {
 	var (
+		debugStr     = "%s\n[debug] "
 		infoStr      = "%s\n[info] "
 		warnStr      = "%s\n[warn] "
 		errStr       = "%s\n[error] "
@@ -105,6 +109,7 @@ func New(writer Writer, config Config) Interface {
 	return &logger{
 		Writer:       writer,
 		Config:       config,
+		debugStr:     debugStr,
 		infoStr:      infoStr,
 		warnStr:      warnStr,
 		errStr:       errStr,
@@ -117,7 +122,7 @@ func New(writer Writer, config Config) Interface {
 type logger struct {
 	Writer
 	Config
-	infoStr, warnStr, errStr            string
+	debugStr, infoStr, warnStr, errStr  string
 	traceStr, traceErrStr, traceWarnStr string
 }
 
@@ -126,6 +131,13 @@ func (l *logger) LogMode(level LogLevel) Interface {
 	newlogger := *l
 	newlogger.LogLevel = level
 	return &newlogger
+}
+
+// Debug print debug messages
+func (l *logger) Debug(ctx context.Context, msg string, data ...interface{}) {
+	if l.LogLevel >= Debug {
+		l.Printf(l.debugStr+msg, append([]interface{}{utils.FileWithLineNum()}, data...)...)
+	}
 }
 
 // Info print info
