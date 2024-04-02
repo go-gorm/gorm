@@ -456,10 +456,10 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	var (
 		alterColumn bool
-		isSameType  = strings.HasPrefix(fullDataType, realDataType)
+		isSameType  = fullDataType == realDataType
 	)
 
-	if !field.PrimaryKey {
+	if !isSameType && !field.PrimaryKey {
 		// check type
 		if !strings.HasPrefix(fullDataType, realDataType) {
 			// check type aliases
@@ -474,6 +474,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			if !isSameType {
 				alterColumn = true
 			}
+		} else {
+			isSameType = true
 		}
 	}
 
