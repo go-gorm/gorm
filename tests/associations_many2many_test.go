@@ -1,8 +1,12 @@
 package tests_test
 
 import (
+	"fmt"
+	"sync"
 	"testing"
 
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -94,6 +98,8 @@ func TestMany2ManyAssociation(t *testing.T) {
 }
 
 func TestMany2ManyOmitAssociations(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	user := *GetUser("many2many_omit_associations", Config{Languages: 2})
 
 	if err := DB.Omit("Languages.*").Create(&user).Error; err == nil {
@@ -323,4 +329,97 @@ func TestSingleTableMany2ManyAssociationForSlice(t *testing.T) {
 	// Clear
 	DB.Model(&users).Association("Team").Clear()
 	AssertAssociationCount(t, users, "Team", 0, "After Clear")
+}
+
+func TestDuplicateMany2ManyAssociation(t *testing.T) {
+	user1 := User{Name: "TestDuplicateMany2ManyAssociation-1", Languages: []Language{
+		{Code: "TestDuplicateMany2ManyAssociation-language-1"},
+		{Code: "TestDuplicateMany2ManyAssociation-language-2"},
+	}}
+
+	user2 := User{Name: "TestDuplicateMany2ManyAssociation-1", Languages: []Language{
+		{Code: "TestDuplicateMany2ManyAssociation-language-1"},
+		{Code: "TestDuplicateMany2ManyAssociation-language-3"},
+	}}
+	users := []*User{&user1, &user2}
+	var err error
+	err = DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(users).Error
+	AssertEqual(t, nil, err)
+
+	var findUser1 User
+	err = DB.Preload("Languages").Where("id = ?", user1.ID).First(&findUser1).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user1, findUser1)
+
+	var findUser2 User
+	err = DB.Preload("Languages").Where("id = ?", user2.ID).First(&findUser2).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user2, findUser2)
+}
+
+func TestConcurrentMany2ManyAssociation(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{})
+	if err != nil {
+		t.Fatalf("open test connection failed, err: %+v", err)
+	}
+
+	count := 3
+
+	var languages []Language
+	for i := 0; i < count; i++ {
+		language := Language{Code: fmt.Sprintf("consurrent %d", i)}
+		db.Create(&language)
+		languages = append(languages, language)
+	}
+
+	user := User{}
+	db.Create(&user)
+	db.Preload("Languages").FirstOrCreate(&user)
+
+	var wg sync.WaitGroup
+	for i := 0; i < count; i++ {
+		wg.Add(1)
+		go func(user User, language Language) {
+			err := db.Model(&user).Association("Languages").Append(&language)
+			AssertEqual(t, err, nil)
+
+			wg.Done()
+		}(user, languages[i])
+	}
+	wg.Wait()
+
+	var find User
+	err = db.Preload(clause.Associations).Where("id = ?", user.ID).First(&find).Error
+	AssertEqual(t, err, nil)
+	AssertAssociationCount(t, find, "Languages", int64(count), "after concurrent append")
+}
+
+func TestMany2ManyDuplicateBelongsToAssociation(t *testing.T) {
+	user1 := User{Name: "TestMany2ManyDuplicateBelongsToAssociation-1", Friends: []*User{
+		{Name: "TestMany2ManyDuplicateBelongsToAssociation-friend-1", Company: Company{
+			ID:   1,
+			Name: "Test-company-1",
+		}},
+	}}
+
+	user2 := User{Name: "TestMany2ManyDuplicateBelongsToAssociation-2", Friends: []*User{
+		{Name: "TestMany2ManyDuplicateBelongsToAssociation-friend-2", Company: Company{
+			ID:   1,
+			Name: "Test-company-1",
+		}},
+	}}
+	users := []*User{&user1, &user2}
+	var err error
+	err = DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(users).Error
+	AssertEqual(t, nil, err)
+
+	var findUser1 User
+	err = DB.Preload("Friends.Company").Where("id = ?", user1.ID).First(&findUser1).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user1, findUser1)
+
+	var findUser2 User
+	err = DB.Preload("Friends.Company").Where("id = ?", user2.ID).First(&findUser2).Error
+	AssertEqual(t, nil, err)
+	AssertEqual(t, user2, findUser2)
 }

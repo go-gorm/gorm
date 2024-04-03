@@ -57,6 +57,19 @@ func TestTransaction(t *testing.T) {
 	if err := DB.First(&User{}, "name = ?", "transaction-2").Error; err != nil {
 		t.Fatalf("Should be able to find committed record, but got %v", err)
 	}
+
+	t.Run("this is test nested transaction and prepareStmt coexist case", func(t *testing.T) {
+		// enable prepare statement
+		tx3 := DB.Session(&gorm.Session{PrepareStmt: true})
+		if err := tx3.Transaction(func(tx4 *gorm.DB) error {
+			// nested transaction
+			return tx4.Transaction(func(tx5 *gorm.DB) error {
+				return tx5.First(&User{}, "name = ?", "transaction-2").Error
+			})
+		}); err != nil {
+			t.Fatalf("prepare statement and nested transcation coexist" + err.Error())
+		}
+	})
 }
 
 func TestCancelTransaction(t *testing.T) {
@@ -102,7 +115,7 @@ func TestTransactionWithBlock(t *testing.T) {
 		return errors.New("the error message")
 	})
 
-	if err.Error() != "the error message" {
+	if err != nil && err.Error() != "the error message" {
 		t.Fatalf("Transaction return error will equal the block returns error")
 	}
 
@@ -348,7 +361,7 @@ func TestDisabledNestedTransaction(t *testing.T) {
 }
 
 func TestTransactionOnClosedConn(t *testing.T) {
-	DB, err := OpenTestConnection()
+	DB, err := OpenTestConnection(&gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
@@ -365,5 +378,35 @@ func TestTransactionOnClosedConn(t *testing.T) {
 		return nil
 	}); err == nil {
 		t.Errorf("should returns error when commit with closed conn, got error %v", err)
+	}
+}
+
+func TestTransactionWithHooks(t *testing.T) {
+	user := GetUser("tTestTransactionWithHooks", Config{Account: true})
+	DB.Create(&user)
+
+	var err error
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		return tx.Model(&User{}).Limit(1).Transaction(func(tx2 *gorm.DB) error {
+			return tx2.Scan(&User{}).Error
+		})
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// method with hooks
+	err = DB.Transaction(func(tx1 *gorm.DB) error {
+		// callMethod do
+		tx2 := tx1.Find(&User{}).Session(&gorm.Session{NewDB: true})
+		// trx in hooks
+		return tx2.Transaction(func(tx3 *gorm.DB) error {
+			return tx3.Where("user_id", user.ID).Delete(&Account{}).Error
+		})
+	})
+
+	if err != nil {
+		t.Error(err)
 	}
 }

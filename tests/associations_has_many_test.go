@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -421,7 +422,7 @@ func TestPolymorphicHasManyAssociation(t *testing.T) {
 func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 	users := []User{
 		*GetUser("slice-hasmany-1", Config{Toys: 2}),
-		*GetUser("slice-hasmany-2", Config{Toys: 0}),
+		*GetUser("slice-hasmany-2", Config{Toys: 0, Tools: 2}),
 		*GetUser("slice-hasmany-3", Config{Toys: 4}),
 	}
 
@@ -429,11 +430,20 @@ func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 
 	// Count
 	AssertAssociationCount(t, users, "Toys", 6, "")
+	AssertAssociationCount(t, users, "Tools", 2, "")
 
 	// Find
 	var toys []Toy
 	if DB.Model(&users).Association("Toys").Find(&toys); len(toys) != 6 {
 		t.Errorf("toys count should be %v, but got %v", 6, len(toys))
+	}
+
+	// Find Tools (polymorphic with custom type and id)
+	var tools []Tools
+	DB.Model(&users).Association("Tools").Find(&tools)
+
+	if len(tools) != 2 {
+		t.Errorf("tools count should be %v, but got %v", 2, len(tools))
 	}
 
 	// Append
@@ -470,4 +480,77 @@ func TestPolymorphicHasManyAssociationForSlice(t *testing.T) {
 	// Clear
 	DB.Model(&users).Association("Toys").Clear()
 	AssertAssociationCount(t, users, "Toys", 0, "After Clear")
+}
+
+func TestHasManyAssociationUnscoped(t *testing.T) {
+	type ItemContent struct {
+		gorm.Model
+		ItemID       uint   `gorm:"not null"`
+		Name         string `gorm:"not null;type:varchar(50)"`
+		LanguageCode string `gorm:"not null;type:varchar(2)"`
+	}
+	type Item struct {
+		gorm.Model
+		Logo     string        `gorm:"not null;type:varchar(50)"`
+		Contents []ItemContent `gorm:"foreignKey:ItemID"`
+	}
+
+	tx := DB.Session(&gorm.Session{})
+	tx.Migrator().DropTable(&ItemContent{}, &Item{})
+	tx.AutoMigrate(&ItemContent{}, &Item{})
+
+	item := Item{
+		Logo: "logo",
+		Contents: []ItemContent{
+			{Name: "name", LanguageCode: "en"},
+			{Name: "ar name", LanguageCode: "ar"},
+		},
+	}
+	if err := tx.Create(&item).Error; err != nil {
+		t.Fatalf("failed to create items, got error: %v", err)
+	}
+
+	// test Replace
+	if err := tx.Model(&item).Association("Contents").Unscoped().Replace([]ItemContent{
+		{Name: "updated name", LanguageCode: "en"},
+		{Name: "ar updated name", LanguageCode: "ar"},
+		{Name: "le nom", LanguageCode: "fr"},
+	}); err != nil {
+		t.Errorf("failed to replace item content, got error: %v", err)
+	}
+
+	if count := tx.Model(&item).Association("Contents").Count(); count != 3 {
+		t.Errorf("expected %d contents, got %d", 3, count)
+	}
+
+	var contents []ItemContent
+	if err := tx.Find(&contents).Error; err != nil {
+		t.Errorf("failed to find contents, got error: %v", err)
+	}
+	if len(contents) != 3 {
+		t.Errorf("expected %d contents, got %d", 3, len(contents))
+	}
+
+	// test delete
+	if err := tx.Model(&item).Association("Contents").Unscoped().Delete(&contents[0]); err != nil {
+		t.Errorf("failed to delete Contents, got error: %v", err)
+	}
+	if count := tx.Model(&item).Association("Contents").Count(); count != 2 {
+		t.Errorf("expected %d contents, got %d", 2, count)
+	}
+
+	// test clear
+	if err := tx.Model(&item).Association("Contents").Unscoped().Clear(); err != nil {
+		t.Errorf("failed to clear contents association, got error: %v", err)
+	}
+	if count := tx.Model(&item).Association("Contents").Count(); count != 0 {
+		t.Errorf("expected %d contents, got %d", 0, count)
+	}
+
+	if err := tx.Find(&contents).Error; err != nil {
+		t.Errorf("failed to find contents, got error: %v", err)
+	}
+	if len(contents) != 0 {
+		t.Errorf("expected %d contents, got %d", 0, len(contents))
+	}
 }

@@ -466,14 +466,20 @@ type Product4 struct {
 
 type ProductItem struct {
 	gorm.Model
-	Code       string
-	Product4ID uint
+	Code               string
+	Product4ID         uint
+	AfterFindCallTimes int
 }
 
 func (pi ProductItem) BeforeCreate(*gorm.DB) error {
 	if pi.Code == "invalid" {
 		return errors.New("invalid item")
 	}
+	return nil
+}
+
+func (pi *ProductItem) AfterFind(*gorm.DB) error {
+	pi.AfterFindCallTimes = pi.AfterFindCallTimes + 1
 	return nil
 }
 
@@ -497,5 +503,66 @@ func TestFailedToSaveAssociationShouldRollback(t *testing.T) {
 
 	if err := DB.First(&Product4{}, "name = ?", product.Name).Error; err != nil {
 		t.Errorf("should find product, but got error %v", err)
+	}
+
+	var productWithItem Product4
+	if err := DB.Session(&gorm.Session{SkipHooks: true}).Preload("Item").First(&productWithItem, "name = ?", product.Name).Error; err != nil {
+		t.Errorf("should find product, but got error %v", err)
+	}
+
+	if productWithItem.Item.AfterFindCallTimes != 0 {
+		t.Fatalf("AfterFind should not be called times:%d", productWithItem.Item.AfterFindCallTimes)
+	}
+}
+
+type Product5 struct {
+	gorm.Model
+	Name string
+}
+
+var beforeUpdateCall int
+
+func (p *Product5) BeforeUpdate(*gorm.DB) error {
+	beforeUpdateCall = beforeUpdateCall + 1
+	return nil
+}
+
+func TestUpdateCallbacks(t *testing.T) {
+	DB.Migrator().DropTable(&Product5{})
+	DB.AutoMigrate(&Product5{})
+
+	p := Product5{Name: "unique_code"}
+	DB.Model(&Product5{}).Create(&p)
+
+	err := DB.Model(&Product5{}).Where("id", p.ID).Update("name", "update_name_1").Error
+	if err != nil {
+		t.Fatalf("should update success, but got err %v", err)
+	}
+	if beforeUpdateCall != 1 {
+		t.Fatalf("before update should be called")
+	}
+
+	err = DB.Model(Product5{}).Where("id", p.ID).Update("name", "update_name_2").Error
+	if !errors.Is(err, gorm.ErrInvalidValue) {
+		t.Fatalf("should got RecordNotFound, but got %v", err)
+	}
+	if beforeUpdateCall != 1 {
+		t.Fatalf("before update should not be called")
+	}
+
+	err = DB.Model([1]*Product5{&p}).Update("name", "update_name_3").Error
+	if err != nil {
+		t.Fatalf("should update success, but got err %v", err)
+	}
+	if beforeUpdateCall != 2 {
+		t.Fatalf("before update should be called")
+	}
+
+	err = DB.Model([1]Product5{p}).Update("name", "update_name_4").Error
+	if !errors.Is(err, gorm.ErrInvalidValue) {
+		t.Fatalf("should got RecordNotFound, but got %v", err)
+	}
+	if beforeUpdateCall != 2 {
+		t.Fatalf("before update should not be called")
 	}
 }

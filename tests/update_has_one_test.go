@@ -90,8 +90,9 @@ func TestUpdateHasOne(t *testing.T) {
 	t.Run("Restriction", func(t *testing.T) {
 		type CustomizeAccount struct {
 			gorm.Model
-			UserID sql.NullInt64
-			Number string `gorm:"<-:create"`
+			UserID  sql.NullInt64
+			Number  string `gorm:"<-:create"`
+			Number2 string
 		}
 
 		type CustomizeUser struct {
@@ -114,7 +115,8 @@ func TestUpdateHasOne(t *testing.T) {
 		cusUser := CustomizeUser{
 			Name: "update-has-one-associations",
 			Account: CustomizeAccount{
-				Number: number,
+				Number:  number,
+				Number2: number,
 			},
 		}
 
@@ -122,6 +124,7 @@ func TestUpdateHasOne(t *testing.T) {
 			t.Fatalf("errors happened when create: %v", err)
 		}
 		cusUser.Account.Number += "-update"
+		cusUser.Account.Number2 += "-update"
 		if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&cusUser).Error; err != nil {
 			t.Fatalf("errors happened when create: %v", err)
 		}
@@ -129,5 +132,6 @@ func TestUpdateHasOne(t *testing.T) {
 		var account2 CustomizeAccount
 		DB.Find(&account2, "user_id = ?", cusUser.ID)
 		AssertEqual(t, account2.Number, number)
+		AssertEqual(t, account2.Number2, cusUser.Account.Number2)
 	})
 }

@@ -41,4 +41,19 @@ func TestUpdateBelongsTo(t *testing.T) {
 	var user4 User
 	DB.Preload("Company").Preload("Manager").Find(&user4, "id = ?", user.ID)
 	CheckUser(t, user4, user)
+
+	user.Company.Name += "new2"
+	user.Manager.Name += "new2"
+	if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Select("`Company`").Save(&user).Error; err != nil {
+		t.Fatalf("errors happened when update: %v", err)
+	}
+
+	var user5 User
+	DB.Preload("Company").Preload("Manager").Find(&user5, "id = ?", user.ID)
+	if user5.Manager.Name != user4.Manager.Name {
+		t.Errorf("should not update user's manager")
+	} else {
+		user.Manager.Name = user4.Manager.Name
+	}
+	CheckUser(t, user, user5)
 }

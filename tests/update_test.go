@@ -122,6 +122,14 @@ func TestUpdate(t *testing.T) {
 	} else {
 		CheckUser(t, result4, *user)
 	}
+
+	if rowsAffected := DB.Model([]User{result4}).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 1 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
+
+	if rowsAffected := DB.Model(users).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 3 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
 }
 
 func TestUpdates(t *testing.T) {
@@ -200,11 +208,15 @@ func TestUpdateColumn(t *testing.T) {
 	CheckUser(t, user1, *users[0])
 	CheckUser(t, user2, *users[1])
 
-	DB.Model(users[1]).UpdateColumn("name", "update_column_02_newnew")
+	DB.Model(users[1]).UpdateColumn("name", "update_column_02_newnew").UpdateColumn("age", 19)
 	AssertEqual(t, lastUpdatedAt.UnixNano(), users[1].UpdatedAt.UnixNano())
 
 	if users[1].Name != "update_column_02_newnew" {
 		t.Errorf("user 2's name should be updated, but got %v", users[1].Name)
+	}
+
+	if users[1].Age != 19 {
+		t.Errorf("user 2's name should be updated, but got %v", users[1].Age)
 	}
 
 	DB.Model(users[1]).UpdateColumn("age", gorm.Expr("age + 100 - 50"))
@@ -299,6 +311,8 @@ func TestSelectWithUpdate(t *testing.T) {
 	if utils.AssertEqual(result.UpdatedAt, user.UpdatedAt) {
 		t.Fatalf("Update struct should update UpdatedAt, was %+v, got %+v", result.UpdatedAt, user.UpdatedAt)
 	}
+
+	AssertObjEqual(t, result, User{Name: "update_with_select"}, "Name", "Age")
 }
 
 func TestSelectWithUpdateWithMap(t *testing.T) {
@@ -600,6 +614,25 @@ func TestUpdateFromSubQuery(t *testing.T) {
 	}
 }
 
+func TestIdempotentSave(t *testing.T) {
+	create := Company{
+		Name: "company_idempotent",
+	}
+	DB.Create(&create)
+
+	var company Company
+	if err := DB.Find(&company, "id = ?", create.ID).Error; err != nil {
+		t.Fatalf("failed to find created company, got err: %v", err)
+	}
+
+	if err := DB.Save(&company).Error; err != nil || company.ID != create.ID {
+		t.Errorf("failed to save company, got err: %v", err)
+	}
+	if err := DB.Save(&company).Error; err != nil || company.ID != create.ID {
+		t.Errorf("failed to save company, got err: %v", err)
+	}
+}
+
 func TestSave(t *testing.T) {
 	user := *GetUser("save", Config{})
 	DB.Create(&user)
@@ -732,9 +765,9 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	}
 }
 
-// only sqlite, postgres support returning
+// only sqlite, postgres, sqlserver support returning
 func TestUpdateReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
@@ -761,5 +794,140 @@ func TestUpdateReturning(t *testing.T) {
 
 	if results[1].Age-results[0].Age != 100 {
 		t.Errorf("failed to return updated age column")
+	}
+}
+
+func TestUpdateWithDiffSchema(t *testing.T) {
+	user := GetUser("update-diff-schema-1", Config{})
+	DB.Create(&user)
+
+	type UserTemp struct {
+		Name string
+	}
+
+	err := DB.Model(&user).Updates(&UserTemp{Name: "update-diff-schema-2"}).Error
+	AssertEqual(t, err, nil)
+	AssertEqual(t, "update-diff-schema-2", user.Name)
+}
+
+type TokenOwner struct {
+	ID    int
+	Name  string
+	Token Token `gorm:"foreignKey:UserID"`
+}
+
+func (t *TokenOwner) BeforeSave(tx *gorm.DB) error {
+	t.Name += "_name"
+	return nil
+}
+
+type Token struct {
+	UserID  int    `gorm:"primary_key"`
+	Content string `gorm:"type:varchar(100)"`
+}
+
+func (t *Token) BeforeSave(tx *gorm.DB) error {
+	t.Content += "_encrypted"
+	return nil
+}
+
+func TestSaveWithHooks(t *testing.T) {
+	DB.Migrator().DropTable(&Token{}, &TokenOwner{})
+	DB.AutoMigrate(&Token{}, &TokenOwner{})
+
+	saveTokenOwner := func(owner *TokenOwner) (*TokenOwner, error) {
+		var newOwner TokenOwner
+		if err := DB.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(owner).Error; err != nil {
+				return err
+			}
+			if err := tx.Preload("Token").First(&newOwner, owner.ID).Error; err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+		return &newOwner, nil
+	}
+
+	owner := TokenOwner{
+		Name:  "user",
+		Token: Token{Content: "token"},
+	}
+	o1, err := saveTokenOwner(&owner)
+	if err != nil {
+		t.Errorf("failed to save token owner, got error: %v", err)
+	}
+	if o1.Name != "user_name" {
+		t.Errorf(`owner name should be "user_name", but got: "%s"`, o1.Name)
+	}
+	if o1.Token.Content != "token_encrypted" {
+		t.Errorf(`token content should be "token_encrypted", but got: "%s"`, o1.Token.Content)
+	}
+
+	owner = TokenOwner{
+		ID:    owner.ID,
+		Name:  "user",
+		Token: Token{Content: "token2"},
+	}
+	o2, err := saveTokenOwner(&owner)
+	if err != nil {
+		t.Errorf("failed to save token owner, got error: %v", err)
+	}
+	if o2.Name != "user_name" {
+		t.Errorf(`owner name should be "user_name", but got: "%s"`, o2.Name)
+	}
+	if o2.Token.Content != "token2_encrypted" {
+		t.Errorf(`token content should be "token2_encrypted", but got: "%s"`, o2.Token.Content)
+	}
+}
+
+// only postgres, sqlserver, sqlite support update from
+func TestUpdateFrom(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "sqlserver" {
+		return
+	}
+
+	users := []*User{
+		GetUser("update-from-1", Config{Account: true}),
+		GetUser("update-from-2", Config{Account: true}),
+		GetUser("update-from-3", Config{}),
+	}
+
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	} else if users[0].ID == 0 {
+		t.Fatalf("user's primary value should not zero, %v", users[0].ID)
+	} else if users[0].UpdatedAt.IsZero() {
+		t.Fatalf("user's updated at should not zero, %v", users[0].UpdatedAt)
+	}
+
+	if rowsAffected := DB.Model(&User{}).Clauses(clause.From{Tables: []clause.Table{{Name: "accounts"}}}).Where("accounts.user_id = users.id AND accounts.number = ? AND accounts.deleted_at IS NULL", users[0].Account.Number).Update("name", "franco").RowsAffected; rowsAffected != 1 {
+		t.Errorf("should only update one record, but got %v", rowsAffected)
+	}
+
+	var result User
+	if err := DB.Where("id = ?", users[0].ID).First(&result).Error; err != nil {
+		t.Errorf("errors happened when query before user: %v", err)
+	} else if result.UpdatedAt.UnixNano() == users[0].UpdatedAt.UnixNano() {
+		t.Errorf("user's updated at should be changed, but got %v, was %v", result.UpdatedAt, users[0].UpdatedAt)
+	} else if result.Name != "franco" {
+		t.Errorf("user's name should be updated")
+	}
+
+	if rowsAffected := DB.Model(&User{}).Clauses(clause.From{Tables: []clause.Table{{Name: "accounts"}}}).Where("accounts.user_id = users.id AND accounts.number IN ? AND accounts.deleted_at IS NULL", []string{users[0].Account.Number, users[1].Account.Number}).Update("name", gorm.Expr("accounts.number")).RowsAffected; rowsAffected != 2 {
+		t.Errorf("should update two records, but got %v", rowsAffected)
+	}
+
+	var results []User
+	if err := DB.Preload("Account").Find(&results, []uint{users[0].ID, users[1].ID}).Error; err != nil {
+		t.Errorf("Not error should happen when finding users, but got %v", err)
+	}
+
+	for _, user := range results {
+		if user.Name != user.Account.Number {
+			t.Errorf("user's name should be equal to the account's number %v, but got %v", user.Account.Number, user.Name)
+		}
 	}
 }

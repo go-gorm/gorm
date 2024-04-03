@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -137,6 +138,7 @@ func TestBelongsToAssociation(t *testing.T) {
 	unexistCompanyID := company.ID + 9999999
 	user = User{Name: "invalid-user-with-invalid-belongs-to-foreign-key", CompanyID: &unexistCompanyID}
 	if err := DB.Create(&user).Error; err == nil {
+		tidbSkip(t, "not support the foreign key feature")
 		t.Errorf("should have gotten foreign key violation error")
 	}
 }
@@ -223,4 +225,82 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 	DB.Model(&users[0]).Association("Company").Delete(&company)
 	AssertAssociationCount(t, users[0], "Company", 0, "After Delete")
 	AssertAssociationCount(t, users[1], "Company", 1, "After other user Delete")
+}
+
+func TestBelongsToDefaultValue(t *testing.T) {
+	type Org struct {
+		ID string
+	}
+	type BelongsToUser struct {
+		OrgID string
+		Org   Org `gorm:"default:NULL"`
+	}
+
+	tx := DB.Session(&gorm.Session{})
+	tx.Config.DisableForeignKeyConstraintWhenMigrating = true
+	AssertEqual(t, DB.Config.DisableForeignKeyConstraintWhenMigrating, false)
+
+	tx.Migrator().DropTable(&BelongsToUser{}, &Org{})
+	tx.AutoMigrate(&BelongsToUser{}, &Org{})
+
+	user := &BelongsToUser{
+		Org: Org{
+			ID: "BelongsToUser_Org_1",
+		},
+	}
+	err := DB.Create(&user).Error
+	AssertEqual(t, err, nil)
+}
+
+func TestBelongsToAssociationUnscoped(t *testing.T) {
+	type ItemParent struct {
+		gorm.Model
+		Logo string `gorm:"not null;type:varchar(50)"`
+	}
+	type ItemChild struct {
+		gorm.Model
+		Name         string `gorm:"type:varchar(50)"`
+		ItemParentID uint
+		ItemParent   ItemParent
+	}
+
+	tx := DB.Session(&gorm.Session{})
+	tx.Migrator().DropTable(&ItemParent{}, &ItemChild{})
+	tx.AutoMigrate(&ItemParent{}, &ItemChild{})
+
+	item := ItemChild{
+		Name: "name",
+		ItemParent: ItemParent{
+			Logo: "logo",
+		},
+	}
+	if err := tx.Create(&item).Error; err != nil {
+		t.Fatalf("failed to create items, got error: %v", err)
+	}
+
+	// test replace
+	if err := tx.Model(&item).Association("ItemParent").Unscoped().Replace(&ItemParent{
+		Logo: "updated logo",
+	}); err != nil {
+		t.Errorf("failed to replace item parent, got error: %v", err)
+	}
+
+	var parents []ItemParent
+	if err := tx.Find(&parents).Error; err != nil {
+		t.Errorf("failed to find item parent, got error: %v", err)
+	}
+	if len(parents) != 1 {
+		t.Errorf("expected %d parents, got %d", 1, len(parents))
+	}
+
+	// test delete
+	if err := tx.Model(&item).Association("ItemParent").Unscoped().Delete(&parents); err != nil {
+		t.Errorf("failed to delete item parent, got error: %v", err)
+	}
+	if err := tx.Find(&parents).Error; err != nil {
+		t.Errorf("failed to find item parent, got error: %v", err)
+	}
+	if len(parents) != 0 {
+		t.Errorf("expected %d parents, got %d", 0, len(parents))
+	}
 }

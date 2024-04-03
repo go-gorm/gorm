@@ -163,8 +163,8 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 					t.Errorf("schema %v relation's join table tablename expects %v, but got %v", s, relation.JoinTable.Table, r.JoinTable.Table)
 				}
 
-				for _, f := range relation.JoinTable.Fields {
-					checkSchemaField(t, r.JoinTable, &f, nil)
+				for i := range relation.JoinTable.Fields {
+					checkSchemaField(t, r.JoinTable, &relation.JoinTable.Fields[i], nil)
 				}
 			}
 
@@ -199,6 +199,37 @@ func checkSchemaRelation(t *testing.T, s *schema.Schema, relation Relation) {
 			t.Errorf("schema %v failed to find relations by name %v", s, relation.Name)
 		}
 	})
+}
+
+type EmbeddedRelations struct {
+	Relations         map[string]Relation
+	EmbeddedRelations map[string]EmbeddedRelations
+}
+
+func checkEmbeddedRelations(t *testing.T, actual map[string]*schema.Relationships, expected map[string]EmbeddedRelations) {
+	for name, relations := range actual {
+		rs := expected[name]
+		t.Run("CheckEmbeddedRelations/"+name, func(t *testing.T) {
+			if len(relations.Relations) != len(rs.Relations) {
+				t.Errorf("schema relations count don't match, expects %d, got %d", len(rs.Relations), len(relations.Relations))
+			}
+			if len(relations.EmbeddedRelations) != len(rs.EmbeddedRelations) {
+				t.Errorf("schema embedded relations count don't match, expects %d, got %d", len(rs.EmbeddedRelations), len(relations.EmbeddedRelations))
+			}
+			for n, rel := range relations.Relations {
+				if r, ok := rs.Relations[n]; !ok {
+					t.Errorf("failed to find relation by name %s", n)
+				} else {
+					checkSchemaRelation(t, &schema.Schema{
+						Relationships: schema.Relationships{
+							Relations: map[string]*schema.Relationship{n: rel},
+						},
+					}, r)
+				}
+			}
+			checkEmbeddedRelations(t, relations.EmbeddedRelations, rs.EmbeddedRelations)
+		})
+	}
 }
 
 func checkField(t *testing.T, s *schema.Schema, value reflect.Value, values map[string]interface{}) {

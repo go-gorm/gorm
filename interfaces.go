@@ -26,6 +26,10 @@ type Plugin interface {
 	Initialize(*DB) error
 }
 
+type ParamsFilter interface {
+	ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{})
+}
+
 // ConnPool db conns pool interface
 type ConnPool interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
@@ -81,4 +85,8 @@ type Rows interface {
 	Scan(dest ...interface{}) error
 	Err() error
 	Close() error
+}
+
+type ErrorTranslator interface {
+	Translate(err error) error
 }

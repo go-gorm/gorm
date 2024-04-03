@@ -2,18 +2,28 @@ package tests
 
 import (
 	"gorm.io/gorm"
+	"gorm.io/gorm/callbacks"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
 
-type DummyDialector struct{}
+type DummyDialector struct {
+	TranslatedErr error
+}
 
 func (DummyDialector) Name() string {
 	return "dummy"
 }
 
-func (DummyDialector) Initialize(*gorm.DB) error {
+func (DummyDialector) Initialize(db *gorm.DB) error {
+	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
+		CreateClauses:        []string{"INSERT", "VALUES", "ON CONFLICT", "RETURNING"},
+		UpdateClauses:        []string{"UPDATE", "SET", "WHERE", "RETURNING"},
+		DeleteClauses:        []string{"DELETE", "FROM", "WHERE", "RETURNING"},
+		LastInsertIDReversed: true,
+	})
+
 	return nil
 }
 
@@ -83,4 +93,8 @@ func (DummyDialector) Explain(sql string, vars ...interface{}) string {
 
 func (DummyDialector) DataTypeOf(*schema.Field) string {
 	return ""
+}
+
+func (d DummyDialector) Translate(err error) error {
+	return d.TranslatedErr
 }

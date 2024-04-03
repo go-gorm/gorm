@@ -13,8 +13,8 @@ type Index struct {
 	Type    string // btree, hash, gist, spgist, gin, and brin
 	Where   string
 	Comment string
-	Option  string // WITH PARSER parser_name
-	Fields  []IndexOption
+	Option  string        // WITH PARSER parser_name
+	Fields  []IndexOption // Note: IndexOption's Field maybe the same
 }
 
 type IndexOption struct {
@@ -65,7 +65,11 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 			}
 		}
 	}
-
+	for _, index := range indexes {
+		if index.Class == "UNIQUE" && len(index.Fields) == 1 {
+			index.Fields[0].Field.UniqueIndex = index.Name
+		}
+	}
 	return indexes
 }
 

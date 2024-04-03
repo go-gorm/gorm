@@ -13,8 +13,14 @@ import (
 
 func AssertObjEqual(t *testing.T, r, e interface{}, names ...string) {
 	for _, name := range names {
-		got := reflect.Indirect(reflect.ValueOf(r)).FieldByName(name).Interface()
-		expect := reflect.Indirect(reflect.ValueOf(e)).FieldByName(name).Interface()
+		rv := reflect.Indirect(reflect.ValueOf(r))
+		ev := reflect.Indirect(reflect.ValueOf(e))
+		if rv.IsValid() != ev.IsValid() {
+			t.Errorf("%v: expect: %+v, got %+v", utils.FileWithLineNum(), r, e)
+			return
+		}
+		got := rv.FieldByName(name).Interface()
+		expect := ev.FieldByName(name).Interface()
 		t.Run(name, func(t *testing.T) {
 			AssertEqual(t, got, expect)
 		})

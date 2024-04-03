@@ -6,10 +6,25 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+	"strings"
 	"sync"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+)
+
+type callbackType string
+
+const (
+	callbackTypeBeforeCreate callbackType = "BeforeCreate"
+	callbackTypeBeforeUpdate callbackType = "BeforeUpdate"
+	callbackTypeAfterCreate  callbackType = "AfterCreate"
+	callbackTypeAfterUpdate  callbackType = "AfterUpdate"
+	callbackTypeBeforeSave   callbackType = "BeforeSave"
+	callbackTypeAfterSave    callbackType = "AfterSave"
+	callbackTypeBeforeDelete callbackType = "BeforeDelete"
+	callbackTypeAfterDelete  callbackType = "AfterDelete"
+	callbackTypeAfterFind    callbackType = "AfterFind"
 )
 
 // ErrUnsupportedDataType unsupported data type
@@ -25,6 +40,7 @@ type Schema struct {
 	PrimaryFieldDBNames       []string
 	Fields                    []*Field
 	FieldsByName              map[string]*Field
+	FieldsByBindName          map[string]*Field // embedded fields is 'Embed.Field'
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
 	Relationships             Relationships
@@ -67,8 +83,33 @@ func (schema Schema) LookUpField(name string) *Field {
 	return nil
 }
 
+// LookUpFieldByBindName looks for the closest field in the embedded struct.
+//
+//	type Struct struct {
+//		Embedded struct {
+//			ID string // is selected by LookUpFieldByBindName([]string{"Embedded", "ID"}, "ID")
+//		}
+//		ID string // is selected by LookUpFieldByBindName([]string{"ID"}, "ID")
+//	}
+func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Field {
+	if len(bindNames) == 0 {
+		return nil
+	}
+	for i := len(bindNames) - 1; i >= 0; i-- {
+		find := strings.Join(bindNames[:i], ".") + "." + name
+		if field, ok := schema.FieldsByBindName[find]; ok {
+			return field
+		}
+	}
+	return nil
+}
+
 type Tabler interface {
 	TableName() string
+}
+
+type TablerWithNamer interface {
+	TableName(Namer) string
 }
 
 // Parse get data type from dialector
@@ -112,7 +153,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		schemaCacheKey = modelType
 	}
 
-	// Load exist schmema cache, return if exists
+	// Load exist schema cache, return if exists
 	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
@@ -125,6 +166,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	if tabler, ok := modelValue.Interface().(Tabler); ok {
 		tableName = tabler.TableName()
 	}
+	if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
+		tableName = tabler.TableName(namer)
+	}
 	if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
 	}
@@ -133,20 +177,21 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	schema := &Schema{
-		Name:           modelType.Name(),
-		ModelType:      modelType,
-		Table:          tableName,
-		FieldsByName:   map[string]*Field{},
-		FieldsByDBName: map[string]*Field{},
-		Relationships:  Relationships{Relations: map[string]*Relationship{}},
-		cacheStore:     cacheStore,
-		namer:          namer,
-		initialized:    make(chan struct{}),
+		Name:             modelType.Name(),
+		ModelType:        modelType,
+		Table:            tableName,
+		FieldsByName:     map[string]*Field{},
+		FieldsByBindName: map[string]*Field{},
+		FieldsByDBName:   map[string]*Field{},
+		Relationships:    Relationships{Relations: map[string]*Relationship{}},
+		cacheStore:       cacheStore,
+		namer:            namer,
+		initialized:      make(chan struct{}),
 	}
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
 
-	// Load exist schmema cache, return if exists
+	// Load exist schema cache, return if exists
 	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
 		// Wait for the initialization of other goroutines to complete
@@ -169,6 +214,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			field.DBName = namer.ColumnName(schema.Table, field.Name)
 		}
 
+		bindName := field.BindName()
 		if field.DBName != "" {
 			// nonexistence or shortest path or first appear prioritized if has permission
 			if v, ok := schema.FieldsByDBName[field.DBName]; !ok || ((field.Creatable || field.Updatable || field.Readable) && len(field.BindNames) < len(v.BindNames)) {
@@ -177,6 +223,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				}
 				schema.FieldsByDBName[field.DBName] = field
 				schema.FieldsByName[field.Name] = field
+				schema.FieldsByBindName[bindName] = field
 
 				if v != nil && v.PrimaryKey {
 					for idx, f := range schema.PrimaryFields {
@@ -194,6 +241,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 		if of, ok := schema.FieldsByName[field.Name]; !ok || of.TagSettings["-"] == "-" {
 			schema.FieldsByName[field.Name] = field
+		}
+		if of, ok := schema.FieldsByBindName[bindName]; !ok || of.TagSettings["-"] == "-" {
+			schema.FieldsByBindName[bindName] = field
 		}
 
 		field.setupValuerAndSetter()
@@ -214,8 +264,18 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	if schema.PrioritizedPrimaryField == nil && len(schema.PrimaryFields) == 1 {
-		schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
+	if schema.PrioritizedPrimaryField == nil {
+		if len(schema.PrimaryFields) == 1 {
+			schema.PrioritizedPrimaryField = schema.PrimaryFields[0]
+		} else if len(schema.PrimaryFields) > 1 {
+			// If there are multiple primary keys, the AUTOINCREMENT field is prioritized
+			for _, field := range schema.PrimaryFields {
+				if field.AutoIncrement {
+					schema.PrioritizedPrimaryField = field
+					break
+				}
+			}
+		}
 	}
 
 	for _, field := range schema.PrimaryFields {
@@ -223,7 +283,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	for _, field := range schema.Fields {
-		if field.HasDefaultValue && field.DefaultValueInterface == nil {
+		if field.DataType != "" && field.HasDefaultValue && field.DefaultValueInterface == nil {
 			schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
 		}
 	}
@@ -242,14 +302,20 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	callbacks := []string{"BeforeCreate", "AfterCreate", "BeforeUpdate", "AfterUpdate", "BeforeSave", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind"}
-	for _, name := range callbacks {
-		if methodValue := modelValue.MethodByName(name); methodValue.IsValid() {
+	callbackTypes := []callbackType{
+		callbackTypeBeforeCreate, callbackTypeAfterCreate,
+		callbackTypeBeforeUpdate, callbackTypeAfterUpdate,
+		callbackTypeBeforeSave, callbackTypeAfterSave,
+		callbackTypeBeforeDelete, callbackTypeAfterDelete,
+		callbackTypeAfterFind,
+	}
+	for _, cbName := range callbackTypes {
+		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
 			switch methodValue.Type().String() {
 			case "func(*gorm.DB) error": // TODO hack
-				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(name).SetBool(true)
+				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
 			default:
-				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, name, name)
+				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
 		}
 	}
@@ -276,6 +342,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 					return schema, schema.err
 				} else {
 					schema.FieldsByName[field.Name] = field
+					schema.FieldsByBindName[field.BindName()] = field
 				}
 			}
 
@@ -300,6 +367,39 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	return schema, schema.err
+}
+
+// This unrolling is needed to show to the compiler the exact set of methods
+// that can be used on the modelType.
+// Prior to go1.22 any use of MethodByName would cause the linker to
+// abandon dead code elimination for the entire binary.
+// As of go1.22 the compiler supports one special case of a string constant
+// being passed to MethodByName. For enterprise customers or those building
+// large binaries, this gives a significant reduction in binary size.
+// https://github.com/golang/go/issues/62257
+func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect.Value {
+	switch cbType {
+	case callbackTypeBeforeCreate:
+		return modelType.MethodByName(string(callbackTypeBeforeCreate))
+	case callbackTypeAfterCreate:
+		return modelType.MethodByName(string(callbackTypeAfterCreate))
+	case callbackTypeBeforeUpdate:
+		return modelType.MethodByName(string(callbackTypeBeforeUpdate))
+	case callbackTypeAfterUpdate:
+		return modelType.MethodByName(string(callbackTypeAfterUpdate))
+	case callbackTypeBeforeSave:
+		return modelType.MethodByName(string(callbackTypeBeforeSave))
+	case callbackTypeAfterSave:
+		return modelType.MethodByName(string(callbackTypeAfterSave))
+	case callbackTypeBeforeDelete:
+		return modelType.MethodByName(string(callbackTypeBeforeDelete))
+	case callbackTypeAfterDelete:
+		return modelType.MethodByName(string(callbackTypeAfterDelete))
+	case callbackTypeAfterFind:
+		return modelType.MethodByName(string(callbackTypeAfterFind))
+	default:
+		return reflect.ValueOf(nil)
+	}
 }
 
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {

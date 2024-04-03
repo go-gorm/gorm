@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -476,6 +477,13 @@ func TestOmitWithCreate(t *testing.T) {
 	CheckUser(t, result2, user2)
 }
 
+func TestFirstOrCreateNotExistsTable(t *testing.T) {
+	company := Company{Name: "first_or_create_if_not_exists_table"}
+	if err := DB.Table("not_exists").FirstOrCreate(&company).Error; err == nil {
+		t.Errorf("not exists table, but err is nil")
+	}
+}
+
 func TestFirstOrCreateWithPrimaryKey(t *testing.T) {
 	company := Company{ID: 100, Name: "company100_with_primarykey"}
 	DB.FirstOrCreate(&company)
@@ -538,5 +546,248 @@ func TestFirstOrCreateRowsAffected(t *testing.T) {
 	res = DB.FirstOrCreate(&user, "name = ?", user.Name)
 	if res.Error != nil || res.RowsAffected != 0 {
 		t.Fatalf("first or create rows affect err:%v rows:%d", res.Error, res.RowsAffected)
+	}
+}
+
+func TestCreateWithAutoIncrementCompositeKey(t *testing.T) {
+	type CompositeKeyProduct struct {
+		ProductID    int `gorm:"primaryKey;autoIncrement:true;"` // primary key
+		LanguageCode int `gorm:"primaryKey;"`                    // primary key
+		Code         string
+		Name         string
+	}
+
+	if err := DB.Migrator().DropTable(&CompositeKeyProduct{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+	if err := DB.AutoMigrate(&CompositeKeyProduct{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	prod := &CompositeKeyProduct{
+		LanguageCode: 56,
+		Code:         "Code56",
+		Name:         "ProductName56",
+	}
+	if err := DB.Create(&prod).Error; err != nil {
+		t.Fatalf("failed to create, got error %v", err)
+	}
+
+	newProd := &CompositeKeyProduct{}
+	if err := DB.First(&newProd).Error; err != nil {
+		t.Fatalf("errors happened when query: %v", err)
+	} else {
+		AssertObjEqual(t, newProd, prod, "ProductID", "LanguageCode", "Code", "Name")
+	}
+}
+
+func TestCreateOnConflictWithDefaultNull(t *testing.T) {
+	type OnConflictUser struct {
+		ID     string
+		Name   string `gorm:"default:null"`
+		Email  string
+		Mobile string `gorm:"default:'133xxxx'"`
+	}
+
+	err := DB.Migrator().DropTable(&OnConflictUser{})
+	AssertEqual(t, err, nil)
+	err = DB.AutoMigrate(&OnConflictUser{})
+	AssertEqual(t, err, nil)
+
+	u := OnConflictUser{
+		ID:     "on-conflict-user-id",
+		Name:   "on-conflict-user-name",
+		Email:  "on-conflict-user-email",
+		Mobile: "on-conflict-user-mobile",
+	}
+	err = DB.Create(&u).Error
+	AssertEqual(t, err, nil)
+
+	u.Name = "on-conflict-user-name-2"
+	u.Email = "on-conflict-user-email-2"
+	u.Mobile = ""
+	err = DB.Clauses(clause.OnConflict{UpdateAll: true}).Create(&u).Error
+	AssertEqual(t, err, nil)
+
+	var u2 OnConflictUser
+	err = DB.Where("id = ?", u.ID).First(&u2).Error
+	AssertEqual(t, err, nil)
+	AssertEqual(t, u2.Name, "on-conflict-user-name-2")
+	AssertEqual(t, u2.Email, "on-conflict-user-email-2")
+	AssertEqual(t, u2.Mobile, "133xxxx")
+}
+
+func TestCreateFromMapWithoutPK(t *testing.T) {
+	if !isMysql() {
+		t.Skipf("This test case skipped, because of only supporting for mysql")
+	}
+
+	// case 1: one record, create from map[string]interface{}
+	mapValue1 := map[string]interface{}{"name": "create_from_map_with_schema1", "age": 1}
+	if err := DB.Model(&User{}).Create(mapValue1).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	if _, ok := mapValue1["id"]; !ok {
+		t.Fatal("failed to create data from map with table, returning map has no primary key")
+	}
+
+	var result1 User
+	if err := DB.Where("name = ?", "create_from_map_with_schema1").First(&result1).Error; err != nil || result1.Age != 1 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	var idVal int64
+	_, ok := mapValue1["id"].(uint)
+	if ok {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	idVal, ok = mapValue1["id"].(int64)
+	if !ok {
+		t.Fatal("ret result missing id")
+	}
+
+	if int64(result1.ID) != idVal {
+		t.Fatal("failed to create data from map with table, @id != id")
+	}
+
+	// case2: one record, create from *map[string]interface{}
+	mapValue2 := map[string]interface{}{"name": "create_from_map_with_schema2", "age": 1}
+	if err := DB.Model(&User{}).Create(&mapValue2).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	if _, ok := mapValue2["id"]; !ok {
+		t.Fatal("failed to create data from map with table, returning map has no primary key")
+	}
+
+	var result2 User
+	if err := DB.Where("name = ?", "create_from_map_with_schema2").First(&result2).Error; err != nil || result2.Age != 1 {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	_, ok = mapValue2["id"].(uint)
+	if ok {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	idVal, ok = mapValue2["id"].(int64)
+	if !ok {
+		t.Fatal("ret result missing id")
+	}
+
+	if int64(result2.ID) != idVal {
+		t.Fatal("failed to create data from map with table, @id != id")
+	}
+
+	// case 3: records
+	values := []map[string]interface{}{
+		{"name": "create_from_map_with_schema11", "age": 1}, {"name": "create_from_map_with_schema12", "age": 1},
+	}
+
+	beforeLen := len(values)
+	if err := DB.Model(&User{}).Create(&values).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+
+	// mariadb with returning, values will be appended with id map
+	if len(values) == beforeLen*2 {
+		t.Skipf("This test case skipped, because the db supports returning")
+	}
+
+	for i := range values {
+		v, ok := values[i]["id"]
+		if !ok {
+			t.Fatal("failed to create data from map with table, returning map has no primary key")
+		}
+
+		var result User
+		if err := DB.Where("name = ?", fmt.Sprintf("create_from_map_with_schema1%d", i+1)).First(&result).Error; err != nil || result.Age != 1 {
+			t.Fatalf("failed to create from map, got error %v", err)
+		}
+		if int64(result.ID) != v.(int64) {
+			t.Fatal("failed to create data from map with table, @id != id")
+		}
+	}
+}
+
+func TestCreateFromMapWithTable(t *testing.T) {
+	tableDB := DB.Table("users")
+	supportLastInsertID := isMysql() || isSqlite()
+
+	// case 1: create from map[string]interface{}
+	record := map[string]interface{}{"name": "create_from_map_with_table", "age": 18}
+	if err := tableDB.Create(record).Error; err != nil {
+		t.Fatalf("failed to create data from map with table, got error: %v", err)
+	}
+
+	if _, ok := record["@id"]; !ok && supportLastInsertID {
+		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
+	}
+
+	var res map[string]interface{}
+	if err := tableDB.Select([]string{"id", "name", "age"}).Where("name = ?", "create_from_map_with_table").Find(&res).Error; err != nil || res["age"] != int64(18) {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	if _, ok := record["@id"]; ok && fmt.Sprint(res["id"]) != fmt.Sprint(record["@id"]) {
+		t.Fatalf("failed to create data from map with table, @id != id, got %v, expect %v", res["id"], record["@id"])
+	}
+
+	// case 2: create from *map[string]interface{}
+	record1 := map[string]interface{}{"name": "create_from_map_with_table_1", "age": 18}
+	tableDB2 := DB.Table("users")
+	if err := tableDB2.Create(&record1).Error; err != nil {
+		t.Fatalf("failed to create data from map, got error: %v", err)
+	}
+	if _, ok := record1["@id"]; !ok && supportLastInsertID {
+		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
+	}
+
+	var res1 map[string]interface{}
+	if err := tableDB2.Select([]string{"id", "name", "age"}).Where("name = ?", "create_from_map_with_table_1").Find(&res1).Error; err != nil || res1["age"] != int64(18) {
+		t.Fatalf("failed to create from map, got error %v", err)
+	}
+
+	if _, ok := record1["@id"]; ok && fmt.Sprint(res1["id"]) != fmt.Sprint(record1["@id"]) {
+		t.Fatal("failed to create data from map with table, @id != id")
+	}
+
+	// case 3: create from []map[string]interface{}
+	records := []map[string]interface{}{
+		{"name": "create_from_map_with_table_2", "age": 19},
+		{"name": "create_from_map_with_table_3", "age": 20},
+	}
+
+	tableDB = DB.Table("users")
+	if err := tableDB.Create(&records).Error; err != nil {
+		t.Fatalf("failed to create data from slice of map, got error: %v", err)
+	}
+
+	if _, ok := records[0]["@id"]; !ok && supportLastInsertID {
+		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
+	}
+
+	if _, ok := records[1]["@id"]; !ok && supportLastInsertID {
+		t.Fatal("failed to create data from map with table, returning map has no key '@id'")
+	}
+
+	var res2 map[string]interface{}
+	if err := tableDB.Select([]string{"id", "name", "age"}).Where("name = ?", "create_from_map_with_table_2").Find(&res2).Error; err != nil || res2["age"] != int64(19) {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
+
+	var res3 map[string]interface{}
+	if err := DB.Table("users").Select([]string{"id", "name", "age"}).Where("name = ?", "create_from_map_with_table_3").Find(&res3).Error; err != nil || res3["age"] != int64(20) {
+		t.Fatalf("failed to query data after create from slice of map, got error %v", err)
+	}
+
+	if _, ok := records[0]["@id"]; ok && fmt.Sprint(res2["id"]) != fmt.Sprint(records[0]["@id"]) {
+		t.Errorf("failed to create data from map with table, @id != id, got %v, expect %v", res2["id"], records[0]["@id"])
+	}
+
+	if _, ok := records[1]["id"]; ok && fmt.Sprint(res3["id"]) != fmt.Sprint(records[1]["@id"]) {
+		t.Errorf("failed to create data from map with table, @id != id")
 	}
 }

@@ -48,9 +48,11 @@ func (c *wrapperConnPool) Ping() error {
 }
 
 // If you use BeginTx returned *sql.Tx as shown below then you can't record queries in a transaction.
-// func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
-//	 return c.db.BeginTx(ctx, opts)
-// }
+//
+//	func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error) {
+//		 return c.db.BeginTx(ctx, opts)
+//	}
+//
 // You should use BeginTx returned gorm.Tx which could wrap *sql.Tx then you can record all queries.
 func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
 	tx, err := c.db.BeginTx(ctx, opts)
@@ -100,13 +102,13 @@ func TestConnPoolWrapper(t *testing.T) {
 		expect: []string{
 			"SELECT VERSION()",
 			"INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`age`,`birthday`,`company_id`,`manager_id`,`active`) VALUES (?,?,?,?,?,?,?,?,?)",
-			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
+			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
 			"INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`age`,`birthday`,`company_id`,`manager_id`,`active`) VALUES (?,?,?,?,?,?,?,?,?)",
-			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
-			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
+			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
+			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
 			"INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`age`,`birthday`,`company_id`,`manager_id`,`active`) VALUES (?,?,?,?,?,?,?,?,?)",
-			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
-			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT 1",
+			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
+			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
 		},
 	}
 
@@ -116,7 +118,7 @@ func TestConnPoolWrapper(t *testing.T) {
 		}
 	}()
 
-	db, err := gorm.Open(mysql.New(mysql.Config{Conn: conn}))
+	db, err := gorm.Open(mysql.New(mysql.Config{Conn: conn, DisableWithReturning: true}))
 	if err != nil {
 		t.Fatalf("Should open db success, but got %v", err)
 	}

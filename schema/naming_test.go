@@ -189,8 +189,17 @@ func TestCustomReplacerWithNoLowerCase(t *testing.T) {
 	}
 }
 
+func TestFormatNameWithStringLongerThan63Characters(t *testing.T) {
+	ns := NamingStrategy{IdentifierMaxLength: 63}
+
+	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVer180f2c67" {
+		t.Errorf("invalid formatted name generated, got %v", formattedName)
+	}
+}
+
 func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
-	ns := NamingStrategy{}
+	ns := NamingStrategy{IdentifierMaxLength: 64}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
 	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVery180f2c67" {

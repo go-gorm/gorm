@@ -9,7 +9,7 @@ const (
 	RightJoin JoinType = "RIGHT"
 )
 
-// Join join clause for from
+// Join clause for from
 type Join struct {
 	Type       JoinType
 	Table      Table

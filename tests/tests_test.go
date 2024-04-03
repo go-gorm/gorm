@@ -17,10 +17,16 @@ import (
 )
 
 var DB *gorm.DB
+var (
+	mysqlDSN     = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
+	postgresDSN  = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+	sqlserverDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+	tidbDSN      = "root:@tcp(localhost:9940)/test?charset=utf8&parseTime=True&loc=Local"
+)
 
 func init() {
 	var err error
-	if DB, err = OpenTestConnection(); err != nil {
+	if DB, err = OpenTestConnection(&gorm.Config{}); err != nil {
 		log.Printf("failed to connect database, got error %v", err)
 		os.Exit(1)
 	} else {
@@ -37,30 +43,27 @@ func init() {
 		}
 
 		RunMigrations()
-		if DB.Dialector.Name() == "sqlite" {
-			DB.Exec("PRAGMA foreign_keys = ON")
-		}
 	}
 }
 
-func OpenTestConnection() (db *gorm.DB, err error) {
+func OpenTestConnection(cfg *gorm.Config) (db *gorm.DB, err error) {
 	dbDSN := os.Getenv("GORM_DSN")
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
 		log.Println("testing mysql...")
 		if dbDSN == "" {
-			dbDSN = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
+			dbDSN = mysqlDSN
 		}
-		db, err = gorm.Open(mysql.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(mysql.Open(dbDSN), cfg)
 	case "postgres":
 		log.Println("testing postgres...")
 		if dbDSN == "" {
-			dbDSN = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+			dbDSN = postgresDSN
 		}
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
 			PreferSimpleProtocol: true,
-		}), &gorm.Config{})
+		}), cfg)
 	case "sqlserver":
 		// go install github.com/microsoft/go-sqlcmd/cmd/sqlcmd@latest
 		// SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930
@@ -72,12 +75,21 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 		// GO
 		log.Println("testing sqlserver...")
 		if dbDSN == "" {
-			dbDSN = "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
+			dbDSN = sqlserverDSN
 		}
-		db, err = gorm.Open(sqlserver.Open(dbDSN), &gorm.Config{})
+		db, err = gorm.Open(sqlserver.Open(dbDSN), cfg)
+	case "tidb":
+		log.Println("testing tidb...")
+		if dbDSN == "" {
+			dbDSN = tidbDSN
+		}
+		db, err = gorm.Open(mysql.Open(dbDSN), cfg)
 	default:
 		log.Println("testing sqlite3...")
-		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), &gorm.Config{})
+		db, err = gorm.Open(sqlite.Open(filepath.Join(os.TempDir(), "gorm.db")), cfg)
+		if err == nil {
+			db.Exec("PRAGMA foreign_keys = ON")
+		}
 	}
 
 	if err != nil {
@@ -95,7 +107,7 @@ func OpenTestConnection() (db *gorm.DB, err error) {
 
 func RunMigrations() {
 	var err error
-	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Coupon{}, &CouponProduct{}, &Order{}, &Parent{}, &Child{}}
+	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Coupon{}, &CouponProduct{}, &Order{}, &Parent{}, &Child{}, &Tools{}}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 

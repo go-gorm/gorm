@@ -3,8 +3,8 @@ package utils
 import (
 	"database/sql/driver"
 	"fmt"
+	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -16,7 +16,18 @@ var gormSourceDir string
 func init() {
 	_, file, _, _ := runtime.Caller(0)
 	// compatible solution to get gorm source directory with various operating systems
-	gormSourceDir = regexp.MustCompile(`utils.utils\.go`).ReplaceAllString(file, "")
+	gormSourceDir = sourceDir(file)
+}
+
+func sourceDir(file string) string {
+	dir := filepath.Dir(file)
+	dir = filepath.Dir(dir)
+
+	s := filepath.Dir(dir)
+	if filepath.Base(s) != "gorm.io" {
+		s = dir
+	}
+	return filepath.ToSlash(s) + "/"
 }
 
 // FileWithLineNum return the file name and line number of the current file
@@ -24,7 +35,8 @@ func FileWithLineNum() string {
 	// the second caller usually from gorm internal, so set i start from 2
 	for i := 2; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
-		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
+		if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) &&
+			!strings.HasSuffix(file, ".gen.go") {
 			return file + ":" + strconv.FormatInt(int64(line), 10)
 		}
 	}
@@ -62,7 +74,11 @@ func ToStringKey(values ...interface{}) string {
 		case uint:
 			results[idx] = strconv.FormatUint(uint64(v), 10)
 		default:
-			results[idx] = fmt.Sprint(reflect.Indirect(reflect.ValueOf(v)).Interface())
+			results[idx] = "nil"
+			vv := reflect.ValueOf(v)
+			if vv.IsValid() && !vv.IsZero() {
+				results[idx] = fmt.Sprint(reflect.Indirect(vv).Interface())
+			}
 		}
 	}
 
@@ -78,19 +94,28 @@ func Contains(elems []string, elem string) bool {
 	return false
 }
 
-func AssertEqual(src, dst interface{}) bool {
-	if !reflect.DeepEqual(src, dst) {
-		if valuer, ok := src.(driver.Valuer); ok {
-			src, _ = valuer.Value()
-		}
-
-		if valuer, ok := dst.(driver.Valuer); ok {
-			dst, _ = valuer.Value()
-		}
-
-		return reflect.DeepEqual(src, dst)
+func AssertEqual(x, y interface{}) bool {
+	if reflect.DeepEqual(x, y) {
+		return true
 	}
-	return true
+	if x == nil || y == nil {
+		return false
+	}
+
+	xval := reflect.ValueOf(x)
+	yval := reflect.ValueOf(y)
+	if xval.Kind() == reflect.Ptr && xval.IsNil() ||
+		yval.Kind() == reflect.Ptr && yval.IsNil() {
+		return false
+	}
+
+	if valuer, ok := x.(driver.Valuer); ok {
+		x, _ = valuer.Value()
+	}
+	if valuer, ok := y.(driver.Valuer); ok {
+		y, _ = valuer.Value()
+	}
+	return reflect.DeepEqual(x, y)
 }
 
 func ToString(value interface{}) string {
@@ -119,4 +144,21 @@ func ToString(value interface{}) string {
 		return strconv.FormatUint(v, 10)
 	}
 	return ""
+}
+
+const nestedRelationSplit = "__"
+
+// NestedRelationName nested relationships like `Manager__Company`
+func NestedRelationName(prefix, name string) string {
+	return prefix + nestedRelationSplit + name
+}
+
+// SplitNestedRelationName Split nested relationships to `[]string{"Manager","Company"}`
+func SplitNestedRelationName(name string) []string {
+	return strings.Split(name, nestedRelationSplit)
+}
+
+// JoinNestedRelationNames nested relationships like `Manager__Company`
+func JoinNestedRelationNames(relationNames []string) string {
+	return strings.Join(relationNames, nestedRelationSplit)
 }

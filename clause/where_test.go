@@ -63,7 +63,7 @@ func TestWhere(t *testing.T) {
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{
 				Exprs: []clause.Expression{clause.And(clause.Eq{Column: "age", Value: 18}, clause.Or(clause.Neq{Column: "name", Value: "jinzhu"}))},
 			}},
-			"SELECT * FROM `users` WHERE (`age` = ? OR `name` <> ?)",
+			"SELECT * FROM `users` WHERE `age` = ? OR `name` <> ?",
 			[]interface{}{18, "jinzhu"},
 		},
 		{
@@ -94,7 +94,7 @@ func TestWhere(t *testing.T) {
 						clause.And(clause.Expr{SQL: "`score` <= ?", Vars: []interface{}{100}, WithoutParentheses: false})),
 				},
 			}},
-			"SELECT * FROM `users` WHERE (`users`.`id` <> ? AND `score` <= ?)",
+			"SELECT * FROM `users` WHERE `users`.`id` <> ? AND `score` <= ?",
 			[]interface{}{"1", 100},
 		},
 		{
@@ -104,6 +104,14 @@ func TestWhere(t *testing.T) {
 			}},
 			"SELECT * FROM `users` WHERE (`users`.`id` <> ? AND NOT `score` <= ?)",
 			[]interface{}{"1", 100},
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{
+				Exprs: []clause.Expression{clause.Not(clause.Expr{SQL: "`score` <= ?", Vars: []interface{}{100}},
+					clause.Expr{SQL: "`age` <= ?", Vars: []interface{}{60}})},
+			}},
+			"SELECT * FROM `users` WHERE NOT (`score` <= ? AND `age` <= ?)",
+			[]interface{}{100, 60},
 		},
 	}
 

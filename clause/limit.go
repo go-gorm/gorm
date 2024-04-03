@@ -1,10 +1,8 @@
 package clause
 
-import "strconv"
-
 // Limit limit clause
 type Limit struct {
-	Limit  int
+	Limit  *int
 	Offset int
 }
 
@@ -15,16 +13,16 @@ func (limit Limit) Name() string {
 
 // Build build where clause
 func (limit Limit) Build(builder Builder) {
-	if limit.Limit > 0 {
+	if limit.Limit != nil && *limit.Limit >= 0 {
 		builder.WriteString("LIMIT ")
-		builder.WriteString(strconv.Itoa(limit.Limit))
+		builder.AddVar(builder, *limit.Limit)
 	}
 	if limit.Offset > 0 {
-		if limit.Limit > 0 {
+		if limit.Limit != nil && *limit.Limit >= 0 {
 			builder.WriteByte(' ')
 		}
 		builder.WriteString("OFFSET ")
-		builder.WriteString(strconv.Itoa(limit.Offset))
+		builder.AddVar(builder, limit.Offset)
 	}
 }
 
@@ -33,7 +31,7 @@ func (limit Limit) MergeClause(clause *Clause) {
 	clause.Name = ""
 
 	if v, ok := clause.Expression.(Limit); ok {
-		if limit.Limit == 0 && v.Limit != 0 {
+		if (limit.Limit == nil || *limit.Limit == 0) && v.Limit != nil {
 			limit.Limit = v.Limit
 		}
 

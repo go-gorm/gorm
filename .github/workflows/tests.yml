@@ -16,21 +16,21 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.18', '1.17', '1.16']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
@@ -41,8 +41,8 @@ jobs:
   mysql:
     strategy:
       matrix:
-        dbversion: ['mysql:latest', 'mysql:5.7', 'mariadb:latest']
-        go: ['1.18', '1.17', '1.16']
+        dbversion: ['mysql:latest', 'mysql:5.7']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -65,16 +65,15 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
-
+      uses: actions/checkout@v4
 
     - name: go mod package cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
@@ -82,11 +81,54 @@ jobs:
     - name: Tests
       run: GITHUB_ACTION=true GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
 
+  mariadb:
+    strategy:
+      matrix:
+        dbversion: [ 'mariadb:latest' ]
+        go: ['1.21', '1.20', '1.19']
+        platform: [ ubuntu-latest ]
+    runs-on: ${{ matrix.platform }}
+
+    services:
+      mysql:
+        image: ${{ matrix.dbversion }}
+        env:
+          MYSQL_DATABASE: gorm
+          MYSQL_USER: gorm
+          MYSQL_PASSWORD: gorm
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 9910:3306
+        options: >-
+          --health-cmd "mariadb-admin ping -ugorm -pgorm"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: go mod package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
+
+      - name: Tests
+        run: GITHUB_ACTION=true GORM_DIALECT=mysql GORM_DSN="gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True" ./tests/tests_all.sh
+
   postgres:
     strategy:
       matrix:
         dbversion: ['postgres:latest', 'postgres:13', 'postgres:12', 'postgres:11', 'postgres:10']
-        go: ['1.18', '1.17', '1.16']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -109,15 +151,15 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
@@ -128,7 +170,7 @@ jobs:
   sqlserver:
     strategy:
       matrix:
-        go: ['1.18', '1.17', '1.16']
+        go: ['1.21', '1.20', '1.19']
         platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
@@ -152,18 +194,51 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v3
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: go mod package cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
       run: GITHUB_ACTION=true GORM_DIALECT=sqlserver GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
+
+  tidb:
+    strategy:
+      matrix:
+        dbversion: [ 'v6.5.0' ]
+        go: ['1.21', '1.20', '1.19']
+        platform: [ ubuntu-latest ]
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Setup TiDB
+        uses: Icemap/tidb-action@main
+        with:
+          port: 9940
+          version: ${{matrix.dbversion}}
+
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+
+      - name: go mod package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
+
+      - name: Tests
+        run: GITHUB_ACTION=true GORM_DIALECT=tidb GORM_DSN="root:@tcp(localhost:9940)/test?charset=utf8&parseTime=True&loc=Local" ./tests/tests_all.sh

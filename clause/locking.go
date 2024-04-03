@@ -1,5 +1,12 @@
 package clause
 
+const (
+	LockingStrengthUpdate    = "UPDATE"
+	LockingStrengthShare     = "SHARE"
+	LockingOptionsSkipLocked = "SKIP LOCKED"
+	LockingOptionsNoWait     = "NOWAIT"
+)
+
 type Locking struct {
 	Strength string
 	Table    Table

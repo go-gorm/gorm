@@ -3,12 +3,172 @@ package callbacks
 import (
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
+
+// parsePreloadMap extracts nested preloads. e.g.
+//
+//	// schema has a "k0" relation and a "k7.k8" embedded relation
+//	parsePreloadMap(schema, map[string][]interface{}{
+//		clause.Associations: {"arg1"},
+//		"k1":                {"arg2"},
+//		"k2.k3":             {"arg3"},
+//		"k4.k5.k6":          {"arg4"},
+//	})
+//	// preloadMap is
+//	map[string]map[string][]interface{}{
+//		"k0": {},
+//		"k7": {
+//			"k8": {},
+//		},
+//		"k1": {},
+//		"k2": {
+//			"k3": {"arg3"},
+//		},
+//		"k4": {
+//			"k5.k6": {"arg4"},
+//		},
+//	}
+func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[string]map[string][]interface{} {
+	preloadMap := map[string]map[string][]interface{}{}
+	setPreloadMap := func(name, value string, args []interface{}) {
+		if _, ok := preloadMap[name]; !ok {
+			preloadMap[name] = map[string][]interface{}{}
+		}
+		if value != "" {
+			preloadMap[name][value] = args
+		}
+	}
+
+	for name, args := range preloads {
+		preloadFields := strings.Split(name, ".")
+		value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), ".")
+		if preloadFields[0] == clause.Associations {
+			for _, relation := range s.Relationships.Relations {
+				if relation.Schema == s {
+					setPreloadMap(relation.Name, value, args)
+				}
+			}
+
+			for embedded, embeddedRelations := range s.Relationships.EmbeddedRelations {
+				for _, value := range embeddedValues(embeddedRelations) {
+					setPreloadMap(embedded, value, args)
+				}
+			}
+		} else {
+			setPreloadMap(preloadFields[0], value, args)
+		}
+	}
+	return preloadMap
+}
+
+func embeddedValues(embeddedRelations *schema.Relationships) []string {
+	if embeddedRelations == nil {
+		return nil
+	}
+	names := make([]string, 0, len(embeddedRelations.Relations)+len(embeddedRelations.EmbeddedRelations))
+	for _, relation := range embeddedRelations.Relations {
+		// skip first struct name
+		names = append(names, strings.Join(relation.Field.BindNames[1:], "."))
+	}
+	for _, relations := range embeddedRelations.EmbeddedRelations {
+		names = append(names, embeddedValues(relations)...)
+	}
+	return names
+}
+
+// preloadEntryPoint enters layer by layer. It will call real preload if it finds the right entry point.
+// If the current relationship is embedded or joined, current query will be ignored.
+//
+//nolint:cyclop
+func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
+	preloadMap := parsePreloadMap(db.Statement.Schema, preloads)
+
+	// avoid random traversal of the map
+	preloadNames := make([]string, 0, len(preloadMap))
+	for key := range preloadMap {
+		preloadNames = append(preloadNames, key)
+	}
+	sort.Strings(preloadNames)
+
+	isJoined := func(name string) (joined bool, nestedJoins []string) {
+		for _, join := range joins {
+			if _, ok := relationships.Relations[join]; ok && name == join {
+				joined = true
+				continue
+			}
+			joinNames := strings.SplitN(join, ".", 2)
+			if len(joinNames) == 2 {
+				if _, ok := relationships.Relations[joinNames[0]]; ok && name == joinNames[0] {
+					joined = true
+					nestedJoins = append(nestedJoins, joinNames[1])
+				}
+			}
+		}
+		return joined, nestedJoins
+	}
+
+	for _, name := range preloadNames {
+		if relations := relationships.EmbeddedRelations[name]; relations != nil {
+			if err := preloadEntryPoint(db, joins, relations, preloadMap[name], associationsConds); err != nil {
+				return err
+			}
+		} else if rel := relationships.Relations[name]; rel != nil {
+			if joined, nestedJoins := isJoined(name); joined {
+				switch rv := db.Statement.ReflectValue; rv.Kind() {
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < rv.Len(); i++ {
+						reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv.Index(i))
+						tx := preloadDB(db, reflectValue, reflectValue.Interface())
+						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+							return err
+						}
+					}
+				case reflect.Struct:
+					reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv)
+					tx := preloadDB(db, reflectValue, reflectValue.Interface())
+					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+						return err
+					}
+				default:
+					return gorm.ErrInvalidData
+				}
+			} else {
+				tx := db.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks})
+				tx.Statement.ReflectValue = db.Statement.ReflectValue
+				tx.Statement.Unscoped = db.Statement.Unscoped
+				if err := preload(tx, rel, append(preloads[name], associationsConds...), preloadMap[name]); err != nil {
+					return err
+				}
+			}
+		} else {
+			return fmt.Errorf("%s: %w for schema %s", name, gorm.ErrUnsupportedRelation, db.Statement.Schema.Name)
+		}
+	}
+	return nil
+}
+
+func preloadDB(db *gorm.DB, reflectValue reflect.Value, dest interface{}) *gorm.DB {
+	tx := db.Session(&gorm.Session{Context: db.Statement.Context, NewDB: true, SkipHooks: db.Statement.SkipHooks, Initialized: true})
+	db.Statement.Settings.Range(func(k, v interface{}) bool {
+		tx.Statement.Settings.Store(k, v)
+		return true
+	})
+
+	if err := tx.Statement.Parse(dest); err != nil {
+		tx.AddError(err)
+		return tx
+	}
+	tx.Statement.ReflectValue = reflectValue
+	tx.Statement.Unscoped = db.Statement.Unscoped
+	return tx
+}
 
 func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preloads map[string][]interface{}) error {
 	var (

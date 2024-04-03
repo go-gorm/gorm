@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -69,6 +71,8 @@ func TestAssociationNotNullClear(t *testing.T) {
 }
 
 func TestForeignKeyConstraints(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	type Profile struct {
 		ID       uint
 		Name     string
@@ -124,6 +128,8 @@ func TestForeignKeyConstraints(t *testing.T) {
 }
 
 func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
+	tidbSkip(t, "not support the foreign key feature")
+
 	type Profile struct {
 		ID    uint
 		Name  string
@@ -283,4 +289,108 @@ func TestAssociationError(t *testing.T) {
 	// many to many
 	err = DB.Model(&emptyUser).Association("Languages").Delete(&user1.Languages)
 	AssertEqual(t, err, gorm.ErrPrimaryKeyRequired)
+}
+
+type (
+	myType           string
+	emptyQueryClause struct {
+		Field *schema.Field
+	}
+)
+
+func (myType) QueryClauses(f *schema.Field) []clause.Interface {
+	return []clause.Interface{emptyQueryClause{Field: f}}
+}
+
+func (sd emptyQueryClause) Name() string {
+	return "empty"
+}
+
+func (sd emptyQueryClause) Build(clause.Builder) {
+}
+
+func (sd emptyQueryClause) MergeClause(*clause.Clause) {
+}
+
+func (sd emptyQueryClause) ModifyStatement(stmt *gorm.Statement) {
+	// do nothing
+}
+
+func TestAssociationEmptyQueryClause(t *testing.T) {
+	type Organization struct {
+		gorm.Model
+		Name string
+	}
+	type Region struct {
+		gorm.Model
+		Name          string
+		Organizations []Organization `gorm:"many2many:region_orgs;"`
+	}
+	type RegionOrg struct {
+		RegionId       uint
+		OrganizationId uint
+		Empty          myType
+	}
+	if err := DB.SetupJoinTable(&Region{}, "Organizations", &RegionOrg{}); err != nil {
+		t.Fatalf("Failed to set up join table, got error: %s", err)
+	}
+	if err := DB.Migrator().DropTable(&Organization{}, &Region{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %s", err)
+	}
+	if err := DB.AutoMigrate(&Organization{}, &Region{}); err != nil {
+		t.Fatalf("Failed to migrate, got error: %v", err)
+	}
+	region := &Region{Name: "Region1"}
+	if err := DB.Create(region).Error; err != nil {
+		t.Fatalf("fail to create region %v", err)
+	}
+	var orgs []Organization
+
+	if err := DB.Model(&Region{}).Association("Organizations").Find(&orgs); err != nil {
+		t.Fatalf("fail to find region organizations %v", err)
+	} else {
+		AssertEqual(t, len(orgs), 0)
+	}
+}
+
+type AssociationEmptyUser struct {
+	ID   uint
+	Name string
+	Pets []AssociationEmptyPet
+}
+
+type AssociationEmptyPet struct {
+	AssociationEmptyUserID *uint  `gorm:"uniqueIndex:uniq_user_id_name"`
+	Name                   string `gorm:"uniqueIndex:uniq_user_id_name;size:256"`
+}
+
+func TestAssociationEmptyPrimaryKey(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		t.Skip()
+	}
+	DB.Migrator().DropTable(&AssociationEmptyUser{}, &AssociationEmptyPet{})
+	DB.AutoMigrate(&AssociationEmptyUser{}, &AssociationEmptyPet{})
+
+	id := uint(100)
+	user := AssociationEmptyUser{
+		ID:   id,
+		Name: "jinzhu",
+		Pets: []AssociationEmptyPet{
+			{AssociationEmptyUserID: &id, Name: "bar"},
+			{AssociationEmptyUserID: &id, Name: "foo"},
+		},
+	}
+
+	err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Create(&user).Error
+	if err != nil {
+		t.Fatalf("Failed to create, got error: %v", err)
+	}
+
+	var result AssociationEmptyUser
+	err = DB.Preload("Pets").First(&result, &id).Error
+	if err != nil {
+		t.Fatalf("Failed to find, got error: %v", err)
+	}
+
+	AssertEqual(t, result, user)
 }
