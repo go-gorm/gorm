@@ -87,7 +87,7 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 // If the current relationship is embedded or joined, current query will be ignored.
 //
 //nolint:cyclop
-func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
+func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}, preloaded map[string]struct{}) error {
 	preloadMap := parsePreloadMap(db.Statement.Schema, preloads)
 
 	// avoid random traversal of the map
@@ -116,7 +116,7 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 
 	for _, name := range preloadNames {
 		if relations := relationships.EmbeddedRelations[name]; relations != nil {
-			if err := preloadEntryPoint(db, joins, relations, preloadMap[name], associationsConds); err != nil {
+			if err := preloadEntryPoint(db, joins, relations, preloadMap[name], associationsConds, preloaded); err != nil {
 				return err
 			}
 		} else if rel := relationships.Relations[name]; rel != nil {
@@ -126,20 +126,24 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 					for i := 0; i < rv.Len(); i++ {
 						reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv.Index(i))
 						tx := preloadDB(db, reflectValue, reflectValue.Interface())
-						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds, preloaded); err != nil {
 							return err
 						}
 					}
 				case reflect.Struct:
 					reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv)
 					tx := preloadDB(db, reflectValue, reflectValue.Interface())
-					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds, preloaded); err != nil {
 						return err
 					}
 				default:
 					return gorm.ErrInvalidData
 				}
 			} else {
+				if _, ok := preloaded[rel.Name]; ok {
+					continue
+				}
+				preloaded[rel.Name] = struct{}{}
 				tx := db.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks})
 				tx.Statement.ReflectValue = db.Statement.ReflectValue
 				tx.Statement.Unscoped = db.Statement.Unscoped
