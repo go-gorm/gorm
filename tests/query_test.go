@@ -206,6 +206,20 @@ func TestFind(t *testing.T) {
 		}
 	})
 
+	t.Run("NotFoundAsNil", func(t *testing.T) {
+		var first *User
+		if err := DB.Where("name = ?", "find-not-found").First(&first).Error; err != nil {
+			AssertEqual(t, err, gorm.ErrRecordNotFound)
+			AssertEqual(t, first == nil, false)
+		}
+
+		DB.Config.NotFoundAsNilWhenPtr = true
+		if err := DB.Where("name = ?", "find-not-found").First(&first).Error; err != nil {
+			AssertEqual(t, err, gorm.ErrRecordNotFound)
+			AssertEqual(t, first, nil)
+		}
+	})
+
 	var models []User
 	if err := DB.Where("name in (?)", []string{"find"}).Find(&models).Error; err != nil || len(models) != 3 {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models))
