@@ -7,6 +7,8 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 [![MIT license](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
 [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/gorm.io/gorm?tab=doc)
 
+[**🌎中文文档**](./README_CN.md)
+
 ## Overview
 
 * Full-Featured ORM
