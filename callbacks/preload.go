@@ -75,7 +75,7 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	names := make([]string, 0, len(embeddedRelations.Relations)+len(embeddedRelations.EmbeddedRelations))
 	for _, relation := range embeddedRelations.Relations {
 		// skip first struct name
-		names = append(names, strings.Join(relation.Field.BindNames[1:], "."))
+		names = append(names, strings.Join(relation.Field.EmbeddedBindNames[1:], "."))
 	}
 	for _, relations := range embeddedRelations.EmbeddedRelations {
 		names = append(names, embeddedValues(relations)...)

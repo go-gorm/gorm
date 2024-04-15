@@ -56,6 +56,7 @@ type Field struct {
 	Name                   string
 	DBName                 string
 	BindNames              []string
+	EmbeddedBindNames      []string
 	DataType               DataType
 	GORMDataType           DataType
 	PrimaryKey             bool
@@ -112,6 +113,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Name:                   fieldStruct.Name,
 		DBName:                 tagSetting["COLUMN"],
 		BindNames:              []string{fieldStruct.Name},
+		EmbeddedBindNames:      []string{fieldStruct.Name},
 		FieldType:              fieldStruct.Type,
 		IndirectFieldType:      fieldStruct.Type,
 		StructField:            fieldStruct,
@@ -403,6 +405,9 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				ef.Schema = schema
 				ef.OwnerSchema = field.EmbeddedSchema
 				ef.BindNames = append([]string{fieldStruct.Name}, ef.BindNames...)
+				if _, ok := field.TagSettings["EMBEDDED"]; ok || !fieldStruct.Anonymous {
+					ef.EmbeddedBindNames = append([]string{fieldStruct.Name}, ef.EmbeddedBindNames...)
+				}
 				// index is negative means is pointer
 				if field.FieldType.Kind() == reflect.Struct {
 					ef.StructField.Index = append([]int{fieldStruct.Index[0]}, ef.StructField.Index...)

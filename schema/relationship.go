@@ -150,12 +150,12 @@ func (schema *Schema) setRelation(relation *Relationship) {
 	}
 
 	// set embedded relation
-	if len(relation.Field.BindNames) <= 1 {
+	if len(relation.Field.EmbeddedBindNames) <= 1 {
 		return
 	}
 	relationships := &schema.Relationships
-	for i, name := range relation.Field.BindNames {
-		if i < len(relation.Field.BindNames)-1 {
+	for i, name := range relation.Field.EmbeddedBindNames {
+		if i < len(relation.Field.EmbeddedBindNames)-1 {
 			if relationships.EmbeddedRelations == nil {
 				relationships.EmbeddedRelations = map[string]*Relationships{}
 			}

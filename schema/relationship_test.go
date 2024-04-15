@@ -121,6 +121,29 @@ func TestSelfReferentialBelongsToOverrideReferences(t *testing.T) {
 	})
 }
 
+func TestBelongsToWithMixin(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Refer string
+		Name  string
+	}
+
+	type ProfileMixin struct {
+		Profile      Profile `gorm:"References:Refer"`
+		ProfileRefer int
+	}
+
+	type User struct {
+		gorm.Model
+		ProfileMixin
+	}
+
+	checkStructRelation(t, &User{}, Relation{
+		Name: "Profile", Type: schema.BelongsTo, Schema: "User", FieldSchema: "Profile",
+		References: []Reference{{"Refer", "Profile", "ProfileRefer", "User", "", false}},
+	})
+}
+
 func TestHasOneOverrideForeignKey(t *testing.T) {
 	type Profile struct {
 		gorm.Model
@@ -776,6 +799,10 @@ func TestEmbeddedBelongsTo(t *testing.T) {
 	type NestedAddress struct {
 		Address
 	}
+	type CountryMixin struct {
+		CountryID int
+		Country   Country
+	}
 	type Org struct {
 		ID              int
 		PostalAddress   Address `gorm:"embedded;embeddedPrefix:postal_address_"`
@@ -786,6 +813,7 @@ func TestEmbeddedBelongsTo(t *testing.T) {
 			Address
 		}
 		NestedAddress *NestedAddress `gorm:"embedded;embeddedPrefix:nested_address_"`
+		CountryMixin
 	}
 
 	s, err := schema.Parse(&Org{}, &sync.Map{}, schema.NamingStrategy{})
@@ -815,15 +843,11 @@ func TestEmbeddedBelongsTo(t *testing.T) {
 			},
 		},
 		"NestedAddress": {
-			EmbeddedRelations: map[string]EmbeddedRelations{
-				"Address": {
-					Relations: map[string]Relation{
-						"Country": {
-							Name: "Country", Type: schema.BelongsTo, Schema: "Org", FieldSchema: "Country",
-							References: []Reference{
-								{PrimaryKey: "ID", PrimarySchema: "Country", ForeignKey: "CountryID", ForeignSchema: "Org"},
-							},
-						},
+			Relations: map[string]Relation{
+				"Country": {
+					Name: "Country", Type: schema.BelongsTo, Schema: "Org", FieldSchema: "Country",
+					References: []Reference{
+						{PrimaryKey: "ID", PrimarySchema: "Country", ForeignKey: "CountryID", ForeignSchema: "Org"},
 					},
 				},
 			},

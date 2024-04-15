@@ -466,7 +466,7 @@ func TestEmbedPreload(t *testing.T) {
 			},
 		}, {
 			name:     "nested address country",
-			preloads: map[string][]interface{}{"NestedAddress.EmbeddedAddress.Country": {}},
+			preloads: map[string][]interface{}{"NestedAddress.Country": {}},
 			expect: Org{
 				ID: org.ID,
 				PostalAddress: EmbeddedAddress{
