@@ -115,7 +115,8 @@ func (p *processor) Execute(db *DB) *DB {
 	if stmt.Dest != nil {
 		stmt.ReflectValue = reflect.ValueOf(stmt.Dest)
 		for stmt.ReflectValue.Kind() == reflect.Ptr {
-			if stmt.ReflectValue.IsNil() && stmt.ReflectValue.CanAddr() {
+			stmt.DestIsNil = stmt.ReflectValue.IsNil()
+			if stmt.DestIsNil && stmt.ReflectValue.CanAddr() {
 				stmt.ReflectValue.Set(reflect.New(stmt.ReflectValue.Type().Elem()))
 			}
 

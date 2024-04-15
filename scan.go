@@ -342,7 +342,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 	if db.RowsAffected == 0 && db.Statement.RaiseErrorOnNotFound && db.Error == nil {
 		db.AddError(ErrRecordNotFound)
-		if db.NotFoundAsNilWhenPtr && db.Statement.Dest != nil && reflect.ValueOf(db.Statement.Dest).Kind() == reflect.Ptr {
+		if db.Statement.DestIsNil {
 			// reset dest to nil
 			reflect.ValueOf(db.Statement.Dest).Elem().Set(reflect.Zero(reflect.ValueOf(db.Statement.Dest).Elem().Type()))
 		}

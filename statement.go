@@ -26,6 +26,7 @@ type Statement struct {
 	Model                interface{}
 	Unscoped             bool
 	Dest                 interface{}
+	DestIsNil            bool
 	ReflectValue         reflect.Value
 	Clauses              map[string]clause.Clause
 	BuildClauses         []string
