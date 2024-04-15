@@ -50,8 +50,6 @@ type Config struct {
 	CreateBatchSize int
 	// TranslateError enabling error translation
 	TranslateError bool
-	// NotFoundAsError set result is nil when no record found and result is ptr
-	NotFoundAsNilWhenPtr bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
