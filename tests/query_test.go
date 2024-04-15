@@ -206,7 +206,7 @@ func TestFind(t *testing.T) {
 		}
 	})
 
-	t.Run("NotFoundAsNil", func(t *testing.T) {
+	t.Run("KeepResultAsNil", func(t *testing.T) {
 		var first *User
 		if err := DB.Where("name = ?", "find not found").First(&first).Error; err != nil {
 			AssertEqual(t, err, gorm.ErrRecordNotFound)
