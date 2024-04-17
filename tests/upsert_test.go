@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -63,7 +62,6 @@ func TestUpsert(t *testing.T) {
 		}
 
 		r := DB.Session(&gorm.Session{DryRun: true}).Clauses(clause.OnConflict{UpdateAll: true}).Create(&RestrictedLanguage{Code: "upsert_code", Name: "upsert_name", Lang: "upsert_lang"})
-		fmt.Println(r.Statement.SQL.String())
 		if !regexp.MustCompile(`INTO .restricted_languages. .*\(.name.,.lang.,.code.\) .* (SET|UPDATE) .name.=.*.name. RETURNING .code.\W*$`).MatchString(r.Statement.SQL.String()) {
 			t.Errorf("Table with escape character, got %v", r.Statement.SQL.String())
 		}
