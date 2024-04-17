@@ -300,11 +300,13 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				field.AutoIncrement = true
 			}
 		case String:
-			if !field.HasDefaultValue || field.DefaultValueInterface != nil {
-				schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
-			}
+			if _, ok := field.TagSettings["PRIMARYKEY"]; !ok {
+				if !field.HasDefaultValue || field.DefaultValueInterface != nil {
+					schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+				}
 
-			field.HasDefaultValue = true
+				field.HasDefaultValue = true
+			}
 		}
 	}
 
