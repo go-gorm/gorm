@@ -429,6 +429,15 @@ func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 	return
 }
 
+// Unscoped disables the global scope of soft deletion in a query.
+// By default, GORM uses soft deletion, marking records as "deleted"
+// by setting a timestamp on a specific field (e.g., `deleted_at`).
+// Unscoped allows queries to include records marked as deleted,
+// overriding the soft deletion behavior.
+// Example:
+//    var users []User
+//    db.Unscoped().Find(&users)
+//    // Retrieves all users, including deleted ones.
 func (db *DB) Unscoped() (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Unscoped = true
