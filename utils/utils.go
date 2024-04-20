@@ -33,8 +33,8 @@ func sourceDir(file string) string {
 // FileWithLineNum return the file name and line number of the current file
 func FileWithLineNum() string {
 	pcs := [13]uintptr{}
-	// the second caller usually from gorm internal, so start from 2
-	len := runtime.Callers(2, pcs[:])
+	// the third caller usually from gorm internal
+	len := runtime.Callers(3, pcs[:])
 	frames := runtime.CallersFrames(pcs[:len])
 	for i := 0; i < len; i++ {
 		// second return value is "more", not "ok"
