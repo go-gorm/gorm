@@ -49,4 +49,6 @@ var (
 	ErrDuplicatedKey = errors.New("duplicated key not allowed")
 	// ErrForeignKeyViolated occurs when there is a foreign key constraint violation
 	ErrForeignKeyViolated = errors.New("violates foreign key constraint")
+	// ErrCheckConstraintViolated occurs when there is a check constraint violation
+	ErrCheckConstraintViolated = errors.New("violates check constraint")
 )
