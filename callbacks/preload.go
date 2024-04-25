@@ -123,8 +123,18 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 			if joined, nestedJoins := isJoined(name); joined {
 				switch rv := db.Statement.ReflectValue; rv.Kind() {
 				case reflect.Slice, reflect.Array:
-					for i := 0; i < rv.Len(); i++ {
-						reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv.Index(i))
+					if rv.Len() > 0 {
+						reflectValue := rel.FieldSchema.MakeSlice().Elem()
+						reflectValue.SetLen(rv.Len())
+						for i := 0; i < rv.Len(); i++ {
+							frv := rel.Field.ReflectValueOf(db.Statement.Context, rv.Index(i))
+							if frv.Kind() != reflect.Ptr {
+								reflectValue.Index(i).Set(frv.Addr())
+							} else {
+								reflectValue.Index(i).Set(frv)
+							}
+						}
+
 						tx := preloadDB(db, reflectValue, reflectValue.Interface())
 						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
 							return err
