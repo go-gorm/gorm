@@ -1337,7 +1337,7 @@ func TestQueryResetNullValue(t *testing.T) {
 		Number1 int64      `gorm:"default:NULL"`
 		Number2 uint64     `gorm:"default:NULL"`
 		Number3 float64    `gorm:"default:NULL"`
-		Now     *time.Time `gorm:"defalut:NULL"`
+		Now     *time.Time `gorm:"default:NULL"`
 		Item1Id string
 		Item1   *QueryResetItem `gorm:"references:ID"`
 		Item2Id string
@@ -1427,7 +1427,7 @@ func TestQueryScanToArray(t *testing.T) {
 		t.Fatal(err)
 	}
 	if users[0] == nil || users[0].Name != "testname1" {
-		t.Error("users[0] not covere")
+		t.Error("users[0] not cover")
 	}
 	if users[1] != nil {
 		t.Error("users[1] should be empty")
