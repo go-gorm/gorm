@@ -5,8 +5,10 @@ import (
 )
 
 const (
-	AndWithSpace = " AND "
-	OrWithSpace  = " OR "
+	AndWithSpace       = " AND "
+	OrWithSpace        = " OR "
+	AndSymbolWithSpace = " && "
+	OrSymbolWithSpace  = " || "
 )
 
 // Where where clause
@@ -58,22 +60,26 @@ func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
 						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+							strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace)
 					}
 				}
 			case AndConditions:
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
 						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+							strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace)
 					}
 				}
 			case Expr:
 				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+					strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace)
 			case NamedExpr:
 				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+					strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace)
 			}
 		}
 
