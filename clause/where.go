@@ -197,7 +197,8 @@ func (not NotConditions) Build(builder Builder) {
 				e, wrapInParentheses := c.(Expr)
 				if wrapInParentheses {
 					sql := strings.ToUpper(e.SQL)
-					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+						strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace); wrapInParentheses {
 						builder.WriteByte('(')
 					}
 				}
@@ -232,7 +233,8 @@ func (not NotConditions) Build(builder Builder) {
 			e, wrapInParentheses := c.(Expr)
 			if wrapInParentheses {
 				sql := strings.ToUpper(e.SQL)
-				if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+				if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace) ||
+					strings.Contains(sql, AndSymbolWithSpace) || strings.Contains(sql, OrSymbolWithSpace); wrapInParentheses {
 					builder.WriteByte('(')
 				}
 			}
