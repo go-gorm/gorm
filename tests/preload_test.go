@@ -485,7 +485,7 @@ func TestNestedPreloadWithPointerJoin(t *testing.T) {
 	}
 
 	var find1 Value
-	err := DB.Table("Values").Joins("Nested").Joins("Nested.Join").Preload("Nested.Join.Preload").First(&find1).Error
+	err := DB.Table("values").Joins("Nested").Joins("Nested.Join").Preload("Nested.Join.Preload").First(&find1).Error
 	if err != nil {
 		t.Errorf("failed to find value, got err: %v", err)
 	}
