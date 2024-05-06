@@ -50,6 +50,8 @@ type Config struct {
 	CreateBatchSize int
 	// TranslateError enabling error translation
 	TranslateError bool
+	// PropagateUnscoped propagate Unscoped to every other nested statement
+	PropagateUnscoped bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -408,6 +410,9 @@ func (db *DB) getInstance() *DB {
 				Clauses:   map[string]clause.Clause{},
 				Vars:      make([]interface{}, 0, 8),
 				SkipHooks: db.Statement.SkipHooks,
+			}
+			if db.Config.PropagateUnscoped {
+				tx.Statement.Unscoped = db.Statement.Unscoped
 			}
 		} else {
 			// with clone statement
