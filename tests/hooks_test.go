@@ -566,3 +566,41 @@ func TestUpdateCallbacks(t *testing.T) {
 		t.Fatalf("before update should not be called")
 	}
 }
+
+type Product6 struct {
+	gorm.Model
+	Name string
+	Item *ProductItem2
+}
+
+type ProductItem2 struct {
+	gorm.Model
+	Product6ID uint
+}
+
+func (p *Product6) BeforeDelete(tx *gorm.DB) error {
+	if err := tx.Delete(&p.Item).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func TestPropagateUnscoped(t *testing.T) {
+	DB.Migrator().DropTable(&Product6{}, &ProductItem2{})
+	DB.AutoMigrate(&Product6{}, &ProductItem2{})
+
+	p := Product6{
+		Name: "unique_code",
+		Item: &ProductItem2{},
+	}
+	DB.Model(&Product6{}).Create(&p)
+
+	DB.PropagateUnscoped = true
+	defer func() {
+		DB.PropagateUnscoped = false
+	}()
+
+	if err := DB.Unscoped().Delete(&p).Error; err != nil {
+		t.Fatalf("unscoped did not propagate")
+	}
+}
