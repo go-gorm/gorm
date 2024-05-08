@@ -1427,7 +1427,7 @@ func TestQueryScanToArray(t *testing.T) {
 		t.Fatal(err)
 	}
 	if users[0] == nil || users[0].Name != "testname1" {
-		t.Error("users[0] not cover")
+		t.Error("users[0] not covered")
 	}
 	if users[1] != nil {
 		t.Error("users[1] should be empty")
