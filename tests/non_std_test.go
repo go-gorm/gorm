@@ -37,7 +37,7 @@ func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	}
 
 	animal = Animal{From: "somewhere"}              // No name fields, should be filled with the default value (galeone)
-	DB.Save(&animal).Update("From", "a nice place") // The name field shoul be untouched
+	DB.Save(&animal).Update("From", "a nice place") // The name field should be untouched
 	DB.First(&animal, animal.Counter)
 	if animal.Name != "galeone" {
 		t.Errorf("Name fields shouldn't be changed if untouched, but got %v", animal.Name)

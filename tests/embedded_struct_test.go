@@ -279,6 +279,6 @@ func TestEmbeddedTagSetting(t *testing.T) {
 	err = DB.Save(&t1).Error
 	AssertEqual(t, err, nil)
 	if t1.Tag1.Id == 0 {
-		t.Errorf("embedded struct's primary field should be rewrited")
+		t.Errorf("embedded struct's primary field should be rewritten")
 	}
 }
