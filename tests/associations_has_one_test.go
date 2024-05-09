@@ -255,3 +255,15 @@ func TestPolymorphicHasOneAssociationForSlice(t *testing.T) {
 	DB.Model(&pets).Association("Toy").Clear()
 	AssertAssociationCount(t, pets, "Toy", 0, "After Clear")
 }
+
+func TestHasOneAssociationReplaceWithNonValidValue(t *testing.T) {
+	user := User{Name: "jinzhu", Account: Account{Number: "1"}}
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	if err := DB.Model(&user).Association("Languages").Replace(Account{Number: "2"}); err == nil {
+		t.Error("expected association error to be not nil")
+	}
+}
