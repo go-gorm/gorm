@@ -384,11 +384,6 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	)
 
 	appendToRelations := func(source, rv reflect.Value, clear bool) {
-		if !rv.CanAddr() {
-			association.Error = ErrInvalidValue
-			return
-		}
-
 		switch association.Relationship.Type {
 		case schema.HasOne, schema.BelongsTo:
 			switch rv.Kind() {
@@ -401,6 +396,10 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					}
 				}
 			case reflect.Struct:
+				if !rv.CanAddr() {
+					association.Error = ErrInvalidValue
+					return
+				}
 				association.Error = association.Relationship.Field.Set(association.DB.Statement.Context, source, rv.Addr().Interface())
 
 				if association.Relationship.Field.FieldType.Kind() == reflect.Struct {
@@ -438,6 +437,10 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					appendToFieldValues(reflect.Indirect(rv.Index(i)).Addr())
 				}
 			case reflect.Struct:
+				if !rv.CanAddr() {
+					association.Error = ErrInvalidValue
+					return
+				}
 				appendToFieldValues(rv.Addr())
 			}
 
