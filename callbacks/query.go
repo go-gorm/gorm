@@ -100,9 +100,10 @@ func BuildQuerySQL(db *gorm.DB) {
 		fromClause := clause.From{}
 		if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
 			fromClause = v
+			fromClause.Joins = fromClause.Joins[:0]
 		}
 
-		if len(db.Statement.Joins) != 0 || len(fromClause.Joins) != 0 {
+		if len(db.Statement.Joins) != 0 {
 			if len(db.Statement.Selects) == 0 && len(db.Statement.Omits) == 0 && db.Statement.Schema != nil {
 				clauseSelect.Columns = make([]clause.Column, len(db.Statement.Schema.DBNames))
 				for idx, dbName := range db.Statement.Schema.DBNames {
@@ -285,8 +286,6 @@ func Preload(db *gorm.DB) {
 }
 
 func AfterQuery(db *gorm.DB) {
-	// clear the joins after query because preload need it
-	db.Statement.Joins = nil
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterFind && db.RowsAffected > 0 {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(AfterFindInterface); ok {
