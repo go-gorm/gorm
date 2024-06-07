@@ -299,10 +299,10 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 //
 //	db.Order("name DESC")
 //	db.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: true})
-//  db.Order(clause.OrderBy{Columns: []clause.OrderByColumn{
-//      {Column: clause.Column{Name: "name"}, Desc: true},
-//      {Column: clause.Column{Name: "age"}, Desc: true},
-//  }})
+//	db.Order(clause.OrderBy{Columns: []clause.OrderByColumn{
+//		{Column: clause.Column{Name: "name"}, Desc: true},
+//		{Column: clause.Column{Name: "age"}, Desc: true},
+//	}})
 func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 
