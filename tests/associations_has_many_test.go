@@ -554,3 +554,15 @@ func TestHasManyAssociationUnscoped(t *testing.T) {
 		t.Errorf("expected %d contents, got %d", 0, len(contents))
 	}
 }
+
+func TestHasManyAssociationReplaceWithNonValidValue(t *testing.T) {
+	user := User{Name: "jinzhu", Languages: []Language{{Name: "EN"}}}
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	if err := DB.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, Language{Name: "FR"}); err == nil {
+		t.Error("expected association error to be not nil")
+	}
+}
