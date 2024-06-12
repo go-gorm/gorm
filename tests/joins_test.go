@@ -184,20 +184,22 @@ func TestJoinCount(t *testing.T) {
 	DB.Create(&user)
 
 	query := DB.Model(&User{}).Joins("Company")
-	// Bug happens when .Count is called on a query.
-	// Removing the below two lines or downgrading to gorm v1.20.12 will make this test pass.
+
 	var total int64
 	query.Count(&total)
 
 	var result User
 
-	// Incorrectly generates a 'SELECT *' query which causes companies.id to overwrite users.id
 	if err := query.First(&result, user.ID).Error; err != nil {
 		t.Fatalf("Failed, got error: %v", err)
 	}
 
 	if result.ID != user.ID {
 		t.Fatalf("result's id, %d, doesn't match user's id, %d", result.ID, user.ID)
+	}
+	// should find company
+	if result.Company.ID != *user.CompanyID {
+		t.Fatalf("result's id, %d, doesn't match user's company id, %d", result.Company.ID, *user.CompanyID)
 	}
 }
 

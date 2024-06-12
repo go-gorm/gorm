@@ -286,7 +286,11 @@ func Preload(db *gorm.DB) {
 
 func AfterQuery(db *gorm.DB) {
 	// clear the joins after query because preload need it
-	db.Statement.Joins = nil
+	if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+		fromClause := db.Statement.Clauses["FROM"]
+		fromClause.Expression = clause.From{Tables: v.Tables, Joins: v.Joins[:len(v.Joins)-len(db.Statement.Joins)]} // keep the original From Joins
+		db.Statement.Clauses["FROM"] = fromClause
+	}
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterFind && db.RowsAffected > 0 {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
 			if i, ok := value.(AfterFindInterface); ok {
