@@ -440,6 +440,58 @@ func TestMergeNestedPreloadWithNestedJoin(t *testing.T) {
 	}
 }
 
+func TestNestedPreloadWithPointerJoin(t *testing.T) {
+	type (
+		Preload struct {
+			ID     uint
+			Value  string
+			JoinID uint
+		}
+		Join struct {
+			ID       uint
+			Value    string
+			Preload  Preload
+			NestedID uint
+		}
+		Nested struct {
+			ID      uint
+			Join    Join
+			ValueID uint
+		}
+		Value struct {
+			ID     uint
+			Name   string
+			Nested *Nested
+		}
+	)
+
+	DB.Migrator().DropTable(&Preload{}, &Join{}, &Nested{}, &Value{})
+	DB.Migrator().AutoMigrate(&Preload{}, &Join{}, &Nested{}, &Value{})
+
+	value := Value{
+		Name: "value",
+		Nested: &Nested{
+			Join: Join{
+				Value: "j1",
+				Preload: Preload{
+					Value: "p1",
+				},
+			},
+		},
+	}
+
+	if err := DB.Create(&value).Error; err != nil {
+		t.Errorf("failed to create value, got err: %v", err)
+	}
+
+	var find1 Value
+	err := DB.Table("values").Joins("Nested").Joins("Nested.Join").Preload("Nested.Join.Preload").First(&find1).Error
+	if err != nil {
+		t.Errorf("failed to find value, got err: %v", err)
+	}
+	AssertEqual(t, find1, value)
+}
+
 func TestEmbedPreload(t *testing.T) {
 	type Country struct {
 		ID   int `gorm:"primaryKey"`

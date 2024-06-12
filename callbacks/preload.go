@@ -140,7 +140,7 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 							return err
 						}
 					}
-				case reflect.Struct:
+				case reflect.Struct, reflect.Pointer:
 					reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv)
 					tx := preloadDB(db, reflectValue, reflectValue.Interface())
 					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
