@@ -1,10 +1,12 @@
 package tests_test
 
 import (
+	"fmt"
 	"regexp"
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -401,4 +403,76 @@ func TestNestedJoins(t *testing.T) {
 		}
 		CheckPet(t, *user.Manager.NamedPet, *users2[idx].Manager.NamedPet)
 	}
+}
+
+func TestJoinsPreload_Issue7013(t *testing.T) {
+	manager := &User{Name: "Manager"}
+	DB.Create(manager)
+
+	var userIDs []uint
+	for i := 0; i < 21; i++ {
+		user := &User{Name: fmt.Sprintf("User%d", i), ManagerID: &manager.ID}
+		DB.Create(user)
+		userIDs = append(userIDs, user.ID)
+	}
+
+	var entries []User
+	assert.NotPanics(t, func() {
+		assert.NoError(t,
+			DB.Debug().Preload("Manager.Team").
+				Joins("Manager.Company").
+				Find(&entries).Error)
+	})
+}
+
+func TestJoinsPreload_Issue7013_RelationEmpty(t *testing.T) {
+	type (
+		Furniture struct {
+			gorm.Model
+			OwnerID *uint
+		}
+
+		Owner struct {
+			gorm.Model
+			Furnitures []Furniture
+			CompanyID  *uint
+			Company    Company
+		}
+
+		Building struct {
+			gorm.Model
+			Name    string
+			OwnerID *uint
+			Owner   Owner
+		}
+	)
+
+	DB.Migrator().DropTable(&Building{}, &Owner{}, &Furniture{})
+	DB.Migrator().AutoMigrate(&Building{}, &Owner{}, &Furniture{})
+
+	home := &Building{Name: "relation_empty"}
+	DB.Create(home)
+
+	var entries []Building
+	assert.NotPanics(t, func() {
+		assert.NoError(t,
+			DB.Debug().Preload("Owner.Furnitures").
+				Joins("Owner.Company").
+				Find(&entries).Error)
+	})
+
+	AssertEqual(t, entries, []Building{{Model: home.Model, Name: "relation_empty", Owner: Owner{Company: Company{}}}})
+}
+
+func TestJoinsPreload_Issue7013_NoEntries(t *testing.T) {
+	var entries []User
+	assert.NotPanics(t, func() {
+		assert.NoError(t,
+			DB.Debug().Preload("Manager.Team").
+				Joins("Manager.Company").
+				Where("false").
+				Find(&entries).Error)
+	})
+
+	AssertEqual(t, len(entries), 0)
 }
