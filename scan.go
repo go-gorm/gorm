@@ -331,6 +331,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 			}
 		case reflect.Struct, reflect.Ptr:
 			if initialized || rows.Next() {
+				if mode == ScanInitialized && reflectValue.Kind() == reflect.Struct {
+					db.Statement.ReflectValue.Set(reflect.Zero(reflectValue.Type()))
+				}
 				db.scanIntoStruct(rows, reflectValue, values, fields, joinFields)
 			}
 		default:
