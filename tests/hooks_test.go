@@ -2,6 +2,8 @@ package tests_test
 
 import (
 	"errors"
+	"log"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -586,21 +588,24 @@ func (p *Product6) BeforeDelete(tx *gorm.DB) error {
 }
 
 func TestPropagateUnscoped(t *testing.T) {
-	DB.Migrator().DropTable(&Product6{}, &ProductItem2{})
-	DB.AutoMigrate(&Product6{}, &ProductItem2{})
+	_DB, err := OpenTestConnection(&gorm.Config{
+		PropagateUnscoped: true,
+	})
+	if err != nil {
+		log.Printf("failed to connect database, got error %v", err)
+		os.Exit(1)
+	}
+
+	_DB.Migrator().DropTable(&Product6{}, &ProductItem2{})
+	_DB.AutoMigrate(&Product6{}, &ProductItem2{})
 
 	p := Product6{
 		Name: "unique_code",
 		Item: &ProductItem2{},
 	}
-	DB.Model(&Product6{}).Create(&p)
+	_DB.Model(&Product6{}).Create(&p)
 
-	DB.PropagateUnscoped = true
-	defer func() {
-		DB.PropagateUnscoped = false
-	}()
-
-	if err := DB.Unscoped().Delete(&p).Error; err != nil {
+	if err := _DB.Unscoped().Delete(&p).Error; err != nil {
 		t.Fatalf("unscoped did not propagate")
 	}
 }

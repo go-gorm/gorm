@@ -112,6 +112,7 @@ type Session struct {
 	DisableNestedTransaction bool
 	AllowGlobalUpdate        bool
 	FullSaveAssociations     bool
+	PropagateUnscoped        bool
 	QueryFields              bool
 	Context                  context.Context
 	Logger                   logger.Interface
@@ -241,6 +242,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.FullSaveAssociations {
 		txConfig.FullSaveAssociations = true
+	}
+
+	if config.PropagateUnscoped {
+		txConfig.PropagateUnscoped = true
 	}
 
 	if config.Context != nil || config.PrepareStmt || config.SkipHooks {
