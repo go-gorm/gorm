@@ -24,6 +24,11 @@ func (db *DB) AutoMigrate(dst ...interface{}) error {
 	return db.Migrator().AutoMigrate(dst...)
 }
 
+// SyncSchema is an alias for AutoMigrate
+func (db *DB) SyncSchema(dst ...interface{}) error {
+	return db.AutoMigrate(dst...)
+}
+
 // ViewOption view option
 type ViewOption struct {
 	Replace     bool   // If true, exec `CREATE`. If false, exec `CREATE OR REPLACE`
