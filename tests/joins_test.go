@@ -470,7 +470,7 @@ func TestJoinsPreload_Issue7013_NoEntries(t *testing.T) {
 		assert.NoError(t,
 			DB.Debug().Preload("Manager.Team").
 				Joins("Manager.Company").
-				Where("false").
+				Where("1 <> 1").
 				Find(&entries).Error)
 	})
 
