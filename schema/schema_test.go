@@ -19,6 +19,22 @@ func TestParseSchema(t *testing.T) {
 	checkUserSchema(t, user)
 }
 
+func TestParseSchemaWithMap(t *testing.T) {
+	type User struct {
+		tests.User
+		Attrs map[string]string `gorm:"type:Map(String,String);"`
+	}
+
+	user, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse user with map, got error %v", err)
+	}
+
+	if field := user.FieldsByName["Attrs"]; field.DataType != "Map(String,String)" {
+		t.Errorf("failed to parse user field Attrs")
+	}
+}
+
 func TestParseSchemaWithPointerFields(t *testing.T) {
 	user, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
 	if err != nil {

@@ -338,7 +338,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
 		for _, field := range schema.Fields {
-			if field.DataType == "" && (field.Creatable || field.Updatable || field.Readable) {
+			if field.DataType == "" && field.GORMDataType == "" && (field.Creatable || field.Updatable || field.Readable) {
 				if schema.parseRelation(field); schema.err != nil {
 					return schema, schema.err
 				} else {
