@@ -514,6 +514,7 @@ func (stmt *Statement) clone() *Statement {
 		Distinct:             stmt.Distinct,
 		Selects:              stmt.Selects,
 		Omits:                stmt.Omits,
+		ColumnMapping:        stmt.ColumnMapping,
 		Preloads:             map[string][]interface{}{},
 		ConnPool:             stmt.ConnPool,
 		Schema:               stmt.Schema,
