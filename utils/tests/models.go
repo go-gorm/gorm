@@ -102,3 +102,14 @@ type Child struct {
 	ParentID *uint
 	Parent   *Parent
 }
+
+type Owner struct {
+	gorm.Model
+	Name       string     `gorm:"index"`
+	CreditCard CreditCard `gorm:"foreignKey:OwnerName;references:name"`
+}
+
+type CreditCard struct {
+	Number   string
+	UserName string `gorm:"primaryKey;unique;size:255"`
+}

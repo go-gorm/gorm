@@ -178,7 +178,8 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 							} else if ref.PrimaryValue != "" {
 								db.AddError(ref.ForeignKey.Set(db.Statement.Context, f, ref.PrimaryValue))
 							}
-							assignmentColumns = append(assignmentColumns, ref.ForeignKey.DBName)
+
+							assignmentColumns = append(assignmentColumns, getAssignmentColumnsForForeignKey(ref.ForeignKey)...)
 						}
 
 						saveAssociations(db, rel, f, selectColumns, restricted, assignmentColumns)
@@ -429,6 +430,33 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, rValues reflect.Val
 	}
 
 	return db.AddError(tx.Create(values).Error)
+}
+
+func getAssignmentColumnsForForeignKey(foreignKey *schema.Field) []string {
+	var assignmentColumns []string
+
+	if foreignKey.Schema == nil {
+		return assignmentColumns
+	}
+
+	if !foreignKey.PrimaryKey {
+		assignmentColumns = append(assignmentColumns, foreignKey.DBName)
+		return assignmentColumns
+	}
+
+	for _, field := range foreignKey.Schema.Fields {
+		if field.PrimaryKey {
+			continue
+		}
+
+		if field.DBName == "" {
+			continue
+		}
+
+		assignmentColumns = append(assignmentColumns, field.DBName)
+	}
+
+	return assignmentColumns
 }
 
 // check association values has been saved

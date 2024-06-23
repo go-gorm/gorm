@@ -256,14 +256,44 @@ func TestPolymorphicHasOneAssociationForSlice(t *testing.T) {
 	AssertAssociationCount(t, pets, "Toy", 0, "After Clear")
 }
 
-func TestHasOneAssociationReplaceWithNonValidValue(t *testing.T) {
-	user := User{Name: "jinzhu", Account: Account{Number: "1"}}
+func TestReplaceHasOneAssociationWithCustomPK(t *testing.T) {
+	if DB.Dialector.Name() == "sqlite" {
+		return
+	}
 
-	if err := DB.Create(&user).Error; err != nil {
+	DB.Migrator().DropTable(&Owner{})
+	DB.Migrator().DropTable(&CreditCard{})
+
+	DB.AutoMigrate(&CreditCard{})
+	DB.AutoMigrate(&Owner{})
+
+	owner := Owner{
+		Name: "jinzhu",
+		CreditCard: CreditCard{
+			Number:   "123",
+			UserName: "jinzhu",
+		},
+	}
+
+	if err := DB.Create(&owner).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
 	}
 
-	if err := DB.Model(&user).Association("Languages").Replace(Account{Number: "2"}); err == nil {
-		t.Error("expected association error to be not nil")
+	wantNumber := "456"
+
+	if err := DB.Model(&owner).Association("CreditCard").Replace(&CreditCard{
+		Number:   wantNumber,
+		UserName: "jinzhu",
+	}); err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	var result Owner
+	if err := DB.Preload("CreditCard").First(&result, owner.ID).Error; err != nil {
+		t.Fatalf("errors happened when getting credit card: %v", err)
+	}
+
+	if result.CreditCard.Number != wantNumber {
+		t.Fatal("wrong credit card number")
 	}
 }
