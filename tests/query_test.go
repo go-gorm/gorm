@@ -860,6 +860,28 @@ func TestOmitWithAllFields(t *testing.T) {
 	}
 }
 
+func TestMapColumns(t *testing.T) {
+	user := User{Name: "MapColumnsUser", Age: 12}
+	DB.Save(&user)
+
+	type result struct {
+		Name     string
+		Nickname string
+		Age      uint
+	}
+	var res result
+	DB.Table("users").Where("name = ?", user.Name).MapColumns(map[string]string{"name": "nickname"}).Scan(&res)
+	if res.Nickname != user.Name {
+		t.Errorf("Expected res.Nickname to be %s, but got %s", user.Name, res.Nickname)
+	}
+	if res.Name != "" {
+		t.Errorf("Expected res.Name to be empty, but got %s", res.Name)
+	}
+	if res.Age != user.Age {
+		t.Errorf("Expected res.Age to be %d, but got %d", user.Age, res.Age)
+	}
+}
+
 func TestPluckWithSelect(t *testing.T) {
 	users := []User{
 		{Name: "pluck_with_select_1", Age: 25},
@@ -1194,7 +1216,6 @@ func TestSubQueryWithRaw(t *testing.T) {
 			Where("age >= ? and name in (?)", 20, []string{"subquery_raw_1", "subquery_raw_3"}).
 			Group("name"),
 	).Count(&count).Error
-
 	if err != nil {
 		t.Errorf("Expected to get no errors, but got %v", err)
 	}
@@ -1210,7 +1231,6 @@ func TestSubQueryWithRaw(t *testing.T) {
 			Not("age <= ?", 10).Not("name IN (?)", []string{"subquery_raw_1", "subquery_raw_3"}).
 			Group("name"),
 	).Count(&count).Error
-
 	if err != nil {
 		t.Errorf("Expected to get no errors, but got %v", err)
 	}
