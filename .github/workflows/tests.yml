@@ -127,7 +127,7 @@ jobs:
   postgres:
     strategy:
       matrix:
-        dbversion: ['postgres:latest', 'postgres:13', 'postgres:12', 'postgres:11', 'postgres:10']
+        dbversion: ['postgres:latest', 'postgres:15', 'postgres:14', 'postgres:13']
         go: ['1.22', '1.21', '1.20']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
