@@ -217,6 +217,15 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	return
 }
 
+// Close close current db connection
+func (db *DB) Close() error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
 // Session create new db session
 func (db *DB) Session(config *Session) *DB {
 	var (
