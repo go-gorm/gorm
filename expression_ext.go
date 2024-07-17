@@ -271,6 +271,8 @@ func (e *expr) Eq(value interface{}) *expr {
 func (e *expr) Neq(value interface{}) *expr {
 	if value == nil {
 		return e.operator("IS NOT NULL", value)
+	} else if val := reflect.ValueOf(value); val.Kind() == reflect.Ptr && val.IsNil() {
+		return e.operator("IS NOT NULL", nil)
 	}
 
 	return e.operator("!=", value)
