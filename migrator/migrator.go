@@ -759,7 +759,8 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if !m.HasConstraint(value, name) {
-			return nil
+			constraint, _ := m.GuessConstraintInterfaceAndTable(stmt, name)
+			return errors.New(fmt.Sprintf("Can't find constraint for %q, with guessed name %q", name, constraint))
 		}
 		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {

@@ -681,6 +681,10 @@ func TestMigrateConstraint(t *testing.T) {
 			DB.Migrator().CreateConstraint(&User{}, name)
 		}
 
+		if !DB.Migrator().HasConstraint(&User{}, name) {
+			t.Fatalf("failed to create constraint %v", name)
+		}
+
 		if err := DB.Migrator().DropConstraint(&User{}, name); err != nil {
 			t.Fatalf("failed to drop constraint %v, got error %v", name, err)
 		}
