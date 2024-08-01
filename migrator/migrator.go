@@ -762,8 +762,11 @@ func (m Migrator) DropConstraint(value interface{}, name string) error {
 		if constraint != nil {
 			name = constraint.GetName()
 		}
-		// using IF EXISTS here as we are "guessing" the constraint name
-		return m.DB.Exec("ALTER TABLE ? DROP CONSTRAINT IF EXISTS ?", clause.Table{Name: table}, clause.Column{Name: name}).Error
+		// ensure the constraint exists first as we are "guessing" the constraint name
+		if m.HasConstraint(value, name) {
+			return m.DB.Exec("ALTER TABLE ? DROP CONSTRAINT ?", clause.Table{Name: table}, clause.Column{Name: name}).Error
+		}
+		return nil
 	})
 }
 
