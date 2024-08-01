@@ -587,7 +587,7 @@ func (m Migrator) MigrateColumnUnique(value interface{}, field *schema.Field, co
 		// We're currently only receiving boolean values on `Unique` tag,
 		// so the UniqueConstraint name is fixed
 		constraint := m.DB.NamingStrategy.UniqueName(stmt.Table, field.DBName)
-		if unique && !field.Unique && m.HasConstraint(value, constraint) {
+		if unique && !field.Unique {
 			return m.DB.Migrator().DropConstraint(value, constraint)
 		}
 		if !unique && field.Unique {
@@ -758,11 +758,13 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 // DropConstraint drop constraint
 func (m Migrator) DropConstraint(value interface{}, name string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if !m.HasConstraint(value, name) {
+			return nil
+		}
 		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {
 			name = constraint.GetName()
 		}
-
 		return m.DB.Exec("ALTER TABLE ? DROP CONSTRAINT ?", clause.Table{Name: table}, clause.Column{Name: name}).Error
 	})
 }
