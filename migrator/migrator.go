@@ -710,7 +710,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 
 	for _, rel := range stmt.Schema.Relationships.Relations {
 		if constraint := rel.ParseConstraint(); constraint != nil && constraint.Name == name {
-			fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation 0 %q", constraint))
+			fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation 0 %v", constraint))
 			return constraint, getTable(rel)
 		}
 	}
@@ -719,7 +719,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 		for k := range checkConstraints {
 			if checkConstraints[k].Field == field {
 				v := checkConstraints[k]
-				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for check %q", &v))
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for check %v", &v))
 				return &v, stmt.Table
 			}
 		}
@@ -727,14 +727,14 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 		for k := range uniqueConstraints {
 			if uniqueConstraints[k].Field == field {
 				v := uniqueConstraints[k]
-				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for unique %q", &v))
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for unique %v", &v))
 				return &v, stmt.Table
 			}
 		}
 
 		for _, rel := range stmt.Schema.Relationships.Relations {
 			if constraint := rel.ParseConstraint(); constraint != nil && rel.Field == field {
-				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation %q", constraint))
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation %v", constraint))
 				return constraint, getTable(rel)
 			}
 		}
