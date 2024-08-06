@@ -115,11 +115,19 @@ type TablerWithNamer interface {
 
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
+	return ParseWithSpecialTableNameWithLogger(dest, cacheStore, namer, "", logger.Default)
+}
+
+func ParseWithLogger(dest interface{}, cacheStore *sync.Map, namer Namer, log logger.Interface) (*Schema, error) {
+	return ParseWithSpecialTableNameWithLogger(dest, cacheStore, namer, "", log)
 }
 
 // ParseWithSpecialTableName get data type from dialector with extra schema table
 func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+	return ParseWithSpecialTableNameWithLogger(dest, cacheStore, namer, specialTableName, logger.Default)
+}
+
+func ParseWithSpecialTableNameWithLogger(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string, log logger.Interface) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -316,7 +324,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			case "func(*gorm.DB) error": // TODO hack
 				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
 			default:
-				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
+				log.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
 		}
 	}
@@ -331,7 +339,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	defer func() {
 		if schema.err != nil {
-			logger.Default.Error(context.Background(), schema.err.Error())
+			log.Error(context.Background(), schema.err.Error())
 			cacheStore.Delete(modelType)
 		}
 	}()

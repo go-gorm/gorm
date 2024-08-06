@@ -250,7 +250,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		if !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
 			// different schema
 			updatingStmt := &gorm.Statement{DB: stmt.DB}
-			if err := updatingStmt.Parse(stmt.Dest); err == nil {
+			if err := updatingStmt.ParseWithLogger(stmt.Dest, stmt.Logger); err == nil {
 				updatingSchema = updatingStmt.Schema
 				isDiffSchema = true
 			}

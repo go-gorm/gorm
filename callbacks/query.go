@@ -86,7 +86,7 @@ func BuildQuerySQL(db *gorm.DB) {
 			if queryFields {
 				stmt := gorm.Statement{DB: db}
 				// smaller struct
-				if err := stmt.Parse(db.Statement.Dest); err == nil && (db.QueryFields || stmt.Schema.ModelType != db.Statement.Schema.ModelType) {
+				if err := stmt.ParseWithLogger(db.Statement.Dest, db.Logger); err == nil && (db.QueryFields || stmt.Schema.ModelType != db.Statement.Schema.ModelType) {
 					clauseSelect.Columns = make([]clause.Column, len(stmt.Schema.DBNames))
 
 					for idx, dbName := range stmt.Schema.DBNames {

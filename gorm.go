@@ -444,13 +444,13 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 		modelSchema, joinSchema *schema.Schema
 	)
 
-	err := stmt.Parse(model)
+	err := stmt.ParseWithLogger(model, db.Logger)
 	if err != nil {
 		return err
 	}
 	modelSchema = stmt.Schema
 
-	err = stmt.Parse(joinTable)
+	err = stmt.ParseWithLogger(joinTable, db.Logger)
 	if err != nil {
 		return err
 	}

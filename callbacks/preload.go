@@ -173,7 +173,7 @@ func preloadDB(db *gorm.DB, reflectValue reflect.Value, dest interface{}) *gorm.
 		return true
 	})
 
-	if err := tx.Statement.Parse(dest); err != nil {
+	if err := tx.Statement.ParseWithLogger(dest, db.Logger); err != nil {
 		tx.AddError(err)
 		return tx
 	}

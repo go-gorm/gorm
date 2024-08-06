@@ -86,7 +86,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		}
 		tx = tx.callbacks.Create().Execute(tx.Set("gorm:update_track_time", true))
 	case reflect.Struct:
-		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
+		if err := tx.Statement.ParseWithLogger(value, db.Logger); err == nil && tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
 				if _, isZero := pf.ValueOf(tx.Statement.Context, reflectValue); isZero {
 					return tx.callbacks.Create().Execute(tx)
@@ -465,7 +465,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 			dbName := tx.Statement.Selects[0]
 			fields := strings.FieldsFunc(dbName, utils.IsValidDBNameChar)
 			if len(fields) == 1 || (len(fields) == 3 && (strings.ToUpper(fields[1]) == "AS" || fields[1] == ".")) {
-				if tx.Statement.Parse(tx.Statement.Model) == nil {
+				if tx.Statement.ParseWithLogger(tx.Statement.Model, db.Logger) == nil {
 					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
 						dbName = f.DBName
 					}
@@ -554,7 +554,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if tx.Statement.Model != nil {
-		if tx.Statement.Parse(tx.Statement.Model) == nil {
+		if tx.Statement.ParseWithLogger(tx.Statement.Model, db.Logger) == nil {
 			if f := tx.Statement.Schema.LookUpField(column); f != nil {
 				column = f.DBName
 			}
@@ -574,7 +574,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 
 func (db *DB) ScanRows(rows *sql.Rows, dest interface{}) error {
 	tx := db.getInstance()
-	if err := tx.Statement.Parse(dest); !errors.Is(err, schema.ErrUnsupportedDataType) {
+	if err := tx.Statement.ParseWithLogger(dest, db.Logger); !errors.Is(err, schema.ErrUnsupportedDataType) {
 		tx.AddError(err)
 	}
 	tx.Statement.Dest = dest
