@@ -55,9 +55,8 @@ func (db *PreparedStmtDB) Close() {
 			}
 		}(stmt)
 	}
-	// I think setting it to nil should be better, as there should be no one
-	// writing into it after calling Close, but leave it for compatibility and safety
-	db.Stmts = make(map[string]*Stmt)
+	// setting db.Stmts to nil to avoid further using
+	db.Stmts = nil
 }
 
 func (sdb *PreparedStmtDB) Reset() {
@@ -65,7 +64,13 @@ func (sdb *PreparedStmtDB) Reset() {
 	defer sdb.Mux.Unlock()
 
 	for _, stmt := range sdb.Stmts {
-		go stmt.Close()
+		go func(s *Stmt) {
+			// make sure the stmt must finish preparation first
+			<-s.prepared
+			if s.Stmt != nil {
+				_ = s.Close()
+			}
+		}(stmt)
 	}
 	sdb.Stmts = make(map[string]*Stmt)
 }
@@ -96,7 +101,12 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 
 		return *stmt, nil
 	}
-
+	// check db.Stmts first to avoid Segmentation Fault(setting value to nil map)
+	// which cause by calling Close and executing SQL concurrently
+	if db.Stmts == nil {
+		db.Mux.Unlock()
+		return Stmt{}, ErrInvalidDB
+	}
 	// cache preparing stmt first
 	cacheStmt := Stmt{Transaction: isTransaction, prepared: make(chan struct{})}
 	db.Stmts[query] = &cacheStmt
