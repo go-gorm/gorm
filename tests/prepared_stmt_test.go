@@ -177,8 +177,18 @@ func isUsingClosedConnError(err error) bool {
 // TestPreparedStmtConcurrentReset test calling reset and executing SQL concurrently
 // this test making sure that the gorm would not get a Segmentation Fault, and the only error cause by this is using a closed Stmt
 func TestPreparedStmtConcurrentReset(t *testing.T) {
+	name := "prepared_stmt_concurrent_reset"
+	user := *GetUser(name, Config{})
+	createTx := DB.Session(&gorm.Session{}).Create(&user)
+	if createTx.Error != nil {
+		t.Fatalf("failed to prepare record due to %s, test cannot be continue", createTx.Error)
+	}
 
-	tx := DB.Session(&gorm.Session{PrepareStmt: true})
+	// create a new connection to keep away from other tests
+	tx, err := OpenTestConnection(&gorm.Config{PrepareStmt: true})
+	if err != nil {
+		t.Fatalf("failed to open test connection due to %s", err)
+	}
 	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
 	if !ok {
 		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
@@ -189,12 +199,6 @@ func TestPreparedStmtConcurrentReset(t *testing.T) {
 	var unexpectedError bool
 	writerFinish := make(chan struct{})
 
-	name := "prepared_stmt_concurrent_reset"
-	user := *GetUser(name, Config{})
-	tx = tx.Create(&user)
-	if tx.Error != nil {
-		t.Fatalf("failed to prepare record due to %s, test cannot be continue", tx.Error)
-	}
 	wg.Add(1)
 	go func(id uint) {
 		defer wg.Done()
@@ -232,8 +236,18 @@ func TestPreparedStmtConcurrentReset(t *testing.T) {
 // and the only error cause by this is using a closed Stmt or gorm.ErrInvalidDB
 // and all of the goroutine must got gorm.ErrInvalidDB after database close
 func TestPreparedStmtConcurrentClose(t *testing.T) {
+	name := "prepared_stmt_concurrent_close"
+	user := *GetUser(name, Config{})
+	createTx := DB.Session(&gorm.Session{}).Create(&user)
+	if createTx.Error != nil {
+		t.Fatalf("failed to prepare record due to %s, test cannot be continue", createTx.Error)
+	}
 
-	tx := DB.Session(&gorm.Session{PrepareStmt: true})
+	// create a new connection to keep away from other tests
+	tx, err := OpenTestConnection(&gorm.Config{PrepareStmt: true})
+	if err != nil {
+		t.Fatalf("failed to open test connection due to %s", err)
+	}
 	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
 	if !ok {
 		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
@@ -247,12 +261,6 @@ func TestPreparedStmtConcurrentClose(t *testing.T) {
 	var lastRunIndex int
 	var closeFinishedAt int64
 
-	name := "prepared_stmt_concurrent_close"
-	user := *GetUser(name, Config{})
-	tx = tx.Create(&user)
-	if tx.Error != nil {
-		t.Fatalf("failed to prepare record due to %s, test cannot be continue", tx.Error)
-	}
 	wg.Add(1)
 	go func(id uint) {
 		defer wg.Done()
@@ -290,7 +298,7 @@ func TestPreparedStmtConcurrentClose(t *testing.T) {
 
 	wg.Wait()
 	var tmp User
-	err := tx.Session(&gorm.Session{}).First(&tmp, user.ID).Error
+	err = tx.Session(&gorm.Session{}).First(&tmp, user.ID).Error
 	if err != gorm.ErrInvalidDB {
 		t.Fatalf("must got a gorm.ErrInvalidDB while execution after db close, got %+v instead", err)
 	}
