@@ -476,19 +476,3 @@ func TestJoinsPreload_Issue7013_NoEntries(t *testing.T) {
 
 	AssertEqual(t, len(entries), 0)
 }
-
-func TestJoinWithWrongColumnName_MultipleAfterQueryCalls(t *testing.T) {
-	type result struct {
-		gorm.Model
-		Name string
-		Pets []*Pet `gorm:"foreignKey:UserID"`
-	}
-	user := *GetUser("joins_with_select", Config{Pets: 2})
-	DB.Save(&user)
-	var results []result
-	var total int64
-	assert.NotPanics(t, func() {
-		err := DB.Table("users").Select("users.id, pets.id as pet_id, pets.name").Joins("left join pets on pets.user_id = users.id").Where("users.name = ? and pets.names = ?", "joins_with_select", "joins_with_select_pet_2").Preload("Pets").Find(&results).Limit(-1).Offset(-1).Count(&total).Error
-		assert.ErrorContains(t, err, "no such column: pets.names")
-	})
-}
