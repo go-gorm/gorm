@@ -166,3 +166,26 @@ func SplitNestedRelationName(name string) []string {
 func JoinNestedRelationNames(relationNames []string) string {
 	return strings.Join(relationNames, nestedRelationSplit)
 }
+
+// MaxInt returns maximum of two integers
+func MaxInt(n1, n2 int) int {
+	if n1 > n2 {
+		return n1
+	}
+	return n2
+}
+
+// MinInt returns minimum of two integers
+func MinInt(n1, n2 int) int {
+	if n1 < n2 {
+		return n1
+	}
+	return n2
+}
+
+// RTrimSlice Right trims the give slice by given length
+func RTrimSlice[T any](v []T, trimLen int) []T {
+	rPtr := MaxInt(trimLen, 0)  // should not be negative
+	rPtr = MinInt(len(v), rPtr) // should not be greater than length
+	return v[:rPtr]
+}

@@ -138,3 +138,78 @@ func TestToString(t *testing.T) {
 		})
 	}
 }
+
+func TestMaxInt(t *testing.T) {
+
+	type testVal struct {
+		n1, n2 int
+	}
+
+	integerSet := []int{100, 10, 0, -10, -100} // test set in desc order
+	samples := []testVal{}
+
+	for _, i := range integerSet {
+		for _, j := range integerSet {
+			samples = append(samples, testVal{n1: i, n2: j})
+		}
+	}
+
+	for _, sample := range samples {
+		t.Run("", func(t *testing.T) {
+			result := MaxInt(sample.n1, sample.n2)
+			if !(result >= sample.n1 && result >= sample.n2) {
+				t.Fatalf("For n1=%d and n2=%d, result is %d;", sample.n1, sample.n2, result)
+			}
+		})
+	}
+}
+
+func TestMinInt(t *testing.T) {
+
+	type testVal struct {
+		n1, n2 int
+	}
+
+	integerSet := []int{100, 10, 0, -10, -100} // test set in desc order
+	samples := []testVal{}
+
+	for _, i := range integerSet {
+		for _, j := range integerSet {
+			samples = append(samples, testVal{n1: i, n2: j})
+		}
+	}
+
+	for _, sample := range samples {
+		t.Run("", func(t *testing.T) {
+			result := MinInt(sample.n1, sample.n2)
+			if !(result <= sample.n1 && result <= sample.n2) {
+				t.Fatalf("For n1=%d and n2=%d, result is %d;", sample.n1, sample.n2, result)
+			}
+		})
+	}
+}
+
+func TestRTrimSlice(t *testing.T) {
+	samples := []struct {
+		input    []int
+		trimLen  int
+		expected []int
+	}{
+		{[]int{1, 2, 3, 4, 5}, 3, []int{1, 2, 3}},
+		{[]int{1, 2, 3, 4, 5}, 0, []int{}},
+		{[]int{1, 2, 3, 4, 5}, 5, []int{1, 2, 3, 4, 5}},
+		{[]int{1, 2, 3, 4, 5}, 10, []int{1, 2, 3, 4, 5}}, // trimLen greater than slice length
+		{[]int{1, 2, 3, 4, 5}, -1, []int{}},              // negative trimLen
+		{[]int{}, 3, []int{}},                            // empty slice
+		{[]int{1, 2, 3}, 1, []int{1}},                    // trim to a single element
+	}
+
+	for _, sample := range samples {
+		t.Run("", func(t *testing.T) {
+			result := RTrimSlice(sample.input, sample.trimLen)
+			if !AssertEqual(result, sample.expected) {
+				t.Errorf("Triming %v by length %d gives %v but want %v", sample.input, sample.trimLen, result, sample.expected)
+			}
+		})
+	}
+}
