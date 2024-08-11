@@ -138,3 +138,64 @@ func TestToString(t *testing.T) {
 		})
 	}
 }
+
+func TestRTrimSlice(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []int
+		trimLen  int
+		expected []int
+	}{
+		{
+			name:     "Trim two elements from end",
+			input:    []int{1, 2, 3, 4, 5},
+			trimLen:  2,
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "Trim entire slice",
+			input:    []int{1, 2, 3},
+			trimLen:  3,
+			expected: []int{},
+		},
+		{
+			name:     "Trim length greater than slice length",
+			input:    []int{1, 2, 3},
+			trimLen:  5,
+			expected: []int{},
+		},
+		{
+			name:     "Zero trim length",
+			input:    []int{1, 2, 3},
+			trimLen:  0,
+			expected: []int{1, 2, 3},
+		},
+		{
+			name:     "Trim one element from end",
+			input:    []int{1, 2, 3},
+			trimLen:  1,
+			expected: []int{1, 2},
+		},
+		{
+			name:     "Empty slice",
+			input:    []int{},
+			trimLen:  2,
+			expected: []int{},
+		},
+		{
+			name:     "Negative trim length (should be treated as zero)",
+			input:    []int{1, 2, 3},
+			trimLen:  -1,
+			expected: []int{1, 2, 3},
+		},
+	}
+
+	for _, testcase := range tests {
+		t.Run(testcase.name, func(t *testing.T) {
+			result := RTrimSlice(testcase.input, testcase.trimLen)
+			if !AssertEqual(result, testcase.expected) {
+				t.Errorf("RTrimSlice(%v, %d) = %v; want %v", testcase.input, testcase.trimLen, result, testcase.expected)
+			}
+		})
+	}
+}
