@@ -126,7 +126,19 @@ func Delete(config *Config) func(db *gorm.DB) {
 
 		if db.Statement.SQL.Len() == 0 {
 			db.Statement.SQL.Grow(100)
-			db.Statement.AddClauseIfNotExists(clause.Delete{})
+
+			deleteClause := clause.Delete{}
+
+			HandleJoins(
+				db,
+				func(db *gorm.DB) {
+					deleteClause.Modifier = db.Statement.Table
+				},
+				func(db *gorm.DB, tableAliasName string, join gorm.Join, relation *schema.Relationship) {
+				},
+			)
+
+			db.Statement.AddClauseIfNotExists(deleteClause)
 
 			if db.Statement.Schema != nil {
 				_, queryValues := schema.GetIdentityFieldValuesMap(db.Statement.Context, db.Statement.ReflectValue, db.Statement.Schema.PrimaryFields)

@@ -260,7 +260,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
-			j := join{
+			j := Join{
 				Name: query, Conds: args, Selects: db.Statement.Selects,
 				Omits: db.Statement.Omits, JoinType: joinType,
 			}
@@ -272,7 +272,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 		}
 	}
 
-	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args, JoinType: joinType})
+	tx.Statement.Joins = append(tx.Statement.Joins, Join{Name: query, Conds: args, JoinType: joinType})
 	return
 }
 
@@ -448,9 +448,10 @@ func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 // Unscoped allows queries to include records marked as deleted,
 // overriding the soft deletion behavior.
 // Example:
-//    var users []User
-//    db.Unscoped().Find(&users)
-//    // Retrieves all users, including deleted ones.
+//
+//	var users []User
+//	db.Unscoped().Find(&users)
+//	// Retrieves all users, including deleted ones.
 func (db *DB) Unscoped() (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Unscoped = true

@@ -13,7 +13,7 @@ func (d Delete) Build(builder Builder) {
 
 	if d.Modifier != "" {
 		builder.WriteByte(' ')
-		builder.WriteString(d.Modifier)
+		builder.WriteQuoted(d.Modifier)
 	}
 }
 

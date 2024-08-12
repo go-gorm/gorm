@@ -33,7 +33,7 @@ type Statement struct {
 	Selects              []string          // selected columns
 	Omits                []string          // omit columns
 	ColumnMapping        map[string]string // map columns
-	Joins                []join
+	Joins                []Join
 	Preloads             map[string][]interface{}
 	Settings             sync.Map
 	ConnPool             ConnPool
@@ -49,7 +49,7 @@ type Statement struct {
 	scopes               []func(*DB) *DB
 }
 
-type join struct {
+type Join struct {
 	Name     string
 	Conds    []interface{}
 	On       *clause.Where
@@ -538,7 +538,7 @@ func (stmt *Statement) clone() *Statement {
 	}
 
 	if len(stmt.Joins) > 0 {
-		newStmt.Joins = make([]join, len(stmt.Joins))
+		newStmt.Joins = make([]Join, len(stmt.Joins))
 		copy(newStmt.Joins, stmt.Joins)
 	}
 
