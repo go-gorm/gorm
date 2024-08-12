@@ -104,10 +104,10 @@ func BuildQuerySQL(db *gorm.DB) {
 					}
 				}
 			},
-			func(db *gorm.DB, tableAliasName string, join gorm.Join, relation *schema.Relationship) {
+			func(db *gorm.DB, tableAliasName string, idx int, relation *schema.Relationship) {
 				columnStmt := gorm.Statement{
 					Table: tableAliasName, DB: db, Schema: relation.FieldSchema,
-					Selects: join.Selects, Omits: join.Omits,
+					Selects: db.Statement.Joins[idx].Selects, Omits: db.Statement.Joins[idx].Omits,
 				}
 
 				selectColumns, restricted := columnStmt.SelectAndOmitColumns(false, false)

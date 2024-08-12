@@ -134,7 +134,7 @@ func Delete(config *Config) func(db *gorm.DB) {
 				func(db *gorm.DB) {
 					deleteClause.Modifier = db.Statement.Table
 				},
-				func(db *gorm.DB, tableAliasName string, join gorm.Join, relation *schema.Relationship) {
+				func(db *gorm.DB, tableAliasName string, idx int, relation *schema.Relationship) {
 				},
 			)
 

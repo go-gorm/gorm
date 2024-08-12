@@ -260,7 +260,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
-			j := Join{
+			j := join{
 				Name: query, Conds: args, Selects: db.Statement.Selects,
 				Omits: db.Statement.Omits, JoinType: joinType,
 			}
@@ -272,7 +272,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 		}
 	}
 
-	tx.Statement.Joins = append(tx.Statement.Joins, Join{Name: query, Conds: args, JoinType: joinType})
+	tx.Statement.Joins = append(tx.Statement.Joins, join{Name: query, Conds: args, JoinType: joinType})
 	return
 }
 

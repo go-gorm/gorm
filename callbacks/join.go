@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func HandleJoins(db *gorm.DB, prejoinCallback func(db *gorm.DB), perFieldNameCallback func(db *gorm.DB, tableAliasName string, join gorm.Join, relation *schema.Relationship)) {
+func HandleJoins(db *gorm.DB, prejoinCallback func(db *gorm.DB), perFieldNameCallback func(db *gorm.DB, tableAliasName string, idx int, relation *schema.Relationship)) {
 	// inline joins
 	fromClause := clause.From{}
 	if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
@@ -19,7 +19,7 @@ func HandleJoins(db *gorm.DB, prejoinCallback func(db *gorm.DB), perFieldNameCal
 		prejoinCallback(db)
 
 		specifiedRelationsName := make(map[string]interface{})
-		for _, join := range db.Statement.Joins {
+		for idx, join := range db.Statement.Joins {
 			if db.Statement.Schema != nil {
 				var isRelations bool // is relations or raw sql
 				var relations []*schema.Relationship
@@ -59,7 +59,7 @@ func HandleJoins(db *gorm.DB, prejoinCallback func(db *gorm.DB), perFieldNameCal
 							tableAliasName = utils.NestedRelationName(parentTableName, tableAliasName)
 						}
 
-						perFieldNameCallback(db, tableAliasName, join, relation)
+						perFieldNameCallback(db, tableAliasName, idx, relation)
 
 						exprs := make([]clause.Expression, len(relation.References))
 						for idx, ref := range relation.References {
