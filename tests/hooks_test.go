@@ -609,3 +609,44 @@ func TestPropagateUnscoped(t *testing.T) {
 		t.Fatalf("unscoped did not propagate")
 	}
 }
+
+type StructUpdate struct {
+	ID      uint   `gorm:"column:id;primary_key"`
+	Version int    `gorm:"column:version"`
+	Name    string `gorm:"column:name"`
+}
+
+func (StructUpdate) TableName() string {
+	return "struct_updates"
+}
+
+func (su *StructUpdate) BeforeUpdate(*gorm.DB) error {
+	su.Version++
+	return nil
+}
+
+func TestBeforeUpdateWithStructColumn(t *testing.T) {
+	DB.Migrator().DropTable(&StructUpdate{})
+	DB.AutoMigrate(&StructUpdate{})
+
+	su := StructUpdate{
+		ID:      1,
+		Version: 1,
+	}
+	err := DB.Create(&su).Error
+	if err != nil {
+		t.Fatalf("create struct failed: %v", err)
+	}
+
+	err = DB.Model(&su).Update("name", "demoManito").Error
+	if err != nil {
+		t.Fatalf("update struct failed: %v", err)
+	}
+	if su.Version != 2 {
+		t.Fatalf("update version failed: %v", su.Version)
+	}
+	err = DB.Find(&su, "id = ?", 1).Error
+	if err != nil {
+		t.Fatalf("find struct failed: %v", err)
+	}
+}

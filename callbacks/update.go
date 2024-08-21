@@ -32,22 +32,50 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 // BeforeUpdate before update hooks
 func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
-		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
+		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
+			var (
+				beforeSaveInterface   BeforeSaveInterface
+				isBeforeSaveHook      bool
+				beforeUpdateInterface BeforeUpdateInterface
+				isBeforeUpdateHook    bool
+			)
 			if db.Statement.Schema.BeforeSave {
-				if i, ok := value.(BeforeSaveInterface); ok {
-					called = true
-					db.AddError(i.BeforeSave(tx))
-				}
+				beforeSaveInterface, isBeforeSaveHook = value.(BeforeSaveInterface)
 			}
-
 			if db.Statement.Schema.BeforeUpdate {
-				if i, ok := value.(BeforeUpdateInterface); ok {
-					called = true
-					db.AddError(i.BeforeUpdate(tx))
+				beforeUpdateInterface, isBeforeUpdateHook = value.(BeforeUpdateInterface)
+			}
+			if !isBeforeSaveHook && !isBeforeUpdateHook {
+				return false
+			}
+
+			// save a snapshot of the struct before the hook was called
+			rv := reflect.Indirect(reflect.ValueOf(value))
+			rvSnapshot := reflect.New(rv.Type()).Elem()
+			rvSnapshot.Set(rv)
+
+			if isBeforeSaveHook {
+				db.AddError(beforeSaveInterface.BeforeSave(tx))
+			}
+			if isBeforeUpdateHook {
+				db.AddError(beforeUpdateInterface.BeforeUpdate(tx))
+			}
+
+			for _, field := range db.Statement.Schema.Fields {
+				if field.PrimaryKey {
+					continue
+				}
+				dbFieldName, ok := field.TagSettings["COLUMN"]
+				if !ok {
+					continue
+				}
+				// compare with the snapshot and update the field if there is a difference
+				if !reflect.DeepEqual(rv.FieldByName(field.Name).Interface(), rvSnapshot.FieldByName(field.Name).Interface()) {
+					db.Statement.SetColumn(dbFieldName, rv.FieldByName(field.Name).Interface())
 				}
 			}
 
-			return called
+			return true
 		})
 	}
 }
