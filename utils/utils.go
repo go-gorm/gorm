@@ -166,3 +166,14 @@ func SplitNestedRelationName(name string) []string {
 func JoinNestedRelationNames(relationNames []string) string {
 	return strings.Join(relationNames, nestedRelationSplit)
 }
+
+// RTrimSlice Right trims the given slice by given length
+func RTrimSlice[T any](v []T, trimLen int) []T {
+	if trimLen >= len(v) { // trimLen greater than slice len means fully sliced
+		return v[:0]
+	}
+	if trimLen < 0 { // negative trimLen is ignored
+		return v[:]
+	}
+	return v[:len(v)-trimLen]
+}
