@@ -407,6 +407,23 @@ func (db *DB) getInstance() *DB {
 		tx := &DB{Config: db.Config, Error: db.Error}
 
 		if db.clone == 1 {
+
+			setings := sync.Map{}
+			d,e := db.Get("xs-uuid")
+			if e{
+				setings.Store("xs-uuid",d)
+			}
+
+			d,e = db.Get("xs-uuid-internal")
+			if e{
+				setings.Store("xs-uuid-internal",d)
+			}
+			d,e = db.Get("signed-user")
+			if e{
+				setings.Store("signed-user",d)
+
+			}
+			
 			// clone with new statement
 			tx.Statement = &Statement{
 				DB:        tx,
@@ -415,6 +432,7 @@ func (db *DB) getInstance() *DB {
 				Clauses:   map[string]clause.Clause{},
 				Vars:      make([]interface{}, 0, 8),
 				SkipHooks: db.Statement.SkipHooks,
+				Settings: setings,
 			}
 			if db.Config.PropagateUnscoped {
 				tx.Statement.Unscoped = db.Statement.Unscoped
