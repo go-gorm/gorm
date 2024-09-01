@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -522,13 +523,17 @@ func (db *DB) Rows() (*sql.Rows, error) {
 }
 
 // Scan scans selected value to the struct dest
-func (db *DB) Scan(dest interface{}) (tx *DB) {
+func (db *DB) Scan(ctx context.Context, dest interface{}) (tx *DB) {
 	config := *db.Config
 	currentLogger, newLogger := config.Logger, logger.Recorder.New()
 	config.Logger = newLogger
 
 	tx = db.getInstance()
 	tx.Config = &config
+
+	if ctx != nil {
+		tx = tx.WithContext(ctx)
+	}
 
 	if rows, err := tx.Rows(); err == nil {
 		if rows.Next() {
@@ -544,7 +549,7 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 		return newLogger.SQL, tx.RowsAffected
 	}, tx.Error)
 	tx.Logger = currentLogger
-	return
+	return tx
 }
 
 // Pluck queries a single column from a model, returning in the slice dest. E.g.:
