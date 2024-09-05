@@ -649,4 +649,7 @@ func TestBeforeUpdateWithStructColumn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("find struct failed: %v", err)
 	}
+	if su.Version != 2 {
+		t.Errorf("find version failed: %v", su.Version)
+	}
 }
