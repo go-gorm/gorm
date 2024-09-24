@@ -176,7 +176,7 @@ jobs:
 
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           TZ: Asia/Shanghai
           ACCEPT_EULA: Y
