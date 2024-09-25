@@ -180,13 +180,12 @@ jobs:
         env:
           TZ: Asia/Shanghai
           ACCEPT_EULA: Y
-          SA_PASSWORD: LoremIpsum86
           MSSQL_SA_PASSWORD: LoremIpsum86
           MSSQL_DB: master
         ports:
           - 9930:1433
         options: >-
-          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P LoremIpsum86 -N -C -l 30 -Q \"SELECT 1\" || exit 1"
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P LoremIpsum86 -l 30 -Q \"SELECT 1\" || exit 1"
           --health-start-period 10s
           --health-interval 10s
           --health-timeout 5s
