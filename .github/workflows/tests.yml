@@ -171,12 +171,12 @@ jobs:
     strategy:
       matrix:
         go: ['1.22', '1.21', '1.20']
-        platform: [ubuntu-20.04] # can not run test in macOS and windows
+        platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2019-CU18-ubuntu-20.04
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
           TZ: Asia/Shanghai
           ACCEPT_EULA: Y
