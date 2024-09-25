@@ -181,7 +181,6 @@ jobs:
           TZ: Asia/Shanghai
           ACCEPT_EULA: Y
           MSSQL_SA_PASSWORD: LoremIpsum86
-          MSSQL_DB: master
         ports:
           - 9930:1433
         options: >-

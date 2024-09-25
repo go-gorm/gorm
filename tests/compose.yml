@@ -24,9 +24,7 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=LoremIpsum86
       - MSSQL_SA_PASSWORD=LoremIpsum86
-      - MSSQL_DB=master
   tidb:
     image: 'pingcap/tidb:v6.5.0'
     ports:
