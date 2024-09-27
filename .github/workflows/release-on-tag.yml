@@ -21,14 +21,15 @@ jobs:
                 repo: context.repo.repo,
                 tag: context.ref.replace('refs/tags/', ''),
               })
-              outputs.release_exists = 'true'
+              return { release_exists: 'true' }
             } catch (error) {
               if (error.status === 404) {
-                outputs.release_exists = 'false'
+                return { release_exists: 'false' }
               } else {
                 throw error
               }
             }
+          result-encoding: string
 
       - name: Create Release
         if: steps.check_release.outputs.release_exists == 'false'
