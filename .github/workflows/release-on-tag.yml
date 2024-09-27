@@ -15,19 +15,20 @@ jobs:
         with:
           script: |
             try {
-              const release = await github.rest.repos.getReleaseByTag({
+              await github.rest.repos.getReleaseByTag({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 tag: context.ref.replace('refs/tags/', ''),
               })
-              core.setOutput('release_exists', 'true')
+              return { release_exists: 'true' }
             } catch (error) {
               if (error.status === 404) {
-                core.setOutput('release_exists', 'false')
+                return { release_exists: 'false' }
               } else {
                 throw error
               }
             }
+          result-encoding: string
 
       - name: Create Release
         if: steps.check_release.outputs.release_exists == 'false'
