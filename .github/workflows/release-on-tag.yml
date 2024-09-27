@@ -8,6 +8,7 @@ on:
 jobs:
   create_release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check if Release Exists
         id: check_release
@@ -28,7 +29,7 @@ jobs:
                 throw error
               }
             }
-          result-encoding: string
+          outputs: release_exists
 
       - name: Create Release
         if: steps.check_release.outputs.release_exists == 'false'
