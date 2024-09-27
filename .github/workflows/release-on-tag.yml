@@ -21,18 +21,21 @@ jobs:
                 repo: context.repo.repo,
                 tag: context.ref.replace('refs/tags/', ''),
               })
-              return { release_exists: 'true' }
+              return 'true'
             } catch (error) {
               if (error.status === 404) {
-                return { release_exists: 'false' }
+                return 'false'
               } else {
                 throw error
               }
             }
           result-encoding: string
 
+      - name: Print release_exists output
+        run: echo "release_exists is ${{ steps.check_release.outputs.result }}"
+
       - name: Create Release
-        if: steps.check_release.outputs.release_exists == 'false'
+        if: steps.check_release.outputs.result == 'false'
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref_name }}
