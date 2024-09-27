@@ -58,17 +58,17 @@ func TestParseIndex(t *testing.T) {
 		t.Fatalf("failed to parse user index, got error %v", err)
 	}
 
-	results := map[string]schema.Index{
-		"idx_user_indices_name": {
+	results := []*schema.Index{
+		{
 			Name:   "idx_user_indices_name",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name"}}},
 		},
-		"idx_name": {
+		{
 			Name:   "idx_name",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name2", UniqueIndex: "idx_name"}}},
 		},
-		"idx_user_indices_name3": {
+		{
 			Name:  "idx_user_indices_name3",
 			Type:  "btree",
 			Where: "name3 != 'jinzhu'",
@@ -79,19 +79,19 @@ func TestParseIndex(t *testing.T) {
 				Length:  10,
 			}},
 		},
-		"idx_user_indices_name4": {
+		{
 			Name:   "idx_user_indices_name4",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name4", UniqueIndex: "idx_user_indices_name4"}}},
 		},
-		"idx_user_indices_name5": {
+		{
 			Name:    "idx_user_indices_name5",
 			Class:   "FULLTEXT",
 			Comment: "hello , world",
 			Where:   "age > 10",
 			Fields:  []schema.IndexOption{{Field: &schema.Field{Name: "Name5"}}},
 		},
-		"profile": {
+		{
 			Name:    "profile",
 			Comment: "hello , world",
 			Where:   "age > 10",
@@ -101,21 +101,21 @@ func TestParseIndex(t *testing.T) {
 				Expression: "ABS(age)",
 			}},
 		},
-		"idx_id": {
+		{
 			Name:   "idx_id",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "MemberNumber"}}, {Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
-		"idx_oid": {
+		{
 			Name:   "idx_oid",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "OID", UniqueIndex: "idx_oid"}}},
 		},
-		"type": {
+		{
 			Name:   "type",
 			Type:   "",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "Name7"}}},
 		},
-		"idx_user_indices_name8": {
+		{
 			Name: "idx_user_indices_name8",
 			Type: "",
 			Fields: []schema.IndexOption{
@@ -124,7 +124,7 @@ func TestParseIndex(t *testing.T) {
 				{Field: &schema.Field{Name: "Name8"}, Collate: "utf8"},
 			},
 		},
-		"idx_user_indices_comp_id0": {
+		{
 			Name: "idx_user_indices_comp_id0",
 			Type: "",
 			Fields: []schema.IndexOption{{
@@ -133,7 +133,7 @@ func TestParseIndex(t *testing.T) {
 				Field: &schema.Field{Name: "Data0B"},
 			}},
 		},
-		"idx_user_indices_comp_id1": {
+		{
 			Name: "idx_user_indices_comp_id1",
 			Fields: []schema.IndexOption{{
 				Field: &schema.Field{Name: "Data1A"},
@@ -143,7 +143,7 @@ func TestParseIndex(t *testing.T) {
 				Field: &schema.Field{Name: "Data1C"},
 			}},
 		},
-		"idx_user_indices_comp_id2": {
+		{
 			Name:  "idx_user_indices_comp_id2",
 			Class: "UNIQUE",
 			Fields: []schema.IndexOption{{
@@ -183,17 +183,17 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 		t.Fatalf("failed to parse user index, got error %v", err)
 	}
 	indices := indexSchema.ParseIndexes()
-	CheckIndices(t, map[string]schema.Index{
-		"idx_index_tests_field_a": {
+	expectedIndices := []*schema.Index{
+		{
 			Name:   "idx_index_tests_field_a",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldA", Unique: true}}},
 		},
-		"idx_index_tests_field_c": {
+		{
 			Name:   "idx_index_tests_field_c",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldC", UniqueIndex: "idx_index_tests_field_c"}}},
 		},
-		"idx_index_tests_field_d": {
+		{
 			Name:  "idx_index_tests_field_d",
 			Class: "UNIQUE",
 			Fields: []schema.IndexOption{
@@ -202,7 +202,7 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 				{Field: &schema.Field{Name: "FieldD"}},
 			},
 		},
-		"uniq_field_e1_e2": {
+		{
 			Name:  "uniq_field_e1_e2",
 			Class: "UNIQUE",
 			Fields: []schema.IndexOption{
@@ -210,11 +210,7 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 				{Field: &schema.Field{Name: "FieldE2"}},
 			},
 		},
-		"idx_index_tests_field_f1": {
-			Name:   "idx_index_tests_field_f1",
-			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldF1"}}},
-		},
-		"uniq_field_f1_f2": {
+		{
 			Name:  "uniq_field_f1_f2",
 			Class: "UNIQUE",
 			Fields: []schema.IndexOption{
@@ -222,12 +218,16 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 				{Field: &schema.Field{Name: "FieldF2"}},
 			},
 		},
-		"idx_index_tests_field_g": {
+		{
+			Name:   "idx_index_tests_field_f1",
+			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldF1"}}},
+		},
+		{
 			Name:   "idx_index_tests_field_g",
 			Class:  "UNIQUE",
 			Fields: []schema.IndexOption{{Field: &schema.Field{Name: "FieldG", Unique: true, UniqueIndex: "idx_index_tests_field_g"}}},
 		},
-		"uniq_field_h1_h2": {
+		{
 			Name:  "uniq_field_h1_h2",
 			Class: "UNIQUE",
 			Fields: []schema.IndexOption{
@@ -235,30 +235,30 @@ func TestParseIndexWithUniqueIndexAndUnique(t *testing.T) {
 				{Field: &schema.Field{Name: "FieldH2"}},
 			},
 		},
-	}, indices)
+	}
+	CheckIndices(t, expectedIndices, indices)
 }
 
-func CheckIndices(t *testing.T, expected, actual map[string]schema.Index) {
-	for k, ei := range expected {
-		t.Run(k, func(t *testing.T) {
-			ai, ok := actual[k]
-			if !ok {
-				t.Errorf("expected index %q but actual missing", k)
-				return
-			}
+func CheckIndices(t *testing.T, expected, actual []*schema.Index) {
+	if len(expected) != len(actual) {
+		t.Errorf("expected %d indices, but got %d", len(expected), len(actual))
+		return
+	}
+
+	for i, ei := range expected {
+		t.Run(ei.Name, func(t *testing.T) {
+			ai := actual[i]
 			tests.AssertObjEqual(t, ai, ei, "Name", "Class", "Type", "Where", "Comment", "Option")
+
 			if len(ei.Fields) != len(ai.Fields) {
-				t.Errorf("expected index %q field length is %d but actual %d", k, len(ei.Fields), len(ai.Fields))
+				t.Errorf("expected index %q field length is %d but actual %d", ei.Name, len(ei.Fields), len(ai.Fields))
 				return
 			}
-			for i, ef := range ei.Fields {
-				af := ai.Fields[i]
+
+			for j, ef := range ei.Fields {
+				af := ai.Fields[j]
 				tests.AssertObjEqual(t, af, ef, "Name", "Unique", "UniqueIndex", "Expression", "Sort", "Collate", "Length")
 			}
 		})
-		delete(actual, k)
-	}
-	for k := range actual {
-		t.Errorf("unexpected index %q", k)
 	}
 }
