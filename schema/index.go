@@ -27,8 +27,9 @@ type IndexOption struct {
 }
 
 // ParseIndexes parse schema indexes
-func (schema *Schema) ParseIndexes() map[string]Index {
-	indexes := map[string]Index{}
+func (schema *Schema) ParseIndexes() []*Index {
+	indexesByName := map[string]*Index{}
+	indexes := []*Index{}
 
 	for _, field := range schema.Fields {
 		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUEINDEX"] != "" {
@@ -38,7 +39,12 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				break
 			}
 			for _, index := range fieldIndexes {
-				idx := indexes[index.Name]
+				idx := indexesByName[index.Name]
+				if idx == nil {
+					idx = &Index{Name: index.Name}
+					indexesByName[index.Name] = idx
+					indexes = append(indexes, idx)
+				}
 				idx.Name = index.Name
 				if idx.Class == "" {
 					idx.Class = index.Class
@@ -60,8 +66,6 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 				sort.Slice(idx.Fields, func(i, j int) bool {
 					return idx.Fields[i].priority < idx.Fields[j].priority
 				})
-
-				indexes[index.Name] = idx
 			}
 		}
 	}
@@ -76,15 +80,14 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 func (schema *Schema) LookIndex(name string) *Index {
 	if schema != nil {
 		indexes := schema.ParseIndexes()
-
-		if index, found := indexes[name]; found {
-			return &index
-		}
-
 		for _, index := range indexes {
+			if index.Name == name {
+				return index
+			}
+
 			for _, field := range index.Fields {
 				if field.Name == name {
-					return &index
+					return index
 				}
 			}
 		}
