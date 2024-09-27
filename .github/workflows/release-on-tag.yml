@@ -10,32 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check if Release Exists
-        id: check_release
-        uses: actions/github-script@v7
-        with:
-          script: |
-            try {
-              await github.rest.repos.getReleaseByTag({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: context.ref.replace('refs/tags/', ''),
-              })
-              return 'true'
-            } catch (error) {
-              if (error.status === 404) {
-                return 'false'
-              } else {
-                throw error
-              }
-            }
-          result-encoding: string
-
-      - name: Print release_exists output
-        run: echo "release_exists is ${{ steps.check_release.outputs.result }}"
-
       - name: Create Release
-        if: steps.check_release.outputs.result == 'false'
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref_name }}
