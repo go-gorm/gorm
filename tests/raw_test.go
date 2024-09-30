@@ -22,7 +22,6 @@ func TestRawSelect(t *testing.T) {
 		Sql      string
 		args     map[string]interface{}
 		Expect   []User
-		errFlag  bool
 	}{
 		{
 			"raw_test1",
@@ -33,7 +32,6 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[0],
 			},
-			false,
 		},
 		{
 			"raw_test2",
@@ -44,7 +42,6 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[3],
 			},
-			false,
 		},
 		{
 			"raw_test3",
@@ -55,7 +52,6 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[4],
 			},
-			false,
 		},
 		{
 			"raw_test4",
@@ -66,7 +62,6 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[3],
 			},
-			false,
 		},
 		{
 			"raw_test5",
@@ -77,7 +72,6 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[3],
 			},
-			false,
 		},
 		{
 			"raw_test6",
@@ -88,13 +82,12 @@ func TestRawSelect(t *testing.T) {
 			[]User{
 				users[3],
 			},
-			false,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.TestName, func(t *testing.T) {
 			var results []User
-			if err := DB.Raw(test.Sql, test.args).Scan(&results).Error; err != nil && !test.errFlag {
+			if err := DB.Raw(test.Sql, test.args).Scan(&results).Error; err != nil {
 				t.Errorf("errors %s: %v", test.TestName, err)
 			} else {
 				if len(results) != len(test.Expect) {
