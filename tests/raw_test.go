@@ -55,19 +55,19 @@ func TestRawSelect(t *testing.T) {
 		},
 		{
 			"raw_test4",
-			`select * from users where name like "@name" and age = 18`,
+			`select * from users where name like "raw3" and age = @age`,
 			map[string]interface{}{
-				"name": "raw1",
+				"age": 18,
 			},
 			[]User{
-				users[3],
+				users[2],
 			},
 		},
 		{
 			"raw_test5",
-			`select * from users where name like "@name" and age = 18`,
+			`select * from users where name like "@name" and age = @age`,
 			map[string]interface{}{
-				"name": "@raw",
+				"age": 18,
 			},
 			[]User{
 				users[3],
@@ -75,12 +75,12 @@ func TestRawSelect(t *testing.T) {
 		},
 		{
 			"raw_test6",
-			`select * from users where name like "@name" and age = 18`,
+			`select * from users where name like "@age" and age = @age`,
 			map[string]interface{}{
-				"name": "@age",
+				"age": 18,
 			},
 			[]User{
-				users[3],
+				users[4],
 			},
 		},
 	}
