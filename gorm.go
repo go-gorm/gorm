@@ -118,6 +118,7 @@ type Session struct {
 	Logger                   logger.Interface
 	NowFunc                  func() time.Time
 	CreateBatchSize          int
+	NamingStrategy           *schema.NamingStrategy
 }
 
 // Open initialize db session based on dialector
@@ -290,6 +291,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.DisableNestedTransaction {
 		txConfig.DisableNestedTransaction = true
+	}
+
+	if config.NamingStrategy != nil {
+		txConfig.NamingStrategy = config.NamingStrategy
 	}
 
 	if !config.NewDB {
