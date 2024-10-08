@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
@@ -922,7 +923,7 @@ func (field *Field) setupValuerAndSetter() {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
-						return
+						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
