@@ -1,8 +1,6 @@
 module gorm.io/gorm/tests
 
-go 1.21
-
-toolchain go1.23.2
+go 1.18
 
 require (
 	github.com/google/uuid v1.6.0
