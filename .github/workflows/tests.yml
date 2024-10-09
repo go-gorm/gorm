@@ -176,17 +176,15 @@ jobs:
 
     services:
       mssql:
-        image: mcmoe/mssqldocker:latest
+        image: mcr.microsoft.com/mssql/server:2022-latest
         env:
+          TZ: Asia/Shanghai
           ACCEPT_EULA: Y
-          SA_PASSWORD: LoremIpsum86
-          MSSQL_DB: gorm
-          MSSQL_USER: gorm
-          MSSQL_PASSWORD: LoremIpsum86
+          MSSQL_SA_PASSWORD: LoremIpsum86
         ports:
           - 9930:1433
         options: >-
-          --health-cmd="/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P LoremIpsum86 -l 30 -Q \"SELECT 1\" || exit 1"
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${MSSQL_SA_PASSWORD} -N -C -l 30 -Q \"SELECT 1\" || exit 1"
           --health-start-period 10s
           --health-interval 10s
           --health-timeout 5s
@@ -208,7 +206,7 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
 
     - name: Tests
-      run: GITHUB_ACTION=true GORM_DIALECT=sqlserver GORM_DSN="sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm" ./tests/tests_all.sh
+      run: GITHUB_ACTION=true GORM_DIALECT=sqlserver GORM_DSN="sqlserver://sa:LoremIpsum86@localhost:9930?database=master" ./tests/tests_all.sh
 
   tidb:
     strategy:

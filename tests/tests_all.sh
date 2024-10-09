@@ -27,7 +27,7 @@ if [[ -z $GITHUB_ACTION ]]; then
       SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930 -Q "IF SUSER_ID (N'gorm') IS NULL CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';" > /dev/null || true
       SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930 -Q "IF USER_ID (N'gorm') IS NULL CREATE USER gorm FROM LOGIN gorm; ALTER SERVER ROLE sysadmin ADD MEMBER [gorm];" > /dev/null || true
     else
-      docker compose up -d
+      MSSQL_IMAGE=mcr.microsoft.com/mssql/server docker compose up -d
     fi
     cd ..
   fi

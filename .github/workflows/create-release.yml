@@ -1,0 +1,31 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Release Notes and Publish
+        id: generate_release_notes
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: 'release-drafter.yml'
+          name: "Release ${{ github.ref_name }}"
+          tag: ${{ github.ref_name }}
+          publish: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
