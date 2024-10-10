@@ -189,6 +189,12 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 				_ = db.Close()
 			}
 		}
+
+		if config.TranslateError {
+			if _, ok := db.Dialector.(ErrorTranslator); !ok {
+				config.Logger.Warn(context.Background(), "The TranslateError option is enabled, but the Dialector %s does not implement ErrorTranslator.", db.Dialector.Name())
+			}
+		}
 	}
 
 	if config.PrepareStmt {
