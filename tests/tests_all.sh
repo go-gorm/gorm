@@ -21,13 +21,13 @@ if [[ -z $GITHUB_ACTION ]]; then
   then
     cd tests
     if [[ $(uname -a) == *" arm64" ]]; then
-      MSSQL_IMAGE=mcr.microsoft.com/azure-sql-edge docker-compose start || true
+      MSSQL_IMAGE=mcr.microsoft.com/azure-sql-edge docker compose up -d || true
       go install github.com/microsoft/go-sqlcmd/cmd/sqlcmd@latest || true
       SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930 -Q "IF DB_ID('gorm') IS NULL CREATE DATABASE gorm" > /dev/null || true
       SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930 -Q "IF SUSER_ID (N'gorm') IS NULL CREATE LOGIN gorm WITH PASSWORD = 'LoremIpsum86';" > /dev/null || true
       SQLCMDPASSWORD=LoremIpsum86 sqlcmd -U sa -S localhost:9930 -Q "IF USER_ID (N'gorm') IS NULL CREATE USER gorm FROM LOGIN gorm; ALTER SERVER ROLE sysadmin ADD MEMBER [gorm];" > /dev/null || true
     else
-      docker-compose start
+      MSSQL_IMAGE=mcr.microsoft.com/mssql/server docker compose up -d
     fi
     cd ..
   fi

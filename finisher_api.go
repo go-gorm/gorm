@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"reflect"
 	"strings"
 
@@ -623,14 +624,15 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
 		if !db.DisableNestedTransaction {
-			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
+			spID := new(maphash.Hash).Sum64()
+			err = db.SavePoint(fmt.Sprintf("sp%d", spID)).Error
 			if err != nil {
 				return
 			}
 			defer func() {
 				// Make sure to rollback when panic, Block error or Commit error
 				if panicked || err != nil {
-					db.RollbackTo(fmt.Sprintf("sp%p", fc))
+					db.RollbackTo(fmt.Sprintf("sp%d", spID))
 				}
 			}()
 		}

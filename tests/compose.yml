@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   mysql:
     image: 'mysql/mysql-server:latest'
@@ -20,16 +18,13 @@ services:
       - POSTGRES_USER=gorm
       - POSTGRES_PASSWORD=gorm
   mssql:
-    image: '${MSSQL_IMAGE:-mcmoe/mssqldocker}:latest'
+    image: '${MSSQL_IMAGE}:2022-latest'
     ports:
       - "127.0.0.1:9930:1433"
     environment:
       - TZ=Asia/Shanghai
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=LoremIpsum86
-      - MSSQL_DB=gorm
-      - MSSQL_USER=gorm
-      - MSSQL_PASSWORD=LoremIpsum86
+      - MSSQL_SA_PASSWORD=LoremIpsum86
   tidb:
     image: 'pingcap/tidb:v6.5.0'
     ports:
