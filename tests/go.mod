@@ -36,4 +36,6 @@ require (
 
 replace gorm.io/gorm => ../
 
+replace github.com/jackc/pgx/v5 => github.com/jackc/pgx/v5 v5.4.3
+
 replace github.com/microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.7.0
