@@ -67,7 +67,7 @@ func (m Migrator) RunWithValue(value interface{}, fc func(*gorm.Statement) error
 
 	if table, ok := value.(string); ok {
 		stmt.Table = table
-	} else if err := stmt.ParseWithSpecialTableName(value, stmt.Table); err != nil {
+	} else if err := stmt.ParseWithSpecialTableNameWithLogger(value, stmt.Table, m.DB.Logger); err != nil {
 		return err
 	}
 
@@ -348,7 +348,7 @@ func (m Migrator) RenameTable(oldName, newName interface{}) error {
 		oldTable = clause.Table{Name: v}
 	} else {
 		stmt := &gorm.Statement{DB: m.DB}
-		if err := stmt.Parse(oldName); err == nil {
+		if err := stmt.ParseWithLogger(oldName, m.DB.Logger); err == nil {
 			oldTable = m.CurrentTable(stmt)
 		} else {
 			return err
@@ -359,7 +359,7 @@ func (m Migrator) RenameTable(oldName, newName interface{}) error {
 		newTable = clause.Table{Name: v}
 	} else {
 		stmt := &gorm.Statement{DB: m.DB}
-		if err := stmt.Parse(newName); err == nil {
+		if err := stmt.ParseWithLogger(newName, m.DB.Logger); err == nil {
 			newTable = m.CurrentTable(stmt)
 		} else {
 			return err
@@ -918,7 +918,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		}
 		beDependedOn := map[*schema.Schema]bool{}
 		// support for special table name
-		if err := dep.ParseWithSpecialTableName(value, m.DB.Statement.Table); err != nil {
+		if err := dep.ParseWithSpecialTableNameWithLogger(value, m.DB.Statement.Table, m.Config.DB.Logger); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
 		}
 		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
