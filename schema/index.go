@@ -76,11 +76,12 @@ func (schema *Schema) ParseIndexes() map[string]Index {
 func (schema *Schema) LookIndex(name string) *Index {
 	if schema != nil {
 		indexes := schema.ParseIndexes()
-		for _, index := range indexes {
-			if index.Name == name {
-				return &index
-			}
 
+		if index, found := indexes[name]; found {
+			return &index
+		}
+
+		for _, index := range indexes {
 			for _, field := range index.Fields {
 				if field.Name == name {
 					return &index
@@ -111,10 +112,7 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 					idx = len(tag)
 				}
 
-				if idx != -1 {
-					name = tag[0:idx]
-				}
-
+				name = tag[0:idx]
 				if name == "" {
 					subName := field.Name
 					const key = "COMPOSITE"
