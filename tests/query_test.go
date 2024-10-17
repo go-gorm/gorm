@@ -1453,3 +1453,25 @@ func TestQueryScanToArray(t *testing.T) {
 		t.Error("users[1] should be empty")
 	}
 }
+
+func TestExists(t *testing.T) {
+	if DB.Dialector.Name() == "sqlserver" {
+		t.Skip()
+	}
+
+	ok, err := DB.Table("users").Where("name = ?", "jinzhu").Exists()
+	if err != nil {
+		t.Fatalf("Failed to scan, got %v", err)
+	}
+	if !ok {
+		t.Errorf("Should found record")
+	}
+
+	ok, err = DB.Table("users").Where("name = ?", "jinzhu-jinzhu").Exists()
+	if err != nil {
+		t.Fatalf("Failed to scan, got %v", err)
+	}
+	if ok {
+		t.Errorf("Should not found record")
+	}
+}

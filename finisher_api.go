@@ -502,6 +502,12 @@ func (db *DB) Count(count *int64) (tx *DB) {
 	return
 }
 
+// Exists checks if there is any record matching the given conditions
+func (db *DB) Exists() (bool, error) {
+	var exists bool
+	return exists, db.Session(&Session{NewDB: true}).Raw("SELECT ?", Expr("EXISTS(?)", db.Select("1"))).Pluck("exists", &exists).Error
+}
+
 func (db *DB) Row() *sql.Row {
 	tx := db.getInstance().Set("rows", false)
 	tx = tx.callbacks.Row().Execute(tx)
