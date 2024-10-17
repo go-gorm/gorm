@@ -21,6 +21,9 @@ type UserIndex struct {
 	Name7        string `gorm:"index:type"`
 	Name8        string `gorm:"index:,length:10;index:,collate:utf8"`
 
+	CompName1 string `gorm:"index:,unique,composite:idx_compname_1,option:NULLS NOT DISTINCT;not null"`
+	CompName2 string `gorm:"index:,composite:idx_compname_1"`
+
 	// Composite Index: Flattened structure.
 	Data0A string `gorm:"index:,composite:comp_id0"`
 	Data0B string `gorm:"index:,composite:comp_id0"`
@@ -154,6 +157,15 @@ func TestParseIndex(t *testing.T) {
 				Field: &schema.Field{Name: "Data2B"},
 			}},
 		},
+		"idx_user_indices_idx_compname_1": {
+			Class:  "UNIQUE",
+			Name:   "idx_user_indices_idx_compname_1",
+			Option: "NULLS NOT DISTINCT",
+			Fields: []schema.IndexOption{
+				{Field: &schema.Field{Name: "CompName1", NotNull: true}},
+				{Field: &schema.Field{Name: "CompName2"}},
+			},
+		},
 	}
 
 	CheckIndices(t, results, user.ParseIndexes())
@@ -253,7 +265,7 @@ func CheckIndices(t *testing.T, expected, actual map[string]schema.Index) {
 			}
 			for i, ef := range ei.Fields {
 				af := ai.Fields[i]
-				tests.AssertObjEqual(t, af, ef, "Name", "Unique", "UniqueIndex", "Expression", "Sort", "Collate", "Length")
+				tests.AssertObjEqual(t, af, ef, "Name", "Unique", "UniqueIndex", "Expression", "Sort", "Collate", "Length", "NotNull")
 			}
 		})
 		delete(actual, k)
