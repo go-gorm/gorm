@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,7 @@ type User struct {
 	Languages []Language `gorm:"many2many:UserSpeak;"`
 	Friends   []*User    `gorm:"many2many:user_friends;"`
 	Active    bool
+	UserUUID  *datatypes.UUID
 }
 
 type Account struct {

@@ -158,7 +158,7 @@ func TestDryRun(t *testing.T) {
 	dryRunDB := DB.Session(&gorm.Session{DryRun: true})
 
 	stmt := dryRunDB.Create(&user).Statement
-	if stmt.SQL.String() == "" || len(stmt.Vars) != 9 {
+	if stmt.SQL.String() == "" || len(stmt.Vars) != 10 {
 		t.Errorf("Failed to generate sql, got %v", stmt.SQL.String())
 	}
 
@@ -403,7 +403,7 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Create(user)
 	})
-	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
+	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active","user_uuid") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false,NULL) RETURNING "id"`, sql)
 
 	// save
 	user = &User{Name: "foo", Age: 20}
@@ -412,7 +412,7 @@ func TestToSQL(t *testing.T) {
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Model(&User{}).Save(user)
 	})
-	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false) RETURNING "id"`, sql)
+	assertEqualSQL(t, `INSERT INTO "users" ("created_at","updated_at","deleted_at","name","age","birthday","company_id","manager_id","active","user_uuid") VALUES ('2021-10-18 00:00:00','2021-10-18 00:00:00',NULL,'foo',20,NULL,NULL,NULL,false,NULL) RETURNING "id"`, sql)
 
 	// updates
 	user = &User{Name: "bar", Age: 22}
