@@ -298,7 +298,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				}
 
 				field.HasDefaultValue = true
-				field.AutoIncrement = true
+				field.AutoIncrement = false
 			}
 		}
 	}
