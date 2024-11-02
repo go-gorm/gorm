@@ -125,7 +125,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Readable:               true,
 		PrimaryKey:             utils.CheckTruth(tagSetting["PRIMARYKEY"], tagSetting["PRIMARY_KEY"]),
 		AutoIncrement:          utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
-		HasDefaultValue:        utils.CheckTruth(tagSetting["AUTOINCREMENT"]),
+		HasDefaultValue:        utils.CheckTruth(tagSetting["DEFAULT"]),
 		NotNull:                utils.CheckTruth(tagSetting["NOT NULL"], tagSetting["NOTNULL"]),
 		Unique:                 utils.CheckTruth(tagSetting["UNIQUE"]),
 		Comment:                tagSetting["COMMENT"],
