@@ -142,27 +142,27 @@ func TestAutoMigrateSelfReferential(t *testing.T) {
 }
 
 func TestAutoMigrateNullable(t *testing.T) {
-	type UserMigrateColumn struct {
+	type MigrateNullableColumn struct {
 		ID    uint
 		Bonus float64 `gorm:"not null"`
 		Stock float64
 	}
 
-	DB.Migrator().DropTable(&UserMigrateColumn{})
+	DB.Migrator().DropTable(&MigrateNullableColumn{})
 
-	DB.AutoMigrate(&UserMigrateColumn{})
+	DB.AutoMigrate(&MigrateNullableColumn{})
 
-	type UserMigrateColumn2 struct {
+	type MigrateNullableColumn2 struct {
 		ID    uint
 		Bonus float64
 		Stock float64 `gorm:"not null"`
 	}
 
-	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
+	if err := DB.Table("migrate_nullable_columns").AutoMigrate(&MigrateNullableColumn2{}); err != nil {
 		t.Fatalf("failed to auto migrate, got error: %v", err)
 	}
 
-	columnTypes, err := DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	columnTypes, err := DB.Table("migrate_nullable_columns").Migrator().ColumnTypes(&MigrateNullableColumn{})
 	if err != nil {
 		t.Fatalf("failed to get column types, got error: %v", err)
 	}
