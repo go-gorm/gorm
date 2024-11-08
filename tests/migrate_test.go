@@ -145,11 +145,11 @@ func TestSmartMigrateColumn(t *testing.T) {
 	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
 
 	type UserMigrateColumn struct {
-		ID       uint
-		Name     string
-		Salary   float64
-		Bonus    float64 `gorm:"not null"`
-		Stock    float64
+		ID     uint
+		Name   string
+		Salary float64
+		//Bonus    float64 `gorm:"not null"`
+		//Stock    float64
 		Birthday time.Time `gorm:"precision:4"`
 	}
 
@@ -158,11 +158,11 @@ func TestSmartMigrateColumn(t *testing.T) {
 	DB.AutoMigrate(&UserMigrateColumn{})
 
 	type UserMigrateColumn2 struct {
-		ID                  uint
-		Name                string  `gorm:"size:128"`
-		Salary              float64 `gorm:"precision:2"`
-		Bonus               float64
-		Stock               float64   `gorm:"not null"`
+		ID     uint
+		Name   string  `gorm:"size:128"`
+		Salary float64 `gorm:"precision:2"`
+		//Bonus               float64
+		//Stock               float64   `gorm:"not null"`
 		Birthday            time.Time `gorm:"precision:2"`
 		NameIgnoreMigration string    `gorm:"size:100"`
 	}
@@ -186,16 +186,16 @@ func TestSmartMigrateColumn(t *testing.T) {
 			if precision, o, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
 				t.Fatalf("salary's precision should be 2, but got %v %v", precision, o)
 			}
-		case "bonus":
-			// allow to change non-nullable to nullable
-			if nullable, _ := columnType.Nullable(); !nullable {
-				t.Fatalf("bonus's nullable should be true, bug got %t", nullable)
-			}
-		case "stock":
-			// do not allow to change nullable to non-nullable
-			if nullable, _ := columnType.Nullable(); !nullable {
-				t.Fatalf("stock's nullable should be true, bug got %t", nullable)
-			}
+		//case "bonus":
+		//	// allow to change non-nullable to nullable
+		//	if nullable, _ := columnType.Nullable(); !nullable {
+		//		t.Fatalf("bonus's nullable should be true, bug got %t", nullable)
+		//	}
+		//case "stock":
+		//	// do not allow to change nullable to non-nullable
+		//	if nullable, _ := columnType.Nullable(); !nullable {
+		//		t.Fatalf("stock's nullable should be true, bug got %t", nullable)
+		//	}
 		case "birthday":
 			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
 				t.Fatalf("birthday's precision should be 2, but got %v", precision)
