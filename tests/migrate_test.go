@@ -141,6 +141,48 @@ func TestAutoMigrateSelfReferential(t *testing.T) {
 	}
 }
 
+func TestAutoMigrateNullable(t *testing.T) {
+	type MigrateNullableColumn struct {
+		ID    uint
+		Bonus float64 `gorm:"not null"`
+		Stock float64
+	}
+
+	DB.Migrator().DropTable(&MigrateNullableColumn{})
+
+	DB.AutoMigrate(&MigrateNullableColumn{})
+
+	type MigrateNullableColumn2 struct {
+		ID    uint
+		Bonus float64
+		Stock float64 `gorm:"not null"`
+	}
+
+	if err := DB.Table("migrate_nullable_columns").AutoMigrate(&MigrateNullableColumn2{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err := DB.Table("migrate_nullable_columns").Migrator().ColumnTypes(&MigrateNullableColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "bonus":
+			// allow to change non-nullable to nullable
+			if nullable, _ := columnType.Nullable(); !nullable {
+				t.Fatalf("bonus's nullable should be true, bug got %t", nullable)
+			}
+		case "stock":
+			// do not allow to change nullable to non-nullable
+			if nullable, _ := columnType.Nullable(); !nullable {
+				t.Fatalf("stock's nullable should be true, bug got %t", nullable)
+			}
+		}
+	}
+}
+
 func TestSmartMigrateColumn(t *testing.T) {
 	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
 
