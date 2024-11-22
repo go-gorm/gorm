@@ -486,11 +486,19 @@ func (stmt *Statement) Build(clauses ...string) {
 }
 
 func (stmt *Statement) Parse(value interface{}) (err error) {
-	return stmt.ParseWithSpecialTableName(value, "")
+	return stmt.ParseWithSpecialTableNameWithLogger(value, "", logger.Default)
+}
+
+func (stmt *Statement) ParseWithLogger(value interface{}, log logger.Interface) (err error) {
+	return stmt.ParseWithSpecialTableNameWithLogger(value, "", log)
 }
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
-	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
+	return stmt.ParseWithSpecialTableNameWithLogger(value, specialTableName, logger.Default)
+}
+
+func (stmt *Statement) ParseWithSpecialTableNameWithLogger(value interface{}, specialTableName string, log logger.Interface) (err error) {
+	if stmt.Schema, err = schema.ParseWithSpecialTableNameWithLogger(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName, log); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
