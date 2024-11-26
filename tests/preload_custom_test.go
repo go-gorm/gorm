@@ -8,72 +8,72 @@ import (
 	"gorm.io/gorm"
 )
 
-// Define models
-type Item struct {
+// Structs for preload tests
+type PreloadItem struct {
 	ID        uint
 	Name      string
-	Tags      []Tag `gorm:"many2many:item_tags"`
+	Tags      []PreloadTag `gorm:"many2many:preload_items_preload_tags"`
 	CreatedAt time.Time
 }
 
-type Tag struct {
+type PreloadTag struct {
 	ID        uint
 	Name      string
 	Status    string
-	SubTags   []SubTag `gorm:"many2many:tag_sub_tags"`
+	SubTags   []PreloadSubTag `gorm:"many2many:tag_sub_tags"`
 }
 
-type SubTag struct {
+type PreloadSubTag struct {
 	ID     uint
 	Name   string
 	Status string
 }
 
-// Setup the in-memory SQLite database
-func setupTestDB(t *testing.T) *gorm.DB {
+// Setup database for preload tests
+func setupPreloadTestDB(t *testing.T) *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to connect database: %v", err)
 	}
-	err = db.AutoMigrate(&Item{}, &Tag{}, &SubTag{})
+	err = db.AutoMigrate(&PreloadItem{}, &PreloadTag{}, &PreloadSubTag{})
 	if err != nil {
 		t.Fatalf("failed to migrate database: %v", err)
 	}
 	return db
 }
 
-// Test default preloading functionality
+// Test default preload functionality
 func TestDefaultPreload(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	tag1 := Tag{Name: "Tag1", Status: "active"}
-	item := Item{Name: "Item1", Tags: []Tag{tag1}}
+	tag1 := PreloadTag{Name: "Tag1", Status: "active"}
+	item := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag1}}
 	db.Create(&item)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags").Find(&items).Error
 	if err != nil {
 		t.Fatalf("default preload failed: %v", err)
 	}
 
 	if len(items) != 1 || len(items[0].Tags) != 1 || items[0].Tags[0].Name != "Tag1" {
-		t.Errorf("unexpected results in TestDefaultPreload: %v", items)
+		t.Errorf("unexpected default preload results: %v", items)
 	}
 }
 
-// Test preloading with custom SQL joins and conditions
+// Test preloading with custom joins and conditions
 func TestCustomJoinsWithConditions(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	tag1 := Tag{Name: "Tag1", Status: "active"}
-	tag2 := Tag{Name: "Tag2", Status: "inactive"}
-	item := Item{Name: "Item1", Tags: []Tag{tag1, tag2}}
+	tag1 := PreloadTag{Name: "Tag1", Status: "active"}
+	tag2 := PreloadTag{Name: "Tag2", Status: "inactive"}
+	item := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag1, tag2}}
 	db.Create(&item)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags", func(tx *gorm.DB) *gorm.DB {
-		return tx.Joins("JOIN item_tags ON item_tags.tag_id = tags.id").
-			Where("tags.status = ?", "active")
+		return tx.Joins("JOIN preload_items_preload_tags ON preload_items_preload_tags.preload_tag_id = preload_tags.id").
+			Where("preload_tags.status = ?", "active")
 	}).Find(&items).Error
 	if err != nil {
 		t.Fatalf("custom join with conditions failed: %v", err)
@@ -84,41 +84,41 @@ func TestCustomJoinsWithConditions(t *testing.T) {
 	}
 }
 
-// Test nested preloading with custom joins
+// Test nested preload functionality with custom joins
 func TestNestedPreloadWithCustomJoins(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	subTag := SubTag{Name: "SubTag1", Status: "active"}
-	tag := Tag{Name: "Tag1", Status: "active", SubTags: []SubTag{subTag}}
-	item := Item{Name: "Item1", Tags: []Tag{tag}}
+	subTag := PreloadSubTag{Name: "SubTag1", Status: "active"}
+	tag := PreloadTag{Name: "Tag1", Status: "active", SubTags: []PreloadSubTag{subTag}}
+	item := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag}}
 	db.Create(&item)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags.SubTags", func(tx *gorm.DB) *gorm.DB {
-		return tx.Joins("JOIN tag_sub_tags ON tag_sub_tags.sub_tag_id = sub_tags.id").
-			Where("sub_tags.status = ?", "active")
+		return tx.Joins("JOIN tag_sub_tags ON tag_sub_tags.preload_sub_tag_id = preload_sub_tags.id").
+			Where("preload_sub_tags.status = ?", "active")
 	}).Find(&items).Error
 	if err != nil {
 		t.Fatalf("nested preload with custom joins failed: %v", err)
 	}
 
 	if len(items) != 1 || len(items[0].Tags) != 1 || len(items[0].Tags[0].SubTags) != 1 || items[0].Tags[0].SubTags[0].Name != "SubTag1" {
-		t.Errorf("unexpected results in TestNestedPreloadWithCustomJoins: %v", items)
+		t.Errorf("unexpected nested preload results: %v", items)
 	}
 }
 
 // Test behavior when no matching records exist
 func TestNoMatchingRecords(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	tag := Tag{Name: "Tag1", Status: "inactive"}
-	item := Item{Name: "Item1", Tags: []Tag{tag}}
+	tag := PreloadTag{Name: "Tag1", Status: "inactive"}
+	item := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag}}
 	db.Create(&item)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags", func(tx *gorm.DB) *gorm.DB {
-		return tx.Joins("JOIN item_tags ON item_tags.tag_id = tags.id").
-			Where("tags.status = ?", "active")
+		return tx.Joins("JOIN preload_items_preload_tags ON preload_items_preload_tags.preload_tag_id = preload_tags.id").
+			Where("preload_tags.status = ?", "active")
 	}).Find(&items).Error
 	if err != nil {
 		t.Fatalf("preload with no matching records failed: %v", err)
@@ -131,9 +131,9 @@ func TestNoMatchingRecords(t *testing.T) {
 
 // Test behavior with an empty database
 func TestEmptyDatabase(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags").Find(&items).Error
 	if err != nil {
 		t.Fatalf("preload with empty database failed: %v", err)
@@ -146,19 +146,19 @@ func TestEmptyDatabase(t *testing.T) {
 
 // Test multiple items with different tag statuses
 func TestMultipleItemsWithDifferentTagStatuses(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	tag1 := Tag{Name: "Tag1", Status: "active"}
-	tag2 := Tag{Name: "Tag2", Status: "inactive"}
-	item1 := Item{Name: "Item1", Tags: []Tag{tag1}}
-	item2 := Item{Name: "Item2", Tags: []Tag{tag2}}
+	tag1 := PreloadTag{Name: "Tag1", Status: "active"}
+	tag2 := PreloadTag{Name: "Tag2", Status: "inactive"}
+	item1 := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag1}}
+	item2 := PreloadItem{Name: "Item2", Tags: []PreloadTag{tag2}}
 	db.Create(&item1)
 	db.Create(&item2)
 
-	var items []Item
+	var items []PreloadItem
 	err := db.Preload("Tags", func(tx *gorm.DB) *gorm.DB {
-		return tx.Joins("JOIN item_tags ON item_tags.tag_id = tags.id").
-			Where("tags.status = ?", "active")
+		return tx.Joins("JOIN preload_items_preload_tags ON preload_items_preload_tags.preload_tag_id = preload_tags.id").
+			Where("preload_tags.status = ?", "active")
 	}).Find(&items).Error
 	if err != nil {
 		t.Fatalf("preload with multiple items failed: %v", err)
@@ -171,15 +171,15 @@ func TestMultipleItemsWithDifferentTagStatuses(t *testing.T) {
 
 // Test duplicate preload conditions
 func TestDuplicatePreloadConditions(t *testing.T) {
-	db := setupTestDB(t)
+	db := setupPreloadTestDB(t)
 
-	tag1 := Tag{Name: "Tag1", Status: "active"}
-	tag2 := Tag{Name: "Tag2", Status: "inactive"}
-	item := Item{Name: "Item1", Tags: []Tag{tag1, tag2}}
+	tag1 := PreloadTag{Name: "Tag1", Status: "active"}
+	tag2 := PreloadTag{Name: "Tag2", Status: "inactive"}
+	item := PreloadItem{Name: "Item1", Tags: []PreloadTag{tag1, tag2}}
 	db.Create(&item)
 
-	var activeTagsItems []Item
-	var inactiveTagsItems []Item
+	var activeTagsItems []PreloadItem
+	var inactiveTagsItems []PreloadItem
 
 	err := db.Preload("Tags", func(tx *gorm.DB) *gorm.DB {
 		return tx.Where("status = ?", "active")
