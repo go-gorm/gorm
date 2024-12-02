@@ -184,7 +184,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		FieldsByName:     map[string]*Field{},
 		FieldsByBindName: map[string]*Field{},
 		FieldsByDBName:   map[string]*Field{},
-		Relationships:    Relationships{Relations: map[string]*Relationship{}},
+		Relationships:    Relationships{Relations: map[string]*Relationship{}, Mux: &sync.RWMutex{}},
 		cacheStore:       cacheStore,
 		namer:            namer,
 		initialized:      make(chan struct{}),
