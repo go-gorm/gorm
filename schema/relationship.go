@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/jinzhu/inflection"
 	"golang.org/x/text/cases"
@@ -32,6 +33,8 @@ type Relationships struct {
 	Relations map[string]*Relationship
 
 	EmbeddedRelations map[string]*Relationships
+
+	Mux sync.RWMutex
 }
 
 type Relationship struct {
@@ -98,9 +101,10 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	}
 
 	if relation.Type == has {
-		// don't add relations to embedded schema, which might be shared
 		if relation.FieldSchema != relation.Schema && relation.Polymorphic == nil && field.OwnerSchema == nil {
+			relation.FieldSchema.Relationships.Mux.Lock()
 			relation.FieldSchema.Relationships.Relations["_"+relation.Schema.Name+"_"+relation.Name] = relation
+			relation.FieldSchema.Relationships.Mux.Unlock()
 		}
 
 		switch field.IndirectFieldType.Kind() {
