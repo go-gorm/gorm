@@ -543,7 +543,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 		} else if currentDefaultNotNull || dvNotNull {
 			switch field.GORMDataType {
 			case schema.Time:
-				if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
+				if !strings.EqualFold(strings.Split(dv, "(")[0], strings.Split(field.DefaultValue, "(")[0]) {
 					alterColumn = true
 				}
 			case schema.Bool:
