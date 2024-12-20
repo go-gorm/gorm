@@ -258,10 +258,6 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	if prioritizedPrimaryField != nil {
 		if prioritizedPrimaryField.PrimaryKey {
 			schema.PrioritizedPrimaryField = prioritizedPrimaryField
-		} else if len(schema.PrimaryFields) == 0 {
-			prioritizedPrimaryField.PrimaryKey = true
-			schema.PrioritizedPrimaryField = prioritizedPrimaryField
-			schema.PrimaryFields = append(schema.PrimaryFields, prioritizedPrimaryField)
 		}
 	}
 
