@@ -1,18 +1,28 @@
 package clause
 
-// Limit limit clause
+import (
+	"math"
+)
+
+// Limit represents a limit clause
 type Limit struct {
 	Limit  *int
 	Offset int
 }
 
-// Name where clause name
+// Name returns the name of the clause ("LIMIT")
 func (limit Limit) Name() string {
 	return "LIMIT"
 }
 
-// Build build where clause
+// Build constructs the LIMIT clause
 func (limit Limit) Build(builder Builder) {
+	// If only offset is defined and limit is nil, set limit to math.MaxInt
+	if limit.Limit == nil && limit.Offset > 0 {
+		maxInt := math.MaxInt
+		limit.Limit = &maxInt
+	}
+
 	if limit.Limit != nil && *limit.Limit >= 0 {
 		builder.WriteString("LIMIT ")
 		builder.AddVar(builder, *limit.Limit)
@@ -26,7 +36,7 @@ func (limit Limit) Build(builder Builder) {
 	}
 }
 
-// MergeClause merge order by clauses
+// MergeClause merges two limit clauses
 func (limit Limit) MergeClause(clause *Clause) {
 	clause.Name = ""
 

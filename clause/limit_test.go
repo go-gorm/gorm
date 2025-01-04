@@ -2,6 +2,7 @@ package clause_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"gorm.io/gorm/clause"
@@ -36,9 +37,10 @@ func TestLimit(t *testing.T) {
 			[]interface{}{limit0},
 		},
 		{
+			// Updated test case: only Offset is given, so now we expect math.MaxInt as LIMIT
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}},
-			"SELECT * FROM `users` OFFSET ?",
-			[]interface{}{20},
+			"SELECT * FROM `users` LIMIT ? OFFSET ?",
+			[]interface{}{math.MaxInt, 20},
 		},
 		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}, clause.Limit{Offset: 30}},
@@ -69,6 +71,12 @@ func TestLimit(t *testing.T) {
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Offset: 30}, clause.Limit{Limit: &limit50}},
 			"SELECT * FROM `users` LIMIT ? OFFSET ?",
 			[]interface{}{limit50, 30},
+		},
+		// New test example: if only Offset is defined, Limit should become math.MaxInt
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 100}},
+			"SELECT * FROM `users` LIMIT ? OFFSET ?",
+			[]interface{}{math.MaxInt, 100},
 		},
 	}
 
