@@ -26,9 +26,12 @@ func (returning Returning) Build(builder Builder) {
 
 // MergeClause merge order by clauses
 func (returning Returning) MergeClause(clause *Clause) {
-	if v, ok := clause.Expression.(Returning); ok {
-		returning.Columns = append(v.Columns, returning.Columns...)
+	if v, ok := clause.Expression.(Returning); ok && len(returning.Columns) > 0 {
+		if v.Columns != nil {
+			returning.Columns = append(v.Columns, returning.Columns...)
+		} else {
+			returning.Columns = nil
+		}
 	}
-
 	clause.Expression = returning
 }
