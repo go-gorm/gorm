@@ -23,7 +23,7 @@ type IndexOption struct {
 	Sort       string // DESC, ASC
 	Collate    string
 	Length     int
-	priority   int
+	Priority   int
 }
 
 // ParseIndexes parse schema indexes
@@ -64,7 +64,7 @@ func (schema *Schema) ParseIndexes() []*Index {
 
 				idx.Fields = append(idx.Fields, index.Fields...)
 				sort.Slice(idx.Fields, func(i, j int) bool {
-					return idx.Fields[i].priority < idx.Fields[j].priority
+					return idx.Fields[i].Priority < idx.Fields[j].Priority
 				})
 			}
 		}
@@ -155,7 +155,7 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 						Sort:       settings["SORT"],
 						Collate:    settings["COLLATE"],
 						Length:     length,
-						priority:   priority,
+						Priority:   priority,
 					}},
 				})
 			}
