@@ -414,12 +414,13 @@ func (db *DB) getInstance() *DB {
 		if db.clone == 1 {
 			// clone with new statement
 			tx.Statement = &Statement{
-				DB:        tx,
-				ConnPool:  db.Statement.ConnPool,
-				Context:   db.Statement.Context,
-				Clauses:   map[string]clause.Clause{},
-				Vars:      make([]interface{}, 0, 8),
-				SkipHooks: db.Statement.SkipHooks,
+				DB:                   tx,
+				ConnPool:             db.Statement.ConnPool,
+				Context:              db.Statement.Context,
+				Clauses:              map[string]clause.Clause{},
+				Vars:                 make([]interface{}, 0, 8),
+				SkipHooks:            db.Statement.SkipHooks,
+				RaiseErrorOnNotFound: db.Statement.RaiseErrorOnNotFound,
 			}
 			if db.Config.PropagateUnscoped {
 				tx.Statement.Unscoped = db.Statement.Unscoped
