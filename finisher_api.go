@@ -19,10 +19,7 @@ func (db *DB) Create(value interface{}) (tx *DB) {
 	if db.CreateBatchSize > 0 {
 		return db.CreateInBatches(value, db.CreateBatchSize)
 	}
-
-	tx = db.getInstance()
-	tx.Statement.Dest = value
-	return tx.callbacks.Create().Execute(tx)
+	return db.create(value)
 }
 
 // CreateInBatches inserts value in batches of batchSize
@@ -63,11 +60,14 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 
 		tx.RowsAffected = rowsAffected
 	default:
-		tx = db.getInstance()
-		tx.Statement.Dest = value
-		tx = tx.callbacks.Create().Execute(tx)
+		db.create(value)
 	}
 	return
+}
+func (db *DB) create(value interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.Dest = value
+	return tx.callbacks.Create().Execute(tx)
 }
 
 // Save updates value in database. If value doesn't contain a matching primary key, value is inserted.
