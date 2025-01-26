@@ -202,6 +202,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		switch reflectValueType.Kind() {
 		case reflect.Array, reflect.Slice:
 			reflectValueType = reflectValueType.Elem()
+			if reflectValueType.Kind() == reflect.Interface && reflectValue.Len() > 0 {
+				reflectValueType = reflect.Indirect(reflectValue.Index(0)).Elem().Type()
+			}
 		}
 		isPtr := reflectValueType.Kind() == reflect.Ptr
 		if isPtr {
@@ -318,7 +321,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				} else {
 					elem = reflect.New(reflectValueType)
 				}
-
+				if elem.Type().Kind() == reflect.Interface {
+					elem = elem.Elem()
+				}
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
 
 				if !update {
