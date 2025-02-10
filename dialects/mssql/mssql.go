@@ -1,3 +1,3 @@
 package mssql
 
-import _ "github.com/denisenkom/go-mssqldb"
+import _ "github.com/microsoft/go-mssqldb"
