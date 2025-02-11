@@ -47,7 +47,7 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 					)
 
 					if !isPtr {
-						fieldType = reflect.PtrTo(fieldType)
+						fieldType = reflect.PointerTo(fieldType)
 					}
 
 					elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
@@ -126,7 +126,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 					)
 
 					if !isPtr {
-						fieldType = reflect.PtrTo(fieldType)
+						fieldType = reflect.PointerTo(fieldType)
 					}
 
 					elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
@@ -195,7 +195,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				fieldType := rel.Field.IndirectFieldType.Elem()
 				isPtr := fieldType.Kind() == reflect.Ptr
 				if !isPtr {
-					fieldType = reflect.PtrTo(fieldType)
+					fieldType = reflect.PointerTo(fieldType)
 				}
 				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 				identityMap := map[string]bool{}
@@ -268,11 +268,11 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				fieldType := rel.Field.IndirectFieldType.Elem()
 				isPtr := fieldType.Kind() == reflect.Ptr
 				if !isPtr {
-					fieldType = reflect.PtrTo(fieldType)
+					fieldType = reflect.PointerTo(fieldType)
 				}
 				elems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
 				distinctElems := reflect.MakeSlice(reflect.SliceOf(fieldType), 0, 10)
-				joins := reflect.MakeSlice(reflect.SliceOf(reflect.PtrTo(rel.JoinTable.ModelType)), 0, 10)
+				joins := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(rel.JoinTable.ModelType)), 0, 10)
 				objs := []reflect.Value{}
 
 				appendToJoins := func(obj reflect.Value, elem reflect.Value) {
