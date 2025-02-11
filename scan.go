@@ -15,7 +15,7 @@ func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, 
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
 			if field := db.Statement.Schema.LookUpField(name); field != nil {
-				values[idx] = reflect.New(reflect.PtrTo(field.FieldType)).Interface()
+				values[idx] = reflect.New(reflect.PointerTo(field.FieldType)).Interface()
 				continue
 			}
 			values[idx] = new(interface{})
@@ -23,7 +23,7 @@ func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, 
 	} else if len(columnTypes) > 0 {
 		for idx, columnType := range columnTypes {
 			if columnType.ScanType() != nil {
-				values[idx] = reflect.New(reflect.PtrTo(columnType.ScanType())).Interface()
+				values[idx] = reflect.New(reflect.PointerTo(columnType.ScanType())).Interface()
 			} else {
 				values[idx] = new(interface{})
 			}
