@@ -823,12 +823,12 @@ func TestCreateWithInterfaceType(t *testing.T) {
 	}
 }
 
-func TestCreateWithInterfaceArrayType(t *testing.T) {
+func TestCreateWithInterfaceArrayTypeWithTable(t *testing.T) {
 	user := *GetUser("create", Config{})
 	type UserInterface interface{}
 	var userInterface UserInterface = &user
 
-	if results := DB.Create([]UserInterface{userInterface}); results.Error != nil {
+	if results := DB.Table("users").Create([]UserInterface{userInterface}); results.Error != nil {
 		t.Fatalf("errors happened when create: %v", results.Error)
 	} else if results.RowsAffected != 1 {
 		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
