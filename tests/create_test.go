@@ -826,7 +826,7 @@ func TestCreateWithInterfaceType(t *testing.T) {
 func TestCreateWithInterfaceArrayTypeWithTable(t *testing.T) {
 	user := *GetUser("create", Config{})
 	type UserInterface interface{}
-	var userInterface UserInterface = &user
+	var userInterface UserInterface = user
 
 	if results := DB.Table("users").Create([]UserInterface{userInterface}); results.Error != nil {
 		t.Fatalf("errors happened when create: %v", results.Error)
