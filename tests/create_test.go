@@ -847,7 +847,7 @@ func TestCreateWithInterfaceArrayTypeWithTable(t *testing.T) {
 	}
 
 	var newUser User
-	if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
+	if err := DB.Table("users").Where("id = ?", user.ID).First(&newUser).Error; err != nil {
 		t.Fatalf("errors happened when query: %v", err)
 	} else {
 		CheckUser(t, newUser, user)
