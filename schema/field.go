@@ -462,6 +462,9 @@ func (field *Field) setupValuerAndSetter() {
 	default:
 		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
 			v = reflect.Indirect(v)
+			if v.Kind() == reflect.Interface {
+				v = reflect.Indirect(v)
+			}
 			for _, fieldIdx := range field.StructField.Index {
 				if fieldIdx >= 0 {
 					v = v.Field(fieldIdx)
