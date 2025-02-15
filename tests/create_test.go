@@ -791,3 +791,34 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Errorf("failed to create data from map with table, @id != id")
 	}
 }
+
+func TestCreateWithInterfaceType(t *testing.T) {
+	user := *GetUser("create", Config{})
+	type UserInterface interface{}
+	var userInterface UserInterface = &user
+	
+	if results := DB.Create(userInterface); results.Error != nil {
+		t.Fatalf("errors happened when create: %v", results.Error)
+	} else if results.RowsAffected != 1 {
+		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
+	}
+
+	if user.ID == 0 {
+		t.Errorf("user's primary key should has value after create, got : %v", user.ID)
+	}
+
+	if user.CreatedAt.IsZero() {
+		t.Errorf("user's created at should be not zero")
+	}
+
+	if user.UpdatedAt.IsZero() {
+		t.Errorf("user's updated at should be not zero")
+	}
+
+	var newUser User
+	if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
+		t.Fatalf("errors happened when query: %v", err)
+	} else {
+		CheckUser(t, newUser, user)
+	}
+}
