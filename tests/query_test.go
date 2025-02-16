@@ -551,7 +551,7 @@ func TestNot(t *testing.T) {
 	}
 
 	result = dryDB.Not(User{Name: "jinzhu", Age: 18}).First(&User{})
-	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*users.*..*name.* <> .+ AND .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile("SELECT \\* FROM .*users.* WHERE .*users.*..*name.* <> .+ OR .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 
@@ -608,7 +608,7 @@ func TestNotWithAllFields(t *testing.T) {
 	}
 
 	result = dryDB.Not(User{Name: "jinzhu", Age: 18}).First(&User{})
-	if !regexp.MustCompile(userQuery + "WHERE .*users.*..*name.* <> .+ AND .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
+	if !regexp.MustCompile(userQuery + "WHERE .*users.*..*name.* <> .+ OR .*users.*..*age.* <> .+").MatchString(result.Statement.SQL.String()) {
 		t.Fatalf("Build NOT condition, but got %v", result.Statement.SQL.String())
 	}
 }
