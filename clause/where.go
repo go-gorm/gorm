@@ -181,7 +181,7 @@ func (not NotConditions) Build(builder Builder) {
 
 		for idx, c := range not.Exprs {
 			if idx > 0 {
-				builder.WriteString(AndWithSpace)
+				builder.WriteString(OrWithSpace)
 			}
 
 			if negationBuilder, ok := c.(NegationExpressionBuilder); ok {
