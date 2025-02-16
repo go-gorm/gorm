@@ -655,25 +655,28 @@ func (s *Product8) BeforeFind(tx *gorm.DB) error {
 	return nil
 }
 
-// Fails for postgres
-// ERROR: invalid input syntax for type bigint: "t" (SQLSTATE 22P02)
 func TestBeforeFindModifiesQuery(t *testing.T) {
 	DB.Migrator().DropTable(&Product8{})
 	DB.AutoMigrate(&Product8{})
 
-	products := []Product8{
-		{Code: "A", Price: 100},
-		{Code: "B", Price: 30},
+	p1 := Product8{Code: "A", Price: 30}
+	DB.Create(&p1)
+
+	var result Product8
+
+	DB.Find(&result)
+
+	if (result != Product8{}) {
+		t.Errorf("BeforeFind should filter results, got %v", result)
 	}
-	DB.Create(&products)
 
-	var results []Product8
+	p2 := Product8{Code: "B", Price: 100}
+	DB.Create(&p2)
 
-	// Without condition, hooks will be skipped
-	DB.Find(&results, true)
+	DB.Find(&result)
 
-	if len(results) != 1 || results[0].Code != "A" {
-		t.Errorf("BeforeFind should filter results, got %v", results)
+	if result.Code != "B" {
+		t.Errorf("BeforeFind should filter results, got %v", result)
 	}
 }
 
