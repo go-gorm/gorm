@@ -318,12 +318,12 @@ func (db *DB) Order(value interface{}) (tx *DB) {
 		tx.Statement.AddClause(v)
 	case clause.OrderByColumn:
 		tx.Statement.AddClause(clause.OrderBy{
-			Columns: []clause.OrderByColumn{v},
+			Exprs: []clause.Expression{v},
 		})
 	case string:
 		if v != "" {
 			tx.Statement.AddClause(clause.OrderBy{
-				Columns: []clause.OrderByColumn{{
+				Exprs: []clause.Expression{clause.OrderByColumn{
 					Column: clause.Column{Name: v, Raw: true},
 				}},
 			})
@@ -448,9 +448,10 @@ func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 // Unscoped allows queries to include records marked as deleted,
 // overriding the soft deletion behavior.
 // Example:
-//    var users []User
-//    db.Unscoped().Find(&users)
-//    // Retrieves all users, including deleted ones.
+//
+//	var users []User
+//	db.Unscoped().Find(&users)
+//	// Retrieves all users, including deleted ones.
 func (db *DB) Unscoped() (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Unscoped = true

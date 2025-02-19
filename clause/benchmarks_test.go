@@ -45,7 +45,7 @@ func BenchmarkComplexSelect(b *testing.B) {
 			}},
 			clause.GroupBy{Columns: []clause.Column{{Name: "role"}}, Having: []clause.Expression{clause.Eq{"role", "admin"}}},
 			clause.Limit{Limit: &limit10, Offset: 20},
-			clause.OrderBy{Columns: []clause.OrderByColumn{{Column: clause.PrimaryColumn, Desc: true}}},
+			clause.OrderBy{Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.PrimaryColumn, Desc: true}}},
 		}
 
 		for _, clause := range clauses {

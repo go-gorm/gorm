@@ -15,16 +15,16 @@ func TestOrderBy(t *testing.T) {
 	}{
 		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.OrderBy{
-				Columns: []clause.OrderByColumn{{Column: clause.PrimaryColumn, Desc: true}},
+				Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.PrimaryColumn, Desc: true}},
 			}},
 			"SELECT * FROM `users` ORDER BY `users`.`id` DESC", nil,
 		},
 		{
 			[]clause.Interface{
 				clause.Select{}, clause.From{}, clause.OrderBy{
-					Columns: []clause.OrderByColumn{{Column: clause.PrimaryColumn, Desc: true}},
+					Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.PrimaryColumn, Desc: true}},
 				}, clause.OrderBy{
-					Columns: []clause.OrderByColumn{{Column: clause.Column{Name: "name"}}},
+					Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.Column{Name: "name"}}},
 				},
 			},
 			"SELECT * FROM `users` ORDER BY `users`.`id` DESC,`name`", nil,
@@ -32,9 +32,9 @@ func TestOrderBy(t *testing.T) {
 		{
 			[]clause.Interface{
 				clause.Select{}, clause.From{}, clause.OrderBy{
-					Columns: []clause.OrderByColumn{{Column: clause.PrimaryColumn, Desc: true}},
+					Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.PrimaryColumn, Desc: true}},
 				}, clause.OrderBy{
-					Columns: []clause.OrderByColumn{{Column: clause.Column{Name: "name"}, Reorder: true}},
+					Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.Column{Name: "name"}, Reorder: true}},
 				},
 			},
 			"SELECT * FROM `users` ORDER BY `name`", nil,
@@ -42,10 +42,22 @@ func TestOrderBy(t *testing.T) {
 		{
 			[]clause.Interface{
 				clause.Select{}, clause.From{}, clause.OrderBy{
-					Expression: clause.Expr{SQL: "FIELD(id, ?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
+					Exprs: []clause.Expression{clause.Expr{SQL: "FIELD(id, ?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true}},
 				},
 			},
 			"SELECT * FROM `users` ORDER BY FIELD(id, ?,?,?)",
+			[]interface{}{1, 2, 3},
+		},
+		{
+			[]clause.Interface{
+				clause.Select{}, clause.From{}, clause.OrderBy{
+					Exprs: []clause.Expression{
+						clause.Expr{SQL: "FIELD(id, ?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
+						clause.OrderByColumn{Column: clause.PrimaryColumn, Desc: true},
+					},
+				},
+			},
+			"SELECT * FROM `users` ORDER BY FIELD(id, ?,?,?),`users`.`id` DESC",
 			[]interface{}{1, 2, 3},
 		},
 	}
