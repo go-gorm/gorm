@@ -1025,7 +1025,7 @@ func TestOrder(t *testing.T) {
 	}
 
 	stmt := dryDB.Clauses(clause.OrderBy{
-		Expression: clause.Expr{SQL: "FIELD(id,?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
+		Exprs: []clause.Expression{clause.Expr{SQL: "FIELD(id,?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true}},
 	}).Find(&User{}).Statement
 
 	explainedSQL := dryDB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
@@ -1050,7 +1050,7 @@ func TestOrderWithAllFields(t *testing.T) {
 	}
 
 	stmt := dryDB.Clauses(clause.OrderBy{
-		Expression: clause.Expr{SQL: "FIELD(id,?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true},
+		Exprs: []clause.Expression{clause.Expr{SQL: "FIELD(id,?)", Vars: []interface{}{[]int{1, 2, 3}}, WithoutParentheses: true}},
 	}).Find(&User{}).Statement
 
 	explainedSQL := dryDB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)

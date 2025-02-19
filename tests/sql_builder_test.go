@@ -449,7 +449,7 @@ func TestToSQL(t *testing.T) {
 	// UpdateColumns
 	sql = DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Raw("SELECT * FROM users ?", clause.OrderBy{
-			Columns: []clause.OrderByColumn{{Column: clause.Column{Name: "id", Raw: true}, Desc: true}},
+			Exprs: []clause.Expression{clause.OrderByColumn{Column: clause.Column{Name: "id", Raw: true}, Desc: true}},
 		})
 	})
 	assertEqualSQL(t, `SELECT * FROM users ORDER BY id DESC`, sql)
