@@ -17,6 +17,7 @@ type OrderBy struct {
 	Exprs []Expression
 }
 
+// Name where clause name
 func (orderBy OrderBy) Name() string {
 	return "ORDER BY"
 }
