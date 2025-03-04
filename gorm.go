@@ -187,6 +187,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 			if db, _ := db.DB(); db != nil {
 				_ = db.Close()
 			}
+			return
 		}
 
 		if config.TranslateError {
