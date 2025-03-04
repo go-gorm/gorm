@@ -135,11 +135,11 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 			if applyErr := opt.Apply(config); applyErr != nil {
 				return nil, applyErr
 			}
-			defer func(opt Option) {
-				if errr := opt.AfterInitialize(db); errr != nil {
-					err = errr
-				}
-			}(opt)
+			//defer func(opt Option) {
+			//	if errr := opt.AfterInitialize(db); errr != nil {
+			//		err = errr
+			//	}
+			//}(opt)
 		}
 	}
 
