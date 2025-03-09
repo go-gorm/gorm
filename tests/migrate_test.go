@@ -715,6 +715,45 @@ func TestMigrateColumns(t *testing.T) {
 	}
 }
 
+func TestMigrateColumnUpdateSize(t *testing.T) {
+
+	sqlite := DB.Dialector.Name() == "sqlite"
+
+	type UpdateColumnSizeStruct struct {
+		gorm.Model
+		Name string `gorm:"column:name;default:'';size:16"`
+	}
+
+	_ = DB.Migrator().DropTable(&UpdateColumnSizeStruct{})
+
+	if err := DB.AutoMigrate(&UpdateColumnSizeStruct{}); err != nil {
+		t.Errorf("Failed to migrate, got %v", err)
+	}
+
+	type UpdateColumnSizeStruct2 struct {
+		gorm.Model
+		Name string `gorm:"column:name;default:'';size:100"` // size change 16 -> 100
+	}
+
+	if err := DB.Table("update_column_size_structs").AutoMigrate(&UpdateColumnSizeStruct2{}); err != nil {
+		t.Fatalf("no error should happened when auto migrate column, but got %v", err)
+	}
+
+	if columnTypes, err := DB.Migrator().ColumnTypes(&UpdateColumnSizeStruct{}); err != nil {
+		t.Fatalf("no error should returns for ColumnTypes")
+	} else {
+
+		for _, columnType := range columnTypes {
+			if columnType.Name() == "name" {
+				if length, ok := columnType.Length(); !sqlite && (!ok || length != 100) {
+					t.Fatalf("column name length should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), length, 100, columnType)
+				}
+			}
+		}
+	}
+}
+
 func TestMigrateConstraint(t *testing.T) {
 	names := []string{"Account", "fk_users_account", "Pets", "fk_users_pets", "Company", "fk_users_company", "Team", "fk_users_team", "Languages", "fk_users_languages"}
 
