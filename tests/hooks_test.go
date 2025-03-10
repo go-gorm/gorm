@@ -609,3 +609,99 @@ func TestPropagateUnscoped(t *testing.T) {
 		t.Fatalf("unscoped did not propagate")
 	}
 }
+
+type Product7 struct {
+	gorm.Model
+	Code                string
+	Price               float64
+	BeforeFindCallTimes int64 `gorm:"-"`
+}
+
+func (s *Product7) BeforeFind(tx *gorm.DB) error {
+	s.BeforeFindCallTimes++
+	return nil
+}
+
+// Modifies transient field
+func TestBeforeFindHookCallCount(t *testing.T) {
+	DB.Migrator().DropTable(&Product7{})
+	DB.AutoMigrate(&Product7{})
+
+	p := Product7{Code: "before_find_count", Price: 100}
+	DB.Save(&p)
+
+	var result Product7
+
+	DB.First(&result, "code = ?", "before_find_count")
+	if result.BeforeFindCallTimes != 1 {
+		t.Errorf("Expected 1, got %d", result.BeforeFindCallTimes)
+	}
+
+	DB.First(&result, "code = ?", "before_find_count")
+	if result.BeforeFindCallTimes != 2 {
+		t.Errorf("Expected 2, got %d", result.BeforeFindCallTimes)
+	}
+}
+
+type Product8 struct {
+	gorm.Model
+	Code  string
+	Price float64
+}
+
+func (s *Product8) BeforeFind(tx *gorm.DB) error {
+	tx.Statement.Where("price > ?", 50)
+
+	return nil
+}
+
+func TestBeforeFindModifiesQuery(t *testing.T) {
+	DB.Migrator().DropTable(&Product8{})
+	DB.AutoMigrate(&Product8{})
+
+	p1 := Product8{Code: "A", Price: 30}
+	DB.Create(&p1)
+
+	var result Product8
+
+	DB.Find(&result)
+
+	if (result != Product8{}) {
+		t.Errorf("BeforeFind should filter results, got %v", result)
+	}
+
+	p2 := Product8{Code: "B", Price: 100}
+	DB.Create(&p2)
+
+	DB.Find(&result)
+
+	if result.Code != "B" {
+		t.Errorf("BeforeFind should filter results, got %v", result)
+	}
+}
+
+type Product9 struct {
+	gorm.Model
+	Code  string
+	Price float64
+}
+
+func (s *Product9) BeforeFind(tx *gorm.DB) error {
+	s.Price = 200
+	return nil
+}
+
+func TestDatabaseOverwritesBeforeFindChanges(t *testing.T) {
+	DB.Migrator().DropTable(&Product9{})
+	DB.AutoMigrate(&Product9{})
+
+	p := Product9{Code: "price_overwrite", Price: 100}
+	DB.Save(&p)
+
+	var result Product9
+	DB.First(&result, "code = ?", "price_overwrite")
+
+	if result.Price != 100 {
+		t.Errorf("Price should be loaded from database, got %f", result.Price)
+	}
+}
