@@ -181,6 +181,7 @@ jobs:
           TZ: Asia/Shanghai
           ACCEPT_EULA: Y
           MSSQL_SA_PASSWORD: LoremIpsum86
+          GODEBUG: x509negativeserial=1
         ports:
           - 9930:1433
         options: >-
