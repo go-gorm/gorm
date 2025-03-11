@@ -24,6 +24,7 @@ const (
 	callbackTypeAfterSave    callbackType = "AfterSave"
 	callbackTypeBeforeDelete callbackType = "BeforeDelete"
 	callbackTypeAfterDelete  callbackType = "AfterDelete"
+	callbackTypeBeforeFind   callbackType = "BeforeFind"
 	callbackTypeAfterFind    callbackType = "AfterFind"
 )
 
@@ -52,7 +53,7 @@ type Schema struct {
 	BeforeUpdate, AfterUpdate bool
 	BeforeDelete, AfterDelete bool
 	BeforeSave, AfterSave     bool
-	AfterFind                 bool
+	BeforeFind, AfterFind     bool
 	err                       error
 	initialized               chan struct{}
 	namer                     Namer
@@ -308,7 +309,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		callbackTypeBeforeUpdate, callbackTypeAfterUpdate,
 		callbackTypeBeforeSave, callbackTypeAfterSave,
 		callbackTypeBeforeDelete, callbackTypeAfterDelete,
-		callbackTypeAfterFind,
+		callbackTypeBeforeFind, callbackTypeAfterFind,
 	}
 	for _, cbName := range callbackTypes {
 		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
@@ -396,6 +397,8 @@ func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect
 		return modelType.MethodByName(string(callbackTypeBeforeDelete))
 	case callbackTypeAfterDelete:
 		return modelType.MethodByName(string(callbackTypeAfterDelete))
+	case callbackTypeBeforeFind:
+		return modelType.MethodByName(string(callbackTypeBeforeFind))
 	case callbackTypeAfterFind:
 		return modelType.MethodByName(string(callbackTypeAfterFind))
 	default:
