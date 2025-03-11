@@ -47,6 +47,7 @@ const (
 	String DataType = "string"
 	Time   DataType = "time"
 	Bytes  DataType = "bytes"
+	Array  DataType = "array"
 )
 
 const DefaultAutoIncrementIncrement int64 = 1
@@ -282,6 +283,10 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	case reflect.Array, reflect.Slice:
 		if reflect.Indirect(fieldValue).Type().Elem() == ByteReflectType && field.DataType == "" {
 			field.DataType = Bytes
+		} else {
+			elemType := reflect.Indirect(fieldValue).Type().Elem()
+			field.DataType = Array
+			field.TagSettings["ELEM_TYPE"] = elemType.Kind().String()
 		}
 	}
 
@@ -976,6 +981,10 @@ func (field *Field) setupValuerAndSetter() {
 			}
 			return
 		}
+	}
+
+	if field.DataType != "" && field.FieldType.Kind() == reflect.Slice && field.FieldType.Elem().Kind() != reflect.Uint8 {
+		field.TagSettings["ARRAY_FIELD"] = "true"
 	}
 }
 
