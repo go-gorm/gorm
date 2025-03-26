@@ -16,7 +16,7 @@ type ProductD struct {
 
 // TableName 表名称
 func (*ProductD) TableName() string {
-	return "products"
+	return "products_d"
 }
 
 func (*ProductD) Name() string {
