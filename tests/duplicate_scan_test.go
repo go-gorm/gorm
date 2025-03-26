@@ -34,7 +34,7 @@ func TestDuplicateScan(t *testing.T) {
 	}
 	tx := DB.Begin()
 	tx = tx.Table(dst.Name()).Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "code"}}, DoUpdates: clause.Assignments(map[string]interface{}{"price": gorm.Expr("price + ?", dst.Price)})}).Create(dst)
-	p := new(Product)
+	p := new(ProductD)
 	tx.Debug().Scan(&p)
 	fmt.Printf("tx scan ||%+v\n", p)
 	tx.Commit()
