@@ -663,6 +663,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 					if !(rel.References[idx].PrimaryKey == ref.PrimaryKey && rel.References[idx].ForeignKey == ref.ForeignKey &&
 						rel.References[idx].PrimaryValue == ref.PrimaryValue) {
 						matched = false
+						break
 					}
 				}
 
