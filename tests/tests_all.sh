@@ -40,8 +40,6 @@ for dialect in "${dialects[@]}" ; do
   then
     echo "testing ${dialect}..."
 
-    go mod tidy
-
     if [ "$GORM_VERBOSE" = "" ]
     then
       GORM_DIALECT=${dialect} go test -race -count=1 ./...
