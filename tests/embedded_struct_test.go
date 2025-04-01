@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
 )
@@ -115,7 +114,6 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 		ContentPtr  *Content
 		Birthday    time.Time
 		BirthdayPtr *time.Time
-		AuthorUUID  *uuid.UUID
 	}
 
 	type HNPost struct {
