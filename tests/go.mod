@@ -7,6 +7,7 @@ require (
 	github.com/jinzhu/now v1.1.5
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.9.0
+	gorm.io/datatypes v1.2.2
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.5.10
 	gorm.io/driver/sqlite v1.5.6
