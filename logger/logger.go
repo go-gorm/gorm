@@ -36,13 +36,13 @@ type LogLevel int
 
 const (
 	// Silent silent log level
-	Silent LogLevel = iota + 1
+	Silent LogLevel = 12
 	// Error error log level
-	Error
+	Error LogLevel = 8
 	// Warn warn log level
-	Warn
+	Warn = 4
 	// Info info log level
-	Info
+	Info = 0
 )
 
 // Writer log writer interface
