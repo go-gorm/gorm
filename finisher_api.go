@@ -457,6 +457,10 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		defer delete(tx.Statement.Clauses, "SELECT")
 	}
 
+	if len(tx.Statement.scopes) > 0 {
+		tx.Statement.executeScopes()
+	}
+
 	if len(tx.Statement.Selects) == 0 {
 		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: "count(*)"}})
 	} else if !strings.HasPrefix(strings.TrimSpace(strings.ToLower(tx.Statement.Selects[0])), "count(") {
