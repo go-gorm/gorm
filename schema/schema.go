@@ -138,6 +138,15 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		modelType = modelType.Elem()
 	}
 
+	if modelType.Kind() == reflect.Interface {
+		if value.Len() > 0 {
+			modelType = reflect.Indirect(value.Index(0)).Elem().Type()
+		}
+		if modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+	}
+
 	if modelType.Kind() != reflect.Struct {
 		if modelType.PkgPath() == "" {
 			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)

@@ -121,6 +121,28 @@ func (p *processor) Execute(db *DB) *DB {
 
 			stmt.ReflectValue = stmt.ReflectValue.Elem()
 		}
+		if (stmt.ReflectValue.Kind() == reflect.Slice || stmt.ReflectValue.Kind() == reflect.Array) &&
+			(stmt.ReflectValue.Len() > 0 || stmt.ReflectValue.Index(0).Kind() == reflect.Interface) {
+			len := stmt.ReflectValue.Len()
+			firstElem := stmt.ReflectValue.Index(0)
+			for firstElem.Kind() == reflect.Interface || firstElem.Kind() == reflect.Ptr {
+				firstElem = firstElem.Elem()
+			}
+			elemType := firstElem.Type()
+			sliceType := reflect.SliceOf(elemType)
+			structArrayReflectValue := reflect.MakeSlice(sliceType, 0, len)
+
+			for i := 0; i < len; i++ {
+				elem := stmt.ReflectValue.Index(i)
+				for elem.Kind() == reflect.Interface || elem.Kind() == reflect.Ptr {
+					elem = elem.Elem()
+				}
+				structArrayReflectValue = reflect.Append(structArrayReflectValue, elem)
+			}
+			stmt.ReflectValue = structArrayReflectValue
+			fmt.Println(stmt.ReflectValue.Type())
+		}
+
 		if !stmt.ReflectValue.IsValid() {
 			db.AddError(ErrInvalidValue)
 		}
