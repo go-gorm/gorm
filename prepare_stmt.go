@@ -30,6 +30,9 @@ func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruCo
 		Stmts: func() StmtStore {
 			var stmts StmtStore
 			if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
+				if prepareStmtLruConfig.Size <= 0 {
+					panic("LRU prepareStmtLruConfig.Size must > 0")
+				}
 				lru := &LruStmtStore{}
 				lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
 				stmts = lru
