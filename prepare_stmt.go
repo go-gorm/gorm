@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
+	"time"
 )
 
 type Stmt struct {
@@ -17,16 +19,26 @@ type Stmt struct {
 }
 
 type PreparedStmtDB struct {
-	Stmts map[string]*Stmt
+	Stmts StmtStore
 	Mux   *sync.RWMutex
 	ConnPool
 }
 
-func NewPreparedStmtDB(connPool ConnPool) *PreparedStmtDB {
+func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruConfig) *PreparedStmtDB {
 	return &PreparedStmtDB{
 		ConnPool: connPool,
-		Stmts:    make(map[string]*Stmt),
-		Mux:      &sync.RWMutex{},
+		Stmts: func() StmtStore {
+			var stmts StmtStore
+			if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
+				lru := &LruStmtStore{}
+				lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
+				stmts = lru
+			} else {
+				stmts = &DefaultStmtStore{}
+			}
+			return stmts
+		}(),
+		Mux: &sync.RWMutex{},
 	}
 }
 
@@ -46,7 +58,7 @@ func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
 
-	for _, stmt := range db.Stmts {
+	for _, stmt := range db.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -63,7 +75,7 @@ func (sdb *PreparedStmtDB) Reset() {
 	sdb.Mux.Lock()
 	defer sdb.Mux.Unlock()
 
-	for _, stmt := range sdb.Stmts {
+	for _, stmt := range sdb.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -72,12 +84,12 @@ func (sdb *PreparedStmtDB) Reset() {
 			}
 		}(stmt)
 	}
-	sdb.Stmts = make(map[string]*Stmt)
+	sdb.Stmts = &DefaultStmtStore{}
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
-	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
+	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
 		db.Mux.RUnlock()
 		// wait for other goroutines prepared
 		<-stmt.prepared
@@ -91,7 +103,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 
 	db.Mux.Lock()
 	// double check
-	if stmt, ok := db.Stmts[query]; ok && (!stmt.Transaction || isTransaction) {
+	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
 		db.Mux.Unlock()
 		// wait for other goroutines prepared
 		<-stmt.prepared
@@ -109,7 +121,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	}
 	// cache preparing stmt first
 	cacheStmt := Stmt{Transaction: isTransaction, prepared: make(chan struct{})}
-	db.Stmts[query] = &cacheStmt
+	db.Stmts.Set(query, &cacheStmt)
 	db.Mux.Unlock()
 
 	// prepare completed
@@ -124,7 +136,8 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	if err != nil {
 		cacheStmt.prepareErr = err
 		db.Mux.Lock()
-		delete(db.Stmts, query)
+		db.Stmts.Delete(query)
+		//delete(db.Stmts.AllMap(), query)
 		db.Mux.Unlock()
 		return Stmt{}, err
 	}
@@ -165,7 +178,8 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 			db.Mux.Lock()
 			defer db.Mux.Unlock()
 			go stmt.Close()
-			delete(db.Stmts, query)
+			db.Stmts.Delete(query)
+			//delete(db.Stmts.AllMap(), query)
 		}
 	}
 	return result, err
@@ -180,7 +194,8 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 			defer db.Mux.Unlock()
 
 			go stmt.Close()
-			delete(db.Stmts, query)
+			db.Stmts.Delete(query)
+			//delete(db.Stmts.AllMap(), query)
 		}
 	}
 	return rows, err
@@ -234,7 +249,8 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
 			go stmt.Close()
-			delete(tx.PreparedStmtDB.Stmts, query)
+			tx.PreparedStmtDB.Stmts.Delete(query)
+			//delete(tx.PreparedStmtDB.Stmts.AllMap(), query)
 		}
 	}
 	return result, err
@@ -249,7 +265,8 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
 			go stmt.Close()
-			delete(tx.PreparedStmtDB.Stmts, query)
+			tx.PreparedStmtDB.Stmts.Delete(query)
+			//delete(tx.PreparedStmtDB.Stmts.AllMap(), query)
 		}
 	}
 	return rows, err
@@ -269,4 +286,67 @@ func (tx *PreparedStmtTX) Ping() error {
 		return err
 	}
 	return conn.Ping()
+}
+
+type StmtStore interface {
+	Get(key string) (*Stmt, bool)
+	Set(key string, value *Stmt)
+	Delete(key string)
+	AllMap() map[string]*Stmt
+}
+
+// 默认的 map 实现
+type DefaultStmtStore struct {
+	defaultStmt map[string]*Stmt
+}
+
+func (s *DefaultStmtStore) AllMap() map[string]*Stmt {
+	return s.defaultStmt
+}
+func (s *DefaultStmtStore) Get(key string) (*Stmt, bool) {
+	stmt, ok := s.defaultStmt[key]
+	return stmt, ok
+}
+
+func (s *DefaultStmtStore) Set(key string, value *Stmt) {
+	s.defaultStmt[key] = value
+}
+
+func (s *DefaultStmtStore) Delete(key string) {
+	delete(s.defaultStmt, key)
+}
+
+type LruStmtStore struct {
+	lru *LRU[string, *Stmt]
+}
+
+func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
+	onEvicted := func(k string, v *Stmt) {
+		if v != nil {
+			go func() {
+				err := v.Close()
+				if err != nil {
+					//
+					fmt.Print("close stmt err: ", err.Error())
+				}
+			}()
+		}
+	}
+	s.lru = NewLRU[string, *Stmt](size, onEvicted, ttl)
+}
+
+func (s *LruStmtStore) AllMap() map[string]*Stmt {
+	return s.lru.KeyValues()
+}
+func (s *LruStmtStore) Get(key string) (*Stmt, bool) {
+	stmt, ok := s.lru.Get(key)
+	return stmt, ok
+}
+
+func (s *LruStmtStore) Set(key string, value *Stmt) {
+	s.lru.Add(key, value)
+}
+
+func (s *LruStmtStore) Delete(key string) {
+	s.lru.Remove(key)
 }
