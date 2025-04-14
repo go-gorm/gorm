@@ -92,6 +92,48 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 	tx2.Commit()
 }
 
+func TestPreparedStmtLruFromTransaction(t *testing.T) {
+	db, _ := OpenTestConnection(&gorm.Config{PrepareStmt: true, PrepareStmtLruConfig: &gorm.PrepareStmtLruConfig{10, 20 * time.Second, true}})
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		t.Errorf("Failed to start transaction, got error %v\n", err)
+	}
+
+	if err := tx.Where("name=?", "zzjin").Delete(&User{}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Create(&User{Name: "zzjin"}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Failed to commit transaction, got error %v\n", err)
+	}
+
+	if result := db.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 1 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	tx2 := db.Begin()
+	if result := tx2.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 0 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+	tx2.Commit()
+	time.Sleep(time.Second * 40)
+	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	AssertEqual(t, ok, true)
+	AssertEqual(t, len(conn.Stmts.AllMap()), 0)
+}
+
 func TestPreparedStmtDeadlock(t *testing.T) {
 	tx, err := OpenTestConnection(&gorm.Config{})
 	AssertEqual(t, err, nil)
