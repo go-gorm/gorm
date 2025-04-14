@@ -295,7 +295,6 @@ type StmtStore interface {
 	AllMap() map[string]*Stmt
 }
 
-// 默认的 map 实现
 type DefaultStmtStore struct {
 	defaultStmt map[string]*Stmt
 }
