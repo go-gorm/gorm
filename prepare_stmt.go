@@ -101,29 +101,33 @@ func (sdb *PreparedStmtDB) Reset() {
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
-	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
-		db.Mux.RUnlock()
-		// wait for other goroutines prepared
-		<-stmt.prepared
-		if stmt.prepareErr != nil {
-			return Stmt{}, stmt.prepareErr
-		}
+	if db.Stmts != nil {
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+			db.Mux.RUnlock()
+			// wait for other goroutines prepared
+			<-stmt.prepared
+			if stmt.prepareErr != nil {
+				return Stmt{}, stmt.prepareErr
+			}
 
-		return *stmt, nil
+			return *stmt, nil
+		}
 	}
 	db.Mux.RUnlock()
 
 	db.Mux.Lock()
-	// double check
-	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
-		db.Mux.Unlock()
-		// wait for other goroutines prepared
-		<-stmt.prepared
-		if stmt.prepareErr != nil {
-			return Stmt{}, stmt.prepareErr
-		}
+	if db.Stmts != nil {
+		// double check
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+			db.Mux.Unlock()
+			// wait for other goroutines prepared
+			<-stmt.prepared
+			if stmt.prepareErr != nil {
+				return Stmt{}, stmt.prepareErr
+			}
 
-		return *stmt, nil
+			return *stmt, nil
+		}
 	}
 	// check db.Stmts first to avoid Segmentation Fault(setting value to nil map)
 	// which cause by calling Close and executing SQL concurrently
