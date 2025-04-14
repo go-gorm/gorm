@@ -24,25 +24,26 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
+func newPrepareStmtCache(prepareStmtLruConfig *PrepareStmtLruConfig) *StmtStore {
+	var stmts StmtStore
+	if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
+		if prepareStmtLruConfig.Size <= 0 {
+			panic("LRU prepareStmtLruConfig.Size must > 0")
+		}
+		lru := &LruStmtStore{}
+		lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
+		stmts = lru
+	} else {
+		defaultStmtStore := &DefaultStmtStore{}
+		stmts = defaultStmtStore.init()
+	}
+	return &stmts
+}
 func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruConfig) *PreparedStmtDB {
 	return &PreparedStmtDB{
 		ConnPool: connPool,
-		Stmts: func() StmtStore {
-			var stmts StmtStore
-			if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
-				if prepareStmtLruConfig.Size <= 0 {
-					panic("LRU prepareStmtLruConfig.Size must > 0")
-				}
-				lru := &LruStmtStore{}
-				lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
-				stmts = lru
-			} else {
-				defaultStmtStore := &DefaultStmtStore{}
-				stmts = defaultStmtStore.init()
-			}
-			return stmts
-		}(),
-		Mux: &sync.RWMutex{},
+		Stmts:    *newPrepareStmtCache(prepareStmtLruConfig),
+		Mux:      &sync.RWMutex{},
 	}
 }
 
