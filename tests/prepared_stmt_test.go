@@ -117,8 +117,8 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 
 	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
 	AssertEqual(t, ok, true)
-	AssertEqual(t, len(conn.Stmts), 2)
-	for _, stmt := range conn.Stmts {
+	AssertEqual(t, len(conn.Stmts.AllMap()), 2)
+	for _, stmt := range conn.Stmts.AllMap() {
 		if stmt == nil {
 			t.Fatalf("stmt cannot bee nil")
 		}
@@ -155,7 +155,7 @@ func TestPreparedStmtReset(t *testing.T) {
 	}
 
 	pdb.Mux.Lock()
-	if len(pdb.Stmts) == 0 {
+	if len(pdb.Stmts.AllMap()) == 0 {
 		pdb.Mux.Unlock()
 		t.Fatalf("prepared stmt can not be empty")
 	}
@@ -164,7 +164,7 @@ func TestPreparedStmtReset(t *testing.T) {
 	pdb.Reset()
 	pdb.Mux.Lock()
 	defer pdb.Mux.Unlock()
-	if len(pdb.Stmts) != 0 {
+	if len(pdb.Stmts.AllMap()) != 0 {
 		t.Fatalf("prepared stmt should be empty")
 	}
 }
