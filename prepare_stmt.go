@@ -62,6 +62,9 @@ func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
+	if db.Stmts == nil {
+		return
+	}
 
 	for _, stmt := range db.Stmts.AllMap() {
 		go func(s *Stmt) {
