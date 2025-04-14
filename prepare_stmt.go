@@ -82,7 +82,9 @@ func (db *PreparedStmtDB) Close() {
 func (sdb *PreparedStmtDB) Reset() {
 	sdb.Mux.Lock()
 	defer sdb.Mux.Unlock()
-
+	if sdb.Stmts == nil {
+		return
+	}
 	for _, stmt := range sdb.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
