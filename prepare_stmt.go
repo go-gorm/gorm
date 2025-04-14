@@ -37,7 +37,8 @@ func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruCo
 				lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
 				stmts = lru
 			} else {
-				stmts = &DefaultStmtStore{}
+				defaultStmtStore := &DefaultStmtStore{}
+				stmts = defaultStmtStore.init()
 			}
 			return stmts
 		}(),
@@ -87,7 +88,9 @@ func (sdb *PreparedStmtDB) Reset() {
 			}
 		}(stmt)
 	}
-	sdb.Stmts = &DefaultStmtStore{}
+	defaultStmt := &DefaultStmtStore{}
+	defaultStmt.init()
+	sdb.Stmts = defaultStmt
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
@@ -300,6 +303,11 @@ type StmtStore interface {
 
 type DefaultStmtStore struct {
 	defaultStmt map[string]*Stmt
+}
+
+func (s *DefaultStmtStore) init() *DefaultStmtStore {
+	s.defaultStmt = make(map[string]*Stmt)
+	return s
 }
 
 func (s *DefaultStmtStore) AllMap() map[string]*Stmt {
