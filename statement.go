@@ -495,10 +495,10 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 		if len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
-			tables = nil
+			//tables = nil
 			return
 		}
-		tables = nil
+		//tables = nil
 
 		stmt.Table = stmt.Schema.Table
 	}
