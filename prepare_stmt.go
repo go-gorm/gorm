@@ -344,10 +344,17 @@ func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
 	onEvicted := func(k string, v *Stmt) {
 		if v != nil {
 			go func() {
-				err := v.Close()
-				if err != nil {
-					//
-					fmt.Print("close stmt err: ", err.Error())
+				defer func() {
+					if r := recover(); r != nil {
+						fmt.Print("close stmt err panic ")
+					}
+				}()
+				if v != nil {
+					err := v.Close()
+					if err != nil {
+						//
+						fmt.Print("close stmt err: ", err.Error())
+					}
 				}
 			}()
 		}
