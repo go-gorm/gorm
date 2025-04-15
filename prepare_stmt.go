@@ -24,21 +24,26 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
+func newPrepareStmtCache(prepareStmtLruConfig *PrepareStmtLruConfig) *StmtStore {
+	var stmts StmtStore
+	if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
+		if prepareStmtLruConfig.Size <= 0 {
+			panic("LRU prepareStmtLruConfig.Size must > 0")
+		}
+		lru := &LruStmtStore{}
+		lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
+		stmts = lru
+	} else {
+		defaultStmtStore := &DefaultStmtStore{}
+		stmts = defaultStmtStore.init()
+	}
+	return &stmts
+}
 func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruConfig) *PreparedStmtDB {
 	return &PreparedStmtDB{
 		ConnPool: connPool,
-		Stmts: func() StmtStore {
-			var stmts StmtStore
-			if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
-				lru := &LruStmtStore{}
-				lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
-				stmts = lru
-			} else {
-				stmts = &DefaultStmtStore{}
-			}
-			return stmts
-		}(),
-		Mux: &sync.RWMutex{},
+		Stmts:    *newPrepareStmtCache(prepareStmtLruConfig),
+		Mux:      &sync.RWMutex{},
 	}
 }
 
@@ -57,6 +62,9 @@ func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
+	if db.Stmts == nil {
+		return
+	}
 
 	for _, stmt := range db.Stmts.AllMap() {
 		go func(s *Stmt) {
@@ -74,7 +82,9 @@ func (db *PreparedStmtDB) Close() {
 func (sdb *PreparedStmtDB) Reset() {
 	sdb.Mux.Lock()
 	defer sdb.Mux.Unlock()
-
+	if sdb.Stmts == nil {
+		return
+	}
 	for _, stmt := range sdb.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
@@ -84,34 +94,40 @@ func (sdb *PreparedStmtDB) Reset() {
 			}
 		}(stmt)
 	}
-	sdb.Stmts = &DefaultStmtStore{}
+	defaultStmt := &DefaultStmtStore{}
+	defaultStmt.init()
+	sdb.Stmts = defaultStmt
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
-	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
-		db.Mux.RUnlock()
-		// wait for other goroutines prepared
-		<-stmt.prepared
-		if stmt.prepareErr != nil {
-			return Stmt{}, stmt.prepareErr
-		}
+	if db.Stmts != nil {
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+			db.Mux.RUnlock()
+			// wait for other goroutines prepared
+			<-stmt.prepared
+			if stmt.prepareErr != nil {
+				return Stmt{}, stmt.prepareErr
+			}
 
-		return *stmt, nil
+			return *stmt, nil
+		}
 	}
 	db.Mux.RUnlock()
 
 	db.Mux.Lock()
-	// double check
-	if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
-		db.Mux.Unlock()
-		// wait for other goroutines prepared
-		<-stmt.prepared
-		if stmt.prepareErr != nil {
-			return Stmt{}, stmt.prepareErr
-		}
+	if db.Stmts != nil {
+		// double check
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+			db.Mux.Unlock()
+			// wait for other goroutines prepared
+			<-stmt.prepared
+			if stmt.prepareErr != nil {
+				return Stmt{}, stmt.prepareErr
+			}
 
-		return *stmt, nil
+			return *stmt, nil
+		}
 	}
 	// check db.Stmts first to avoid Segmentation Fault(setting value to nil map)
 	// which cause by calling Close and executing SQL concurrently
@@ -295,9 +311,13 @@ type StmtStore interface {
 	AllMap() map[string]*Stmt
 }
 
-// 默认的 map 实现
 type DefaultStmtStore struct {
 	defaultStmt map[string]*Stmt
+}
+
+func (s *DefaultStmtStore) init() *DefaultStmtStore {
+	s.defaultStmt = make(map[string]*Stmt)
+	return s
 }
 
 func (s *DefaultStmtStore) AllMap() map[string]*Stmt {
