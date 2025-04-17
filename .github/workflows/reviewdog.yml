@@ -6,12 +6,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
-      - name: golangci-lint
-        uses: reviewdog/action-golangci-lint@v2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
 
-      - name: Setup reviewdog
-        uses: reviewdog/action-setup@v1
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@3dfdce20f5ca12d264c214abb993dbb40834da90 # v2.7.2
 
       - name: gofumpt -s with reviewdog
         env:
