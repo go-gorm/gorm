@@ -240,7 +240,7 @@ func (g *execG[T]) Find(ctx context.Context) ([]T, error) {
 
 func (g *execG[T]) FindInBatches(ctx context.Context, batchSize int, fc func(data []T, batch int) error) error {
 	var data []T
-	return g.g.db.WithContext(ctx).FindInBatches(data, batchSize, func(tx *DB, batch int) error {
+	return g.g.db.WithContext(ctx).FindInBatches(&data, batchSize, func(tx *DB, batch int) error {
 		return fc(data, batch)
 	}).Error
 }
