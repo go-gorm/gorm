@@ -17,10 +17,3 @@ formatters:
   enable:
     - gofumpt
     - goimports
-
-linters-settings:
-  whitespace:
-    multi-func: true
-  goimports:
-    local-prefixes: gorm.io/gorm
-
