@@ -49,6 +49,7 @@ type ExecInterface[T any] interface {
 	Scan(ctx context.Context, r interface{}) error
 	First(context.Context) (T, error)
 	Last(ctx context.Context) (T, error)
+	Take(context.Context) (T, error)
 	Find(ctx context.Context) ([]T, error)
 	FindInBatches(ctx context.Context, batchSize int, fc func(data []T, batch int) error) error
 	Row(ctx context.Context) *sql.Row
@@ -229,6 +230,12 @@ func (g *execG[T]) Scan(ctx context.Context, result interface{}) error {
 func (g *execG[T]) Last(ctx context.Context) (T, error) {
 	var r T
 	err := g.g.db.WithContext(ctx).Last(&r).Error
+	return r, err
+}
+
+func (g *execG[T]) Take(ctx context.Context) (T, error) {
+	var r T
+	err := g.g.db.WithContext(ctx).Take(&r).Error
 	return r, err
 }
 
