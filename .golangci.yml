@@ -1,7 +1,9 @@
+version: "2"
+
 linters:
+  default: standard
   enable:
     - cyclop
-    - exportloopref
     - gocritic
     - gosec
     - ineffassign
@@ -9,8 +11,12 @@ linters:
     - prealloc
     - unconvert
     - unparam
-    - goimports
     - whitespace
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
 
 linters-settings:
   whitespace:

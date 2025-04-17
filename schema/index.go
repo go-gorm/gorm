@@ -122,7 +122,7 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 					if composite, found := settings[key]; found {
 						if len(composite) == 0 || composite == key {
 							err = fmt.Errorf(
-								"The composite tag of %s.%s cannot be empty",
+								"the composite tag of %s.%s cannot be empty",
 								field.Schema.Name,
 								field.Name)
 							return
