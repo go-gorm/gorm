@@ -31,7 +31,7 @@ func TestCallback(t *testing.T) {
 		}
 	}
 
-	for _, str := range []string{"BeforeCreate", "BeforeUpdate", "AfterUpdate", "AfterSave", "BeforeDelete", "AfterDelete", "AfterFind"} {
+	for _, str := range []string{"BeforeCreate", "BeforeUpdate", "AfterUpdate", "AfterSave", "BeforeDelete", "AfterDelete", "BeforeFind", "AfterFind"} {
 		if reflect.Indirect(reflect.ValueOf(user)).FieldByName(str).Interface().(bool) {
 			t.Errorf("%v should be false", str)
 		}
