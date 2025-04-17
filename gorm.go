@@ -34,6 +34,8 @@ type Config struct {
 	DryRun bool
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
+	// PrepareStmt cache support LRU expired
+	PrepareStmtLruConfig *PrepareStmtLruConfig
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
@@ -64,6 +66,11 @@ type Config struct {
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
+}
+type PrepareStmtLruConfig struct {
+	Size int
+	TTL  time.Duration
+	Open bool
 }
 
 // Apply update config to new config
@@ -197,7 +204,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	if config.PrepareStmt {
-		preparedStmt := NewPreparedStmtDB(db.ConnPool)
+		preparedStmt := NewPreparedStmtDB(db.ConnPool, config.PrepareStmtLruConfig)
 		db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		db.ConnPool = preparedStmt
 	}
@@ -268,7 +275,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt = v.(*PreparedStmtDB)
 		} else {
-			preparedStmt = NewPreparedStmtDB(db.ConnPool)
+			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.Config.PrepareStmtLruConfig)
 			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
 
