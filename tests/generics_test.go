@@ -355,7 +355,7 @@ func TestGenericsGroupHaving(t *testing.T) {
 		t.Fatalf("CreateInBatches failed: %v", err)
 	}
 
-	grouped, err := gorm.G[User](DB).Where("name like ?", "GenericsGroupHaving%").Group("name").Having("COUNT(*) > ?", 1).Find(ctx)
+	grouped, err := gorm.G[User](DB).Select("name").Where("name like ?", "GenericsGroupHaving%").Group("name").Having("COUNT(id) > ?", 1).Find(ctx)
 	if err != nil {
 		t.Fatalf("Group+Having Find failed: %v", err)
 	}
