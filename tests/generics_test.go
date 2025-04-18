@@ -12,11 +12,10 @@ import (
 )
 
 func TestGenericsCreate(t *testing.T) {
-	generic := gorm.G[User](DB)
 	ctx := context.Background()
 
 	user := User{Name: "TestGenericsCreate", Age: 18}
-	err := generic.Create(ctx, &user)
+	err := gorm.G[User](DB).Create(ctx, &user)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
@@ -60,7 +59,7 @@ func TestGenericsCreate(t *testing.T) {
 
 	mapResult, err := gorm.G[map[string]interface{}](DB).Table("users").Where("name = ?", user.Name).MapColumns(map[string]string{"name": "user_name"}).Take(ctx)
 	if v := mapResult["user_name"]; fmt.Sprint(v) != user.Name {
-		t.Errorf("failed to find map results, got %v", mapResult)
+		t.Errorf("failed to find map results, got %v, err %v", mapResult, err)
 	}
 }
 
@@ -92,6 +91,7 @@ func TestGenericsCreateInBatches(t *testing.T) {
 
 	found, err := gorm.G[User](DB).Raw("SELECT * FROM users WHERE name LIKE ?", "GenericsCreateInBatches%").Find(ctx)
 	if len(found) != len(batch) {
+		fmt.Println(found)
 		t.Errorf("expected %d from Raw Find, got %d", len(batch), len(found))
 	}
 
@@ -278,12 +278,13 @@ func TestGenericsScopes(t *testing.T) {
 
 func TestGenericsJoinsAndPreload(t *testing.T) {
 	ctx := context.Background()
+	db := gorm.G[User](DB)
 
 	u := User{Name: "GenericsJoins", Company: Company{Name: "GenericsCompany"}}
-	DB.Create(&u)
+	db.Create(ctx, &u)
 
 	// LEFT JOIN + WHERE
-	result, err := gorm.G[User](DB).Joins("Company").Where("Company.name = ?", u.Company.Name).First(ctx)
+	result, err := db.Joins("Company").Where("Company.name = ?", u.Company.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
 	}
@@ -292,7 +293,7 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// INNER JOIN + Inline WHERE
-	result2, err := gorm.G[User](DB).InnerJoins("Company", "Company.name = ?", u.Company.Name).First(ctx)
+	result2, err := db.InnerJoins("Company", "Company.name = ?", u.Company.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("InnerJoins failed: %v", err)
 	}
@@ -301,7 +302,7 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// Preload
-	result3, err := gorm.G[User](DB).Preload("Company").Where("name = ?", u.Name).First(ctx)
+	result3, err := db.Preload("Company").Where("name = ?", u.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
 	}
