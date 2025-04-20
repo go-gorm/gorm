@@ -119,6 +119,7 @@ func TestConnPoolWrapper(t *testing.T) {
 	}()
 
 	db, err := gorm.Open(mysql.New(mysql.Config{Conn: conn, DisableWithReturning: true}))
+	db.Logger = DB.Logger
 	if err != nil {
 		t.Fatalf("Should open db success, but got %v", err)
 	}

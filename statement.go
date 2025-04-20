@@ -205,19 +205,20 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			} else {
 				writer.WriteString("(NULL)")
 			}
-		case *DB:
-			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
-			if v.Statement.SQL.Len() > 0 {
+		case interface{ getInstance() *DB }:
+			cv := v.getInstance()
+			subdb := cv.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
+			if cv.Statement.SQL.Len() > 0 {
 				var (
 					vars = subdb.Statement.Vars
-					sql  = v.Statement.SQL.String()
+					sql  = cv.Statement.SQL.String()
 				)
 
 				subdb.Statement.Vars = make([]interface{}, 0, len(vars))
 				for _, vv := range vars {
 					subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
 					bindvar := strings.Builder{}
-					v.Dialector.BindVarTo(&bindvar, subdb.Statement, vv)
+					cv.Dialector.BindVarTo(&bindvar, subdb.Statement, vv)
 					sql = strings.Replace(sql, bindvar.String(), "?", 1)
 				}
 
