@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -284,7 +285,7 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	db.Create(ctx, &u)
 
 	// LEFT JOIN + WHERE
-	result, err := db.Joins("Company").Where("Company.name = ?", u.Company.Name).First(ctx)
+	result, err := db.Joins("Company").Where("?.name = ?", clause.JoinTable("Company"), u.Company.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
 	}
@@ -293,7 +294,7 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// INNER JOIN + Inline WHERE
-	result2, err := db.InnerJoins("Company", "Company.name = ?", u.Company.Name).First(ctx)
+	result2, err := db.InnerJoins("Company", "?.name = ?", clause.JoinTable("Company"), u.Company.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("InnerJoins failed: %v", err)
 	}
