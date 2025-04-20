@@ -366,3 +366,35 @@ func TestGenericsGroupHaving(t *testing.T) {
 		t.Errorf("expected group name 'GenericsGroupHavingMulti', got '%s'", grouped[0].Name)
 	}
 }
+
+func TestGenericsSubQuery(t *testing.T) {
+	ctx := context.Background()
+	users := []User{
+		{Name: "GenericsSubquery_1", Age: 10},
+		{Name: "GenericsSubquery_2", Age: 20},
+		{Name: "GenericsSubquery_3", Age: 30},
+		{Name: "GenericsSubquery_4", Age: 40},
+	}
+
+	if err := gorm.G[User](DB).CreateInBatches(ctx, &users, len(users)); err != nil {
+		t.Fatalf("CreateInBatches failed: %v", err)
+	}
+
+	results, err := gorm.G[User](DB).Where("name IN (?)", gorm.G[User](DB).Select("name").Where("name LIKE ?", "GenericsSubquery%")).Find(ctx)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	if len(results) != 4 {
+		t.Errorf("Four users should be found, instead found %d", len(results))
+	}
+
+	results, err = gorm.G[User](DB).Where("name IN (?)", gorm.G[User](DB).Select("name").Where("name IN ?", []string{"GenericsSubquery_1", "GenericsSubquery_2"}).Or("name = ?", "GenericsSubquery_3")).Find(ctx)
+	if err != nil {
+		t.Fatalf("got error: %v", err)
+	}
+
+	if len(results) != 3 {
+		t.Errorf("Three users should be found, instead found %d", len(results))
+	}
+}

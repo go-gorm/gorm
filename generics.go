@@ -127,6 +127,11 @@ type chainG[T any] struct {
 	execG[T]
 }
 
+func (c chainG[T]) getInstance() *DB {
+	var r T
+	return c.g.apply(context.Background()).Model(r).getInstance()
+}
+
 func (c chainG[T]) with(op op) chainG[T] {
 	return chainG[T]{
 		execG: execG[T]{g: &g[T]{
