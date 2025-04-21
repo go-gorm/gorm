@@ -1,5 +1,7 @@
 package clause
 
+import "gorm.io/gorm/utils"
+
 type JoinType string
 
 const (
@@ -16,6 +18,12 @@ type Join struct {
 	ON         Where
 	Using      []string
 	Expression Expression
+}
+
+func JoinTable(names ...string) Table {
+	return Table{
+		Name: utils.JoinNestedRelationNames(names),
+	}
 }
 
 func (join Join) Build(builder Builder) {

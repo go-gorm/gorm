@@ -419,7 +419,7 @@ func TestJoinsPreload_Issue7013(t *testing.T) {
 	var entries []User
 	assert.NotPanics(t, func() {
 		assert.NoError(t,
-			DB.Debug().Preload("Manager.Team").
+			DB.Preload("Manager.Team").
 				Joins("Manager.Company").
 				Find(&entries).Error)
 	})
@@ -456,7 +456,7 @@ func TestJoinsPreload_Issue7013_RelationEmpty(t *testing.T) {
 	var entries []Building
 	assert.NotPanics(t, func() {
 		assert.NoError(t,
-			DB.Debug().Preload("Owner.Furnitures").
+			DB.Preload("Owner.Furnitures").
 				Joins("Owner.Company").
 				Find(&entries).Error)
 	})
@@ -468,7 +468,7 @@ func TestJoinsPreload_Issue7013_NoEntries(t *testing.T) {
 	var entries []User
 	assert.NotPanics(t, func() {
 		assert.NoError(t,
-			DB.Debug().Preload("Manager.Team").
+			DB.Preload("Manager.Team").
 				Joins("Manager.Company").
 				Where("1 <> 1").
 				Find(&entries).Error)
