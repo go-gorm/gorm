@@ -218,7 +218,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 				for _, vv := range vars {
 					subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
 					bindvar := strings.Builder{}
-					cv.Dialector.BindVarTo(&bindvar, subdb.Statement, vv)
+					cv.BindVarTo(&bindvar, subdb.Statement, vv)
 					sql = strings.Replace(sql, bindvar.String(), "?", 1)
 				}
 
