@@ -45,7 +45,7 @@ func newPrepareStmtCache(PrepareStmtMaxSize int,
 	var lru_size = DEFAULT_MAX_SIZE
 	var lru_ttl = DEFAULT_TTL
 	var stmts StmtStore
-	if PrepareStmtMaxSize <= 0 {
+	if PrepareStmtMaxSize < 0 {
 		panic("PrepareStmtMaxSize must > 0")
 	}
 	if PrepareStmtMaxSize != 0 {
