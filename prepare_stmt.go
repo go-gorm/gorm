@@ -25,8 +25,8 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
-const DEFAULT_MAX_SIZE = (1 << 63) - 1
-const DEFAULT_TTL = time.Hour * 24
+const default_max_size = (1 << 63) - 1
+const default_ttl = time.Hour * 24
 
 // newPrepareStmtCache creates a new statement cache with the specified maximum size and time-to-live (TTL).
 // Parameters:
@@ -42,8 +42,8 @@ const DEFAULT_TTL = time.Hour * 24
 // using either the provided size and TTL or default values
 func newPrepareStmtCache(PrepareStmtMaxSize int,
 	PrepareStmtTTL time.Duration) *StmtStore {
-	var lru_size = DEFAULT_MAX_SIZE
-	var lru_ttl = DEFAULT_TTL
+	var lru_size = default_max_size
+	var lru_ttl = default_ttl
 	var stmts StmtStore
 	if PrepareStmtMaxSize < 0 {
 		panic("PrepareStmtMaxSize must > 0")
@@ -51,7 +51,7 @@ func newPrepareStmtCache(PrepareStmtMaxSize int,
 	if PrepareStmtMaxSize != 0 {
 		lru_size = PrepareStmtMaxSize
 	}
-	if PrepareStmtTTL != DEFAULT_TTL {
+	if PrepareStmtTTL != default_ttl {
 		lru_ttl = PrepareStmtTTL
 	}
 	lru := &LruStmtStore{}
