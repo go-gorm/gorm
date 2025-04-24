@@ -5,7 +5,8 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"gorm.io/gorm/internal/store"
+	"fmt"
+	"gorm.io/gorm/internal/lru"
 	"reflect"
 	"sync"
 	"time"
@@ -19,7 +20,7 @@ type Stmt struct {
 }
 
 type PreparedStmtDB struct {
-	Stmts store.StmtStore
+	Stmts StmtStore
 	Mux   *sync.RWMutex
 	ConnPool
 }
@@ -40,10 +41,10 @@ const DEFAULT_TTL = time.Hour * 24
 // The function initializes an LRU (Least Recently Used) cache for prepared statements,
 // using either the provided size and TTL or default values
 func newPrepareStmtCache(PrepareStmtMaxSize int,
-	PrepareStmtTTL time.Duration) *store.StmtStore {
+	PrepareStmtTTL time.Duration) *StmtStore {
 	var lru_size = DEFAULT_MAX_SIZE
 	var lru_ttl = DEFAULT_TTL
-	var stmts store.StmtStore
+	var stmts StmtStore
 	if PrepareStmtMaxSize <= 0 {
 		panic("PrepareStmtMaxSize must > 0")
 	}
@@ -53,7 +54,7 @@ func newPrepareStmtCache(PrepareStmtMaxSize int,
 	if PrepareStmtTTL != DEFAULT_TTL {
 		lru_ttl = PrepareStmtTTL
 	}
-	lru := &store.LruStmtStore{}
+	lru := &LruStmtStore{}
 	lru.NewLru(lru_size, lru_ttl)
 	stmts = lru
 	return &stmts
@@ -322,4 +323,80 @@ func (tx *PreparedStmtTX) Ping() error {
 		return err
 	}
 	return conn.Ping()
+}
+
+type StmtStore interface {
+	Get(key string) (*Stmt, bool)
+	Set(key string, value *Stmt)
+	Delete(key string)
+	AllMap() map[string]*Stmt
+}
+
+/*
+	type DefaultStmtStore struct {
+		defaultStmt map[string]*Stmt
+	}
+
+	func (s *DefaultStmtStore) Init() *DefaultStmtStore {
+		s.defaultStmt = make(map[string]*Stmt)
+		return s
+	}
+
+	func (s *DefaultStmtStore) AllMap() map[string]*Stmt {
+		return s.defaultStmt
+	}
+
+	func (s *DefaultStmtStore) Get(key string) (*Stmt, bool) {
+		stmt, ok := s.defaultStmt[key]
+		return stmt, ok
+	}
+
+	func (s *DefaultStmtStore) Set(key string, value *Stmt) {
+		s.defaultStmt[key] = value
+	}
+
+	func (s *DefaultStmtStore) Delete(key string) {
+		delete(s.defaultStmt, key)
+	}
+*/
+type LruStmtStore struct {
+	lru *lru.LRU[string, *Stmt]
+}
+
+func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
+	onEvicted := func(k string, v *Stmt) {
+		if v != nil {
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						fmt.Print("close stmt err panic ")
+					}
+				}()
+				if v != nil {
+					err := v.Close()
+					if err != nil {
+						//
+						fmt.Print("close stmt err: ", err.Error())
+					}
+				}
+			}()
+		}
+	}
+	s.lru = lru.NewLRU[string, *Stmt](size, onEvicted, ttl)
+}
+
+func (s *LruStmtStore) AllMap() map[string]*Stmt {
+	return s.lru.KeyValues()
+}
+func (s *LruStmtStore) Get(key string) (*Stmt, bool) {
+	stmt, ok := s.lru.Get(key)
+	return stmt, ok
+}
+
+func (s *LruStmtStore) Set(key string, value *Stmt) {
+	s.lru.Add(key, value)
+}
+
+func (s *LruStmtStore) Delete(key string) {
+	s.lru.Remove(key)
 }
