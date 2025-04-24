@@ -55,7 +55,7 @@ func newPrepareStmtCache(PrepareStmtMaxSize int,
 		lru_ttl = PrepareStmtTTL
 	}
 	lru := &LruStmtStore{}
-	lru.NewLru(lru_size, lru_ttl)
+	lru.newLru(lru_size, lru_ttl)
 	stmts = lru
 	return &stmts
 }
@@ -88,7 +88,7 @@ func (db *PreparedStmtDB) Close() {
 		return
 	}
 
-	for _, stmt := range db.Stmts.AllMap() {
+	for _, stmt := range db.Stmts.allMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -107,7 +107,7 @@ func (sdb *PreparedStmtDB) Reset() {
 	if sdb.Stmts == nil {
 		return
 	}
-	for _, stmt := range sdb.Stmts.AllMap() {
+	for _, stmt := range sdb.Stmts.allMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -124,7 +124,7 @@ func (sdb *PreparedStmtDB) Reset() {
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
 	db.Mux.RLock()
 	if db.Stmts != nil {
-		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+		if stmt, ok := db.Stmts.get(query); ok && (!stmt.Transaction || isTransaction) {
 			db.Mux.RUnlock()
 			// wait for other goroutines prepared
 			<-stmt.prepared
@@ -140,7 +140,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	db.Mux.Lock()
 	if db.Stmts != nil {
 		// double check
-		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+		if stmt, ok := db.Stmts.get(query); ok && (!stmt.Transaction || isTransaction) {
 			db.Mux.Unlock()
 			// wait for other goroutines prepared
 			<-stmt.prepared
@@ -159,7 +159,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	}
 	// cache preparing stmt first
 	cacheStmt := Stmt{Transaction: isTransaction, prepared: make(chan struct{})}
-	db.Stmts.Set(query, &cacheStmt)
+	db.Stmts.set(query, &cacheStmt)
 	db.Mux.Unlock()
 
 	// prepare completed
@@ -174,7 +174,7 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	if err != nil {
 		cacheStmt.prepareErr = err
 		db.Mux.Lock()
-		db.Stmts.Delete(query)
+		db.Stmts.delete(query)
 		//delete(db.Stmts.AllMap(), query)
 		db.Mux.Unlock()
 		return Stmt{}, err
@@ -216,7 +216,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 			db.Mux.Lock()
 			defer db.Mux.Unlock()
 			go stmt.Close()
-			db.Stmts.Delete(query)
+			db.Stmts.delete(query)
 			//delete(db.Stmts.AllMap(), query)
 		}
 	}
@@ -232,7 +232,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 			defer db.Mux.Unlock()
 
 			go stmt.Close()
-			db.Stmts.Delete(query)
+			db.Stmts.delete(query)
 			//delete(db.Stmts.AllMap(), query)
 		}
 	}
@@ -287,7 +287,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
 			go stmt.Close()
-			tx.PreparedStmtDB.Stmts.Delete(query)
+			tx.PreparedStmtDB.Stmts.delete(query)
 			//delete(tx.PreparedStmtDB.Stmts.AllMap(), query)
 		}
 	}
@@ -303,7 +303,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 			defer tx.PreparedStmtDB.Mux.Unlock()
 
 			go stmt.Close()
-			tx.PreparedStmtDB.Stmts.Delete(query)
+			tx.PreparedStmtDB.Stmts.delete(query)
 			//delete(tx.PreparedStmtDB.Stmts.AllMap(), query)
 		}
 	}
@@ -327,10 +327,10 @@ func (tx *PreparedStmtTX) Ping() error {
 }
 
 type StmtStore interface {
-	Get(key string) (*Stmt, bool)
-	Set(key string, value *Stmt)
-	Delete(key string)
-	AllMap() map[string]*Stmt
+	get(key string) (*Stmt, bool)
+	set(key string, value *Stmt)
+	delete(key string)
+	allMap() map[string]*Stmt
 }
 
 /*
@@ -364,7 +364,7 @@ type LruStmtStore struct {
 	lru *lru.LRU[string, *Stmt]
 }
 
-func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
+func (s *LruStmtStore) newLru(size int, ttl time.Duration) {
 	onEvicted := func(k string, v *Stmt) {
 		if v != nil {
 			go func() {
@@ -386,18 +386,18 @@ func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
 	s.lru = lru.NewLRU[string, *Stmt](size, onEvicted, ttl)
 }
 
-func (s *LruStmtStore) AllMap() map[string]*Stmt {
+func (s *LruStmtStore) allMap() map[string]*Stmt {
 	return s.lru.KeyValues()
 }
-func (s *LruStmtStore) Get(key string) (*Stmt, bool) {
+func (s *LruStmtStore) get(key string) (*Stmt, bool) {
 	stmt, ok := s.lru.Get(key)
 	return stmt, ok
 }
 
-func (s *LruStmtStore) Set(key string, value *Stmt) {
+func (s *LruStmtStore) set(key string, value *Stmt) {
 	s.lru.Add(key, value)
 }
 
-func (s *LruStmtStore) Delete(key string) {
+func (s *LruStmtStore) delete(key string) {
 	s.lru.Remove(key)
 }
