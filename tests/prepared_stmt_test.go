@@ -93,7 +93,7 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 }
 
 func TestPreparedStmtLruFromTransaction(t *testing.T) {
-	db, _ := OpenTestConnection(&gorm.Config{PrepareStmt: true, PrepareStmtLruConfig: &gorm.PrepareStmtLruConfig{10, 20 * time.Second, true}})
+	db, _ := OpenTestConnection(&gorm.Config{PrepareStmt: true, PrepareStmtMaxSize: 10, PrepareStmtTTL: 20 * time.Second})
 
 	tx := db.Begin()
 	defer func() {
