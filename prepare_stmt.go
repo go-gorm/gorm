@@ -116,6 +116,7 @@ func (sdb *PreparedStmtDB) Reset() {
 			}
 		}(stmt)
 	}
+	//Migrator
 	defaultStmt := newPrepareStmtCache(0, 0)
 	sdb.Stmts = *defaultStmt
 }
