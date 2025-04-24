@@ -88,7 +88,7 @@ func (db *PreparedStmtDB) Close() {
 		return
 	}
 
-	for _, stmt := range db.Stmts.allMap() {
+	for _, stmt := range db.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -107,7 +107,7 @@ func (sdb *PreparedStmtDB) Reset() {
 	if sdb.Stmts == nil {
 		return
 	}
-	for _, stmt := range sdb.Stmts.allMap() {
+	for _, stmt := range sdb.Stmts.AllMap() {
 		go func(s *Stmt) {
 			// make sure the stmt must finish preparation first
 			<-s.prepared
@@ -330,7 +330,7 @@ type StmtStore interface {
 	get(key string) (*Stmt, bool)
 	set(key string, value *Stmt)
 	delete(key string)
-	allMap() map[string]*Stmt
+	AllMap() map[string]*Stmt
 }
 
 /*
@@ -386,7 +386,7 @@ func (s *LruStmtStore) newLru(size int, ttl time.Duration) {
 	s.lru = lru.NewLRU[string, *Stmt](size, onEvicted, ttl)
 }
 
-func (s *LruStmtStore) allMap() map[string]*Stmt {
+func (s *LruStmtStore) AllMap() map[string]*Stmt {
 	return s.lru.KeyValues()
 }
 func (s *LruStmtStore) get(key string) (*Stmt, bool) {
