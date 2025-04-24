@@ -69,11 +69,6 @@ type Config struct {
 	callbacks  *callbacks
 	cacheStore *sync.Map
 }
-type PrepareStmtLruConfig struct {
-	Size int
-	TTL  time.Duration
-	Open bool
-}
 
 // Apply update config to new config
 func (c *Config) Apply(config *Config) error {
