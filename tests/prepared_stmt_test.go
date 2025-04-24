@@ -127,9 +127,14 @@ func TestPreparedStmtLruFromTransaction(t *testing.T) {
 	if result := tx2.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 0 {
 		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
 	}
+
 	tx2.Commit()
-	time.Sleep(time.Second * 40)
 	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	lens := len(conn.Stmts.AllMap())
+	if lens == 0 {
+		t.Fatalf("lru should not be empty")
+	}
+	time.Sleep(time.Second * 40)
 	AssertEqual(t, ok, true)
 	AssertEqual(t, len(conn.Stmts.AllMap()), 0)
 }
