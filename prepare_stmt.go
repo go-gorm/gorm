@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
-	"fmt"
+	"gorm.io/gorm/internal/store"
 	"reflect"
 	"sync"
 	"time"
@@ -19,31 +19,52 @@ type Stmt struct {
 }
 
 type PreparedStmtDB struct {
-	Stmts StmtStore
+	Stmts store.StmtStore
 	Mux   *sync.RWMutex
 	ConnPool
 }
 
-func newPrepareStmtCache(prepareStmtLruConfig *PrepareStmtLruConfig) *StmtStore {
-	var stmts StmtStore
-	if prepareStmtLruConfig != nil && prepareStmtLruConfig.Open {
-		if prepareStmtLruConfig.Size <= 0 {
-			panic("LRU prepareStmtLruConfig.Size must > 0")
-		}
-		lru := &LruStmtStore{}
-		lru.NewLru(prepareStmtLruConfig.Size, prepareStmtLruConfig.TTL)
-		stmts = lru
-	} else {
-		defaultStmtStore := &DefaultStmtStore{}
-		stmts = defaultStmtStore.init()
+const DEFAULT_MAX_SIZE = (1 << 63) - 1
+const DEFAULT_TTL = time.Hour * 24
+
+// newPrepareStmtCache creates a new statement cache with the specified maximum size and time-to-live (TTL).
+// Parameters:
+//   - PrepareStmtMaxSize: An integer specifying the maximum number of prepared statements to cache.
+//     If this value is less than or equal to 0, the function will panic.
+//   - PrepareStmtTTL: A time.Duration specifying the TTL for cached statements.
+//     If this value differs from the default TTL, it will be used instead.
+//
+// Returns:
+//   - A pointer to a store.StmtStore instance configured with the provided parameters.
+//
+// The function initializes an LRU (Least Recently Used) cache for prepared statements,
+// using either the provided size and TTL or default values
+func newPrepareStmtCache(PrepareStmtMaxSize int,
+	PrepareStmtTTL time.Duration) *store.StmtStore {
+	var lru_size = DEFAULT_MAX_SIZE
+	var lru_ttl = DEFAULT_TTL
+	var stmts store.StmtStore
+	if PrepareStmtMaxSize <= 0 {
+		panic("PrepareStmtMaxSize must > 0")
 	}
+	if PrepareStmtMaxSize != 0 {
+		lru_size = PrepareStmtMaxSize
+	}
+	if PrepareStmtTTL != DEFAULT_TTL {
+		lru_ttl = PrepareStmtTTL
+	}
+	lru := &store.LruStmtStore{}
+	lru.NewLru(lru_size, lru_ttl)
+	stmts = lru
 	return &stmts
 }
-func NewPreparedStmtDB(connPool ConnPool, prepareStmtLruConfig *PrepareStmtLruConfig) *PreparedStmtDB {
+func NewPreparedStmtDB(connPool ConnPool, PrepareStmtMaxSize int,
+	PrepareStmtTTL time.Duration) *PreparedStmtDB {
 	return &PreparedStmtDB{
 		ConnPool: connPool,
-		Stmts:    *newPrepareStmtCache(prepareStmtLruConfig),
-		Mux:      &sync.RWMutex{},
+		Stmts: *newPrepareStmtCache(PrepareStmtMaxSize,
+			PrepareStmtTTL),
+		Mux: &sync.RWMutex{},
 	}
 }
 
@@ -94,9 +115,8 @@ func (sdb *PreparedStmtDB) Reset() {
 			}
 		}(stmt)
 	}
-	defaultStmt := &DefaultStmtStore{}
-	defaultStmt.init()
-	sdb.Stmts = defaultStmt
+	defaultStmt := newPrepareStmtCache(0, 0)
+	sdb.Stmts = *defaultStmt
 }
 
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (Stmt, error) {
@@ -302,78 +322,4 @@ func (tx *PreparedStmtTX) Ping() error {
 		return err
 	}
 	return conn.Ping()
-}
-
-type StmtStore interface {
-	Get(key string) (*Stmt, bool)
-	Set(key string, value *Stmt)
-	Delete(key string)
-	AllMap() map[string]*Stmt
-}
-
-type DefaultStmtStore struct {
-	defaultStmt map[string]*Stmt
-}
-
-func (s *DefaultStmtStore) init() *DefaultStmtStore {
-	s.defaultStmt = make(map[string]*Stmt)
-	return s
-}
-
-func (s *DefaultStmtStore) AllMap() map[string]*Stmt {
-	return s.defaultStmt
-}
-func (s *DefaultStmtStore) Get(key string) (*Stmt, bool) {
-	stmt, ok := s.defaultStmt[key]
-	return stmt, ok
-}
-
-func (s *DefaultStmtStore) Set(key string, value *Stmt) {
-	s.defaultStmt[key] = value
-}
-
-func (s *DefaultStmtStore) Delete(key string) {
-	delete(s.defaultStmt, key)
-}
-
-type LruStmtStore struct {
-	lru *LRU[string, *Stmt]
-}
-
-func (s *LruStmtStore) NewLru(size int, ttl time.Duration) {
-	onEvicted := func(k string, v *Stmt) {
-		if v != nil {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						fmt.Print("close stmt err panic ")
-					}
-				}()
-				if v != nil {
-					err := v.Close()
-					if err != nil {
-						//
-						fmt.Print("close stmt err: ", err.Error())
-					}
-				}
-			}()
-		}
-	}
-	s.lru = NewLRU[string, *Stmt](size, onEvicted, ttl)
-}
-
-func (s *LruStmtStore) AllMap() map[string]*Stmt {
-	return s.lru.KeyValues()
-}
-func (s *LruStmtStore) Get(key string) (*Stmt, bool) {
-	stmt, ok := s.lru.Get(key)
-	return stmt, ok
-}
-
-func (s *LruStmtStore) Set(key string, value *Stmt) {
-	s.lru.Add(key, value)
-}
-
-func (s *LruStmtStore) Delete(key string) {
-	s.lru.Remove(key)
 }

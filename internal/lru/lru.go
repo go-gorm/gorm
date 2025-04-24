@@ -1,4 +1,4 @@
-package gorm
+package lru
 
 // golang -lru
 //https://github.com/hashicorp/golang-lru

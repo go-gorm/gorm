@@ -35,7 +35,9 @@ type Config struct {
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
 	// PrepareStmt cache support LRU expired
-	PrepareStmtLruConfig *PrepareStmtLruConfig
+	PrepareStmtMaxSize int
+	PrepareStmtTTL     time.Duration
+
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
@@ -204,7 +206,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	if config.PrepareStmt {
-		preparedStmt := NewPreparedStmtDB(db.ConnPool, config.PrepareStmtLruConfig)
+		preparedStmt := NewPreparedStmtDB(db.ConnPool, config.PrepareStmtMaxSize, config.PrepareStmtTTL)
 		db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		db.ConnPool = preparedStmt
 	}
@@ -275,7 +277,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt = v.(*PreparedStmtDB)
 		} else {
-			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.Config.PrepareStmtLruConfig)
+			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.Config.PrepareStmtMaxSize, db.Config.PrepareStmtTTL)
 			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
 
