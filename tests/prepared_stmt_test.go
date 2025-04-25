@@ -128,14 +128,26 @@ func TestPreparedStmtLruFromTransaction(t *testing.T) {
 	}
 
 	tx2.Commit()
+	// Attempt to convert the connection pool of tx to the *gorm.PreparedStmtDB type.
+	// If the conversion is successful, ok will be true and conn will be the converted object;
+	// otherwise, ok will be false and conn will be nil.
 	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	// Get the number of statement keys stored in the PreparedStmtDB.
 	lens := len(conn.Stmts.Keys())
+	// Check if the number of stored statement keys is 0.
 	if lens == 0 {
+		// If the number is 0, it means there are no statements stored in the LRU cache.
+		// The test fails and an error message is output.
 		t.Fatalf("lru should not be empty")
 	}
+	// Wait for 40 seconds to give the statements in the cache enough time to expire.
 	time.Sleep(time.Second * 40)
+	// Assert whether the connection pool of tx is successfully converted to the *gorm.PreparedStmtDB type.
 	AssertEqual(t, ok, true)
+	// Assert whether the number of statement keys stored in the PreparedStmtDB is 0 after 40 seconds.
+	// If it is not 0, it means the statements in the cache have not expired as expected.
 	AssertEqual(t, len(conn.Stmts.Keys()), 0)
+
 }
 
 func TestPreparedStmtDeadlock(t *testing.T) {
