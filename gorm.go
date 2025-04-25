@@ -35,7 +35,7 @@ type Config struct {
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
 	// PrepareStmt cache support LRU expired,
-	//default maxsize=int64 Max value and ttl=1h
+	// default maxsize=int64 Max value and ttl=1h
 	PrepareStmtMaxSize int
 	PrepareStmtTTL     time.Duration
 
