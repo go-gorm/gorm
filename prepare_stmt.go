@@ -18,12 +18,20 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
-// NewPreparedStmtDB creates a new PreparedStmtDB instance
+// NewPreparedStmtDB creates and initializes a new instance of PreparedStmtDB.
+//
+// Parameters:
+// - connPool: A connection pool that implements the ConnPool interface, used for managing database connections.
+// - maxSize: The maximum number of prepared statements that can be stored in the statement store.
+// - ttl: The time-to-live duration for each prepared statement in the store. Statements older than this duration will be automatically removed.
+//
+// Returns:
+// - A pointer to a PreparedStmtDB instance, which manages prepared statements using the provided connection pool and configuration.
 func NewPreparedStmtDB(connPool ConnPool, maxSize int, ttl time.Duration) *PreparedStmtDB {
 	return &PreparedStmtDB{
-		ConnPool: connPool,
-		Stmts:    stmt_store.New(maxSize, ttl),
-		Mux:      &sync.RWMutex{},
+		ConnPool: connPool,                     // Assigns the provided connection pool to manage database connections.
+		Stmts:    stmt_store.New(maxSize, ttl), // Initializes a new statement store with the specified maximum size and TTL.
+		Mux:      &sync.RWMutex{},              // Sets up a read-write mutex for synchronizing access to the statement store.
 	}
 }
 
