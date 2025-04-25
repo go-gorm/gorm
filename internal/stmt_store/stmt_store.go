@@ -1,8 +1,9 @@
 package stmt_store
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
+	"sync"
 	"time"
 
 	"gorm.io/gorm/internal/lru"
@@ -15,24 +16,7 @@ type Stmt struct {
 	prepareErr  error
 }
 
-func NewStmt(isTransaction bool) *Stmt {
-	return &Stmt{
-		Transaction: isTransaction,
-		prepared:    make(chan struct{}),
-	}
-}
-
-func (stmt *Stmt) Done() {
-	close(stmt.prepared)
-}
-
-func (stmt *Stmt) AddError(err error) {
-	stmt.prepareErr = err
-}
-
 func (stmt *Stmt) Error() error {
-	<-stmt.prepared
-
 	return stmt.prepareErr
 }
 
@@ -46,13 +30,14 @@ func (stmt *Stmt) Close() error {
 }
 
 type Store interface {
+	New(ctx context.Context, key string, isTransaction bool, connPool ConnPool, locker sync.Locker) (*Stmt, error)
+	Keys() []string
 	Get(key string) (*Stmt, bool)
 	Set(key string, value *Stmt)
 	Delete(key string)
-	AllMap() map[string]*Stmt
 }
 
-type StmtStore struct {
+type LRUStore struct {
 	lru *lru.LRU[string, *Stmt]
 }
 
@@ -72,35 +57,52 @@ func New(size int, ttl time.Duration) Store {
 
 	onEvicted := func(k string, v *Stmt) {
 		if v != nil {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						fmt.Print("close stmt err panic ")
-					}
-				}()
-				err := v.Close()
-				if err != nil {
-					fmt.Print("close stmt err: ", err.Error())
-				}
-			}()
+			go v.Close()
 		}
 	}
-	return &StmtStore{lru: lru.NewLRU[string, *Stmt](size, onEvicted, ttl)}
+	return &LRUStore{lru: lru.NewLRU[string, *Stmt](size, onEvicted, ttl)}
 }
 
-func (s *StmtStore) AllMap() map[string]*Stmt {
-	return s.lru.KeyValues()
+func (s *LRUStore) Keys() []string {
+	return s.lru.Keys()
 }
 
-func (s *StmtStore) Get(key string) (*Stmt, bool) {
+func (s *LRUStore) Get(key string) (*Stmt, bool) {
 	stmt, ok := s.lru.Get(key)
+	if ok && stmt != nil {
+		<-stmt.prepared
+	}
 	return stmt, ok
 }
 
-func (s *StmtStore) Set(key string, value *Stmt) {
+func (s *LRUStore) Set(key string, value *Stmt) {
 	s.lru.Add(key, value)
 }
 
-func (s *StmtStore) Delete(key string) {
+func (s *LRUStore) Delete(key string) {
 	s.lru.Remove(key)
+}
+
+type ConnPool interface {
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+}
+
+func (s *LRUStore) New(ctx context.Context, key string, isTransaction bool, conn ConnPool, locker sync.Locker) (_ *Stmt, err error) {
+	cacheStmt := &Stmt{
+		Transaction: isTransaction,
+		prepared:    make(chan struct{}),
+	}
+	s.Set(key, cacheStmt)
+	locker.Unlock()
+
+	defer close(cacheStmt.prepared)
+
+	cacheStmt.Stmt, err = conn.PrepareContext(ctx, key)
+	if err != nil {
+		cacheStmt.prepareErr = err
+		s.Delete(key)
+		return &Stmt{}, err
+	}
+
+	return cacheStmt, nil
 }

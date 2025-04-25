@@ -18,6 +18,7 @@ type PreparedStmtDB struct {
 	ConnPool
 }
 
+// NewPreparedStmtDB creates a new PreparedStmtDB instance
 func NewPreparedStmtDB(connPool ConnPool, maxSize int, ttl time.Duration) *PreparedStmtDB {
 	return &PreparedStmtDB{
 		ConnPool: connPool,
@@ -26,6 +27,7 @@ func NewPreparedStmtDB(connPool ConnPool, maxSize int, ttl time.Duration) *Prepa
 	}
 }
 
+// GetDBConn returns the underlying *sql.DB connection
 func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	if sqldb, ok := db.ConnPool.(*sql.DB); ok {
 		return sqldb, nil
@@ -38,93 +40,41 @@ func (db *PreparedStmtDB) GetDBConn() (*sql.DB, error) {
 	return nil, ErrInvalidDB
 }
 
+// Close closes all prepared statements in the store
 func (db *PreparedStmtDB) Close() {
 	db.Mux.Lock()
 	defer db.Mux.Unlock()
-	if db.Stmts == nil {
-		return
-	}
 
-	for _, stmt := range db.Stmts.AllMap() {
-		go stmt.Close()
+	for _, key := range db.Stmts.Keys() {
+		db.Stmts.Delete(key)
 	}
-	// setting db.Stmts to nil to avoid further using
-	db.Stmts = nil
 }
 
-func (sdb *PreparedStmtDB) Reset() {
-	sdb.Mux.Lock()
-	defer sdb.Mux.Unlock()
-	if sdb.Stmts == nil {
-		return
-	}
-	for _, stmt := range sdb.Stmts.AllMap() {
-		go stmt.Close()
-	}
-
-	// Migrator
-	sdb.Stmts = stmt_store.New(0, 0)
+// Reset Deprecated use Close instead
+func (db *PreparedStmtDB) Reset() {
+	db.Close()
 }
 
-func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (stmt_store.Stmt, error) {
+func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (_ *stmt_store.Stmt, err error) {
 	db.Mux.RLock()
 	if db.Stmts != nil {
 		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
 			db.Mux.RUnlock()
-			if err := stmt.Error(); err != nil {
-				return stmt_store.Stmt{}, err
-			}
-
-			return *stmt, nil
+			return stmt, stmt.Error()
 		}
 	}
 	db.Mux.RUnlock()
 
+	// retry
 	db.Mux.Lock()
 	if db.Stmts != nil {
-		// double check
 		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
 			db.Mux.Unlock()
-			if err := stmt.Error(); err != nil {
-				return stmt_store.Stmt{}, err
-			}
-
-			return *stmt, nil
+			return stmt, stmt.Error()
 		}
 	}
-	// check db.Stmts first to avoid Segmentation Fault(setting value to nil map)
-	// which cause by calling Close and executing SQL concurrently
-	if db.Stmts == nil {
-		db.Mux.Unlock()
-		return stmt_store.Stmt{}, ErrInvalidDB
-	}
-	// cache preparing stmt first
-	cacheStmt := stmt_store.NewStmt(isTransaction)
-	db.Stmts.Set(query, cacheStmt)
-	db.Mux.Unlock()
 
-	// prepare completed
-	defer cacheStmt.Done()
-
-	// Reason why cannot lock conn.PrepareContext
-	// suppose the maxopen is 1, g1 is creating record and g2 is querying record.
-	// 1. g1 begin tx, g1 is requeue because of waiting for the system call, now `db.ConnPool` db.numOpen == 1.
-	// 2. g2 select lock `conn.PrepareContext(ctx, query)`, now db.numOpen == db.maxOpen , wait for release.
-	// 3. g1 tx exec insert, wait for unlock `conn.PrepareContext(ctx, query)` to finish tx and release.
-	stmt, err := conn.PrepareContext(ctx, query)
-	if err != nil {
-		cacheStmt.AddError(err)
-		db.Mux.Lock()
-		db.Stmts.Delete(query)
-		db.Mux.Unlock()
-		return stmt_store.Stmt{}, err
-	}
-
-	db.Mux.Lock()
-	cacheStmt.Stmt = stmt
-	db.Mux.Unlock()
-
-	return *cacheStmt, nil
+	return db.Stmts.New(ctx, query, isTransaction, conn, db.Mux)
 }
 
 func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (ConnPool, error) {
@@ -153,9 +103,6 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 	if err == nil {
 		result, err = stmt.ExecContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
-			db.Mux.Lock()
-			defer db.Mux.Unlock()
-			go stmt.Close()
 			db.Stmts.Delete(query)
 		}
 	}
@@ -167,10 +114,6 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 	if err == nil {
 		rows, err = stmt.QueryContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
-			db.Mux.Lock()
-			defer db.Mux.Unlock()
-
-			go stmt.Close()
 			db.Stmts.Delete(query)
 		}
 	}
@@ -221,10 +164,6 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 	if err == nil {
 		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).ExecContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
-			tx.PreparedStmtDB.Mux.Lock()
-			defer tx.PreparedStmtDB.Mux.Unlock()
-
-			go stmt.Close()
 			tx.PreparedStmtDB.Stmts.Delete(query)
 		}
 	}
@@ -236,10 +175,6 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 	if err == nil {
 		rows, err = tx.Tx.StmtContext(ctx, stmt.Stmt).QueryContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
-			tx.PreparedStmtDB.Mux.Lock()
-			defer tx.PreparedStmtDB.Mux.Unlock()
-
-			go stmt.Close()
 			tx.PreparedStmtDB.Stmts.Delete(query)
 		}
 	}
