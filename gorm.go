@@ -35,7 +35,7 @@ type Config struct {
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
 	// PrepareStmt cache support LRU expired,
-	//default maxsize=int64 Max value and ttl=1h
+	// default maxsize=int64 Max value and ttl=1h
 	PrepareStmtMaxSize int
 	PrepareStmtTTL     time.Duration
 
@@ -110,6 +110,8 @@ type DB struct {
 type Session struct {
 	DryRun                   bool
 	PrepareStmt              bool
+	PrepareStmtMaxSize       int
+	PrepareStmtTTL           time.Duration
 	NewDB                    bool
 	Initialized              bool
 	SkipHooks                bool
@@ -273,7 +275,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt = v.(*PreparedStmtDB)
 		} else {
-			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.Config.PrepareStmtMaxSize, db.Config.PrepareStmtTTL)
+			preparedStmt = NewPreparedStmtDB(db.ConnPool, config.PrepareStmtMaxSize, config.PrepareStmtTTL)
 			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
 
