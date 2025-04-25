@@ -1,7 +1,7 @@
 package lru
 
 // golang -lru
-//https://github.com/hashicorp/golang-lru
+// https://github.com/hashicorp/golang-lru
 import (
 	"sync"
 	"time"
@@ -226,7 +226,7 @@ func (c *LRU[K, V]) KeyValues() map[K]V {
 			continue
 		}
 		maps[ent.Key] = ent.Value
-		//keys = append(keys, ent.Key)
+		// keys = append(keys, ent.Key)
 	}
 	return maps
 }
