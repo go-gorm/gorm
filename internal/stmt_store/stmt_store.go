@@ -37,10 +37,6 @@ type Store interface {
 	Delete(key string)
 }
 
-type LRUStore struct {
-	lru *lru.LRU[string, *Stmt]
-}
-
 const (
 	defaultMaxSize = (1 << 63) - 1
 	defaultTTL     = time.Hour * 24
@@ -60,14 +56,18 @@ func New(size int, ttl time.Duration) Store {
 			go v.Close()
 		}
 	}
-	return &LRUStore{lru: lru.NewLRU[string, *Stmt](size, onEvicted, ttl)}
+	return &lruStore{lru: lru.NewLRU[string, *Stmt](size, onEvicted, ttl)}
 }
 
-func (s *LRUStore) Keys() []string {
+type lruStore struct {
+	lru *lru.LRU[string, *Stmt]
+}
+
+func (s *lruStore) Keys() []string {
 	return s.lru.Keys()
 }
 
-func (s *LRUStore) Get(key string) (*Stmt, bool) {
+func (s *lruStore) Get(key string) (*Stmt, bool) {
 	stmt, ok := s.lru.Get(key)
 	if ok && stmt != nil {
 		<-stmt.prepared
@@ -75,11 +75,11 @@ func (s *LRUStore) Get(key string) (*Stmt, bool) {
 	return stmt, ok
 }
 
-func (s *LRUStore) Set(key string, value *Stmt) {
+func (s *lruStore) Set(key string, value *Stmt) {
 	s.lru.Add(key, value)
 }
 
-func (s *LRUStore) Delete(key string) {
+func (s *lruStore) Delete(key string) {
 	s.lru.Remove(key)
 }
 
@@ -87,7 +87,7 @@ type ConnPool interface {
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-func (s *LRUStore) New(ctx context.Context, key string, isTransaction bool, conn ConnPool, locker sync.Locker) (_ *Stmt, err error) {
+func (s *lruStore) New(ctx context.Context, key string, isTransaction bool, conn ConnPool, locker sync.Locker) (_ *Stmt, err error) {
 	cacheStmt := &Stmt{
 		Transaction: isTransaction,
 		prepared:    make(chan struct{}),
