@@ -3,6 +3,7 @@ package stmt_store
 import (
 	"context"
 	"database/sql"
+	"math"
 	"sync"
 	"time"
 
@@ -73,7 +74,7 @@ type Store interface {
 // the cache can theoretically store as many elements as possible.
 // (1 << 63) - 1 is the maximum value that an int64 type can represent.
 const (
-	defaultMaxSize = (1 << 63) - 1
+	defaultMaxSize = math.MaxInt
 	// defaultTTL defines the default time-to-live (TTL) for each cache entry.
 	// When the TTL for cache entries is not specified, each cache entry will expire after 24 hours.
 	defaultTTL = time.Hour * 24
