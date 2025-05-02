@@ -22,7 +22,7 @@ func (db *DB) Association(column string) *Association {
 	association := &Association{DB: db}
 	table := db.Statement.Table
 
-	if err := db.Statement.Parse(db.Statement.Model); err == nil {
+	if err := db.Statement.ParseWithLogger(db.Statement.Model, db.Logger); err == nil {
 		db.Statement.Table = table
 		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
 
