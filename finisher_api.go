@@ -181,7 +181,10 @@ func (db *DB) Only(dest interface{}, conds ...interface{}) (tx *DB) {
 	}
 
 	if count > 1 {
-		findTx.AddError(ErrMultipleRecordsFound)
+		err := findTx.AddError(ErrMultipleRecordsFound)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return findTx
