@@ -159,6 +159,34 @@ func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 	return tx.callbacks.Query().Execute(tx)
 }
 
+// Only finds the single record and asserts that it was the only record that matched the query
+func (db *DB) Only(dest interface{}, conds ...interface{}) (tx *DB) {
+	baseTx := db.Session(&Session{NewDB: true})
+	if len(conds) > 0 {
+		if exprs := baseTx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
+			baseTx.Statement.AddClause(clause.Where{Exprs: exprs})
+		}
+	}
+
+	findTx := baseTx.Limit(1).Find(dest)
+	if findTx.Error != nil {
+		return findTx
+	}
+
+	// Check total matches (with fresh session)
+	var count int64
+	countTx := baseTx.Session(&Session{}).Count(&count)
+	if countTx.Error != nil {
+		return countTx
+	}
+
+	if count > 1 {
+		findTx.AddError(fmt.Errorf("expected exactly one record, but found %d", count))
+	}
+
+	return findTx
+}
+
 // Find finds all records matching given conditions conds
 func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
