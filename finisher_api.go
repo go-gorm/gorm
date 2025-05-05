@@ -181,7 +181,7 @@ func (db *DB) Only(dest interface{}, conds ...interface{}) (tx *DB) {
 	}
 
 	if count > 1 {
-		findTx.AddError(fmt.Errorf("expected exactly one record, but found %d", count))
+		findTx.AddError(ErrMultipleRecordsFound)
 	}
 
 	return findTx
