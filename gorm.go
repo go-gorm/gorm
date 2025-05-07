@@ -110,8 +110,6 @@ type DB struct {
 type Session struct {
 	DryRun                   bool
 	PrepareStmt              bool
-	PrepareStmtMaxSize       int
-	PrepareStmtTTL           time.Duration
 	NewDB                    bool
 	Initialized              bool
 	SkipHooks                bool
@@ -275,7 +273,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt = v.(*PreparedStmtDB)
 		} else {
-			preparedStmt = NewPreparedStmtDB(db.ConnPool, config.PrepareStmtMaxSize, config.PrepareStmtTTL)
+			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.PrepareStmtMaxSize, db.PrepareStmtTTL)
 			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
 
