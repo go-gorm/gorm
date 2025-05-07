@@ -41,6 +41,16 @@ func (db *DB) Association(column string) *Association {
 	return association
 }
 
+func (association *Association) BuildCondition() *DB {
+	if association.Error != nil {
+		tx := association.DB
+		tx.Error = association.Error
+		return tx
+	}
+
+	return association.buildCondition()
+}
+
 func (association *Association) Unscoped() *Association {
 	return &Association{
 		DB:           association.DB,
