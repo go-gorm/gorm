@@ -51,4 +51,6 @@ var (
 	ErrForeignKeyViolated = errors.New("violates foreign key constraint")
 	// ErrCheckConstraintViolated occurs when there is a check constraint violation
 	ErrCheckConstraintViolated = errors.New("violates check constraint")
+	// ErrMultipleRecordsFound occurs when more than one record found with Only
+	ErrMultipleRecordsFound = errors.New("multiple records found")
 )
