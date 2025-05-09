@@ -28,8 +28,7 @@ type ChainInterface[T any] interface {
 	Or(query interface{}, args ...interface{}) ChainInterface[T]
 	Limit(offset int) ChainInterface[T]
 	Offset(offset int) ChainInterface[T]
-	Joins(query string, args ...interface{}) ChainInterface[T]
-	InnerJoins(query string, args ...interface{}) ChainInterface[T]
+	Joins(query clause.JoinTarget, args func(db ChainInterface[any], joinTable clause.Table, curTable clause.Table) ChainInterface[any]) ChainInterface[T]
 	Select(query string, args ...interface{}) ChainInterface[T]
 	Omit(columns ...string) ChainInterface[T]
 	MapColumns(m map[string]string) ChainInterface[T]
@@ -186,16 +185,9 @@ func (c chainG[T]) Offset(offset int) ChainInterface[T] {
 	})
 }
 
-func (c chainG[T]) Joins(query string, args ...interface{}) ChainInterface[T] {
-	return c.with(func(db *DB) *DB {
-		return db.Joins(query, args...)
-	})
-}
-
-func (c chainG[T]) InnerJoins(query string, args ...interface{}) ChainInterface[T] {
-	return c.with(func(db *DB) *DB {
-		return db.InnerJoins(query, args...)
-	})
+func (c chainG[T]) Joins(query clause.JoinTarget, args func(db ChainInterface[any], joinTable clause.Table, curTable clause.Table) ChainInterface[any]) ChainInterface[T] {
+	// TODO
+	return nil
 }
 
 func (c chainG[T]) Select(query string, args ...interface{}) ChainInterface[T] {

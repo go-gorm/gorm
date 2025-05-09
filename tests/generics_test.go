@@ -285,7 +285,9 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	db.Create(ctx, &u)
 
 	// LEFT JOIN + WHERE
-	result, err := db.Joins("Company").Where("?.name = ?", clause.JoinTable("Company"), u.Company.Name).First(ctx)
+	result, err := db.Joins(clause.Has("Company"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
+		return db.Where("?.name = ?", joinTable, u.Company.Name)
+	}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
 	}
@@ -293,13 +295,26 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
-	// INNER JOIN + Inline WHERE
-	result2, err := db.InnerJoins("Company", "?.name = ?", clause.JoinTable("Company"), u.Company.Name).First(ctx)
+	// JOIN
+	result, err = db.Joins(clause.Has("Company"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
+		return nil
+	}).First(ctx)
 	if err != nil {
-		t.Fatalf("InnerJoins failed: %v", err)
+		t.Fatalf("Joins failed: %v", err)
 	}
-	if result2.Name != u.Name || result2.Company.Name != u.Company.Name {
-		t.Errorf("InnerJoins expected , got %+v", result2)
+	if result.Name != u.Name || result.Company.Name != u.Company.Name {
+		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
+	}
+
+	// Left JOIN
+	result, err = db.Joins(clause.LeftJoin.Association("Company").As("t"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
+		return nil
+	}).First(ctx)
+	if err != nil {
+		t.Fatalf("Joins failed: %v", err)
+	}
+	if result.Name != u.Name || result.Company.Name != u.Company.Name {
+		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
 	// Preload
