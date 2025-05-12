@@ -64,6 +64,7 @@ func (c Clause) Build(builder Builder) {
 
 const (
 	PrimaryKey   string = "~~~py~~~" // primary key
+	PrimaryKeys  string = "~~~ps~~~" // primary keys
 	CurrentTable string = "~~~ct~~~" // current table
 	Associations string = "~~~as~~~" // associations
 )

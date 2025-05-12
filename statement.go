@@ -105,27 +105,61 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			write(v.Raw, v.Alias)
 		}
 	case clause.Column:
-		if v.Table != "" {
-			if v.Table == clause.CurrentTable {
-				write(v.Raw, stmt.Table)
-			} else {
-				write(v.Raw, v.Table)
-			}
-			writer.WriteByte('.')
-		}
-
-		if v.Name == clause.PrimaryKey {
+		// Handle composite primary keys explicitly
+		if v.Name == clause.PrimaryKeys {
 			if stmt.Schema == nil {
 				stmt.DB.AddError(ErrModelValueRequired)
-			} else if stmt.Schema.PrioritizedPrimaryField != nil {
-				write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
+			} else if stmt.Schema.PrimaryFields != nil {
+				for idx, s := range stmt.Schema.PrimaryFieldDBNames {
+					if idx > 0 {
+						writer.WriteByte(',')
+					}
+					if v.Table != "" {
+						if v.Table == clause.CurrentTable {
+							write(v.Raw, stmt.Table)
+						} else {
+							write(v.Raw, v.Table)
+						}
+						writer.WriteByte('.')
+					}
+					write(v.Raw, s)
+				}
 			} else if len(stmt.Schema.DBNames) > 0 {
+				if v.Table != "" {
+					if v.Table == clause.CurrentTable {
+						write(v.Raw, stmt.Table)
+					} else {
+						write(v.Raw, v.Table)
+					}
+					writer.WriteByte('.')
+				}
 				write(v.Raw, stmt.Schema.DBNames[0])
 			} else {
 				stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck
 			}
 		} else {
-			write(v.Raw, v.Name)
+			if v.Table != "" {
+				if v.Table == clause.CurrentTable {
+					write(v.Raw, stmt.Table)
+				} else {
+					write(v.Raw, v.Table)
+				}
+				writer.WriteByte('.')
+			}
+
+			if v.Name == clause.PrimaryKey {
+				if stmt.Schema == nil {
+					stmt.DB.AddError(ErrModelValueRequired)
+				} else if stmt.Schema.PrioritizedPrimaryField != nil {
+					write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
+				} else if len(stmt.Schema.DBNames) > 0 {
+					write(v.Raw, stmt.Schema.DBNames[0])
+				} else {
+					stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck
+				}
+			} else {
+				write(v.Raw, v.Name)
+			}
 		}
 
 		if v.Alias != "" {
