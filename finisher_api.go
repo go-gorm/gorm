@@ -294,7 +294,7 @@ find:
 		} else {
 			primaryValue, zero := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 			if zero {
-				tx.AddError(ErrPrimaryKeyRequired)
+				tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
 				break
 			}
 			queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})

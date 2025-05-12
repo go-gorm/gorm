@@ -144,19 +144,19 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 				} else {
 					write(v.Raw, v.Table)
 				}
-				writer.WriteByte('.')
+				writer.WriteByte('.') //nolint:typecheck,errcheck,gosec
 			}
 
 			if v.Name == clause.PrimaryKey {
 				switch {
 				case stmt.Schema == nil:
-					stmt.DB.AddError(ErrModelValueRequired) //nolint:typecheck,errcheck,gosec
+					stmt.DB.AddError(ErrModelValueRequired) //nolint:typecheck,errcheck,gosec,staticcheck
 				case stmt.Schema.PrioritizedPrimaryField != nil:
 					write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
 				case len(stmt.Schema.DBNames) > 0:
 					write(v.Raw, stmt.Schema.DBNames[0])
 				default:
-					stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck,gosec
+					stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck,gosec,staticcheck
 				}
 			} else {
 				write(v.Raw, v.Name)
