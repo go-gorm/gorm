@@ -78,7 +78,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	cacheStore := schema.cacheStore
 
 	if relation.FieldSchema, err = getOrParse(fieldValue, cacheStore, schema.namer); err != nil {
-		schema.err = err
+		schema.err = fmt.Errorf("%w. The field name is %s", err, field.Name)
 		return nil
 	}
 
