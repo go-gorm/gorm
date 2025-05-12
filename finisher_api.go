@@ -228,7 +228,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		// Optimize for-break
 		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+		if result.Statement.Schema.PrioritizedPrimaryField == nil && result.Statement.Schema.PrimaryFields != nil && len(result.Statement.Schema.PrimaryFields) == 1 {
 			tx.AddError(ErrPrimaryKeyRequired)
 			break
 		}
