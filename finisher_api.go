@@ -200,6 +200,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		}
 	}
 
+find:
 	for {
 		result := queryDB.Limit(batchSize).Find(dest)
 		rowsAffected += result.RowsAffected
@@ -257,8 +258,8 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 						f = result.Statement.Schema.PrimaryFields[i]
 						primaryValue, zero := f.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 						if zero {
-							tx.AddError(ErrPrimaryKeyRequired)
-							break
+							tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+							break find
 						}
 						orClauses = append(orClauses, clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName}, Value: primaryValue})
 					} else {
@@ -267,8 +268,8 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 							f = result.Statement.Schema.PrimaryFields[j]
 							primaryValue, zero := f.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 							if zero {
-								tx.AddError(ErrPrimaryKeyRequired)
-								break
+								tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+								break find
 							}
 							if j == i {
 								// Build current outer column GT clause
@@ -285,7 +286,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 			} else {
 				primaryValue, zero := result.Statement.Schema.PrimaryFields[0].ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 				if zero {
-					tx.AddError(ErrPrimaryKeyRequired)
+					tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
 					break
 				}
 				queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: result.Statement.Schema.PrimaryFields[0].DBName}, Value: primaryValue})

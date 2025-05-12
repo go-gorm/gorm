@@ -112,7 +112,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			} else if stmt.Schema.PrimaryFields != nil {
 				for idx, s := range stmt.Schema.PrimaryFieldDBNames {
 					if idx > 0 {
-						writer.WriteByte(',')
+						writer.WriteByte(',') //nolint:typecheck,errcheck,gosec
 					}
 					if v.Table != "" {
 						if v.Table == clause.CurrentTable {
@@ -120,7 +120,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 						} else {
 							write(v.Raw, v.Table)
 						}
-						writer.WriteByte('.')
+						writer.WriteByte('.') //nolint:typecheck,errcheck,gosec
 					}
 					write(v.Raw, s)
 				}
@@ -131,7 +131,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 					} else {
 						write(v.Raw, v.Table)
 					}
-					writer.WriteByte('.')
+					writer.WriteByte('.') //nolint:typecheck,errcheck,gosec
 				}
 				write(v.Raw, stmt.Schema.DBNames[0])
 			} else {
@@ -148,14 +148,15 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 			}
 
 			if v.Name == clause.PrimaryKey {
-				if stmt.Schema == nil {
-					stmt.DB.AddError(ErrModelValueRequired)
-				} else if stmt.Schema.PrioritizedPrimaryField != nil {
+				switch {
+				case stmt.Schema == nil:
+					stmt.DB.AddError(ErrModelValueRequired) //nolint:typecheck,errcheck,gosec
+				case stmt.Schema.PrioritizedPrimaryField != nil:
 					write(v.Raw, stmt.Schema.PrioritizedPrimaryField.DBName)
-				} else if len(stmt.Schema.DBNames) > 0 {
+				case len(stmt.Schema.DBNames) > 0:
 					write(v.Raw, stmt.Schema.DBNames[0])
-				} else {
-					stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck
+				default:
+					stmt.DB.AddError(ErrModelAccessibleFieldsRequired) //nolint:typecheck,errcheck,gosec
 				}
 			} else {
 				write(v.Raw, v.Name)
