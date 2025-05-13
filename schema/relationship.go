@@ -675,7 +675,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 
 	var (
 		name     string
-		idx      = strings.Index(str, ",")
+		idx      = strings.IndexByte(str, ',')
 		settings = ParseTagSetting(str, ",")
 	)
 
