@@ -103,11 +103,11 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 				joined = true
 				continue
 			}
-			joinNames := strings.SplitN(join, ".", 2)
-			if len(joinNames) == 2 {
-				if _, ok := relationships.Relations[joinNames[0]]; ok && name == joinNames[0] {
+			join0, join1, cut := strings.Cut(join, ".")
+			if cut {
+				if _, ok := relationships.Relations[join0]; ok && name == join0 {
 					joined = true
-					nestedJoins = append(nestedJoins, joinNames[1])
+					nestedJoins = append(nestedJoins, join1)
 				}
 			}
 		}
