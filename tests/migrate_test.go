@@ -1987,3 +1987,53 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 		}
 	}
 }
+
+func TestAutoMigrateDecimal(t *testing.T) {
+	if DB.Dialector.Name() != "mysql" {
+		return
+	}
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE ") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if decimal is not change: sql: %s", sql)
+			}
+		},
+	}
+	session := DB.Session(&gorm.Session{Logger: tracer})
+
+	type MigrateDecimalColumn struct {
+		RecID1 int64 `gorm:"column:recid1;type:decimal(9,0);not null" json:"recid1"`
+	}
+	DB.Migrator().DropTable(&MigrateDecimalColumn{})
+
+	if err := DB.AutoMigrate(&MigrateDecimalColumn{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+	if err := session.AutoMigrate(&MigrateDecimalColumn{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+	type MigrateDecimalColumn2 struct {
+		RecID1 int64 `gorm:"column:recid1;type:decimal(8,2);not null" json:"recid1"`
+	}
+	tracer2 := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE ") {
+				if sql != "ALTER TABLE `migrate_decimal_columns` MODIFY COLUMN `recid1` decimal(8,2) NOT NULL" {
+					t.Fatalf("decimal alter error: %s", sql)
+				}
+
+			}
+		},
+	}
+	session2 := DB.Session(&gorm.Session{Logger: tracer2})
+
+	err := session2.Table("migrate_decimal_columns").Migrator().AutoMigrate(&MigrateDecimalColumn2{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+}
+
