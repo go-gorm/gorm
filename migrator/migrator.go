@@ -474,7 +474,6 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	// found, smart migrate
 	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())
-
 	var (
 		alterColumn bool
 		isSameType  = fullDataType == realDataType
@@ -513,8 +512,19 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 				}
 			}
 		}
+	}
 
-		// check precision
+	// check precision
+	if realDataType == "decimal" || realDataType == "numeric" &&
+		regexp.MustCompile(realDataType+`\(.*\)`).FindString(fullDataType) != "" { // if realDataType has no precision,ignore
+		precision, scale, ok := columnType.DecimalSize()
+		if ok {
+			if !strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d,%d)", realDataType, precision, scale)) &&
+				!strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d)", realDataType, precision)) {
+				alterColumn = true
+			}
+		}
+	} else {
 		if precision, _, ok := columnType.DecimalSize(); ok && int64(field.Precision) != precision {
 			if regexp.MustCompile(fmt.Sprintf("[^0-9]%d[^0-9]", field.Precision)).MatchString(m.DataTypeOf(field)) {
 				alterColumn = true
