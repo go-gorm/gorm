@@ -388,7 +388,7 @@ func (c chainG[T]) Order(value interface{}) ChainInterface[T] {
 func (c chainG[T]) Preload(association string, query func(db PreloadBuilder) error) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
 		return db.Preload(association, func(tx *DB) *DB {
-			q := preloadBuilder{db: tx}
+			q := preloadBuilder{db: tx.getInstance()}
 			if query != nil {
 				if err := query(q); err != nil {
 					db.AddError(err)
