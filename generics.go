@@ -256,6 +256,16 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, args func(db QueryInterface, join
 				joinType = clause.LeftJoin
 			}
 
+			if db, ok := jt.Subquery.(interface{ getInstance() *DB }); ok {
+				stmt := db.getInstance().Statement
+				if len(j.Selects) == 0 {
+					j.Selects = stmt.Selects
+				}
+				if len(j.Omits) == 0 {
+					j.Omits = stmt.Omits
+				}
+			}
+
 			expr := clause.NamedExpr{SQL: fmt.Sprintf("%s JOIN (?) AS ?", joinType), Vars: []interface{}{jt.Subquery, clause.Table{Name: j.Alias}}}
 
 			if j.On != nil {

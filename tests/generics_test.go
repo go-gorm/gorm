@@ -342,7 +342,23 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Raw subquery join failed: %v", err)
 	}
-	if result.Name != u2.Name || result.Company.Name != u.Company.Name {
+	if result.Name != u2.Name || result.Company.Name != u.Company.Name || result.Company.ID == 0 {
+		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
+	}
+
+	// Raw Subquery JOIN + WHERE + Select
+	result, err = db.Joins(clause.LeftJoin.AssociationFrom("Company", gorm.G[Company](DB).Select("Name")).As("t"),
+		func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+			if joinTable.Name != "t" {
+				t.Fatalf("Join table should be t, but got %v", joinTable.Name)
+			}
+			return db.Where("?.name = ?", joinTable, u.Company.Name)
+		},
+	).Where(map[string]any{"name": u2.Name}).First(ctx)
+	if err != nil {
+		t.Fatalf("Raw subquery join failed: %v", err)
+	}
+	if result.Name != u2.Name || result.Company.Name != u.Company.Name || result.Company.ID != 0 {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
