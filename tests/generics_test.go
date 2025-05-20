@@ -44,7 +44,7 @@ func TestGenericsCreate(t *testing.T) {
 
 	if u, err := gorm.G[User](DB).Omit("name").Where("name = ?", user.Name).First(ctx); err != nil {
 		t.Fatalf("failed to find user, got error: %v", err)
-	} else if u.Name != "" || u.Age != u.Age {
+	} else if u.Name != "" || u.Age != user.Age {
 		t.Errorf("found invalid user, got %v, expect %v", u, user)
 	}
 
@@ -92,7 +92,6 @@ func TestGenericsCreateInBatches(t *testing.T) {
 
 	found, err := gorm.G[User](DB).Raw("SELECT * FROM users WHERE name LIKE ?", "GenericsCreateInBatches%").Find(ctx)
 	if len(found) != len(batch) {
-		fmt.Println(found)
 		t.Errorf("expected %d from Raw Find, got %d", len(batch), len(found))
 	}
 
@@ -282,10 +281,12 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	db := gorm.G[User](DB)
 
 	u := User{Name: "GenericsJoins", Company: Company{Name: "GenericsCompany"}}
-	db.Create(ctx, &u)
+	u2 := User{Name: "GenericsJoins_2", Company: Company{Name: "GenericsCompany_2"}}
+	u3 := User{Name: "GenericsJoins_3", Company: Company{Name: "GenericsCompany_3"}}
+	db.CreateInBatches(ctx, &[]User{u3, u, u2}, 10)
 
-	// LEFT JOIN + WHERE
-	result, err := db.Joins(clause.Has("Company"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
+	// Inner JOIN + WHERE
+	result, err := db.Joins(clause.Has("Company"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
 		return db.Where("?.name = ?", joinTable, u.Company.Name)
 	}).First(ctx)
 	if err != nil {
@@ -295,9 +296,9 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
-	// JOIN
-	result, err = db.Joins(clause.Has("Company"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
-		return nil
+	// Inner JOIN + WHERE with map
+	result, err = db.Joins(clause.Has("Company"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+		return db.Where(map[string]any{"name": u.Company.Name})
 	}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
@@ -306,14 +307,42 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
-	// Left JOIN
-	result, err = db.Joins(clause.LeftJoin.Association("Company").As("t"), func(db gorm.ChainInterface[any], joinTable clause.Table, curTable clause.Table) gorm.ChainInterface[any] {
-		return nil
-	}).First(ctx)
+	// Left JOIN w/o WHERE
+	result, err = db.Joins(clause.LeftJoin.Association("Company"), nil).Where(map[string]any{"name": u.Name}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
 	}
 	if result.Name != u.Name || result.Company.Name != u.Company.Name {
+		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
+	}
+
+	// Left JOIN + Alias WHERE
+	result, err = db.Joins(clause.LeftJoin.Association("Company").As("t"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+		if joinTable.Name != "t" {
+			t.Fatalf("Join table should be t, but got %v", joinTable.Name)
+		}
+		return db.Where("?.name = ?", joinTable, u.Company.Name)
+	}).Where(map[string]any{"name": u.Name}).First(ctx)
+	if err != nil {
+		t.Fatalf("Joins failed: %v", err)
+	}
+	if result.Name != u.Name || result.Company.Name != u.Company.Name {
+		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
+	}
+
+	// Raw Subquery JOIN + WHERE
+	result, err = db.Joins(clause.LeftJoin.AssociationFrom("Company", gorm.G[Company](DB)).As("t"),
+		func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+			if joinTable.Name != "t" {
+				t.Fatalf("Join table should be t, but got %v", joinTable.Name)
+			}
+			return db.Where("?.name = ?", joinTable, u.Company.Name)
+		},
+	).Where(map[string]any{"name": u2.Name}).First(ctx)
+	if err != nil {
+		t.Fatalf("Raw subquery join failed: %v", err)
+	}
+	if result.Name != u2.Name || result.Company.Name != u.Company.Name {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 

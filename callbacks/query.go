@@ -146,9 +146,13 @@ func BuildQuerySQL(db *gorm.DB) {
 
 					if isRelations {
 						genJoinClause := func(joinType clause.JoinType, parentTableName string, relation *schema.Relationship) clause.Join {
-							tableAliasName := relation.Name
-							if parentTableName != clause.CurrentTable {
-								tableAliasName = utils.NestedRelationName(parentTableName, tableAliasName)
+							tableAliasName := join.Alias
+
+							if tableAliasName == "" {
+								tableAliasName = relation.Name
+								if parentTableName != clause.CurrentTable {
+									tableAliasName = utils.NestedRelationName(parentTableName, tableAliasName)
+								}
 							}
 
 							columnStmt := gorm.Statement{
@@ -164,6 +168,13 @@ func BuildQuerySQL(db *gorm.DB) {
 										Name:  s,
 										Alias: utils.NestedRelationName(tableAliasName, s),
 									})
+								}
+							}
+
+							if join.Expression != nil {
+								return clause.Join{
+									Type:       join.JoinType,
+									Expression: join.Expression,
 								}
 							}
 

@@ -3,8 +3,11 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 )
 
 type Interface[T any] interface {
@@ -28,7 +31,7 @@ type ChainInterface[T any] interface {
 	Or(query interface{}, args ...interface{}) ChainInterface[T]
 	Limit(offset int) ChainInterface[T]
 	Offset(offset int) ChainInterface[T]
-	Joins(query clause.JoinTarget, args func(db ChainInterface[any], joinTable clause.Table, curTable clause.Table) ChainInterface[any]) ChainInterface[T]
+	Joins(query clause.JoinTarget, args func(db QueryInterface, joinTable clause.Table, curTable clause.Table) QueryInterface) ChainInterface[T]
 	Select(query string, args ...interface{}) ChainInterface[T]
 	Omit(columns ...string) ChainInterface[T]
 	MapColumns(m map[string]string) ChainInterface[T]
@@ -37,6 +40,8 @@ type ChainInterface[T any] interface {
 	Having(query interface{}, args ...interface{}) ChainInterface[T]
 	Order(value interface{}) ChainInterface[T]
 	Preload(query string, args ...interface{}) ChainInterface[T]
+
+	Build(builder clause.Builder)
 
 	Delete(ctx context.Context) (rowsAffected int, err error)
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
@@ -53,6 +58,14 @@ type ExecInterface[T any] interface {
 	FindInBatches(ctx context.Context, batchSize int, fc func(data []T, batch int) error) error
 	Row(ctx context.Context) *sql.Row
 	Rows(ctx context.Context) (*sql.Rows, error)
+}
+
+type QueryInterface interface {
+	Select(...string) QueryInterface
+	Omit(...string) QueryInterface
+	Where(query interface{}, args ...interface{}) QueryInterface
+	Not(query interface{}, args ...interface{}) QueryInterface
+	Or(query interface{}, args ...interface{}) QueryInterface
 }
 
 type op func(*DB) *DB
@@ -185,9 +198,77 @@ func (c chainG[T]) Offset(offset int) ChainInterface[T] {
 	})
 }
 
-func (c chainG[T]) Joins(query clause.JoinTarget, args func(db ChainInterface[any], joinTable clause.Table, curTable clause.Table) ChainInterface[any]) ChainInterface[T] {
-	// TODO
-	return nil
+type query struct {
+	db *DB
+}
+
+func (q query) Where(query interface{}, args ...interface{}) QueryInterface {
+	q.db.Where(query, args...)
+	return q
+}
+
+func (q query) Or(query interface{}, args ...interface{}) QueryInterface {
+	q.db.Where(query, args...)
+	return q
+}
+
+func (q query) Not(query interface{}, args ...interface{}) QueryInterface {
+	q.db.Where(query, args...)
+	return q
+}
+
+func (q query) Select(columns ...string) QueryInterface {
+	q.db.Select(columns)
+	return q
+}
+
+func (q query) Omit(columns ...string) QueryInterface {
+	q.db.Omit(columns...)
+	return q
+}
+
+func (c chainG[T]) Joins(jt clause.JoinTarget, args func(db QueryInterface, joinTable clause.Table, curTable clause.Table) QueryInterface) ChainInterface[T] {
+	return c.with(func(db *DB) *DB {
+		if jt.Table == "" {
+			jt.Table = clause.JoinTable(strings.Split(jt.Association, ".")...).Name
+		}
+
+		q := query{db: db.Session(&Session{NewDB: true}).getInstance().Table(jt.Table)}
+		if args != nil {
+			args(q, clause.Table{Name: jt.Table}, clause.Table{Name: clause.CurrentTable})
+		}
+
+		j := join{
+			Name:     jt.Association,
+			Alias:    jt.Table,
+			Selects:  q.db.Statement.Selects,
+			Omits:    q.db.Statement.Omits,
+			JoinType: jt.Type,
+		}
+
+		if where, ok := q.db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
+			j.On = &where
+		}
+
+		if jt.Subquery != nil {
+			joinType := j.JoinType
+			if joinType == "" {
+				joinType = clause.LeftJoin
+			}
+
+			expr := clause.NamedExpr{SQL: fmt.Sprintf("%s JOIN (?) AS ?", joinType), Vars: []interface{}{jt.Subquery, clause.Table{Name: j.Alias}}}
+
+			if j.On != nil {
+				expr.SQL += " ON ?"
+				expr.Vars = append(expr.Vars, clause.AndConditions{Exprs: j.On.Exprs})
+			}
+
+			j.Expression = expr
+		}
+
+		db.Statement.Joins = append(db.Statement.Joins, j)
+		return db
+	})
 }
 
 func (c chainG[T]) Select(query string, args ...interface{}) ChainInterface[T] {
@@ -259,6 +340,43 @@ func (c chainG[T]) Count(ctx context.Context, column string) (result int64, err 
 	var r T
 	err = c.g.apply(ctx).Model(r).Select(column).Count(&result).Error
 	return
+}
+
+func (c chainG[T]) Build(builder clause.Builder) {
+	subdb := c.getInstance()
+	subdb.Logger = logger.Discard
+	subdb.DryRun = true
+
+	if stmt, ok := builder.(*Statement); ok {
+		if subdb.Statement.SQL.Len() > 0 {
+			var (
+				vars = subdb.Statement.Vars
+				sql  = subdb.Statement.SQL.String()
+			)
+
+			subdb.Statement.Vars = make([]interface{}, 0, len(vars))
+			for _, vv := range vars {
+				subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
+				bindvar := strings.Builder{}
+				subdb.BindVarTo(&bindvar, subdb.Statement, vv)
+				sql = strings.Replace(sql, bindvar.String(), "?", 1)
+			}
+
+			subdb.Statement.SQL.Reset()
+			subdb.Statement.Vars = stmt.Vars
+			if strings.Contains(sql, "@") {
+				clause.NamedExpr{SQL: sql, Vars: vars}.Build(subdb.Statement)
+			} else {
+				clause.Expr{SQL: sql, Vars: vars}.Build(subdb.Statement)
+			}
+		} else {
+			subdb.Statement.Vars = append(stmt.Vars, subdb.Statement.Vars...)
+			subdb.callbacks.Query().Execute(subdb)
+		}
+
+		builder.WriteString(subdb.Statement.SQL.String())
+		stmt.Vars = subdb.Statement.Vars
+	}
 }
 
 type execG[T any] struct {
