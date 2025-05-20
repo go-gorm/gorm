@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -367,6 +368,13 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
 	}
 
+	_, err = db.Joins(clause.Has("Company"), func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
+		return errors.New("join error")
+	}).First(ctx)
+	if err == nil {
+		t.Fatalf("Joins should got error, but got nil")
+	}
+
 	// Preload
 	result3, err := db.Preload("Company", nil).Where("name = ?", u.Name).First(ctx)
 	if err != nil {
@@ -391,6 +399,13 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 		} else if result.Company.Name != "" {
 			t.Fatalf("Preload other company should not loaded, user %v company expect %v but got %+v", u.Name, u.Company.Name, result.Company.Name)
 		}
+	}
+
+	_, err = db.Preload("Company", func(db gorm.PreloadBuilder) error {
+		return errors.New("preload error")
+	}).Find(ctx)
+	if err == nil {
+		t.Fatalf("Preload should failed, but got nil")
 	}
 }
 
