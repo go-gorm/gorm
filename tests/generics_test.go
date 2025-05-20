@@ -286,8 +286,9 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	db.CreateInBatches(ctx, &[]User{u3, u, u2}, 10)
 
 	// Inner JOIN + WHERE
-	result, err := db.Joins(clause.Has("Company"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
-		return db.Where("?.name = ?", joinTable, u.Company.Name)
+	result, err := db.Joins(clause.Has("Company"), func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
+		db.Where("?.name = ?", joinTable, u.Company.Name)
+		return nil
 	}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
@@ -297,8 +298,9 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// Inner JOIN + WHERE with map
-	result, err = db.Joins(clause.Has("Company"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
-		return db.Where(map[string]any{"name": u.Company.Name})
+	result, err = db.Joins(clause.Has("Company"), func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
+		db.Where(map[string]any{"name": u.Company.Name})
+		return nil
 	}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
@@ -317,11 +319,12 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// Left JOIN + Alias WHERE
-	result, err = db.Joins(clause.LeftJoin.Association("Company").As("t"), func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+	result, err = db.Joins(clause.LeftJoin.Association("Company").As("t"), func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
 		if joinTable.Name != "t" {
 			t.Fatalf("Join table should be t, but got %v", joinTable.Name)
 		}
-		return db.Where("?.name = ?", joinTable, u.Company.Name)
+		db.Where("?.name = ?", joinTable, u.Company.Name)
+		return nil
 	}).Where(map[string]any{"name": u.Name}).First(ctx)
 	if err != nil {
 		t.Fatalf("Joins failed: %v", err)
@@ -332,11 +335,12 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 
 	// Raw Subquery JOIN + WHERE
 	result, err = db.Joins(clause.LeftJoin.AssociationFrom("Company", gorm.G[Company](DB)).As("t"),
-		func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+		func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
 			if joinTable.Name != "t" {
 				t.Fatalf("Join table should be t, but got %v", joinTable.Name)
 			}
-			return db.Where("?.name = ?", joinTable, u.Company.Name)
+			db.Where("?.name = ?", joinTable, u.Company.Name)
+			return nil
 		},
 	).Where(map[string]any{"name": u2.Name}).First(ctx)
 	if err != nil {
@@ -348,11 +352,12 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 
 	// Raw Subquery JOIN + WHERE + Select
 	result, err = db.Joins(clause.LeftJoin.AssociationFrom("Company", gorm.G[Company](DB).Select("Name")).As("t"),
-		func(db gorm.QueryInterface, joinTable clause.Table, curTable clause.Table) gorm.QueryInterface {
+		func(db gorm.JoinBuilder, joinTable clause.Table, curTable clause.Table) error {
 			if joinTable.Name != "t" {
 				t.Fatalf("Join table should be t, but got %v", joinTable.Name)
 			}
-			return db.Where("?.name = ?", joinTable, u.Company.Name)
+			db.Where("?.name = ?", joinTable, u.Company.Name)
+			return nil
 		},
 	).Where(map[string]any{"name": u2.Name}).First(ctx)
 	if err != nil {
@@ -363,12 +368,29 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	}
 
 	// Preload
-	result3, err := db.Preload("Company").Where("name = ?", u.Name).First(ctx)
+	result3, err := db.Preload("Company", nil).Where("name = ?", u.Name).First(ctx)
 	if err != nil {
-		t.Fatalf("Joins failed: %v", err)
+		t.Fatalf("Preload failed: %v", err)
 	}
 	if result3.Name != u.Name || result3.Company.Name != u.Company.Name {
-		t.Fatalf("Joins expected %s, got %+v", u.Name, result)
+		t.Fatalf("Preload expected %s, got %+v", u.Name, result)
+	}
+
+	results, err := db.Preload("Company", func(db gorm.PreloadBuilder) error {
+		db.Where("name = ?", u.Company.Name)
+		return nil
+	}).Find(ctx)
+	if err != nil {
+		t.Fatalf("Preload failed: %v", err)
+	}
+	for _, result := range results {
+		if result.Name == u.Name {
+			if result.Company.Name != u.Company.Name {
+				t.Fatalf("Preload user %v company should be %v, but got %+v", u.Name, u.Company.Name, result.Company.Name)
+			}
+		} else if result.Company.Name != "" {
+			t.Fatalf("Preload other company should not loaded, user %v company expect %v but got %+v", u.Name, u.Company.Name, result.Company.Name)
+		}
 	}
 }
 

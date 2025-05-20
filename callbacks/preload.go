@@ -152,7 +152,7 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 					return gorm.ErrInvalidData
 				}
 			} else {
-				tx := db.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks})
+				tx := db.Table("").Session(&gorm.Session{Context: db.Statement.Context, SkipHooks: db.Statement.SkipHooks, Initialized: true})
 				tx.Statement.ReflectValue = db.Statement.ReflectValue
 				tx.Statement.Unscoped = db.Statement.Unscoped
 				if err := preload(tx, rel, append(preloads[name], associationsConds...), preloadMap[name]); err != nil {
