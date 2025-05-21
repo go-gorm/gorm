@@ -255,6 +255,15 @@ func (db *DB) InnerJoins(query string, args ...interface{}) (tx *DB) {
 	return joins(db, clause.InnerJoin, query, args...)
 }
 
+// RightJoins specify Joins conditions
+//
+//	db.RightJoins("Account").Find(&user)
+//	db.RightJoins("RIGHT JOIN emails ON emails.user_id = users.id AND emails.email = ?", "jinzhu@example.org").Find(&user)
+//	db.RightJoins("Account", DB.Select("id").Where("user_id = users.id AND name = ?", "someName").Model(&Account{}))
+func (db *DB) RightJoins(query string, args ...interface{}) (tx *DB) {
+	return joins(db, clause.RightJoin, query, args...)
+}
+
 func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 
