@@ -77,7 +77,7 @@ type PreloadBuilder interface {
 	Limit(offset int) PreloadBuilder
 	Offset(offset int) PreloadBuilder
 	Order(value interface{}) PreloadBuilder
-	Scopes(scopes ...func(db *Statement)) PreloadBuilder
+	LimitPerRecord(num int) PreloadBuilder
 }
 
 type op func(*DB) *DB
@@ -214,76 +214,78 @@ type joinBuilder struct {
 	db *DB
 }
 
-func (q joinBuilder) Where(query interface{}, args ...interface{}) JoinBuilder {
+func (q *joinBuilder) Where(query interface{}, args ...interface{}) JoinBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q joinBuilder) Or(query interface{}, args ...interface{}) JoinBuilder {
+func (q *joinBuilder) Or(query interface{}, args ...interface{}) JoinBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q joinBuilder) Not(query interface{}, args ...interface{}) JoinBuilder {
+func (q *joinBuilder) Not(query interface{}, args ...interface{}) JoinBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q joinBuilder) Select(columns ...string) JoinBuilder {
+func (q *joinBuilder) Select(columns ...string) JoinBuilder {
 	q.db.Select(columns)
 	return q
 }
 
-func (q joinBuilder) Omit(columns ...string) JoinBuilder {
+func (q *joinBuilder) Omit(columns ...string) JoinBuilder {
 	q.db.Omit(columns...)
 	return q
 }
 
 type preloadBuilder struct {
-	db *DB
+	limitPerRecord int
+	db             *DB
 }
 
-func (q preloadBuilder) Where(query interface{}, args ...interface{}) PreloadBuilder {
+func (q *preloadBuilder) Where(query interface{}, args ...interface{}) PreloadBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q preloadBuilder) Or(query interface{}, args ...interface{}) PreloadBuilder {
+func (q *preloadBuilder) Or(query interface{}, args ...interface{}) PreloadBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q preloadBuilder) Not(query interface{}, args ...interface{}) PreloadBuilder {
+func (q *preloadBuilder) Not(query interface{}, args ...interface{}) PreloadBuilder {
 	q.db.Where(query, args...)
 	return q
 }
 
-func (q preloadBuilder) Select(columns ...string) PreloadBuilder {
+func (q *preloadBuilder) Select(columns ...string) PreloadBuilder {
 	q.db.Select(columns)
 	return q
 }
 
-func (q preloadBuilder) Omit(columns ...string) PreloadBuilder {
+func (q *preloadBuilder) Omit(columns ...string) PreloadBuilder {
 	q.db.Omit(columns...)
 	return q
 }
 
-func (q preloadBuilder) Limit(limit int) PreloadBuilder {
+func (q *preloadBuilder) Limit(limit int) PreloadBuilder {
 	q.db.Limit(limit)
 	return q
 }
-func (q preloadBuilder) Offset(offset int) PreloadBuilder {
+
+func (q *preloadBuilder) Offset(offset int) PreloadBuilder {
 	q.db.Offset(offset)
 	return q
 }
-func (q preloadBuilder) Order(value interface{}) PreloadBuilder {
+
+func (q *preloadBuilder) Order(value interface{}) PreloadBuilder {
 	q.db.Order(value)
 	return q
 }
-func (q preloadBuilder) Scopes(scopes ...func(db *Statement)) PreloadBuilder {
-	for _, fc := range scopes {
-		fc(q.db.Statement)
-	}
+
+func (q *preloadBuilder) LimitPerRecord(num int) PreloadBuilder {
+	q.limitPerRecord = num
 	return q
 }
 
@@ -295,7 +297,7 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 
 		q := joinBuilder{db: db.Session(&Session{NewDB: true, Initialized: true}).Table(jt.Table)}
 		if on != nil {
-			if err := on(q, clause.Table{Name: jt.Table}, clause.Table{Name: clause.CurrentTable}); err != nil {
+			if err := on(&q, clause.Table{Name: jt.Table}, clause.Table{Name: clause.CurrentTable}); err != nil {
 				db.AddError(err)
 			}
 		}
@@ -390,8 +392,67 @@ func (c chainG[T]) Preload(association string, query func(db PreloadBuilder) err
 		return db.Preload(association, func(tx *DB) *DB {
 			q := preloadBuilder{db: tx.getInstance()}
 			if query != nil {
-				if err := query(q); err != nil {
+				if err := query(&q); err != nil {
 					db.AddError(err)
+				}
+			}
+
+			relation, ok := db.Statement.Schema.Relationships.Relations[association]
+			if !ok {
+				db.AddError(fmt.Errorf("relation %s not found", association))
+			}
+
+			if q.limitPerRecord > 0 {
+				if relation.JoinTable != nil {
+					err := fmt.Errorf("many2many relation %s don't support LimitPerRecord", association)
+					tx.AddError(err)
+					return tx
+				}
+
+				refColumns := []clause.Column{}
+				for _, rel := range relation.References {
+					if rel.OwnPrimaryKey {
+						refColumns = append(refColumns, clause.Column{Name: rel.ForeignKey.DBName})
+					}
+				}
+
+				if len(refColumns) != 0 {
+					selects := q.db.Statement.Selects
+					selectExpr := clause.CommaExpression{}
+					if len(selects) == 0 {
+						selectExpr.Exprs = []clause.Expression{clause.Expr{SQL: "*", Vars: []interface{}{}}}
+					} else {
+						for _, column := range selects {
+							selectExpr.Exprs = append(selectExpr.Exprs, clause.Expr{SQL: "?", Vars: []interface{}{clause.Column{Name: column}}})
+						}
+					}
+
+					partitionBy := clause.CommaExpression{}
+					for _, column := range refColumns {
+						partitionBy.Exprs = append(partitionBy.Exprs, clause.Expr{SQL: "?", Vars: []interface{}{clause.Column{Name: column.Name}}})
+					}
+
+					rnnColumn := clause.Column{Name: "gorm_preload_rnn"}
+					sql := "ROW_NUMBER() OVER (PARTITION BY ? ?)"
+					vars := []interface{}{partitionBy}
+					if orderBy, ok := q.db.Statement.Clauses["ORDER BY"]; ok {
+						vars = append(vars, orderBy)
+					} else {
+						vars = append(vars, clause.Clause{Name: "ORDER BY", Expression: clause.OrderBy{
+							Columns: []clause.OrderByColumn{
+								{Column: clause.PrimaryColumn, Desc: false},
+							},
+						}})
+					}
+					vars = append(vars, rnnColumn)
+
+					selectExpr.Exprs = append(selectExpr.Exprs, clause.Expr{SQL: sql + " AS ?", Vars: vars})
+
+					q.db.Clauses(clause.Select{
+						Expression: selectExpr,
+					})
+
+					return q.db.Session(&Session{NewDB: true}).Unscoped().Table("(?) t", q.db).Where("? <= ?", rnnColumn, q.limitPerRecord)
 				}
 			}
 			return q.db

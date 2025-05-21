@@ -277,7 +277,7 @@ func TestGenericsScopes(t *testing.T) {
 	}
 }
 
-func TestGenericsJoinsAndPreload(t *testing.T) {
+func TestGenericsJoins(t *testing.T) {
 	ctx := context.Background()
 	db := gorm.G[User](DB)
 
@@ -374,20 +374,32 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Joins should got error, but got nil")
 	}
+}
 
-	// Preload
-	result3, err := db.Preload("Company", nil).Where("name = ?", u.Name).First(ctx)
+func TestGenericsPreloads(t *testing.T) {
+	ctx := context.Background()
+	db := gorm.G[User](DB)
+
+	u := *GetUser("GenericsPreloads_1", Config{Company: true, Pets: 3, Friends: 7})
+	u2 := *GetUser("GenericsPreloads_2", Config{Company: true, Pets: 5, Friends: 5})
+	u3 := *GetUser("GenericsPreloads_3", Config{Company: true, Pets: 7, Friends: 3})
+	names := []string{u.Name, u2.Name, u3.Name}
+
+	db.CreateInBatches(ctx, &[]User{u3, u, u2}, 10)
+
+	result, err := db.Preload("Company", nil).Preload("Pets", nil).Where("name = ?", u.Name).First(ctx)
 	if err != nil {
 		t.Fatalf("Preload failed: %v", err)
 	}
-	if result3.Name != u.Name || result3.Company.Name != u.Company.Name {
+
+	if result.Name != u.Name || result.Company.Name != u.Company.Name || len(result.Pets) != len(u.Pets) {
 		t.Fatalf("Preload expected %s, got %+v", u.Name, result)
 	}
 
 	results, err := db.Preload("Company", func(db gorm.PreloadBuilder) error {
 		db.Where("name = ?", u.Company.Name)
 		return nil
-	}).Find(ctx)
+	}).Where("name in ?", names).Find(ctx)
 	if err != nil {
 		t.Fatalf("Preload failed: %v", err)
 	}
@@ -403,9 +415,79 @@ func TestGenericsJoinsAndPreload(t *testing.T) {
 
 	_, err = db.Preload("Company", func(db gorm.PreloadBuilder) error {
 		return errors.New("preload error")
-	}).Find(ctx)
+	}).Where("name in ?", names).Find(ctx)
 	if err == nil {
 		t.Fatalf("Preload should failed, but got nil")
+	}
+
+	results, err = db.Preload("Pets", func(db gorm.PreloadBuilder) error {
+		db.LimitPerRecord(5)
+		return nil
+	}).Where("name in ?", names).Find(ctx)
+
+	for _, result := range results {
+		if result.Name == u.Name {
+			if len(result.Pets) != len(u.Pets) {
+				t.Fatalf("Preload user %v pets should be %v, but got %+v", u.Name, u.Pets, result.Pets)
+			}
+		} else if len(result.Pets) != 5 {
+			t.Fatalf("Preload user %v pets should be 5, but got %+v", result.Name, result.Pets)
+		}
+	}
+
+	if DB.Dialector.Name() == "sqlserver" {
+		// sqlserver doesn't support order by in subquery
+		return
+	}
+	results, err = db.Preload("Pets", func(db gorm.PreloadBuilder) error {
+		db.Order("name desc").LimitPerRecord(5)
+		return nil
+	}).Where("name in ?", names).Find(ctx)
+
+	for _, result := range results {
+		if result.Name == u.Name {
+			if len(result.Pets) != len(u.Pets) {
+				t.Fatalf("Preload user %v pets should be %v, but got %+v", u.Name, u.Pets, result.Pets)
+			}
+		} else if len(result.Pets) != 5 {
+			t.Fatalf("Preload user %v pets should be 5, but got %+v", result.Name, result.Pets)
+		}
+		for i := 1; i < len(result.Pets); i++ {
+			if result.Pets[i-1].Name < result.Pets[i].Name {
+				t.Fatalf("Preload user %v pets not ordered correctly, last %v, cur %v", result.Name, result.Pets[i-1], result.Pets[i])
+			}
+		}
+	}
+
+	results, err = db.Preload("Pets", func(db gorm.PreloadBuilder) error {
+		db.Order("name").LimitPerRecord(5)
+		return nil
+	}).Preload("Friends", func(db gorm.PreloadBuilder) error {
+		db.Order("name")
+		return nil
+	}).Where("name in ?", names).Find(ctx)
+
+	for _, result := range results {
+		if result.Name == u.Name {
+			if len(result.Pets) != len(u.Pets) {
+				t.Fatalf("Preload user %v pets should be %v, but got %+v", u.Name, u.Pets, result.Pets)
+			}
+			if len(result.Friends) != len(u.Friends) {
+				t.Fatalf("Preload user %v pets should be %v, but got %+v", u.Name, u.Pets, result.Pets)
+			}
+		} else if len(result.Pets) != 5 || len(result.Friends) == 0 {
+			t.Fatalf("Preload user %v pets should be 5, but got %+v", result.Name, result.Pets)
+		}
+		for i := 1; i < len(result.Pets); i++ {
+			if result.Pets[i-1].Name > result.Pets[i].Name {
+				t.Fatalf("Preload user %v pets not ordered correctly, last %v, cur %v", result.Name, result.Pets[i-1], result.Pets[i])
+			}
+		}
+		for i := 1; i < len(result.Pets); i++ {
+			if result.Pets[i-1].Name > result.Pets[i].Name {
+				t.Fatalf("Preload user %v friends not ordered correctly, last %v, cur %v", result.Name, result.Pets[i-1], result.Pets[i])
+			}
+		}
 	}
 }
 

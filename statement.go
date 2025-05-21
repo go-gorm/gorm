@@ -209,6 +209,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			}
 		case interface{ getInstance() *DB }:
 			cv := v.getInstance()
+
 			subdb := cv.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
 			if cv.Statement.SQL.Len() > 0 {
 				var (
