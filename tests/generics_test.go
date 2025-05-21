@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
@@ -420,6 +422,12 @@ func TestGenericsPreloads(t *testing.T) {
 		t.Fatalf("Preload should failed, but got nil")
 	}
 
+	if DB.Dialector.Name() == "mysql" {
+		// mysql 5.7 doesn't support row_number()
+		if strings.HasPrefix(DB.Dialector.(*mysql.Dialector).ServerVersion, "5.7") {
+			return
+		}
+	}
 	results, err = db.Preload("Pets", func(db gorm.PreloadBuilder) error {
 		db.LimitPerRecord(5)
 		return nil
