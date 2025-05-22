@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"gorm.io/driver/mysql"
@@ -743,4 +744,43 @@ func TestGenericsWithResult(t *testing.T) {
 	if result.RowsAffected != 2 {
 		t.Errorf("failed to get affected rows, got %d, should be %d", result.RowsAffected, 2)
 	}
+}
+
+func TestGenericsReuse(t *testing.T) {
+	ctx := context.Background()
+	users := []User{{Name: "TestGenericsReuse1", Age: 18}, {Name: "TestGenericsReuse2", Age: 18}}
+
+	err := gorm.G[User](DB).CreateInBatches(ctx, &users, 2)
+	if err != nil {
+		t.Errorf("failed to create users")
+	}
+
+	reusedb := gorm.G[User](DB).Where("name like ?", "TestGenericsReuse%")
+
+	sg := sync.WaitGroup{}
+	for i := 0; i < 5; i++ {
+		sg.Add(1)
+
+		go func() {
+			if u1, err := reusedb.Where("id = ?", users[0].ID).First(ctx); err != nil {
+				t.Errorf("failed to find user, got error: %v", err)
+			} else if u1.Name != users[0].Name || u1.ID != users[0].ID {
+				t.Errorf("found invalid user, got %v, expect %v", u1, users[0])
+			}
+
+			if u2, err := reusedb.Where("id = ?", users[1].ID).First(ctx); err != nil {
+				t.Errorf("failed to find user, got error: %v", err)
+			} else if u2.Name != users[1].Name || u2.ID != users[1].ID {
+				t.Errorf("found invalid user, got %v, expect %v", u2, users[1])
+			}
+
+			if users, err := reusedb.Where("id IN ?", []uint{users[0].ID, users[1].ID}).Find(ctx); err != nil {
+				t.Errorf("failed to find user, got error: %v", err)
+			} else if len(users) != 2 {
+				t.Errorf("should find 2 users, but got %d", len(users))
+			}
+			sg.Done()
+		}()
+	}
+	sg.Wait()
 }
