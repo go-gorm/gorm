@@ -174,11 +174,11 @@ func (c chainG[T]) getInstance() *DB {
 	return c.g.apply(context.Background()).Model(r).getInstance()
 }
 
-func (c chainG[T]) with(op op) chainG[T] {
+func (c chainG[T]) with(v op) chainG[T] {
 	return chainG[T]{
 		execG: execG[T]{g: &g[T]{
 			db:  c.g.db,
-			ops: append(c.g.ops, op),
+			ops: append(append([]op(nil), c.g.ops...), v),
 		}},
 	}
 }
