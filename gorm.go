@@ -135,12 +135,16 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		return isConfig && !isConfig2
 	})
 
+	var skipAfterInitialize bool
 	for _, opt := range opts {
 		if opt != nil {
 			if applyErr := opt.Apply(config); applyErr != nil {
 				return nil, applyErr
 			}
 			defer func(opt Option) {
+				if skipAfterInitialize {
+					return
+				}
 				if errr := opt.AfterInitialize(db); errr != nil {
 					err = errr
 				}
@@ -192,6 +196,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 			if db, _ := db.DB(); db != nil {
 				_ = db.Close()
 			}
+
+			// DB is not initialized, so we skip AfterInitialize
+			skipAfterInitialize = true
+			return
 		}
 
 		if config.TranslateError {
