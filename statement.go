@@ -47,6 +47,7 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+	Result               *result
 }
 
 type join struct {
@@ -532,6 +533,7 @@ func (stmt *Statement) clone() *Statement {
 		Context:              stmt.Context,
 		RaiseErrorOnNotFound: stmt.RaiseErrorOnNotFound,
 		SkipHooks:            stmt.SkipHooks,
+		Result:               stmt.Result,
 	}
 
 	if stmt.SQL.Len() > 0 {

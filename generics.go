@@ -11,6 +11,23 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+type result struct {
+	Result       sql.Result
+	RowsAffected int64
+}
+
+func (info *result) ModifyStatement(stmt *Statement) {
+	stmt.Result = info
+}
+
+// Build implements clause.Expression interface
+func (result) Build(clause.Builder) {
+}
+
+func WithResult() *result {
+	return &result{}
+}
+
 type Interface[T any] interface {
 	Raw(sql string, values ...interface{}) ExecInterface[T]
 	Exec(ctx context.Context, sql string, values ...interface{}) error
@@ -85,7 +102,7 @@ type op func(*DB) *DB
 
 func G[T any](db *DB, opts ...clause.Expression) Interface[T] {
 	v := &g[T]{
-		db:  db.Session(&Session{NewDB: true}),
+		db:  db,
 		ops: make([]op, 0, 5),
 	}
 

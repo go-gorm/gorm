@@ -729,3 +729,18 @@ func TestGenericsUpsert(t *testing.T) {
 		t.Errorf("should update name on conflict, but got name %+v", langs[0].Name)
 	}
 }
+
+func TestGenericsWithResult(t *testing.T) {
+	ctx := context.Background()
+	users := []User{{Name: "TestGenericsWithResult", Age: 18}, {Name: "TestGenericsWithResult2", Age: 18}}
+
+	result := gorm.WithResult()
+	err := gorm.G[User](DB, result).CreateInBatches(ctx, &users, 2)
+	if err != nil {
+		t.Errorf("failed to create users WithResult")
+	}
+
+	if result.RowsAffected != 2 {
+		t.Errorf("failed to get affected rows, got %d, should be %d", result.RowsAffected, 2)
+	}
+}
