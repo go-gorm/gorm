@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 
 	"gorm.io/gorm/clause"
@@ -341,6 +342,9 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 		}
 
 		db.Statement.Joins = append(db.Statement.Joins, j)
+		sort.Slice(db.Statement.Joins, func(i, j int) bool {
+			return db.Statement.Joins[i].Name < db.Statement.Joins[j].Name
+		})
 		return db
 	})
 }
@@ -399,7 +403,22 @@ func (c chainG[T]) Preload(association string, query func(db PreloadBuilder) err
 
 			relation, ok := db.Statement.Schema.Relationships.Relations[association]
 			if !ok {
-				db.AddError(fmt.Errorf("relation %s not found", association))
+				if preloadFields := strings.Split(association, "."); len(preloadFields) > 1 {
+					relationships := db.Statement.Schema.Relationships
+					for _, field := range preloadFields {
+						var ok bool
+						relation, ok = relationships.Relations[field]
+						if ok {
+							relationships = relation.FieldSchema.Relationships
+						} else {
+							db.AddError(fmt.Errorf("relation %s not found", association))
+							return nil
+						}
+					}
+				} else {
+					db.AddError(fmt.Errorf("relation %s not found", association))
+					return nil
+				}
 			}
 
 			if q.limitPerRecord > 0 {

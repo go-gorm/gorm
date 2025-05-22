@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -378,6 +379,82 @@ func TestGenericsJoins(t *testing.T) {
 	}
 }
 
+func TestGenericsNestedJoins(t *testing.T) {
+	users := []User{
+		{
+			Name: "generics-nested-joins-1",
+			Manager: &User{
+				Name: "generics-nested-joins-manager-1",
+				Company: Company{
+					Name: "generics-nested-joins-manager-company-1",
+				},
+				NamedPet: &Pet{
+					Name: "generics-nested-joins-manager-namepet-1",
+					Toy: Toy{
+						Name: "generics-nested-joins-manager-namepet-toy-1",
+					},
+				},
+			},
+			NamedPet: &Pet{Name: "generics-nested-joins-namepet-1", Toy: Toy{Name: "generics-nested-joins-namepet-toy-1"}},
+		},
+		{
+			Name:     "generics-nested-joins-2",
+			Manager:  GetUser("generics-nested-joins-manager-2", Config{Company: true, NamedPet: true}),
+			NamedPet: &Pet{Name: "generics-nested-joins-namepet-2", Toy: Toy{Name: "generics-nested-joins-namepet-toy-2"}},
+		},
+	}
+
+	ctx := context.Background()
+	db := gorm.G[User](DB)
+	db.CreateInBatches(ctx, &users, 100)
+
+	var userIDs []uint
+	for _, user := range users {
+		userIDs = append(userIDs, user.ID)
+	}
+
+	users2, err := db.Joins(clause.LeftJoin.Association("Manager"), nil).
+		Joins(clause.LeftJoin.Association("Manager.Company"), nil).
+		Joins(clause.LeftJoin.Association("Manager.NamedPet.Toy"), nil).
+		Joins(clause.LeftJoin.Association("NamedPet.Toy"), nil).
+		Joins(clause.LeftJoin.Association("NamedPet").As("t"), nil).
+		Where(map[string]any{"id": userIDs}).Find(ctx)
+
+	if err != nil {
+		t.Fatalf("Failed to load with joins, got error: %v", err)
+	} else if len(users2) != len(users) {
+		t.Fatalf("Failed to load join users, got: %v, expect: %v", len(users2), len(users))
+	}
+
+	sort.Slice(users2, func(i, j int) bool {
+		return users2[i].ID > users2[j].ID
+	})
+
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].ID > users[j].ID
+	})
+
+	for idx, user := range users {
+		// user
+		CheckUser(t, user, users2[idx])
+		if users2[idx].Manager == nil {
+			t.Fatalf("Failed to load Manager")
+		}
+		// manager
+		CheckUser(t, *user.Manager, *users2[idx].Manager)
+		// user pet
+		if users2[idx].NamedPet == nil {
+			t.Fatalf("Failed to load NamedPet")
+		}
+		CheckPet(t, *user.NamedPet, *users2[idx].NamedPet)
+		// manager pet
+		if users2[idx].Manager.NamedPet == nil {
+			t.Fatalf("Failed to load NamedPet")
+		}
+		CheckPet(t, *user.Manager.NamedPet, *users2[idx].Manager.NamedPet)
+	}
+}
+
 func TestGenericsPreloads(t *testing.T) {
 	ctx := context.Background()
 	db := gorm.G[User](DB)
@@ -499,6 +576,35 @@ func TestGenericsPreloads(t *testing.T) {
 	}
 }
 
+func TestGenericsNestedPreloads(t *testing.T) {
+	user := *GetUser("generics_nested_preload", Config{Pets: 2})
+	user.Friends = []*User{GetUser("generics_nested_preload", Config{Pets: 5})}
+
+	ctx := context.Background()
+	db := gorm.G[User](DB)
+
+	for idx, pet := range user.Pets {
+		pet.Toy = Toy{Name: "toy_nested_preload_" + strconv.Itoa(idx+1)}
+	}
+
+	if err := db.Create(ctx, &user); err != nil {
+		t.Fatalf("errors happened when create: %v", err)
+	}
+
+	user2, err := db.Preload("Pets.Toy", nil).Preload("Friends.Pets", func(db gorm.PreloadBuilder) error {
+		db.LimitPerRecord(3)
+		return nil
+	}).Where(user.ID).Take(ctx)
+	if err != nil {
+		t.Errorf("failed to nested preload user")
+	}
+	CheckUser(t, user2, user)
+
+	if len(user2.Friends) != 1 || len(user2.Friends[0].Pets) != 3 {
+		t.Errorf("failed to nested preload with limit per record")
+	}
+}
+
 func TestGenericsDistinct(t *testing.T) {
 	ctx := context.Background()
 
@@ -584,5 +690,42 @@ func TestGenericsSubQuery(t *testing.T) {
 
 	if len(results) != 3 {
 		t.Errorf("Three users should be found, instead found %d", len(results))
+	}
+}
+
+func TestGenericsUpsert(t *testing.T) {
+	ctx := context.Background()
+	lang := Language{Code: "upsert", Name: "Upsert"}
+
+	if err := gorm.G[Language](DB, clause.OnConflict{DoNothing: true}).Create(ctx, &lang); err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	lang2 := Language{Code: "upsert", Name: "Upsert"}
+	if err := gorm.G[Language](DB, clause.OnConflict{DoNothing: true}).Create(ctx, &lang2); err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	langs, err := gorm.G[Language](DB).Where("code = ?", lang.Code).Find(ctx)
+	if err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs) != 1 {
+		t.Errorf("should only find only 1 languages, but got %+v", langs)
+	}
+
+	lang3 := Language{Code: "upsert", Name: "Upsert"}
+	if err := gorm.G[Language](DB, clause.OnConflict{
+		Columns:   []clause.Column{{Name: "code"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{"name": "upsert-new"}),
+	}).Create(ctx, &lang3); err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	if langs, err := gorm.G[Language](DB).Where("code = ?", lang.Code).Find(ctx); err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs) != 1 {
+		t.Errorf("should only find only 1 languages, but got %+v", langs)
+	} else if langs[0].Name != "upsert-new" {
+		t.Errorf("should update name on conflict, but got name %+v", langs[0].Name)
 	}
 }

@@ -245,9 +245,11 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 							matchedFieldCount[column] = 1
 						}
 					} else if names := utils.SplitNestedRelationName(column); len(names) > 1 { // has nested relation
+						aliasName := utils.JoinNestedRelationNames(names[0 : len(names)-1])
 						for _, join := range db.Statement.Joins {
-							if join.Alias == names[0] {
+							if join.Alias == aliasName {
 								names = append(strings.Split(join.Name, "."), names[len(names)-1])
+								break
 							}
 						}
 
