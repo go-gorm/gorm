@@ -127,7 +127,11 @@ type g[T any] struct {
 }
 
 func (g *g[T]) apply(ctx context.Context) *DB {
-	db := g.db.Session(&Session{NewDB: true, Context: ctx}).getInstance()
+	db := g.db
+	if !db.DryRun {
+		db = db.Session(&Session{NewDB: true, Context: ctx}).getInstance()
+	}
+
 	for _, op := range g.ops {
 		db = op(db)
 	}

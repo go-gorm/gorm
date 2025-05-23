@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -593,15 +594,37 @@ func TestGenericsNestedPreloads(t *testing.T) {
 	}
 
 	user2, err := db.Preload("Pets.Toy", nil).Preload("Friends.Pets", func(db gorm.PreloadBuilder) error {
-		db.LimitPerRecord(3)
 		return nil
 	}).Where(user.ID).Take(ctx)
 	if err != nil {
 		t.Errorf("failed to nested preload user")
 	}
 	CheckUser(t, user2, user)
+	if len(user.Pets) == 0 || len(user.Friends) == 0 || len(user.Friends[0].Pets) == 0 {
+		t.Fatalf("failed to nested preload")
+	}
 
-	if len(user2.Friends) != 1 || len(user2.Friends[0].Pets) != 3 {
+	if DB.Dialector.Name() == "mysql" {
+		// mysql 5.7 doesn't support row_number()
+		if strings.HasPrefix(DB.Dialector.(*mysql.Dialector).ServerVersion, "5.7") {
+			return
+		}
+	}
+	if DB.Dialector.Name() == "sqlserver" {
+		// sqlserver doesn't support order by in subquery
+		return
+	}
+
+	user3, err := db.Preload("Pets.Toy", nil).Preload("Friends.Pets", func(db gorm.PreloadBuilder) error {
+		db.LimitPerRecord(3)
+		return nil
+	}).Where(user.ID).Take(ctx)
+	if err != nil {
+		t.Errorf("failed to nested preload user")
+	}
+	CheckUser(t, user3, user)
+
+	if len(user3.Friends) != 1 || len(user3.Friends[0].Pets) != 3 {
 		t.Errorf("failed to nested preload with limit per record")
 	}
 }
@@ -783,4 +806,47 @@ func TestGenericsReuse(t *testing.T) {
 		}()
 	}
 	sg.Wait()
+}
+
+func TestGenericsWithTransaction(t *testing.T) {
+	ctx := context.Background()
+	tx := DB.Begin()
+	if tx.Error != nil {
+		t.Fatalf("failed to begin transaction: %v", tx.Error)
+	}
+
+	users := []User{{Name: "TestGenericsTransaction", Age: 18}, {Name: "TestGenericsTransaction2", Age: 18}}
+	err := gorm.G[User](tx).CreateInBatches(ctx, &users, 2)
+
+	count, err := gorm.G[User](tx).Where("name like ?", "TestGenericsTransaction%").Count(ctx, "*")
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 records, got %d", count)
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Fatalf("failed to rollback transaction: %v", err)
+	}
+
+	count2, err := gorm.G[User](DB).Where("name like ?", "TestGenericsTransaction%").Count(ctx, "*")
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+	if count2 != 0 {
+		t.Errorf("expected 0 records after rollback, got %d", count2)
+	}
+}
+
+func TestGenericsToSQL(t *testing.T) {
+	ctx := context.Background()
+	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		gorm.G[User](tx).Limit(10).Find(ctx)
+		return tx
+	})
+
+	if !regexp.MustCompile("SELECT \\* FROM `users`.* 10").MatchString(sql) {
+		t.Errorf("ToSQL: got wrong sql with Generics API %v", sql)
+	}
 }
