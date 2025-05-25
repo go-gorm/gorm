@@ -21,7 +21,9 @@ const preparedStmtDBKey = "preparedStmt"
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
 	// You can disable it by setting `SkipDefaultTransaction` to true
-	SkipDefaultTransaction bool
+	SkipDefaultTransaction    bool
+	DefaultTransactionTimeout time.Duration
+
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
@@ -527,7 +529,7 @@ func (db *DB) Use(plugin Plugin) error {
 //				.First(&User{})
 //	})
 func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
-	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}))
+	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}).getInstance())
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
