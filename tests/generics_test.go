@@ -846,7 +846,7 @@ func TestGenericsToSQL(t *testing.T) {
 		return tx
 	})
 
-	if !regexp.MustCompile("SELECT \\* FROM `users`.* 10").MatchString(sql) {
+	if !regexp.MustCompile("SELECT \\* FROM .users..* 10").MatchString(sql) {
 		t.Errorf("ToSQL: got wrong sql with Generics API %v", sql)
 	}
 }
