@@ -25,6 +25,10 @@ func Query(db *gorm.DB) {
 				db.AddError(rows.Close())
 			}()
 			gorm.Scan(rows, db, 0)
+
+			if db.Statement.Result != nil {
+				db.Statement.Result.RowsAffected = db.RowsAffected
+			}
 		}
 	}
 }
@@ -110,7 +114,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				}
 			}
 
-			specifiedRelationsName := make(map[string]interface{})
+			specifiedRelationsName := map[string]string{clause.CurrentTable: clause.CurrentTable}
 			for _, join := range db.Statement.Joins {
 				if db.Statement.Schema != nil {
 					var isRelations bool // is relations or raw sql
@@ -124,12 +128,12 @@ func BuildQuerySQL(db *gorm.DB) {
 						nestedJoinNames := strings.Split(join.Name, ".")
 						if len(nestedJoinNames) > 1 {
 							isNestedJoin := true
-							gussNestedRelations := make([]*schema.Relationship, 0, len(nestedJoinNames))
+							guessNestedRelations := make([]*schema.Relationship, 0, len(nestedJoinNames))
 							currentRelations := db.Statement.Schema.Relationships.Relations
 							for _, relname := range nestedJoinNames {
 								// incomplete match, only treated as raw sql
 								if relation, ok = currentRelations[relname]; ok {
-									gussNestedRelations = append(gussNestedRelations, relation)
+									guessNestedRelations = append(guessNestedRelations, relation)
 									currentRelations = relation.FieldSchema.Relationships.Relations
 								} else {
 									isNestedJoin = false
@@ -139,18 +143,13 @@ func BuildQuerySQL(db *gorm.DB) {
 
 							if isNestedJoin {
 								isRelations = true
-								relations = gussNestedRelations
+								relations = guessNestedRelations
 							}
 						}
 					}
 
 					if isRelations {
-						genJoinClause := func(joinType clause.JoinType, parentTableName string, relation *schema.Relationship) clause.Join {
-							tableAliasName := relation.Name
-							if parentTableName != clause.CurrentTable {
-								tableAliasName = utils.NestedRelationName(parentTableName, tableAliasName)
-							}
-
+						genJoinClause := func(joinType clause.JoinType, tableAliasName string, parentTableName string, relation *schema.Relationship) clause.Join {
 							columnStmt := gorm.Statement{
 								Table: tableAliasName, DB: db, Schema: relation.FieldSchema,
 								Selects: join.Selects, Omits: join.Omits,
@@ -164,6 +163,13 @@ func BuildQuerySQL(db *gorm.DB) {
 										Name:  s,
 										Alias: utils.NestedRelationName(tableAliasName, s),
 									})
+								}
+							}
+
+							if join.Expression != nil {
+								return clause.Join{
+									Type:       join.JoinType,
+									Expression: join.Expression,
 								}
 							}
 
@@ -226,19 +232,24 @@ func BuildQuerySQL(db *gorm.DB) {
 						}
 
 						parentTableName := clause.CurrentTable
-						for _, rel := range relations {
+						for idx, rel := range relations {
 							// joins table alias like "Manager, Company, Manager__Company"
-							nestedAlias := utils.NestedRelationName(parentTableName, rel.Name)
-							if _, ok := specifiedRelationsName[nestedAlias]; !ok {
-								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, parentTableName, rel))
-								specifiedRelationsName[nestedAlias] = nil
+							curAliasName := rel.Name
+							if parentTableName != clause.CurrentTable {
+								curAliasName = utils.NestedRelationName(parentTableName, curAliasName)
 							}
 
-							if parentTableName != clause.CurrentTable {
-								parentTableName = utils.NestedRelationName(parentTableName, rel.Name)
-							} else {
-								parentTableName = rel.Name
+							if _, ok := specifiedRelationsName[curAliasName]; !ok {
+								aliasName := curAliasName
+								if idx == len(relations)-1 && join.Alias != "" {
+									aliasName = join.Alias
+								}
+
+								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel))
+								specifiedRelationsName[curAliasName] = aliasName
 							}
+
+							parentTableName = curAliasName
 						}
 					} else {
 						fromClause.Joins = append(fromClause.Joins, clause.Join{

@@ -275,6 +275,8 @@ func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 	column, values := schema.ToQueryValues(clause.CurrentTable, relForeignKeys, foreignValues)
 
 	if len(values) != 0 {
+		tx = tx.Model(reflectResults.Addr().Interface()).Where(clause.IN{Column: column, Values: values})
+
 		for _, cond := range conds {
 			if fc, ok := cond.(func(*gorm.DB) *gorm.DB); ok {
 				tx = fc(tx)
@@ -283,7 +285,11 @@ func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preload
 			}
 		}
 
-		if err := tx.Where(clause.IN{Column: column, Values: values}).Find(reflectResults.Addr().Interface(), inlineConds...).Error; err != nil {
+		if len(inlineConds) > 0 {
+			tx = tx.Where(inlineConds[0], inlineConds[1:]...)
+		}
+
+		if err := tx.Find(reflectResults.Addr().Interface()).Error; err != nil {
 			return err
 		}
 	}

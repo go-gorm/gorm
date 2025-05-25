@@ -18,7 +18,7 @@ services:
       - POSTGRES_USER=gorm
       - POSTGRES_PASSWORD=gorm
   mssql:
-    image: '${MSSQL_IMAGE}:2022-latest'
+    image: '${MSSQL_IMAGE}:latest'
     ports:
       - "127.0.0.1:9930:1433"
     environment:

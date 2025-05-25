@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	. "gorm.io/gorm/utils/tests"
@@ -459,7 +460,6 @@ func TestTransactionWithHooks(t *testing.T) {
 			return tx2.Scan(&User{}).Error
 		})
 	})
-
 	if err != nil {
 		t.Error(err)
 	}
@@ -473,8 +473,20 @@ func TestTransactionWithHooks(t *testing.T) {
 			return tx3.Where("user_id", user.ID).Delete(&Account{}).Error
 		})
 	})
-
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestTransactionWithDefaultTimeout(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{DefaultTransactionTimeout: 2 * time.Second})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	tx := db.Begin()
+	time.Sleep(3 * time.Second)
+	if err = tx.Find(&User{}).Error; err == nil {
+		t.Errorf("should return error when transaction timeout, got error %v", err)
 	}
 }

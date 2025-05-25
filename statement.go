@@ -47,15 +47,18 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+	Result               *result
 }
 
 type join struct {
-	Name     string
-	Conds    []interface{}
-	On       *clause.Where
-	Selects  []string
-	Omits    []string
-	JoinType clause.JoinType
+	Name       string
+	Alias      string
+	Conds      []interface{}
+	On         *clause.Where
+	Selects    []string
+	Omits      []string
+	Expression clause.Expression
+	JoinType   clause.JoinType
 }
 
 // StatementModifier statement modifier interface
@@ -205,19 +208,21 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			} else {
 				writer.WriteString("(NULL)")
 			}
-		case *DB:
-			subdb := v.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
-			if v.Statement.SQL.Len() > 0 {
+		case interface{ getInstance() *DB }:
+			cv := v.getInstance()
+
+			subdb := cv.Session(&Session{Logger: logger.Discard, DryRun: true}).getInstance()
+			if cv.Statement.SQL.Len() > 0 {
 				var (
 					vars = subdb.Statement.Vars
-					sql  = v.Statement.SQL.String()
+					sql  = cv.Statement.SQL.String()
 				)
 
 				subdb.Statement.Vars = make([]interface{}, 0, len(vars))
 				for _, vv := range vars {
 					subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
 					bindvar := strings.Builder{}
-					v.Dialector.BindVarTo(&bindvar, subdb.Statement, vv)
+					cv.BindVarTo(&bindvar, subdb.Statement, vv)
 					sql = strings.Replace(sql, bindvar.String(), "?", 1)
 				}
 
@@ -321,6 +326,11 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 			arg, _ = valuer.Value()
 		}
 
+		curTable := stmt.Table
+		if curTable == "" {
+			curTable = clause.CurrentTable
+		}
+
 		switch v := arg.(type) {
 		case clause.Expression:
 			conds = append(conds, v)
@@ -351,7 +361,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 			sort.Strings(keys)
 
 			for _, key := range keys {
-				conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+				column := clause.Column{Name: key, Table: curTable}
+				conds = append(conds, clause.Eq{Column: column, Value: v[key]})
 			}
 		case map[string]interface{}:
 			keys := make([]string, 0, len(v))
@@ -362,12 +373,13 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 
 			for _, key := range keys {
 				reflectValue := reflect.Indirect(reflect.ValueOf(v[key]))
+				column := clause.Column{Name: key, Table: curTable}
 				switch reflectValue.Kind() {
 				case reflect.Slice, reflect.Array:
 					if _, ok := v[key].(driver.Valuer); ok {
-						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+						conds = append(conds, clause.Eq{Column: column, Value: v[key]})
 					} else if _, ok := v[key].(Valuer); ok {
-						conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+						conds = append(conds, clause.Eq{Column: column, Value: v[key]})
 					} else {
 						// optimize reflect value length
 						valueLen := reflectValue.Len()
@@ -376,10 +388,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 							values[i] = reflectValue.Index(i).Interface()
 						}
 
-						conds = append(conds, clause.IN{Column: key, Values: values})
+						conds = append(conds, clause.IN{Column: column, Values: values})
 					}
 				default:
-					conds = append(conds, clause.Eq{Column: key, Value: v[key]})
+					conds = append(conds, clause.Eq{Column: column, Value: v[key]})
 				}
 			}
 		default:
@@ -406,9 +418,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 						if selected || (!restricted && field.Readable) {
 							if v, isZero := field.ValueOf(stmt.Context, reflectValue); !isZero || selected {
 								if field.DBName != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: curTable, Name: field.DBName}, Value: v})
 								} else if field.DataType != "" {
-									conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+									conds = append(conds, clause.Eq{Column: clause.Column{Table: curTable, Name: field.Name}, Value: v})
 								}
 							}
 						}
@@ -420,9 +432,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 							if selected || (!restricted && field.Readable) {
 								if v, isZero := field.ValueOf(stmt.Context, reflectValue.Index(i)); !isZero || selected {
 									if field.DBName != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.DBName}, Value: v})
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: curTable, Name: field.DBName}, Value: v})
 									} else if field.DataType != "" {
-										conds = append(conds, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: field.Name}, Value: v})
+										conds = append(conds, clause.Eq{Column: clause.Column{Table: curTable, Name: field.Name}, Value: v})
 									}
 								}
 							}
@@ -447,14 +459,14 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 						}
 
 						if len(values) > 0 {
-							conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: values})
+							conds = append(conds, clause.IN{Column: clause.Column{Table: curTable, Name: clause.PrimaryKey}, Values: values})
 							return []clause.Expression{clause.And(conds...)}
 						}
 						return nil
 					}
 				}
 
-				conds = append(conds, clause.IN{Column: clause.PrimaryColumn, Values: args})
+				conds = append(conds, clause.IN{Column: clause.Column{Table: curTable, Name: clause.PrimaryKey}, Values: args})
 			}
 		}
 	}
@@ -521,6 +533,7 @@ func (stmt *Statement) clone() *Statement {
 		Context:              stmt.Context,
 		RaiseErrorOnNotFound: stmt.RaiseErrorOnNotFound,
 		SkipHooks:            stmt.SkipHooks,
+		Result:               stmt.Result,
 	}
 
 	if stmt.SQL.Len() > 0 {
