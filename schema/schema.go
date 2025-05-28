@@ -57,6 +57,11 @@ type Schema struct {
 	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
+	// functional for apaas engine add by fangming
+	// ==========apaas engine field begin==========
+	ApaasLookupFields  []*Field
+	ApaasFormulaFields []*Field
+	// ==========apaas engine field end==========
 }
 
 func (schema Schema) String() string {

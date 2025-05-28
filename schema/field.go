@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+	"gorm.io/gorm/apaas"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
@@ -96,6 +97,10 @@ type Field struct {
 	// It causes field unnecessarily migration.
 	// Therefore, we need to record the UniqueIndex on this column (exclude Mul UniqueIndex) for MigrateColumnUnique.
 	UniqueIndex string
+
+	// ==========apaas engine field begin==========
+	LookupMeta *apaas.ApaasLookupMeta
+	//  ==========apaas engine field end==========
 }
 
 func (field *Field) BindName() string {
@@ -131,7 +136,6 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		Comment:                tagSetting["COMMENT"],
 		AutoIncrementIncrement: DefaultAutoIncrementIncrement,
 	}
-
 	for field.IndirectFieldType.Kind() == reflect.Ptr {
 		field.IndirectFieldType = field.IndirectFieldType.Elem()
 	}

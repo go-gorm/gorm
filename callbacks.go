@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"gorm.io/gorm/apaas"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
@@ -109,8 +110,8 @@ func (p *processor) Execute(db *DB) *DB {
 				db.AddError(err)
 			}
 		}
+		parseLookupTagMeta(stmt)
 	}
-
 	// assign stmt.ReflectValue
 	if stmt.Dest != nil {
 		stmt.ReflectValue = reflect.ValueOf(stmt.Dest)
@@ -357,4 +358,17 @@ func removeCallbacks(cs []*callback, nameMap map[string]bool) []*callback {
 		callbacks = append(callbacks, callback)
 	}
 	return callbacks
+}
+
+func parseLookupTagMeta(stmt *Statement) {
+	for _, field := range stmt.Schema.Fields {
+		lookupMeta, err := apaas.ParseLookupTagMeta(field.Tag.Get(apaas.TagValue), field.DBName, stmt.DBName, stmt.Schema.Table)
+		if err != nil {
+			stmt.DB.AddError(err)
+		}
+		if lookupMeta != nil {
+			field.LookupMeta = lookupMeta
+			stmt.ApaasMode = EngineMode
+		}
+	}
 }

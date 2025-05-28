@@ -74,7 +74,7 @@ var (
 	// Default Default logger
 	Default = New(log.New(os.Stdout, "\r\n", log.LstdFlags), Config{
 		SlowThreshold:             200 * time.Millisecond,
-		LogLevel:                  Warn,
+		LogLevel:                  Info,
 		IgnoreRecordNotFoundError: false,
 		Colorful:                  true,
 	})

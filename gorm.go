@@ -69,6 +69,10 @@ type Config struct {
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
+
+	/* ====Apaas Begin==== */
+	DBName string
+	/* ====Apaas End====== */
 }
 
 // Apply update config to new config
@@ -223,6 +227,9 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	if err != nil {
 		config.Logger.Error(context.Background(), "failed to initialize database, got error %v", err)
 	}
+
+	dbName, _ := db.GetDBName()
+	db.Config.DBName = dbName
 
 	return
 }
@@ -523,4 +530,27 @@ func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+}
+
+func (db *DB) GetDBName() (string, error) {
+	var dbName string
+	var err error
+	// must be create new db
+	db1 := db.WithContext(context.Background())
+	// 检测数据库类型
+	switch db1.Dialector.Name() {
+	case "mysql":
+		err = db1.Raw("SELECT DATABASE()").Scan(&dbName).Error
+	case "postgres":
+		err = db1.Raw("SELECT current_database()").Scan(&dbName).Error
+	case "sqlite":
+		// SQLite中数据库名通常是文件路径
+		var path string
+		err = db1.Raw("PRAGMA database_list").Scan(&struct{ Name, File string }{}).Error
+		dbName = path
+	default:
+		return "", fmt.Errorf("unsupported database dialect")
+	}
+
+	return dbName, err
 }

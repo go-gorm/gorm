@@ -47,6 +47,11 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+
+	// ==========apaas engine field begin==========
+	// apaas mode for gormDB
+	ApaasMode ApaasModeType
+	// ==========apaas engine field end==========
 }
 
 type join struct {

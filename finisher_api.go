@@ -74,6 +74,7 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = value
+	db.Logger.Info(db.Statement.Context, "-----gorm save value: %#v", tx.Statement.Dest)
 
 	reflectValue := reflect.Indirect(reflect.ValueOf(value))
 	for reflectValue.Kind() == reflect.Ptr || reflectValue.Kind() == reflect.Interface {
