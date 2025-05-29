@@ -313,8 +313,12 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	for _, cbName := range callbackTypes {
 		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
 			switch methodValue.Type().String() {
-			case "func(*gorm.DB) error": // TODO hack
-				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
+			case "func(*gorm.DB) error":
+				if inVarPkg := methodValue.Type().In(0).Elem().PkgPath(); inVarPkg != "gorm.io/gorm" {
+					logger.Default.Warn(context.Background(), "The hook function enters the parameter type incorrectly, the function parameter type is `%v`", inVarPkg)
+				} else {
+					reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
+				}
 			default:
 				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
