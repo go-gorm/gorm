@@ -315,7 +315,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			switch methodValue.Type().String() {
 			case "func(*gorm.DB) error":
 				if inVarPkg := methodValue.Type().In(0).Elem().PkgPath(); inVarPkg != "gorm.io/gorm" {
-					logger.Default.Warn(context.Background(), "The hook function enters the parameter type incorrectly, the function parameter type is `%v`", inVarPkg)
+					logger.Default.Warn(context.Background(), "In model %v, the hook function `%v(*gorm.DB) error` has an incorrect parameter type. The expected parameter type is `gorm.io/gorm`, but the provided type is `%v`.", schema, cbName, inVarPkg)
 				} else {
 					reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
 				}
