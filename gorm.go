@@ -59,6 +59,8 @@ type Config struct {
 	TranslateError bool
 	// PropagateUnscoped propagate Unscoped to every other nested statement
 	PropagateUnscoped bool
+	// CaseInsensitiveSchemaFields enabling case insensitivity for schema fields
+	CaseInsensitiveSchemaFields bool
 
 	// ClauseBuilders clause builder
 	ClauseBuilders map[string]clause.ClauseBuilder
@@ -110,21 +112,22 @@ type DB struct {
 
 // Session session config when create session with Session() method
 type Session struct {
-	DryRun                   bool
-	PrepareStmt              bool
-	NewDB                    bool
-	Initialized              bool
-	SkipHooks                bool
-	SkipDefaultTransaction   bool
-	DisableNestedTransaction bool
-	AllowGlobalUpdate        bool
-	FullSaveAssociations     bool
-	PropagateUnscoped        bool
-	QueryFields              bool
-	Context                  context.Context
-	Logger                   logger.Interface
-	NowFunc                  func() time.Time
-	CreateBatchSize          int
+	DryRun                      bool
+	PrepareStmt                 bool
+	NewDB                       bool
+	Initialized                 bool
+	SkipHooks                   bool
+	SkipDefaultTransaction      bool
+	DisableNestedTransaction    bool
+	AllowGlobalUpdate           bool
+	FullSaveAssociations        bool
+	PropagateUnscoped           bool
+	QueryFields                 bool
+	CaseInsensitiveSchemaFields bool
+	Context                     context.Context
+	Logger                      logger.Interface
+	NowFunc                     func() time.Time
+	CreateBatchSize             int
 }
 
 // Open initialize db session based on dialector
@@ -266,6 +269,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.PropagateUnscoped {
 		txConfig.PropagateUnscoped = true
+	}
+
+	if config.CaseInsensitiveSchemaFields {
+		txConfig.CaseInsensitiveSchemaFields = true
 	}
 
 	if config.Context != nil || config.PrepareStmt || config.SkipHooks {
