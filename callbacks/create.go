@@ -127,7 +127,7 @@ func Create(config *Config) func(db *gorm.DB) {
 		insertOk := err == nil && insertID > 0
 
 		if !insertOk {
-			if db.Config.IgnoreLastInsertIDWhenNotSupport {
+			if db.IgnoreLastInsertIDWhenNotSupport {
 				_, rowsAffectedErr := driver.RowsAffected(0).LastInsertId()
 				if strings.Compare(err.Error(), rowsAffectedErr.Error()) == 0 {
 					return
@@ -136,7 +136,7 @@ func Create(config *Config) func(db *gorm.DB) {
 				if strings.Compare(err.Error(), resultNoRowsErr.Error()) == 0 {
 					return
 				}
-				if db.Config.IsNotSupportLastInsertIDErr != nil && db.Config.IsNotSupportLastInsertIDErr(err) {
+				if db.IsNotSupportLastInsertIDErr != nil && db.IsNotSupportLastInsertIDErr(err) {
 					return
 				}
 				if db.Logger != nil {
