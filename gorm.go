@@ -24,6 +24,12 @@ type Config struct {
 	SkipDefaultTransaction    bool
 	DefaultTransactionTimeout time.Duration
 
+	// Not all database support LastInsertId, you can set `IgnoreLastInsertIDWhenNotSupport` to true in those cases
+	IgnoreLastInsertIDWhenNotSupport bool
+	// When 'IgnoreLastInsertIDWhenNotSupport' is true, you can set `IsNotSupportLastInsertIDErr` to check if the error is 'NotSupportLastInsertID'
+	// Gorm only asserts the type of returned sql/driver.Result if 'IsNotSupportLastInsertIDErr' is not set.
+	IsNotSupportLastInsertIDErr func(error) bool
+
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
