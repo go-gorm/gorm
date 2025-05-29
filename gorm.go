@@ -17,6 +17,9 @@ import (
 // for Config.cacheStore store PreparedStmtDB key
 const preparedStmtDBKey = "preparedStmt"
 
+// DefaultTableNameSplit default table name split
+var DefaultTableNameSplit = 2
+
 // Config GORM config
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
@@ -71,6 +74,11 @@ type Config struct {
 
 	callbacks  *callbacks
 	cacheStore *sync.Map
+}
+
+// SetTableNameSplit set default table name split
+func SetTableNameSplit(split int) {
+	DefaultTableNameSplit = split
 }
 
 // Apply update config to new config
@@ -218,10 +226,11 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	db.Statement = &Statement{
-		DB:       db,
-		ConnPool: db.ConnPool,
-		Context:  context.Background(),
-		Clauses:  map[string]clause.Clause{},
+		DB:             db,
+		ConnPool:       db.ConnPool,
+		Context:        context.Background(),
+		Clauses:        map[string]clause.Clause{},
+		TableNameSplit: DefaultTableNameSplit,
 	}
 
 	if err == nil && !config.DisableAutomaticPing {
