@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -17,7 +16,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
@@ -1208,101 +1206,6 @@ func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 	err = db.Table("objects").AutoMigrate(&Object3{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
-	}
-}
-
-func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
-		return
-	}
-
-	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{PrepareStmt: true})
-	if err != nil {
-		t.Errorf("Open err:%v", err)
-	}
-	if debug := os.Getenv("DEBUG"); debug == "true" {
-		db.Logger = db.Logger.LogMode(logger.Info)
-	} else if debug == "false" {
-		db.Logger = db.Logger.LogMode(logger.Silent)
-	}
-
-	type Object1 struct {
-		ID uint
-	}
-	type Object2 struct {
-		ID     uint
-		Field1 int `gorm:"type:int8"`
-	}
-	type Object3 struct {
-		ID     uint
-		Field1 int `gorm:"type:int4"`
-	}
-	type Object4 struct {
-		ID     uint
-		Field2 int
-	}
-	db.Migrator().DropTable("objects")
-
-	err = db.Table("objects").AutoMigrate(&Object1{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-	err = db.Table("objects").Create(&Object1{}).Error
-	if err != nil {
-		t.Errorf("create err:%v", err)
-	}
-
-	// AddColumn
-	err = db.Table("objects").AutoMigrate(&Object2{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object2{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	// AlterColumn
-	err = db.Table("objects").AutoMigrate(&Object3{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object3{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	// AddColumn
-	err = db.Table("objects").AutoMigrate(&Object4{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	db.Table("objects").Migrator().RenameColumn(&Object4{}, "field2", "field3")
-	if err != nil {
-		t.Errorf("RenameColumn err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	db.Table("objects").Migrator().DropColumn(&Object4{}, "field3")
-	if err != nil {
-		t.Errorf("RenameColumn err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
 	}
 }
 

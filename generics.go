@@ -567,7 +567,7 @@ func (g execG[T]) First(ctx context.Context) (T, error) {
 
 func (g execG[T]) Scan(ctx context.Context, result interface{}) error {
 	var r T
-	err := g.g.apply(ctx).Model(r).Find(&result).Error
+	err := g.g.apply(ctx).Model(r).Find(result).Error
 	return err
 }
 
