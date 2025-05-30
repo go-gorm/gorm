@@ -78,7 +78,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	cacheStore := schema.cacheStore
 
 	if relation.FieldSchema, err = getOrParse(fieldValue, cacheStore, schema.namer); err != nil {
-		schema.err = err
+		schema.err = fmt.Errorf("failed to parse field: %s, error: %w", field.Name, err)
 		return nil
 	}
 
@@ -663,6 +663,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 					if !(rel.References[idx].PrimaryKey == ref.PrimaryKey && rel.References[idx].ForeignKey == ref.ForeignKey &&
 						rel.References[idx].PrimaryValue == ref.PrimaryValue) {
 						matched = false
+						break
 					}
 				}
 
@@ -675,7 +676,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 
 	var (
 		name     string
-		idx      = strings.Index(str, ",")
+		idx      = strings.IndexByte(str, ',')
 		settings = ParseTagSetting(str, ",")
 	)
 
@@ -762,8 +763,9 @@ func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue ref
 }
 
 func copyableDataType(str DataType) bool {
+	lowerStr := strings.ToLower(string(str))
 	for _, s := range []string{"auto_increment", "primary key"} {
-		if strings.Contains(strings.ToLower(string(str)), s) {
+		if strings.Contains(lowerStr, s) {
 			return false
 		}
 	}
