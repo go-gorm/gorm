@@ -589,7 +589,7 @@ func TestCreateWithDisableLastInsertID(t *testing.T) {
 	}()
 	err = DB.Create(&user).Error
 	if err != nil {
-		t.Fatalf("it should be nil")
+		t.Fatalf("it should be nil, got %v", err)
 	}
 }
 
