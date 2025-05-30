@@ -1,7 +1,6 @@
 package callbacks
 
 import (
-	"database/sql/driver"
 	"fmt"
 	"reflect"
 	"strings"
@@ -114,7 +113,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			db.Statement.Result.RowsAffected = db.RowsAffected
 		}
 
-		if db.RowsAffected == 0 {
+		if db.RowsAffected == 0 || db.DisableLastInsertID {
 			return
 		}
 
@@ -127,22 +126,6 @@ func Create(config *Config) func(db *gorm.DB) {
 		insertOk := err == nil && insertID > 0
 
 		if !insertOk {
-			if db.IgnoreLastInsertIDWhenNotSupport {
-				_, rowsAffectedErr := driver.RowsAffected(0).LastInsertId()
-				if strings.Compare(err.Error(), rowsAffectedErr.Error()) == 0 {
-					return
-				}
-				_, resultNoRowsErr := driver.ResultNoRows.LastInsertId()
-				if strings.Compare(err.Error(), resultNoRowsErr.Error()) == 0 {
-					return
-				}
-				if db.IsNotSupportLastInsertIDErr != nil && db.IsNotSupportLastInsertIDErr(err) {
-					return
-				}
-				if db.Logger != nil {
-					db.Logger.Warn(db.Statement.Context, "Failed to get last insert ID, err: %v", err)
-				}
-			}
 			if !supportReturning {
 				db.AddError(err)
 			}

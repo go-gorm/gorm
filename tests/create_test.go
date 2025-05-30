@@ -1,6 +1,9 @@
 package tests_test
 
 import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"regexp"
@@ -532,6 +535,40 @@ func TestCreateNilPointer(t *testing.T) {
 	err := DB.Create(user).Error
 	if err == nil || err != gorm.ErrInvalidValue {
 		t.Fatalf("it is not ErrInvalidValue")
+	}
+}
+
+type ConnPoolLastInsertIDMock struct {
+	gorm.ConnPool
+}
+
+func (m ConnPoolLastInsertIDMock) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	rst, err := m.ConnPool.ExecContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	affected, _ := rst.RowsAffected()
+	return driver.RowsAffected(affected), nil
+}
+
+func TestCreateWithDisableLastInsertID(t *testing.T) {
+	rawPool := DB.ConnPool
+	DB.ConnPool = ConnPoolLastInsertIDMock{rawPool}
+	defer func() {
+		DB.ConnPool = rawPool
+	}()
+
+	user := &User{Name: "TestCreateWithDisableLastInsertID"}
+	err := DB.Create(&user).Error
+	if err == nil {
+		t.Fatalf("it should be error")
+	}
+
+	DB.DisableLastInsertID = true
+	err = DB.Create(&user).Error
+	if err != nil {
+		t.Fatalf("it should be nil")
 	}
 }
 
