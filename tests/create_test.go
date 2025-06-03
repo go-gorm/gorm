@@ -6,7 +6,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -557,28 +556,6 @@ func TestCreateWithDisableLastInsertID(t *testing.T) {
 	if isSQLServer() {
 		t.Skip("SQLServer driver doesn't use default create hook in gorm")
 	}
-	mockCreateSupportReturning := func() func() {
-		revertCreateSupportReturning := func() {
-			os.Setenv("GORM_E2E_TEST_MOCK_CREATE_RETURNING", "")
-		}
-
-		os.Setenv("GORM_E2E_TEST_MOCK_CREATE_RETURNING", "false")
-		return revertCreateSupportReturning
-	}
-
-	mockConnPoolExec := func() func() {
-		rawPool := DB.ConnPool
-		DB.ConnPool = ConnPoolLastInsertIDMock{rawPool}
-		rawStatementPool := DB.Statement.ConnPool
-		DB.Statement.ConnPool = ConnPoolLastInsertIDMock{rawStatementPool}
-		return func() {
-			DB.ConnPool = rawPool
-			DB.Statement.ConnPool = rawStatementPool
-		}
-	}
-
-	defer mockCreateSupportReturning()()
-	defer mockConnPoolExec()()
 
 	user := GetUser("TestCreateWithDisableLastInsertID0", Config{})
 	err := DB.Create(user).Error
@@ -586,12 +563,27 @@ func TestCreateWithDisableLastInsertID(t *testing.T) {
 		t.Fatalf("it should be error")
 	}
 
-	DB.DisableLastInsertID = true
-	defer func() {
-		DB.DisableLastInsertID = false
-	}()
+	// create a new connection with new config
+	db, err := OpenTestConnection(&gorm.Config{DisableLastInsertID: true})
+	if err != nil {
+		t.Fatal("failed to connect database")
+	}
 
-	err = DB.Create(user).Error
+	// mock driver result
+	mockConnPoolExec := func() func() {
+		rawPool := db.ConnPool
+		db.ConnPool = ConnPoolLastInsertIDMock{rawPool}
+		rawStatementPool := db.Statement.ConnPool
+		db.Statement.ConnPool = ConnPoolLastInsertIDMock{rawStatementPool}
+		return func() {
+			db.ConnPool = rawPool
+			db.Statement.ConnPool = rawStatementPool
+		}
+	}
+	defer mockConnPoolExec()()
+
+	user = GetUser("TestCreateWithDisableLastInsertID1", Config{})
+	err = db.Create(user).Error
 	if err != nil {
 		t.Fatalf("it should be nil, got %v", err)
 	}

@@ -2,9 +2,7 @@ package callbacks
 
 import (
 	"fmt"
-	"os"
 	"reflect"
-	"strconv"
 	"strings"
 
 	"gorm.io/gorm"
@@ -38,19 +36,10 @@ func BeforeCreate(db *gorm.DB) {
 // Create create hook
 func Create(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.CreateClauses, "RETURNING")
-	rawSupportReturning := supportReturning
 
 	return func(db *gorm.DB) {
 		if db.Error != nil {
 			return
-		}
-
-		mock := os.Getenv("GORM_E2E_TEST_MOCK_CREATE_RETURNING")
-		mockSupportReturning, err := strconv.ParseBool(mock)
-		if err == nil {
-			supportReturning = mockSupportReturning
-		} else {
-			supportReturning = rawSupportReturning
 		}
 
 		if db.Statement.Schema != nil {
