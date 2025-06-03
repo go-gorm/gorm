@@ -554,6 +554,9 @@ func (m ConnPoolLastInsertIDMock) ExecContext(ctx context.Context, query string,
 }
 
 func TestCreateWithDisableLastInsertID(t *testing.T) {
+	if isSQLServer() {
+		t.Skip("SQLServer driver doesn't use default create hook in gorm")
+	}
 	mockCreateSupportReturning := func() func() {
 		revertCreateSupportReturning := func() {
 			os.Setenv("GORM_E2E_TEST_MOCK_CREATE_RETURNING", "")
@@ -577,8 +580,8 @@ func TestCreateWithDisableLastInsertID(t *testing.T) {
 	defer mockCreateSupportReturning()()
 	defer mockConnPoolExec()()
 
-	user := &User{Name: "TestCreateWithDisableLastInsertID"}
-	err := DB.Create(&user).Error
+	user := GetUser("TestCreateWithDisableLastInsertID0", Config{})
+	err := DB.Create(user).Error
 	if DB.RowsAffected > 0 && err == nil {
 		t.Fatalf("it should be error")
 	}
@@ -587,7 +590,8 @@ func TestCreateWithDisableLastInsertID(t *testing.T) {
 	defer func() {
 		DB.DisableLastInsertID = false
 	}()
-	err = DB.Create(&user).Error
+
+	err = DB.Create(user).Error
 	if err != nil {
 		t.Fatalf("it should be nil, got %v", err)
 	}
