@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/moseszane168/gaussdb"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/driver/postgres"
 
@@ -83,7 +84,45 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestAutoMigrateInt8PG(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type Smallint int8
+
+	type MigrateInt struct {
+		Int8 Smallint
+	}
+
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE \"migrate_ints\" ALTER COLUMN \"int8\" TYPE smallint") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if such type is already existed in DB schema: sql: %s",
+					sql)
+			}
+		},
+	}
+
+	DB.Migrator().DropTable(&MigrateInt{})
+
+	// The first AutoMigrate to make table with field with correct type
+	if err := DB.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
+	}
+
+	// make new session to set custom logger tracer
+	session := DB.Session(&gorm.Session{Logger: tracer})
+
+	// The second AutoMigrate to catch an error
+	if err := session.AutoMigrate(&MigrateInt{}); err != nil {
+		t.Fatalf("Failed to auto migrate: error: %v", err)
+	}
+}
+
+func TestAutoMigrateGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -182,7 +221,94 @@ func TestAutoMigrateNullable(t *testing.T) {
 }
 
 func TestSmartMigrateColumn(t *testing.T) {
-	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
+	fullSupported := map[string]bool{"mysql": true, "postgres": true, "gaussdb": true}[DB.Dialector.Name()]
+
+	type UserMigrateColumn struct {
+		ID       uint
+		Name     string
+		Salary   float64
+		Birthday time.Time `gorm:"precision:4"`
+	}
+
+	DB.Migrator().DropTable(&UserMigrateColumn{})
+
+	DB.AutoMigrate(&UserMigrateColumn{})
+
+	type UserMigrateColumn2 struct {
+		ID                  uint
+		Name                string    `gorm:"size:128"`
+		Salary              float64   `gorm:"precision:2"`
+		Birthday            time.Time `gorm:"precision:2"`
+		NameIgnoreMigration string    `gorm:"size:100"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err := DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 128 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, o, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
+				t.Fatalf("salary's precision should be 2, but got %v %v", precision, o)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		}
+	}
+
+	type UserMigrateColumn3 struct {
+		ID                  uint
+		Name                string    `gorm:"size:256"`
+		Salary              float64   `gorm:"precision:3"`
+		Birthday            time.Time `gorm:"precision:3"`
+		NameIgnoreMigration string    `gorm:"size:128;-:migration"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn3{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err = DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 256 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
+				t.Fatalf("salary's precision should be 2, but got %v", precision)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		case "name_ignore_migration":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 100 {
+				t.Fatalf("name_ignore_migration's length should still be 100 but got %v", length)
+			}
+		}
+	}
+}
+
+func TestSmartMigrateColumnGaussDB(t *testing.T) {
+	fullSupported := map[string]bool{"mysql": true, "gaussdb": true}[DB.Dialector.Name()]
 
 	type UserMigrateColumn struct {
 		ID       uint
@@ -850,7 +976,68 @@ func TestMigrateColumnOrder(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/5047
 func TestMigrateSerialColumn(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type Event struct {
+		ID  uint `gorm:"primarykey"`
+		UID uint32
+	}
+
+	type Event1 struct {
+		ID  uint   `gorm:"primarykey"`
+		UID uint32 `gorm:"not null;autoIncrement"`
+	}
+
+	type Event2 struct {
+		ID  uint   `gorm:"primarykey"`
+		UID uint16 `gorm:"not null;autoIncrement"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&Event{})
+	if err != nil {
+		t.Errorf("DropTable err:%v", err)
+	}
+
+	// create sequence
+	err = DB.Table("events").AutoMigrate(&Event1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	// delete sequence
+	err = DB.Table("events").AutoMigrate(&Event{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	// update sequence
+	err = DB.Table("events").AutoMigrate(&Event1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+	err = DB.Table("events").AutoMigrate(&Event2{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	DB.Table("events").Save(&Event2{})
+	DB.Table("events").Save(&Event2{})
+	DB.Table("events").Save(&Event2{})
+
+	events := make([]*Event, 0)
+	DB.Table("events").Find(&events)
+
+	AssertEqual(t, 3, len(events))
+	for _, v := range events {
+		AssertEqual(t, v.ID, v.UID)
+	}
+}
+
+func TestMigrateSerialColumnGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -975,7 +1162,7 @@ func TestMigrateAutoIncrement(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/5320
 func TestPrimarykeyID(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -995,6 +1182,41 @@ func TestPrimarykeyID(t *testing.T) {
 		t.Fatalf("DropTable err:%v", err)
 	}
 
+	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	// patch
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+}
+
+func TestPrimarykeyIDGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type MissPKLanguage struct {
+		ID   string `gorm:"type:uuid;default:uuid_generate_v4()"`
+		Name string
+	}
+
+	type MissPKUser struct {
+		ID              string           `gorm:"type:uuid;default:uuid_generate_v4()"`
+		MissPKLanguages []MissPKLanguage `gorm:"many2many:miss_pk_user_languages;"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("DropTable err:%v", err)
+	}
+	// TODO: ERROR: could not open extension control file: No such file or directory (SQLSTATE 58P01)
 	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 
 	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
@@ -1175,11 +1397,47 @@ func findColumnType(dest interface{}, columnName string) (
 }
 
 func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
 	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
+	if err != nil {
+		t.Errorf("Open err:%v", err)
+	}
+
+	type Object1 struct{}
+	type Object2 struct {
+		Field1 string
+	}
+	type Object3 struct {
+		Field2 string
+	}
+	db.Migrator().DropTable("objects")
+
+	err = db.Table("objects").AutoMigrate(&Object1{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").AutoMigrate(&Object2{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+
+	err = db.Table("objects").AutoMigrate(&Object3{})
+	if err != nil {
+		t.Errorf("AutoMigrate err:%v", err)
+	}
+}
+
+// TODO: ERROR: must have at least one column (SQLSTATE 0A000)
+func TestInvalidCachedPlanSimpleProtocolGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	db, err := gorm.Open(gaussdb.Open(gaussdbDSN), &gorm.Config{})
 	if err != nil {
 		t.Errorf("Open err:%v", err)
 	}
@@ -1249,7 +1507,43 @@ func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
 }
 
 func TestMigrateArrayTypeModel(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type ArrayTypeModel struct {
+		ID              uint
+		Number          string     `gorm:"type:varchar(51);NOT NULL"`
+		TextArray       []string   `gorm:"type:text[];NOT NULL"`
+		NestedTextArray [][]string `gorm:"type:text[][]"`
+		NestedIntArray  [][]int64  `gorm:"type:integer[3][3]"`
+	}
+
+	var err error
+	DB.Migrator().DropTable(&ArrayTypeModel{})
+
+	err = DB.AutoMigrate(&ArrayTypeModel{})
+	AssertEqual(t, nil, err)
+
+	ct, err := findColumnType(&ArrayTypeModel{}, "number")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "varchar", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "text_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "text[]", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "nested_text_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "text[]", ct.DatabaseTypeName())
+
+	ct, err = findColumnType(&ArrayTypeModel{}, "nested_int_array")
+	AssertEqual(t, nil, err)
+	AssertEqual(t, "integer[]", ct.DatabaseTypeName())
+}
+
+func TestMigrateArrayTypeModelGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -1572,7 +1866,66 @@ func TestMigrateView(t *testing.T) {
 }
 
 func TestMigrateExistingBoolColumnPG(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type ColumnStruct struct {
+		gorm.Model
+		Name         string
+		StringBool   string
+		SmallintBool int `gorm:"type:smallint"`
+	}
+
+	type ColumnStruct2 struct {
+		gorm.Model
+		Name         string
+		StringBool   bool // change existing boolean column from string to boolean
+		SmallintBool bool // change existing boolean column from smallint or other to boolean
+	}
+
+	DB.Migrator().DropTable(&ColumnStruct{})
+
+	if err := DB.AutoMigrate(&ColumnStruct{}); err != nil {
+		t.Errorf("Failed to migrate, got %v", err)
+	}
+
+	if err := DB.Table("column_structs").AutoMigrate(&ColumnStruct2{}); err != nil {
+		t.Fatalf("no error should happened when auto migrate column, but got %v", err)
+	}
+
+	if columnTypes, err := DB.Migrator().ColumnTypes(&ColumnStruct{}); err != nil {
+		t.Fatalf("no error should returns for ColumnTypes")
+	} else {
+		stmt := &gorm.Statement{DB: DB}
+		stmt.Parse(&ColumnStruct2{})
+
+		for _, columnType := range columnTypes {
+			switch columnType.Name() {
+			case "id":
+				if v, ok := columnType.PrimaryKey(); !ok || !v {
+					t.Fatalf("column id primary key should be correct, name: %v, column: %#v", columnType.Name(),
+						columnType)
+				}
+			case "string_bool":
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+			case "smallint_bool":
+				dataType := DB.Dialector.DataTypeOf(stmt.Schema.LookUpField(columnType.Name()))
+				if !strings.Contains(strings.ToUpper(dataType), strings.ToUpper(columnType.DatabaseTypeName())) {
+					t.Fatalf("column name type should be correct, name: %v, length: %v, expects: %v, column: %#v",
+						columnType.Name(), columnType.DatabaseTypeName(), dataType, columnType)
+				}
+			}
+		}
+	}
+}
+
+func TestMigrateExistingBoolColumnGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
