@@ -1,6 +1,6 @@
 services:
   mysql:
-    image: 'mysql/mysql-server:latest'
+    image: 'mysql:latest'
     ports:
       - "127.0.0.1:9910:3306"
     environment:
