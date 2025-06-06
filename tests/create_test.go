@@ -1,6 +1,9 @@
 package tests_test
 
 import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"regexp"
@@ -532,6 +535,57 @@ func TestCreateNilPointer(t *testing.T) {
 	err := DB.Create(user).Error
 	if err == nil || err != gorm.ErrInvalidValue {
 		t.Fatalf("it is not ErrInvalidValue")
+	}
+}
+
+type ConnPoolLastInsertIDMock struct {
+	gorm.ConnPool
+}
+
+func (m ConnPoolLastInsertIDMock) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	rst, err := m.ConnPool.ExecContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	affected, _ := rst.RowsAffected()
+	return driver.RowsAffected(affected), nil
+}
+
+func TestCreateWithDisableLastInsertID(t *testing.T) {
+	if isSQLServer() {
+		t.Skip("SQLServer driver doesn't use default create hook in gorm")
+	}
+
+	user := GetUser("TestCreateWithDisableLastInsertID0", Config{})
+	err := DB.Create(user).Error
+	if DB.RowsAffected > 0 && err == nil {
+		t.Fatalf("it should be error")
+	}
+
+	// create a new connection with new config
+	db, err := OpenTestConnection(&gorm.Config{DisableLastInsertID: true})
+	if err != nil {
+		t.Fatal("failed to connect database")
+	}
+
+	// mock driver result
+	mockConnPoolExec := func() func() {
+		rawPool := db.ConnPool
+		db.ConnPool = ConnPoolLastInsertIDMock{rawPool}
+		rawStatementPool := db.Statement.ConnPool
+		db.Statement.ConnPool = ConnPoolLastInsertIDMock{rawStatementPool}
+		return func() {
+			db.ConnPool = rawPool
+			db.Statement.ConnPool = rawStatementPool
+		}
+	}
+	defer mockConnPoolExec()()
+
+	user = GetUser("TestCreateWithDisableLastInsertID1", Config{})
+	err = db.Create(user).Error
+	if err != nil {
+		t.Fatalf("it should be nil, got %v", err)
 	}
 }
 
