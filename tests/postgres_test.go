@@ -12,7 +12,7 @@ import (
 )
 
 func TestPostgresReturningIDWhichHasStringType(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		t.Skip()
 	}
 
@@ -62,7 +62,7 @@ func TestPostgresReturningIDWhichHasStringType(t *testing.T) {
 }
 
 func TestPostgres(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		t.Skip()
 	}
 
@@ -166,7 +166,7 @@ type Category struct {
 }
 
 func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		t.Skip()
 	}
 
@@ -191,7 +191,7 @@ func TestMany2ManyWithDefaultValueUUID(t *testing.T) {
 }
 
 func TestPostgresOnConstraint(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" || DB.Dialector.Name() != "gaussdb" {
 		t.Skip()
 	}
 
