@@ -1197,6 +1197,7 @@ func TestPrimarykeyID(t *testing.T) {
 }
 
 func TestPrimarykeyIDGaussDB(t *testing.T) {
+	t.Skipf("This test case skipped, because of gaussdb not support uuid-ossp plugin (SQLSTATE 58P01)")
 	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
@@ -1433,6 +1434,7 @@ func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 
 // TODO: ERROR: must have at least one column (SQLSTATE 0A000)
 func TestInvalidCachedPlanSimpleProtocolGaussDB(t *testing.T) {
+	t.Skipf("This test case skipped, because of gaussdb not support creaing empty table(SQLSTATE 0A000)")
 	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
