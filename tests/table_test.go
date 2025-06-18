@@ -252,7 +252,7 @@ func TestPostgresTableWithIdentifierLength(t *testing.T) {
 	})
 }
 
-func TestPostgresTableWithIdentifierLengthGaussDB(t *testing.T) {
+func TestGaussDBTableWithIdentifierLength(t *testing.T) {
 	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
