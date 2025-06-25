@@ -457,7 +457,7 @@ func (field *Field) setupValuerAndSetter() {
 	switch {
 	case len(field.StructField.Index) == 1 && fieldIndex > 0:
 		field.ValueOf = func(ctx context.Context, value reflect.Value) (interface{}, bool) {
-			fieldValue := reflect.Indirect(value).Field(fieldIndex)
+			fieldValue := reflect.Indirect(value).FieldByName(field.Name)
 			return fieldValue.Interface(), fieldValue.IsZero()
 		}
 	default:
