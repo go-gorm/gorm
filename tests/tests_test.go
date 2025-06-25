@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/moseszane168/gaussdb"
+	"gorm.io/driver/gaussdb"
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
@@ -22,7 +22,7 @@ var DB *gorm.DB
 var (
 	mysqlDSN     = "gorm:gorm@tcp(localhost:9910)/gorm?charset=utf8&parseTime=True&loc=Local"
 	postgresDSN  = "user=gorm password=gorm dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
-	gaussdbDSN   = "user=gaussdb password=Gaussdb@123 dbname=gorm host=localhost port=9920 sslmode=disable TimeZone=Asia/Shanghai"
+	gaussdbDSN   = "user=gaussdb password=Gaussdb@123 dbname=gorm host=localhost port=9950 sslmode=disable TimeZone=Asia/Shanghai"
 	sqlserverDSN = "sqlserver://sa:LoremIpsum86@localhost:9930?database=master"
 	tidbDSN      = "root:@tcp(localhost:9940)/test?charset=utf8&parseTime=True&loc=Local"
 )
