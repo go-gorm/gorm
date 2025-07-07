@@ -455,7 +455,7 @@ func (field *Field) setupValuerAndSetter() {
 	// ValueOf returns field's value and if it is zero
 	fieldIndex := field.StructField.Index[0]
 	switch {
-	case len(field.StructField.Index) == 1 && fieldIndex > 0:
+	case len(field.StructField.Index) == 1 && fieldIndex >= 0:
 		field.ValueOf = func(ctx context.Context, value reflect.Value) (interface{}, bool) {
 			fieldValue := reflect.Indirect(value).FieldByName(field.Name)
 			return fieldValue.Interface(), fieldValue.IsZero()
@@ -504,7 +504,7 @@ func (field *Field) setupValuerAndSetter() {
 
 	// ReflectValueOf returns field's reflect value
 	switch {
-	case len(field.StructField.Index) == 1 && fieldIndex > 0:
+	case len(field.StructField.Index) == 1 && fieldIndex >= 0:
 		field.ReflectValueOf = func(ctx context.Context, value reflect.Value) reflect.Value {
 			return reflect.Indirect(value).Field(fieldIndex)
 		}
