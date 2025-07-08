@@ -39,7 +39,7 @@ func TestSupportedDialectorWithErrDuplicatedKey(t *testing.T) {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
 
-	dialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": true, "sqlserver": true}
+	dialectors := map[string]bool{"sqlite": true, "postgres": true, "gaussdb": true, "mysql": true, "sqlserver": true}
 	if supported, found := dialectors[db.Dialector.Name()]; !(found && supported) {
 		return
 	}
@@ -81,7 +81,7 @@ func TestSupportedDialectorWithErrForeignKeyViolated(t *testing.T) {
 		t.Fatalf("failed to connect database, got error %v", err)
 	}
 
-	dialectors := map[string]bool{"sqlite": true, "postgres": true, "mysql": true, "sqlserver": true}
+	dialectors := map[string]bool{"sqlite": true, "postgres": true, "gaussdb": true, "mysql": true, "sqlserver": true}
 	if supported, found := dialectors[db.Dialector.Name()]; !(found && supported) {
 		return
 	}

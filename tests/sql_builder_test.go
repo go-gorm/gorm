@@ -487,7 +487,7 @@ func replaceQuoteInSQL(sql string) string {
 
 	// convert dialect special quote into double quote
 	switch DB.Dialector.Name() {
-	case "postgres":
+	case "postgres", "gaussdb":
 		sql = strings.ReplaceAll(sql, `"`, `"`)
 	case "mysql", "sqlite":
 		sql = strings.ReplaceAll(sql, "`", `"`)

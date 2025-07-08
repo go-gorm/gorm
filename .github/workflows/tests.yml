@@ -240,3 +240,71 @@ jobs:
 
       - name: Tests
         run: GITHUB_ACTION=true GORM_DIALECT=tidb GORM_DSN="root:@tcp(localhost:9940)/test?charset=utf8&parseTime=True&loc=Local" ./tests/tests_all.sh
+
+  gaussdb:
+    strategy:
+      matrix:
+        dbversion: ['opengauss/opengauss:7.0.0-RC1.B023']
+        go: ['1.23', '1.24']
+        platform: [ubuntu-latest] # can not run in macOS and Windows
+    runs-on: ${{ matrix.platform }}
+
+    services:
+      gaussdb:
+        image: ${{ matrix.dbversion }}
+        env:
+          # GaussDB has password limitations
+          GS_PASSWORD: Gaussdb@123
+          TZ: Asia/Shanghai
+        ports:
+          - 9950:5432
+
+    steps:
+      - name: Set up Go 1.x
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Waiting for GaussDB to be ready
+        run: |
+          container_name=$(docker ps --filter "ancestor=opengauss/opengauss:7.0.0-RC1.B023" --format "{{.Names}}")
+          if [ -z "$container_name" ]; then
+            echo "Error: failed to find a container created from the 'opengauss/opengauss:7.0.0-RC1.B023' image."
+            exit 1
+          fi
+          max_retries=12
+          retry_count=0
+          if [ -t 0 ]; then
+            TTY_FLAG="-t"
+          else
+            TTY_FLAG=""
+          fi
+          while [ $retry_count -lt $max_retries ]; do
+            if docker exec -i "${container_name}" bash -c "su - omm -c 'gsql -U omm -c \"select 1;\"'" 
+            then
+              echo "Creating database gorm..."
+              sql_file='/tmp/create_database.sql'
+              echo "CREATE DATABASE gorm DBCOMPATIBILITY 'PG';" > ${sql_file}
+              docker cp "${sql_file}" "${container_name}":"${sql_file}"
+              docker exec -i ${TTY_FLAG} "${container_name}" bash -c "su - omm -c 'gsql -U omm -f ${sql_file}'"
+              echo "Database initialization completed."
+              break
+            fi
+
+            echo "Waiting for database to be ready... (attempt $((retry_count + 1))/$max_retries)"
+            sleep 10
+            ((++retry_count))
+          done
+          exit 0
+
+      - name: go mod package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('tests/go.mod') }}
+
+      - name: Tests
+        run: GITHUB_ACTION=true GORM_DIALECT=gaussdb GORM_DSN="user=gaussdb password=Gaussdb@123 dbname=gorm host=localhost port=9950 sslmode=disable TimeZone=Asia/Shanghai" ./tests/tests_all.sh

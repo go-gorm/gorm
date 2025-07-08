@@ -41,7 +41,7 @@ func TestManyToManyWithMultiPrimaryKeys(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
-	if name := DB.Dialector.Name(); name == "postgres" || name == "mysql" {
+	if name := DB.Dialector.Name(); name == "postgres" || name == "mysql" || name == "gaussdb" {
 		stmt := gorm.Statement{DB: DB}
 		stmt.Parse(&Blog{})
 		stmt.Schema.LookUpField("ID").Unique = true
@@ -141,6 +141,9 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 
 	if name := DB.Dialector.Name(); name == "postgres" {
 		t.Skip("skip postgres due to it only allow unique constraint matching given keys")
+	}
+	if name := DB.Dialector.Name(); name == "gaussdb" {
+		t.Skip("skip gaussdb due to it only allow unique constraint matching given keys")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
@@ -266,6 +269,10 @@ func TestManyToManyWithCustomizedForeignKeys2(t *testing.T) {
 
 	if name := DB.Dialector.Name(); name == "postgres" || name == "mysql" {
 		t.Skip("skip postgres due to it only allow unique constraint matching given keys")
+	}
+
+	if name := DB.Dialector.Name(); name == "gaussdb" {
+		t.Skip("skip gaussdb due to it only allow unique constraint matching given keys")
 	}
 
 	DB.Migrator().DropTable(&Blog{}, &Tag{}, "blog_tags", "locale_blog_tags", "shared_blog_tags")
