@@ -68,8 +68,8 @@ func Create(config *Config) func(db *gorm.DB) {
 			db.Statement.Build(db.Statement.BuildClauses...)
 		}
 
-		isDryRun := !db.DryRun && db.Error == nil
-		if !isDryRun {
+		notDryRun := !db.DryRun && db.Error == nil
+		if !notDryRun {
 			return
 		}
 
@@ -113,7 +113,7 @@ func Create(config *Config) func(db *gorm.DB) {
 			db.Statement.Result.RowsAffected = db.RowsAffected
 		}
 
-		if db.RowsAffected == 0 {
+		if db.RowsAffected == 0 || db.DisableLastInsertID {
 			return
 		}
 
