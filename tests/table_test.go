@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/moseszane168/gaussdb"
+	"gorm.io/driver/gaussdb"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
