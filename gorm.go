@@ -137,6 +137,14 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		return isConfig && !isConfig2
 	})
 
+	if len(opts) > 0 {
+		if c, ok := opts[0].(*Config); ok {
+			config = c
+		} else {
+			opts = append([]Option{config}, opts...)
+		}
+	}
+
 	var skipAfterInitialize bool
 	for _, opt := range opts {
 		if opt != nil {
