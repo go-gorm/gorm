@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -283,6 +282,10 @@ func isMysql() bool {
 
 func isSqlite() bool {
 	return os.Getenv("GORM_DIALECT") == "sqlite"
+}
+
+func isSQLServer() bool {
+	return os.Getenv("GORM_DIALECT") == "sqlserver"
 }
 
 func db(unscoped bool) *gorm.DB {

@@ -24,6 +24,9 @@ type Config struct {
 	SkipDefaultTransaction    bool
 	DefaultTransactionTimeout time.Duration
 
+	// Not all database support LastInsertId, you can set `DisableLastInsertID` to true in those cases
+	DisableLastInsertID bool
+
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
