@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -182,6 +183,10 @@ func fileWithLineNum() string {
 		}
 	}
 	return ""
+}
+
+func fullStackTrace() string {
+	return fmt.Sprintf("Stack trace:\n%s", debug.Stack())
 }
 
 func isBlank(value reflect.Value) bool {

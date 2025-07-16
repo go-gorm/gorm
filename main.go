@@ -23,6 +23,7 @@ type DB struct {
 	logger            logger
 	search            *search
 	values            map[string]interface{}
+	logFullStacktrace bool
 
 	// global db
 	parent        *DB
@@ -145,6 +146,12 @@ func (s *DB) SetLogger(log logger) {
 // SetLogWriter sets the LogWriter the default logger should write to
 func (s *DB) SetLogWriter(log LogWriter) {
 	s.logger = Logger{log}
+}
+
+// SetDebugFullStackTrace set logFullStacktrace mode, `true` for full stack traces.
+func (s *DB) SetDebugFullStackTrace(enable bool) *DB {
+	s.logFullStacktrace = enable
+	return s
 }
 
 // LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
@@ -506,6 +513,11 @@ func (s *DB) Table(name string) *DB {
 // Debug start debug mode
 func (s *DB) Debug() *DB {
 	return s.clone().LogMode(true)
+}
+
+// DebugFullStackTrace logs full stack trace of the query and implies calling Debug()
+func (s *DB) DebugFullStackTrace() *DB {
+	return s.Debug().SetDebugFullStackTrace(true)
 }
 
 // Begin begin a transaction
@@ -926,6 +938,7 @@ func (s *DB) clone() *DB {
 		Value:             s.Value,
 		Error:             s.Error,
 		blockGlobalUpdate: s.blockGlobalUpdate,
+		logFullStacktrace: s.logFullStacktrace,
 	}
 
 	for key, value := range s.values {
@@ -953,6 +966,9 @@ func (s *DB) log(v ...interface{}) {
 }
 
 func (s *DB) slog(sql string, t time.Time, vars ...interface{}) {
+	if s.logFullStacktrace == true {
+		s.print("log", fullStackTrace())
+	}
 	if s.logMode == 2 {
 		s.print("sql", fileWithLineNum(), NowFunc().Sub(t), sql, vars, s.RowsAffected)
 	}
