@@ -48,6 +48,7 @@ type Statement struct {
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
 	Result               *result
+	TableNameSplit       int
 }
 
 type join struct {
@@ -503,9 +504,9 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
 	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
-		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
+		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == stmt.TableNameSplit {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
-			stmt.Table = tables[1]
+			stmt.Table = tables[stmt.TableNameSplit-1]
 			return
 		}
 
