@@ -43,6 +43,7 @@ type Schema struct {
 	FieldsByBindName          map[string]*Field // embedded fields is 'Embed.Field'
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
+	FieldsCaseInsensitive     bool
 	Relationships             Relationships
 	CreateClauses             []clause.Interface
 	QueryClauses              []clause.Interface
@@ -78,9 +79,24 @@ func (schema Schema) LookUpField(name string) *Field {
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
 	}
+	if schema.FieldsCaseInsensitive {
+		for key, field := range schema.FieldsByDBName {
+			if strings.EqualFold(key, name) {
+				return field
+			}
+		}
+	}
 	if field, ok := schema.FieldsByName[name]; ok {
 		return field
 	}
+	if schema.FieldsCaseInsensitive {
+		for key, field := range schema.FieldsByName {
+			if strings.EqualFold(key, name) {
+				return field
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -101,6 +117,13 @@ func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Fie
 		if field, ok := schema.FieldsByBindName[find]; ok {
 			return field
 		}
+		if schema.FieldsCaseInsensitive {
+			for key, field := range schema.FieldsByBindName {
+				if strings.EqualFold(key, find) {
+					return field
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -115,11 +138,15 @@ type TablerWithNamer interface {
 
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
+	return ParseWithCaseInsensitivity(dest, cacheStore, namer, false)
+}
+
+func ParseWithCaseInsensitivity(dest interface{}, cacheStore *sync.Map, namer Namer, caseInsensitive bool) (*Schema, error) {
+	return ParseWithSpecialTableName(dest, cacheStore, namer, caseInsensitive, "")
 }
 
 // ParseWithSpecialTableName get data type from dialector with extra schema table
-func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, caseInsensitive bool, specialTableName string) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -178,16 +205,17 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	schema := &Schema{
-		Name:             modelType.Name(),
-		ModelType:        modelType,
-		Table:            tableName,
-		FieldsByName:     map[string]*Field{},
-		FieldsByBindName: map[string]*Field{},
-		FieldsByDBName:   map[string]*Field{},
-		Relationships:    Relationships{Relations: map[string]*Relationship{}},
-		cacheStore:       cacheStore,
-		namer:            namer,
-		initialized:      make(chan struct{}),
+		Name:                  modelType.Name(),
+		ModelType:             modelType,
+		Table:                 tableName,
+		FieldsByName:          map[string]*Field{},
+		FieldsByBindName:      map[string]*Field{},
+		FieldsByDBName:        map[string]*Field{},
+		FieldsCaseInsensitive: caseInsensitive,
+		Relationships:         Relationships{Relations: map[string]*Relationship{}},
+		cacheStore:            cacheStore,
+		namer:                 namer,
+		initialized:           make(chan struct{}),
 	}
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
@@ -403,7 +431,7 @@ func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect
 	}
 }
 
-func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer, caseInsensitive bool) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
 	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
@@ -420,5 +448,5 @@ func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, e
 		return v.(*Schema), nil
 	}
 
-	return Parse(dest, cacheStore, namer)
+	return ParseWithCaseInsensitivity(dest, cacheStore, namer, caseInsensitive)
 }
