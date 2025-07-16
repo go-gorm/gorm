@@ -40,6 +40,9 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 	}
 
+	if db.Statement.TruncatedAliases == nil {
+		db.Statement.TruncatedAliases = make(map[string]string)
+	}
 	if db.Statement.SQL.Len() == 0 {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
@@ -158,11 +161,17 @@ func BuildQuerySQL(db *gorm.DB) {
 							selectColumns, restricted := columnStmt.SelectAndOmitColumns(false, false)
 							for _, s := range relation.FieldSchema.DBNames {
 								if v, ok := selectColumns[s]; (ok && v) || (!ok && !restricted) {
+									aliasName := db.NamingStrategy.JoinNestedRelationNames([]string{tableAliasName, s})
 									clauseSelect.Columns = append(clauseSelect.Columns, clause.Column{
 										Table: tableAliasName,
 										Name:  s,
-										Alias: utils.NestedRelationName(tableAliasName, s),
+										Alias: aliasName,
 									})
+									origTableAliasName := tableAliasName
+									if alias, ok := db.Statement.TruncatedAliases[tableAliasName]; ok {
+										origTableAliasName = alias
+									}
+									db.Statement.TruncatedAliases[aliasName] = utils.NestedRelationName(origTableAliasName, s)
 								}
 							}
 
@@ -232,12 +241,23 @@ func BuildQuerySQL(db *gorm.DB) {
 						}
 
 						parentTableName := clause.CurrentTable
+						parentFullTableName := clause.CurrentTable
 						for idx, rel := range relations {
 							// joins table alias like "Manager, Company, Manager__Company"
 							curAliasName := rel.Name
+
+							var nameParts []string
+							var fullName string
 							if parentTableName != clause.CurrentTable {
-								curAliasName = utils.NestedRelationName(parentTableName, curAliasName)
+								nameParts = []string{parentFullTableName, curAliasName}
+								fullName = utils.NestedRelationName(parentFullTableName, curAliasName)
+							} else {
+								nameParts = []string{curAliasName}
+								fullName = curAliasName
 							}
+							aliasName := db.NamingStrategy.JoinNestedRelationNames(nameParts)
+							db.Statement.TruncatedAliases[aliasName] = fullName
+							curAliasName = aliasName
 
 							if _, ok := specifiedRelationsName[curAliasName]; !ok {
 								aliasName := curAliasName
@@ -250,6 +270,7 @@ func BuildQuerySQL(db *gorm.DB) {
 							}
 
 							parentTableName = curAliasName
+							parentFullTableName = fullName
 						}
 					} else {
 						fromClause.Joins = append(fromClause.Joins, clause.Join{
