@@ -640,12 +640,17 @@ func (s *DB) PrependAfterTransactionCallback(f func(db *DB)) {
 
 // WrapInTx wraps a method in a transaction
 func (s *DB) WrapInTx(f func(tx *DB) error) (err error) {
+	return s.WrapInTxOpts(f, context.Background(), nil)
+}
+
+// WrapInTxOpts wraps a method in a transaction with options
+func (s *DB) WrapInTxOpts(f func(tx *DB) error, ctx context.Context, opts *sql.TxOptions) (err error) {
 	if _, ok := s.db.(*sql.Tx); ok {
 		// Already in a transaction
 		return f(s)
 	} else {
 		// Lets start a new transaction
-		tx := s.Begin()
+		tx := s.BeginTx(ctx, opts)
 		if err = tx.Error; err != nil {
 			return
 		}
