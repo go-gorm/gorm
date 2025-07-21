@@ -53,9 +53,13 @@ func Create(config *Config) func(db *gorm.DB) {
 				if _, ok := db.Statement.Clauses["RETURNING"]; !ok {
 					fromColumns := make([]clause.Column, 0, len(db.Statement.Schema.FieldsWithDefaultDBValue))
 					for _, field := range db.Statement.Schema.FieldsWithDefaultDBValue {
-						fromColumns = append(fromColumns, clause.Column{Name: field.DBName})
+						if field.Readable {
+							fromColumns = append(fromColumns, clause.Column{Name: field.DBName})
+						}
 					}
-					db.Statement.AddClause(clause.Returning{Columns: fromColumns})
+					if len(fromColumns) > 0 {
+						db.Statement.AddClause(clause.Returning{Columns: fromColumns})
+					}
 				}
 			}
 		}
@@ -122,6 +126,16 @@ func Create(config *Config) func(db *gorm.DB) {
 			pkFieldName = "@id"
 		)
 
+		if db.Statement.Schema != nil {
+			if db.Statement.Schema.PrioritizedPrimaryField == nil ||
+				!db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue ||
+				!db.Statement.Schema.PrioritizedPrimaryField.Readable {
+				return
+			}
+			pkField = db.Statement.Schema.PrioritizedPrimaryField
+			pkFieldName = db.Statement.Schema.PrioritizedPrimaryField.DBName
+		}
+
 		insertID, err := result.LastInsertId()
 		insertOk := err == nil && insertID > 0
 
@@ -130,14 +144,6 @@ func Create(config *Config) func(db *gorm.DB) {
 				db.AddError(err)
 			}
 			return
-		}
-
-		if db.Statement.Schema != nil {
-			if db.Statement.Schema.PrioritizedPrimaryField == nil || !db.Statement.Schema.PrioritizedPrimaryField.HasDefaultValue {
-				return
-			}
-			pkField = db.Statement.Schema.PrioritizedPrimaryField
-			pkFieldName = db.Statement.Schema.PrioritizedPrimaryField.DBName
 		}
 
 		// append @id column with value for auto-increment primary key

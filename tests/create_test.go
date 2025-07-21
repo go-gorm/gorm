@@ -14,31 +14,48 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	user := *GetUser("create", Config{})
+	u1 := *GetUser("create", Config{})
 
-	if results := DB.Create(&user); results.Error != nil {
+	if results := DB.Create(&u1); results.Error != nil {
 		t.Fatalf("errors happened when create: %v", results.Error)
 	} else if results.RowsAffected != 1 {
 		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
 	}
 
-	if user.ID == 0 {
-		t.Errorf("user's primary key should has value after create, got : %v", user.ID)
+	if u1.ID == 0 {
+		t.Errorf("user's primary key should has value after create, got : %v", u1.ID)
 	}
 
-	if user.CreatedAt.IsZero() {
+	if u1.CreatedAt.IsZero() {
 		t.Errorf("user's created at should be not zero")
 	}
 
-	if user.UpdatedAt.IsZero() {
+	if u1.UpdatedAt.IsZero() {
 		t.Errorf("user's updated at should be not zero")
 	}
 
 	var newUser User
-	if err := DB.Where("id = ?", user.ID).First(&newUser).Error; err != nil {
+	if err := DB.Where("id = ?", u1.ID).First(&newUser).Error; err != nil {
 		t.Fatalf("errors happened when query: %v", err)
 	} else {
-		CheckUser(t, newUser, user)
+		CheckUser(t, newUser, u1)
+	}
+
+	type user struct {
+		ID   int `gorm:"primaryKey;->:false"`
+		Name string
+		Age  int
+	}
+
+	var u2 user
+	if results := DB.Create(&u2); results.Error != nil {
+		t.Fatalf("errors happened when create: %v", results.Error)
+	} else if results.RowsAffected != 1 {
+		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
+	}
+
+	if u2.ID != 0 {
+		t.Errorf("don't have the permission to read primary key from db, but got %v", u2.ID)
 	}
 }
 
