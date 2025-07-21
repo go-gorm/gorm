@@ -30,3 +30,10 @@ services:
     ports:
       - "127.0.0.1:9940:4000"
     command: /tidb-server -store unistore -path "" -lease 0s > tidb.log 2>&1 &
+  gaussdb:
+    image: 'opengauss/opengauss:7.0.0-RC1.B023'
+    ports:
+      - "127.0.0.1:9950:5432"
+    environment:
+      - TZ=Asia/Shanghai
+      - GS_PASSWORD=Gaussdb@123
