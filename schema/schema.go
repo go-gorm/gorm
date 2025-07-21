@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
@@ -313,8 +314,14 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	for _, cbName := range callbackTypes {
 		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
 			switch methodValue.Type().String() {
-			case "func(*gorm.DB) error": // TODO hack
-				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
+			case "func(*gorm.DB) error":
+				expectedPkgPath := path.Dir(reflect.TypeOf(schema).Elem().PkgPath())
+				if inVarPkg := methodValue.Type().In(0).Elem().PkgPath(); inVarPkg == expectedPkgPath {
+					reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
+				} else {
+					logger.Default.Warn(context.Background(), "In model %v, the hook function `%v(*gorm.DB) error` has an incorrect parameter type. The expected parameter type is `%v`, but the provided type is `%v`.", schema, cbName, expectedPkgPath, inVarPkg)
+					// PASS
+				}
 			default:
 				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
