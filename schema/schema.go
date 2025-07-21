@@ -248,7 +248,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			schema.FieldsByBindName[bindName] = field
 		}
 
-		field.setupValuerAndSetter()
+		field.setupValuerAndSetter(modelType)
 	}
 
 	prioritizedPrimaryField := schema.LookUpField("id")
