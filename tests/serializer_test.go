@@ -45,7 +45,7 @@ type SerializerPostgresStruct struct {
 func (*SerializerPostgresStruct) TableName() string { return "serializer_structs" }
 
 func adaptorSerializerModel(s *SerializerStruct) interface{} {
-	if DB.Dialector.Name() == "postgres" {
+	if DB.Dialector.Name() == "postgres" || DB.Dialector.Name() == "gaussdb" {
 		sps := SerializerPostgresStruct(*s)
 		return &sps
 	}

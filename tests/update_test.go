@@ -765,9 +765,9 @@ func TestSaveWithPrimaryValue(t *testing.T) {
 	}
 }
 
-// only sqlite, postgres, sqlserver support returning
+// only sqlite, postgres, gaussdb, sqlserver support returning
 func TestUpdateReturning(t *testing.T) {
-	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlserver" {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
@@ -883,9 +883,9 @@ func TestSaveWithHooks(t *testing.T) {
 	}
 }
 
-// only postgres, sqlserver, sqlite support update from
+// only postgres, gaussdb, sqlserver, sqlite support update from
 func TestUpdateFrom(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "sqlserver" {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" && DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "sqlserver" {
 		return
 	}
 
