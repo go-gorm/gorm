@@ -944,6 +944,22 @@ func (field *Field) setupValuerAndSetter() {
 			}
 		}
 	}
+	var oldSetter = field.Set
+	field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
+		err = oldSetter(ctx, value, v)
+		if err == nil {
+			return
+		}
+		var errMessage = err.Error()
+		// It's ugly and unrobust, but it's required since the fallbackSetter create error by fmt.Errorf directly and here are some nested setter calls.
+		// Without string manipulation, there's no way to avoid a duplicated error message.
+		// Also, adding many fmt.Errorf calls in all setter implementations is not a good idea, apparently.
+		if strings.Contains(errMessage, "to field "+field.Name) {
+			return
+		}
+		err = fmt.Errorf("failed to set value to field %s: %w", field.Name, err)
+		return
+	}
 
 	if field.Serializer != nil {
 		var (
