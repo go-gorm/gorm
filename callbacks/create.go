@@ -370,8 +370,8 @@ func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 				for _, column := range values.Columns {
 					if field := stmt.Schema.LookUpField(column.Name); field != nil {
 						if v, ok := selectColumns[field.DBName]; (ok && v) || (!ok && !restricted) {
-							if !field.PrimaryKey && (!field.HasDefaultValue || field.DefaultValueInterface != nil ||
-								strings.EqualFold(field.DefaultValue, "NULL")) && field.AutoCreateTime == 0 {
+							if !field.PrimaryKey && field.AutoCreateTime == 0 && 
+								(!field.HasDefaultValue || field.DefaultValueInterface != nil || field.DefaultValue != "") {
 								if field.AutoUpdateTime > 0 {
 									assignment := clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: curTime}
 									switch field.AutoUpdateTime {
