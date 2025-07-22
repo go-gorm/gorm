@@ -37,3 +37,4 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - GS_PASSWORD=Gaussdb@123
+    command: ["sh", "-c", "gaussdb & while ! gsql -U gaussdb -W Gaussdb@123 -c 'SELECT 1;' >/dev/null 2>&1; do sleep 1; done && gsql -U gaussdb -W Gaussdb@123 -c 'CREATE DATABASE gorm;' && wait"]
