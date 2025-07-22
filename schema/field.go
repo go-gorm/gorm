@@ -448,7 +448,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 }
 
 // create valuer, setter when parse struct
-func (field *Field) setupValuerAndSetter() {
+func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 	// Setup NewValuePool
 	field.setupNewValuePool()
 
@@ -456,13 +456,22 @@ func (field *Field) setupValuerAndSetter() {
 	fieldIndex := field.StructField.Index[0]
 	switch {
 	case len(field.StructField.Index) == 1 && fieldIndex >= 0:
-		field.ValueOf = func(ctx context.Context, value reflect.Value) (interface{}, bool) {
-			fieldValue := reflect.Indirect(value).FieldByName(field.Name)
+		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
+			v = reflect.Indirect(v)
+			if v.Type() != modelType {
+				fieldValue := v.FieldByName(field.Name)
+				return fieldValue.Interface(), fieldValue.IsZero()
+			}
+			fieldValue := v.Field(fieldIndex)
 			return fieldValue.Interface(), fieldValue.IsZero()
 		}
 	default:
 		field.ValueOf = func(ctx context.Context, v reflect.Value) (interface{}, bool) {
 			v = reflect.Indirect(v)
+			if v.Type() != modelType {
+				fieldValue := v.FieldByName(field.Name)
+				return fieldValue.Interface(), fieldValue.IsZero()
+			}
 			for _, fieldIdx := range field.StructField.Index {
 				if fieldIdx >= 0 {
 					v = v.Field(fieldIdx)
