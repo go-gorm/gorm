@@ -514,12 +514,19 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 	// ReflectValueOf returns field's reflect value
 	switch {
 	case len(field.StructField.Index) == 1 && fieldIndex >= 0:
-		field.ReflectValueOf = func(ctx context.Context, value reflect.Value) reflect.Value {
-			return reflect.Indirect(value).Field(fieldIndex)
+		field.ReflectValueOf = func(ctx context.Context, v reflect.Value) reflect.Value {
+			v = reflect.Indirect(v)
+			if v.Type() != modelType {
+				return v.FieldByName(field.Name)
+			}
+			return v.Field(fieldIndex)
 		}
 	default:
 		field.ReflectValueOf = func(ctx context.Context, v reflect.Value) reflect.Value {
 			v = reflect.Indirect(v)
+			if v.Type() != modelType {
+				return v.FieldByName(field.Name)
+			}
 			for idx, fieldIdx := range field.StructField.Index {
 				if fieldIdx >= 0 {
 					v = v.Field(fieldIdx)
