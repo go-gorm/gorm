@@ -1128,6 +1128,10 @@ func TestSearchWithMap(t *testing.T) {
 	CheckUser(t, user, users[0])
 
 	user = User{}
+	DB.First(&user, map[string]interface{}{"users.name": users[0].Name})
+	CheckUser(t, user, users[0])
+
+	user = User{}
 	DB.Where(map[string]interface{}{"name": users[1].Name}).First(&user)
 	CheckUser(t, user, users[1])
 
