@@ -227,6 +227,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 			if sch != nil {
 				matchedFieldCount := make(map[string]int, len(columns))
 				for idx, column := range columns {
+					if origName, ok := db.Statement.TruncatedAliases[column]; ok {
+						column = origName
+					}
 					if field := sch.LookUpField(column); field != nil && field.Readable {
 						fields[idx] = field
 						if count, ok := matchedFieldCount[column]; ok {
