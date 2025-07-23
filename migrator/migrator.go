@@ -559,9 +559,9 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			case schema.Bool:
 				v1, _ := strconv.ParseBool(dv)
 				v2, _ := strconv.ParseBool(field.DefaultValue)
-				alterColumn = v1 != v2
+				alterColumn = alterColumn || (v1 != v2)
 			default:
-				alterColumn = dv != field.DefaultValue
+				alterColumn = alterColumn || (dv != field.DefaultValue)
 			}
 		}
 	}
