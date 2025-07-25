@@ -32,9 +32,35 @@ services:
     command: /tidb-server -store unistore -path "" -lease 0s > tidb.log 2>&1 &
   gaussdb:
     image: 'opengauss/opengauss:7.0.0-RC1.B023'
+    hostname: opengauss-server
     ports:
       - "127.0.0.1:9950:5432"
     environment:
       - TZ=Asia/Shanghai
       - GS_PASSWORD=Gaussdb@123
-    command: ["sh", "-c", "gaussdb & while ! gsql -U gaussdb -W Gaussdb@123 -c 'SELECT 1;' >/dev/null 2>&1; do sleep 1; done && gsql -U gaussdb -W Gaussdb@123 -c 'CREATE DATABASE gorm;' && wait"]
+      - GS_CLUSTER_NAME=opengauss_cluster
+      - PGDATA=/var/lib/opengauss/data
+    entrypoint: ""
+    command: |-
+      /bin/sh -c 'set -euo pipefail;
+      /usr/local/bin/entrypoint.sh gaussdb &
+      counter=1;
+      while [ "$$counter" -le 20 ]; do
+        if su - omm -c "gsql -U omm -d postgres -c \"SELECT 1;\""; then
+          echo "Creating database gorm...";
+          su - omm -c "gsql -U omm -d postgres -c \"CREATE DATABASE gorm DBCOMPATIBILITY '\'PG\'';\"";
+          echo "Database initialized successfully";
+          break;
+        fi;
+        echo "Waiting for database to be ready... ($$counter/12)";
+        sleep 5;
+        counter=$$(($$counter + 1));
+      done;
+      # timeout handling
+      if [ $$counter -gt 20 ]; then
+        echo "Error: Database failed to start within timeout";
+        exit 1;
+      fi;
+      # keep the container running: wait for the database process in the foreground
+      wait
+      '
