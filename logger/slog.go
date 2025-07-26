@@ -60,8 +60,14 @@ func (l *slogLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	sql, rows := fc()
 	fields := []slog.Attr{
 		slog.String("duration", fmt.Sprintf("%.3fms", float64(elapsed.Nanoseconds())/1e6)),
-		slog.Int64("rows", rows),
 		slog.String("sql", sql),
+	}
+
+	if rows != -1 {
+		fields = append(fields, slog.Int64("rows", rows))
+	}
+	if err != nil {
+		fields = append(fields, slog.String("error", err.Error()))
 	}
 
 	switch {
