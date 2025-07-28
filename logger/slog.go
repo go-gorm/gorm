@@ -66,12 +66,10 @@ func (l *slogLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	if rows != -1 {
 		fields = append(fields, slog.Int64("rows", rows))
 	}
-	if err != nil {
-		fields = append(fields, slog.String("error", err.Error()))
-	}
 
 	switch {
 	case err != nil && (!l.IgnoreRecordNotFoundError || !errors.Is(err, ErrRecordNotFound)):
+		fields = append(fields, slog.String("error", err.Error()))
 		l.Logger.ErrorContext(ctx, "SQL executed", slog.Attr{
 			Key:   "trace",
 			Value: slog.GroupValue(fields...),
