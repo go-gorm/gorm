@@ -88,6 +88,7 @@ func (expr NamedExpr) Build(builder Builder) {
 		inName           bool
 		afterParenthesis bool
 		namedMap         = make(map[string]interface{}, len(expr.Vars))
+		quotationMarks   byte
 	)
 
 	for _, v := range expr.Vars {
@@ -124,6 +125,14 @@ func (expr NamedExpr) Build(builder Builder) {
 	name := make([]byte, 0, 10)
 
 	for _, v := range []byte(expr.SQL) {
+		if quotationMarks == v && (v == '"' || v == '\'') {
+			quotationMarks = 0
+		} else if quotationMarks == 0 && (v == '"' || v == '\'') {
+			quotationMarks = v
+		} else if quotationMarks == '"' || quotationMarks == '\'' {
+			builder.WriteByte(v)
+			continue
+		}
 		if v == '@' && !inName {
 			inName = true
 			name = name[:0]
