@@ -135,6 +135,53 @@ func TestUpsertSlice(t *testing.T) {
 	}
 }
 
+func TestUpsertSliceWithReturning(t *testing.T) {
+	langs := []Language{
+		{Code: "upsert-slice1", Name: "Upsert-slice1"},
+		{Code: "upsert-slice2", Name: "Upsert-slice2"},
+		{Code: "upsert-slice3", Name: "Upsert-slice3"},
+	}
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&langs)
+
+	var langs2 []Language
+	if err := DB.Find(&langs2, "code LIKE ?", "upsert-slice%").Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs2) != 3 {
+		t.Errorf("should only find only 3 languages, but got %+v", langs2)
+	}
+
+	DB.Clauses(clause.OnConflict{DoNothing: true}).Create(&langs)
+	var langs3 []Language
+	if err := DB.Find(&langs3, "code LIKE ?", "upsert-slice%").Error; err != nil {
+		t.Errorf("no error should happen when find languages with code, but got %v", err)
+	} else if len(langs3) != 3 {
+		t.Errorf("should only find only 3 languages, but got %+v", langs3)
+	}
+
+	for idx, lang := range langs {
+		lang.Name = lang.Name + "_new"
+		langs[idx] = lang
+	}
+
+	if err := DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "code"}},
+		DoUpdates: clause.AssignmentColumns([]string{"name"}),
+	}, clause.Returning{}).CreateInBatches(&langs, len(langs)).Error; err != nil {
+		t.Fatalf("failed to upsert, got %v", err)
+	}
+
+	for _, lang := range langs {
+		var results []Language
+		if err := DB.Find(&results, "code = ?", lang.Code).Error; err != nil {
+			t.Errorf("no error should happen when find languages with code, but got %v", err)
+		} else if len(results) != 1 {
+			t.Errorf("should only find only 1 languages, but got %+v", langs)
+		} else if results[0].Name != lang.Name {
+			t.Errorf("should update name on conflict, but got name %+v", results[0].Name)
+		}
+	}
+}
+
 func TestUpsertWithSave(t *testing.T) {
 	langs := []Language{
 		{Code: "upsert-save-1", Name: "Upsert-save-1"},
