@@ -47,6 +47,7 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+	TruncatedAliases     map[string]string
 	Result               *result
 }
 
