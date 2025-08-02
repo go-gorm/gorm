@@ -28,6 +28,8 @@ type Config struct {
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
 	FullSaveAssociations bool
+	// DisableAssociationUpserts disable upserting of associations when they already exist
+	DisableAssociationUpserts bool
 	// Logger
 	Logger logger.Interface
 	// NowFunc the function to be used when creating a new timestamp
@@ -117,9 +119,10 @@ type Session struct {
 	SkipHooks                bool
 	SkipDefaultTransaction   bool
 	DisableNestedTransaction bool
-	AllowGlobalUpdate        bool
-	FullSaveAssociations     bool
-	PropagateUnscoped        bool
+	AllowGlobalUpdate         bool
+	FullSaveAssociations      bool
+	DisableAssociationUpserts bool
+	PropagateUnscoped         bool
 	QueryFields              bool
 	Context                  context.Context
 	Logger                   logger.Interface
@@ -270,6 +273,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.FullSaveAssociations {
 		txConfig.FullSaveAssociations = true
+	}
+
+	if config.DisableAssociationUpserts {
+		txConfig.DisableAssociationUpserts = true
 	}
 
 	if config.PropagateUnscoped {
