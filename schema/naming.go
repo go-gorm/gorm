@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
@@ -156,18 +155,7 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 		prefix, table, name,
 	}, "_"), ".", "_")
 
-	if ns.IdentifierMaxLength == 0 {
-		ns.IdentifierMaxLength = 64
-	}
-
-	if utf8.RuneCountInString(formattedName) > ns.IdentifierMaxLength {
-		h := sha1.New()
-		h.Write([]byte(formattedName))
-		bs := h.Sum(nil)
-
-		formattedName = formattedName[0:ns.IdentifierMaxLength-8] + hex.EncodeToString(bs)[:8]
-	}
-	return formattedName
+	return ns.truncateName(formattedName)
 }
 
 var (

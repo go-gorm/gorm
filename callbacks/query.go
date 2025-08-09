@@ -40,9 +40,12 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 	}
 
-	if db.Statement.TruncatedAliases == nil {
-		db.Statement.TruncatedAliases = make(map[string]string)
+	truncatedTableAliases := make(map[string]string)
+
+	if db.Statement.ColumnMapping == nil {
+		db.Statement.ColumnMapping = make(map[string]string)
 	}
+
 	if db.Statement.SQL.Len() == 0 {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
@@ -168,10 +171,10 @@ func BuildQuerySQL(db *gorm.DB) {
 										Alias: aliasName,
 									})
 									origTableAliasName := tableAliasName
-									if alias, ok := db.Statement.TruncatedAliases[tableAliasName]; ok {
+									if alias, ok := truncatedTableAliases[tableAliasName]; ok {
 										origTableAliasName = alias
 									}
-									db.Statement.TruncatedAliases[aliasName] = utils.NestedRelationName(origTableAliasName, s)
+									db.Statement.ColumnMapping[aliasName] = utils.NestedRelationName(origTableAliasName, s)
 								}
 							}
 
@@ -256,7 +259,7 @@ func BuildQuerySQL(db *gorm.DB) {
 								fullName = curAliasName
 							}
 							aliasName := db.NamingStrategy.JoinNestedRelationNames(nameParts)
-							db.Statement.TruncatedAliases[aliasName] = fullName
+							truncatedTableAliases[aliasName] = fullName
 							curAliasName = aliasName
 
 							if _, ok := specifiedRelationsName[curAliasName]; !ok {
