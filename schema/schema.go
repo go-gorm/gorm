@@ -44,7 +44,7 @@ type Schema struct {
 	FieldsByBindName          map[string]*Field // embedded fields is 'Embed.Field'
 	FieldsByDBName            map[string]*Field
 	FieldsWithDefaultDBValue  []*Field // fields with default value assigned by database
-	Relationships             Relationships
+	Relationships             *Relationships
 	CreateClauses             []clause.Interface
 	QueryClauses              []clause.Interface
 	UpdateClauses             []clause.Interface
@@ -58,7 +58,7 @@ type Schema struct {
 	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
-	rwmu                      sync.RWMutex
+	mux                       sync.RWMutex
 }
 
 func (schema Schema) String() string {
@@ -77,8 +77,8 @@ func (schema Schema) MakeSlice() reflect.Value {
 }
 
 func (schema Schema) LookUpField(name string) *Field {
-	schema.rwmu.RLock()
-	defer schema.rwmu.RUnlock()
+	schema.mux.RLock()
+	defer schema.mux.RUnlock()
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
 	}
@@ -102,12 +102,12 @@ func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Fie
 	}
 	for i := len(bindNames) - 1; i >= 0; i-- {
 		find := strings.Join(bindNames[:i], ".") + "." + name
-		schema.rwmu.RLock()
+		schema.mux.RLock()
 		if field, ok := schema.FieldsByBindName[find]; ok {
-			schema.rwmu.RUnlock()
+			schema.mux.RUnlock()
 			return field
 		}
-		schema.rwmu.RUnlock()
+		schema.mux.RUnlock()
 	}
 	return nil
 }
@@ -191,7 +191,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		FieldsByName:     map[string]*Field{},
 		FieldsByBindName: map[string]*Field{},
 		FieldsByDBName:   map[string]*Field{},
-		Relationships:    Relationships{Relations: map[string]*Relationship{}},
+		Relationships:    &Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:       cacheStore,
 		namer:            namer,
 		initialized:      make(chan struct{}),

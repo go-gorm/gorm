@@ -138,14 +138,14 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 						}
 
 						tx := preloadDB(db, reflectValue, reflectValue.Interface())
-						if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+						if err := preloadEntryPoint(tx, nestedJoins, tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
 							return err
 						}
 					}
 				case reflect.Struct, reflect.Pointer:
 					reflectValue := rel.Field.ReflectValueOf(db.Statement.Context, rv)
 					tx := preloadDB(db, reflectValue, reflectValue.Interface())
-					if err := preloadEntryPoint(tx, nestedJoins, &tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
+					if err := preloadEntryPoint(tx, nestedJoins, tx.Statement.Schema.Relationships, preloadMap[name], associationsConds); err != nil {
 						return err
 					}
 				default:

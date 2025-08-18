@@ -221,7 +221,7 @@ func checkEmbeddedRelations(t *testing.T, actual map[string]*schema.Relationship
 					t.Errorf("failed to find relation by name %s", n)
 				} else {
 					checkSchemaRelation(t, &schema.Schema{
-						Relationships: schema.Relationships{
+						Relationships: &schema.Relationships{
 							Relations: map[string]*schema.Relationship{n: rel},
 						},
 					}, r)
