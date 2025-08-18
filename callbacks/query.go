@@ -291,7 +291,7 @@ func Preload(db *gorm.DB) {
 			return
 		}
 
-		db.AddError(preloadEntryPoint(tx, joins, &tx.Statement.Schema.Relationships, db.Statement.Preloads, db.Statement.Preloads[clause.Associations]))
+		db.AddError(preloadEntryPoint(tx, joins, tx.Statement.Schema.Relationships, db.Statement.Preloads, db.Statement.Preloads[clause.Associations]))
 	}
 }
 

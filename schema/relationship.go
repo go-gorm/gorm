@@ -160,7 +160,7 @@ func (schema *Schema) setRelation(relation *Relationship) {
 	if len(relation.Field.EmbeddedBindNames) <= 1 {
 		return
 	}
-	relationships := &schema.Relationships
+	relationships := schema.Relationships
 	for i, name := range relation.Field.EmbeddedBindNames {
 		if i < len(relation.Field.EmbeddedBindNames)-1 {
 			if relationships.EmbeddedRelations == nil {
