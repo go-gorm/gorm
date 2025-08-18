@@ -75,9 +75,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 		}
 	)
 
-	cacheStore := schema.cacheStore
-
-	if relation.FieldSchema, err = getOrParse(fieldValue, cacheStore, schema.namer); err != nil {
+	if relation.FieldSchema, err = getOrParse(fieldValue, schema.cacheStore, schema.namer); err != nil {
 		schema.err = fmt.Errorf("failed to parse field: %s, error: %w", field.Name, err)
 		return nil
 	}
@@ -147,6 +145,9 @@ func hasPolymorphicRelation(tagSettings map[string]string) bool {
 }
 
 func (schema *Schema) setRelation(relation *Relationship) {
+	schema.Relationships.Mux.Lock()
+	defer schema.Relationships.Mux.Unlock()
+
 	// set non-embedded relation
 	if rel := schema.Relationships.Relations[relation.Name]; rel != nil {
 		if len(rel.Field.BindNames) > 1 {
@@ -590,12 +591,20 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	// build references
 	for idx, foreignField := range foreignFields {
 		// use same data type for foreign keys
+		schema.Relationships.Mux.Lock()
+		if schema != foreignField.Schema {
+			foreignField.Schema.Relationships.Mux.Lock()
+		}
 		if copyableDataType(primaryFields[idx].DataType) {
 			foreignField.DataType = primaryFields[idx].DataType
 		}
 		foreignField.GORMDataType = primaryFields[idx].GORMDataType
 		if foreignField.Size == 0 {
 			foreignField.Size = primaryFields[idx].Size
+		}
+		schema.Relationships.Mux.Unlock()
+		if schema != foreignField.Schema {
+			foreignField.Schema.Relationships.Mux.Unlock()
 		}
 
 		relation.References = append(relation.References, &Reference{
