@@ -58,6 +58,7 @@ type Schema struct {
 	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
+	rwmu                        sync.RWMutex
 }
 
 func (schema Schema) String() string {
@@ -76,6 +77,8 @@ func (schema Schema) MakeSlice() reflect.Value {
 }
 
 func (schema Schema) LookUpField(name string) *Field {
+	schema.rwmu.RLock()
+	defer schema.rwmu.RUnlock()
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
 	}
@@ -99,9 +102,12 @@ func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Fie
 	}
 	for i := len(bindNames) - 1; i >= 0; i-- {
 		find := strings.Join(bindNames[:i], ".") + "." + name
+		schema.rwmu.RLock()
 		if field, ok := schema.FieldsByBindName[find]; ok {
+			schema.rwmu.RUnlock()
 			return field
 		}
+		schema.rwmu.RUnlock()
 	}
 	return nil
 }
