@@ -58,7 +58,7 @@ type Schema struct {
 	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
-	rwmu                        sync.RWMutex
+	rwmu                      sync.RWMutex
 }
 
 func (schema Schema) String() string {
