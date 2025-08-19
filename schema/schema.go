@@ -94,9 +94,6 @@ func (schema *Schema) LookUpField(name string) *Field {
 //		ID string // is selected by LookUpFieldByBindName([]string{"ID"}, "ID")
 //	}
 func (schema *Schema) LookUpFieldByBindName(bindNames []string, name string) *Field {
-	if len(bindNames) == 0 {
-		return nil
-	}
 	for i := len(bindNames) - 1; i >= 0; i-- {
 		find := strings.Join(bindNames[:i], ".") + "." + name
 		if field, ok := schema.FieldsByBindName[find]; ok {
@@ -133,12 +130,10 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
 
-	value := reflect.ValueOf(dest)
-	if value.Kind() == reflect.Ptr && value.IsNil() {
-		value = reflect.New(value.Type().Elem())
+	modelType := reflect.ValueOf(dest).Type()
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
 	}
-
-	modelType := reflect.Indirect(value).Type()
 
 	if modelType.Kind() != reflect.Struct {
 		if modelType.Kind() == reflect.Interface {
@@ -174,7 +169,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	var tableName string
 	modelValue := reflect.New(modelType)
-	if specialTableName != "" && specialTableName != tableName {
+	if specialTableName != "" {
 		tableName = specialTableName
 	} else if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
@@ -190,6 +185,8 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		Name:             modelType.Name(),
 		ModelType:        modelType,
 		Table:            tableName,
+		DBNames:          make([]string, 0, 10),
+		Fields:           make([]*Field, 0, 10),
 		FieldsByName:     make(map[string]*Field, 10),
 		FieldsByBindName: make(map[string]*Field, 10),
 		FieldsByDBName:   make(map[string]*Field, 10),
@@ -236,8 +233,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				schema.FieldsByBindName[bindName] = field
 
 				if v != nil && v.PrimaryKey {
+					// remove the existing primary key field
 					for idx, f := range schema.PrimaryFields {
-						if f == v {
+						if f.DBName == v.DBName {
 							schema.PrimaryFields = append(schema.PrimaryFields[0:idx], schema.PrimaryFields[idx+1:]...)
 						}
 					}
