@@ -658,12 +658,15 @@ func (stmt *Statement) Changed(fields ...string) bool {
 				for destValue.Kind() == reflect.Ptr {
 					destValue = destValue.Elem()
 				}
-
-				changedValue, zero := field.ValueOf(stmt.Context, destValue)
-				if v {
-					return !utils.AssertEqual(changedValue, fieldValue)
+				if descSchema, err := schema.Parse(stmt.Dest, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+					if destField := descSchema.LookUpField(field.DBName); destField != nil {
+						changedValue, zero := destField.ValueOf(stmt.Context, destValue)
+						if v {
+							return !utils.AssertEqual(changedValue, fieldValue)
+						}
+						return !zero && !utils.AssertEqual(changedValue, fieldValue)
+					}
 				}
-				return !zero && !utils.AssertEqual(changedValue, fieldValue)
 			}
 		}
 		return false
