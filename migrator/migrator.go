@@ -720,6 +720,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 
 	for _, rel := range stmt.Schema.Relationships.Relations {
 		if constraint := rel.ParseConstraint(); constraint != nil && constraint.Name == name {
+			fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation 0 %v", constraint))
 			return constraint, getTable(rel)
 		}
 	}
@@ -728,6 +729,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 		for k := range checkConstraints {
 			if checkConstraints[k].Field == field {
 				v := checkConstraints[k]
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for check %v", &v))
 				return &v, stmt.Table
 			}
 		}
@@ -735,12 +737,14 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 		for k := range uniqueConstraints {
 			if uniqueConstraints[k].Field == field {
 				v := uniqueConstraints[k]
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for unique %v", &v))
 				return &v, stmt.Table
 			}
 		}
 
 		for _, rel := range stmt.Schema.Relationships.Relations {
 			if constraint := rel.ParseConstraint(); constraint != nil && rel.Field == field {
+				fmt.Println(fmt.Sprintf("SHREWS --Out of Guess for relation %v", constraint))
 				return constraint, getTable(rel)
 			}
 		}
@@ -767,7 +771,11 @@ func (m Migrator) CreateConstraint(value interface{}, name string) error {
 
 // DropConstraint drop constraint
 func (m Migrator) DropConstraint(value interface{}, name string) error {
+	fmt.Println(fmt.Sprintf("SHREWS --In Drop %q", name))
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
+		if !m.HasConstraint(value, name) {
+			return nil
+		}
 		constraint, table := m.GuessConstraintInterfaceAndTable(stmt, name)
 		if constraint != nil {
 			name = constraint.GetName()
