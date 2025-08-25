@@ -98,12 +98,6 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 func (db *DB) AsOfSystemTime(timestamp interface{}) (tx *DB) {
 	tx = db.getInstance()
 
-	// Check if the dialect supports AS OF SYSTEM TIME (CockroachDB)
-	if tx.Dialector.Name() != "cockroachdb" {
-		tx.AddError(fmt.Errorf("AS OF SYSTEM TIME is only supported by CockroachDB, current dialect: %s", tx.Dialector.Name()))
-		return tx
-	}
-
 	var asOfClause *clause.AsOfSystemTime
 
 	switch v := timestamp.(type) {
