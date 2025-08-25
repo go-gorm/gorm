@@ -2,8 +2,9 @@ package clause
 
 // From from clause
 type From struct {
-	Tables []Table
-	Joins  []Join
+	Tables         []Table
+	Joins          []Join
+	AsOfSystemTime *AsOfSystemTime // CockroachDB specific: AS OF SYSTEM TIME
 }
 
 // Name from clause name
@@ -28,6 +29,12 @@ func (from From) Build(builder Builder) {
 	for _, join := range from.Joins {
 		builder.WriteByte(' ')
 		join.Build(builder)
+	}
+
+	// Add AS OF SYSTEM TIME clause if specified
+	if from.AsOfSystemTime != nil {
+		builder.WriteByte(' ')
+		from.AsOfSystemTime.Build(builder)
 	}
 }
 
