@@ -1,6 +1,7 @@
 package clause
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -22,8 +23,7 @@ func (a AsOfSystemTime) Build(builder Builder) {
 		builder.WriteString("AS OF SYSTEM TIME ")
 		builder.WriteString(a.Raw)
 	} else if !a.Timestamp.IsZero() {
-		builder.WriteString("AS OF SYSTEM TIME ")
-		builder.AddVar(builder, a.Timestamp)
+		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME '%s'", a.Timestamp.Format("2006-01-02 15:04:05.000000")))
 	}
 }
 
