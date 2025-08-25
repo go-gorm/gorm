@@ -102,7 +102,7 @@ func (db *DB) AsOfSystemTime(timestamp interface{}) (tx *DB) {
 
 	switch v := timestamp.(type) {
 	case string:
-		// Raw SQL expression like "-1h", "now() - interval '1 hour'"
+		// Raw SQL expression like "-1h"
 		asOfClause = &clause.AsOfSystemTime{Raw: v}
 	case time.Time:
 		// Specific timestamp

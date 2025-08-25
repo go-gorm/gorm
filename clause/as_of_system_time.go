@@ -20,8 +20,7 @@ func (a AsOfSystemTime) Name() string {
 // Build builds the "AS OF SYSTEM TIME" clause
 func (a AsOfSystemTime) Build(builder Builder) {
 	if a.Raw != "" {
-		builder.WriteString("AS OF SYSTEM TIME ")
-		builder.WriteString(a.Raw)
+		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME '%s'", a.Raw))
 	} else if !a.Timestamp.IsZero() {
 		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME '%s'", a.Timestamp.Format("2006-01-02 15:04:05.000000")))
 	}

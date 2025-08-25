@@ -22,8 +22,8 @@ func TestAsOfSystemTime(t *testing.T) {
 					AsOfSystemTime: &clause.AsOfSystemTime{Timestamp: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)},
 				},
 			},
-			"SELECT * FROM `users` AS OF SYSTEM TIME ?",
-			[]interface{}{time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)},
+			"SELECT * FROM `users` AS OF SYSTEM TIME '2023-01-01 12:00:00.000000'",
+			nil,
 		},
 		{
 			[]clause.Interface{
@@ -33,18 +33,7 @@ func TestAsOfSystemTime(t *testing.T) {
 					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "-1h"},
 				},
 			},
-			"SELECT * FROM `users` AS OF SYSTEM TIME -1h",
-			nil,
-		},
-		{
-			[]clause.Interface{
-				clause.Select{},
-				clause.From{
-					Tables:         []clause.Table{{Name: "users"}},
-					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "now() - interval '1 hour'"},
-				},
-			},
-			"SELECT * FROM `users` AS OF SYSTEM TIME now() - interval '1 hour'",
+			"SELECT * FROM `users` AS OF SYSTEM TIME '-1h'",
 			nil,
 		},
 		{
@@ -64,7 +53,7 @@ func TestAsOfSystemTime(t *testing.T) {
 					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "-1h"},
 				},
 			},
-			"SELECT * FROM `users` INNER JOIN `companies` ON `companies`.`id` = `users`.`company_id` AS OF SYSTEM TIME -1h",
+			"SELECT * FROM `users` INNER JOIN `companies` ON `companies`.`id` = `users`.`company_id` AS OF SYSTEM TIME '-1h'",
 			nil,
 		},
 	}
