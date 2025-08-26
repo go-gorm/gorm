@@ -675,9 +675,9 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	}
 
 	ctx := tx.Statement.Context
-	if _, ok := ctx.Deadline(); !ok {
-		if db.Config.DefaultTransactionTimeout > 0 {
-			ctx, _ = context.WithTimeout(ctx, db.Config.DefaultTransactionTimeout)
+	if db.DefaultTransactionTimeout > 0 {
+		if _, ok := ctx.Deadline(); !ok {
+			ctx, _ = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
 		}
 	}
 
