@@ -598,12 +598,17 @@ func TestCreateWithAutoIncrementCompositeKey(t *testing.T) {
 	}
 }
 
-func TestCreateOnConflictWithDefaultNull(t *testing.T) {
+func TestCreateOnConflictWithDefault(t *testing.T) {
 	type OnConflictUser struct {
-		ID     string
-		Name   string `gorm:"default:null"`
-		Email  string
-		Mobile string `gorm:"default:'133xxxx'"`
+		ID      string
+		Name    string `gorm:"default:null"`
+		Email   string
+		Mobile  string  `gorm:"default:'133xxxx'"`
+		Company Company `gorm:"default:'{}';serializer:json"`
+	}
+
+	type Company struct {
+		Name string
 	}
 
 	err := DB.Migrator().DropTable(&OnConflictUser{})
@@ -623,6 +628,7 @@ func TestCreateOnConflictWithDefaultNull(t *testing.T) {
 	u.Name = "on-conflict-user-name-2"
 	u.Email = "on-conflict-user-email-2"
 	u.Mobile = ""
+	u.Company.Name = "on-conflict-user-company-2"
 	err = DB.Clauses(clause.OnConflict{UpdateAll: true}).Create(&u).Error
 	AssertEqual(t, err, nil)
 
@@ -632,6 +638,7 @@ func TestCreateOnConflictWithDefaultNull(t *testing.T) {
 	AssertEqual(t, u2.Name, "on-conflict-user-name-2")
 	AssertEqual(t, u2.Email, "on-conflict-user-email-2")
 	AssertEqual(t, u2.Mobile, "133xxxx")
+	AssertEqual(t, u2.Company.Name, "on-conflict-user-company-2")
 }
 
 func TestCreateFromMapWithoutPK(t *testing.T) {
