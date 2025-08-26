@@ -536,7 +536,10 @@ func (e *expr) in(operator string, values ...interface{}) *expr {
 			return e
 		}
 		if vexpr, ok := values[0].(*expr); ok {
-			e.expr = "(" + e.expr + operator + " IN (" + vexpr.expr + "))"
+			escapedVExpr := strings.TrimPrefix(vexpr.expr, "(")
+			escapedVExpr = strings.TrimSuffix(escapedVExpr, ")")
+
+			e.expr = "(" + e.expr + operator + " IN (" + escapedVExpr + "))"
 			e.args = append(e.args, vexpr.args...)
 			return e
 		}
