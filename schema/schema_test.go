@@ -46,7 +46,7 @@ func TestParseSchemaWithPointerFields(t *testing.T) {
 
 func checkUserSchema(t *testing.T, user *schema.Schema) {
 	// check schema
-	checkSchema(t, user, schema.Schema{Name: "User", Table: "users"}, []string{"ID"})
+	checkSchema(t, user, &schema.Schema{Name: "User", Table: "users"}, []string{"ID"})
 
 	// check fields
 	fields := []schema.Field{
@@ -139,7 +139,7 @@ func TestParseSchemaWithAdvancedDataType(t *testing.T) {
 	}
 
 	// check schema
-	checkSchema(t, user, schema.Schema{Name: "AdvancedDataTypeUser", Table: "advanced_data_type_users"}, []string{"ID"})
+	checkSchema(t, user, &schema.Schema{Name: "AdvancedDataTypeUser", Table: "advanced_data_type_users"}, []string{"ID"})
 
 	// check fields
 	fields := []schema.Field{
