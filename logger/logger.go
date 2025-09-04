@@ -76,6 +76,7 @@ var (
 		SlowThreshold:             200 * time.Millisecond,
 		LogLevel:                  Warn,
 		IgnoreRecordNotFoundError: false,
+		ParameterizedQueries:      true,
 		Colorful:                  true,
 	})
 	// Recorder logger records running SQL into a recorder instance
