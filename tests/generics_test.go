@@ -121,6 +121,11 @@ func TestGenericsExecAndUpdate(t *testing.T) {
 		t.Fatalf("Exec insert failed: %v", err)
 	}
 
+	name2 := "GenericsExec2"
+	if err := gorm.G[User](DB).Exec(ctx, "INSERT INTO ?(name) VALUES(?)", clause.Table{Name: clause.CurrentTable}, name2); err != nil {
+		t.Fatalf("Exec insert failed: %v", err)
+	}
+
 	u, err := gorm.G[User](DB).Table("users as u").Where("u.name = ?", name).First(ctx)
 	if err != nil {
 		t.Fatalf("failed to find user, got error: %v", err)
@@ -162,7 +167,7 @@ func TestGenericsRow(t *testing.T) {
 		t.Fatalf("Create failed: %v", err)
 	}
 
-	row := gorm.G[User](DB).Raw("SELECT name FROM users WHERE id = ?", user.ID).Row(ctx)
+	row := gorm.G[User](DB).Raw("SELECT name FROM ? WHERE id = ?", clause.Table{Name: clause.CurrentTable}, user.ID).Row(ctx)
 	var name string
 	if err := row.Scan(&name); err != nil {
 		t.Fatalf("Row scan failed: %v", err)
