@@ -142,13 +142,15 @@ func (c *g[T]) Raw(sql string, values ...interface{}) ExecInterface[T] {
 	return execG[T]{g: &g[T]{
 		db: c.db,
 		ops: append(c.ops, func(db *DB) *DB {
-			return db.Raw(sql, values...)
+			var r T
+			return db.Model(r).Raw(sql, values...)
 		}),
 	}}
 }
 
 func (c *g[T]) Exec(ctx context.Context, sql string, values ...interface{}) error {
-	return c.apply(ctx).Exec(sql, values...).Error
+	var r T
+	return c.apply(ctx).Model(r).Exec(sql, values...).Error
 }
 
 type createG[T any] struct {
