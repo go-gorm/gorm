@@ -243,7 +243,19 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			writer.WriteString(subdb.Statement.SQL.String())
 			stmt.Vars = subdb.Statement.Vars
 		default:
-			switch rv := reflect.ValueOf(v); rv.Kind() {
+			rv := reflect.ValueOf(v)
+
+			// Check if it's an iterator (iter.Seq[T] in Go 1.23+) and convert it to slice
+			if asSlice, wasIterator := utils.ConvertIteratorToSlice(rv); wasIterator {
+				slice := make([]interface{}, asSlice.Len())
+				for i := 0; i < asSlice.Len(); i++ {
+					slice[i] = asSlice.Index(i).Interface()
+				}
+				stmt.AddVar(writer, slice...)
+				return
+			}
+
+			switch rv.Kind() {
 			case reflect.Slice, reflect.Array:
 				if rv.Len() == 0 {
 					writer.WriteString("(NULL)")

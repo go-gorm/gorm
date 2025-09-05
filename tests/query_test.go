@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"iter"
 	"reflect"
 	"regexp"
 	"sort"
@@ -239,6 +240,19 @@ func TestFind(t *testing.T) {
 				CheckUser(t, models3[idx], user)
 			})
 		}
+	}
+
+	// Test Go 1.23+ iterator support
+	var nameIterator iter.Seq[string] = func(yield func(string) bool) {
+		names := []string{"find"}
+		for _, name := range names {
+			if !yield(name) {
+				return
+			}
+		}
+	}
+	if err := DB.Where("name in (?)", nameIterator).Find(&models).Error; err != nil || len(models) != 3 {
+		t.Errorf("errors happened when query find with in clause and iterator parameter: %v, length: %v", err, len(models))
 	}
 
 	var none []User
