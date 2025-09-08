@@ -667,6 +667,64 @@ func TestGenericsDistinct(t *testing.T) {
 	}
 }
 
+func TestGenericsSetCreate(t *testing.T) {
+    ctx := context.Background()
+
+    name := "GenericsSetCreate"
+    age := uint(21)
+
+    err := gorm.G[User](DB).Set(
+        clause.Assignment{Column: clause.Column{Name: "name"}, Value: name},
+        clause.Assignment{Column: clause.Column{Name: "age"}, Value: age},
+    ).Create(ctx)
+    if err != nil {
+        t.Fatalf("Set Create failed: %v", err)
+    }
+
+    u, err := gorm.G[User](DB).Where("name = ?", name).First(ctx)
+    if err != nil {
+        t.Fatalf("failed to find created user: %v", err)
+    }
+    if u.ID == 0 || u.Name != name || u.Age != age {
+        t.Fatalf("created user mismatch, got %+v", u)
+    }
+}
+
+func TestGenericsSetUpdate(t *testing.T) {
+    ctx := context.Background()
+
+    // prepare
+    u := User{Name: "GenericsSetUpdate_Before", Age: 30}
+    if err := gorm.G[User](DB).Create(ctx, &u); err != nil {
+        t.Fatalf("prepare user failed: %v", err)
+    }
+
+    // update with Set after chain
+    newName := "GenericsSetUpdate_After"
+    newAge := uint(31)
+    rows, err := gorm.G[User](DB).
+        Where("id = ?", u.ID).
+        Set(
+            clause.Assignment{Column: clause.Column{Name: "name"}, Value: newName},
+            clause.Assignment{Column: clause.Column{Name: "age"}, Value: newAge},
+        ).
+        Update(ctx)
+    if err != nil {
+        t.Fatalf("Set Update failed: %v", err)
+    }
+    if rows != 1 {
+        t.Fatalf("expected 1 row affected, got %d", rows)
+    }
+
+    nu, err := gorm.G[User](DB).Where("id = ?", u.ID).First(ctx)
+    if err != nil {
+        t.Fatalf("failed to query updated user: %v", err)
+    }
+    if nu.Name != newName || nu.Age != newAge {
+        t.Fatalf("updated user mismatch, got %+v", nu)
+    }
+}
+
 func TestGenericsGroupHaving(t *testing.T) {
 	ctx := context.Background()
 

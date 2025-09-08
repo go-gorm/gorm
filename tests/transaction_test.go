@@ -68,7 +68,7 @@ func TestTransaction(t *testing.T) {
 				return tx5.First(&User{}, "name = ?", "transaction-2").Error
 			})
 		}); err != nil {
-			t.Fatalf("prepare statement and nested transaction coexist" + err.Error())
+			t.Fatalf("prepare statement and nested transaction coexist: %v", err)
 		}
 	})
 }

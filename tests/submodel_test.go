@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"testing"
+
 	"gorm.io/gorm"
 )
 
@@ -32,8 +33,8 @@ func TestSubModel(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	var result = struct{
-		ID int
+	var result = struct {
+		ID  int
 		Age int
 	}{}
 	if err := DB.Model(&man).Where("id = ?", man.ID).Find(&result).Error; err != nil {

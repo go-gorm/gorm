@@ -3,13 +3,14 @@ package tests_test
 import (
 	"crypto/rand"
 	"fmt"
-	"gorm.io/gorm/internal/lru"
 	"math"
 	"math/big"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"gorm.io/gorm/internal/lru"
 )
 
 func TestLRU_Add_ExistingKey_UpdatesValueAndExpiresAt(t *testing.T) {
