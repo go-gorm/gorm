@@ -61,7 +61,7 @@ type CreateInterface[T any] interface {
 	Table(name string, args ...interface{}) CreateInterface[T]
 	Create(ctx context.Context, r *T) error
 	CreateInBatches(ctx context.Context, r *[]T, batchSize int) error
-	Set(assignments ...clause.Assignment) SetCreateOrUpdateInterface[T]
+	Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T]
 }
 
 type ChainInterface[T any] interface {
@@ -81,7 +81,7 @@ type ChainInterface[T any] interface {
 	Group(name string) ChainInterface[T]
 	Having(query interface{}, args ...interface{}) ChainInterface[T]
 	Order(value interface{}) ChainInterface[T]
-	Set(assignments ...clause.Assignment) SetUpdateOnlyInterface[T]
+	Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T]
 
 	Build(builder clause.Builder)
 
@@ -199,10 +199,8 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 	})}
 }
 
-func (c createG[T]) Set(assignments ...clause.Assignment) SetCreateOrUpdateInterface[T] {
-	assigns := make([]clause.Assignment, len(assignments))
-	copy(assigns, assignments)
-	return setCreateOrUpdateG[T]{c: c.chainG, assigns: assigns}
+func (c createG[T]) Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T] {
+	return setCreateOrUpdateG[T]{c: c.chainG, assigns: toAssignments(assignments...)}
 }
 
 func (c createG[T]) Create(ctx context.Context, r *T) error {
@@ -432,10 +430,8 @@ func (c chainG[T]) MapColumns(m map[string]string) ChainInterface[T] {
 	})
 }
 
-func (c chainG[T]) Set(assignments ...clause.Assignment) SetUpdateOnlyInterface[T] {
-	assigns := make([]clause.Assignment, len(assignments))
-	copy(assigns, assignments)
-	return setCreateOrUpdateG[T]{c: c, assigns: assigns}
+func (c chainG[T]) Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T] {
+	return setCreateOrUpdateG[T]{c: c, assigns: toAssignments(assignments...)}
 }
 
 func (c chainG[T]) Distinct(args ...interface{}) ChainInterface[T] {
@@ -608,6 +604,16 @@ func (c chainG[T]) Build(builder clause.Builder) {
 type setCreateOrUpdateG[T any] struct {
 	c       chainG[T]
 	assigns []clause.Assignment
+}
+
+// toAssignments converts various supported types into []clause.Assignment.
+// Supported inputs implement clause.Assigner.
+func toAssignments(items ...clause.Assigner) []clause.Assignment {
+	out := make([]clause.Assignment, 0, len(items))
+	for _, it := range items {
+		out = append(out, it.Assignments()...)
+	}
+	return out
 }
 
 func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
