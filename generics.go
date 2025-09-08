@@ -36,7 +36,7 @@ type Interface[T any] interface {
 
 type CreateInterface[T any] interface {
 	ExecInterface[T]
-	// chain methods available at start; return ChainSettableInterface
+	// chain methods available at start; return ChainInterface
 	Scopes(scopes ...func(db *Statement)) ChainInterface[T]
 	Where(query interface{}, args ...interface{}) ChainInterface[T]
 	Not(query interface{}, args ...interface{}) ChainInterface[T]
@@ -54,6 +54,10 @@ type CreateInterface[T any] interface {
 	Order(value interface{}) ChainInterface[T]
 	Build(builder clause.Builder)
 
+	Delete(ctx context.Context) (rowsAffected int, err error)
+	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
+	Updates(ctx context.Context, t T) (rowsAffected int, err error)
+
 	Table(name string, args ...interface{}) CreateInterface[T]
 	Create(ctx context.Context, r *T) error
 	CreateInBatches(ctx context.Context, r *[]T, batchSize int) error
@@ -62,7 +66,6 @@ type CreateInterface[T any] interface {
 
 type ChainInterface[T any] interface {
 	ExecInterface[T]
-	Table(name string, args ...interface{}) ChainInterface[T]
 	Scopes(scopes ...func(db *Statement)) ChainInterface[T]
 	Where(query interface{}, args ...interface{}) ChainInterface[T]
 	Not(query interface{}, args ...interface{}) ChainInterface[T]
@@ -82,6 +85,7 @@ type ChainInterface[T any] interface {
 
 	Build(builder clause.Builder)
 
+	Table(name string, args ...interface{}) ChainInterface[T]
 	Delete(ctx context.Context) (rowsAffected int, err error)
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
 	Updates(ctx context.Context, t T) (rowsAffected int, err error)
@@ -199,19 +203,6 @@ func (c createG[T]) Set(assignments ...clause.Assignment) SetCreateOrUpdateInter
 	assigns := make([]clause.Assignment, len(assignments))
 	copy(assigns, assignments)
 	return setCreateOrUpdateG[T]{c: c.chainG, assigns: assigns}
-}
-
-func (c createG[T]) CreateWithAssignments(ctx context.Context, assignments ...clause.Assignment) error {
-	// Build a map[column]=value from assignments and create against model T
-	data := make(map[string]interface{}, len(assignments))
-	for _, a := range assignments {
-		// Prefer the column name (DB name). ConvertMapToValuesForCreate
-		// will remap struct field names to DB names if needed.
-		data[a.Column.Name] = a.Value
-	}
-
-	var r T
-	return c.g.apply(ctx).Model(r).Create(data).Error
 }
 
 func (c createG[T]) Create(ctx context.Context, r *T) error {
@@ -444,7 +435,7 @@ func (c chainG[T]) MapColumns(m map[string]string) ChainInterface[T] {
 func (c chainG[T]) Set(assignments ...clause.Assignment) SetUpdateOnlyInterface[T] {
 	assigns := make([]clause.Assignment, len(assignments))
 	copy(assigns, assignments)
-	return setUpdateOnlyG[T]{c: c, assigns: assigns}
+	return setCreateOrUpdateG[T]{c: c, assigns: assigns}
 }
 
 func (c chainG[T]) Distinct(args ...interface{}) ChainInterface[T] {
@@ -566,15 +557,6 @@ func (c chainG[T]) Update(ctx context.Context, name string, value any) (rowsAffe
 	return int(res.RowsAffected), res.Error
 }
 
-func (c chainG[T]) UpdatesWithAssignments(ctx context.Context, assignments ...clause.Assignment) (rowsAffected int, err error) {
-	var r T
-	// Provide explicit SET clause and use an empty map payload so the
-	// update callback respects the provided assignments.
-	tx := c.g.apply(ctx).Model(r).Clauses(clause.Set(assignments))
-	res := tx.Updates(map[string]interface{}{})
-	return int(res.RowsAffected), res.Error
-}
-
 func (c chainG[T]) Updates(ctx context.Context, t T) (rowsAffected int, err error) {
 	res := c.g.apply(ctx).Updates(t)
 	return int(res.RowsAffected), res.Error
@@ -584,38 +566,6 @@ func (c chainG[T]) Count(ctx context.Context, column string) (result int64, err 
 	var r T
 	err = c.g.apply(ctx).Model(r).Select(column).Count(&result).Error
 	return
-}
-
-// concrete types for Set-returned chains
-type setUpdateOnlyG[T any] struct {
-	c       chainG[T]
-	assigns []clause.Assignment
-}
-
-func (s setUpdateOnlyG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
-	var r T
-	res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
-	return int(res.RowsAffected), res.Error
-}
-
-type setCreateOrUpdateG[T any] struct {
-	c       chainG[T]
-	assigns []clause.Assignment
-}
-
-func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
-	var r T
-	res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
-	return int(res.RowsAffected), res.Error
-}
-
-func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
-	var r T
-	data := make(map[string]interface{}, len(s.assigns))
-	for _, a := range s.assigns {
-		data[a.Column.Name] = a.Value
-	}
-	return s.c.g.apply(ctx).Model(r).Create(data).Error
 }
 
 func (c chainG[T]) Build(builder clause.Builder) {
@@ -653,6 +603,26 @@ func (c chainG[T]) Build(builder clause.Builder) {
 		builder.WriteString(subdb.Statement.SQL.String())
 		stmt.Vars = subdb.Statement.Vars
 	}
+}
+
+type setCreateOrUpdateG[T any] struct {
+	c       chainG[T]
+	assigns []clause.Assignment
+}
+
+func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
+	var r T
+	res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
+	return int(res.RowsAffected), res.Error
+}
+
+func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
+	var r T
+	data := make(map[string]interface{}, len(s.assigns))
+	for _, a := range s.assigns {
+		data[a.Column.Name] = a.Value
+	}
+	return s.c.g.apply(ctx).Model(r).Create(data).Error
 }
 
 type execG[T any] struct {
