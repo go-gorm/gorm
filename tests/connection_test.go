@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"fmt"
 	"testing"
 
 	"gorm.io/driver/mysql"
@@ -28,7 +27,7 @@ func TestWithSingleConnection(t *testing.T) {
 		return nil
 	})
 	if err != nil {
-		t.Errorf(fmt.Sprintf("WithSingleConnection should work, but got err %v", err))
+		t.Errorf("WithSingleConnection should work, but got err %v", err)
 	}
 
 	if actualName != expectedName {

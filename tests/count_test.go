@@ -1,7 +1,6 @@
 package tests_test
 
 import (
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -22,7 +21,7 @@ func TestCountWithGroup(t *testing.T) {
 
 	var count1 int64
 	if err := DB.Model(&Company{}).Where("name = ?", "company_count_group_a").Group("name").Count(&count1).Error; err != nil {
-		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Errorf("Count should work, but got err %v", err)
 	}
 	if count1 != 1 {
 		t.Errorf("Count with group should be 1, but got count: %v", count1)
@@ -30,7 +29,7 @@ func TestCountWithGroup(t *testing.T) {
 
 	var count2 int64
 	if err := DB.Model(&Company{}).Where("name in ?", []string{"company_count_group_b", "company_count_group_c"}).Group("name").Count(&count2).Error; err != nil {
-		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Errorf("Count should work, but got err %v", err)
 	}
 	if count2 != 2 {
 		t.Errorf("Count with group should be 2, but got count: %v", count2)
@@ -49,7 +48,7 @@ func TestCount(t *testing.T) {
 	DB.Save(&user1).Save(&user2).Save(&user3)
 
 	if err := DB.Where("name = ?", user1.Name).Or("name = ?", user3.Name).Find(&users).Count(&count).Error; err != nil {
-		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Errorf("Count should work, but got err %v", err)
 	}
 
 	if count != int64(len(users)) {
@@ -57,7 +56,7 @@ func TestCount(t *testing.T) {
 	}
 
 	if err := DB.Model(&User{}).Where("name = ?", user1.Name).Or("name = ?", user3.Name).Count(&count).Find(&users).Error; err != nil {
-		t.Errorf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Errorf("Count should work, but got err %v", err)
 	}
 
 	if count != int64(len(users)) {
@@ -110,7 +109,7 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
 		"(CASE WHEN name=? THEN ? ELSE ? END) as name", "count-1", "main", "other",
 	).Count(&count6).Find(&users).Error; err != nil || count6 != 3 {
-		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Fatalf("Count should work, but got err %v", err)
 	}
 
 	expects := []User{{Name: "main"}, {Name: "other"}, {Name: "other"}}
@@ -124,7 +123,7 @@ func TestCount(t *testing.T) {
 	if err := DB.Model(&User{}).Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Select(
 		"(CASE WHEN name=? THEN ? ELSE ? END) as name, age", "count-1", "main", "other",
 	).Count(&count7).Find(&users).Error; err != nil || count7 != 3 {
-		t.Fatalf(fmt.Sprintf("Count should work, but got err %v", err))
+		t.Fatalf("Count should work, but got err %v", err)
 	}
 
 	expects = []User{{Name: "main", Age: 18}, {Name: "other", Age: 18}, {Name: "other", Age: 18}}
