@@ -936,3 +936,43 @@ func TestGenericsScanUUID(t *testing.T) {
 		t.Fatalf("wrong uuid scanned")
 	}
 }
+
+func TestGenericsCount(t *testing.T) {
+	ctx := context.Background()
+
+	// Just test that the API can be called
+	_, err := gorm.G[User](DB).Count(ctx, "*")
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+}
+
+func TestGenericsUpdate(t *testing.T) {
+	ctx := context.Background()
+
+	// Just test that the API can be called
+	_, err := gorm.G[User](DB).Where("id = ?", 1).Update(ctx, "name", "test")
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+}
+
+func TestGenericsUpdates(t *testing.T) {
+	ctx := context.Background()
+
+	// Just test that the API can be called
+	_, err := gorm.G[User](DB).Where("id = ?", 1).Updates(ctx, User{Name: "test"})
+	if err != nil {
+		t.Fatalf("Updates failed: %v", err)
+	}
+}
+
+func TestGenericsDeleteAPI(t *testing.T) {
+	ctx := context.Background()
+
+	// Just test that the API can be called
+	_, err := gorm.G[User](DB).Where("id = ?", 1).Delete(ctx)
+	if err != nil {
+		t.Fatalf("Delete failed: %v", err)
+	}
+}

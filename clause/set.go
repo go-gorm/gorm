@@ -11,7 +11,7 @@ type Assignment struct {
 
 // Assigner assignments provider interface
 type Assigner interface {
-    Assignments() []Assignment
+	Assignments() []Assignment
 }
 
 func (set Set) Name() string {
