@@ -1,0 +1,37 @@
+package clause
+
+// AssociationOpType represents association operation types
+type AssociationOpType int
+
+const (
+	OpUnlink       AssociationOpType = iota // Unlink association
+	OpDelete                                // Delete association records
+	OpUpdate                                // Update association records
+	OpCreate                                // Create association records with assignments
+	OpCreateValues                          // Create association records with model object
+)
+
+// Association represents an association operation
+type Association struct {
+	Association string            // Association name
+	Type        AssociationOpType // Operation type
+	Conditions  []interface{}     // Filter conditions
+	Set         []Assignment      // Assignment operations (for Update and Create)
+	Model       interface{}       // Model object (for Create object)
+	Unscope     bool              // Whether to unscope delete
+}
+
+// AssociationAssigner is an interface for association operation providers
+type AssociationAssigner interface {
+	AssociationAssignments() []Association
+}
+
+// Assignments implements the Assigner interface so that AssociationOperation can be used as a Set method parameter
+func (ao Association) Assignments() []Assignment {
+	return []Assignment{}
+}
+
+// AssociationAssignments implements the AssociationAssigner interface
+func (ao Association) AssociationAssignments() []Association {
+	return []Association{ao}
+}
