@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils/tests"
@@ -349,4 +350,63 @@ func TestCompositePrimaryKeyWithAutoIncrement(t *testing.T) {
 	if productNonAutoIncrement.PrioritizedPrimaryField != nil {
 		t.Fatalf("PrioritizedPrimaryField of non autoincrement composite key should be nil")
 	}
+}
+
+func TestLookupField(t *testing.T) {
+	type Product struct {
+		ProductID uint   `gorm:"primaryKey;autoIncrement"`
+		Code      string `gorm:"column:product_code"`
+		Name      string
+	}
+	product, err := schema.Parse(&Product{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse product struct with composite primary key, got error %v", err)
+	}
+	field := product.LookUpField("ProductID")
+	assert.NotNil(t, field)
+	field = product.LookUpField("productid")
+	assert.Nil(t, field)
+	field = product.LookUpField("product_code")
+	assert.NotNil(t, field)
+	field = product.LookUpField("PRODUCT_CODE")
+	assert.Nil(t, field)
+
+	// Check case insensitivity
+	product.FieldsCaseInsensitive = true
+	field = product.LookUpField("productid")
+	assert.NotNil(t, field)
+	field = product.LookUpField("PRODUCT_CODE")
+	assert.NotNil(t, field)
+}
+
+func TestLookupFieldByBindName(t *testing.T) {
+	type Product struct {
+		ID uint `gorm:"primaryKey;autoIncrement"`
+	}
+	type Sellable struct {
+		Name    string
+		Product Product `gorm:"embedded;embeddedPrefix:product_"`
+	}
+
+	product, err := schema.Parse(&Sellable{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse Sellable struct with composite primary key, got error %v", err)
+	}
+	field := product.LookUpFieldByBindName([]string{"Product", "ID"}, "ID")
+	assert.NotNil(t, field)
+	field = product.LookUpFieldByBindName([]string{"Product", "ID"}, "id")
+	assert.Nil(t, field)
+	field = product.LookUpFieldByBindName([]string{"Product", "id"}, "id")
+	assert.Nil(t, field)
+	field = product.LookUpFieldByBindName([]string{"product", "id"}, "id")
+	assert.Nil(t, field)
+
+	// Check case insensitivity
+	product.FieldsCaseInsensitive = true
+	field = product.LookUpFieldByBindName([]string{"Product", "ID"}, "id")
+	assert.NotNil(t, field)
+	field = product.LookUpFieldByBindName([]string{"Product", "id"}, "id")
+	assert.NotNil(t, field)
+	field = product.LookUpFieldByBindName([]string{"product", "id"}, "id")
+	assert.NotNil(t, field)
 }
