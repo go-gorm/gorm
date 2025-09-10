@@ -723,7 +723,7 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
 	var r T
-	db := s.c.g.apply(ctx).Model(r)
+	db := s.c.g.apply(ctx).Model(&r)
 	association := db.Association(op.Association)
 
 	if association.Error != nil {
@@ -751,9 +751,9 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 		for _, assignment := range op.Set {
 			createData[assignment.Column.Name] = assignment.Value
 		}
-		return association.Append(createData)
+		return association.Append(&createData)
 	case clause.OpCreateValues:
-		return association.Append(op.Values...)
+		return association.Append(&op.Values)
 	default:
 		return fmt.Errorf("unknown association operation type: %v", op.Type)
 	}
