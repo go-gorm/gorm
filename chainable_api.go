@@ -133,7 +133,7 @@ func (db *DB) AsOfSystemTime(timestamp interface{}) (tx *DB) {
 //
 // Note: This feature is only supported by CockroachDB
 func (db *DB) AsOfSystemTimeNow() (tx *DB) {
-	return db.AsOfSystemTime("-1µs")
+	return db.AsOfSystemTime("'-1µs'")
 }
 
 // Distinct specify distinct fields that you want querying
