@@ -30,7 +30,7 @@ func TestAsOfSystemTime(t *testing.T) {
 				clause.Select{},
 				clause.From{
 					Tables:         []clause.Table{{Name: "users"}},
-					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "-1h"},
+					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "'-1h'"},
 				},
 			},
 			"SELECT * FROM `users` AS OF SYSTEM TIME '-1h'",
@@ -50,7 +50,7 @@ func TestAsOfSystemTime(t *testing.T) {
 							},
 						},
 					},
-					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "-1h"},
+					AsOfSystemTime: &clause.AsOfSystemTime{Raw: "'-1h'"},
 				},
 			},
 			"SELECT * FROM `users` INNER JOIN `companies` ON `companies`.`id` = `users`.`company_id` AS OF SYSTEM TIME '-1h'",

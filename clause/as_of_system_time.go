@@ -2,6 +2,7 @@ package clause
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -20,7 +21,8 @@ func (a AsOfSystemTime) Name() string {
 // Build builds the "AS OF SYSTEM TIME" clause
 func (a AsOfSystemTime) Build(builder Builder) {
 	if a.Raw != "" {
-		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME '%s'", a.Raw))
+		sanitizedRaw := strings.ReplaceAll(a.Raw, ";", "")
+		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME %s", sanitizedRaw))
 	} else if !a.Timestamp.IsZero() {
 		builder.WriteString(fmt.Sprintf("AS OF SYSTEM TIME '%s'", a.Timestamp.Format("2006-01-02 15:04:05.000000")))
 	}
