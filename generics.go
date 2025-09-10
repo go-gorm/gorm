@@ -57,6 +57,7 @@ type CreateInterface[T any] interface {
 	Delete(ctx context.Context) (rowsAffected int, err error)
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
 	Updates(ctx context.Context, t T) (rowsAffected int, err error)
+	Count(ctx context.Context, column string) (result int64, err error)
 
 	Table(name string, args ...interface{}) CreateInterface[T]
 	Create(ctx context.Context, r *T) error
