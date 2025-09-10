@@ -201,12 +201,7 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 }
 
 func (c createG[T]) Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T] {
-	assigns, assocOps := processOperations(assignments...)
-	return setCreateOrUpdateG[T]{
-		c:        c.chainG,
-		assigns:  assigns,
-		assocOps: assocOps,
-	}
+	return c.chainG.processSet(assignments...)
 }
 
 func (c createG[T]) Create(ctx context.Context, r *T) error {
@@ -437,12 +432,7 @@ func (c chainG[T]) MapColumns(m map[string]string) ChainInterface[T] {
 }
 
 func (c chainG[T]) Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T] {
-	assigns, assocOps := processOperations(assignments...)
-	return setCreateOrUpdateG[T]{
-		c:        c,
-		assigns:  assigns,
-		assocOps: assocOps,
-	}
+	return c.processSet(assignments...)
 }
 
 func (c chainG[T]) Distinct(args ...interface{}) ChainInterface[T] {
@@ -612,91 +602,6 @@ func (c chainG[T]) Build(builder clause.Builder) {
 	}
 }
 
-// toAssignments converts various supported types into []clause.Assignment.
-// Supported inputs implement clause.Assigner.
-func toAssignments(items ...clause.Assigner) []clause.Assignment {
-	out := make([]clause.Assignment, 0, len(items))
-	for _, it := range items {
-		out = append(out, it.Assignments()...)
-	}
-	return out
-}
-
-// processOperations processes various operation types and separates them.
-func processOperations(items ...clause.Assigner) ([]clause.Assignment, []clause.Association) {
-	var (
-		assigns  []clause.Assignment
-		assocOps []clause.Association
-	)
-
-	for _, item := range items {
-		// Check if it's an AssociationAssigner
-		if assocAssigner, ok := item.(clause.AssociationAssigner); ok {
-			assocOps = append(assocOps, assocAssigner.AssociationAssignments()...)
-			continue
-		}
-
-		// Otherwise treat as regular Assigner
-		assigns = append(assigns, item.Assignments()...)
-	}
-
-	return assigns, assocOps
-}
-
-// setCreateOrUpdateG[T] is a struct that holds operations to be executed in a batch.
-// It supports regular assignments and association operations.
-type setCreateOrUpdateG[T any] struct {
-	c        chainG[T]
-	assigns  []clause.Assignment
-	assocOps []clause.Association
-}
-
-func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
-	// Execute association operations
-	for _, assocOp := range s.assocOps {
-		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
-			return 0, err
-		}
-	}
-
-	// Execute assignment operations
-	if len(s.assigns) > 0 {
-		var r T
-		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
-		return int(res.RowsAffected), res.Error
-	}
-
-	var r T
-	res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
-	return int(res.RowsAffected), res.Error
-}
-
-func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
-	// Execute association operations
-	for _, assocOp := range s.assocOps {
-		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
-			return err
-		}
-	}
-
-	// Execute assignment operations
-	if len(s.assigns) > 0 {
-		var r T
-		data := make(map[string]interface{}, len(s.assigns))
-		for _, a := range s.assigns {
-			data[a.Column.Name] = a.Value
-		}
-		return s.c.g.apply(ctx).Model(r).Create(data).Error
-	}
-
-	var r T
-	data := make(map[string]interface{}, len(s.assigns))
-	for _, a := range s.assigns {
-		data[a.Column.Name] = a.Value
-	}
-	return s.c.g.apply(ctx).Model(r).Create(data).Error
-}
-
 type execG[T any] struct {
 	g *g[T]
 }
@@ -746,6 +651,75 @@ func (g execG[T]) Rows(ctx context.Context) (*sql.Rows, error) {
 	return g.g.apply(ctx).Rows()
 }
 
+func (c chainG[T]) processSet(items ...clause.Assigner) setCreateOrUpdateG[T] {
+	var (
+		assigns  []clause.Assignment
+		assocOps []clause.Association
+	)
+
+	for _, item := range items {
+		// Check if it's an AssociationAssigner
+		if assocAssigner, ok := item.(clause.AssociationAssigner); ok {
+			assocOps = append(assocOps, assocAssigner.AssociationAssignments()...)
+		} else {
+			assigns = append(assigns, item.Assignments()...)
+		}
+	}
+
+	return setCreateOrUpdateG[T]{
+		c:        c,
+		assigns:  assigns,
+		assocOps: assocOps,
+	}
+}
+
+// setCreateOrUpdateG[T] is a struct that holds operations to be executed in a batch.
+// It supports regular assignments and association operations.
+type setCreateOrUpdateG[T any] struct {
+	c        chainG[T]
+	assigns  []clause.Assignment
+	assocOps []clause.Association
+}
+
+func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
+	// Execute association operations
+	for _, assocOp := range s.assocOps {
+		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
+			return 0, err
+		}
+	}
+
+	// Execute assignment operations
+	if len(s.assigns) > 0 {
+		var r T
+		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
+		return int(res.RowsAffected), res.Error
+	}
+
+	return 0, nil
+}
+
+func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
+	// Execute association operations
+	for _, assocOp := range s.assocOps {
+		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
+			return err
+		}
+	}
+
+	// Execute assignment operations
+	if len(s.assigns) > 0 {
+		data := make(map[string]interface{}, len(s.assigns))
+		for _, a := range s.assigns {
+			data[a.Column.Name] = a.Value
+		}
+		var r T
+		return s.c.g.apply(ctx).Model(r).Create(data).Error
+	}
+
+	return nil
+}
+
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
 	var r T
@@ -756,76 +730,31 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 		return association.Error
 	}
 
+	conds := make([]interface{}, 0, len(op.Conditions))
+	for _, c := range op.Conditions {
+		conds = append(conds, c)
+	}
+
 	switch op.Type {
 	case clause.OpUnlink:
-		// Unlink associations
-		if len(op.Conditions) > 0 {
-			// Unlink with conditions
-			return association.Delete(op.Conditions...)
+		if len(conds) > 0 {
+			return association.Delete(conds)
 		}
-		// Unlink without conditions
 		return association.Clear()
-
 	case clause.OpDelete:
-		// Delete association records
-		assoc := association
-		if op.Unscope {
-			assoc = association.Unscoped()
-		}
-
-		if len(op.Conditions) > 0 {
-			// Delete with conditions
-			return assoc.Delete(op.Conditions...)
-		}
-		// Delete without conditions
-		return assoc.Clear()
-
+		return fmt.Errorf("Association Delete not implemented") // TODO
 	case clause.OpUpdate:
-		// Update association records
-		// Build update data
-		updateData := make(map[string]interface{})
-		for _, assignment := range op.Set {
-			// assignment.Column is of type clause.Column, not an interface
-			updateData[assignment.Column.Name] = assignment.Value
-		}
-
-		if len(op.Conditions) > 0 {
-			// Update with conditions
-			// Note: GORM's Association doesn't have a direct Updates method
-			// We'll need to implement a custom solution
-			return s.updateAssociationWithConditions(db, op.Association, updateData, op.Conditions...)
-		}
-		// Update without conditions
-		// Note: GORM's Association doesn't have a direct Updates method
-		// We'll need to implement a custom solution or use a different approach
-		return fmt.Errorf("association updates without conditions not implemented")
-
+		return fmt.Errorf("Association Updates not implemented") // TODO
 	case clause.OpCreate:
 		// Create association records with assignments
 		createData := make(map[string]interface{})
 		for _, assignment := range op.Set {
-			// assignment.Column is of type clause.Column, not an interface
 			createData[assignment.Column.Name] = assignment.Value
 		}
 		return association.Append(createData)
-
+	case clause.OpCreateValues:
+		return association.Append(op.Values...)
 	default:
 		return fmt.Errorf("unknown association operation type: %v", op.Type)
 	}
-}
-
-// updateAssociationWithConditions updates association records with conditions
-func (s setCreateOrUpdateG[T]) updateAssociationWithConditions(db *DB, associationName string, updateData map[string]interface{}, conditions ...interface{}) error {
-	// First find association records that match conditions
-	var results []interface{}
-	if err := db.Association(associationName).Find(&results, conditions...); err != nil {
-		return err
-	}
-
-	// Then update these records
-	if len(results) > 0 {
-		return db.Session(&Session{SkipHooks: true}).Model(results).Updates(updateData).Error
-	}
-
-	return nil
 }

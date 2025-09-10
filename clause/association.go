@@ -15,9 +15,10 @@ const (
 type Association struct {
 	Association string            // Association name
 	Type        AssociationOpType // Operation type
-	Conditions  []interface{}     // Filter conditions
+	Conditions  []Expression      // Filter conditions
 	Set         []Assignment      // Assignment operations (for Update and Create)
 	Model       interface{}       // Model object (for Create object)
+	Values      []interface{}     // Values for Create operation
 	Unscope     bool              // Whether to unscope delete
 }
 
