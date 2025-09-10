@@ -125,6 +125,17 @@ func (db *DB) AsOfSystemTime(timestamp interface{}) (tx *DB) {
 	return tx
 }
 
+// AsOfSystemTimeNow sets the system time to be as close to now as possible
+// This allows us to get the most recent data without the database engine attempting retries.
+//
+//	// Query data as it exists at the time of the query
+//	db.AsOfSystemTimeNow().Find(&users)
+//
+// Note: This feature is only supported by CockroachDB
+func (db *DB) AsOfSystemTimeNow() (tx *DB) {
+	return db.AsOfSystemTime("-1µs")
+}
+
 // Distinct specify distinct fields that you want querying
 //
 //	// Select distinct names of users
