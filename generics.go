@@ -3,6 +3,7 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -10,6 +11,7 @@ import (
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 type result struct {
@@ -743,90 +745,72 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociationUnlink(ctx context.Context, base *DB, op clause.Association) error {
-	// Parse schema and resolve relationship
-	if base.Statement.Schema == nil {
-		if err := base.Statement.Parse(base.Statement.Model); err != nil {
-			return err
+	association := base.Association(op.Association)
+	if association.Error != nil {
+		return association.Error
+	}
+
+	var (
+		rel                            = association.Relationship
+		assocModel                     = reflect.New(rel.FieldSchema.ModelType).Interface()
+		foreignKey                     = map[string]any{}
+		primaryKeys, foreignKeys       []string
+		primaryColumns, foreignColumns []any
+	)
+
+	for _, ref := range rel.References {
+		primaryKeys = append(primaryKeys, ref.PrimaryKey.DBName)
+		foreignKeys = append(foreignKeys, ref.ForeignKey.DBName)
+		primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
+		foreignColumns = append(foreignColumns, clause.Column{Name: ref.ForeignKey.DBName})
+		foreignKey[ref.ForeignKey.DBName] = nil
+	}
+
+	assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(assocModel).Where(op.Conditions)
+
+	switch rel.Type {
+	case schema.HasOne, schema.HasMany:
+		return assocDB.Where("? IN (?)", foreignColumns, base.Select(primaryKeys)).Updates(foreignKey).Error
+	case schema.BelongsTo:
+		if len(op.Conditions) > 0 {
+			base = base.Where("? IN (?)", primaryColumns, assocDB.Select(primaryKeys))
 		}
-	}
-	rel := base.Statement.Schema.Relationships.Relations[op.Association]
-	if rel == nil {
-		return fmt.Errorf("%w: %s", ErrUnsupportedRelation, op.Association)
-	}
 
-	ownerPKs := rel.Schema.PrimaryFieldDBNames
-	if len(ownerPKs) != 1 {
-		return fmt.Errorf("unlink with composite primary key not supported")
-	}
-
-	// owners subquery with current WHERE
-	ownersSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx, Initialized: true}).
-		Model(reflect.New(rel.Schema.ModelType).Interface()).
-		Select(ownerPKs[0])
-	if whereClause, ok := base.Statement.Clauses["WHERE"]; ok && whereClause.Expression != nil {
-		if e, ok2 := whereClause.Expression.(clause.Expression); ok2 {
-			ownersSub = ownersSub.Where(e)
-		}
-	}
-
-	// collect conditions
-	conds := make([]interface{}, 0, len(op.Conditions))
-	for _, c := range op.Conditions {
-		conds = append(conds, c)
-	}
-
-	if rel.JoinTable != nil {
-		// many2many: delete from join
+		return base.Updates(foreignKey).Error
+	case schema.Many2Many:
+		// Build join filters: owner_fk IN (owners subquery) and optional related filter
 		joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
 		joinDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
-		if op.Unscope {
-			joinDB = joinDB.Unscoped()
-		}
 
-		var joinOwnerFK, joinRelFK, relPK string
+		var (
+			ownerPKNames      []string
+			ownerJoinFKCols   []any
+			relatedPKNames    []string
+			relatedJoinFKCols []any
+		)
 		for _, ref := range rel.References {
-			if ref.OwnPrimaryKey && joinOwnerFK == "" {
-				joinOwnerFK = ref.ForeignKey.DBName
-			}
-			if !ref.OwnPrimaryKey && joinRelFK == "" {
-				joinRelFK = ref.ForeignKey.DBName
-				if ref.PrimaryKey != nil {
-					relPK = ref.PrimaryKey.DBName
-				}
+			if ref.OwnPrimaryKey {
+				ownerPKNames = append(ownerPKNames, ref.PrimaryKey.DBName)
+				ownerJoinFKCols = append(ownerJoinFKCols, clause.Column{Name: ref.ForeignKey.DBName})
+			} else {
+				relatedPKNames = append(relatedPKNames, ref.PrimaryKey.DBName)
+				relatedJoinFKCols = append(relatedJoinFKCols, clause.Column{Name: ref.ForeignKey.DBName})
 			}
 		}
 
-		joinDB = joinDB.Where(fmt.Sprintf("%s IN (?)", joinOwnerFK), ownersSub)
-		if len(conds) > 0 {
-			relatedSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table)
-			relatedSub = relatedSub.Where(clause.Eq{Column: clause.Column{Name: relPK, Table: rel.FieldSchema.Table}, Value: clause.Column{Name: joinRelFK, Table: rel.JoinTable.Table}})
-			relatedSub = relatedSub.Clauses(clause.Where{Exprs: op.Conditions})
-			joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{relatedSub}})
+		// Filter by owners
+		joinDB = joinDB.Where("? IN (?)", ownerJoinFKCols, base.Select(ownerPKNames))
+
+		// If there are related-side conditions, filter join by related pk IN (related subquery)
+		if len(op.Conditions) > 0 {
+			assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(reflect.New(rel.FieldSchema.ModelType).Interface()).Where(op.Conditions)
+			joinDB = joinDB.Where("? IN (?)", relatedJoinFKCols, assocDB.Select(relatedPKNames))
 		}
+
 		return joinDB.Delete(nil).Error
+	default:
+		return errors.New("unsupported relationship")
 	}
-
-	// has one / has many
-	childModel := reflect.New(rel.FieldSchema.ModelType).Interface()
-	childDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(childModel)
-	if op.Unscope {
-		childDB = childDB.Unscoped()
-	}
-	var childFK string
-	for _, ref := range rel.References {
-		if ref.OwnPrimaryKey {
-			childFK = ref.ForeignKey.DBName
-			break
-		}
-	}
-	childDB = childDB.Where(fmt.Sprintf("%s IN (?)", childFK), ownersSub)
-	if len(conds) > 0 {
-		childDB = childDB.Clauses(clause.Where{Exprs: op.Conditions})
-	}
-	if op.Unscope {
-		return childDB.Delete(nil).Error
-	}
-	return childDB.UpdateColumn(childFK, nil).Error
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
@@ -841,17 +825,12 @@ func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base
 			return association.Error
 		}
 
-		relSchema := association.Relationship.FieldSchema
-		rv := reflect.New(relSchema.ModelType)
-		for _, assignment := range op.Set {
-			association.DB.Statement.Selects = append(association.DB.Statement.Selects, assignment.Column.Name)
-			if f := relSchema.LookUpField(assignment.Column.Name); f != nil {
-				if err := f.Set(ctx, rv.Elem(), assignment.Value); err != nil {
-					return err
-				}
-			}
+		data := make(map[string]interface{}, len(s.assigns))
+		for _, a := range s.assigns {
+			data[a.Column.Name] = a.Value
 		}
-		if err := association.Append(rv.Interface()); err != nil {
+
+		if err := association.Append(data); err != nil {
 			return err
 		}
 	}
