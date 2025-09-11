@@ -729,18 +729,83 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 	base := s.c.g.apply(ctx).Model(r)
 
 	switch op.Type {
-	case clause.OpUnlink, clause.OpDelete, clause.OpUpdate:
-		return s.handleAssociationWrite(ctx, base, op)
 	case clause.OpCreate:
 		return s.handleAssociationCreate(ctx, base, op)
 	case clause.OpCreateValues:
 		return s.handleAssociationCreateValues(ctx, base, op)
+	case clause.OpUnlink, clause.OpDelete, clause.OpUpdate:
+		return s.handleAssociation(ctx, base, op)
 	default:
 		return fmt.Errorf("unknown association operation type: %v", op.Type)
 	}
 }
 
-func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base *DB, op clause.Association) error {
+func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
+	}
+	for _, owner := range owners {
+		assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner)
+		association := assocDB.Association(op.Association)
+		if association.Error != nil {
+			return association.Error
+		}
+
+		rel := association.Relationship
+		// Map-based create for has-one/has-many (incl. polymorphic)
+		if rel.JoinTable == nil && rel.Type != schema.BelongsTo {
+			data := make(map[string]interface{}, len(op.Set))
+			for _, a := range op.Set {
+				data[a.Column.Name] = a.Value
+			}
+			if err := association.Append(data); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Fallback: typed create/append (many2many, belongs-to)
+		relSchema := rel.FieldSchema
+		rv := reflect.New(relSchema.ModelType)
+		for _, a := range op.Set {
+			if f := relSchema.LookUpField(a.Column.Name); f != nil {
+				if err := f.Set(ctx, rv.Elem(), a.Value); err != nil {
+					return err
+				}
+			}
+		}
+		if rel.JoinTable != nil {
+			if err := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Create(rv.Interface()).Error; err != nil {
+				return err
+			}
+		}
+		if err := association.Append(rv.Interface()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
+	}
+	for _, owner := range owners {
+		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
+		if association.Error != nil {
+			return association.Error
+		}
+
+		if err := association.Append(op.Values...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, op clause.Association) error {
 	association := base.Association(op.Association)
 	if association.Error != nil {
 		return association.Error
@@ -790,10 +855,15 @@ func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base 
 	case schema.BelongsTo:
 		switch op.Type {
 		case clause.OpDelete:
-			if err := assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Delete(assocModel).Error; err != nil {
-				return err
-			}
-			fallthrough
+			return base.Transaction(func(tx *DB) error {
+				assocDB.Statement.ConnPool = tx.Statement.ConnPool
+				base.Statement.ConnPool = tx.Statement.ConnPool
+
+				if err := assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Delete(assocModel).Error; err != nil {
+					return err
+				}
+				return base.Updates(fkNil).Error
+			})
 		case clause.OpUnlink:
 			return base.Updates(fkNil).Error
 		case clause.OpUpdate:
@@ -863,69 +933,4 @@ func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base 
 		}
 	}
 	return errors.New("unsupported relationship")
-}
-
-func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
-	var owners []T
-	if err := base.Find(&owners).Error; err != nil {
-		return err
-	}
-	for _, owner := range owners {
-		assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner)
-		association := assocDB.Association(op.Association)
-		if association.Error != nil {
-			return association.Error
-		}
-
-		rel := association.Relationship
-		// Map-based create for has-one/has-many (incl. polymorphic)
-		if rel.JoinTable == nil && rel.Type != schema.BelongsTo {
-			data := make(map[string]interface{}, len(op.Set))
-			for _, a := range op.Set {
-				data[a.Column.Name] = a.Value
-			}
-			if err := association.Append(data); err != nil {
-				return err
-			}
-			continue
-		}
-
-		// Fallback: typed create/append (many2many, belongs-to)
-		relSchema := rel.FieldSchema
-		rv := reflect.New(relSchema.ModelType)
-		for _, a := range op.Set {
-			if f := relSchema.LookUpField(a.Column.Name); f != nil {
-				if err := f.Set(ctx, rv.Elem(), a.Value); err != nil {
-					return err
-				}
-			}
-		}
-		if rel.JoinTable != nil {
-			if err := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Create(rv.Interface()).Error; err != nil {
-				return err
-			}
-		}
-		if err := association.Append(rv.Interface()); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
-	var owners []T
-	if err := base.Find(&owners).Error; err != nil {
-		return err
-	}
-	for _, owner := range owners {
-		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
-		if association.Error != nil {
-			return association.Error
-		}
-
-		if err := association.Append(op.Values...); err != nil {
-			return err
-		}
-	}
-	return nil
 }

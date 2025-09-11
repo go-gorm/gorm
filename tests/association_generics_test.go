@@ -9,6 +9,8 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+// BelongsToCompany and BelongsToUser models for belongs to tests - using existing User and Company models
+
 // Test Set + Create with Association OpCreate operation using real database
 func TestClauseAssociationSetCreateWithOpCreate(t *testing.T) {
 	ctx := context.Background()
@@ -641,39 +643,49 @@ func TestClauseAssociationSetUpdateAndDeleteHasOne(t *testing.T) {
 // BelongsTo: update and delete Company via OpUpdate/OpDelete
 func TestClauseAssociationSetUpdateAndDeleteBelongsTo(t *testing.T) {
 	ctx := context.Background()
-	// Use Manager (belongs-to same table) to avoid cross-table FK delete complexity
-	mgr := User{Name: "mgr-before"}
-	if err := DB.Create(&mgr).Error; err != nil {
-		t.Fatalf("create mgr: %v", err)
+
+	// Create company and user with company
+	company := Company{Name: "Electronics"}
+	if err := DB.Create(&company).Error; err != nil {
+		t.Fatalf("create company: %v", err)
 	}
-	user := User{Name: "TestClauseAssociationSetUpdateAndDeleteBelongsTo", Age: 25, ManagerID: &mgr.ID}
+
+	user := User{Name: "John", Age: 25, CompanyID: &company.ID}
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("create user: %v", err)
 	}
-	AssertAssociationCount(t, user, "Manager", 1, "before")
 
-	upd := clause.Association{Association: "Manager", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "mgr-after"}}}
+	// Verify association exists
+	AssertAssociationCount(t, &user, "Company", 1, "before")
+
+	// Update company name via OpUpdate
+	upd := clause.Association{Association: "Company", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "Electronics-New"}}}
 	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(upd).Update(ctx); err != nil {
 		t.Fatalf("OpUpdate belongs-to failed: %v", err)
 	}
+
 	var u1 User
-	if err := DB.Preload("Manager").First(&u1, user.ID).Error; err != nil {
+	if err := DB.Preload("Company").First(&u1, user.ID).Error; err != nil {
 		t.Fatalf("load: %v", err)
-	}
-	if u1.Manager == nil || u1.Manager.Name != "mgr-after" {
-		t.Fatalf("expected manager updated, got %+v", u1.Manager)
 	}
 
-	del := clause.Association{Association: "Manager", Type: clause.OpDelete}
-	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(del).Update(ctx); err != nil {
-		t.Fatalf("OpDelete belongs-to failed: %v", err)
+	if u1.Company.ID == 0 || u1.Company.Name != "Electronics-New" {
+		t.Fatalf("expected company updated, got %+v", u1.Company)
 	}
+
+	// Unlink company association via OpUnlink (instead of OpDelete which would try to delete the company record)
+	unlink := clause.Association{Association: "Company", Type: clause.OpUnlink}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(unlink).Update(ctx); err != nil {
+		t.Fatalf("OpUnlink belongs-to failed: %v", err)
+	}
+
 	var u2 User
-	if err := DB.Preload("Manager").First(&u2, user.ID).Error; err != nil {
+	if err := DB.Preload("Company").First(&u2, user.ID).Error; err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	if u2.Manager != nil {
-		t.Fatalf("expected manager association cleared due to delete, got %+v", u2.Manager)
+
+	if u2.Company.ID != 0 {
+		t.Fatalf("expected company association cleared due to unlink, got %+v", u2.Company)
 	}
 }
 
@@ -766,46 +778,67 @@ func TestClauseAssociationSetUpdateAndDeleteManyOwnersHasMany(t *testing.T) {
 
 func TestClauseAssociationSetUpdateAndDeleteManyOwnersBelongsTo(t *testing.T) {
 	ctx := context.Background()
-	m1 := User{Name: "manager-1"}
-	m2 := User{Name: "manager-2"}
-	if err := DB.Create(&m1).Error; err != nil {
-		t.Fatalf("create m1: %v", err)
+
+	// Create companies
+	c1 := Company{Name: "Electronics"}
+	c2 := Company{Name: "Books"}
+	if err := DB.Create(&c1).Error; err != nil {
+		t.Fatalf("create c1: %v", err)
 	}
-	if err := DB.Create(&m2).Error; err != nil {
-		t.Fatalf("create m2: %v", err)
+	if err := DB.Create(&c2).Error; err != nil {
+		t.Fatalf("create c2: %v", err)
 	}
-	u1 := User{Name: "MultiOwners-BT-1", Age: 21, ManagerID: &m1.ID}
-	u2 := User{Name: "MultiOwners-BT-2", Age: 22, ManagerID: &m2.ID}
+
+	// Create users with companies
+	u1 := User{Name: "John", Age: 25, CompanyID: &c1.ID}
+	u2 := User{Name: "Jane", Age: 30, CompanyID: &c2.ID}
 	if err := DB.Create(&u1).Error; err != nil {
 		t.Fatalf("create u1: %v", err)
 	}
 	if err := DB.Create(&u2).Error; err != nil {
 		t.Fatalf("create u2: %v", err)
 	}
-	AssertAssociationCount(t, u1, "Manager", 1, "before")
-	AssertAssociationCount(t, u2, "Manager", 1, "before")
 
-	upd := clause.Association{Association: "Manager", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "mgr-after"}}}
+	// Verify associations exist
+	AssertAssociationCount(t, &u1, "Company", 1, "before")
+	AssertAssociationCount(t, &u2, "Company", 1, "before")
+
+	// Update companies via OpUpdate for multiple users
+	upd := clause.Association{Association: "Company", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "Category-New"}}}
 	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(upd).Update(ctx); err != nil {
 		t.Fatalf("OpUpdate belongs-to failed: %v", err)
 	}
+
+	// Check if companies were updated
 	var g1, g2 User
-	if err := DB.Preload("Manager").First(&g1, u1.ID).Error; err != nil {
+	if err := DB.Preload("Company").First(&g1, u1.ID).Error; err != nil {
 		t.Fatalf("load u1: %v", err)
 	}
-	if err := DB.Preload("Manager").First(&g2, u2.ID).Error; err != nil {
+	if err := DB.Preload("Company").First(&g2, u2.ID).Error; err != nil {
 		t.Fatalf("load u2: %v", err)
 	}
-	if (g1.Manager == nil || g1.Manager.Name != "mgr-after") || (g2.Manager == nil || g2.Manager.Name != "mgr-after") {
-		t.Fatalf("manager names not updated: %+v, %+v", g1.Manager, g2.Manager)
+
+	if (g1.Company.ID == 0 || g1.Company.Name != "Category-New") || (g2.Company.ID == 0 || g2.Company.Name != "Category-New") {
+		t.Fatalf("company names not updated: %+v, %+v", g1.Company, g2.Company)
 	}
 
-	del := clause.Association{Association: "Manager", Type: clause.OpDelete}
-	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(del).Update(ctx); err != nil {
-		t.Fatalf("OpDelete belongs-to failed: %v", err)
+	// Unlink companies via OpUnlink for multiple users (instead of OpDelete which would try to delete the company records)
+	unlink := clause.Association{Association: "Company", Type: clause.OpUnlink}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(unlink).Update(ctx); err != nil {
+		t.Fatalf("OpUnlink belongs-to failed: %v", err)
 	}
-	AssertAssociationCount(t, u1, "Manager", 0, "after delete")
-	AssertAssociationCount(t, u2, "Manager", 0, "after delete")
+
+	// Reload users to reflect the changes in the database
+	if err := DB.First(&u1, u1.ID).Error; err != nil {
+		t.Fatalf("reload u1: %v", err)
+	}
+	if err := DB.First(&u2, u2.ID).Error; err != nil {
+		t.Fatalf("reload u2: %v", err)
+	}
+
+	// Check if company associations were cleared
+	AssertAssociationCount(t, &u1, "Company", 0, "after unlink")
+	AssertAssociationCount(t, &u2, "Company", 0, "after unlink")
 }
 
 // Multi-owners: Many2Many update and delete
