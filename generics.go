@@ -746,11 +746,9 @@ func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base 
 		return association.Error
 	}
 
-	rel := association.Relationship
-	assocModel := reflect.New(rel.FieldSchema.ModelType).Interface()
-
-	// Build FK nil map for unlink and SET map for update
 	var (
+		rel            = association.Relationship
+		assocModel     = reflect.New(rel.FieldSchema.ModelType).Interface()
 		fkNil          = map[string]any{}
 		setMap         = make(map[string]any, len(op.Set))
 		ownerPKNames   []string
@@ -764,11 +762,12 @@ func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base 
 	}
 
 	for _, ref := range rel.References {
+		fkNil[ref.ForeignKey.DBName] = nil
+
 		if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
 			ownerPKNames = append(ownerPKNames, ref.PrimaryKey.DBName)
 			primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
 			foreignColumns = append(foreignColumns, clause.Column{Name: ref.ForeignKey.DBName})
-			fkNil[ref.ForeignKey.DBName] = nil
 		} else if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
 			// for BelongsTo mapping: owners' FK to related PK
 			ownerFKNames = append(ownerFKNames, ref.ForeignKey.DBName)
@@ -790,55 +789,81 @@ func (s setCreateOrUpdateG[T]) handleAssociationWrite(ctx context.Context, base 
 		}
 	case schema.BelongsTo:
 		switch op.Type {
+		case clause.OpDelete:
+			if err := assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Delete(assocModel).Error; err != nil {
+				return err
+			}
+			fallthrough
 		case clause.OpUnlink:
 			return base.Updates(fkNil).Error
-		case clause.OpDelete:
-			return assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Delete(assocModel).Error
 		case clause.OpUpdate:
 			return assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Updates(setMap).Error
 		}
 	case schema.Many2Many:
-		// Join table operations (single-column keys assumed)
-		var ownerPKName, relPKName, ownerJoinFKName, relJoinFKName string
-		for _, ref := range rel.References {
-			if ref.OwnPrimaryKey {
-				if ownerPKName == "" {
-					ownerPKName = ref.PrimaryKey.DBName
-					ownerJoinFKName = ref.ForeignKey.DBName
-				}
-			} else {
-				if relPKName == "" {
-					relPKName = ref.PrimaryKey.DBName
-					relJoinFKName = ref.ForeignKey.DBName
+		// Use EXISTS subqueries to support composite keys
+		joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
+		joinDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
+
+		// EXISTS owners: owners.pk = join.owner_fk for all owner refs
+		ownersExists := func() *DB {
+			own := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.Schema.Table).Select("1")
+			for _, ref := range rel.References {
+				if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+					own = own.Where(clause.Eq{
+						Column: clause.Column{Table: rel.Schema.Table, Name: ref.PrimaryKey.DBName},
+						Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+					})
 				}
 			}
-		}
+			return own
+		}()
+
+		// EXISTS related: related.pk = join.rel_fk for all related refs, plus optional conditions
+		relatedExists := func() *DB {
+			relSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
+			for _, ref := range rel.References {
+				if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+					relSub = relSub.Where(clause.Eq{
+						Column: clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+						Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+					})
+				}
+			}
+			if len(op.Conditions) > 0 {
+				relSub = relSub.Where(clause.Where{Exprs: op.Conditions})
+			}
+			return relSub
+		}()
 
 		switch op.Type {
 		case clause.OpUnlink, clause.OpDelete:
-			joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
-			joinDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
-			joinDB = joinDB.Where(fmt.Sprintf("%s IN (?)", ownerJoinFKName), base.Select(ownerPKName))
+			joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{ownersExists}})
 			if len(op.Conditions) > 0 {
-				relatedSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(reflect.New(rel.FieldSchema.ModelType).Interface()).Where(op.Conditions)
-				joinDB = joinDB.Where(fmt.Sprintf("%s IN (?)", relJoinFKName), relatedSub.Select(relPKName))
+				joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{relatedExists}})
 			}
 			return joinDB.Delete(nil).Error
 		case clause.OpUpdate:
-			// Update related records selected by join
-			relatedModel := reflect.New(rel.FieldSchema.ModelType).Interface()
-			relatedDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(relatedModel).Where(op.Conditions)
-			joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
-			joinSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel).
-				Where(fmt.Sprintf("%s IN (?)", ownerJoinFKName), base.Select(ownerPKName)).
-				Select(relJoinFKName)
-			return relatedDB.Where(fmt.Sprintf("%s IN (?)", relPKName), joinSub).Updates(setMap).Error
+			// Update related table rows that have join rows matching owners
+			relatedDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table)
+			if len(op.Conditions) > 0 {
+				relatedDB = relatedDB.Where(clause.Where{Exprs: op.Conditions})
+			}
+			// correlated join subquery: join.rel_fk = related.pk AND EXISTS owners
+			joinSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.JoinTable.Table).Select("1")
+			for _, ref := range rel.References {
+				if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+					joinSub = joinSub.Where(clause.Eq{
+						Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+						Value:  clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+					})
+				}
+			}
+			joinSub = joinSub.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{ownersExists}})
+			return relatedDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{joinSub}}).Updates(setMap).Error
 		}
 	}
 	return errors.New("unsupported relationship")
 }
-
-// handleAssociationDelete and handleAssociationUpdate were merged into handleAssociationWrite
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
 	var owners []T

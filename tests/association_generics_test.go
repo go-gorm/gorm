@@ -609,6 +609,249 @@ func TestClauseAssociationSetUpdateAndDelete(t *testing.T) {
 	AssertAssociationCount(t, user, "Pets", 0, "after delete")
 }
 
+// HasOne: update and delete NamedPet via OpUpdate/OpDelete
+func TestClauseAssociationSetUpdateAndDeleteHasOne(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateAndDeleteHasOne", Age: 25}
+	user.NamedPet = &Pet{Name: "np-before"}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	AssertAssociationCount(t, user, "NamedPet", 1, "before")
+
+	upd := clause.Association{Association: "NamedPet", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "np-after"}}}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate has-one failed: %v", err)
+	}
+	var u1 User
+	if err := DB.Preload("NamedPet").First(&u1, user.ID).Error; err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if u1.NamedPet == nil || u1.NamedPet.Name != "np-after" {
+		t.Fatalf("expected name updated, got %+v", u1.NamedPet)
+	}
+
+	del := clause.Association{Association: "NamedPet", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete has-one failed: %v", err)
+	}
+	AssertAssociationCount(t, user, "NamedPet", 0, "after delete")
+}
+
+// BelongsTo: update and delete Company via OpUpdate/OpDelete
+func TestClauseAssociationSetUpdateAndDeleteBelongsTo(t *testing.T) {
+	ctx := context.Background()
+	// Use Manager (belongs-to same table) to avoid cross-table FK delete complexity
+	mgr := User{Name: "mgr-before"}
+	if err := DB.Create(&mgr).Error; err != nil {
+		t.Fatalf("create mgr: %v", err)
+	}
+	user := User{Name: "TestClauseAssociationSetUpdateAndDeleteBelongsTo", Age: 25, ManagerID: &mgr.ID}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	AssertAssociationCount(t, user, "Manager", 1, "before")
+
+	upd := clause.Association{Association: "Manager", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "mgr-after"}}}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate belongs-to failed: %v", err)
+	}
+	var u1 User
+	if err := DB.Preload("Manager").First(&u1, user.ID).Error; err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if u1.Manager == nil || u1.Manager.Name != "mgr-after" {
+		t.Fatalf("expected manager updated, got %+v", u1.Manager)
+	}
+
+	del := clause.Association{Association: "Manager", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete belongs-to failed: %v", err)
+	}
+	var u2 User
+	if err := DB.Preload("Manager").First(&u2, user.ID).Error; err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if u2.Manager != nil {
+		t.Fatalf("expected manager association cleared due to delete, got %+v", u2.Manager)
+	}
+}
+
+// Many2Many: update and delete via Set
+func TestClauseAssociationSetUpdateAndDeleteMany2Many(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateAndDeleteMany2Many", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	langs := []Language{{Code: "es", Name: "Spanish"}, {Code: "de", Name: "German"}}
+	for _, l := range langs {
+		DB.FirstOrCreate(&l, "code = ?", l.Code)
+	}
+	if err := DB.Model(&user).Association("Languages").Append(&langs); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 2, "before")
+
+	upd := clause.Association{Association: "Languages", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "Espanol"}}, Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "code"}, Value: "es"}}}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate m2m failed: %v", err)
+	}
+	var es Language
+	if err := DB.First(&es, "code = ?", "es").Error; err != nil {
+		t.Fatalf("load lang: %v", err)
+	}
+	if es.Name != "Espanol" {
+		t.Fatalf("expected updated language name, got %s", es.Name)
+	}
+
+	del := clause.Association{Association: "Languages", Type: clause.OpDelete, Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "code"}, Value: "es"}}}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete m2m failed: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "after delete one")
+	// language row remains
+	var count int64
+	if err := DB.Model(&Language{}).Where("code = ?", "es").Count(&count).Error; err != nil {
+		t.Fatalf("count lang: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected language row still exists, got %d", count)
+	}
+}
+
+// Multi-owners: HasMany update and delete
+func TestClauseAssociationSetUpdateAndDeleteManyOwnersHasMany(t *testing.T) {
+	ctx := context.Background()
+	u1 := User{Name: "MultiOwners-HasMany-1", Age: 21}
+	u1.Pets = []*Pet{{Name: "p1"}}
+	u2 := User{Name: "MultiOwners-HasMany-2", Age: 22}
+	u2.Pets = []*Pet{{Name: "p2"}}
+	if err := DB.Create(&u1).Error; err != nil {
+		t.Fatalf("create u1: %v", err)
+	}
+	if err := DB.Create(&u2).Error; err != nil {
+		t.Fatalf("create u2: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Pets", 1, "before")
+	AssertAssociationCount(t, u2, "Pets", 1, "before")
+
+	upd := clause.Association{Association: "Pets", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "x"}}}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate has-many failed: %v", err)
+	}
+	var got1, got2 User
+	if err := DB.Preload("Pets").First(&got1, u1.ID).Error; err != nil {
+		t.Fatalf("load u1: %v", err)
+	}
+	if err := DB.Preload("Pets").First(&got2, u2.ID).Error; err != nil {
+		t.Fatalf("load u2: %v", err)
+	}
+	if len(got1.Pets) != 1 || got1.Pets[0].Name != "x" {
+		t.Fatalf("u1 pet not updated: %+v", got1.Pets)
+	}
+	if len(got2.Pets) != 1 || got2.Pets[0].Name != "x" {
+		t.Fatalf("u2 pet not updated: %+v", got2.Pets)
+	}
+
+	del := clause.Association{Association: "Pets", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete has-many failed: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Pets", 0, "after delete")
+	AssertAssociationCount(t, u2, "Pets", 0, "after delete")
+}
+
+// Multi-owners: BelongsTo update and delete
+
+func TestClauseAssociationSetUpdateAndDeleteManyOwnersBelongsTo(t *testing.T) {
+	ctx := context.Background()
+	m1 := User{Name: "manager-1"}
+	m2 := User{Name: "manager-2"}
+	if err := DB.Create(&m1).Error; err != nil {
+		t.Fatalf("create m1: %v", err)
+	}
+	if err := DB.Create(&m2).Error; err != nil {
+		t.Fatalf("create m2: %v", err)
+	}
+	u1 := User{Name: "MultiOwners-BT-1", Age: 21, ManagerID: &m1.ID}
+	u2 := User{Name: "MultiOwners-BT-2", Age: 22, ManagerID: &m2.ID}
+	if err := DB.Create(&u1).Error; err != nil {
+		t.Fatalf("create u1: %v", err)
+	}
+	if err := DB.Create(&u2).Error; err != nil {
+		t.Fatalf("create u2: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Manager", 1, "before")
+	AssertAssociationCount(t, u2, "Manager", 1, "before")
+
+	upd := clause.Association{Association: "Manager", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "mgr-after"}}}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate belongs-to failed: %v", err)
+	}
+	var g1, g2 User
+	if err := DB.Preload("Manager").First(&g1, u1.ID).Error; err != nil {
+		t.Fatalf("load u1: %v", err)
+	}
+	if err := DB.Preload("Manager").First(&g2, u2.ID).Error; err != nil {
+		t.Fatalf("load u2: %v", err)
+	}
+	if (g1.Manager == nil || g1.Manager.Name != "mgr-after") || (g2.Manager == nil || g2.Manager.Name != "mgr-after") {
+		t.Fatalf("manager names not updated: %+v, %+v", g1.Manager, g2.Manager)
+	}
+
+	del := clause.Association{Association: "Manager", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete belongs-to failed: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Manager", 0, "after delete")
+	AssertAssociationCount(t, u2, "Manager", 0, "after delete")
+}
+
+// Multi-owners: Many2Many update and delete
+func TestClauseAssociationSetUpdateAndDeleteManyOwnersMany2Many(t *testing.T) {
+	ctx := context.Background()
+	u1 := User{Name: "MultiOwners-M2M-1", Age: 21}
+	u2 := User{Name: "MultiOwners-M2M-2", Age: 22}
+	if err := DB.Create(&u1).Error; err != nil {
+		t.Fatalf("create u1: %v", err)
+	}
+	if err := DB.Create(&u2).Error; err != nil {
+		t.Fatalf("create u2: %v", err)
+	}
+	l1 := Language{Code: "zz", Name: "ZZ"}
+	l2 := Language{Code: "yy", Name: "YY"}
+	DB.FirstOrCreate(&l1, "code = ?", l1.Code)
+	DB.FirstOrCreate(&l2, "code = ?", l2.Code)
+	if err := DB.Model(&u1).Association("Languages").Append(&l1, &l2); err != nil {
+		t.Fatalf("append u1: %v", err)
+	}
+	if err := DB.Model(&u2).Association("Languages").Append(&l1, &l2); err != nil {
+		t.Fatalf("append u2: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Languages", 2, "before")
+	AssertAssociationCount(t, u2, "Languages", 2, "before")
+
+	upd := clause.Association{Association: "Languages", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "ZZZ"}}, Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "code"}, Value: "zz"}}}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(upd).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate m2m failed: %v", err)
+	}
+	var l Language
+	if err := DB.First(&l, "code = ?", "zz").Error; err != nil {
+		t.Fatalf("load lang: %v", err)
+	}
+	if l.Name != "ZZZ" {
+		t.Fatalf("expected lang updated, got %s", l.Name)
+	}
+
+	del := clause.Association{Association: "Languages", Type: clause.OpDelete, Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "code"}, Value: "zz"}}}
+	if _, err := gorm.G[User](DB).Where("id IN ?", []uint{u1.ID, u2.ID}).Set(del).Update(ctx); err != nil {
+		t.Fatalf("OpDelete m2m failed: %v", err)
+	}
+	AssertAssociationCount(t, u1, "Languages", 1, "after delete")
+	AssertAssociationCount(t, u2, "Languages", 1, "after delete")
+}
+
 // Test Set + Update with has-one (NamedPet) using OpCreateValues
 func TestClauseAssociationSetUpdateHasOneCreateValues(t *testing.T) {
 	ctx := context.Background()
