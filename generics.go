@@ -844,13 +844,14 @@ func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, 
 
 	switch rel.Type {
 	case schema.HasOne, schema.HasMany:
+		assocDB = assocDB.Where("? IN (?)", foreignColumns, base.Select(ownerPKNames))
 		switch op.Type {
 		case clause.OpUnlink:
-			return assocDB.Where("? IN (?)", foreignColumns, base.Select(ownerPKNames)).Updates(fkNil).Error
+			return assocDB.Updates(fkNil).Error
 		case clause.OpDelete:
-			return assocDB.Where("? IN (?)", foreignColumns, base.Select(ownerPKNames)).Delete(assocModel).Error
+			return assocDB.Delete(assocModel).Error
 		case clause.OpUpdate:
-			return assocDB.Where("? IN (?)", foreignColumns, base.Select(ownerPKNames)).Updates(setMap).Error
+			return assocDB.Updates(setMap).Error
 		}
 	case schema.BelongsTo:
 		switch op.Type {
@@ -870,56 +871,45 @@ func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, 
 			return assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Updates(setMap).Error
 		}
 	case schema.Many2Many:
-		// Use EXISTS subqueries to support composite keys
 		joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
-		joinDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
+		joinDB := base.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
 
 		// EXISTS owners: owners.pk = join.owner_fk for all owner refs
-		ownersExists := func() *DB {
-			own := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.Schema.Table).Select("1")
-			for _, ref := range rel.References {
-				if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
-					own = own.Where(clause.Eq{
-						Column: clause.Column{Table: rel.Schema.Table, Name: ref.PrimaryKey.DBName},
-						Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
-					})
-				}
+		ownersExists := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.Schema.Table).Select("1")
+		for _, ref := range rel.References {
+			if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+				ownersExists = ownersExists.Where(clause.Eq{
+					Column: clause.Column{Table: rel.Schema.Table, Name: ref.PrimaryKey.DBName},
+					Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+				})
 			}
-			return own
-		}()
+		}
 
 		// EXISTS related: related.pk = join.rel_fk for all related refs, plus optional conditions
-		relatedExists := func() *DB {
-			relSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
-			for _, ref := range rel.References {
-				if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
-					relSub = relSub.Where(clause.Eq{
-						Column: clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
-						Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
-					})
-				}
+		relatedExists := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
+		for _, ref := range rel.References {
+			if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+				relatedExists = relatedExists.Where(clause.Eq{
+					Column: clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+					Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+				})
 			}
-			if len(op.Conditions) > 0 {
-				relSub = relSub.Where(clause.Where{Exprs: op.Conditions})
-			}
-			return relSub
-		}()
+		}
+		relatedExists = relatedExists.Where(op.Conditions)
 
 		switch op.Type {
 		case clause.OpUnlink, clause.OpDelete:
-			joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{ownersExists}})
+			joinDB = joinDB.Where("EXISTS (?)", ownersExists)
 			if len(op.Conditions) > 0 {
-				joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{relatedExists}})
+				joinDB = joinDB.Where("EXISTS (?)", relatedExists)
 			}
 			return joinDB.Delete(nil).Error
 		case clause.OpUpdate:
 			// Update related table rows that have join rows matching owners
-			relatedDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table)
-			if len(op.Conditions) > 0 {
-				relatedDB = relatedDB.Where(clause.Where{Exprs: op.Conditions})
-			}
+			relatedDB := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Where(op.Conditions)
+
 			// correlated join subquery: join.rel_fk = related.pk AND EXISTS owners
-			joinSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.JoinTable.Table).Select("1")
+			joinSub := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.JoinTable.Table).Select("1")
 			for _, ref := range rel.References {
 				if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
 					joinSub = joinSub.Where(clause.Eq{
@@ -928,8 +918,8 @@ func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, 
 					})
 				}
 			}
-			joinSub = joinSub.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{ownersExists}})
-			return relatedDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{joinSub}}).Updates(setMap).Error
+			joinSub = joinSub.Where("EXISTS (?)", ownersExists)
+			return relatedDB.Where("EXISTS (?)", joinSub).Updates(setMap).Error
 		}
 	}
 	return errors.New("unsupported relationship")
