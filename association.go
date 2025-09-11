@@ -411,6 +411,15 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				if association.Relationship.Field.FieldType.Kind() == reflect.Struct {
 					assignBacks = append(assignBacks, assignBack{Source: source, Dest: rv})
 				}
+			case reflect.Ptr:
+				if rv.Elem().Kind() != reflect.Struct {
+					association.Error = ErrInvalidValue
+					return
+				}
+				association.Error = association.Relationship.Field.Set(association.DB.Statement.Context, source, rv.Interface())
+				if association.Relationship.Field.FieldType.Kind() == reflect.Struct {
+					assignBacks = append(assignBacks, assignBack{Source: source, Dest: rv.Elem()})
+				}
 			}
 		case schema.HasMany, schema.Many2Many:
 			elemType := association.Relationship.Field.IndirectFieldType.Elem()
@@ -438,6 +447,30 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 			}
 
 			switch rv.Kind() {
+			case reflect.Map:
+				// Only support map for HasMany here
+				if association.Relationship.Type == schema.HasMany && rv.Type().Key().Kind() == reflect.String {
+					data := map[string]interface{}{}
+					iter := rv.MapRange()
+					for iter.Next() {
+						data[iter.Key().String()] = iter.Value().Interface()
+					}
+					for _, ref := range association.Relationship.References {
+						if ref.OwnPrimaryKey {
+							if v, _ := ref.PrimaryKey.ValueOf(association.DB.Statement.Context, source); v != nil {
+								data[ref.ForeignKey.DBName] = v
+							}
+						} else if ref.PrimaryValue != "" {
+							data[ref.ForeignKey.DBName] = ref.PrimaryValue
+						}
+					}
+					childModel := reflect.New(association.Relationship.FieldSchema.ModelType).Interface()
+					if err := association.DB.Session(&Session{}).Model(childModel).Create(data).Error; err != nil {
+						association.Error = err
+						return
+					}
+					return
+				}
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < rv.Len(); i++ {
 					appendToFieldValues(reflect.Indirect(rv.Index(i)).Addr())
@@ -448,6 +481,12 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					return
 				}
 				appendToFieldValues(rv.Addr())
+			case reflect.Ptr:
+				if rv.Elem().Kind() != reflect.Struct {
+					association.Error = ErrInvalidValue
+					return
+				}
+				appendToFieldValues(rv)
 			}
 
 			if association.Error == nil {

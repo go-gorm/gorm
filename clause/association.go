@@ -19,7 +19,6 @@ type Association struct {
 	Set         []Assignment      // Assignment operations (for Update and Create)
 	Model       interface{}       // Model object (for Create object)
 	Values      []interface{}     // Values for Create operation
-	Unscope     bool              // Whether to unscope delete
 }
 
 // AssociationAssigner is an interface for association operation providers

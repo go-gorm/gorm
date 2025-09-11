@@ -578,23 +578,35 @@ func TestClauseAssociationSetUpdateNoOwnerMatch(t *testing.T) {
 	}
 }
 
-// OpDelete/OpUpdate are not implemented yet; ensure clear error is returned
-func TestClauseAssociationSetUpdateUnimplementedOps(t *testing.T) {
+// OpDelete/OpUpdate should work for associations
+func TestClauseAssociationSetUpdateAndDelete(t *testing.T) {
 	ctx := context.Background()
-	user := User{Name: "TestClauseAssociationSetUpdateUnimplementedOps", Age: 25}
+	user := User{Name: "TestClauseAssociationSetUpdateAndDelete", Age: 25}
+	user.Pets = []*Pet{{Name: "before"}}
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("create user: %v", err)
 	}
+	AssertAssociationCount(t, user, "Pets", 1, "before update/delete")
 
-	delOp := clause.Association{Association: "Pets", Type: clause.OpDelete}
-	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(delOp).Update(ctx); err == nil {
-		t.Fatalf("expected error for OpDelete, got nil")
-	}
-
+	// Update pet name via OpUpdate
 	updOp := clause.Association{Association: "Pets", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "x"}}}
-	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(updOp).Update(ctx); err == nil {
-		t.Fatalf("expected error for OpUpdate, got nil")
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(updOp).Update(ctx); err != nil {
+		t.Fatalf("OpUpdate failed: %v", err)
 	}
+	var got User
+	if err := DB.Preload("Pets").First(&got, user.ID).Error; err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+	if len(got.Pets) != 1 || got.Pets[0].Name != "x" {
+		t.Fatalf("expected updated pet name, got %+v", got.Pets)
+	}
+
+	// Delete pets via OpDelete
+	delOp := clause.Association{Association: "Pets", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(delOp).Update(ctx); err != nil {
+		t.Fatalf("OpDelete failed: %v", err)
+	}
+	AssertAssociationCount(t, user, "Pets", 0, "after delete")
 }
 
 // Test Set + Update with has-one (NamedPet) using OpCreateValues
@@ -727,43 +739,4 @@ func TestClauseAssociationSetUpdateMultipleOwners(t *testing.T) {
 
 	AssertAssociationCount(t, u1, "Pets", 1, "u1 after create")
 	AssertAssociationCount(t, u2, "Pets", 1, "u2 after create")
-}
-
-// Test Set + Update with OpUnlink and Unscope=true (soft delete for has-many target)
-func TestClauseAssociationSetUpdateHasManyUnlinkUnscoped(t *testing.T) {
-	ctx := context.Background()
-
-	user := User{Name: "TestClauseAssociationSetUpdateHasManyUnlinkUnscoped", Age: 25}
-	user.Pets = []*Pet{{Name: "to-soft-delete"}, {Name: "keep"}}
-	if err := DB.Create(&user).Error; err != nil {
-		t.Fatalf("create user: %v", err)
-	}
-	AssertAssociationCount(t, user, "Pets", 2, "before unlink")
-
-	var pet Pet
-	if err := DB.Where("name = ?", "to-soft-delete").First(&pet).Error; err != nil {
-		t.Fatalf("find pet: %v", err)
-	}
-
-	assocOp := clause.Association{
-		Association: "Pets", Type: clause.OpUnlink, Unscope: true,
-		Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "id"}, Value: pet.ID}},
-	}
-	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
-		t.Fatalf("Set Update unlink unscoped failed: %v", err)
-	} else if rows != 0 {
-		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
-	}
-
-	// Association should have 1 left
-	AssertAssociationCount(t, user, "Pets", 1, "after unlink unscoped")
-
-	// Unscope means hard delete: deleted pet should not exist even unscoped
-	var count int64
-	if err := DB.Unscoped().Model(&Pet{}).Where("id = ?", pet.ID).Count(&count).Error; err != nil {
-		t.Fatalf("count unscoped pet: %v", err)
-	}
-	if count != 0 {
-		t.Fatalf("expected hard-deleted pet to be removed, got count %d", count)
-	}
 }
