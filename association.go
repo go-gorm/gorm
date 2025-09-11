@@ -58,6 +58,8 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 }
 
 func (association *Association) Append(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		switch association.Relationship.Type {
 		case schema.HasOne, schema.BelongsTo:
@@ -73,6 +75,8 @@ func (association *Association) Append(values ...interface{}) error {
 }
 
 func (association *Association) Replace(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		reflectValue := association.DB.Statement.ReflectValue
 		rel := association.Relationship
@@ -195,6 +199,8 @@ func (association *Association) Replace(values ...interface{}) error {
 }
 
 func (association *Association) Delete(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		var (
 			reflectValue  = association.DB.Statement.ReflectValue
@@ -590,4 +596,48 @@ func (association *Association) buildCondition() *DB {
 	}
 
 	return tx
+}
+
+func expandValues(values ...any) (results []any) {
+	// Process each argument; if an argument is a slice/array, expand its elements
+	for _, value := range values {
+		rv := reflect.ValueOf(value)
+		if !rv.IsValid() {
+			results = append(results, value)
+			continue
+		}
+
+		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+			for i := 0; i < rv.Len(); i++ {
+				elem := rv.Index(i)
+				// unwrap interface
+				if elem.IsValid() && elem.Kind() == reflect.Interface {
+					elem = elem.Elem()
+				}
+				if elem.IsValid() && elem.Kind() == reflect.Struct {
+					p := reflect.New(elem.Type())
+					p.Elem().Set(elem)
+					results = append(results, p.Interface())
+				} else if elem.IsValid() {
+					results = append(results, elem.Interface())
+				} else {
+					results = append(results, nil)
+				}
+			}
+			continue
+		}
+
+		// unwrap interface
+		if rv.Kind() == reflect.Interface {
+			rv = rv.Elem()
+		}
+		if rv.IsValid() && rv.Kind() == reflect.Struct {
+			p := reflect.New(rv.Type())
+			p.Elem().Set(rv)
+			results = append(results, p.Interface())
+		} else {
+			results = append(results, value)
+		}
+	}
+	return
 }

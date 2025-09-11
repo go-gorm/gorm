@@ -835,13 +835,16 @@ func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base
 		return err
 	}
 	for _, owner := range owners {
-		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
+		assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner)
+		association := assocDB.Association(op.Association)
 		if association.Error != nil {
 			return association.Error
 		}
+
 		relSchema := association.Relationship.FieldSchema
 		rv := reflect.New(relSchema.ModelType)
 		for _, assignment := range op.Set {
+			association.DB.Statement.Selects = append(association.DB.Statement.Selects, assignment.Column.Name)
 			if f := relSchema.LookUpField(assignment.Column.Name); f != nil {
 				if err := f.Set(ctx, rv.Elem(), assignment.Value); err != nil {
 					return err
@@ -866,25 +869,7 @@ func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context
 			return association.Error
 		}
 
-		var args []interface{}
-		for _, v := range op.Values {
-			rv := reflect.ValueOf(v)
-			if rv.IsValid() {
-				switch rv.Kind() {
-				case reflect.Struct:
-					addr := reflect.New(rv.Type())
-					addr.Elem().Set(rv)
-					args = append(args, addr.Interface())
-				case reflect.Slice, reflect.Ptr:
-					args = append(args, v)
-				default:
-					args = append(args, v)
-				}
-			} else {
-				args = append(args, v)
-			}
-		}
-		if err := association.Append(args...); err != nil {
+		if err := association.Append(op.Values...); err != nil {
 			return err
 		}
 	}
