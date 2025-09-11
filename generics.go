@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -722,39 +723,122 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
-	var r T
-	db := s.c.g.apply(ctx).Model(&r)
-	association := db.Association(op.Association)
-
-	if association.Error != nil {
-		return association.Error
+	// Load target owners based on current scope (e.g. Where conditions)
+	base := s.c.g.apply(ctx)
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
 	}
 
+	// Nothing to do if no owners matched
+	if len(owners) == 0 {
+		return nil
+	}
+
+	// Prepare conditions for association operations
 	conds := make([]interface{}, 0, len(op.Conditions))
 	for _, c := range op.Conditions {
 		conds = append(conds, c)
 	}
 
-	switch op.Type {
-	case clause.OpUnlink:
-		if len(conds) > 0 {
-			return association.Delete(conds)
+	for i := range owners {
+		owner := &owners[i]
+		ownerDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(owner)
+		assocDB := ownerDB
+		if op.Unscope {
+			assocDB = assocDB.Unscoped()
 		}
-		return association.Clear()
-	case clause.OpDelete:
-		return fmt.Errorf("Association Delete not implemented") // TODO
-	case clause.OpUpdate:
-		return fmt.Errorf("Association Updates not implemented") // TODO
-	case clause.OpCreate:
-		// Create association records with assignments
-		createData := make(map[string]interface{})
-		for _, assignment := range op.Set {
-			createData[assignment.Column.Name] = assignment.Value
+		association := assocDB.Association(op.Association)
+		if association.Error != nil {
+			return association.Error
 		}
-		return association.Append(&createData)
-	case clause.OpCreateValues:
-		return association.Append(&op.Values)
-	default:
-		return fmt.Errorf("unknown association operation type: %v", op.Type)
+
+		switch op.Type {
+		case clause.OpUnlink:
+			if len(conds) == 0 {
+				if err := association.Clear(); err != nil {
+					return err
+				}
+			} else {
+				// Find target related records by conditions then delete (unlink)
+				relSchema := association.Relationship.FieldSchema
+				// Build slice []*RelatedType for Find
+				slice := relSchema.MakeSlice()
+				// Use a clean association for Find to avoid leaking conditions
+				if err := ownerDB.Association(op.Association).Find(slice.Interface(), conds...); err != nil {
+					return err
+				}
+				// Expand and delete
+				sv := slice.Elem() // []*T
+				// Convert to []interface{} for variadic call
+				args := make([]interface{}, sv.Len())
+				for idx := 0; idx < sv.Len(); idx++ {
+					args[idx] = sv.Index(idx).Interface()
+				}
+				// Use a fresh association for Delete to avoid mixing previous WHERE
+				delDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx})
+				if op.Unscope {
+					delDB = delDB.Unscoped()
+				}
+				delAssoc := delDB.Model(owner).Association(op.Association)
+				if op.Unscope {
+					delAssoc = delAssoc.Unscoped()
+				}
+				if err := delAssoc.Delete(args...); err != nil {
+					return err
+				}
+			}
+		case clause.OpDelete:
+			return fmt.Errorf("Association Delete not implemented") // TODO
+		case clause.OpUpdate:
+			return fmt.Errorf("Association Updates not implemented") // TODO
+		case clause.OpCreate:
+			// Create typed association record from assignments
+			relSchema := association.Relationship.FieldSchema
+			// new related struct pointer
+			rv := reflect.New(relSchema.ModelType)
+			// Assign fields from Set using DBName lookup
+			for _, assignment := range op.Set {
+				if f := relSchema.LookUpField(assignment.Column.Name); f != nil {
+					if err := f.Set(ownerDB.Statement.Context, rv.Elem(), assignment.Value); err != nil {
+						return err
+					}
+				}
+			}
+			if err := association.Append(rv.Interface()); err != nil {
+				return err
+			}
+		case clause.OpCreateValues:
+			// Append provided values, ensure they are pointers to struct or slices as required by GORM
+			var args []interface{}
+			for _, v := range op.Values {
+				rv := reflect.ValueOf(v)
+				if rv.IsValid() {
+					if rv.Kind() == reflect.Struct {
+						// take address
+						addr := reflect.New(rv.Type())
+						addr.Elem().Set(rv)
+						args = append(args, addr.Interface())
+						continue
+					}
+					if rv.Kind() == reflect.Slice {
+						// pass slice as-is
+						args = append(args, v)
+						continue
+					}
+					if rv.Kind() == reflect.Ptr {
+						args = append(args, v)
+						continue
+					}
+				}
+				args = append(args, v)
+			}
+			if err := association.Append(args...); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unknown association operation type: %v", op.Type)
+		}
 	}
+	return nil
 }

@@ -37,15 +37,13 @@ func TestClauseAssociationSetCreateWithOpCreate(t *testing.T) {
 		},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with association failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify the association was created using real database query
@@ -75,15 +73,13 @@ func TestClauseAssociationSetUpdateWithOpCreate(t *testing.T) {
 		},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with association failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify the association was updated using real database query
@@ -146,15 +142,13 @@ func TestClauseAssociationSetCreateWithMultipleAssociations(t *testing.T) {
 		},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp1, assocOp2).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp1, assocOp2).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with multiple associations failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify both associations were created using real database queries
@@ -195,15 +189,13 @@ func TestClauseAssociationSetUpdateWithMultipleAssociations(t *testing.T) {
 		},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp1, assocOp2).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp1, assocOp2).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with multiple associations failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify both associations were updated using real database queries
@@ -250,15 +242,13 @@ func TestClauseAssociationSetUpdateWithOpUnlink(t *testing.T) {
 		},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with association unlink failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify only one pet remains using real database query
@@ -305,15 +295,13 @@ func TestClauseAssociationSetUpdateWithOpCreateValues(t *testing.T) {
 		Values:      []interface{}{&newPet},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with association create values failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify the pet was created and associated using real database query
@@ -357,15 +345,13 @@ func TestClauseAssociationSetCreateWithManyToMany(t *testing.T) {
 		Values:      []interface{}{langs[0], langs[1]},
 	}
 
-	rows, err := gorm.G[User](DB).
-		Where("id = ?", user.ID).
-		Set(assocOp).
-		Update(ctx)
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
 	if err != nil {
 		t.Fatalf("Set Update with many-to-many association failed: %v", err)
 	}
-	if rows != 1 {
-		t.Fatalf("expected 1 row affected, got %d", rows)
+	// Only association operations were executed; no row update is expected
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
 	}
 
 	// Verify the languages were associated using real database query
@@ -411,5 +397,373 @@ func TestClauseAssociationSetCreateWithBelongsTo(t *testing.T) {
 
 	if newUser.Company.Name != company.Name {
 		t.Errorf("expected company name %s, got %s", company.Name, newUser.Company.Name)
+	}
+}
+
+// BelongsTo: create and assign company via OpCreateValues
+func TestClauseAssociationSetUpdateBelongsToCreateValues(t *testing.T) {
+	ctx := context.Background()
+
+	user := User{Name: "TestClauseAssociationSetUpdateBelongsToCreateValues", Age: 26}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	assocOp := clause.Association{Association: "Company", Type: clause.OpCreateValues, Values: []interface{}{Company{Name: "Belongs-To-Co"}}}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update belongs-to create values failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	var got User
+	if err := DB.Preload("Company").First(&got, user.ID).Error; err != nil {
+		t.Fatalf("failed preload company: %v", err)
+	}
+	if got.Company.ID == 0 || got.Company.Name != "Belongs-To-Co" {
+		t.Fatalf("expected Company assigned, got %+v", got.Company)
+	}
+}
+
+// Mixed fields + association: update Age and create a pet together
+func TestClauseAssociationSetUpdateMixedFieldAndAssociation(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateMixed", Age: 20}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	assocOp := clause.Association{Association: "Pets", Type: clause.OpCreate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "mix-pet"}}}
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(
+		assocOp,
+		clause.Assignment{Column: clause.Column{Name: "age"}, Value: 30},
+	).Update(ctx)
+	if err != nil {
+		t.Fatalf("Set Update mixed failed: %v", err)
+	}
+	if rows != 1 {
+		t.Fatalf("expected 1 row affected for field update, got %d", rows)
+	}
+
+	var got User
+	if err := DB.Preload("Pets").First(&got, user.ID).Error; err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+	if got.Age != 30 {
+		t.Fatalf("expected age 30, got %d", got.Age)
+	}
+	if len(got.Pets) != 1 || got.Pets[0].Name != "mix-pet" {
+		t.Fatalf("expected pet created, got %+v", got.Pets)
+	}
+}
+
+// HasOne unlink clears NamedPet
+func TestClauseAssociationSetUpdateHasOneUnlink(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateHasOneUnlink", Age: 25}
+	user.NamedPet = &Pet{Name: "np"}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	assocOp := clause.Association{Association: "NamedPet", Type: clause.OpUnlink}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update has-one unlink failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	var got User
+	if err := DB.Preload("NamedPet").First(&got, user.ID).Error; err != nil {
+		t.Fatalf("load user: %v", err)
+	}
+	if got.NamedPet != nil {
+		t.Fatalf("expected NamedPet cleared, got %+v", got.NamedPet)
+	}
+}
+
+// Many-to-Many create with Set
+func TestClauseAssociationSetUpdateManyToManyCreateWithSet(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateMany2ManyCreateWithSet", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	assocOp := clause.Association{
+		Association: "Languages", Type: clause.OpCreate,
+		Set: []clause.Assignment{{Column: clause.Column{Name: "code"}, Value: "it"}, {Column: clause.Column{Name: "name"}, Value: "Italian"}},
+	}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update many2many create with set failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected, got %d", rows)
+	}
+
+	AssertAssociationCount(t, user, "Languages", 1, "after create language")
+}
+
+// Many-to-Many clear
+func TestClauseAssociationSetUpdateManyToManyClear(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateMany2ManyClear", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	langs := []Language{{Code: "pt", Name: "Portuguese"}, {Code: "ru", Name: "Russian"}}
+	for _, l := range langs {
+		DB.FirstOrCreate(&l, "code = ?", l.Code)
+	}
+	if err := DB.Model(&user).Association("Languages").Append(&langs); err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 2, "before clear")
+
+	assocOp := clause.Association{Association: "Languages", Type: clause.OpUnlink}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update many2many clear failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected, got %d", rows)
+	}
+	AssertAssociationCount(t, user, "Languages", 0, "after clear")
+}
+
+// Polymorphic Tools create and unlink
+func TestClauseAssociationSetUpdatePolymorphicTools(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdatePolymorphicTools", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	createOp := clause.Association{Association: "Tools", Type: clause.OpCreateValues, Values: []interface{}{Tools{Name: "wrench"}}}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(createOp).Update(ctx); err != nil {
+		t.Fatalf("create tools: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("rows %d", rows)
+	}
+	AssertAssociationCount(t, user, "Tools", 1, "after create tool")
+
+	unlinkOp := clause.Association{Association: "Tools", Type: clause.OpUnlink}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(unlinkOp).Update(ctx); err != nil {
+		t.Fatalf("unlink tools: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("rows %d", rows)
+	}
+	AssertAssociationCount(t, user, "Tools", 0, "after clear tools")
+}
+
+// Invalid association should return error
+func TestClauseAssociationSetUpdateInvalidAssociation(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateInvalidAssociation", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	assocOp := clause.Association{Association: "Invalid", Type: clause.OpCreate}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err == nil {
+		t.Fatalf("expected error for invalid association, got nil")
+	}
+}
+
+// No owner matched; should be no-op
+func TestClauseAssociationSetUpdateNoOwnerMatch(t *testing.T) {
+	ctx := context.Background()
+	assocOp := clause.Association{Association: "Pets", Type: clause.OpCreate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "won't-create"}}}
+	if rows, err := gorm.G[User](DB).Where("id = ?", -1).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows, got %d", rows)
+	}
+}
+
+// OpDelete/OpUpdate are not implemented yet; ensure clear error is returned
+func TestClauseAssociationSetUpdateUnimplementedOps(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdateUnimplementedOps", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	delOp := clause.Association{Association: "Pets", Type: clause.OpDelete}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(delOp).Update(ctx); err == nil {
+		t.Fatalf("expected error for OpDelete, got nil")
+	}
+
+	updOp := clause.Association{Association: "Pets", Type: clause.OpUpdate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "x"}}}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(updOp).Update(ctx); err == nil {
+		t.Fatalf("expected error for OpUpdate, got nil")
+	}
+}
+
+// Test Set + Update with has-one (NamedPet) using OpCreateValues
+func TestClauseAssociationSetUpdateHasOneCreateValues(t *testing.T) {
+	ctx := context.Background()
+
+	user := User{Name: "TestClauseAssociationSetUpdateHasOneCreateValues", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	assocOp := clause.Association{
+		Association: "NamedPet",
+		Type:        clause.OpCreateValues,
+		Values:      []interface{}{Pet{Name: "named-pet"}},
+	}
+
+	rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx)
+	if err != nil {
+		t.Fatalf("Set Update has-one create values failed: %v", err)
+	}
+	if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	var updated User
+	if err := DB.Preload("NamedPet").First(&updated, user.ID).Error; err != nil {
+		t.Fatalf("failed to load user: %v", err)
+	}
+	if updated.NamedPet == nil || updated.NamedPet.Name != "named-pet" {
+		t.Fatalf("expected named-pet created, got %+v", updated.NamedPet)
+	}
+}
+
+// Test Set + Update to clear all has-many (Pets) via OpUnlink without conditions
+func TestClauseAssociationSetUpdateHasManyClear(t *testing.T) {
+	ctx := context.Background()
+
+	user := User{Name: "TestClauseAssociationSetUpdateHasManyClear", Age: 25}
+	user.Pets = []*Pet{{Name: "p1"}, {Name: "p2"}}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+	AssertAssociationCount(t, user, "Pets", 2, "before clear")
+
+	assocOp := clause.Association{Association: "Pets", Type: clause.OpUnlink}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update has-many clear failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	AssertAssociationCount(t, user, "Pets", 0, "after clear")
+}
+
+// Test Set + Update with many-to-many unlink specific records using conditions
+func TestClauseAssociationSetUpdateManyToManyUnlink(t *testing.T) {
+	ctx := context.Background()
+
+	user := User{Name: "TestClauseAssociationSetUpdateManyToManyUnlink", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	langs := []Language{{Code: "es", Name: "Spanish"}, {Code: "de", Name: "German"}}
+	for _, l := range langs {
+		DB.FirstOrCreate(&l, "code = ?", l.Code)
+	}
+
+	// Associate both
+	if err := DB.Model(&user).Association("Languages").Append(&langs); err != nil {
+		t.Fatalf("failed to append languages: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 2, "before unlink")
+
+	assocOp := clause.Association{
+		Association: "Languages",
+		Type:        clause.OpUnlink,
+		Conditions:  []clause.Expression{clause.Eq{Column: clause.Column{Name: "code"}, Value: "es"}},
+	}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update many-to-many unlink failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "after unlink one")
+}
+
+// Test Set + Update with polymorphic has-many (Toys) using OpCreate
+func TestClauseAssociationSetUpdatePolymorphicCreate(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "TestClauseAssociationSetUpdatePolymorphicCreate", Age: 25}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	assocOp := clause.Association{
+		Association: "Toys",
+		Type:        clause.OpCreate,
+		Set:         []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "yo-yo"}},
+	}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update polymorphic create failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	AssertAssociationCount(t, user, "Toys", 1, "after create toy")
+}
+
+// Test Set + Update across multiple owners
+func TestClauseAssociationSetUpdateMultipleOwners(t *testing.T) {
+	ctx := context.Background()
+
+	u1 := User{Name: "SetUpdateMultipleOwners-1", Age: 20}
+	u2 := User{Name: "SetUpdateMultipleOwners-2", Age: 21}
+	if err := DB.Create(&u1).Error; err != nil {
+		t.Fatalf("create u1: %v", err)
+	}
+	if err := DB.Create(&u2).Error; err != nil {
+		t.Fatalf("create u2: %v", err)
+	}
+
+	assocOp := clause.Association{Association: "Pets", Type: clause.OpCreate, Set: []clause.Assignment{{Column: clause.Column{Name: "name"}, Value: "multi-pet"}}}
+	if rows, err := gorm.G[User](DB).Where("name IN ?", []string{u1.Name, u2.Name}).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update multi owners failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	AssertAssociationCount(t, u1, "Pets", 1, "u1 after create")
+	AssertAssociationCount(t, u2, "Pets", 1, "u2 after create")
+}
+
+// Test Set + Update with OpUnlink and Unscope=true (soft delete for has-many target)
+func TestClauseAssociationSetUpdateHasManyUnlinkUnscoped(t *testing.T) {
+	ctx := context.Background()
+
+	user := User{Name: "TestClauseAssociationSetUpdateHasManyUnlinkUnscoped", Age: 25}
+	user.Pets = []*Pet{{Name: "to-soft-delete"}, {Name: "keep"}}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+	AssertAssociationCount(t, user, "Pets", 2, "before unlink")
+
+	var pet Pet
+	if err := DB.Where("name = ?", "to-soft-delete").First(&pet).Error; err != nil {
+		t.Fatalf("find pet: %v", err)
+	}
+
+	assocOp := clause.Association{
+		Association: "Pets", Type: clause.OpUnlink, Unscope: true,
+		Conditions: []clause.Expression{clause.Eq{Column: clause.Column{Name: "id"}, Value: pet.ID}},
+	}
+	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
+		t.Fatalf("Set Update unlink unscoped failed: %v", err)
+	} else if rows != 0 {
+		t.Fatalf("expected 0 rows affected for association-only update, got %d", rows)
+	}
+
+	// Association should have 1 left
+	AssertAssociationCount(t, user, "Pets", 1, "after unlink unscoped")
+
+	// Unscope means hard delete: deleted pet should not exist even unscoped
+	var count int64
+	if err := DB.Unscoped().Model(&Pet{}).Where("id = ?", pet.ID).Count(&count).Error; err != nil {
+		t.Fatalf("count unscoped pet: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected hard-deleted pet to be removed, got count %d", count)
 	}
 }

@@ -19,7 +19,7 @@ type Association struct {
 }
 
 func (db *DB) Association(column string) *Association {
-	association := &Association{DB: db}
+	association := &Association{DB: db, Unscope: db.Statement.Unscoped}
 	table := db.Statement.Table
 
 	if err := db.Statement.Parse(db.Statement.Model); err == nil {
