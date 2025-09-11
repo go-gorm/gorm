@@ -723,121 +723,169 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
-	// Load target owners based on current scope (e.g. Where conditions)
-	base := s.c.g.apply(ctx)
-	var owners []T
-	if err := base.Find(&owners).Error; err != nil {
-		return err
+	var r T
+	base := s.c.g.apply(ctx).Model(r)
+
+	switch op.Type {
+	case clause.OpUnlink:
+		return s.handleAssociationUnlink(ctx, base, op)
+	case clause.OpDelete:
+		return fmt.Errorf("Association Delete not implemented")
+	case clause.OpUpdate:
+		return fmt.Errorf("Association Updates not implemented")
+	case clause.OpCreate:
+		return s.handleAssociationCreate(ctx, base, op)
+	case clause.OpCreateValues:
+		return s.handleAssociationCreateValues(ctx, base, op)
+	default:
+		return fmt.Errorf("unknown association operation type: %v", op.Type)
+	}
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationUnlink(ctx context.Context, base *DB, op clause.Association) error {
+	// Parse schema and resolve relationship
+	if base.Statement.Schema == nil {
+		if err := base.Statement.Parse(base.Statement.Model); err != nil {
+			return err
+		}
+	}
+	rel := base.Statement.Schema.Relationships.Relations[op.Association]
+	if rel == nil {
+		return fmt.Errorf("%w: %s", ErrUnsupportedRelation, op.Association)
 	}
 
-	// Nothing to do if no owners matched
-	if len(owners) == 0 {
-		return nil
+	ownerPKs := rel.Schema.PrimaryFieldDBNames
+	if len(ownerPKs) != 1 {
+		return fmt.Errorf("unlink with composite primary key not supported")
 	}
 
-	// Prepare conditions for association operations
+	// owners subquery with current WHERE
+	ownersSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx, Initialized: true}).
+		Model(reflect.New(rel.Schema.ModelType).Interface()).
+		Select(ownerPKs[0])
+	if whereClause, ok := base.Statement.Clauses["WHERE"]; ok && whereClause.Expression != nil {
+		if e, ok2 := whereClause.Expression.(clause.Expression); ok2 {
+			ownersSub = ownersSub.Where(e)
+		}
+	}
+
+	// collect conditions
 	conds := make([]interface{}, 0, len(op.Conditions))
 	for _, c := range op.Conditions {
 		conds = append(conds, c)
 	}
 
-	for i := range owners {
-		owner := &owners[i]
-		ownerDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(owner)
-		assocDB := ownerDB
+	if rel.JoinTable != nil {
+		// many2many: delete from join
+		joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
+		joinDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
 		if op.Unscope {
-			assocDB = assocDB.Unscoped()
+			joinDB = joinDB.Unscoped()
 		}
-		association := assocDB.Association(op.Association)
+
+		var joinOwnerFK, joinRelFK, relPK string
+		for _, ref := range rel.References {
+			if ref.OwnPrimaryKey && joinOwnerFK == "" {
+				joinOwnerFK = ref.ForeignKey.DBName
+			}
+			if !ref.OwnPrimaryKey && joinRelFK == "" {
+				joinRelFK = ref.ForeignKey.DBName
+				if ref.PrimaryKey != nil {
+					relPK = ref.PrimaryKey.DBName
+				}
+			}
+		}
+
+		joinDB = joinDB.Where(fmt.Sprintf("%s IN (?)", joinOwnerFK), ownersSub)
+		if len(conds) > 0 {
+			relatedSub := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table)
+			relatedSub = relatedSub.Where(clause.Eq{Column: clause.Column{Name: relPK, Table: rel.FieldSchema.Table}, Value: clause.Column{Name: joinRelFK, Table: rel.JoinTable.Table}})
+			relatedSub = relatedSub.Clauses(clause.Where{Exprs: op.Conditions})
+			joinDB = joinDB.Where(clause.Expr{SQL: "EXISTS (?)", Vars: []interface{}{relatedSub}})
+		}
+		return joinDB.Delete(nil).Error
+	}
+
+	// has one / has many
+	childModel := reflect.New(rel.FieldSchema.ModelType).Interface()
+	childDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(childModel)
+	if op.Unscope {
+		childDB = childDB.Unscoped()
+	}
+	var childFK string
+	for _, ref := range rel.References {
+		if ref.OwnPrimaryKey {
+			childFK = ref.ForeignKey.DBName
+			break
+		}
+	}
+	childDB = childDB.Where(fmt.Sprintf("%s IN (?)", childFK), ownersSub)
+	if len(conds) > 0 {
+		childDB = childDB.Clauses(clause.Where{Exprs: op.Conditions})
+	}
+	if op.Unscope {
+		return childDB.Delete(nil).Error
+	}
+	return childDB.UpdateColumn(childFK, nil).Error
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
+	}
+	for _, owner := range owners {
+		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
+		if association.Error != nil {
+			return association.Error
+		}
+		relSchema := association.Relationship.FieldSchema
+		rv := reflect.New(relSchema.ModelType)
+		for _, assignment := range op.Set {
+			if f := relSchema.LookUpField(assignment.Column.Name); f != nil {
+				if err := f.Set(ctx, rv.Elem(), assignment.Value); err != nil {
+					return err
+				}
+			}
+		}
+		if err := association.Append(rv.Interface()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
+	}
+	for _, owner := range owners {
+		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
 		if association.Error != nil {
 			return association.Error
 		}
 
-		switch op.Type {
-		case clause.OpUnlink:
-			if len(conds) == 0 {
-				if err := association.Clear(); err != nil {
-					return err
+		var args []interface{}
+		for _, v := range op.Values {
+			rv := reflect.ValueOf(v)
+			if rv.IsValid() {
+				switch rv.Kind() {
+				case reflect.Struct:
+					addr := reflect.New(rv.Type())
+					addr.Elem().Set(rv)
+					args = append(args, addr.Interface())
+				case reflect.Slice, reflect.Ptr:
+					args = append(args, v)
+				default:
+					args = append(args, v)
 				}
 			} else {
-				// Find target related records by conditions then delete (unlink)
-				relSchema := association.Relationship.FieldSchema
-				// Build slice []*RelatedType for Find
-				slice := relSchema.MakeSlice()
-				// Use a clean association for Find to avoid leaking conditions
-				if err := ownerDB.Association(op.Association).Find(slice.Interface(), conds...); err != nil {
-					return err
-				}
-				// Expand and delete
-				sv := slice.Elem() // []*T
-				// Convert to []interface{} for variadic call
-				args := make([]interface{}, sv.Len())
-				for idx := 0; idx < sv.Len(); idx++ {
-					args[idx] = sv.Index(idx).Interface()
-				}
-				// Use a fresh association for Delete to avoid mixing previous WHERE
-				delDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx})
-				if op.Unscope {
-					delDB = delDB.Unscoped()
-				}
-				delAssoc := delDB.Model(owner).Association(op.Association)
-				if op.Unscope {
-					delAssoc = delAssoc.Unscoped()
-				}
-				if err := delAssoc.Delete(args...); err != nil {
-					return err
-				}
-			}
-		case clause.OpDelete:
-			return fmt.Errorf("Association Delete not implemented") // TODO
-		case clause.OpUpdate:
-			return fmt.Errorf("Association Updates not implemented") // TODO
-		case clause.OpCreate:
-			// Create typed association record from assignments
-			relSchema := association.Relationship.FieldSchema
-			// new related struct pointer
-			rv := reflect.New(relSchema.ModelType)
-			// Assign fields from Set using DBName lookup
-			for _, assignment := range op.Set {
-				if f := relSchema.LookUpField(assignment.Column.Name); f != nil {
-					if err := f.Set(ownerDB.Statement.Context, rv.Elem(), assignment.Value); err != nil {
-						return err
-					}
-				}
-			}
-			if err := association.Append(rv.Interface()); err != nil {
-				return err
-			}
-		case clause.OpCreateValues:
-			// Append provided values, ensure they are pointers to struct or slices as required by GORM
-			var args []interface{}
-			for _, v := range op.Values {
-				rv := reflect.ValueOf(v)
-				if rv.IsValid() {
-					if rv.Kind() == reflect.Struct {
-						// take address
-						addr := reflect.New(rv.Type())
-						addr.Elem().Set(rv)
-						args = append(args, addr.Interface())
-						continue
-					}
-					if rv.Kind() == reflect.Slice {
-						// pass slice as-is
-						args = append(args, v)
-						continue
-					}
-					if rv.Kind() == reflect.Ptr {
-						args = append(args, v)
-						continue
-					}
-				}
 				args = append(args, v)
 			}
-			if err := association.Append(args...); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unknown association operation type: %v", op.Type)
+		}
+		if err := association.Append(args...); err != nil {
+			return err
 		}
 	}
 	return nil
