@@ -178,7 +178,7 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
+		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsInvalidDBNameChar)
 	} else {
 		tx.Statement.Omits = columns
 	}
@@ -283,7 +283,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
 
-	fields := strings.FieldsFunc(name, utils.IsValidDBNameChar)
+	fields := strings.FieldsFunc(name, utils.IsInvalidDBNameChar)
 	tx.Statement.AddClause(clause.GroupBy{
 		Columns: []clause.Column{{Name: name, Raw: len(fields) != 1}},
 	})

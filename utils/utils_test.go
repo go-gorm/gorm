@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-func TestIsValidDBNameChar(t *testing.T) {
+func TestIsInvalidDBNameChar(t *testing.T) {
 	for _, db := range []string{"db", "dbName", "db_name", "db1", "1dbname", "db$name"} {
-		if fields := strings.FieldsFunc(db, IsValidDBNameChar); len(fields) != 1 {
+		if fields := strings.FieldsFunc(db, IsInvalidDBNameChar); len(fields) != 1 {
 			t.Fatalf("failed to parse db name %v", db)
 		}
 	}

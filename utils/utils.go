@@ -48,7 +48,7 @@ func FileWithLineNum() string {
 	return ""
 }
 
-func IsValidDBNameChar(c rune) bool {
+func IsInvalidDBNameChar(c rune) bool {
 	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*' && c != '_' && c != '$' && c != '@'
 }
 
