@@ -358,7 +358,9 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 }
 
 func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingColumns []string) (onConflict clause.OnConflict) {
-	if len(defaultUpdatingColumns) > 0 || stmt.DB.FullSaveAssociations {
+	if stmt.DB.DisableAssociationUpserts {
+		onConflict.DoNothing = true
+	} else if len(defaultUpdatingColumns) > 0 || stmt.DB.FullSaveAssociations {
 		onConflict.Columns = make([]clause.Column, 0, len(s.PrimaryFieldDBNames))
 		for _, dbName := range s.PrimaryFieldDBNames {
 			onConflict.Columns = append(onConflict.Columns, clause.Column{Name: dbName})
