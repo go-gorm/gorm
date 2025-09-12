@@ -121,6 +121,17 @@ func GetIdentityFieldValuesMap(ctx context.Context, reflectValue reflect.Value, 
 	}
 
 	switch reflectValue.Kind() {
+	case reflect.Map:
+		results = [][]interface{}{make([]interface{}, len(fields))}
+		for idx, field := range fields {
+			mapValue := reflectValue.MapIndex(reflect.ValueOf(field.DBName))
+			if mapValue.IsZero() {
+				mapValue = reflectValue.MapIndex(reflect.ValueOf(field.Name))
+			}
+			results[0][idx] = mapValue.Interface()
+		}
+
+		dataResults[utils.ToStringKey(results[0]...)] = []reflect.Value{reflectValue}
 	case reflect.Struct:
 		results = [][]interface{}{make([]interface{}, len(fields))}
 

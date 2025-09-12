@@ -3,12 +3,15 @@ package gorm
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
 type result struct {
@@ -201,7 +204,7 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 }
 
 func (c createG[T]) Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T] {
-	return setCreateOrUpdateG[T]{c: c.chainG, assigns: toAssignments(assignments...)}
+	return c.processSet(assignments...)
 }
 
 func (c createG[T]) Create(ctx context.Context, r *T) error {
@@ -432,7 +435,7 @@ func (c chainG[T]) MapColumns(m map[string]string) ChainInterface[T] {
 }
 
 func (c chainG[T]) Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T] {
-	return setCreateOrUpdateG[T]{c: c, assigns: toAssignments(assignments...)}
+	return c.processSet(assignments...)
 }
 
 func (c chainG[T]) Distinct(args ...interface{}) ChainInterface[T] {
@@ -602,36 +605,6 @@ func (c chainG[T]) Build(builder clause.Builder) {
 	}
 }
 
-type setCreateOrUpdateG[T any] struct {
-	c       chainG[T]
-	assigns []clause.Assignment
-}
-
-// toAssignments converts various supported types into []clause.Assignment.
-// Supported inputs implement clause.Assigner.
-func toAssignments(items ...clause.Assigner) []clause.Assignment {
-	out := make([]clause.Assignment, 0, len(items))
-	for _, it := range items {
-		out = append(out, it.Assignments()...)
-	}
-	return out
-}
-
-func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
-	var r T
-	res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
-	return int(res.RowsAffected), res.Error
-}
-
-func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
-	var r T
-	data := make(map[string]interface{}, len(s.assigns))
-	for _, a := range s.assigns {
-		data[a.Column.Name] = a.Value
-	}
-	return s.c.g.apply(ctx).Model(r).Create(data).Error
-}
-
 type execG[T any] struct {
 	g *g[T]
 }
@@ -679,4 +652,245 @@ func (g execG[T]) Row(ctx context.Context) *sql.Row {
 
 func (g execG[T]) Rows(ctx context.Context) (*sql.Rows, error) {
 	return g.g.apply(ctx).Rows()
+}
+
+func (c chainG[T]) processSet(items ...clause.Assigner) setCreateOrUpdateG[T] {
+	var (
+		assigns  []clause.Assignment
+		assocOps []clause.Association
+	)
+
+	for _, item := range items {
+		// Check if it's an AssociationAssigner
+		if assocAssigner, ok := item.(clause.AssociationAssigner); ok {
+			assocOps = append(assocOps, assocAssigner.AssociationAssignments()...)
+		} else {
+			assigns = append(assigns, item.Assignments()...)
+		}
+	}
+
+	return setCreateOrUpdateG[T]{
+		c:        c,
+		assigns:  assigns,
+		assocOps: assocOps,
+	}
+}
+
+// setCreateOrUpdateG[T] is a struct that holds operations to be executed in a batch.
+// It supports regular assignments and association operations.
+type setCreateOrUpdateG[T any] struct {
+	c        chainG[T]
+	assigns  []clause.Assignment
+	assocOps []clause.Association
+}
+
+func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, err error) {
+	// Execute association operations
+	for _, assocOp := range s.assocOps {
+		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
+			return 0, err
+		}
+	}
+
+	// Execute assignment operations
+	if len(s.assigns) > 0 {
+		var r T
+		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
+		return int(res.RowsAffected), res.Error
+	}
+
+	return 0, nil
+}
+
+func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
+	// Execute association operations
+	for _, assocOp := range s.assocOps {
+		if err := s.executeAssociationOperation(ctx, assocOp); err != nil {
+			return err
+		}
+	}
+
+	// Execute assignment operations
+	if len(s.assigns) > 0 {
+		data := make(map[string]interface{}, len(s.assigns))
+		for _, a := range s.assigns {
+			data[a.Column.Name] = a.Value
+		}
+		var r T
+		return s.c.g.apply(ctx).Model(r).Create(data).Error
+	}
+
+	return nil
+}
+
+// executeAssociationOperation executes an association operation
+func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
+	var r T
+	base := s.c.g.apply(ctx).Model(r)
+
+	switch op.Type {
+	case clause.OpCreate:
+		return s.handleAssociationCreate(ctx, base, op)
+	case clause.OpCreateValues:
+		return s.handleAssociationCreateValues(ctx, base, op)
+	case clause.OpUnlink, clause.OpDelete, clause.OpUpdate:
+		return s.handleAssociation(ctx, base, op)
+	default:
+		return fmt.Errorf("unknown association operation type: %v", op.Type)
+	}
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
+	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
+		data := make(map[string]interface{}, len(op.Set))
+		for _, a := range op.Set {
+			data[a.Column.Name] = a.Value
+		}
+		return assoc.Append(data)
+	}, op.Association)
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
+	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
+		return assoc.Append(op.Values...)
+	}, op.Association)
+}
+
+// handleAssociationForOwners is a helper function that handles associations for all owners
+func (s setCreateOrUpdateG[T]) handleAssociationForOwners(base *DB, ctx context.Context, handler func(owner T, association *Association) error, associationName string) error {
+	var owners []T
+	if err := base.Find(&owners).Error; err != nil {
+		return err
+	}
+
+	for _, owner := range owners {
+		assoc := base.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(associationName)
+		if assoc.Error != nil {
+			return assoc.Error
+		}
+
+		if err := handler(owner, assoc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, op clause.Association) error {
+	assoc := base.Association(op.Association)
+	if assoc.Error != nil {
+		return assoc.Error
+	}
+
+	var (
+		rel            = assoc.Relationship
+		assocModel     = reflect.New(rel.FieldSchema.ModelType).Interface()
+		fkNil          = map[string]any{}
+		setMap         = make(map[string]any, len(op.Set))
+		ownerPKNames   []string
+		ownerFKNames   []string
+		primaryColumns []any
+		foreignColumns []any
+	)
+
+	for _, a := range op.Set {
+		setMap[a.Column.Name] = a.Value
+	}
+
+	for _, ref := range rel.References {
+		fkNil[ref.ForeignKey.DBName] = nil
+
+		if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+			ownerPKNames = append(ownerPKNames, ref.PrimaryKey.DBName)
+			primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
+			foreignColumns = append(foreignColumns, clause.Column{Name: ref.ForeignKey.DBName})
+		} else if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+			ownerFKNames = append(ownerFKNames, ref.ForeignKey.DBName)
+			primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
+		}
+	}
+
+	assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(assocModel).Where(op.Conditions)
+
+	switch rel.Type {
+	case schema.HasOne, schema.HasMany:
+		assocDB = assocDB.Where("? IN (?)", foreignColumns, base.Select(ownerPKNames))
+		switch op.Type {
+		case clause.OpUnlink:
+			return assocDB.Updates(fkNil).Error
+		case clause.OpDelete:
+			return assocDB.Delete(assocModel).Error
+		case clause.OpUpdate:
+			return assocDB.Updates(setMap).Error
+		}
+	case schema.BelongsTo:
+		switch op.Type {
+		case clause.OpDelete:
+			return base.Transaction(func(tx *DB) error {
+				assocDB.Statement.ConnPool = tx.Statement.ConnPool
+				base.Statement.ConnPool = tx.Statement.ConnPool
+
+				if err := assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Delete(assocModel).Error; err != nil {
+					return err
+				}
+				return base.Updates(fkNil).Error
+			})
+		case clause.OpUnlink:
+			return base.Updates(fkNil).Error
+		case clause.OpUpdate:
+			return assocDB.Where("? IN (?)", primaryColumns, base.Select(ownerFKNames)).Updates(setMap).Error
+		}
+	case schema.Many2Many:
+		joinModel := reflect.New(rel.JoinTable.ModelType).Interface()
+		joinDB := base.Session(&Session{NewDB: true, Context: ctx}).Model(joinModel)
+
+		// EXISTS owners: owners.pk = join.owner_fk for all owner refs
+		ownersExists := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.Schema.Table).Select("1")
+		for _, ref := range rel.References {
+			if ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+				ownersExists = ownersExists.Where(clause.Eq{
+					Column: clause.Column{Table: rel.Schema.Table, Name: ref.PrimaryKey.DBName},
+					Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+				})
+			}
+		}
+
+		// EXISTS related: related.pk = join.rel_fk for all related refs, plus optional conditions
+		relatedExists := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
+		for _, ref := range rel.References {
+			if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+				relatedExists = relatedExists.Where(clause.Eq{
+					Column: clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+					Value:  clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+				})
+			}
+		}
+		relatedExists = relatedExists.Where(op.Conditions)
+
+		switch op.Type {
+		case clause.OpUnlink, clause.OpDelete:
+			joinDB = joinDB.Where("EXISTS (?)", ownersExists)
+			if len(op.Conditions) > 0 {
+				joinDB = joinDB.Where("EXISTS (?)", relatedExists)
+			}
+			return joinDB.Delete(nil).Error
+		case clause.OpUpdate:
+			// Update related table rows that have join rows matching owners
+			relatedDB := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Where(op.Conditions)
+
+			// correlated join subquery: join.rel_fk = related.pk AND EXISTS owners
+			joinSub := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.JoinTable.Table).Select("1")
+			for _, ref := range rel.References {
+				if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
+					joinSub = joinSub.Where(clause.Eq{
+						Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+						Value:  clause.Column{Table: rel.FieldSchema.Table, Name: ref.PrimaryKey.DBName},
+					})
+				}
+			}
+			joinSub = joinSub.Where("EXISTS (?)", ownersExists)
+			return relatedDB.Where("EXISTS (?)", joinSub).Updates(setMap).Error
+		}
+	}
+	return errors.New("unsupported relationship")
 }

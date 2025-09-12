@@ -336,6 +336,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		switch v := arg.(type) {
 		case clause.Expression:
 			conds = append(conds, v)
+		case []clause.Expression:
+			conds = append(conds, v...)
 		case *DB:
 			v.executeScopes()
 
