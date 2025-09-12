@@ -856,7 +856,7 @@ func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, 
 		}
 
 		// EXISTS related: related.pk = join.rel_fk for all related refs, plus optional conditions
-		relatedExists := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
+		relatedExists := base.Session(&Session{NewDB: true, Context: ctx}).Table(rel.FieldSchema.Table).Select("1")
 		for _, ref := range rel.References {
 			if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
 				relatedExists = relatedExists.Where(clause.Eq{
