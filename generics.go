@@ -741,64 +741,51 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
-	var owners []T
-	if err := base.Find(&owners).Error; err != nil {
-		return err
-	}
-	for _, owner := range owners {
-		assocDB := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner)
-		association := assocDB.Association(op.Association)
-		if association.Error != nil {
-			return association.Error
-		}
-
-		rel := association.Relationship
-		// Map-based create for has-one/has-many (incl. polymorphic)
-		if rel.JoinTable == nil && rel.Type != schema.BelongsTo {
+	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
+		// Use map-based approach for HasOne, HasMany, BelongsTo and Polymorphic associations
+		if assoc.Relationship.JoinTable == nil {
 			data := make(map[string]interface{}, len(op.Set))
 			for _, a := range op.Set {
 				data[a.Column.Name] = a.Value
 			}
-			if err := association.Append(data); err != nil {
-				return err
-			}
-			continue
+			return assoc.Append(data)
 		}
 
-		// Fallback: typed create/append (many2many, belongs-to)
-		relSchema := rel.FieldSchema
-		rv := reflect.New(relSchema.ModelType)
+		// For Many2Many
+		rv := reflect.New(assoc.Relationship.FieldSchema.ModelType)
 		for _, a := range op.Set {
-			if f := relSchema.LookUpField(a.Column.Name); f != nil {
+			if f := assoc.Relationship.FieldSchema.LookUpField(a.Column.Name); f != nil {
+				assoc.DB.Statement.Selects = append(assoc.DB.Statement.Selects, f.DBName)
 				if err := f.Set(ctx, rv.Elem(), a.Value); err != nil {
 					return err
 				}
 			}
 		}
-		if rel.JoinTable != nil {
-			if err := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Create(rv.Interface()).Error; err != nil {
-				return err
-			}
-		}
-		if err := association.Append(rv.Interface()); err != nil {
-			return err
-		}
-	}
-	return nil
+
+		return assoc.Append(rv.Interface())
+	}, op.Association)
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
+	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
+		return assoc.Append(op.Values...)
+	}, op.Association)
+}
+
+// handleAssociationForOwners is a helper function that handles associations for all owners
+func (s setCreateOrUpdateG[T]) handleAssociationForOwners(base *DB, ctx context.Context, handler func(owner T, association *Association) error, associationName string) error {
 	var owners []T
 	if err := base.Find(&owners).Error; err != nil {
 		return err
 	}
+
 	for _, owner := range owners {
-		association := s.c.g.db.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(op.Association)
+		association := base.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(associationName)
 		if association.Error != nil {
 			return association.Error
 		}
 
-		if err := association.Append(op.Values...); err != nil {
+		if err := handler(owner, association); err != nil {
 			return err
 		}
 	}
