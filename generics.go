@@ -731,8 +731,6 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 	switch op.Type {
 	case clause.OpCreate:
 		return s.handleAssociationCreate(ctx, base, op)
-	case clause.OpCreateValues:
-		return s.handleAssociationCreateValues(ctx, base, op)
 	case clause.OpUnlink, clause.OpDelete, clause.OpUpdate:
 		return s.handleAssociation(ctx, base, op)
 	default:
@@ -741,16 +739,16 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
-	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
-		data := make(map[string]interface{}, len(op.Set))
-		for _, a := range op.Set {
-			data[a.Column.Name] = a.Value
-		}
-		return assoc.Append(data)
-	}, op.Association)
-}
+	if len(op.Set) > 0 {
+		return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
+			data := make(map[string]interface{}, len(op.Set))
+			for _, a := range op.Set {
+				data[a.Column.Name] = a.Value
+			}
+			return assoc.Append(data)
+		}, op.Association)
+	}
 
-func (s setCreateOrUpdateG[T]) handleAssociationCreateValues(ctx context.Context, base *DB, op clause.Association) error {
 	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
 		return assoc.Append(op.Values...)
 	}, op.Association)

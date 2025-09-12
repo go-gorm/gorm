@@ -4,11 +4,10 @@ package clause
 type AssociationOpType int
 
 const (
-	OpUnlink       AssociationOpType = iota // Unlink association
-	OpDelete                                // Delete association records
-	OpUpdate                                // Update association records
-	OpCreate                                // Create association records with assignments
-	OpCreateValues                          // Create association records with model object
+	OpUnlink AssociationOpType = iota // Unlink association
+	OpDelete                          // Delete association records
+	OpUpdate                          // Update association records
+	OpCreate                          // Create association records with assignments
 )
 
 // Association represents an association operation
@@ -17,7 +16,6 @@ type Association struct {
 	Type        AssociationOpType // Operation type
 	Conditions  []Expression      // Filter conditions
 	Set         []Assignment      // Assignment operations (for Update and Create)
-	Model       interface{}       // Model object (for Create object)
 	Values      []interface{}     // Values for Create operation
 }
 

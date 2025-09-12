@@ -1013,7 +1013,6 @@ func TestGenericsAssociation(t *testing.T) {
 		{clause.OpDelete, "OpDelete"},
 		{clause.OpUpdate, "OpUpdate"},
 		{clause.OpCreate, "OpCreate"},
-		{clause.OpCreateValues, "OpCreateValues"},
 	}
 
 	for _, op := range operations {

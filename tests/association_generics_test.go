@@ -277,12 +277,12 @@ func TestClauseAssociationSetUpdateWithOpUnlink(t *testing.T) {
 	}
 }
 
-// Test Set + Update with Association OpCreateValues operation using real database
+// Test Set + Update with Association OpCreate operation using real database
 func TestClauseAssociationSetUpdateWithOpCreateValues(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a user first using real database
-	user := User{Name: "TestClauseAssociationSetUpdateWithOpCreateValues", Age: 25}
+	user := User{Name: "TestClauseAssociationSetUpdateWithOpCreate", Age: 25}
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("failed to create user: %v", err)
 	}
@@ -290,10 +290,10 @@ func TestClauseAssociationSetUpdateWithOpCreateValues(t *testing.T) {
 	// Create a pet object
 	newPet := Pet{Name: "created-pet"}
 
-	// Test Set + Update with Association OpCreateValues
+	// Test Set + Update with Association OpCreate
 	assocOp := clause.Association{
 		Association: "Pets",
-		Type:        clause.OpCreateValues,
+		Type:        clause.OpCreate,
 		Values:      []interface{}{&newPet},
 	}
 
@@ -343,7 +343,7 @@ func TestClauseAssociationSetCreateWithManyToMany(t *testing.T) {
 	// Test Set + Update with many-to-many association
 	assocOp := clause.Association{
 		Association: "Languages",
-		Type:        clause.OpCreateValues,
+		Type:        clause.OpCreate,
 		Values:      []interface{}{langs[0], langs[1]},
 	}
 
@@ -402,7 +402,7 @@ func TestClauseAssociationSetCreateWithBelongsTo(t *testing.T) {
 	}
 }
 
-// BelongsTo: create and assign company via OpCreateValues
+// BelongsTo: create and assign company via OpCreate
 func TestClauseAssociationSetUpdateBelongsToCreateValues(t *testing.T) {
 	ctx := context.Background()
 
@@ -411,7 +411,7 @@ func TestClauseAssociationSetUpdateBelongsToCreateValues(t *testing.T) {
 		t.Fatalf("failed to create user: %v", err)
 	}
 
-	assocOp := clause.Association{Association: "Company", Type: clause.OpCreateValues, Values: []interface{}{Company{Name: "Belongs-To-Co"}}}
+	assocOp := clause.Association{Association: "Company", Type: clause.OpCreate, Values: []interface{}{Company{Name: "Belongs-To-Co"}}}
 	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(assocOp).Update(ctx); err != nil {
 		t.Fatalf("Set Update belongs-to create values failed: %v", err)
 	} else if rows != 0 {
@@ -538,7 +538,7 @@ func TestClauseAssociationSetUpdatePolymorphicTools(t *testing.T) {
 		t.Fatalf("create user: %v", err)
 	}
 
-	createOp := clause.Association{Association: "Tools", Type: clause.OpCreateValues, Values: []interface{}{Tools{Name: "wrench"}}}
+	createOp := clause.Association{Association: "Tools", Type: clause.OpCreate, Values: []interface{}{Tools{Name: "wrench"}}}
 	if rows, err := gorm.G[User](DB).Where("id = ?", user.ID).Set(createOp).Update(ctx); err != nil {
 		t.Fatalf("create tools: %v", err)
 	} else if rows != 0 {
@@ -909,7 +909,7 @@ func TestClauseAssociationSetUpdateAndDeleteManyOwnersMany2Many(t *testing.T) {
 	AssertAssociationCount(t, u2, "Languages", 1, "after delete")
 }
 
-// Test Set + Update with has-one (NamedPet) using OpCreateValues
+// Test Set + Update with has-one (NamedPet) using OpCreate
 func TestClauseAssociationSetUpdateHasOneCreateValues(t *testing.T) {
 	ctx := context.Background()
 
@@ -920,7 +920,7 @@ func TestClauseAssociationSetUpdateHasOneCreateValues(t *testing.T) {
 
 	assocOp := clause.Association{
 		Association: "NamedPet",
-		Type:        clause.OpCreateValues,
+		Type:        clause.OpCreate,
 		Values:      []interface{}{Pet{Name: "named-pet"}},
 	}
 
