@@ -204,7 +204,7 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 }
 
 func (c createG[T]) Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T] {
-	return c.chainG.processSet(assignments...)
+	return c.processSet(assignments...)
 }
 
 func (c createG[T]) Create(ctx context.Context, r *T) error {
@@ -764,12 +764,12 @@ func (s setCreateOrUpdateG[T]) handleAssociationForOwners(base *DB, ctx context.
 	}
 
 	for _, owner := range owners {
-		association := base.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(associationName)
-		if association.Error != nil {
-			return association.Error
+		assoc := base.Session(&Session{NewDB: true, Context: ctx}).Model(&owner).Association(associationName)
+		if assoc.Error != nil {
+			return assoc.Error
 		}
 
-		if err := handler(owner, association); err != nil {
+		if err := handler(owner, assoc); err != nil {
 			return err
 		}
 	}
@@ -777,13 +777,13 @@ func (s setCreateOrUpdateG[T]) handleAssociationForOwners(base *DB, ctx context.
 }
 
 func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, op clause.Association) error {
-	association := base.Association(op.Association)
-	if association.Error != nil {
-		return association.Error
+	assoc := base.Association(op.Association)
+	if assoc.Error != nil {
+		return assoc.Error
 	}
 
 	var (
-		rel            = association.Relationship
+		rel            = assoc.Relationship
 		assocModel     = reflect.New(rel.FieldSchema.ModelType).Interface()
 		fkNil          = map[string]any{}
 		setMap         = make(map[string]any, len(op.Set))

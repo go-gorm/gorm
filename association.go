@@ -465,8 +465,8 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					}
 					appendToFieldValues(child)
 				}
-				return
 			}
+
 			switch rv.Kind() {
 			case reflect.Map:
 				processMap(rv)
@@ -636,44 +636,29 @@ func (association *Association) buildCondition() *DB {
 }
 
 func expandValues(values ...any) (results []any) {
-	// Process each argument; if an argument is a slice/array, expand its elements
-	for _, value := range values {
-		rv := reflect.ValueOf(value)
-		if !rv.IsValid() {
-			results = append(results, value)
-			continue
-		}
-
-		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
-			for i := 0; i < rv.Len(); i++ {
-				elem := rv.Index(i)
-				// unwrap interface
-				if elem.IsValid() && elem.Kind() == reflect.Interface {
-					elem = elem.Elem()
-				}
-				if elem.IsValid() && elem.Kind() == reflect.Struct {
-					p := reflect.New(elem.Type())
-					p.Elem().Set(elem)
-					results = append(results, p.Interface())
-				} else if elem.IsValid() {
-					results = append(results, elem.Interface())
-				} else {
-					results = append(results, nil)
-				}
-			}
-			continue
-		}
-
+	appendToResult := func(rv reflect.Value) {
 		// unwrap interface
-		if rv.Kind() == reflect.Interface {
+		if rv.IsValid() && rv.Kind() == reflect.Interface {
 			rv = rv.Elem()
 		}
 		if rv.IsValid() && rv.Kind() == reflect.Struct {
 			p := reflect.New(rv.Type())
 			p.Elem().Set(rv)
 			results = append(results, p.Interface())
+		} else if rv.IsValid() {
+			results = append(results, rv.Interface())
+		}
+	}
+
+	// Process each argument; if an argument is a slice/array, expand its elements
+	for _, value := range values {
+		rv := reflect.ValueOf(value)
+		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+			for i := 0; i < rv.Len(); i++ {
+				appendToResult(rv.Index(i))
+			}
 		} else {
-			results = append(results, value)
+			appendToResult(rv)
 		}
 	}
 	return
