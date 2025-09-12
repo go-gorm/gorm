@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
@@ -83,6 +84,56 @@ func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 		tx.Statement.Table = ""
 	}
 	return
+}
+
+// AsOfSystemTime sets the system time for CockroachDB temporal queries
+// This allows querying data as it existed at a specific point in time
+//
+//	// Query data as it existed 1 hour ago
+//	db.AsOfSystemTime("-1h").Find(&users)
+//	// Query data as it existed at a specific timestamp
+//	db.AsOfSystemTime(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)).Find(&users)
+//
+// Note: This feature is only supported by CockroachDB
+func (db *DB) AsOfSystemTime(timestamp interface{}) (tx *DB) {
+	tx = db.getInstance()
+
+	var asOfClause *clause.AsOfSystemTime
+
+	switch v := timestamp.(type) {
+	case string:
+		// Raw SQL expression like "-1h"
+		asOfClause = &clause.AsOfSystemTime{Raw: v}
+	case time.Time:
+		// Specific timestamp
+		asOfClause = &clause.AsOfSystemTime{Timestamp: v}
+	default:
+		tx.AddError(fmt.Errorf("unsupported timestamp type for AS OF SYSTEM TIME: %T", timestamp))
+		return tx
+	}
+
+	// Get or create the FROM clause
+	var fromClause clause.From
+	if v, ok := tx.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+		fromClause = v
+	}
+
+	// Set the AS OF SYSTEM TIME
+	fromClause.AsOfSystemTime = asOfClause
+	tx.Statement.AddClause(fromClause)
+
+	return tx
+}
+
+// AsOfSystemTimeNow sets the system time to be as close to now as possible
+// This allows us to get the most recent data without the database engine attempting retries.
+//
+//	// Query data as it exists at the time of the query
+//	db.AsOfSystemTimeNow().Find(&users)
+//
+// Note: This feature is only supported by CockroachDB
+func (db *DB) AsOfSystemTimeNow() (tx *DB) {
+	return db.AsOfSystemTime("'-1µs'")
 }
 
 // Distinct specify distinct fields that you want querying
