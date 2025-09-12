@@ -394,3 +394,72 @@ func TestAssociationEmptyPrimaryKey(t *testing.T) {
 
 	AssertEqual(t, result, user)
 }
+
+// Ensure Association.Append/Replace supports map for many2many
+func TestAssociationMany2ManyAppendMap(t *testing.T) {
+	user := *GetUser("assoc_m2m_append_map", Config{})
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	// Append single map
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{
+		"code": "am2m_map_1", "name": "AppendMap1",
+	}); err != nil {
+		t.Fatalf("append map: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "after append 1 map")
+
+	// Append more maps individually
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{"code": "am2m_map_2", "name": "AppendMap2"}); err != nil {
+		t.Fatalf("append map 2: %v", err)
+	}
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{"code": "am2m_map_3", "name": "AppendMap3"}); err != nil {
+		t.Fatalf("append map 3: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 3, "after append 3 maps total")
+
+	// Verify codes exist
+	var langs []Language
+	if err := DB.Model(&user).Association("Languages").Find(&langs); err != nil {
+		t.Fatalf("find languages: %v", err)
+	}
+	codeSet := map[string]bool{}
+	for _, l := range langs {
+		codeSet[l.Code] = true
+	}
+	for _, c := range []string{"am2m_map_1", "am2m_map_2", "am2m_map_3"} {
+		if !codeSet[c] {
+			t.Fatalf("expected language code %s present", c)
+		}
+	}
+}
+
+func TestAssociationMany2ManyReplaceMap(t *testing.T) {
+	user := *GetUser("assoc_m2m_replace_map", Config{})
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	// Prime with one language
+	if err := DB.Model(&user).Association("Languages").Append(&Language{Code: "prime", Name: "Prime"}); err != nil {
+		t.Fatalf("prime append: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "before replace")
+
+	// Replace with a new map value
+	if err := DB.Model(&user).Association("Languages").Replace(map[string]interface{}{
+		"code": "rm2m_map_1", "name": "ReplaceMap1",
+	}); err != nil {
+		t.Fatalf("replace map: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "after replace with 1 map")
+
+	var langs []Language
+	if err := DB.Model(&user).Association("Languages").Find(&langs); err != nil {
+		t.Fatalf("find languages after replace: %v", err)
+	}
+	if len(langs) != 1 || langs[0].Code != "rm2m_map_1" {
+		t.Fatalf("expected only rm2m_map_1 after replace, got %+v", langs)
+	}
+}

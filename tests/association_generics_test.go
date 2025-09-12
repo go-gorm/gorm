@@ -640,6 +640,30 @@ func TestClauseAssociationSetUpdateAndDeleteHasOne(t *testing.T) {
 	AssertAssociationCount(t, user, "NamedPet", 0, "after delete")
 }
 
+// Many2Many append with map using Association API (regression for map support)
+func TestAssociationMany2ManyAppendMap_GenericFile(t *testing.T) {
+	user := User{Name: "AssocM2MAppendMapGeneric", Age: 28}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("create user: %v", err)
+	}
+
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{
+		"code": "gm2m_map_1", "name": "GMap1",
+	}); err != nil {
+		t.Fatalf("append map: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 1, "after append 1 map (generic file)")
+
+	// Append more maps individually
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{"code": "gm2m_map_2", "name": "GMap2"}); err != nil {
+		t.Fatalf("append map 2: %v", err)
+	}
+	if err := DB.Model(&user).Association("Languages").Append(map[string]interface{}{"code": "gm2m_map_3", "name": "GMap3"}); err != nil {
+		t.Fatalf("append map 3: %v", err)
+	}
+	AssertAssociationCount(t, user, "Languages", 3, "after append 3 maps total (generic file)")
+}
+
 // BelongsTo: update and delete Company via OpUpdate/OpDelete
 func TestClauseAssociationSetUpdateAndDeleteBelongsTo(t *testing.T) {
 	ctx := context.Background()

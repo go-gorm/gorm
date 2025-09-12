@@ -22,7 +22,7 @@ func (db *DB) Association(column string) *Association {
 	association := &Association{DB: db, Unscope: db.Statement.Unscoped}
 	table := db.Statement.Table
 
-	if err := db.Statement.Parse(db.Statement.Model); err == nil {
+	if association.Error = db.Statement.Parse(db.Statement.Model); association.Error == nil {
 		db.Statement.Table = table
 		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
 
@@ -34,8 +34,6 @@ func (db *DB) Association(column string) *Association {
 		for db.Statement.ReflectValue.Kind() == reflect.Ptr {
 			db.Statement.ReflectValue = db.Statement.ReflectValue.Elem()
 		}
-	} else {
-		association.Error = err
 	}
 
 	return association
@@ -188,6 +186,36 @@ func (association *Association) Replace(values ...interface{}) error {
 			}
 
 			_, rvs := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, relPrimaryFields)
+			if len(rvs) == 0 {
+				// values may be maps; fallback to read from in-memory association field(s) after save
+				tmp := make([]interface{}, 0)
+				switch reflectValue.Kind() {
+				case reflect.Slice, reflect.Array:
+					for i := 0; i < reflectValue.Len(); i++ {
+						owner := reflectValue.Index(i)
+						fv := reflect.Indirect(rel.Field.ReflectValueOf(association.DB.Statement.Context, owner))
+						for j := 0; j < fv.Len(); j++ {
+							elem := fv.Index(j)
+							if elem.Kind() == reflect.Ptr {
+								tmp = append(tmp, elem.Interface())
+							} else if elem.CanAddr() {
+								tmp = append(tmp, elem.Addr().Interface())
+							}
+						}
+					}
+				case reflect.Struct:
+					fv := reflect.Indirect(rel.Field.ReflectValueOf(association.DB.Statement.Context, reflectValue))
+					for i := 0; i < fv.Len(); i++ {
+						elem := fv.Index(i)
+						if elem.Kind() == reflect.Ptr {
+							tmp = append(tmp, elem.Interface())
+						} else if elem.CanAddr() {
+							tmp = append(tmp, elem.Addr().Interface())
+						}
+					}
+				}
+				_, rvs = schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, tmp, relPrimaryFields)
+			}
 			if relColumn, relValues := schema.ToQueryValues(rel.JoinTable.Table, joinRelPrimaryKeys, rvs); len(relValues) > 0 {
 				tx.Where(clause.Not(clause.IN{Column: relColumn, Values: relValues}))
 			}
@@ -448,32 +476,161 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 
 			switch rv.Kind() {
 			case reflect.Map:
-				// Only support map for HasMany here
-				if association.Relationship.Type == schema.HasMany && rv.Type().Key().Kind() == reflect.String {
+				// Support map for HasMany and Many2Many
+				if rv.Type().Key().Kind() == reflect.String {
 					data := map[string]interface{}{}
 					iter := rv.MapRange()
 					for iter.Next() {
 						data[iter.Key().String()] = iter.Value().Interface()
 					}
-					for _, ref := range association.Relationship.References {
-						if ref.OwnPrimaryKey {
-							if v, _ := ref.PrimaryKey.ValueOf(association.DB.Statement.Context, source); v != nil {
-								data[ref.ForeignKey.DBName] = v
+
+					switch association.Relationship.Type {
+					case schema.HasMany:
+						for _, ref := range association.Relationship.References {
+							if ref.OwnPrimaryKey {
+								if v, _ := ref.PrimaryKey.ValueOf(association.DB.Statement.Context, source); v != nil {
+									data[ref.ForeignKey.DBName] = v
+								}
+							} else if ref.PrimaryValue != "" {
+								data[ref.ForeignKey.DBName] = ref.PrimaryValue
 							}
-						} else if ref.PrimaryValue != "" {
-							data[ref.ForeignKey.DBName] = ref.PrimaryValue
 						}
+						childPtr := reflect.New(association.Relationship.FieldSchema.ModelType)
+						for k, v := range data {
+							if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+								fv := f.ReflectValueOf(association.DB.Statement.Context, childPtr)
+								val := reflect.ValueOf(v)
+								if val.IsValid() {
+									if val.Type().AssignableTo(fv.Type()) {
+										fv.Set(val)
+									} else if val.Kind() == reflect.Ptr && !val.IsNil() && val.Elem().Type().AssignableTo(fv.Type()) {
+										fv.Set(val.Elem())
+									} else if val.Type().ConvertibleTo(fv.Type()) {
+										fv.Set(val.Convert(fv.Type()))
+									}
+								}
+							}
+						}
+						if err := association.DB.Session(&Session{NewDB: true}).Create(childPtr.Interface()).Error; err != nil {
+							association.Error = err
+							return
+						}
+						appendToFieldValues(childPtr)
+					case schema.Many2Many:
+						// Create related record from map, then append to field values
+						// Filter keys to fields that belong to the related model schema
+						filtered := map[string]interface{}{}
+						for k, v := range data {
+							if _, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+								filtered[k] = v
+							}
+						}
+						// If nothing filtered (unknown keys), fallback to original data
+						if len(filtered) == 0 {
+							filtered = data
+						}
+
+						childPtr := reflect.New(association.Relationship.FieldSchema.ModelType)
+						for k, v := range filtered {
+							if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+								fv := f.ReflectValueOf(association.DB.Statement.Context, childPtr)
+								val := reflect.ValueOf(v)
+								if val.IsValid() {
+									if val.Type().AssignableTo(fv.Type()) {
+										fv.Set(val)
+									} else if val.Kind() == reflect.Ptr && !val.IsNil() && val.Elem().Type().AssignableTo(fv.Type()) {
+										fv.Set(val.Elem())
+									} else if val.Type().ConvertibleTo(fv.Type()) {
+										fv.Set(val.Convert(fv.Type()))
+									}
+								}
+							}
+						}
+						if err := association.DB.Session(&Session{NewDB: true}).Create(childPtr.Interface()).Error; err != nil {
+							association.Error = err
+							return
+						}
+						appendToFieldValues(childPtr)
 					}
-					childModel := reflect.New(association.Relationship.FieldSchema.ModelType).Interface()
-					if err := association.DB.Session(&Session{}).Model(childModel).Create(data).Error; err != nil {
-						association.Error = err
-						return
-					}
-					return
 				}
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < rv.Len(); i++ {
-					appendToFieldValues(reflect.Indirect(rv.Index(i)).Addr())
+					elem := reflect.Indirect(rv.Index(i))
+					if elem.Kind() == reflect.Map && elem.Type().Key().Kind() == reflect.String {
+						// Support slice of maps for HasMany and Many2Many
+						data := map[string]interface{}{}
+						iter := elem.MapRange()
+						for iter.Next() {
+							data[iter.Key().String()] = iter.Value().Interface()
+						}
+						switch association.Relationship.Type {
+						case schema.HasMany:
+							for _, ref := range association.Relationship.References {
+								if ref.OwnPrimaryKey {
+									if v, _ := ref.PrimaryKey.ValueOf(association.DB.Statement.Context, source); v != nil {
+										data[ref.ForeignKey.DBName] = v
+									}
+								} else if ref.PrimaryValue != "" {
+									data[ref.ForeignKey.DBName] = ref.PrimaryValue
+								}
+							}
+							childPtr := reflect.New(association.Relationship.FieldSchema.ModelType)
+							for k, v := range data {
+								if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+									fv := f.ReflectValueOf(association.DB.Statement.Context, childPtr)
+									val := reflect.ValueOf(v)
+									if val.IsValid() {
+										if val.Type().AssignableTo(fv.Type()) {
+											fv.Set(val)
+										} else if val.Kind() == reflect.Ptr && !val.IsNil() && val.Elem().Type().AssignableTo(fv.Type()) {
+											fv.Set(val.Elem())
+										} else if val.Type().ConvertibleTo(fv.Type()) {
+											fv.Set(val.Convert(fv.Type()))
+										}
+									}
+								}
+							}
+							if err := association.DB.Session(&Session{NewDB: true}).Create(childPtr.Interface()).Error; err != nil {
+								association.Error = err
+								return
+							}
+							appendToFieldValues(childPtr)
+							continue
+						case schema.Many2Many:
+							filtered := map[string]interface{}{}
+							for k, v := range data {
+								if _, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+									filtered[k] = v
+								}
+							}
+							if len(filtered) == 0 {
+								filtered = data
+							}
+							childPtr := reflect.New(association.Relationship.FieldSchema.ModelType)
+							for k, v := range filtered {
+								if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+									fv := f.ReflectValueOf(association.DB.Statement.Context, childPtr)
+									val := reflect.ValueOf(v)
+									if val.IsValid() {
+										if val.Type().AssignableTo(fv.Type()) {
+											fv.Set(val)
+										} else if val.Kind() == reflect.Ptr && !val.IsNil() && val.Elem().Type().AssignableTo(fv.Type()) {
+											fv.Set(val.Elem())
+										} else if val.Type().ConvertibleTo(fv.Type()) {
+											fv.Set(val.Convert(fv.Type()))
+										}
+									}
+								}
+							}
+							if err := association.DB.Session(&Session{NewDB: true}).Create(childPtr.Interface()).Error; err != nil {
+								association.Error = err
+								return
+							}
+							appendToFieldValues(childPtr)
+							continue
+						}
+					}
+					appendToFieldValues(elem.Addr())
 				}
 			case reflect.Struct:
 				if !rv.CanAddr() {

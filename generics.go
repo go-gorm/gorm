@@ -742,27 +742,11 @@ func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, 
 
 func (s setCreateOrUpdateG[T]) handleAssociationCreate(ctx context.Context, base *DB, op clause.Association) error {
 	return s.handleAssociationForOwners(base, ctx, func(owner T, assoc *Association) error {
-		// Use map-based approach for HasOne, HasMany, BelongsTo and Polymorphic associations
-		if assoc.Relationship.JoinTable == nil {
-			data := make(map[string]interface{}, len(op.Set))
-			for _, a := range op.Set {
-				data[a.Column.Name] = a.Value
-			}
-			return assoc.Append(data)
-		}
-
-		// For Many2Many
-		rv := reflect.New(assoc.Relationship.FieldSchema.ModelType)
+		data := make(map[string]interface{}, len(op.Set))
 		for _, a := range op.Set {
-			if f := assoc.Relationship.FieldSchema.LookUpField(a.Column.Name); f != nil {
-				assoc.DB.Statement.Selects = append(assoc.DB.Statement.Selects, f.DBName)
-				if err := f.Set(ctx, rv.Elem(), a.Value); err != nil {
-					return err
-				}
-			}
+			data[a.Column.Name] = a.Value
 		}
-
-		return assoc.Append(rv.Interface())
+		return assoc.Append(data)
 	}, op.Association)
 }
 
@@ -821,7 +805,6 @@ func (s setCreateOrUpdateG[T]) handleAssociation(ctx context.Context, base *DB, 
 			primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
 			foreignColumns = append(foreignColumns, clause.Column{Name: ref.ForeignKey.DBName})
 		} else if !ref.OwnPrimaryKey && ref.PrimaryKey != nil {
-			// for BelongsTo mapping: owners' FK to related PK
 			ownerFKNames = append(ownerFKNames, ref.ForeignKey.DBName)
 			primaryColumns = append(primaryColumns, clause.Column{Name: ref.PrimaryKey.DBName})
 		}
