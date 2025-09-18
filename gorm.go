@@ -21,7 +21,10 @@ const preparedStmtDBKey = "preparedStmt"
 type Config struct {
 	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
 	// You can disable it by setting `SkipDefaultTransaction` to true
-	SkipDefaultTransaction bool
+	SkipDefaultTransaction    bool
+	DefaultTransactionTimeout time.Duration
+	DefaultContextTimeout     time.Duration
+
 	// NamingStrategy tables, columns naming strategy
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
@@ -34,6 +37,11 @@ type Config struct {
 	DryRun bool
 	// PrepareStmt executes the given query in cached statement
 	PrepareStmt bool
+	// PrepareStmt cache support LRU expired,
+	// default maxsize=int64 Max value and ttl=1h
+	PrepareStmtMaxSize int
+	PrepareStmtTTL     time.Duration
+
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
 	// DisableForeignKeyConstraintWhenMigrating
@@ -130,12 +138,24 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		return isConfig && !isConfig2
 	})
 
+	if len(opts) > 0 {
+		if c, ok := opts[0].(*Config); ok {
+			config = c
+		} else {
+			opts = append([]Option{config}, opts...)
+		}
+	}
+
+	var skipAfterInitialize bool
 	for _, opt := range opts {
 		if opt != nil {
 			if applyErr := opt.Apply(config); applyErr != nil {
 				return nil, applyErr
 			}
 			defer func(opt Option) {
+				if skipAfterInitialize {
+					return
+				}
 				if errr := opt.AfterInitialize(db); errr != nil {
 					err = errr
 				}
@@ -187,6 +207,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 			if db, _ := db.DB(); db != nil {
 				_ = db.Close()
 			}
+
+			// DB is not initialized, so we skip AfterInitialize
+			skipAfterInitialize = true
+			return
 		}
 
 		if config.TranslateError {
@@ -197,7 +221,7 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	if config.PrepareStmt {
-		preparedStmt := NewPreparedStmtDB(db.ConnPool)
+		preparedStmt := NewPreparedStmtDB(db.ConnPool, config.PrepareStmtMaxSize, config.PrepareStmtTTL)
 		db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		db.ConnPool = preparedStmt
 	}
@@ -268,7 +292,7 @@ func (db *DB) Session(config *Session) *DB {
 		if v, ok := db.cacheStore.Load(preparedStmtDBKey); ok {
 			preparedStmt = v.(*PreparedStmtDB)
 		} else {
-			preparedStmt = NewPreparedStmtDB(db.ConnPool)
+			preparedStmt = NewPreparedStmtDB(db.ConnPool, db.PrepareStmtMaxSize, db.PrepareStmtTTL)
 			db.cacheStore.Store(preparedStmtDBKey, preparedStmt)
 		}
 
@@ -514,7 +538,7 @@ func (db *DB) Use(plugin Plugin) error {
 //				.First(&User{})
 //	})
 func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
-	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}))
+	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}).getInstance())
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)

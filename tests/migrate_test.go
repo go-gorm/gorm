@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -13,11 +12,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gorm.io/driver/gaussdb"
 	"gorm.io/driver/postgres"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
@@ -25,7 +24,7 @@ import (
 )
 
 func TestMigrate(t *testing.T) {
-	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Tools{}}
+	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Tools{}, &Man{}}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(allModels), func(i, j int) { allModels[i], allModels[j] = allModels[j], allModels[i] })
 	DB.Migrator().DropTable("user_speaks", "user_friends", "ccc")
@@ -84,8 +83,8 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
-func TestAutoMigrateInt8PG(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+func TestAutoMigrateInt8PGAndGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -184,7 +183,94 @@ func TestAutoMigrateNullable(t *testing.T) {
 }
 
 func TestSmartMigrateColumn(t *testing.T) {
-	fullSupported := map[string]bool{"mysql": true, "postgres": true}[DB.Dialector.Name()]
+	fullSupported := map[string]bool{"mysql": true, "postgres": true, "gaussdb": true}[DB.Dialector.Name()]
+
+	type UserMigrateColumn struct {
+		ID       uint
+		Name     string
+		Salary   float64
+		Birthday time.Time `gorm:"precision:4"`
+	}
+
+	DB.Migrator().DropTable(&UserMigrateColumn{})
+
+	DB.AutoMigrate(&UserMigrateColumn{})
+
+	type UserMigrateColumn2 struct {
+		ID                  uint
+		Name                string    `gorm:"size:128"`
+		Salary              float64   `gorm:"precision:2"`
+		Birthday            time.Time `gorm:"precision:2"`
+		NameIgnoreMigration string    `gorm:"size:100"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn2{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err := DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 128 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, o, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
+				t.Fatalf("salary's precision should be 2, but got %v %v", precision, o)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 2 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		}
+	}
+
+	type UserMigrateColumn3 struct {
+		ID                  uint
+		Name                string    `gorm:"size:256"`
+		Salary              float64   `gorm:"precision:3"`
+		Birthday            time.Time `gorm:"precision:3"`
+		NameIgnoreMigration string    `gorm:"size:128;-:migration"`
+	}
+
+	if err := DB.Table("user_migrate_columns").AutoMigrate(&UserMigrateColumn3{}); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+
+	columnTypes, err = DB.Table("user_migrate_columns").Migrator().ColumnTypes(&UserMigrateColumn{})
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+
+	for _, columnType := range columnTypes {
+		switch columnType.Name() {
+		case "name":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 256 {
+				t.Fatalf("name's length should be 128, but got %v", length)
+			}
+		case "salary":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
+				t.Fatalf("salary's precision should be 2, but got %v", precision)
+			}
+		case "birthday":
+			if precision, _, _ := columnType.DecimalSize(); (fullSupported || precision != 0) && precision != 3 {
+				t.Fatalf("birthday's precision should be 2, but got %v", precision)
+			}
+		case "name_ignore_migration":
+			if length, _ := columnType.Length(); (fullSupported || length != 0) && length != 100 {
+				t.Fatalf("name_ignore_migration's length should still be 100 but got %v", length)
+			}
+		}
+	}
+}
+
+func TestSmartMigrateColumnGaussDB(t *testing.T) {
+	fullSupported := map[string]bool{"mysql": true, "gaussdb": true}[DB.Dialector.Name()]
 
 	type UserMigrateColumn struct {
 		ID       uint
@@ -852,7 +938,7 @@ func TestMigrateColumnOrder(t *testing.T) {
 
 // https://github.com/go-gorm/gorm/issues/5047
 func TestMigrateSerialColumn(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -997,6 +1083,42 @@ func TestPrimarykeyID(t *testing.T) {
 		t.Fatalf("DropTable err:%v", err)
 	}
 
+	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+
+	// patch
+	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("AutoMigrate err:%v", err)
+	}
+}
+
+func TestPrimarykeyIDGaussDB(t *testing.T) {
+	t.Skipf("This test case skipped, because of gaussdb not support uuid-ossp plugin (SQLSTATE 58P01)")
+	if DB.Dialector.Name() != "gaussdb" {
+		return
+	}
+
+	type MissPKLanguage struct {
+		ID   string `gorm:"type:uuid;default:uuid_generate_v4()"`
+		Name string
+	}
+
+	type MissPKUser struct {
+		ID              string           `gorm:"type:uuid;default:uuid_generate_v4()"`
+		MissPKLanguages []MissPKLanguage `gorm:"many2many:miss_pk_user_languages;"`
+	}
+
+	var err error
+	err = DB.Migrator().DropTable(&MissPKUser{}, &MissPKLanguage{})
+	if err != nil {
+		t.Fatalf("DropTable err:%v", err)
+	}
+	// TODO: ERROR: could not open extension control file: No such file or directory (SQLSTATE 58P01)
 	DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 
 	err = DB.AutoMigrate(&MissPKUser{}, &MissPKLanguage{})
@@ -1211,35 +1333,24 @@ func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 	}
 }
 
-func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+// TODO: ERROR: must have at least one column (SQLSTATE 0A000)
+func TestInvalidCachedPlanSimpleProtocolGaussDB(t *testing.T) {
+	t.Skipf("This test case skipped, because of gaussdb not support creaing empty table(SQLSTATE 0A000)")
+	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
-	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{PrepareStmt: true})
+	db, err := gorm.Open(gaussdb.Open(gaussdbDSN), &gorm.Config{})
 	if err != nil {
 		t.Errorf("Open err:%v", err)
 	}
-	if debug := os.Getenv("DEBUG"); debug == "true" {
-		db.Logger = db.Logger.LogMode(logger.Info)
-	} else if debug == "false" {
-		db.Logger = db.Logger.LogMode(logger.Silent)
-	}
 
-	type Object1 struct {
-		ID uint
-	}
+	type Object1 struct{}
 	type Object2 struct {
-		ID     uint
-		Field1 int `gorm:"type:int8"`
+		Field1 string
 	}
 	type Object3 struct {
-		ID     uint
-		Field1 int `gorm:"type:int4"`
-	}
-	type Object4 struct {
-		ID     uint
-		Field2 int
+		Field2 string
 	}
 	db.Migrator().DropTable("objects")
 
@@ -1247,62 +1358,15 @@ func TestInvalidCachedPlanPrepareStmt(t *testing.T) {
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
-	err = db.Table("objects").Create(&Object1{}).Error
-	if err != nil {
-		t.Errorf("create err:%v", err)
-	}
 
-	// AddColumn
 	err = db.Table("objects").AutoMigrate(&Object2{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
 	}
 
-	err = db.Table("objects").Take(&Object2{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	// AlterColumn
 	err = db.Table("objects").AutoMigrate(&Object3{})
 	if err != nil {
 		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object3{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	// AddColumn
-	err = db.Table("objects").AutoMigrate(&Object4{})
-	if err != nil {
-		t.Errorf("AutoMigrate err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	db.Table("objects").Migrator().RenameColumn(&Object4{}, "field2", "field3")
-	if err != nil {
-		t.Errorf("RenameColumn err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
-	}
-
-	db.Table("objects").Migrator().DropColumn(&Object4{}, "field3")
-	if err != nil {
-		t.Errorf("RenameColumn err:%v", err)
-	}
-
-	err = db.Table("objects").Take(&Object4{}).Error
-	if err != nil {
-		t.Errorf("take err:%v", err)
 	}
 }
 
@@ -1346,7 +1410,7 @@ func TestDifferentTypeWithoutDeclaredLength(t *testing.T) {
 }
 
 func TestMigrateArrayTypeModel(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -1668,8 +1732,8 @@ func TestMigrateView(t *testing.T) {
 	}
 }
 
-func TestMigrateExistingBoolColumnPG(t *testing.T) {
-	if DB.Dialector.Name() != "postgres" {
+func TestMigrateExistingBoolColumnPGAndGaussDB(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" {
 		return
 	}
 
@@ -1985,5 +2049,116 @@ func TestMigrateWithUniqueIndexAndUnique(t *testing.T) {
 				test.checkFunc(t)
 			})
 		}
+	}
+}
+
+func testAutoMigrateDecimal(t *testing.T, model1, model2 any) []string {
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			if strings.HasPrefix(sql, "ALTER TABLE ") {
+				t.Fatalf("shouldn't execute ALTER COLUMN TYPE if decimal is not change: sql: %s", sql)
+			}
+		},
+	}
+	session := DB.Session(&gorm.Session{Logger: tracer})
+
+	DB.Migrator().DropTable(model1)
+	var modifySql []string
+	if err := session.AutoMigrate(model1); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+	if err := session.AutoMigrate(model1); err != nil {
+		t.Fatalf("failed to auto migrate, got error: %v", err)
+	}
+	tracer2 := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			sql, _ := fc()
+			modifySql = append(modifySql, sql)
+		},
+	}
+	session2 := DB.Session(&gorm.Session{Logger: tracer2})
+	err := session2.Table("migrate_decimal_columns").Migrator().AutoMigrate(model2)
+	if err != nil {
+		t.Fatalf("failed to get column types, got error: %v", err)
+	}
+	return modifySql
+}
+
+func decimalColumnsTest[T, T2 any](t *testing.T, expectedSql []string) {
+	var t1 T
+	var t2 T2
+	modSql := testAutoMigrateDecimal(t, t1, t2)
+	var alterSQL []string
+	for _, sql := range modSql {
+		if strings.HasPrefix(sql, "ALTER TABLE ") {
+			alterSQL = append(alterSQL, sql)
+		}
+	}
+
+	if len(alterSQL) != 3 {
+		t.Fatalf("decimal changed error,expected: %+v,got: %+v.", expectedSql, alterSQL)
+	}
+	for i := range alterSQL {
+		if alterSQL[i] != expectedSql[i] {
+			t.Fatalf("decimal changed error,expected: %+v,got: %+v.", expectedSql, alterSQL)
+		}
+	}
+}
+
+func TestAutoMigrateDecimal(t *testing.T) {
+	if DB.Dialector.Name() == "sqlserver" { // database/sql will replace numeric to decimal. so only support decimal.
+		type MigrateDecimalColumn struct {
+			RecID1 int64 `gorm:"column:recid1;type:decimal(9,0);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:decimal(8);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:decimal(8,1);not null" json:"recid3"`
+		}
+		type MigrateDecimalColumn2 struct {
+			RecID1 int64 `gorm:"column:recid1;type:decimal(8);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:decimal(9,1);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:decimal(9,2);not null" json:"recid3"`
+		}
+		expectedSql := []string{
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid1" decimal(8) NOT NULL`,
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid2" decimal(9,1) NOT NULL`,
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid3" decimal(9,2) NOT NULL`,
+		}
+		decimalColumnsTest[MigrateDecimalColumn, MigrateDecimalColumn2](t, expectedSql)
+	} else if DB.Dialector.Name() == "postgres" || DB.Dialector.Name() == "gaussdb" {
+		type MigrateDecimalColumn struct {
+			RecID1 int64 `gorm:"column:recid1;type:numeric(9,0);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:numeric(8);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:numeric(8,1);not null" json:"recid3"`
+		}
+		type MigrateDecimalColumn2 struct {
+			RecID1 int64 `gorm:"column:recid1;type:numeric(8);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:numeric(9,1);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:numeric(9,2);not null" json:"recid3"`
+		}
+		expectedSql := []string{
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid1" TYPE numeric(8) USING "recid1"::numeric(8)`,
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid2" TYPE numeric(9,1) USING "recid2"::numeric(9,1)`,
+			`ALTER TABLE "migrate_decimal_columns" ALTER COLUMN "recid3" TYPE numeric(9,2) USING "recid3"::numeric(9,2)`,
+		}
+		decimalColumnsTest[MigrateDecimalColumn, MigrateDecimalColumn2](t, expectedSql)
+	} else if DB.Dialector.Name() == "mysql" {
+		type MigrateDecimalColumn struct {
+			RecID1 int64 `gorm:"column:recid1;type:decimal(9,0);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:decimal(8);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:decimal(8,1);not null" json:"recid3"`
+		}
+		type MigrateDecimalColumn2 struct {
+			RecID1 int64 `gorm:"column:recid1;type:decimal(8);not null" json:"recid1"`
+			RecID2 int64 `gorm:"column:recid2;type:decimal(9,1);not null" json:"recid2"`
+			RecID3 int64 `gorm:"column:recid3;type:decimal(9,2);not null" json:"recid3"`
+		}
+		expectedSql := []string{
+			"ALTER TABLE `migrate_decimal_columns` MODIFY COLUMN `recid1` decimal(8) NOT NULL",
+			"ALTER TABLE `migrate_decimal_columns` MODIFY COLUMN `recid2` decimal(9,1) NOT NULL",
+			"ALTER TABLE `migrate_decimal_columns` MODIFY COLUMN `recid3` decimal(9,2) NOT NULL",
+		}
+		decimalColumnsTest[MigrateDecimalColumn, MigrateDecimalColumn2](t, expectedSql)
 	}
 }

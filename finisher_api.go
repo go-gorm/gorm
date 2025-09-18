@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -673,11 +674,18 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 		opt = opts[0]
 	}
 
+	ctx := tx.Statement.Context
+	if db.DefaultTransactionTimeout > 0 {
+		if _, ok := ctx.Deadline(); !ok {
+			ctx, _ = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+		}
+	}
+
 	switch beginner := tx.Statement.ConnPool.(type) {
 	case TxBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.Statement.ConnPool, err = beginner.BeginTx(ctx, opt)
 	case ConnPoolBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.Statement.ConnPool, err = beginner.BeginTx(ctx, opt)
 	default:
 		err = ErrInvalidTransaction
 	}

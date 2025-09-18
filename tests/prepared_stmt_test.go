@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -92,6 +91,65 @@ func TestPreparedStmtFromTransaction(t *testing.T) {
 	tx2.Commit()
 }
 
+func TestPreparedStmtLruFromTransaction(t *testing.T) {
+	db, _ := OpenTestConnection(&gorm.Config{PrepareStmt: true, PrepareStmtMaxSize: 10, PrepareStmtTTL: 20 * time.Second})
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		t.Errorf("Failed to start transaction, got error %v\n", err)
+	}
+
+	if err := tx.Where("name=?", "zzjin").Delete(&User{}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Create(&User{Name: "zzjin"}).Error; err != nil {
+		tx.Rollback()
+		t.Errorf("Failed to run one transaction, got error %v\n", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Errorf("Failed to commit transaction, got error %v\n", err)
+	}
+
+	if result := db.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 1 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	tx2 := db.Begin()
+	if result := tx2.Where("name=?", "zzjin").Delete(&User{}); result.Error != nil || result.RowsAffected != 0 {
+		t.Fatalf("Failed, got error: %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	tx2.Commit()
+	// Attempt to convert the connection pool of tx to the *gorm.PreparedStmtDB type.
+	// If the conversion is successful, ok will be true and conn will be the converted object;
+	// otherwise, ok will be false and conn will be nil.
+	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
+	// Get the number of statement keys stored in the PreparedStmtDB.
+	lens := len(conn.Stmts.Keys())
+	// Check if the number of stored statement keys is 0.
+	if lens == 0 {
+		// If the number is 0, it means there are no statements stored in the LRU cache.
+		// The test fails and an error message is output.
+		t.Fatalf("lru should not be empty")
+	}
+	// Wait for 40 seconds to give the statements in the cache enough time to expire.
+	time.Sleep(time.Second * 40)
+	// Assert whether the connection pool of tx is successfully converted to the *gorm.PreparedStmtDB type.
+	AssertEqual(t, ok, true)
+	// Assert whether the number of statement keys stored in the PreparedStmtDB is 0 after 40 seconds.
+	// If it is not 0, it means the statements in the cache have not expired as expected.
+	AssertEqual(t, len(conn.Stmts.Keys()), 0)
+
+}
+
 func TestPreparedStmtDeadlock(t *testing.T) {
 	tx, err := OpenTestConnection(&gorm.Config{})
 	AssertEqual(t, err, nil)
@@ -117,9 +175,9 @@ func TestPreparedStmtDeadlock(t *testing.T) {
 
 	conn, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
 	AssertEqual(t, ok, true)
-	AssertEqual(t, len(conn.Stmts), 2)
-	for _, stmt := range conn.Stmts {
-		if stmt == nil {
+	AssertEqual(t, len(conn.Stmts.Keys()), 2)
+	for _, stmt := range conn.Stmts.Keys() {
+		if stmt == "" {
 			t.Fatalf("stmt cannot bee nil")
 		}
 	}
@@ -143,10 +201,10 @@ func TestPreparedStmtInTransaction(t *testing.T) {
 	}
 }
 
-func TestPreparedStmtReset(t *testing.T) {
+func TestPreparedStmtClose(t *testing.T) {
 	tx := DB.Session(&gorm.Session{PrepareStmt: true})
 
-	user := *GetUser("prepared_stmt_reset", Config{})
+	user := *GetUser("prepared_stmt_close", Config{})
 	tx = tx.Create(&user)
 
 	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
@@ -155,16 +213,16 @@ func TestPreparedStmtReset(t *testing.T) {
 	}
 
 	pdb.Mux.Lock()
-	if len(pdb.Stmts) == 0 {
+	if len(pdb.Stmts.Keys()) == 0 {
 		pdb.Mux.Unlock()
 		t.Fatalf("prepared stmt can not be empty")
 	}
 	pdb.Mux.Unlock()
 
-	pdb.Reset()
+	pdb.Close()
 	pdb.Mux.Lock()
 	defer pdb.Mux.Unlock()
-	if len(pdb.Stmts) != 0 {
+	if len(pdb.Stmts.Keys()) != 0 {
 		t.Fatalf("prepared stmt should be empty")
 	}
 }
@@ -174,10 +232,10 @@ func isUsingClosedConnError(err error) bool {
 	return err.Error() == "sql: statement is closed"
 }
 
-// TestPreparedStmtConcurrentReset test calling reset and executing SQL concurrently
+// TestPreparedStmtConcurrentClose test calling close and executing SQL concurrently
 // this test making sure that the gorm would not get a Segmentation Fault, and the only error cause by this is using a closed Stmt
-func TestPreparedStmtConcurrentReset(t *testing.T) {
-	name := "prepared_stmt_concurrent_reset"
+func TestPreparedStmtConcurrentClose(t *testing.T) {
+	name := "prepared_stmt_concurrent_close"
 	user := *GetUser(name, Config{})
 	createTx := DB.Session(&gorm.Session{}).Create(&user)
 	if createTx.Error != nil {
@@ -220,97 +278,12 @@ func TestPreparedStmtConcurrentReset(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		<-writerFinish
-		pdb.Reset()
+		pdb.Close()
 	}()
 
 	wg.Wait()
 
 	if unexpectedError {
 		t.Fatalf("should is a unexpected error")
-	}
-}
-
-// TestPreparedStmtConcurrentClose test calling close and executing SQL concurrently
-// for example: one goroutine found error and just close the database, and others are executing SQL
-// this test making sure that the gorm would not get a Segmentation Fault,
-// and the only error cause by this is using a closed Stmt or gorm.ErrInvalidDB
-// and all of the goroutine must got gorm.ErrInvalidDB after database close
-func TestPreparedStmtConcurrentClose(t *testing.T) {
-	name := "prepared_stmt_concurrent_close"
-	user := *GetUser(name, Config{})
-	createTx := DB.Session(&gorm.Session{}).Create(&user)
-	if createTx.Error != nil {
-		t.Fatalf("failed to prepare record due to %s, test cannot be continue", createTx.Error)
-	}
-
-	// create a new connection to keep away from other tests
-	tx, err := OpenTestConnection(&gorm.Config{PrepareStmt: true})
-	if err != nil {
-		t.Fatalf("failed to open test connection due to %s", err)
-	}
-	pdb, ok := tx.ConnPool.(*gorm.PreparedStmtDB)
-	if !ok {
-		t.Fatalf("should assign PreparedStatement Manager back to database when using PrepareStmt mode")
-	}
-
-	loopCount := 100
-	var wg sync.WaitGroup
-	var lastErr error
-	closeValid := make(chan struct{}, loopCount)
-	closeStartIdx := loopCount / 2 // close the database at the middle of the execution
-	var lastRunIndex int
-	var closeFinishedAt int64
-
-	wg.Add(1)
-	go func(id uint) {
-		defer wg.Done()
-		defer close(closeValid)
-		for lastRunIndex = 1; lastRunIndex <= loopCount; lastRunIndex++ {
-			if lastRunIndex == closeStartIdx {
-				closeValid <- struct{}{}
-			}
-			var tmp User
-			now := time.Now().UnixNano()
-			err := tx.Session(&gorm.Session{}).First(&tmp, id).Error
-			if err == nil {
-				closeFinishedAt := atomic.LoadInt64(&closeFinishedAt)
-				if (closeFinishedAt != 0) && (now > closeFinishedAt) {
-					lastErr = errors.New("must got error after database closed")
-					break
-				}
-				continue
-			}
-			lastErr = err
-			break
-		}
-	}(user.ID)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for range closeValid {
-			for i := 0; i < loopCount; i++ {
-				pdb.Close() // the Close method must can be call multiple times
-				atomic.CompareAndSwapInt64(&closeFinishedAt, 0, time.Now().UnixNano())
-			}
-		}
-	}()
-
-	wg.Wait()
-	var tmp User
-	err = tx.Session(&gorm.Session{}).First(&tmp, user.ID).Error
-	if err != gorm.ErrInvalidDB {
-		t.Fatalf("must got a gorm.ErrInvalidDB while execution after db close, got %+v instead", err)
-	}
-
-	// must be error
-	if lastErr != gorm.ErrInvalidDB && !isUsingClosedConnError(lastErr) {
-		t.Fatalf("exp error gorm.ErrInvalidDB, got %+v instead", lastErr)
-	}
-	if lastRunIndex >= loopCount || lastRunIndex < closeStartIdx {
-		t.Fatalf("exp loop times between (closeStartIdx %d <=) and (< loopCount %d), got %d instead", closeStartIdx, loopCount, lastRunIndex)
-	}
-	if pdb.Stmts != nil {
-		t.Fatalf("stmts must be nil")
 	}
 }

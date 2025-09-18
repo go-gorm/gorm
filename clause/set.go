@@ -9,6 +9,11 @@ type Assignment struct {
 	Value  interface{}
 }
 
+// Assigner assignments provider interface
+type Assigner interface {
+	Assignments() []Assignment
+}
+
 func (set Set) Name() string {
 	return "SET"
 }
@@ -37,6 +42,9 @@ func (set Set) MergeClause(clause *Clause) {
 	clause.Expression = Set(copiedAssignments)
 }
 
+// Assignments implements Assigner for Set.
+func (set Set) Assignments() []Assignment { return []Assignment(set) }
+
 func Assignments(values map[string]interface{}) Set {
 	keys := make([]string, 0, len(values))
 	for key := range values {
@@ -58,3 +66,6 @@ func AssignmentColumns(values []string) Set {
 	}
 	return assignments
 }
+
+// Assignments implements Assigner for a single Assignment.
+func (a Assignment) Assignments() []Assignment { return []Assignment{a} }

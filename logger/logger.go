@@ -80,6 +80,11 @@ var (
 	})
 	// Recorder logger records running SQL into a recorder instance
 	Recorder = traceRecorder{Interface: Default, BeginAt: time.Now()}
+
+	// RecorderParamsFilter defaults to no-op, allows to be run-over by a different implementation
+	RecorderParamsFilter = func(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
+		return sql, params
+	}
 )
 
 // New initialize logger
@@ -210,4 +215,11 @@ func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (s
 	l.BeginAt = begin
 	l.SQL, l.RowsAffected = fc()
 	l.Err = err
+}
+
+func (l *traceRecorder) ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
+	if RecorderParamsFilter == nil {
+		return sql, params
+	}
+	return RecorderParamsFilter(ctx, sql, params...)
 }

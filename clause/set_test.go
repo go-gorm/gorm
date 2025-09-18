@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// Compile-time assertions that types implement clause.Assigner
+var (
+	_ clause.Assigner = clause.Assignment{}
+	_ clause.Assigner = clause.Set{}
+)
+
 func TestSet(t *testing.T) {
 	results := []struct {
 		Clauses []clause.Interface

@@ -1,7 +1,9 @@
+version: "2"
+
 linters:
+  default: standard
   enable:
     - cyclop
-    - exportloopref
     - gocritic
     - gosec
     - ineffassign
@@ -9,12 +11,9 @@ linters:
     - prealloc
     - unconvert
     - unparam
-    - goimports
     - whitespace
 
-linters-settings:
-  whitespace:
-    multi-func: true
-  goimports:
-    local-prefixes: gorm.io/gorm
-
+formatters:
+  enable:
+    - gofumpt
+    - goimports

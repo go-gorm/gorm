@@ -26,6 +26,22 @@ func TestReturning(t *testing.T) {
 			}},
 			"SELECT * FROM `users` RETURNING `users`.`id`,`name`,`age`", nil,
 		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Returning{
+				[]clause.Column{clause.PrimaryColumn},
+			}, clause.Returning{}, clause.Returning{
+				[]clause.Column{{Name: "name"}, {Name: "age"}},
+			}},
+			"SELECT * FROM `users` RETURNING *", nil,
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Returning{
+				[]clause.Column{clause.PrimaryColumn},
+			}, clause.Returning{
+				[]clause.Column{{Name: "name"}, {Name: "age"}},
+			}, clause.Returning{}},
+			"SELECT * FROM `users` RETURNING *", nil,
+		},
 	}
 
 	for idx, result := range results {

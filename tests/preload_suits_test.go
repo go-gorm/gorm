@@ -696,6 +696,10 @@ func TestManyToManyPreloadWithMultiPrimaryKeys(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
+	if name := DB.Dialector.Name(); name == "mysql" {
+		t.Skip("skip mysql due to it only allow unique constraint matching given keys")
+	}
+
 	type (
 		Level1 struct {
 			ID           uint   `gorm:"primary_key;"`

@@ -555,14 +555,20 @@ func TestHasManyAssociationUnscoped(t *testing.T) {
 	}
 }
 
-func TestHasManyAssociationReplaceWithNonValidValue(t *testing.T) {
-	user := User{Name: "jinzhu", Languages: []Language{{Name: "EN"}}}
+func TestHasManyAssociationReplaceWithStructValue(t *testing.T) {
+	user := User{Name: "HasManyAssociationReplaceWithStructValue", Languages: []Language{{Name: "EN", Code: "en"}}}
 
 	if err := DB.Create(&user).Error; err != nil {
 		t.Fatalf("errors happened when create: %v", err)
 	}
 
-	if err := DB.Model(&user).Association("Languages").Replace(Language{Name: "DE"}, Language{Name: "FR"}); err == nil {
+	if err := DB.Model(&user).Association("Languages").Replace(Language{Name: "DE", Code: "de"}, Language{Name: "FR", Code: "fr"}); err != nil {
 		t.Error("expected association error to be not nil")
+	}
+
+	var result User
+	DB.Preload("Languages").Where("name = ?", "HasManyAssociationReplaceWithStructValue").Find(&result)
+	if len(result.Languages) != 2 {
+		t.Errorf("invalid languages found for user, got %v", result.Languages)
 	}
 }

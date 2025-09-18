@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
@@ -59,14 +60,14 @@ type Schema struct {
 	cacheStore                *sync.Map
 }
 
-func (schema Schema) String() string {
+func (schema *Schema) String() string {
 	if schema.ModelType.Name() == "" {
 		return fmt.Sprintf("%s(%s)", schema.Name, schema.Table)
 	}
 	return fmt.Sprintf("%s.%s", schema.ModelType.PkgPath(), schema.ModelType.Name())
 }
 
-func (schema Schema) MakeSlice() reflect.Value {
+func (schema *Schema) MakeSlice() reflect.Value {
 	slice := reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(schema.ModelType)), 0, 20)
 	results := reflect.New(slice.Type())
 	results.Elem().Set(slice)
@@ -74,7 +75,7 @@ func (schema Schema) MakeSlice() reflect.Value {
 	return results
 }
 
-func (schema Schema) LookUpField(name string) *Field {
+func (schema *Schema) LookUpField(name string) *Field {
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
 	}
@@ -92,10 +93,7 @@ func (schema Schema) LookUpField(name string) *Field {
 //		}
 //		ID string // is selected by LookUpFieldByBindName([]string{"ID"}, "ID")
 //	}
-func (schema Schema) LookUpFieldByBindName(bindNames []string, name string) *Field {
-	if len(bindNames) == 0 {
-		return nil
-	}
+func (schema *Schema) LookUpFieldByBindName(bindNames []string, name string) *Field {
 	for i := len(bindNames) - 1; i >= 0; i-- {
 		find := strings.Join(bindNames[:i], ".") + "." + name
 		if field, ok := schema.FieldsByBindName[find]; ok {
@@ -113,6 +111,14 @@ type TablerWithNamer interface {
 	TableName(Namer) string
 }
 
+var callbackTypes = []callbackType{
+	callbackTypeBeforeCreate, callbackTypeAfterCreate,
+	callbackTypeBeforeUpdate, callbackTypeAfterUpdate,
+	callbackTypeBeforeSave, callbackTypeAfterSave,
+	callbackTypeBeforeDelete, callbackTypeAfterDelete,
+	callbackTypeAfterFind,
+}
+
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
@@ -124,34 +130,33 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
 
-	value := reflect.ValueOf(dest)
-	if value.Kind() == reflect.Ptr && value.IsNil() {
-		value = reflect.New(value.Type().Elem())
-	}
-	modelType := reflect.Indirect(value).Type()
-
-	if modelType.Kind() == reflect.Interface {
-		modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
-	}
-
-	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
+	modelType := reflect.ValueOf(dest).Type()
+	if modelType.Kind() == reflect.Ptr {
 		modelType = modelType.Elem()
 	}
 
 	if modelType.Kind() != reflect.Struct {
-		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+		if modelType.Kind() == reflect.Interface {
+			modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
 		}
-		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+
+		for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+
+		if modelType.Kind() != reflect.Struct {
+			if modelType.PkgPath() == "" {
+				return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+			}
+			return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		}
 	}
 
 	// Cache the Schema for performance,
 	// Use the modelType or modelType + schemaTable (if it present) as cache key.
-	var schemaCacheKey interface{}
+	var schemaCacheKey interface{} = modelType
 	if specialTableName != "" {
 		schemaCacheKey = fmt.Sprintf("%p-%s", modelType, specialTableName)
-	} else {
-		schemaCacheKey = modelType
 	}
 
 	// Load exist schema cache, return if exists
@@ -162,28 +167,29 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		return s, s.err
 	}
 
+	var tableName string
 	modelValue := reflect.New(modelType)
-	tableName := namer.TableName(modelType.Name())
-	if tabler, ok := modelValue.Interface().(Tabler); ok {
-		tableName = tabler.TableName()
-	}
-	if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
-		tableName = tabler.TableName(namer)
-	}
-	if en, ok := namer.(embeddedNamer); ok {
-		tableName = en.Table
-	}
-	if specialTableName != "" && specialTableName != tableName {
+	if specialTableName != "" {
 		tableName = specialTableName
+	} else if en, ok := namer.(embeddedNamer); ok {
+		tableName = en.Table
+	} else if tabler, ok := modelValue.Interface().(Tabler); ok {
+		tableName = tabler.TableName()
+	} else if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
+		tableName = tabler.TableName(namer)
+	} else {
+		tableName = namer.TableName(modelType.Name())
 	}
 
 	schema := &Schema{
 		Name:             modelType.Name(),
 		ModelType:        modelType,
 		Table:            tableName,
-		FieldsByName:     map[string]*Field{},
-		FieldsByBindName: map[string]*Field{},
-		FieldsByDBName:   map[string]*Field{},
+		DBNames:          make([]string, 0, 10),
+		Fields:           make([]*Field, 0, 10),
+		FieldsByName:     make(map[string]*Field, 10),
+		FieldsByBindName: make(map[string]*Field, 10),
+		FieldsByDBName:   make(map[string]*Field, 10),
 		Relationships:    Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:       cacheStore,
 		namer:            namer,
@@ -227,8 +233,9 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 				schema.FieldsByBindName[bindName] = field
 
 				if v != nil && v.PrimaryKey {
+					// remove the existing primary key field
 					for idx, f := range schema.PrimaryFields {
-						if f == v {
+						if f.DBName == v.DBName {
 							schema.PrimaryFields = append(schema.PrimaryFields[0:idx], schema.PrimaryFields[idx+1:]...)
 						}
 					}
@@ -247,7 +254,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 			schema.FieldsByBindName[bindName] = field
 		}
 
-		field.setupValuerAndSetter()
+		field.setupValuerAndSetter(modelType)
 	}
 
 	prioritizedPrimaryField := schema.LookUpField("id")
@@ -283,9 +290,36 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		schema.PrimaryFieldDBNames = append(schema.PrimaryFieldDBNames, field.DBName)
 	}
 
+	_, embedded := schema.cacheStore.Load(embeddedCacheKey)
+	relationshipFields := []*Field{}
 	for _, field := range schema.Fields {
 		if field.DataType != "" && field.HasDefaultValue && field.DefaultValueInterface == nil {
 			schema.FieldsWithDefaultDBValue = append(schema.FieldsWithDefaultDBValue, field)
+		}
+
+		if !embedded {
+			if field.DataType == "" && field.GORMDataType == "" && (field.Creatable || field.Updatable || field.Readable) {
+				relationshipFields = append(relationshipFields, field)
+				schema.FieldsByName[field.Name] = field
+				schema.FieldsByBindName[field.BindName()] = field
+			}
+
+			fieldValue := reflect.New(field.IndirectFieldType).Interface()
+			if fc, ok := fieldValue.(CreateClausesInterface); ok {
+				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.(QueryClausesInterface); ok {
+				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.(UpdateClausesInterface); ok {
+				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
+			}
+
+			if fc, ok := fieldValue.(DeleteClausesInterface); ok {
+				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
+			}
 		}
 	}
 
@@ -299,24 +333,6 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 				field.HasDefaultValue = true
 				field.AutoIncrement = true
-			}
-		}
-	}
-
-	callbackTypes := []callbackType{
-		callbackTypeBeforeCreate, callbackTypeAfterCreate,
-		callbackTypeBeforeUpdate, callbackTypeAfterUpdate,
-		callbackTypeBeforeSave, callbackTypeAfterSave,
-		callbackTypeBeforeDelete, callbackTypeAfterDelete,
-		callbackTypeAfterFind,
-	}
-	for _, cbName := range callbackTypes {
-		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
-			switch methodValue.Type().String() {
-			case "func(*gorm.DB) error": // TODO hack
-				reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
-			default:
-				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
 		}
 	}
@@ -336,84 +352,47 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}()
 
-	if _, embedded := schema.cacheStore.Load(embeddedCacheKey); !embedded {
-		for _, field := range schema.Fields {
-			if field.DataType == "" && field.GORMDataType == "" && (field.Creatable || field.Updatable || field.Readable) {
-				if schema.parseRelation(field); schema.err != nil {
-					return schema, schema.err
+	for _, cbName := range callbackTypes {
+		if methodValue := modelValue.MethodByName(string(cbName)); methodValue.IsValid() {
+			switch methodValue.Type().String() {
+			case "func(*gorm.DB) error":
+				expectedPkgPath := path.Dir(reflect.TypeOf(schema).Elem().PkgPath())
+				if inVarPkg := methodValue.Type().In(0).Elem().PkgPath(); inVarPkg == expectedPkgPath {
+					reflect.Indirect(reflect.ValueOf(schema)).FieldByName(string(cbName)).SetBool(true)
 				} else {
-					schema.FieldsByName[field.Name] = field
-					schema.FieldsByBindName[field.BindName()] = field
+					logger.Default.Warn(context.Background(), "In model %v, the hook function `%v(*gorm.DB) error` has an incorrect parameter type. The expected parameter type is `%v`, but the provided type is `%v`.", schema, cbName, expectedPkgPath, inVarPkg)
+					// PASS
 				}
+			default:
+				logger.Default.Warn(context.Background(), "Model %v don't match %vInterface, should be `%v(*gorm.DB) error`. Please see https://gorm.io/docs/hooks.html", schema, cbName, cbName)
 			}
+		}
+	}
 
-			fieldValue := reflect.New(field.IndirectFieldType)
-			fieldInterface := fieldValue.Interface()
-			if fc, ok := fieldInterface.(CreateClausesInterface); ok {
-				field.Schema.CreateClauses = append(field.Schema.CreateClauses, fc.CreateClauses(field)...)
-			}
-
-			if fc, ok := fieldInterface.(QueryClausesInterface); ok {
-				field.Schema.QueryClauses = append(field.Schema.QueryClauses, fc.QueryClauses(field)...)
-			}
-
-			if fc, ok := fieldInterface.(UpdateClausesInterface); ok {
-				field.Schema.UpdateClauses = append(field.Schema.UpdateClauses, fc.UpdateClauses(field)...)
-			}
-
-			if fc, ok := fieldInterface.(DeleteClausesInterface); ok {
-				field.Schema.DeleteClauses = append(field.Schema.DeleteClauses, fc.DeleteClauses(field)...)
-			}
+	// parse relationships
+	for _, field := range relationshipFields {
+		if schema.parseRelation(field); schema.err != nil {
+			return schema, schema.err
 		}
 	}
 
 	return schema, schema.err
 }
 
-// This unrolling is needed to show to the compiler the exact set of methods
-// that can be used on the modelType.
-// Prior to go1.22 any use of MethodByName would cause the linker to
-// abandon dead code elimination for the entire binary.
-// As of go1.22 the compiler supports one special case of a string constant
-// being passed to MethodByName. For enterprise customers or those building
-// large binaries, this gives a significant reduction in binary size.
-// https://github.com/golang/go/issues/62257
-func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect.Value {
-	switch cbType {
-	case callbackTypeBeforeCreate:
-		return modelType.MethodByName(string(callbackTypeBeforeCreate))
-	case callbackTypeAfterCreate:
-		return modelType.MethodByName(string(callbackTypeAfterCreate))
-	case callbackTypeBeforeUpdate:
-		return modelType.MethodByName(string(callbackTypeBeforeUpdate))
-	case callbackTypeAfterUpdate:
-		return modelType.MethodByName(string(callbackTypeAfterUpdate))
-	case callbackTypeBeforeSave:
-		return modelType.MethodByName(string(callbackTypeBeforeSave))
-	case callbackTypeAfterSave:
-		return modelType.MethodByName(string(callbackTypeAfterSave))
-	case callbackTypeBeforeDelete:
-		return modelType.MethodByName(string(callbackTypeBeforeDelete))
-	case callbackTypeAfterDelete:
-		return modelType.MethodByName(string(callbackTypeAfterDelete))
-	case callbackTypeAfterFind:
-		return modelType.MethodByName(string(callbackTypeAfterFind))
-	default:
-		return reflect.ValueOf(nil)
-	}
-}
-
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
-	for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
-		modelType = modelType.Elem()
-	}
 
 	if modelType.Kind() != reflect.Struct {
-		if modelType.PkgPath() == "" {
-			return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+		for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
 		}
-		return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+
+		if modelType.Kind() != reflect.Struct {
+			if modelType.PkgPath() == "" {
+				return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+			}
+			return nil, fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		}
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
