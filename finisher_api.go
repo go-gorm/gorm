@@ -119,7 +119,7 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 // First finds the first record ordered by primary key, matching given conditions conds
 func (db *DB) First(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.Limit(1).Order(clause.OrderByColumn{
-		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKeys},
 	})
 	if len(conds) > 0 {
 		if exprs := tx.Statement.BuildCondition(conds[0], conds[1:]...); len(exprs) > 0 {
@@ -147,7 +147,7 @@ func (db *DB) Take(dest interface{}, conds ...interface{}) (tx *DB) {
 // Last finds the last record ordered by primary key, matching given conditions conds
 func (db *DB) Last(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.Limit(1).Order(clause.OrderByColumn{
-		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKeys},
 		Desc:   true,
 	})
 	if len(conds) > 0 {
@@ -174,9 +174,10 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 
 // FindInBatches finds all records in batches of batchSize
 func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
+	// Use PrimaryKeys to handle composite primary key situations
 	var (
 		tx = db.Order(clause.OrderByColumn{
-			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKeys},
 		}).Session(&Session{})
 		queryDB      = tx
 		rowsAffected int64
@@ -200,6 +201,7 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		}
 	}
 
+find:
 	for {
 		result := queryDB.Limit(batchSize).Find(dest)
 		rowsAffected += result.RowsAffected
@@ -228,17 +230,76 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		// Optimize for-break
 		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+		if result.Statement.Schema.PrioritizedPrimaryField == nil && result.Statement.Schema.PrimaryFields != nil && len(result.Statement.Schema.PrimaryFields) == 1 {
 			tx.AddError(ErrPrimaryKeyRequired)
 			break
 		}
 
-		primaryValue, zero := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
-		if zero {
-			tx.AddError(ErrPrimaryKeyRequired)
-			break
+		// The following will build a where clause like this:
+		// struct {
+		// col1    uint `gorm:"primaryKey;autoIncrement:false"`
+		// col2    uint `gorm:"primaryKey;autoIncrement:false"`
+		// col3    uint `gorm:"primaryKey;autoIncrement:false"`
+		// }
+		// last row returned was col1 = 2, col2 = 3, col3 = 5
+		// where clause will be generated as follows
+		// WHERE (col1 > 2 OR (col1 = 2 AND col2 > 3) OR (col1 = 2 AND col2 = 3 AND col3 > 5))
+		// Detect composite primary keys
+		if result.Statement.Schema.PrimaryFields != nil {
+			pkCount := len(result.Statement.Schema.PrimaryFields)
+
+			// Handle composite primary key Where clauses
+			if pkCount > 1 {
+				var f *schema.Field
+				var orClauses []clause.Expression
+				for i := 0; i < pkCount; i++ {
+					var andClauses []clause.Expression
+					// Build 1st column GT clause
+					if i == 0 {
+						f = result.Statement.Schema.PrimaryFields[i]
+						primaryValue, zero := f.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+						if zero {
+							tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+							break find
+						}
+						orClauses = append(orClauses, clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName}, Value: primaryValue})
+					} else {
+						// Build AND clause and append to OR clauses
+						for j := 0; j <= i; j++ {
+							f = result.Statement.Schema.PrimaryFields[j]
+							primaryValue, zero := f.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+							if zero {
+								tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+								break find
+							}
+							if j == i {
+								// Build current outer column GT clause
+								andClauses = append(andClauses, clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName}, Value: primaryValue})
+							} else {
+								// Build all other columns EQ clause
+								andClauses = append(andClauses, clause.Eq{Column: clause.Column{Table: clause.CurrentTable, Name: f.DBName}, Value: primaryValue})
+							}
+						}
+						orClauses = append(orClauses, clause.And(andClauses...))
+					}
+				}
+				queryDB = tx.Clauses(clause.Or(orClauses...))
+			} else {
+				primaryValue, zero := result.Statement.Schema.PrimaryFields[0].ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+				if zero {
+					tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+					break
+				}
+				queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: result.Statement.Schema.PrimaryFields[0].DBName}, Value: primaryValue})
+			}
+		} else {
+			primaryValue, zero := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+			if zero {
+				tx.AddError(ErrPrimaryKeyRequired) //nolint:typecheck,errcheck,gosec
+				break
+			}
+			queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 		}
-		queryDB = tx.Clauses(clause.Gt{Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey}, Value: primaryValue})
 	}
 
 	tx.RowsAffected = rowsAffected
@@ -308,7 +369,7 @@ func (db *DB) assignInterfacesToValue(values ...interface{}) {
 //	// user -> User{Name: "jinzhu", Age: 20, Email: "fake@fake.org"}
 func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 	queryTx := db.Limit(1).Order(clause.OrderByColumn{
-		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKeys},
 	})
 
 	if tx = queryTx.Find(dest, conds...); tx.RowsAffected == 0 {
@@ -348,7 +409,7 @@ func (db *DB) FirstOrInit(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	queryTx := db.Session(&Session{}).Limit(1).Order(clause.OrderByColumn{
-		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
+		Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKeys},
 	})
 
 	result := queryTx.Find(dest, conds...)
