@@ -256,3 +256,396 @@ func TestDeleteReturning(t *testing.T) {
 		t.Errorf("failed to delete data, current count %v", count)
 	}
 }
+
+func TestNestedDelete(t *testing.T) {
+	type NestedProfile struct {
+		gorm.Model
+		Name           string
+		NestedUserID   uint
+	}
+
+	type NestedUser struct {
+		gorm.Model
+		Name     string
+		Profiles []NestedProfile `gorm:"foreignKey:NestedUserID"`
+	}
+
+	DB.Migrator().DropTable(&NestedProfile{}, &NestedUser{})
+	if err := DB.AutoMigrate(&NestedUser{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+	if err := DB.AutoMigrate(&NestedProfile{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	user := NestedUser{Name: "nested_delete_test", Profiles: []NestedProfile{
+		{Name: "Profile1"},
+		{Name: "Profile2"},
+	}}
+
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("Failed to create user, got error %v", err)
+	}
+	t.Logf("Created user with ID: %d", user.ID)
+
+	var deletedUser NestedUser
+	result := DB.Select("Profiles").Delete(&deletedUser, user.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete user with nested select, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&NestedUser{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 users after nested delete, got %d", count)
+	}
+
+	DB.Model(&NestedProfile{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 profiles after nested delete, got %d", count)
+	}
+}
+
+
+func TestNestedDeleteWithBelongsTo(t *testing.T) {
+	type Author struct {
+		gorm.Model
+		Name string
+	}
+
+	type Book struct {
+		gorm.Model
+		Title    string
+		AuthorID uint
+		Author   Author
+	}
+
+	DB.Migrator().DropTable(&Author{}, &Book{})
+	if err := DB.AutoMigrate(&Author{}, &Book{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	author := Author{Name: "Test Author"}
+	DB.Create(&author)
+
+	book := Book{Title: "Test Book", AuthorID: author.ID}
+	DB.Create(&book)
+
+	var deletedBook Book
+	result := DB.Select("Author").Delete(&deletedBook, book.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete book with nested BelongsTo, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&Book{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 books after nested delete with BelongsTo, got %d", count)
+	}
+
+	DB.Model(&Author{}).Count(&count)
+	if count != 1 {
+		t.Fatalf("Expected 1 author after nested delete with BelongsTo, got %d", count)
+	}
+}
+
+func TestNestedDeleteWithManyToMany(t *testing.T) {
+	type Tag struct {
+		gorm.Model
+		Name string
+	}
+
+	type Post struct {
+		gorm.Model
+		Title string
+		Tags  []Tag `gorm:"many2many:post_tags;"`
+	}
+
+	DB.Migrator().DropTable(&Tag{}, &Post{}, "post_tags")
+	if err := DB.AutoMigrate(&Tag{}, &Post{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	tag1 := Tag{Name: "Tag1"}
+	tag2 := Tag{Name: "Tag2"}
+	DB.Create(&tag1)
+	DB.Create(&tag2)
+
+	post := Post{Title: "Test Post", Tags: []Tag{tag1, tag2}}
+	DB.Create(&post)
+
+	var deletedPost Post
+	result := DB.Select("Tags").Delete(&deletedPost, post.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete post with nested ManyToMany, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&Post{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 posts after nested delete with ManyToMany, got %d", count)
+	}
+
+	DB.Model(&Tag{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 tags after nested delete with ManyToMany, got %d", count)
+	}
+
+	DB.Table("post_tags").Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 join table records after nested delete with ManyToMany, got %d", count)
+	}
+}
+
+func TestNestedDeleteWithEmbeddedStruct(t *testing.T) {
+	type Address struct {
+		Street string
+		City   string
+	}
+
+	type User struct {
+		gorm.Model
+		Name    string
+		Address Address `gorm:"embedded"`
+	}
+
+	DB.Migrator().DropTable(&User{})
+	if err := DB.AutoMigrate(&User{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	user := User{
+		Name: "embedded_delete_test",
+		Address: Address{
+			Street: "123 Main St",
+			City:   "Test City",
+		},
+	}
+
+	DB.Create(&user)
+
+	var deletedUser User
+	result := DB.Delete(&deletedUser, user.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete user with embedded struct, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&User{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 users after delete with embedded struct, got %d", count)
+	}
+}
+
+func TestNestedDeleteDeepNesting(t *testing.T) {
+	type Comment struct {
+		gorm.Model
+		Content string
+		PostID  uint
+	}
+
+	type Post struct {
+		gorm.Model
+		Title    string
+		UserID   uint
+		Comments []Comment
+	}
+
+	type User struct {
+		gorm.Model
+		Name  string
+		Posts []Post
+	}
+
+	DB.Migrator().DropTable(&Comment{}, &Post{}, &User{})
+	if err := DB.AutoMigrate(&User{}, &Post{}, &Comment{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	user := User{Name: "deep_nesting_test", Posts: []Post{
+		{Title: "Post1", Comments: []Comment{
+			{Content: "Comment1"},
+			{Content: "Comment2"},
+		}},
+		{Title: "Post2", Comments: []Comment{
+			{Content: "Comment3"},
+		}},
+	}}
+	DB.Create(&user)
+
+	var deletedUser User
+	result := DB.Select("Posts.Comments").Delete(&deletedUser, user.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete user with deep nesting, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&User{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 users after deep nested delete, got %d", count)
+	}
+	DB.Model(&Post{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 posts after deep nested delete, got %d", count)
+	}
+	DB.Model(&Comment{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 comments after deep nested delete, got %d", count)
+	}
+}
+
+func TestNestedDeleteMultipleRelations(t *testing.T) {
+	type MultiProfile struct {
+		gorm.Model
+		Name        string
+		MultiUserID uint
+	}
+
+	type MultiPost struct {
+		gorm.Model
+		Title       string
+		MultiUserID uint
+	}
+
+	type MultiUser struct {
+		gorm.Model
+		Name     string
+		Profiles []MultiProfile `gorm:"foreignKey:MultiUserID"`
+		Posts    []MultiPost    `gorm:"foreignKey:MultiUserID"`
+	}
+
+	DB.Migrator().DropTable(&MultiProfile{}, &MultiPost{}, &MultiUser{})
+	if err := DB.AutoMigrate(&MultiUser{}, &MultiPost{}, &MultiProfile{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	user1 := MultiUser{Name: "multi_relation_test1", Profiles: []MultiProfile{{Name: "Profile1"}}}
+	DB.Create(&user1)
+
+	var deletedUser1 MultiUser
+	result := DB.Select("Profiles").Delete(&deletedUser1, user1.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete user with Profiles relation, got error %v", result.Error)
+	}
+	
+	user2 := MultiUser{Name: "multi_relation_test2", Posts: []MultiPost{{Title: "Post1"}}}
+	DB.Create(&user2)
+	
+	var deletedUser2 MultiUser
+	result = DB.Select("Posts").Delete(&deletedUser2, user2.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete user with Posts relation, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&MultiUser{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 users after multi-relation delete, got %d", count)
+	}
+	DB.Model(&MultiPost{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 posts after multi-relation delete, got %d", count)
+	}
+	DB.Model(&MultiProfile{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 profiles after multi-relation delete, got %d", count)
+	}
+}
+
+
+func TestNestedDeleteWithPolymorphic(t *testing.T) {
+	type Toy struct {
+		gorm.Model
+		Name      string
+		OwnerID   uint
+		OwnerType string
+	}
+
+	type Cat struct {
+		gorm.Model
+		Name string
+		Toys []Toy `gorm:"polymorphic:Owner;"`
+	}
+
+	DB.Migrator().DropTable(&Toy{}, &Cat{})
+	if err := DB.AutoMigrate(&Cat{}, &Toy{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	cat := Cat{Name: "Fluffy", Toys: []Toy{{Name: "Ball"}, {Name: "Mouse"}}}
+	DB.Create(&cat)
+
+	var deletedCat Cat
+	result := DB.Select("Toys").Delete(&deletedCat, cat.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete cat with polymorphic toys, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&Cat{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 cats after polymorphic nested delete, got %d", count)
+	}
+	DB.Model(&Toy{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 toys after polymorphic nested delete, got %d", count)
+	}
+}
+
+func TestNestedDeleteErrorHandling(t *testing.T) {
+	type User struct {
+		gorm.Model
+		Name string
+	}
+
+	DB.Migrator().DropTable(&User{})
+	if err := DB.AutoMigrate(&User{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	var user User
+	result := DB.Select("NonExistentRelation").Delete(&user, 999)
+	if result.Error == nil {
+		t.Fatalf("Expected error for non-existent relationship, but got none")
+	}
+
+	result = DB.Select("Name").Delete(&user, 999)
+	if result.Error == nil {
+		t.Fatalf("Expected error for non-existent record, but got none")
+	}
+}
+
+func TestNestedDeleteWithSelfReferential(t *testing.T) {
+	type Category struct {
+		gorm.Model
+		Name       string
+		ParentID   *uint
+		Parent     *Category
+		Children   []Category `gorm:"foreignKey:ParentID"`
+	}
+
+	DB.Migrator().DropTable(&Category{})
+	if err := DB.AutoMigrate(&Category{}); err != nil {
+		t.Fatalf("Failed to auto migrate, got error %v", err)
+	}
+
+	parent := Category{Name: "Parent"}
+	DB.Create(&parent)
+	
+	child1 := Category{Name: "Child1", ParentID: &parent.ID}
+	child2 := Category{Name: "Child2", ParentID: &parent.ID}
+	DB.Create(&child1)
+	DB.Create(&child2)
+
+	var deletedParent Category
+	result := DB.Select("Children").Delete(&deletedParent, parent.ID)
+	if result.Error != nil {
+		t.Fatalf("Failed to delete parent with children, got error %v", result.Error)
+	}
+
+	var count int64
+	DB.Model(&Category{}).Count(&count)
+	if count != 0 {
+		t.Fatalf("Expected 0 categories after self-referential nested delete, got %d", count)
+	}
+}
