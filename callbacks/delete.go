@@ -220,24 +220,43 @@ func deleteWithNestedSelect(db *gorm.DB, value interface{}, nestedPaths []string
 func DeleteBeforeAssociations(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil {
 		if len(db.Statement.Selects) > 0 {
-			// Check if clause.Associations is in selects
-			hasClauseAssociations := false
-			var otherSelects []string
-			
-			for _, s := range db.Statement.Selects {
-				if s == clause.Associations {
-					hasClauseAssociations = true
-				} else {
-					otherSelects = append(otherSelects, s)
+			hasRelationshipSelects := false
+			for _, selectItem := range db.Statement.Selects {
+				if selectItem == clause.Associations {
+					hasRelationshipSelects = true
+					break
+				}
+				if _, ok := db.Statement.Schema.Relationships.Relations[selectItem]; ok {
+					hasRelationshipSelects = true
+					break
+				}
+				if strings.Contains(selectItem, ".") {
+					parts := strings.Split(selectItem, ".")
+					if len(parts) > 0 {
+						if _, ok := db.Statement.Schema.Relationships.Relations[parts[0]]; ok {
+							hasRelationshipSelects = true
+							break
+						}
+					}
 				}
 			}
 			
-			// If we have clause.Associations, handle it with the old logic
+			if hasRelationshipSelects {
+				hasClauseAssociations := false
+				var otherSelects []string
+				
+				for _, s := range db.Statement.Selects {
+					if s == clause.Associations {
+						hasClauseAssociations = true
+					} else {
+						otherSelects = append(otherSelects, s)
+					}
+				}
+			
 			if hasClauseAssociations {
 				selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
 				
 				if restricted {
-					// First, collect all relationships that are explicitly mentioned in otherSelects
 					explicitRelations := make(map[string]bool)
 					for _, s := range otherSelects {
 						if strings.Contains(s, ".") {
@@ -255,7 +274,6 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							continue
 						}
 						
-						// Skip if this relation is explicitly handled in otherSelects
 						if explicitRelations[column] {
 							continue
 						}
@@ -273,17 +291,13 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 				}
 			}
 			
-			// Handle other selects (including nested ones)
 			if len(otherSelects) > 0 {
-				// Validate that all selected items are valid relationships first
 				for _, selectItem := range otherSelects {
 					if selectItem != clause.Associations {
-						// Check the first part of a nested path
 						parts := strings.Split(selectItem, ".")
 						if len(parts) > 0 {
 							firstRel := parts[0]
 							if _, ok := db.Statement.Schema.Relationships.Relations[firstRel]; !ok {
-								// Check if it's a field name
 								if field := db.Statement.Schema.LookUpField(firstRel); field != nil {
 									db.AddError(fmt.Errorf("field %s is not a valid relationship", firstRel))
 									return
@@ -319,7 +333,6 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 							loadDB = loadDB.Unscoped()
 						}
 						
-						// Apply the same WHERE conditions from the main statement
 						if whereClause, ok := db.Statement.Clauses["WHERE"]; ok {
 							if where, ok := whereClause.Expression.(clause.Where); ok {
 								loadDB.Statement.AddClause(where)
@@ -327,8 +340,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 						}
 						
 						if err := loadDB.First(db.Statement.Dest).Error; err != nil {
-							// Don't process associations if we can't load the record
-							// Let the main Delete callback handle the error
+
 							return
 						}
 						db.Statement.ReflectValue = reflect.ValueOf(db.Statement.Dest).Elem()
@@ -351,6 +363,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 				}
 			}
 			return
+		}
 		}
 		
 		selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
@@ -401,8 +414,7 @@ func deleteAssociation(db *gorm.DB, rel *schema.Relationship) error {
 		}
 
 	case schema.Many2Many:
-		// For clause.Associations - we should NOT delete the associated records themselves
-		// We only clean up the join table entries
+
 		var (
 			queryConds     = make([]clause.Expression, 0, len(rel.References))
 			foreignFields  = make([]*schema.Field, 0, len(rel.References))
