@@ -101,8 +101,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 
 			if hasRelationshipSelects {
 				hasClauseAssociations := false
-				var otherSelects []string
-				
+				var otherSelects []string				
 				for _, s := range db.Statement.Selects {
 					if s == clause.Associations {
 						hasClauseAssociations = true
