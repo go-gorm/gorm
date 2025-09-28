@@ -67,7 +67,6 @@ func deleteNestedAssociations(db *gorm.DB, rel *schema.Relationship, nestedPaths
 	return nil
 }
 
-
 func deleteWithNestedSelect(db *gorm.DB, value interface{}, nestedPaths []string) error {
 	tx := db.Session(&gorm.Session{NewDB: true})
 	for _, path := range nestedPaths {
@@ -215,7 +214,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 					}
 					
 					if err := deleteNestedAssociations(db, rel, nestedPaths); err != nil {
-						db.AddError(err)
+						_ = db.AddError(err)
 						return
 					}
 				}
@@ -241,7 +240,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 			}
 			
 			if err := deleteAssociation(db, rel); err != nil {
-				db.AddError(err)
+				_ = db.AddError(err)
 				return
 			}
 		}
@@ -251,67 +250,65 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 func deleteAssociation(db *gorm.DB, rel *schema.Relationship) error {
 	switch rel.Type {
 	case schema.HasOne, schema.HasMany:
-		queryConds := rel.ToQueryConditions(db.Statement.Context, db.Statement.ReflectValue)
-		modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-		tx := db.Session(&gorm.Session{NewDB: true}).Model(modelValue)
-		withoutConditions := false
-
-		if db.Statement.Unscoped {
-			tx = tx.Unscoped()
-		}
-
-		for _, cond := range queryConds {
-			if c, ok := cond.(clause.IN); ok && len(c.Values) == 0 {
-				withoutConditions = true
-				break
-			}
-		}
-
-		if !withoutConditions {
-			return tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error
-		}
-
+		return deleteHasOneOrManyAssociation(db, rel)
 	case schema.Many2Many:
-
-		var (
-			queryConds     = make([]clause.Expression, 0, len(rel.References))
-			foreignFields  = make([]*schema.Field, 0, len(rel.References))
-			relForeignKeys = make([]string, 0, len(rel.References))
-			modelValue     = reflect.New(rel.JoinTable.ModelType).Interface()
-			table          = rel.JoinTable.Table
-			tx             = db.Session(&gorm.Session{NewDB: true}).Model(modelValue).Table(table)
-		)
-
-		for _, ref := range rel.References {
-			if ref.OwnPrimaryKey {
-				foreignFields = append(foreignFields, ref.PrimaryKey)
-				relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
-			} else if ref.PrimaryValue != "" {
-				queryConds = append(queryConds, clause.Eq{
-					Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
-					Value:  ref.PrimaryValue,
-				})
-			}
-		}
-
-		_, foreignValues := schema.GetIdentityFieldValuesMap(db.Statement.Context, db.Statement.ReflectValue, foreignFields)
-		column, values := schema.ToQueryValues(table, relForeignKeys, foreignValues)
-		
-		if len(values) > 0 {
-			queryConds = append(queryConds, clause.IN{Column: column, Values: values})
-		}
-
-		if len(queryConds) > 0 {
-			return tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error
-		}
-		return nil
-
+		return deleteMany2ManyAssociation(db, rel)
 	case schema.BelongsTo:
 		// For clause.Associations, BelongsTo should not be deleted
 		// as it would violate foreign key constraints
 		return nil
 	}
+	return nil
+}
 
+func deleteHasOneOrManyAssociation(db *gorm.DB, rel *schema.Relationship) error {
+	queryConds := rel.ToQueryConditions(db.Statement.Context, db.Statement.ReflectValue)
+	modelValue := reflect.New(rel.FieldSchema.ModelType).Interface()
+	tx := db.Session(&gorm.Session{NewDB: true}).Model(modelValue)
+
+	if db.Statement.Unscoped {
+		tx = tx.Unscoped()
+	}
+
+	if hasEmptyConditions(queryConds) {
+		return nil
+	}
+
+	return tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error
+}
+
+func deleteMany2ManyAssociation(db *gorm.DB, rel *schema.Relationship) error {
+	var (
+		queryConds     = make([]clause.Expression, 0, len(rel.References))
+		foreignFields  = make([]*schema.Field, 0, len(rel.References))
+		relForeignKeys = make([]string, 0, len(rel.References))
+		modelValue     = reflect.New(rel.JoinTable.ModelType).Interface()
+		table          = rel.JoinTable.Table
+		tx             = db.Session(&gorm.Session{NewDB: true}).Model(modelValue).Table(table)
+	)
+
+	for _, ref := range rel.References {
+		if ref.OwnPrimaryKey {
+			foreignFields = append(foreignFields, ref.PrimaryKey)
+			relForeignKeys = append(relForeignKeys, ref.ForeignKey.DBName)
+		} else if ref.PrimaryValue != "" {
+			queryConds = append(queryConds, clause.Eq{
+				Column: clause.Column{Table: rel.JoinTable.Table, Name: ref.ForeignKey.DBName},
+				Value:  ref.PrimaryValue,
+			})
+		}
+	}
+
+	_, foreignValues := schema.GetIdentityFieldValuesMap(db.Statement.Context, db.Statement.ReflectValue, foreignFields)
+	column, values := schema.ToQueryValues(table, relForeignKeys, foreignValues)
+	
+	if len(values) > 0 {
+		queryConds = append(queryConds, clause.IN{Column: column, Values: values})
+	}
+
+	if len(queryConds) > 0 {
+		return tx.Clauses(clause.Where{Exprs: queryConds}).Delete(modelValue).Error
+	}
 	return nil
 }
 
@@ -500,6 +497,10 @@ func findMany2ManyAssociatedRecords(db *gorm.DB, rel *schema.Relationship) (refl
 	
 	if len(joinConditions) == 0 {
 		return reflect.Value{}, nil
+	}
+	
+	if len(rel.References) == 0 || len(rel.FieldSchema.PrimaryFieldDBNames) == 0 {
+		return reflect.Value{}, fmt.Errorf("missing references or primary field names for relationship")
 	}
 	
 	associatedRecords := reflect.New(reflect.SliceOf(rel.FieldSchema.ModelType))
