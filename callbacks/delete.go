@@ -98,7 +98,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 					}
 				}
 			}
-			
+
 			if hasRelationshipSelects {
 				hasClauseAssociations := false
 				var otherSelects []string
