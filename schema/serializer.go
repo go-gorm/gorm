@@ -127,16 +127,23 @@ func (UnixSecondSerializer) Scan(ctx context.Context, field *Field, dst reflect.
 // Value implements serializer interface
 func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (result interface{}, err error) {
 	rv := reflect.ValueOf(fieldValue)
-	switch v := fieldValue.(type) {
-	case int64, int, uint, uint64, int32, uint32, int16, uint16:
-		result = time.Unix(reflect.Indirect(rv).Int(), 0).UTC()
-	case *int64, *int, *uint, *uint64, *int32, *uint32, *int16, *uint16:
+	switch fieldValue.(type) {
+	case int, int8, int16, int32, int64:
+		result = time.Unix(rv.Int(), 0).UTC()
+	case uint, uint8, uint16, uint32, uint64:
+		result = time.Unix(int64(rv.Uint()), 0).UTC()
+	case *int, *int8, *int16, *int32, *int64:
 		if rv.IsZero() {
 			return nil, nil
 		}
-		result = time.Unix(reflect.Indirect(rv).Int(), 0).UTC()
+		result = time.Unix(rv.Elem().Int(), 0).UTC()
+	case *uint, *uint8, *uint16, *uint32, *uint64:
+		if rv.IsZero() {
+			return nil, nil
+		}
+		result = time.Unix(int64(rv.Elem().Uint()), 0).UTC()
 	default:
-		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", v)
+		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", fieldValue)
 	}
 	return
 }
