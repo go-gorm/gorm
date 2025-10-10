@@ -189,8 +189,10 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 			if got == nil {
 				t.Fatalf("UnixSecondSerializer.Value() = nil, want %v", tt.want)
 			}
-			if !tt.want.(time.Time).Equal(got.(time.Time)) {
-				t.Fatalf("UnixSecondSerializer.Value() = %v, want %v", got, tt.want)
+			if gotTime, ok := got.(time.Time); !ok {
+				t.Errorf("UnixSecondSerializer.Value() returned %T, expected time.Time", got)
+			} else if !tt.want.(time.Time).Equal(gotTime) {
+				t.Errorf("UnixSecondSerializer.Value() = %v, want %v", got, tt.want)
 			}
 		})
 	}
