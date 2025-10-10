@@ -10,27 +10,29 @@ import (
 
 func TestUnixSecondSerializer_Value(t *testing.T) {
 	var (
-		intValue    = math.MaxInt32
-		int8Value   = int8(math.MaxInt8)
-		int16Value  = int16(math.MaxInt16)
-		int32Value  = int32(math.MaxInt32)
-		int64Value  = int64(math.MaxInt32)
-		uintValue   = uint(math.MaxUint32)
-		uint8Value  = uint8(math.MaxUint8)
-		uint16Value = uint16(math.MaxUint16)
-		uint32Value = uint32(math.MaxUint32)
-		uint64Value = uint64(math.MaxUint32)
+		intValue      = math.MaxInt64
+		int8Value     = int8(math.MaxInt8)
+		int16Value    = int16(math.MaxInt16)
+		int32Value    = int32(math.MaxInt32)
+		int64Value    = int64(math.MaxInt64)
+		uintValue     = uint(math.MaxInt64)
+		uint8Value    = uint8(math.MaxUint8)
+		uint16Value   = uint16(math.MaxUint16)
+		uint32Value   = uint32(math.MaxUint32)
+		uint64Value   = uint64(math.MaxInt64)
+		maxInt64Plus1 = uint64(math.MaxInt64 + 1)
 
-		intPtrValue    = &intValue
-		int8PtrValue   = &int8Value
-		int16PtrValue  = &int16Value
-		int32PtrValue  = &int32Value
-		int64PtrValue  = &int64Value
-		uintPtrValue   = &uintValue
-		uint8PtrValue  = &uint8Value
-		uint16PtrValue = &uint16Value
-		uint32PtrValue = &uint32Value
-		uint64PtrValue = &uint64Value
+		intPtrValue      = &intValue
+		int8PtrValue     = &int8Value
+		int16PtrValue    = &int16Value
+		int32PtrValue    = &int32Value
+		int64PtrValue    = &int64Value
+		uintPtrValue     = &uintValue
+		uint8PtrValue    = &uint8Value
+		uint16PtrValue   = &uint16Value
+		uint32PtrValue   = &uint32Value
+		uint64PtrValue   = &uint64Value
+		maxInt64Plus1Ptr = &maxInt64Plus1
 	)
 	tests := []struct {
 		name    string
@@ -99,6 +101,12 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:    "maxInt64+1",
+			value:   maxInt64Plus1,
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name:    "*int",
 			value:   intPtrValue,
 			want:    time.Unix(int64(*intPtrValue), 0).UTC(),
@@ -157,6 +165,12 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 			value:   uint64PtrValue,
 			want:    time.Unix(int64(*uint64PtrValue), 0).UTC(), //nolint:gosec
 			wantErr: false,
+		},
+		{
+			name:    "pointer to maxInt64+1",
+			value:   maxInt64Plus1Ptr,
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name:    "nil pointer",
