@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"context"
 	"math"
 	"reflect"
 	"testing"
@@ -173,7 +174,7 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := UnixSecondSerializer{}
-			got, err := s.Value(nil, nil, reflect.Value{}, tt.value)
+			got, err := s.Value(context.Background(), nil, reflect.Value{}, tt.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("UnixSecondSerializer.Value() error = %v, wantErr %v", err, tt.wantErr)
 				return
