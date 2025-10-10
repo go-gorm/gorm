@@ -173,26 +173,24 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := UnixSecondSerializer{}
-			got, err := s.Value(context.Background(), nil, reflect.Value{}, tt.value)
+			got, err := UnixSecondSerializer{}.Value(context.Background(), nil, reflect.Value{}, tt.value)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("UnixSecondSerializer.Value() error = %v, wantErr %v", err, tt.wantErr)
-				return
+				t.Fatalf("UnixSecondSerializer.Value() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err != nil {
 				return
 			}
-			if tt.want == nil && got != nil {
-				t.Errorf("UnixSecondSerializer.Value() = %v, want nil", got)
-			}
-			if got == nil && tt.want != nil {
-				t.Errorf("UnixSecondSerializer.Value() = nil, want %v", tt.want)
-			}
 			if tt.want == nil && got == nil {
 				return
 			}
+			if tt.want == nil {
+				t.Fatalf("UnixSecondSerializer.Value() = %v, want nil", got)
+			}
+			if got == nil {
+				t.Fatalf("UnixSecondSerializer.Value() = nil, want %v", tt.want)
+			}
 			if !tt.want.(time.Time).Equal(got.(time.Time)) {
-				t.Errorf("UnixSecondSerializer.Value() = %v, want %v", got, tt.want)
+				t.Fatalf("UnixSecondSerializer.Value() = %v, want %v", got, tt.want)
 			}
 		})
 	}
