@@ -71,7 +71,7 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 		{
 			name:    "uint",
 			value:   uintValue,
-			want:    time.Unix(int64(uintValue), 0).UTC(),
+			want:    time.Unix(int64(uintValue), 0).UTC(), //nolint:gosec
 			wantErr: false,
 		},
 		{
@@ -95,7 +95,7 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 		{
 			name:    "uint64",
 			value:   uint64Value,
-			want:    time.Unix(int64(uint64Value), 0).UTC(),
+			want:    time.Unix(int64(uint64Value), 0).UTC(), //nolint:gosec
 			wantErr: false,
 		},
 		{
@@ -131,7 +131,7 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 		{
 			name:    "*uint",
 			value:   uintPtrValue,
-			want:    time.Unix(int64(*uintPtrValue), 0).UTC(),
+			want:    time.Unix(int64(*uintPtrValue), 0).UTC(), //nolint:gosec
 			wantErr: false,
 		},
 		{
@@ -155,7 +155,7 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 		{
 			name:    "*uint64",
 			value:   uint64PtrValue,
-			want:    time.Unix(int64(*uint64PtrValue), 0).UTC(),
+			want:    time.Unix(int64(*uint64PtrValue), 0).UTC(), //nolint:gosec
 			wantErr: false,
 		},
 		{

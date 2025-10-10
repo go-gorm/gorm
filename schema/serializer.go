@@ -131,7 +131,7 @@ func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect
 	case int, int8, int16, int32, int64:
 		result = time.Unix(rv.Int(), 0).UTC()
 	case uint, uint8, uint16, uint32, uint64:
-		result = time.Unix(int64(rv.Uint()), 0).UTC()
+		result = time.Unix(int64(rv.Uint()), 0).UTC() //nolint:gosec
 	case *int, *int8, *int16, *int32, *int64:
 		if rv.IsZero() {
 			return nil, nil
@@ -141,7 +141,7 @@ func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect
 		if rv.IsZero() {
 			return nil, nil
 		}
-		result = time.Unix(int64(rv.Elem().Uint()), 0).UTC()
+		result = time.Unix(int64(rv.Elem().Uint()), 0).UTC() //nolint:gosec
 	default:
 		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", fieldValue)
 	}
