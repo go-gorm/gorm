@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"gorm.io/gorm/utils"
 )
 
 type slogLogger struct {
@@ -37,19 +39,19 @@ func (l *slogLogger) LogMode(level LogLevel) Interface {
 
 func (l *slogLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Info {
-		l.Logger.InfoContext(ctx, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelInfo, msg, slog.Any("data", data))
 	}
 }
 
 func (l *slogLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Warn {
-		l.Logger.WarnContext(ctx, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelWarn, msg, slog.Any("data", data))
 	}
 }
 
 func (l *slogLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Error {
-		l.Logger.ErrorContext(ctx, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelError, msg, slog.Any("data", data))
 	}
 }
 
@@ -72,23 +74,37 @@ func (l *slogLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql 
 	switch {
 	case err != nil && (!l.IgnoreRecordNotFoundError || !errors.Is(err, ErrRecordNotFound)):
 		fields = append(fields, slog.String("error", err.Error()))
-		l.Logger.ErrorContext(ctx, "SQL executed", slog.Attr{
+		l.log(ctx, slog.LevelError, "SQL executed", slog.Attr{
 			Key:   "trace",
 			Value: slog.GroupValue(fields...),
 		})
 
 	case l.SlowThreshold != 0 && elapsed > l.SlowThreshold:
-		l.Logger.WarnContext(ctx, "SQL executed", slog.Attr{
+		l.log(ctx, slog.LevelWarn, "SQL executed", slog.Attr{
 			Key:   "trace",
 			Value: slog.GroupValue(fields...),
 		})
 
 	case l.LogLevel >= Info:
-		l.Logger.InfoContext(ctx, "SQL executed", slog.Attr{
+		l.log(ctx, slog.LevelInfo, "SQL executed", slog.Attr{
 			Key:   "trace",
 			Value: slog.GroupValue(fields...),
 		})
 	}
+}
+
+func (l *slogLogger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if !l.Logger.Enabled(ctx, level) {
+		return
+	}
+
+	r := slog.NewRecord(time.Now(), level, msg, utils.CallerFrame().PC)
+	r.Add(args...)
+	_ = l.Logger.Handler().Handle(ctx, r)
 }
 
 // ParamsFilter filter params
