@@ -182,7 +182,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		*bool, *string, *time.Time,
 		*sql.NullInt32, *sql.NullInt64, *sql.NullFloat64,
 		*sql.NullBool, *sql.NullString, *sql.NullTime:
-		for initialized || rows.Next() {
+		if initialized || rows.Next() {
 			initialized = false
 			db.RowsAffected++
 			db.AddError(rows.Scan(dest))
