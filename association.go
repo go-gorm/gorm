@@ -99,7 +99,7 @@ func (association *Association) Replace(values ...interface{}) error {
 			return association.Error
 		}
 
-		// set old associations's foreign key to null
+		// set old association's foreign key to null
 		switch rel.Type {
 		case schema.BelongsTo:
 			if len(values) == 0 {
@@ -304,7 +304,7 @@ func (association *Association) Delete(values ...interface{}) error {
 		}
 
 		if association.Error == nil {
-			// clean up deleted values's foreign key
+			// clean up deleted values' foreign key
 			relValuesMap, _ := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, rel.FieldSchema.PrimaryFields)
 
 			cleanUpDeletedRelations := func(data reflect.Value) {
