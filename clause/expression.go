@@ -130,7 +130,29 @@ func (expr NamedExpr) Build(builder Builder) {
 		} else if v == ' ' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' || v == '\r' || v == '\n' || v == ';' {
 			if inName {
 				if nv, ok := namedMap[string(name)]; ok {
-					builder.AddVar(builder, nv)
+					if afterParenthesis {
+						if _, ok := nv.(driver.Valuer); ok {
+							builder.AddVar(builder, nv)
+						} else {
+							switch rv := reflect.ValueOf(nv); rv.Kind() {
+							case reflect.Slice, reflect.Array:
+								if rv.Len() == 0 {
+									builder.AddVar(builder, nil)
+								} else {
+									for i := 0; i < rv.Len(); i++ {
+										if i > 0 {
+											builder.WriteByte(',')
+										}
+										builder.AddVar(builder, rv.Index(i).Interface())
+									}
+								}
+							default:
+								builder.AddVar(builder, nv)
+							}
+						}
+					} else {
+						builder.AddVar(builder, nv)
+					}
 				} else {
 					builder.WriteByte('@')
 					builder.WriteString(string(name))
