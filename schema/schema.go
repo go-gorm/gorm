@@ -84,7 +84,7 @@ func (schema *Schema) LookUpField(name string) *Field {
 	}
 
 	// Lookup field using namer-driven ColumnName
-	if schema.namer == (Namer)(nil) {
+	if schema.namer == nil || reflect.ValueOf(schema.namer).IsNil() {
 		return nil
 	}
 	namerColumnName := schema.namer.ColumnName(schema.Table, name)
