@@ -82,6 +82,19 @@ func (schema *Schema) LookUpField(name string) *Field {
 	if field, ok := schema.FieldsByName[name]; ok {
 		return field
 	}
+
+	// Lookup field using namer-driven ColumnName
+	if schema.namer == (Namer)(nil) {
+		return nil
+	}
+	namerColumnName := schema.namer.ColumnName(schema.Table, name)
+	if len(namerColumnName) == 0 || namerColumnName == name {
+		return nil
+	}
+	if field, ok := schema.FieldsByDBName[namerColumnName]; ok {
+		return field
+	}
+
 	return nil
 }
 
