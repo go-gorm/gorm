@@ -174,9 +174,21 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	} else if en, ok := namer.(embeddedNamer); ok {
 		tableName = en.Table
 	} else if tabler, ok := modelValue.Interface().(Tabler); ok {
-		tableName = tabler.TableName()
+		// Using dest to determine the [Tabler] interface first,
+		// in order to support dynamic table names.
+		if destValue, destOK := dest.(Tabler); destOK {
+			tableName = destValue.TableName()
+		} else {
+			tableName = tabler.TableName()
+		}
 	} else if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
-		tableName = tabler.TableName(namer)
+		// Using dest to determine the [TablerWithNamer] interface first,
+		// in order to support dynamic table names.
+		if destValue, destOK := dest.(TablerWithNamer); destOK {
+			tableName = destValue.TableName(namer)
+		} else {
+			tableName = tabler.TableName(namer)
+		}
 	} else {
 		tableName = namer.TableName(modelType.Name())
 	}
