@@ -353,7 +353,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}()
 
 	for _, cbName := range callbackTypes {
-		if methodValue := modelValue.MethodByName(string(cbName)); methodValue.IsValid() {
+		if methodValue := callBackToMethodValue(modelValue, cbName); methodValue.IsValid() {
 			switch methodValue.Type().String() {
 			case "func(*gorm.DB) error":
 				expectedPkgPath := path.Dir(reflect.TypeOf(schema).Elem().PkgPath())
@@ -377,6 +377,62 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	return schema, schema.err
+}
+
+// CRITICAL: This explicit method unrolling is required for dead code elimination.
+// DO NOT replace with MethodByName(string(cbType)) or similar dynamic calls.
+// If you don't understand why this matters, DO NOT MODIFY this function.
+//
+// The explicit string constants in each MethodByName call allow the Go compiler
+// and linker to determine exactly which methods might be called, enabling dead
+// code elimination. Using MethodByName with a variable parameter breaks this
+// optimization and can significantly increase binary size for large projects.
+//
+// Prior to Go 1.22, ANY use of MethodByName with non-constant strings would
+// cause the linker to abandon dead code elimination for the ENTIRE binary.
+// Go 1.22+ supports the special case of string constants, but variables still
+// break the optimization.
+//
+// For context and technical details, see:
+// - https://github.com/golang/go/issues/62257
+// - https://docs.google.com/document/d/1KtJSpRvoHddya-P329ZgLwkv-NkyCXCRMX3FOAeDoBk/edit#heading=h.ltobgcan4ct3
+func callBackToMethodValue(modelType reflect.Value, cbType callbackType) reflect.Value {
+	// Split into logical groups to reduce cyclomatic complexity
+	if method := getCRUDCallbackMethod(modelType, cbType); method.IsValid() {
+		return method
+	}
+	return getLifecycleCallbackMethod(modelType, cbType)
+}
+
+func getCRUDCallbackMethod(modelType reflect.Value, cbType callbackType) reflect.Value {
+	switch cbType {
+	case callbackTypeBeforeCreate:
+		return modelType.MethodByName("BeforeCreate")
+	case callbackTypeAfterCreate:
+		return modelType.MethodByName("AfterCreate")
+	case callbackTypeBeforeUpdate:
+		return modelType.MethodByName("BeforeUpdate")
+	case callbackTypeAfterUpdate:
+		return modelType.MethodByName("AfterUpdate")
+	case callbackTypeBeforeDelete:
+		return modelType.MethodByName("BeforeDelete")
+	case callbackTypeAfterDelete:
+		return modelType.MethodByName("AfterDelete")
+	}
+	return reflect.Value{}
+}
+
+func getLifecycleCallbackMethod(modelType reflect.Value, cbType callbackType) reflect.Value {
+	switch cbType {
+	case callbackTypeBeforeSave:
+		return modelType.MethodByName("BeforeSave")
+	case callbackTypeAfterSave:
+		return modelType.MethodByName("AfterSave")
+	case callbackTypeAfterFind:
+		return modelType.MethodByName("AfterFind")
+	default:
+		return reflect.ValueOf(nil)
+	}
 }
 
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
