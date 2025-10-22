@@ -482,6 +482,8 @@ func (db *DB) Count(count *int64) (tx *DB) {
 		}
 
 		tx.Statement.AddClause(clause.Select{Expression: expr})
+	} else if strings.HasPrefix(strings.TrimSpace(strings.ToLower(tx.Statement.Selects[0])), "count(") {
+		tx.Statement.AddClause(clause.Select{Expression: clause.Expr{SQL: tx.Statement.Selects[0]}})
 	}
 
 	if orderByClause, ok := db.Statement.Clauses["ORDER BY"]; ok {
