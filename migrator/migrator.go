@@ -560,6 +560,10 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 				v1, _ := strconv.ParseBool(dv)
 				v2, _ := strconv.ParseBool(field.DefaultValue)
 				alterColumn = v1 != v2
+			case schema.String:
+				if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
+					alterColumn = true
+				}
 			default:
 				alterColumn = dv != field.DefaultValue
 			}
