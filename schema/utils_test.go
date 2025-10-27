@@ -22,3 +22,11 @@ func TestRemoveSettingFromTag(t *testing.T) {
 		}
 	}
 }
+
+func TestParseTagSettingWithDoubleQuoteEscape(t *testing.T) {
+	tag := `gorm:"expression:to_tsvector('english', \"Name\")"`
+	settings := ParseTagSetting(reflect.StructTag(tag).Get("gorm"), ";")
+	if v, ok := settings["EXPRESSION"]; !ok || v != `to_tsvector('english', "Name")` {
+		t.Errorf("ParseTagSetting did not handle escaped double quotes correctly: got %#v", v)
+	}
+}
