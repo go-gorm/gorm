@@ -513,17 +513,28 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 	return stmt.ParseWithSpecialTableName(value, "")
 }
 
-func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
-	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
+func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) error {
+	cachedSchema, err := schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName)
+	if err != nil {
+		return err
+	}
+	stmt.Schema = cachedSchema
+	if specialTableName == "" { // Get table name from value
+		if tabler, ok := value.(schema.Tabler); ok {
+			stmt.Table = tabler.TableName()
+		} else if tabler, ok := value.(schema.TablerWithNamer); ok {
+			stmt.Table = tabler.TableName(stmt.DB.NamingStrategy)
+		}
+	}
+	if stmt.Table == "" { // Get table name from schema
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
-			return
+		} else {
+			stmt.Table = stmt.Schema.Table
 		}
-
-		stmt.Table = stmt.Schema.Table
 	}
-	return err
+	return nil
 }
 
 func (stmt *Statement) clone() *Statement {
