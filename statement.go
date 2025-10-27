@@ -514,7 +514,7 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 }
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) error {
-	cachedSchema, err := schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName)
+	cachedSchema, err := schema.ParseWithSpecialTableName(value, stmt.cacheStore, stmt.NamingStrategy, specialTableName)
 	if err != nil {
 		return err
 	}
@@ -523,7 +523,7 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 		if tabler, ok := value.(schema.Tabler); ok {
 			stmt.Table = tabler.TableName()
 		} else if tabler, ok := value.(schema.TablerWithNamer); ok {
-			stmt.Table = tabler.TableName(stmt.DB.NamingStrategy)
+			stmt.Table = tabler.TableName(stmt.NamingStrategy)
 		}
 	}
 	if stmt.Table == "" { // Get table name from schema
