@@ -31,13 +31,10 @@ func sourceDir(file string) string {
 }
 
 // CallerFrame retrieves the first relevant stack frame outside of GORM's internal implementation files.
-// It intentionally skips:
+// It skips:
 //   - GORM's core source files (identified by gormSourceDir prefix)
 //   - Exclude test files (*_test.go)
 //   - go-gorm/gen's Generated files (*.gen.go)
-//
-// The function scans up to stack frames starting from 3 rules above its immediate caller,
-// which typically positions the search at the boundary between GORM internals and user code.
 func CallerFrame() runtime.Frame {
 	pcs := [13]uintptr{}
 	// the third caller usually from gorm internal
@@ -58,7 +55,7 @@ func CallerFrame() runtime.Frame {
 // FileWithLineNum return the file name and line number of the current file
 func FileWithLineNum() string {
 	frame := CallerFrame()
-	if frame.File != "" {
+	if frame.PC != 0 {
 		return string(strconv.AppendInt(append([]byte(frame.File), ':'), int64(frame.Line), 10))
 	}
 
