@@ -431,7 +431,8 @@ func getLifecycleCallbackMethod(modelType reflect.Value, cbType callbackType) re
 	case callbackTypeAfterFind:
 		return modelType.MethodByName("AfterFind")
 	default:
-		return reflect.ValueOf(nil)
+	default:
+		return reflect.Value{}
 	}
 }
 
