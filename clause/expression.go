@@ -37,21 +37,7 @@ func (expr Expr) Build(builder Builder) {
 				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
 					builder.AddVar(builder, expr.Vars[idx])
 				} else {
-					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
-					case reflect.Slice, reflect.Array:
-						if rv.Len() == 0 {
-							builder.AddVar(builder, nil)
-						} else {
-							for i := 0; i < rv.Len(); i++ {
-								if i > 0 {
-									builder.WriteByte(',')
-								}
-								builder.AddVar(builder, rv.Index(i).Interface())
-							}
-						}
-					default:
-						builder.AddVar(builder, expr.Vars[idx])
-					}
+					expandSliceOrArray(builder, expr.Vars[idx])
 				}
 			} else {
 				builder.AddVar(builder, expr.Vars[idx])
@@ -134,21 +120,7 @@ func (expr NamedExpr) Build(builder Builder) {
 						if _, ok := nv.(driver.Valuer); ok {
 							builder.AddVar(builder, nv)
 						} else {
-							switch rv := reflect.ValueOf(nv); rv.Kind() {
-							case reflect.Slice, reflect.Array:
-								if rv.Len() == 0 {
-									builder.AddVar(builder, nil)
-								} else {
-									for i := 0; i < rv.Len(); i++ {
-										if i > 0 {
-											builder.WriteByte(',')
-										}
-										builder.AddVar(builder, rv.Index(i).Interface())
-									}
-								}
-							default:
-								builder.AddVar(builder, nv)
-							}
+							expandSliceOrArray(builder, nv)
 						}
 					} else {
 						builder.AddVar(builder, nv)
@@ -167,21 +139,7 @@ func (expr NamedExpr) Build(builder Builder) {
 				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
 					builder.AddVar(builder, expr.Vars[idx])
 				} else {
-					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
-					case reflect.Slice, reflect.Array:
-						if rv.Len() == 0 {
-							builder.AddVar(builder, nil)
-						} else {
-							for i := 0; i < rv.Len(); i++ {
-								if i > 0 {
-									builder.WriteByte(',')
-								}
-								builder.AddVar(builder, rv.Index(i).Interface())
-							}
-						}
-					default:
-						builder.AddVar(builder, expr.Vars[idx])
-					}
+					expandSliceOrArray(builder, expr.Vars[idx])
 				}
 			} else {
 				builder.AddVar(builder, expr.Vars[idx])
@@ -207,6 +165,25 @@ func (expr NamedExpr) Build(builder Builder) {
 			builder.WriteByte('@')
 			builder.WriteString(string(name))
 		}
+	}
+}
+
+// expandSliceOrArray expands slices or arrays into comma-separated SQL parameters, or adds single values directly
+func expandSliceOrArray(builder Builder, value interface{}) {
+	switch rv := reflect.ValueOf(value); rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		if rv.Len() == 0 {
+			builder.AddVar(builder, nil)
+		} else {
+			for i := 0; i < rv.Len(); i++ {
+				if i > 0 {
+					builder.WriteByte(',')
+				}
+				builder.AddVar(builder, rv.Index(i).Interface())
+			}
+		}
+	default:
+		builder.AddVar(builder, value)
 	}
 }
 
