@@ -92,7 +92,7 @@ func TestNamedExpr(t *testing.T) {
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2"},
 	}, {
 		SQL:          "name in (@names)",
-		Vars:         []interface{}{map[string]interface{}{"names": []interface{}{"jinzhu"}}},
+		Vars:         []interface{}{map[string]interface{}{"names": "jinzhu"}},
 		Result:       "name in (?)",
 		ExpectedVars: []interface{}{"jinzhu"},
 	}, {
