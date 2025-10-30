@@ -34,11 +34,7 @@ func (expr Expr) Build(builder Builder) {
 	for _, v := range []byte(expr.SQL) {
 		if v == '?' && len(expr.Vars) > idx {
 			if afterParenthesis || expr.WithoutParentheses {
-				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
-					builder.AddVar(builder, expr.Vars[idx])
-				} else {
-					expandSliceOrArray(builder, expr.Vars[idx])
-				}
+				processValue(builder, expr.Vars[idx])
 			} else {
 				builder.AddVar(builder, expr.Vars[idx])
 			}
@@ -117,11 +113,7 @@ func (expr NamedExpr) Build(builder Builder) {
 			if inName {
 				if nv, ok := namedMap[string(name)]; ok {
 					if afterParenthesis {
-						if _, ok := nv.(driver.Valuer); ok {
-							builder.AddVar(builder, nv)
-						} else {
-							expandSliceOrArray(builder, nv)
-						}
+						processValue(builder, nv)
 					} else {
 						builder.AddVar(builder, nv)
 					}
@@ -136,11 +128,7 @@ func (expr NamedExpr) Build(builder Builder) {
 			builder.WriteByte(v)
 		} else if v == '?' && len(expr.Vars) > idx {
 			if afterParenthesis {
-				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
-					builder.AddVar(builder, expr.Vars[idx])
-				} else {
-					expandSliceOrArray(builder, expr.Vars[idx])
-				}
+				processValue(builder, expr.Vars[idx])
 			} else {
 				builder.AddVar(builder, expr.Vars[idx])
 			}
@@ -168,8 +156,14 @@ func (expr NamedExpr) Build(builder Builder) {
 	}
 }
 
-// expandSliceOrArray expands slices or arrays into comma-separated SQL parameters, or adds single values directly
-func expandSliceOrArray(builder Builder, value interface{}) {
+// processValue handles different value types appropriately for SQL parameter binding
+// It checks for driver.Valuer first, then handles slices/arrays, and finally adds single values
+func processValue(builder Builder, value interface{}) {
+	if _, ok := value.(driver.Valuer); ok {
+		builder.AddVar(builder, value)
+		return
+	}
+	
 	switch rv := reflect.ValueOf(value); rv.Kind() {
 	case reflect.Slice, reflect.Array:
 		if rv.Len() == 0 {
