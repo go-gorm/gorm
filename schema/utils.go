@@ -17,25 +17,23 @@ func ParseTagSetting(str string, sep string) map[string]string {
 	settings := map[string]string{}
 	names := strings.Split(str, sep)
 
+	var parsedNames []string
 	for i := 0; i < len(names); i++ {
-		j := i
-		if len(names[j]) > 0 {
-			for {
-				if names[j][len(names[j])-1] == '\\' {
-					i++
-					names[j] = names[j][0:len(names[j])-1] + sep + names[i]
-					names[i] = ""
-				} else {
-					break
-				}
-			}
+		s := names[i]
+		for strings.HasSuffix(s, "\\") && i+1 < len(names) {
+			i++
+			s = s[:len(s)-1] + sep + names[i]
 		}
+		parsedNames = append(parsedNames, s)
+	}
 
-		values := strings.Split(names[j], ":")
+	for _, tag := range parsedNames {
+		values := strings.Split(tag, ":")
 		k := strings.TrimSpace(strings.ToUpper(values[0]))
-
 		if len(values) >= 2 {
-			settings[k] = strings.Join(values[1:], ":")
+			val := strings.Join(values[1:], ":")
+			val = strings.ReplaceAll(val, `\"`, `"`)
+			settings[k] = val
 		} else if k != "" {
 			settings[k] = k
 		}
