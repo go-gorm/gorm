@@ -962,6 +962,13 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 		serializerType := serializerValue.Type()
 		field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 			if s, ok := v.(*serializer); ok {
+				if s.fieldValue == nil && s.Serializer == nil {
+					rv := field.ReflectValueOf(ctx, value)
+					if rv.IsValid() && rv.CanSet() {
+						rv.Set(reflect.Zero(field.FieldType))
+					}
+					return nil
+				}
 				if s.fieldValue != nil {
 					err = oldFieldSetter(ctx, value, s.fieldValue)
 				} else if err = s.Serializer.Scan(ctx, field, value, s.value); err == nil {

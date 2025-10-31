@@ -227,3 +227,59 @@ func TestSerializerAssignFirstOrCreate(t *testing.T) {
 	AssertEqual(t, result.Roles, data.Roles)
 	AssertEqual(t, result.JobInfo.Location, data.JobInfo.Location)
 }
+
+// Test for: panic when serializer field with any type is nil
+func TestSerializerWithAnyType(t *testing.T) {
+	type ProductWithAny struct {
+		gorm.Model
+		Name string
+		Data any `gorm:"serializer:json"`
+	}
+
+	DB.Migrator().DropTable(&ProductWithAny{})
+	if err := DB.AutoMigrate(&ProductWithAny{}); err != nil {
+		t.Fatalf("failed to migrate ProductWithAny, got error %v", err)
+	}
+
+	// Test creating record with nil any field
+	product := ProductWithAny{Name: "Product 1"}
+	if err := DB.Create(&product).Error; err != nil {
+		t.Fatalf("failed to create product with nil any field, got error %v", err)
+	}
+
+	// Test updating/saving record with nil any field (should not panic)
+	product.Name = "Product 1 (Updated)"
+	if err := DB.Save(&product).Error; err != nil {
+		t.Fatalf("failed to save product with nil any field, got error %v", err)
+	}
+
+	// Verify the record was saved correctly
+	var result ProductWithAny
+	if err := DB.First(&result, product.ID).Error; err != nil {
+		t.Fatalf("failed to query product, got error %v", err)
+	}
+
+	if result.Name != "Product 1 (Updated)" {
+		t.Errorf("expected name to be 'Product 1 (Updated)', got %s", result.Name)
+	}
+
+	if result.Data != nil {
+		t.Errorf("expected Data to be nil, got %v", result.Data)
+	}
+
+	// Test with non-nil value
+	dataValue := map[string]interface{}{"key": "value"}
+	product2 := ProductWithAny{Name: "Product 2", Data: dataValue}
+	if err := DB.Create(&product2).Error; err != nil {
+		t.Fatalf("failed to create product with non-nil any field, got error %v", err)
+	}
+
+	var result2 ProductWithAny
+	if err := DB.First(&result2, product2.ID).Error; err != nil {
+		t.Fatalf("failed to query product2, got error %v", err)
+	}
+
+	if result2.Data == nil {
+		t.Error("expected Data to be non-nil")
+	}
+}
