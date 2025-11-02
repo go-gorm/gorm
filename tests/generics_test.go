@@ -1046,3 +1046,99 @@ func TestGenericsAssociationSlice(t *testing.T) {
 		}
 	}
 }
+
+// TestGenericsChainableCreate tests that Create is chainable with methods like Omit and Where
+func TestGenericsChainableCreate(t *testing.T) {
+	ctx := context.Background()
+
+	// Test 1: Chain Omit() before Create()
+	user1 := User{Name: "ChainableCreateTest1", Age: 25}
+	err := gorm.G[User](DB).
+		Omit("UpdatedAt").
+		Create(ctx, &user1)
+	if err != nil {
+		t.Fatalf("Create with Omit chain failed: %v", err)
+	}
+	if user1.ID == 0 {
+		t.Fatalf("no primary key found for user %v", user1)
+	}
+
+	// Verify the record was created
+	found, err := gorm.G[User](DB).Where("id = ?", user1.ID).First(ctx)
+	if err != nil {
+		t.Fatalf("failed to find created user: %v", err)
+	}
+	if found.Name != user1.Name || found.Age != user1.Age {
+		t.Errorf("created user mismatch: got %+v, expected %+v", found, user1)
+	}
+
+	// Test 2: Chain Select() before Create()
+	user2 := User{Name: "ChainableCreateTest2", Age: 30}
+	err = gorm.G[User](DB).
+		Select("name", "age").
+		Create(ctx, &user2)
+	if err != nil {
+		t.Fatalf("Create with Select chain failed: %v", err)
+	}
+	if user2.ID == 0 {
+		t.Fatalf("no primary key found for user %v", user2)
+	}
+
+	// Test 3: Chain Omit with CreateInBatches()
+	batch := []User{
+		{Name: "ChainableCreateBatch1", Age: 35},
+		{Name: "ChainableCreateBatch2", Age: 36},
+		{Name: "ChainableCreateBatch3", Age: 37},
+	}
+	err = gorm.G[User](DB).
+		Omit("CreatedAt", "UpdatedAt").
+		CreateInBatches(ctx, &batch, 2)
+	if err != nil {
+		t.Fatalf("CreateInBatches with Omit chain failed: %v", err)
+	}
+
+	// Verify batch records were created
+	for i, u := range batch {
+		if u.ID == 0 {
+			t.Fatalf("no primary key found for batch user %d: %v", i, u)
+		}
+	}
+
+	count, err := gorm.G[User](DB).
+		Where("name LIKE ?", "ChainableCreateBatch%").
+		Count(ctx, "*")
+	if err != nil {
+		t.Fatalf("Count failed: %v", err)
+	}
+	if count != 3 {
+		t.Errorf("expected 3 batch records, got %d", count)
+	}
+
+	// Test 4: Chain multiple methods before Create()
+	user3 := User{Name: "ChainableCreateMulti", Age: 40}
+	err = gorm.G[User](DB).
+		Omit("UpdatedAt", "DeletedAt").
+		Select("name", "age", "id").
+		Create(ctx, &user3)
+	if err != nil {
+		t.Fatalf("Create with multiple chains failed: %v", err)
+	}
+	if user3.ID == 0 {
+		t.Fatalf("no primary key found for user %v", user3)
+	}
+}
+
+// TestGenericsChainableSet tests that Set is chainable and returns SetCreateOrUpdateInterface
+func TestGenericsChainableSet(t *testing.T) {
+	ctx := context.Background()
+
+	// Test: Chain Set() before Create()
+	user := User{Name: "ChainableSetTest", Age: 45}
+	err := gorm.G[User](DB).
+		Omit("UpdatedAt").
+		Set(clause.Assignment{Column: clause.Column{Name: "age"}, Value: 50}).
+		Create(ctx)
+	if err != nil {
+		t.Fatalf("Create with Set chain failed: %v", err)
+	}
+}

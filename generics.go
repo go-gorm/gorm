@@ -85,7 +85,7 @@ type ChainInterface[T any] interface {
 	Group(name string) ChainInterface[T]
 	Having(query interface{}, args ...interface{}) ChainInterface[T]
 	Order(value interface{}) ChainInterface[T]
-	Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T]
+	Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T]
 
 	Build(builder clause.Builder)
 
@@ -94,6 +94,8 @@ type ChainInterface[T any] interface {
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
 	Updates(ctx context.Context, t T) (rowsAffected int, err error)
 	Count(ctx context.Context, column string) (result int64, err error)
+	Create(ctx context.Context, r *T) error
+	CreateInBatches(ctx context.Context, r *[]T, batchSize int) error
 }
 
 // SetUpdateOnlyInterface is returned by Set after chaining; only Update is allowed
@@ -434,8 +436,16 @@ func (c chainG[T]) MapColumns(m map[string]string) ChainInterface[T] {
 	})
 }
 
-func (c chainG[T]) Set(assignments ...clause.Assigner) SetUpdateOnlyInterface[T] {
+func (c chainG[T]) Set(assignments ...clause.Assigner) SetCreateOrUpdateInterface[T] {
 	return c.processSet(assignments...)
+}
+
+func (c chainG[T]) Create(ctx context.Context, r *T) error {
+	return c.g.apply(ctx).Create(r).Error
+}
+
+func (c chainG[T]) CreateInBatches(ctx context.Context, r *[]T, batchSize int) error {
+	return c.g.apply(ctx).CreateInBatches(r, batchSize).Error
 }
 
 func (c chainG[T]) Distinct(args ...interface{}) ChainInterface[T] {
