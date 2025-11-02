@@ -69,6 +69,36 @@ func TestGenericsCreate(t *testing.T) {
 	if v := mapResult["user_name"]; fmt.Sprint(v) != user.Name {
 		t.Errorf("failed to find map results, got %v, err %v", mapResult, err)
 	}
+
+	selectOnly := User{Name: "GenericsCreateSelectOnly", Age: 99}
+	if err := gorm.G[User](DB).Select("name").Create(ctx, &selectOnly); err != nil {
+		t.Fatalf("failed to create with Select, got error: %v", err)
+	}
+
+	if selectOnly.ID == 0 {
+		t.Fatalf("no primary key found for select-only user: %v", selectOnly)
+	}
+
+	if stored, err := gorm.G[User](DB).Where("id = ?", selectOnly.ID).First(ctx); err != nil {
+		t.Fatalf("failed to reload select-only user, got error: %v", err)
+	} else if stored.Name != selectOnly.Name || stored.Age != 0 {
+		t.Errorf("unexpected select-only user state, got %#v", stored)
+	}
+
+	omitAge := User{Name: "GenericsCreateOmitAge", Age: 88}
+	if err := gorm.G[User](DB).Omit("age").Create(ctx, &omitAge); err != nil {
+		t.Fatalf("failed to create with Omit, got error: %v", err)
+	}
+
+	if omitAge.ID == 0 {
+		t.Fatalf("no primary key found for omit-age user: %v", omitAge)
+	}
+
+	if stored, err := gorm.G[User](DB).Where("id = ?", omitAge.ID).First(ctx); err != nil {
+		t.Fatalf("failed to reload omit-age user, got error: %v", err)
+	} else if stored.Name != omitAge.Name || stored.Age != 0 {
+		t.Errorf("unexpected omit-age user state, got %#v", stored)
+	}
 }
 
 func TestGenericsCreateInBatches(t *testing.T) {
