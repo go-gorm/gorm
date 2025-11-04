@@ -436,15 +436,17 @@ func deleteWithNestedPaths(tx *gorm.DB, rel *schema.Relationship, queryConds []c
 			}
 			return err
 		}
+		if records.Elem().IsZero() {
+			return nil
+		}
 	} else {
 		records = reflect.New(reflect.SliceOf(rel.FieldSchema.ModelType))
 		if err := searchTx.Clauses(clause.Where{Exprs: queryConds}).Find(records.Interface()).Error; err != nil {
 			return err
 		}
-	}
-
-	if records.Elem().Len() == 0 {
-		return nil
+		if records.Elem().Len() == 0 {
+			return nil
+		}
 	}
 
 	return deleteWithNestedSelect(tx, records.Interface(), nestedPaths)
@@ -456,7 +458,7 @@ func deleteMany2ManyNestedAssociations(db *gorm.DB, rel *schema.Relationship, ne
 		return err
 	}
 
-	if associatedRecords.Elem().Len() > 0 {
+	if associatedRecords.IsValid() && associatedRecords.Elem().Len() > 0 {
 		if len(nestedPaths) > 0 {
 			if err := deleteWithNestedSelect(db.Session(&gorm.Session{NewDB: true}), associatedRecords.Interface(), nestedPaths); err != nil {
 				return err
