@@ -163,7 +163,7 @@ func processValue(builder Builder, value interface{}) {
 		builder.AddVar(builder, value)
 		return
 	}
-	
+
 	switch rv := reflect.ValueOf(value); rv.Kind() {
 	case reflect.Slice, reflect.Array:
 		if rv.Len() == 0 {
