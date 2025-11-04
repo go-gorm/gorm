@@ -41,6 +41,11 @@ type Config struct {
 	// default maxsize=int64 Max value and ttl=1h
 	PrepareStmtMaxSize int
 	PrepareStmtTTL     time.Duration
+	// PrepareStmtAutoSave sets autosave_prepared_statements for PostgreSQL
+	// Valid values: true or false
+	// This helps handle prepared statement cache invalidation when schema changes
+	// Only applicable for PostgreSQL
+	PrepareStmtAutoSave *bool
 
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
@@ -237,6 +242,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
 			err = pinger.Ping()
 		}
+	}
+
+	if err == nil && config.PrepareStmtAutoSave != nil {
+		err = db.configureAutoSave(context.Background())
 	}
 
 	if err != nil {
@@ -542,4 +551,22 @@ func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
 	stmt := tx.Statement
 
 	return db.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
+}
+
+// configureAutoSave sets the autosave_prepared_statements parameter for PostgreSQL
+// This helps handle prepared statement cache invalidation when schema changes
+func (db *DB) configureAutoSave(ctx context.Context) error {
+	if db.PrepareStmtAutoSave == nil {
+		return nil
+	}
+
+	value := *db.PrepareStmtAutoSave
+
+	// Execute SET command on the connection
+	sql := fmt.Sprintf("SET autosave_prepared_statements = %v", value)
+	if err := db.Exec(sql).Error; err != nil {
+		return fmt.Errorf("failed to set autosave_prepared_statements: %w", err)
+	}
+
+	return nil
 }
