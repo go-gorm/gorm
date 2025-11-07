@@ -191,7 +191,5 @@ func applyConds(existsQuery *gorm.DB, conds []interface{}) *gorm.DB {
 		existsQuery = existsQuery.Where(inlineConds[0], inlineConds[1:]...)
 	}
 
-	existsQuery.WhereHas("Some")
-
 	return existsQuery
 }
