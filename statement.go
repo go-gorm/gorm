@@ -35,6 +35,7 @@ type Statement struct {
 	ColumnMapping        map[string]string // map columns
 	Joins                []join
 	Preloads             map[string][]interface{}
+	WhereHasConditions   []whereHasCondition
 	Settings             sync.Map
 	ConnPool             ConnPool
 	Schema               *schema.Schema
@@ -48,6 +49,12 @@ type Statement struct {
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
 	Result               *result
+}
+
+type whereHasCondition struct {
+	IsDoesntHave bool
+	Relation     string
+	Conds        []interface{}
 }
 
 type join struct {
@@ -355,6 +362,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 					conds = append(conds, cs.Expression)
 				}
 			}
+
+			stmt.WhereHasConditions = append(stmt.WhereHasConditions, v.Statement.WhereHasConditions...)
 		case map[interface{}]interface{}:
 			for i, j := range v {
 				conds = append(conds, clause.Eq{Column: i, Value: j})
@@ -540,6 +549,7 @@ func (stmt *Statement) clone() *Statement {
 		Omits:                stmt.Omits,
 		ColumnMapping:        stmt.ColumnMapping,
 		Preloads:             map[string][]interface{}{},
+		WhereHasConditions:   []whereHasCondition{},
 		ConnPool:             stmt.ConnPool,
 		Schema:               stmt.Schema,
 		Context:              stmt.Context,
@@ -560,6 +570,10 @@ func (stmt *Statement) clone() *Statement {
 
 	for k, p := range stmt.Preloads {
 		newStmt.Preloads[k] = p
+	}
+
+	for _, condition := range stmt.WhereHasConditions {
+		newStmt.WhereHasConditions = append(newStmt.WhereHasConditions, condition)
 	}
 
 	if len(stmt.Joins) > 0 {

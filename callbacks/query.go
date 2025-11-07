@@ -57,6 +57,23 @@ func BuildQuerySQL(db *gorm.DB) {
 			}
 		}
 
+		if len(db.Statement.WhereHasConditions) > 0 {
+			for _, whereHasCondition := range db.Statement.WhereHasConditions {
+				cl, err := newWhereHas(db, whereHasCondition.IsDoesntHave, whereHasCondition.Relation, whereHasCondition.Conds, db.Statement.Schema)
+				if err != nil {
+					db.AddError(err)
+
+					continue
+				}
+
+				if cl == nil {
+					continue
+				}
+
+				db.Statement.AddClause(cl)
+			}
+		}
+
 		if len(db.Statement.Selects) > 0 {
 			clauseSelect.Columns = make([]clause.Column, len(db.Statement.Selects))
 			for idx, name := range db.Statement.Selects {
