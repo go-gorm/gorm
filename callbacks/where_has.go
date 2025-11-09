@@ -33,7 +33,18 @@ func newWhereHas(db *gorm.DB, isDoesntHave bool, relationName string, conds []in
 
 	reflectResults := rel.FieldSchema.MakeSlice().Elem()
 
-	tx = tx.Model(reflectResults.Addr().Interface()).Select("id")
+	firstPrimaryField := ""
+	otherPrimaryFields := make([]interface{}, 0)
+
+	for i, name := range rel.FieldSchema.PrimaryFieldDBNames {
+		if i == 0 {
+			firstPrimaryField = name
+		} else {
+			otherPrimaryFields = append(otherPrimaryFields, name)
+		}
+	}
+
+	tx = tx.Model(reflectResults.Addr().Interface()).Select(firstPrimaryField, otherPrimaryFields...)
 	if err = tx.Statement.Parse(tx.Statement.Model); err != nil {
 		return nil, err
 	}
