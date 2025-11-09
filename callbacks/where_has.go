@@ -71,6 +71,10 @@ func existsHasOne(mainQuery *gorm.DB, existsQuery *gorm.DB, rel *schema.Relation
 }
 
 func existsHasMany(mainQuery *gorm.DB, existsQuery *gorm.DB, rel *schema.Relationship, conds []interface{}) (*gorm.DB, error) {
+	if len(rel.References) < 1 {
+		return nil, fmt.Errorf("relation %s has no references", rel.Name)
+	}
+
 	for _, reference := range rel.References {
 		if reference.PrimaryKey != nil {
 			existsQuery.Statement.AddClause(clause.Where{
@@ -99,6 +103,10 @@ func existsHasMany(mainQuery *gorm.DB, existsQuery *gorm.DB, rel *schema.Relatio
 }
 
 func existsBelongsTo(mainQuery *gorm.DB, existsQuery *gorm.DB, rel *schema.Relationship, conds []interface{}) (*gorm.DB, error) {
+	if len(rel.References) < 1 {
+		return nil, fmt.Errorf("relation %s has no references", rel.Name)
+	}
+
 	for _, reference := range rel.References {
 		existsQuery.Statement.AddClause(clause.Where{
 			Exprs: []clause.Expression{
