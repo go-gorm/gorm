@@ -9,7 +9,7 @@ import (
 )
 
 func TestQueryWhereHas(t *testing.T) {
-	DB.Create(&Language{Code: "ro", Name: "Romanian"})
+	DB.Create(&Language{Code: "wh_ro", Name: "Romanian"})
 
 	DB.Create(&[]User{
 		{
@@ -36,7 +36,7 @@ func TestQueryWhereHas(t *testing.T) {
 			},
 			Languages: []Language{
 				{
-					Code: "en",
+					Code: "wh_en",
 					Name: "English",
 				},
 			},
@@ -63,11 +63,11 @@ func TestQueryWhereHas(t *testing.T) {
 			},
 			Languages: []Language{
 				{
-					Code: "en",
+					Code: "wh_en",
 					Name: "English",
 				},
 				{
-					Code: "it",
+					Code: "wh_it",
 					Name: "Italian",
 				},
 			},
@@ -144,7 +144,7 @@ func TestQueryWhereHas(t *testing.T) {
 		assert.Equal(t, gorm.ErrRecordNotFound, err)
 
 		var users []User
-		DB.WhereHas("Languages", DB.Where("code = ?", "it")).Find(&users)
+		DB.WhereHas("Languages", DB.Where("code = ?", "wh_it")).Find(&users)
 		assert.Equal(t, 1, len(users))
 	})
 
