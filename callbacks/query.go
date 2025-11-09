@@ -61,7 +61,7 @@ func BuildQuerySQL(db *gorm.DB) {
 			for _, whereHasCondition := range db.Statement.WhereHasConditions {
 				cl, err := newWhereHas(db, whereHasCondition.IsDoesntHave, whereHasCondition.Relation, whereHasCondition.Conds, db.Statement.Schema)
 				if err != nil {
-					db.AddError(err)
+					_ = db.AddError(err)
 
 					continue
 				}

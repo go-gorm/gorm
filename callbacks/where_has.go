@@ -14,6 +14,13 @@ func whereHasDb(db *gorm.DB) *gorm.DB {
 	return tx
 }
 
+var relationHandlers = map[schema.RelationshipType]func(*gorm.DB, *gorm.DB, *schema.Relationship, []interface{}) (*gorm.DB, error){
+	schema.Many2Many: existsMany2many,
+	schema.BelongsTo: existsBelongsTo,
+	schema.HasMany:   existsHasMany,
+	schema.HasOne:    existsHasOne,
+}
+
 func newWhereHas(db *gorm.DB, isDoesntHave bool, relationName string, conds []interface{}, s *schema.Schema) (*clause.Where, error) {
 	var err error
 
@@ -31,26 +38,14 @@ func newWhereHas(db *gorm.DB, isDoesntHave bool, relationName string, conds []in
 		return nil, err
 	}
 
-	if rel.Type == schema.Many2Many {
-		tx, err = existsMany2many(db, tx, rel, conds)
-		if err != nil {
-			return nil, err
-		}
-	} else if rel.Type == schema.BelongsTo {
-		tx, err = existsBelongsTo(db, tx, rel, conds)
-		if err != nil {
-			return nil, err
-		}
-	} else if rel.Type == schema.HasMany {
-		tx, err = existsHasMany(db, tx, rel, conds)
-		if err != nil {
-			return nil, err
-		}
-	} else if rel.Type == schema.HasOne {
-		tx, err = existsHasOne(db, tx, rel, conds)
-		if err != nil {
-			return nil, err
-		}
+	handler, ok := relationHandlers[rel.Type]
+	if !ok {
+		return nil, fmt.Errorf("unsupported relation type: %v", rel.Type)
+	}
+
+	tx, err = handler(db, tx, rel, conds)
+	if err != nil {
+		return nil, err
 	}
 
 	cond := "EXISTS(?)"

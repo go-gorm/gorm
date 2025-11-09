@@ -572,9 +572,7 @@ func (stmt *Statement) clone() *Statement {
 		newStmt.Preloads[k] = p
 	}
 
-	for _, condition := range stmt.WhereHasConditions {
-		newStmt.WhereHasConditions = append(newStmt.WhereHasConditions, condition)
-	}
+	newStmt.WhereHasConditions = append(newStmt.WhereHasConditions, stmt.WhereHasConditions...)
 
 	if len(stmt.Joins) > 0 {
 		newStmt.Joins = make([]join, len(stmt.Joins))
