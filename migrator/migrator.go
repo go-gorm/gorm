@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -1050,28 +1049,4 @@ func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
 // TableType return tableType gorm.TableType and execErr error
 func (m Migrator) TableType(dst interface{}) (gorm.TableType, error) {
 	return nil, errors.New("not support")
-}
-
-func (m Migrator) isSameType(a, b string) bool {
-	a = strings.ToLower(a)
-	b = strings.ToLower(b)
-
-	if a == b {
-		return true
-	}
-
-	pa := strings.IndexAny(a, "([")
-	pb := strings.IndexAny(b, "([")
-
-	if (pa >= 0) != (pb >= 0) {
-		return false
-	}
-
-	if pa > 0 {
-		a = a[:pa]
-		b = b[:pb]
-	}
-
-	aliases := m.DB.Migrator().GetTypeAliases(b)
-	return slices.Contains(aliases, a)
 }
