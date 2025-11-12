@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -127,7 +128,6 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-
 				if stmt.Schema == nil {
 					return errors.New("failed to get schema")
 				}
@@ -216,7 +216,6 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, false) {
 		tx := m.DB.Session(&gorm.Session{})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (err error) {
-
 			if stmt.Schema == nil {
 				return errors.New("failed to get schema")
 			}
@@ -472,30 +471,12 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// found, smart migrate
-	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
-	realDataType := strings.ToLower(columnType.DatabaseTypeName())
+	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from structs
+	realDataType := strings.ToLower(columnType.DatabaseTypeName())                                // from db
 	var (
 		alterColumn bool
-		isSameType  = fullDataType == realDataType
+		isSameType  = m.isSameType(fullDataType, realDataType)
 	)
-
-	if !field.PrimaryKey {
-		// check type
-		if !strings.HasPrefix(fullDataType, realDataType) {
-			// check type aliases
-			aliases := m.DB.Migrator().GetTypeAliases(realDataType)
-			for _, alias := range aliases {
-				if strings.HasPrefix(fullDataType, alias) {
-					isSameType = true
-					break
-				}
-			}
-
-			if !isSameType {
-				alterColumn = true
-			}
-		}
-	}
 
 	if !isSameType {
 		// check size
@@ -1029,10 +1010,30 @@ func (m Migrator) GetIndexes(dst interface{}) ([]gorm.Index, error) {
 
 // GetTypeAliases return database type aliases
 func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
-	return nil
+	dialect := strings.ToLower(m.Dialector.Name())
+	return dialectTypeAliases[dialect][databaseTypeName]
 }
 
 // TableType return tableType gorm.TableType and execErr error
 func (m Migrator) TableType(dst interface{}) (gorm.TableType, error) {
 	return nil, errors.New("not support")
+}
+
+func (m Migrator) isSameType(a, b string) bool {
+	a = strings.ToLower(a)
+	b = strings.ToLower(b)
+
+	if a == b {
+		return true
+	}
+
+	if strings.HasSuffix(a, "[]") == strings.HasSuffix(b, "[]") {
+		a = strings.TrimSuffix(a, "[]")
+		b = strings.TrimSuffix(b, "[]")
+
+		aliases := m.DB.Migrator().GetTypeAliases(b)
+		return slices.Contains(aliases, a)
+	}
+
+	return false
 }
