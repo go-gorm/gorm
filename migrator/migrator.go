@@ -1027,13 +1027,22 @@ func (m Migrator) isSameType(a, b string) bool {
 		return true
 	}
 
-	if strings.HasSuffix(a, "[]") == strings.HasSuffix(b, "[]") {
-		a = strings.TrimSuffix(a, "[]")
-		b = strings.TrimSuffix(b, "[]")
+	if strings.HasSuffix(a, "[]") != strings.HasSuffix(b, "[]") {
+		return false
+	}
+	a = strings.TrimSuffix(a, "[]")
+	b = strings.TrimSuffix(b, "[]")
 
-		aliases := m.DB.Migrator().GetTypeAliases(b)
-		return slices.Contains(aliases, a)
+	aprec := strings.HasSuffix(a, ")")
+	if aprec != strings.HasSuffix(b, ")") {
+		return false
 	}
 
-	return false
+	if aprec {
+		a = a[:strings.Index(a, "(")]
+		b = b[:strings.Index(b, "(")]
+	}
+
+	aliases := m.DB.Migrator().GetTypeAliases(b)
+	return slices.Contains(aliases, a)
 }
