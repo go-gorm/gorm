@@ -471,12 +471,46 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// found, smart migrate
-	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from structs
+	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from struct
 	realDataType := strings.ToLower(columnType.DatabaseTypeName())                                // from db
 	var (
 		alterColumn bool
-		isSameType  = m.isSameType(fullDataType, realDataType)
+		isSameType  = fullDataType == realDataType
 	)
+
+	if !field.PrimaryKey {
+		// check type
+
+		if !strings.HasPrefix(fullDataType, realDataType) {
+			// check type aliases
+			// we must compare without any brackets or length specifiers
+			// also we compare in both directions in case the mapping misses one of both ways for a type
+
+			rdt := realDataType
+			if p := strings.IndexAny(realDataType, "(["); p >= 0 {
+				rdt = realDataType[:p]
+			}
+			fdt := fullDataType
+			if p := strings.IndexAny(fullDataType, "(["); p >= 0 {
+				fdt = fullDataType[:p]
+			}
+
+			types := []string{rdt, fdt}
+			for i := 0; !isSameType || i < len(types); i++ {
+				aliases := m.DB.Migrator().GetTypeAliases(types[i])
+				for _, alias := range aliases {
+					if strings.HasPrefix(types[1-i], alias) {
+						isSameType = true
+						break
+					}
+				}
+			}
+
+			if !isSameType {
+				alterColumn = true
+			}
+		}
+	}
 
 	if !isSameType {
 		// check size
@@ -1010,8 +1044,7 @@ func (m Migrator) GetIndexes(dst interface{}) ([]gorm.Index, error) {
 
 // GetTypeAliases return database type aliases
 func (m Migrator) GetTypeAliases(databaseTypeName string) []string {
-	dialect := strings.ToLower(m.Dialector.Name())
-	return dialectTypeAliases[dialect][databaseTypeName]
+	return nil
 }
 
 // TableType return tableType gorm.TableType and execErr error
@@ -1027,20 +1060,16 @@ func (m Migrator) isSameType(a, b string) bool {
 		return true
 	}
 
-	if strings.HasSuffix(a, "[]") != strings.HasSuffix(b, "[]") {
-		return false
-	}
-	a = strings.TrimSuffix(a, "[]")
-	b = strings.TrimSuffix(b, "[]")
+	pa := strings.IndexAny(a, "([")
+	pb := strings.IndexAny(b, "([")
 
-	aprec := strings.HasSuffix(a, ")")
-	if aprec != strings.HasSuffix(b, ")") {
+	if (pa >= 0) != (pb >= 0) {
 		return false
 	}
 
-	if aprec {
-		a = a[:strings.Index(a, "(")]
-		b = b[:strings.Index(b, "(")]
+	if pa > 0 {
+		a = a[:pa]
+		b = b[:pb]
 	}
 
 	aliases := m.DB.Migrator().GetTypeAliases(b)
