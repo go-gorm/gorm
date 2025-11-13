@@ -495,7 +495,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 			}
 
 			types := []string{rdt, fdt}
-			for i := 0; !isSameType || i < len(types); i++ {
+			for i := 0; !isSameType && i < len(types); i++ {
 				aliases := m.DB.Migrator().GetTypeAliases(types[i])
 				for _, alias := range aliases {
 					if strings.HasPrefix(types[1-i], alias) {
