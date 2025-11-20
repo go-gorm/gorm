@@ -86,6 +86,16 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "@@test AND name1 = ? AND name2 = ? AND name3 = ? @notexist",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu2", "jinzhu"},
 	}, {
+		SQL:          "name in (@names)",
+		Vars:         []interface{}{map[string]interface{}{"names": []interface{}{"jinzhu", "jinzhu2"}}},
+		Result:       "name in (?,?)",
+		ExpectedVars: []interface{}{"jinzhu", "jinzhu2"},
+	}, {
+		SQL:          "name in (@names)",
+		Vars:         []interface{}{map[string]interface{}{"names": "jinzhu"}},
+		Result:       "name in (?)",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
 		SQL:    "create table ? (? ?, ? ?)",
 		Vars:   []interface{}{},
 		Result: "create table ? (? ?, ? ?)",

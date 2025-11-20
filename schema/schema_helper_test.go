@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm/utils/tests"
 )
 
-func checkSchema(t *testing.T, s *schema.Schema, v schema.Schema, primaryFields []string) {
+func checkSchema(t *testing.T, s *schema.Schema, v *schema.Schema, primaryFields []string) {
 	t.Run("CheckSchema/"+s.Name, func(t *testing.T) {
 		tests.AssertObjEqual(t, s, v, "Name", "Table")
 

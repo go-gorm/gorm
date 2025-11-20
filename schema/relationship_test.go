@@ -3,9 +3,11 @@ package schema_test
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	"gorm.io/gorm/utils/tests"
 )
 
 func checkStructRelation(t *testing.T, data interface{}, relations ...Relation) {
@@ -994,5 +996,48 @@ func TestParseConstraintNameWithSchemaQualifiedLongTableName(t *testing.T) {
 			expectedConstraintName,
 			constraint.Name,
 		)
+	}
+}
+
+type InfoRelation struct {
+	ID    int
+	Code  string
+	Info1 []*Info1 `gorm:"foreignkey:Code;references:Code"`
+	Info2 []*Info2 `gorm:"foreignkey:Code;references:Code"`
+}
+
+type Info1 struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Code      string
+	Relation  []*InfoRelation `gorm:"foreignkey:Code;references:Code"`
+}
+
+type Info2 struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Code      string
+	Relation  []*InfoRelation `gorm:"foreignkey:Code;references:Code"`
+}
+
+func TestDataRace(t *testing.T) {
+	syncMap := &sync.Map{}
+	for i := 0; i < 10; i++ {
+		go func() {
+			schema.Parse(&Info1{}, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
+		}()
+
+		go func() {
+			schema.Parse(&Info2{}, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
+		}()
+
+		go func() {
+			var result User
+			schema.Parse(&result, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
+		}()
+		go func() {
+			var result tests.Account
+			schema.Parse(&result, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
+		}()
 	}
 }

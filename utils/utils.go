@@ -30,8 +30,12 @@ func sourceDir(file string) string {
 	return filepath.ToSlash(s) + "/"
 }
 
-// FileWithLineNum return the file name and line number of the current file
-func FileWithLineNum() string {
+// CallerFrame retrieves the first relevant stack frame outside of GORM's internal implementation files.
+// It skips:
+//   - GORM's core source files (identified by gormSourceDir prefix)
+//   - Exclude test files (*_test.go)
+//   - go-gorm/gen's Generated files (*.gen.go)
+func CallerFrame() runtime.Frame {
 	pcs := [13]uintptr{}
 	// the third caller usually from gorm internal
 	len := runtime.Callers(3, pcs[:])
@@ -41,14 +45,24 @@ func FileWithLineNum() string {
 		frame, _ := frames.Next()
 		if (!strings.HasPrefix(frame.File, gormSourceDir) ||
 			strings.HasSuffix(frame.File, "_test.go")) && !strings.HasSuffix(frame.File, ".gen.go") {
-			return string(strconv.AppendInt(append([]byte(frame.File), ':'), int64(frame.Line), 10))
+			return frame
 		}
+	}
+
+	return runtime.Frame{}
+}
+
+// FileWithLineNum return the file name and line number of the current file
+func FileWithLineNum() string {
+	frame := CallerFrame()
+	if frame.PC != 0 {
+		return string(strconv.AppendInt(append([]byte(frame.File), ':'), int64(frame.Line), 10))
 	}
 
 	return ""
 }
 
-func IsValidDBNameChar(c rune) bool {
+func IsInvalidDBNameChar(c rune) bool {
 	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*' && c != '_' && c != '$' && c != '@'
 }
 

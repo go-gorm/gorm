@@ -19,10 +19,10 @@ type Association struct {
 }
 
 func (db *DB) Association(column string) *Association {
-	association := &Association{DB: db}
+	association := &Association{DB: db, Unscope: db.Statement.Unscoped}
 	table := db.Statement.Table
 
-	if err := db.Statement.Parse(db.Statement.Model); err == nil {
+	if association.Error = db.Statement.Parse(db.Statement.Model); association.Error == nil {
 		db.Statement.Table = table
 		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
 
@@ -34,8 +34,6 @@ func (db *DB) Association(column string) *Association {
 		for db.Statement.ReflectValue.Kind() == reflect.Ptr {
 			db.Statement.ReflectValue = db.Statement.ReflectValue.Elem()
 		}
-	} else {
-		association.Error = err
 	}
 
 	return association
@@ -58,6 +56,8 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 }
 
 func (association *Association) Append(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		switch association.Relationship.Type {
 		case schema.HasOne, schema.BelongsTo:
@@ -73,6 +73,8 @@ func (association *Association) Append(values ...interface{}) error {
 }
 
 func (association *Association) Replace(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		reflectValue := association.DB.Statement.ReflectValue
 		rel := association.Relationship
@@ -97,7 +99,7 @@ func (association *Association) Replace(values ...interface{}) error {
 			return association.Error
 		}
 
-		// set old associations's foreign key to null
+		// set old association's foreign key to null
 		switch rel.Type {
 		case schema.BelongsTo:
 			if len(values) == 0 {
@@ -195,6 +197,8 @@ func (association *Association) Replace(values ...interface{}) error {
 }
 
 func (association *Association) Delete(values ...interface{}) error {
+	values = expandValues(values)
+
 	if association.Error == nil {
 		var (
 			reflectValue  = association.DB.Statement.ReflectValue
@@ -300,7 +304,7 @@ func (association *Association) Delete(values ...interface{}) error {
 		}
 
 		if association.Error == nil {
-			// clean up deleted values's foreign key
+			// clean up deleted values' foreign key
 			relValuesMap, _ := schema.GetIdentityFieldValuesMapFromValues(association.DB.Statement.Context, values, rel.FieldSchema.PrimaryFields)
 
 			cleanUpDeletedRelations := func(data reflect.Value) {
@@ -431,10 +435,49 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 				}
 			}
 
+			processMap := func(mapv reflect.Value) {
+				child := reflect.New(association.Relationship.FieldSchema.ModelType)
+
+				switch association.Relationship.Type {
+				case schema.HasMany:
+					for _, ref := range association.Relationship.References {
+						key := reflect.ValueOf(ref.ForeignKey.DBName)
+						if ref.OwnPrimaryKey {
+							v := ref.PrimaryKey.ReflectValueOf(association.DB.Statement.Context, source)
+							mapv.SetMapIndex(key, v)
+						} else if ref.PrimaryValue != "" {
+							mapv.SetMapIndex(key, reflect.ValueOf(ref.PrimaryValue))
+						}
+					}
+					association.Error = association.DB.Session(&Session{
+						NewDB: true,
+					}).Model(child.Interface()).Create(mapv.Interface()).Error
+				case schema.Many2Many:
+					association.Error = association.DB.Session(&Session{
+						NewDB: true,
+					}).Model(child.Interface()).Create(mapv.Interface()).Error
+
+					for _, key := range mapv.MapKeys() {
+						k := strings.ToLower(key.String())
+						if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+							_ = f.Set(association.DB.Statement.Context, child, mapv.MapIndex(key).Interface())
+						}
+					}
+					appendToFieldValues(child)
+				}
+			}
+
 			switch rv.Kind() {
+			case reflect.Map:
+				processMap(rv)
 			case reflect.Slice, reflect.Array:
 				for i := 0; i < rv.Len(); i++ {
-					appendToFieldValues(reflect.Indirect(rv.Index(i)).Addr())
+					elem := reflect.Indirect(rv.Index(i))
+					if elem.Kind() == reflect.Map {
+						processMap(elem)
+						continue
+					}
+					appendToFieldValues(elem.Addr())
 				}
 			case reflect.Struct:
 				if !rv.CanAddr() {
@@ -590,4 +633,33 @@ func (association *Association) buildCondition() *DB {
 	}
 
 	return tx
+}
+
+func expandValues(values ...any) (results []any) {
+	appendToResult := func(rv reflect.Value) {
+		// unwrap interface
+		if rv.IsValid() && rv.Kind() == reflect.Interface {
+			rv = rv.Elem()
+		}
+		if rv.IsValid() && rv.Kind() == reflect.Struct {
+			p := reflect.New(rv.Type())
+			p.Elem().Set(rv)
+			results = append(results, p.Interface())
+		} else if rv.IsValid() {
+			results = append(results, rv.Interface())
+		}
+	}
+
+	// Process each argument; if an argument is a slice/array, expand its elements
+	for _, value := range values {
+		rv := reflect.ValueOf(value)
+		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+			for i := 0; i < rv.Len(); i++ {
+				appendToResult(rv.Index(i))
+			}
+		} else {
+			appendToResult(rv)
+		}
+	}
+	return
 }

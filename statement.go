@@ -96,7 +96,9 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		if v.Name == clause.CurrentTable {
 			if stmt.TableExpr != nil {
 				stmt.TableExpr.Build(stmt)
-			} else {
+			} else if stmt.Table != "" {
+				write(v.Raw, stmt.Table)
+			} else if stmt.AddError(stmt.Parse(stmt.Model)) == nil {
 				write(v.Raw, stmt.Table)
 			}
 		} else {
@@ -334,6 +336,8 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 		switch v := arg.(type) {
 		case clause.Expression:
 			conds = append(conds, v)
+		case []clause.Expression:
+			conds = append(conds, v...)
 		case *DB:
 			v.executeScopes()
 
@@ -658,12 +662,15 @@ func (stmt *Statement) Changed(fields ...string) bool {
 				for destValue.Kind() == reflect.Ptr {
 					destValue = destValue.Elem()
 				}
-
-				changedValue, zero := field.ValueOf(stmt.Context, destValue)
-				if v {
-					return !utils.AssertEqual(changedValue, fieldValue)
+				if descSchema, err := schema.Parse(stmt.Dest, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+					if destField := descSchema.LookUpField(field.DBName); destField != nil {
+						changedValue, zero := destField.ValueOf(stmt.Context, destValue)
+						if v {
+							return !utils.AssertEqual(changedValue, fieldValue)
+						}
+						return !zero && !utils.AssertEqual(changedValue, fieldValue)
+					}
 				}
-				return !zero && !utils.AssertEqual(changedValue, fieldValue)
 			}
 		}
 		return false
