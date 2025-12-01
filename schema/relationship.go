@@ -669,8 +669,9 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 			if r != rel && r.FieldSchema == rel.Schema && len(rel.References) == len(r.References) {
 				matched := true
 				for idx, ref := range r.References {
-					if !(rel.References[idx].PrimaryKey == ref.PrimaryKey && rel.References[idx].ForeignKey == ref.ForeignKey &&
-						rel.References[idx].PrimaryValue == ref.PrimaryValue) {
+					if rel.References[idx].PrimaryKey != ref.PrimaryKey ||
+						rel.References[idx].ForeignKey != ref.ForeignKey ||
+						rel.References[idx].PrimaryValue != ref.PrimaryValue {
 						matched = false
 						break
 					}
