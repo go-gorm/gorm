@@ -2,7 +2,6 @@ package gorm
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
