@@ -212,6 +212,38 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+func (db *DB) WhereHas(relation string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+
+	if tx.Statement.WhereHasConditions == nil {
+		tx.Statement.WhereHasConditions = make([]whereHasCondition, 0)
+	}
+
+	tx.Statement.WhereHasConditions = append(tx.Statement.WhereHasConditions, whereHasCondition{
+		IsDoesntHave: false,
+		Relation:     relation,
+		Conds:        args,
+	})
+
+	return
+}
+
+func (db *DB) WhereDoesntHave(relation string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+
+	if tx.Statement.WhereHasConditions == nil {
+		tx.Statement.WhereHasConditions = make([]whereHasCondition, 0)
+	}
+
+	tx.Statement.WhereHasConditions = append(tx.Statement.WhereHasConditions, whereHasCondition{
+		IsDoesntHave: true,
+		Relation:     relation,
+		Conds:        args,
+	})
+
+	return
+}
+
 // Not add NOT conditions
 //
 // Not works similarly to where, and has the same syntax.
