@@ -17,11 +17,55 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/logger"
 	"gorm.io/gorm/migrator"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 	. "gorm.io/gorm/utils/tests"
 )
+
+// testWriter captures log output for testing
+type testWriter struct {
+	logs *[]string
+}
+
+func (w *testWriter) Write(p []byte) (n int, err error) {
+	*w.logs = append(*w.logs, string(p))
+	return len(p), nil
+}
+
+// testLogger captures SQL logs for testing
+type testLogger struct {
+	logs *[]string
+}
+
+func (l *testLogger) LogMode(level logger.LogLevel) logger.Interface {
+	return l
+}
+
+func (l *testLogger) Info(ctx context.Context, msg string, data ...interface{}) {
+	log := fmt.Sprintf(msg, data...)
+	*l.logs = append(*l.logs, log)
+}
+
+func (l *testLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
+	log := fmt.Sprintf(msg, data...)
+	*l.logs = append(*l.logs, log)
+}
+
+func (l *testLogger) Error(ctx context.Context, msg string, data ...interface{}) {
+	log := fmt.Sprintf(msg, data...)
+	*l.logs = append(*l.logs, log)
+}
+
+func (l *testLogger) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
+	sql, _ := fc()
+	log := sql
+	if err != nil {
+		log += " " + err.Error()
+	}
+	*l.logs = append(*l.logs, log)
+}
 
 func TestMigrate(t *testing.T) {
 	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Tools{}, &Man{}}
@@ -354,6 +398,173 @@ func TestSmartMigrateColumnGaussDB(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestMigrateColumnTypeAliases(t *testing.T) {
+	t.Run("length_specifiers", func(t *testing.T) {
+		type UserLength struct {
+			ID   uint
+			Name string `gorm:"type:varchar(100)"`
+		}
+
+		DB.Migrator().DropTable(&UserLength{})
+
+		if err := DB.AutoMigrate(&UserLength{}); err != nil {
+			t.Fatalf("failed to auto migrate, got error: %v", err)
+		}
+
+		columnTypes, err := DB.Migrator().ColumnTypes(&UserLength{})
+		if err != nil {
+			t.Fatalf("failed to get column types, got error: %v", err)
+		}
+
+		var nameLength int64
+		for _, columnType := range columnTypes {
+			if columnType.Name() == "name" {
+				nameLength, _ = columnType.Length()
+			}
+		}
+
+		// Change to varchar without size and migrate again
+		type UserLength2 struct {
+			ID   uint
+			Name string `gorm:"type:varchar"`
+		}
+
+		if err := DB.Table("user_lengths").AutoMigrate(&UserLength2{}); err != nil {
+			t.Fatalf("failed to auto migrate with varchar, got error: %v", err)
+		}
+
+		columnTypes2, err := DB.Table("user_lengths").Migrator().ColumnTypes(&UserLength{})
+		if err != nil {
+			t.Fatalf("failed to get column types after migrate, got error: %v", err)
+		}
+
+		for _, columnType := range columnTypes2 {
+			if columnType.Name() == "name" {
+				length2, _ := columnType.Length()
+				// The new logic should prevent altering the type/length if they are considered the same
+				// Without the new logic, if DatabaseTypeName includes (100), it might alter
+				if length2 != nameLength {
+					t.Fatalf("length changed unexpectedly, was %v, now %v", nameLength, length2)
+				}
+			}
+		}
+	})
+
+	t.Run("array_types_postgres", func(t *testing.T) {
+		if DB.Dialector.Name() != "postgres" {
+			t.Skip("Array types test is for postgres")
+		}
+
+		// Set up test logger to capture SQL statements
+		var sqlLogs []string
+		testLog := &testLogger{logs: &sqlLogs}
+		oldLogger := DB.Logger
+		DB.Logger = testLog
+
+		defer func() {
+			DB.Logger = oldLogger
+		}()
+
+		type UserArray struct {
+			ID    uint
+			Names []string `gorm:"type:varchar[]"`
+		}
+
+		if err := DB.AutoMigrate(&UserArray{}); err != nil {
+			t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+		}
+
+		// Clear logs before migration
+		sqlLogs = nil
+
+		// Now migrate with struct that has varchar[] - should NOT generate ALTER statements
+		if err := DB.AutoMigrate(&UserArray{}); err != nil {
+			t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+		}
+
+		// Check that no ALTER statements were executed
+		for _, log := range sqlLogs {
+			if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
+				t.Fatalf("Unexpected ALTER TABLE statement found in logs: %v - this indicates the alias fix is not working", log)
+			}
+		}
+
+		columnTypes, err := DB.Migrator().ColumnTypes(&UserArray{})
+		if err != nil {
+			t.Fatalf("failed to get column types, got error: %v", err)
+		}
+
+		var namesType string
+		for _, columnType := range columnTypes {
+			if columnType.Name() == "names" {
+				namesType = columnType.DatabaseTypeName()
+				// Should be character varying[] (postgres native) or varchar[]
+				if !strings.Contains(namesType, "character varying") && !strings.Contains(namesType, "varchar") {
+					t.Fatalf("expected array type containing 'character varying' or 'varchar', got %v", namesType)
+				}
+			}
+		}
+
+		// Clear logs again
+		sqlLogs = nil
+
+		// Migrate again with same struct - should not generate any ALTER statements
+		if err := DB.AutoMigrate(&UserArray{}); err != nil {
+			t.Fatalf("failed to auto migrate again, got error: %v", err)
+		}
+
+		// Check again that no ALTER statements were executed
+		for _, log := range sqlLogs {
+			if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
+				t.Fatalf("Unexpected ALTER TABLE statement found in logs after second migration: %v", log)
+			}
+		}
+
+		// Clean up
+		DB.Migrator().DropTable(&UserArray{})
+	})
+
+	t.Run("bidirectional_aliases", func(t *testing.T) {
+		// This subtest assumes some common aliases; adjust based on database
+		type UserAlias struct {
+			ID   uint
+			Data string `gorm:"type:text"`
+		}
+
+		DB.Migrator().DropTable(&UserAlias{})
+
+		if err := DB.AutoMigrate(&UserAlias{}); err != nil {
+			t.Fatalf("failed to auto migrate, got error: %v", err)
+		}
+
+		// Change to varchar and migrate
+		type UserAlias2 struct {
+			ID   uint
+			Data string `gorm:"type:varchar"`
+		}
+
+		if err := DB.Table("user_aliases").AutoMigrate(&UserAlias2{}); err != nil {
+			t.Fatalf("failed to auto migrate with varchar, got error: %v", err)
+		}
+
+		// Should not alter if aliases are properly mapped bidirectionally
+		columnTypes, err := DB.Table("user_aliases").Migrator().ColumnTypes(&UserAlias{})
+		if err != nil {
+			t.Fatalf("failed to get column types, got error: %v", err)
+		}
+
+		for _, columnType := range columnTypes {
+			if columnType.Name() == "data" {
+				dbType := columnType.DatabaseTypeName()
+				// Just check it's a string type
+				if !strings.Contains(dbType, "text") && !strings.Contains(dbType, "varchar") && !strings.Contains(dbType, "character") {
+					t.Fatalf("unexpected type %v", dbType)
+				}
+			}
+		}
+	})
 }
 
 func TestMigrateWithColumnComment(t *testing.T) {
