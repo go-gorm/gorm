@@ -236,8 +236,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	if err == nil && !config.DisableAutomaticPing {
 		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
 			err = pinger.Ping()
-			if db, _ := db.DB(); db != nil {
-				_ = db.Close()
+			if err != nil {
+				if db, _ := db.DB(); db != nil {
+					_ = db.Close()
+				}
 			}
 		}
 	}
