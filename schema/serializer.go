@@ -272,71 +272,56 @@ func parsePgArray(s string) ([]string, error) {
 		return nil, fmt.Errorf("invalid pg array format: %s", s)
 	}
 
-	// Remove surrounding braces
-	s = s[1 : len(s)-1]
+	return parsePgArrayContent(s[1 : len(s)-1]), nil
+}
+
+func parsePgArrayContent(s string) []string {
 	if s == "" {
-		return []string{}, nil
+		return []string{}
 	}
 
 	var result []string
 	var current strings.Builder
-	inQuotes := false
-	escaped := false
+	var inQuotes, escaped bool
 
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-
-		if escaped {
-			current.WriteByte(c)
+	for _, c := range s {
+		switch {
+		case escaped:
+			current.WriteRune(c)
 			escaped = false
-			continue
-		}
-
-		if c == '\\' {
+		case c == '\\':
 			escaped = true
-			continue
-		}
-
-		if c == '"' {
+		case c == '"':
 			inQuotes = !inQuotes
-			continue
-		}
-
-		if c == ',' && !inQuotes {
+		case c == ',' && !inQuotes:
 			result = append(result, current.String())
 			current.Reset()
-			continue
+		default:
+			current.WriteRune(c)
 		}
-
-		current.WriteByte(c)
 	}
 
-	result = append(result, current.String())
-	return result, nil
+	return append(result, current.String())
 }
 
 // escapePgArrayElement escapes a string for PostgreSQL array format
 func escapePgArrayElement(s string) string {
-	needsQuotes := false
-	for _, c := range s {
-		if c == ',' || c == '"' || c == '\\' || c == '{' || c == '}' || c == ' ' {
-			needsQuotes = true
-			break
-		}
+	if s == "" {
+		return `""`
 	}
 
-	if !needsQuotes {
+	if !strings.ContainsAny(s, `, "\{}`) {
 		return s
 	}
 
 	var buf strings.Builder
-	buf.WriteString("\"")
+	buf.WriteByte('"')
 	for _, c := range s {
 		if c == '"' || c == '\\' {
-			buf.WriteRune('\\')
+			buf.WriteByte('\\')
 		}
 		buf.WriteRune(c)
 	}
-	buf.WriteString("\"")
+	buf.WriteByte('"')
 	return buf.String()
 }
