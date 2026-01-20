@@ -211,3 +211,190 @@ func TestUnixSecondSerializer_Value(t *testing.T) {
 		})
 	}
 }
+
+func TestPgArraySerializer_Scan(t *testing.T) {
+	tests := []struct {
+		name    string
+		dbValue interface{}
+		want    []string
+		wantErr bool
+	}{
+		{
+			name:    "normal array",
+			dbValue: "{foo,bar,baz}",
+			want:    []string{"foo", "bar", "baz"},
+			wantErr: false,
+		},
+		{
+			name:    "empty array",
+			dbValue: "{}",
+			want:    []string{},
+			wantErr: false,
+		},
+		{
+			name:    "single element",
+			dbValue: "{single}",
+			want:    []string{"single"},
+			wantErr: false,
+		},
+		{
+			name:    "quoted element with comma",
+			dbValue: `{"hello, world",test}`,
+			want:    []string{"hello, world", "test"},
+			wantErr: false,
+		},
+		{
+			name:    "escaped quote",
+			dbValue: `{"say \"hi\""}`,
+			want:    []string{`say "hi"`},
+			wantErr: false,
+		},
+		{
+			name:    "escaped backslash",
+			dbValue: `{"path\\to"}`,
+			want:    []string{`path\to`},
+			wantErr: false,
+		},
+		{
+			name:    "invalid format",
+			dbValue: "not an array",
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			str, ok := tt.dbValue.(string)
+			if !ok {
+				t.Skip("skipping non-string test")
+			}
+
+			got, err := parsePgArray(str)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("parsePgArray() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+
+			if len(got) != len(tt.want) {
+				t.Fatalf("parsePgArray() = %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("parsePgArray()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestPgArraySerializer_Value(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   interface{}
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name:    "normal slice",
+			value:   []string{"a", "b", "c"},
+			want:    "{a,b,c}",
+			wantErr: false,
+		},
+		{
+			name:    "single element",
+			value:   []string{"only"},
+			want:    "{only}",
+			wantErr: false,
+		},
+		{
+			name:    "element with comma",
+			value:   []string{"hello, world"},
+			want:    `{"hello, world"}`,
+			wantErr: false,
+		},
+		{
+			name:    "element with quote",
+			value:   []string{`say "hi"`},
+			want:    `{"say \"hi\""}`,
+			wantErr: false,
+		},
+		{
+			name:    "element with backslash",
+			value:   []string{`path\to`},
+			want:    `{"path\\to"}`,
+			wantErr: false,
+		},
+		{
+			name:    "empty slice",
+			value:   []string{},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "nil slice",
+			value:   ([]string)(nil),
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "nil value",
+			value:   nil,
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name:    "element with space",
+			value:   []string{"hello world"},
+			want:    `{"hello world"}`,
+			wantErr: false,
+		},
+		{
+			name:    "element with braces",
+			value:   []string{"{test}"},
+			want:    `{"{test}"}`,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := PgArraySerializer{}.Value(context.Background(), nil, reflect.Value{}, tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("PgArraySerializer.Value() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+			if got != tt.want {
+				t.Errorf("PgArraySerializer.Value() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEscapePgArrayElement(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"simple", "hello", "hello"},
+		{"with comma", "hello, world", `"hello, world"`},
+		{"with quote", `say "hi"`, `"say \"hi\""`},
+		{"with backslash", `path\to`, `"path\\to"`},
+		{"with space", "hello world", `"hello world"`},
+		{"with braces", "{test}", `"{test}"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := escapePgArrayElement(tt.input)
+			if got != tt.want {
+				t.Errorf("escapePgArrayElement(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

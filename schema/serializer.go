@@ -35,6 +35,7 @@ func init() {
 	RegisterSerializer("json", JSONSerializer{})
 	RegisterSerializer("unixtime", UnixSecondSerializer{})
 	RegisterSerializer("gob", GobSerializer{})
+	RegisterSerializer("pgarray", PgArraySerializer{})
 }
 
 // Serializer field value serializer
@@ -186,4 +187,156 @@ func (GobSerializer) Value(ctx context.Context, field *Field, dst reflect.Value,
 	buf := new(bytes.Buffer)
 	err := gob.NewEncoder(buf).Encode(fieldValue)
 	return buf.Bytes(), err
+}
+
+// PgArraySerializer PostgreSQL text[] array serializer
+type PgArraySerializer struct{}
+
+// Scan implements serializer interface
+func (PgArraySerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) (err error) {
+	fieldValue := reflect.New(field.FieldType)
+
+	if dbValue != nil {
+		var str string
+		switch v := dbValue.(type) {
+		case []byte:
+			str = string(v)
+		case string:
+			str = v
+		default:
+			return fmt.Errorf("failed to parse pg array value: %#v", dbValue)
+		}
+
+		if len(str) > 0 {
+			parsed, err := parsePgArray(str)
+			if err != nil {
+				return err
+			}
+			fieldValue.Elem().Set(reflect.ValueOf(parsed))
+		}
+	}
+
+	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
+	return
+}
+
+// Value implements serializer interface
+func (PgArraySerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
+	if fieldValue == nil {
+		return nil, nil
+	}
+
+	rv := reflect.ValueOf(fieldValue)
+	if rv.Kind() == reflect.Ptr {
+		if rv.IsNil() {
+			return nil, nil
+		}
+		rv = rv.Elem()
+	}
+
+	if rv.Kind() != reflect.Slice {
+		return nil, fmt.Errorf("PgArraySerializer expects a slice, got %T", fieldValue)
+	}
+
+	if rv.Len() == 0 {
+		return nil, nil
+	}
+
+	var buf strings.Builder
+	buf.WriteString("{")
+
+	for i := 0; i < rv.Len(); i++ {
+		if i > 0 {
+			buf.WriteString(",")
+		}
+		elem := rv.Index(i).Interface()
+		str, ok := elem.(string)
+		if !ok {
+			return nil, fmt.Errorf("PgArraySerializer expects []string, got element of type %T", elem)
+		}
+		buf.WriteString(escapePgArrayElement(str))
+	}
+
+	buf.WriteString("}")
+	return buf.String(), nil
+}
+
+// parsePgArray parses PostgreSQL array format: {elem1,elem2,"quoted,elem"}
+func parsePgArray(s string) ([]string, error) {
+	s = strings.TrimSpace(s)
+	if s == "" || s == "{}" {
+		return []string{}, nil
+	}
+
+	if len(s) < 2 || s[0] != '{' || s[len(s)-1] != '}' {
+		return nil, fmt.Errorf("invalid pg array format: %s", s)
+	}
+
+	// Remove surrounding braces
+	s = s[1 : len(s)-1]
+	if s == "" {
+		return []string{}, nil
+	}
+
+	var result []string
+	var current strings.Builder
+	inQuotes := false
+	escaped := false
+
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+
+		if escaped {
+			current.WriteByte(c)
+			escaped = false
+			continue
+		}
+
+		if c == '\\' {
+			escaped = true
+			continue
+		}
+
+		if c == '"' {
+			inQuotes = !inQuotes
+			continue
+		}
+
+		if c == ',' && !inQuotes {
+			result = append(result, current.String())
+			current.Reset()
+			continue
+		}
+
+		current.WriteByte(c)
+	}
+
+	result = append(result, current.String())
+	return result, nil
+}
+
+// escapePgArrayElement escapes a string for PostgreSQL array format
+func escapePgArrayElement(s string) string {
+	needsQuotes := false
+	for _, c := range s {
+		if c == ',' || c == '"' || c == '\\' || c == '{' || c == '}' || c == ' ' {
+			needsQuotes = true
+			break
+		}
+	}
+
+	if !needsQuotes {
+		return s
+	}
+
+	var buf strings.Builder
+	buf.WriteString("\"")
+	for _, c := range s {
+		if c == '"' || c == '\\' {
+			buf.WriteRune('\\')
+		}
+		buf.WriteRune(c)
+	}
+	buf.WriteString("\"")
+	return buf.String()
 }
