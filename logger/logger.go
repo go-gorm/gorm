@@ -128,9 +128,9 @@ type logger struct {
 
 // LogMode log mode
 func (l *logger) LogMode(level LogLevel) Interface {
-	newlogger := *l
-	newlogger.LogLevel = level
-	return &newlogger
+	newLogger := *l
+	newLogger.LogLevel = level
+	return &newLogger
 }
 
 // Info print info
