@@ -89,7 +89,13 @@ func (schema *Schema) LookUpField(name string) *Field {
 	}
 	namerColumnName := schema.namer.ColumnName(schema.Table, name)
 	if field, ok := schema.FieldsByDBName[namerColumnName]; ok {
-		return field
+		// Only return the field if its Name matches the search name
+		// This prevents returning embedded fields with matching DBNames
+		// e.g., searching for "UserID" should not return embedded "ID" field
+		// even if its DBName is "user_id"
+		if field.Name == name {
+			return field
+		}
 	}
 
 	return nil
