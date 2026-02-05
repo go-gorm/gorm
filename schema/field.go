@@ -920,11 +920,46 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 				}
 			} else if _, ok := fieldValue.Interface().(sql.Scanner); ok {
 				// struct scanner
+
+				// isNilFieldPath checks if any intermediate pointer in the field access path is nil.
+				// This is used to skip Scan calls for fields within nil embedded pointer structs.
+				isNilFieldPath := func(v reflect.Value) bool {
+					v = reflect.Indirect(v)
+					for idx, fieldIdx := range field.StructField.Index {
+						if fieldIdx >= 0 {
+							v = v.Field(fieldIdx)
+							if v.Kind() == reflect.Ptr && v.IsNil() && idx < len(field.StructField.Index)-1 {
+								return true
+							}
+						} else {
+							v = v.Field(-fieldIdx - 1)
+							if v.IsNil() {
+								return true
+							}
+							if idx < len(field.StructField.Index)-1 {
+								v = v.Elem()
+							}
+						}
+					}
+					return false
+				}
+
 				field.Set = func(ctx context.Context, value reflect.Value, v interface{}) (err error) {
 					reflectV := reflect.ValueOf(v)
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						// Handle nil values for non-pointer struct scanners:
+						// - Keep pointer-type fields as nil
+						// - Skip fields in nil embedded pointer structs
+						// - Call Scan(nil) for standalone non-pointer scanner fields
+						if field.FieldType.Kind() == reflect.Ptr {
+							return
+						}
+						if isNilFieldPath(value) {
+							return
+						}
+						err = field.ReflectValueOf(ctx, value).Addr().Interface().(sql.Scanner).Scan(nil)
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
