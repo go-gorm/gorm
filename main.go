@@ -103,6 +103,10 @@ type closer interface {
 	Close() error
 }
 
+func (s *DB) ReturnGlobalDB() *DB {
+	return s.parent
+}
+
 // Close close current db connection.  If database connection is not an io.Closer, returns an error.
 func (s *DB) Close() error {
 	if db, ok := s.parent.db.(closer); ok {
@@ -553,11 +557,40 @@ func (s *DB) Commit() *DB {
 	} else {
 		s.AddError(ErrInvalidTransaction)
 	}
+
+	if s.Error == nil {
+		// we need to return the global db connection to the callbacks, because after commit,
+		// the transaction will be closed and the transaction db connection will be invalid
+		parent := s.ReturnGlobalDB()
+
+		for _, callback := range s.afterRollbackCallbacks {
+			callback(parent)
+		}
+
+		for _, callback := range s.afterTransactionCallbacks {
+			callback(parent)
+		}
+	}
+
 	return s
 }
 
 // Rollback rollback a transaction
 func (s *DB) Rollback() *DB {
+	// Note that the callbacks are called right before the actual rollback happens
+	// because entities might have been updated/inserted/deleted in the transaction
+	// and the callbacks might need to access them. If the callbacks were called
+	// after the rollback, the entity changes would be gone.
+	// The downside of this implementation is that a possible rollback error will be hidden
+	// for the actual callbacks.
+	for _, callback := range s.afterRollbackCallbacks {
+		callback(s)
+	}
+
+	for _, callback := range s.afterTransactionCallbacks {
+		callback(s)
+	}
+
 	if db, ok := s.db.(sqlTx); ok && db != nil {
 		s.AddError(db.Rollback())
 	} else {
@@ -657,20 +690,6 @@ func (s *DB) WrapInTxOpts(f func(tx *DB) error, ctx context.Context, opts *sql.T
 		panicked := true
 		defer func() {
 			if panicked || err != nil {
-				// Note that the callbacks are called right before the actual rollback happens
-				// because entities might have been updated/inserted/deleted in the transaction
-				// and the callbacks might need to access them. If the callbacks were called
-				// after the rollback, the entity changes would be gone.
-				// The downside of this implementation is that a possible rollback error will be hidden
-				// for the actual callbacks.
-				for _, callback := range tx.afterRollbackCallbacks {
-					callback(tx)
-				}
-
-				for _, callback := range tx.afterTransactionCallbacks {
-					callback(tx)
-				}
-
 				rollbackErr := tx.Rollback().Error
 				if rollbackErr != nil {
 					if err == nil {
@@ -684,17 +703,9 @@ func (s *DB) WrapInTxOpts(f func(tx *DB) error, ctx context.Context, opts *sql.T
 		}()
 		err = f(tx)
 		if err == nil {
-			err = tx.Commit().Error
-			if err == nil {
-				for _, callback := range tx.afterCommitCallbacks {
-					callback(s)
-				}
-
-				for _, callback := range tx.afterTransactionCallbacks {
-					callback(s)
-				}
-			}
+			tx.Commit()
 		}
+
 		panicked = false
 		return
 	}
