@@ -127,7 +127,6 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 			}
 		} else {
 			if err := m.RunWithValue(value, func(stmt *gorm.Statement) error {
-
 				if stmt.Schema == nil {
 					return errors.New("failed to get schema")
 				}
@@ -216,7 +215,6 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 	for _, value := range m.ReorderModels(values, false) {
 		tx := m.DB.Session(&gorm.Session{})
 		if err := m.RunWithValue(value, func(stmt *gorm.Statement) (err error) {
-
 			if stmt.Schema == nil {
 				return errors.New("failed to get schema")
 			}
@@ -472,8 +470,8 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// found, smart migrate
-	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL))
-	realDataType := strings.ToLower(columnType.DatabaseTypeName())
+	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from struct
+	realDataType := strings.ToLower(columnType.DatabaseTypeName())                                // from db
 	var (
 		alterColumn bool
 		isSameType  = fullDataType == realDataType
@@ -481,13 +479,29 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 
 	if !field.PrimaryKey {
 		// check type
+
 		if !strings.HasPrefix(fullDataType, realDataType) {
 			// check type aliases
-			aliases := m.DB.Migrator().GetTypeAliases(realDataType)
-			for _, alias := range aliases {
-				if strings.HasPrefix(fullDataType, alias) {
-					isSameType = true
-					break
+			// we must compare without any brackets or length specifiers
+			// also we compare in both directions in case the mapping misses one of both ways for a type
+
+			rdt := realDataType
+			if p := strings.IndexAny(realDataType, "(["); p >= 0 {
+				rdt = realDataType[:p]
+			}
+			fdt := fullDataType
+			if p := strings.IndexAny(fullDataType, "(["); p >= 0 {
+				fdt = fullDataType[:p]
+			}
+
+			types := []string{rdt, fdt}
+			for i := 0; !isSameType && i < len(types); i++ {
+				aliases := m.DB.Migrator().GetTypeAliases(types[i])
+				for _, alias := range aliases {
+					if strings.HasPrefix(types[1-i], alias) {
+						isSameType = true
+						break
+					}
 				}
 			}
 
