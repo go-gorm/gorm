@@ -261,6 +261,7 @@ func (db *DB) Session(config *Session) *DB {
 			Error:     db.Error,
 			clone:     1,
 		}
+		cloned = false
 	)
 	if config.CreateBatchSize > 0 {
 		tx.Config.CreateBatchSize = config.CreateBatchSize
@@ -285,6 +286,7 @@ func (db *DB) Session(config *Session) *DB {
 	if config.Context != nil || config.PrepareStmt || config.SkipHooks {
 		tx.Statement = tx.Statement.clone()
 		tx.Statement.DB = tx
+		cloned = true
 	}
 
 	if config.Context != nil {
@@ -326,7 +328,7 @@ func (db *DB) Session(config *Session) *DB {
 		txConfig.DisableNestedTransaction = true
 	}
 
-	if !config.NewDB {
+	if !config.NewDB && !cloned {
 		tx.clone = 2
 	}
 
