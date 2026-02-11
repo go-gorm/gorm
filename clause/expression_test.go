@@ -137,11 +137,11 @@ func TestNamedExpr(t *testing.T) {
 	}, {
 		SQL:    "?",
 		Vars:   []interface{}{clause.Table{Name: "table", Alias: "alias"}},
-		Result: "`table` `alias`",
+		Result: "`table` AS `alias`",
 	}, {
 		SQL:    "?",
 		Vars:   []interface{}{clause.Table{Name: "table", Alias: "alias", Raw: true}},
-		Result: "table alias",
+		Result: "table AS alias",
 	}}
 
 	for idx, result := range results {
