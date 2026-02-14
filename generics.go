@@ -659,11 +659,13 @@ func (g execG[T]) FindInBatches(ctx context.Context, batchSize int, fc func(data
 }
 
 func (g execG[T]) Row(ctx context.Context) *sql.Row {
-	return g.g.apply(ctx).Row()
+	var r T
+	return g.g.apply(ctx).Model(r).Row()
 }
 
 func (g execG[T]) Rows(ctx context.Context) (*sql.Rows, error) {
-	return g.g.apply(ctx).Rows()
+	var r T
+	return g.g.apply(ctx).Model(r).Rows()
 }
 
 func (c chainG[T]) processSet(items ...clause.Assigner) setCreateOrUpdateG[T] {
