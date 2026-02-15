@@ -23,7 +23,12 @@ func newWhereHasSession(db *DB) *DB {
 // and injects the corresponding WHERE EXISTS / WHERE NOT EXISTS subqueries.
 // It must be called after the schema has been parsed (e.g., inside BuildQuerySQL).
 func (db *DB) BuildWhereHasClauses() {
-	if db.Statement.Schema == nil || len(db.Statement.whereHasConds) == 0 {
+	if len(db.Statement.whereHasConds) == 0 {
+		return
+	}
+
+	if db.Statement.Schema == nil {
+		_ = db.AddError(fmt.Errorf("%w when using WhereHas", ErrModelValueRequired))
 		return
 	}
 
