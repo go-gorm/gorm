@@ -212,38 +212,6 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
-func (db *DB) WhereHas(relation string, args ...interface{}) (tx *DB) {
-	tx = db.getInstance()
-
-	if tx.Statement.WhereHasConditions == nil {
-		tx.Statement.WhereHasConditions = make([]whereHasCondition, 0)
-	}
-
-	tx.Statement.WhereHasConditions = append(tx.Statement.WhereHasConditions, whereHasCondition{
-		IsDoesntHave: false,
-		Relation:     relation,
-		Conds:        args,
-	})
-
-	return
-}
-
-func (db *DB) WhereDoesntHave(relation string, args ...interface{}) (tx *DB) {
-	tx = db.getInstance()
-
-	if tx.Statement.WhereHasConditions == nil {
-		tx.Statement.WhereHasConditions = make([]whereHasCondition, 0)
-	}
-
-	tx.Statement.WhereHasConditions = append(tx.Statement.WhereHasConditions, whereHasCondition{
-		IsDoesntHave: true,
-		Relation:     relation,
-		Conds:        args,
-	})
-
-	return
-}
-
 // Not add NOT conditions
 //
 // Not works similarly to where, and has the same syntax.
@@ -269,6 +237,30 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	if conds := tx.Statement.BuildCondition(query, args...); len(conds) > 0 {
 		tx.Statement.AddClause(clause.Where{Exprs: []clause.Expression{clause.Or(clause.And(conds...))}})
 	}
+	return
+}
+
+// WhereHas filters records that have related models matching the given association.
+// An optional *DB argument can be provided to add conditions on the related model.
+func (db *DB) WhereHas(association string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.whereHasConds = append(tx.Statement.whereHasConds, whereHasCond{
+		Association: association,
+		NotExists:   false,
+		Args:        args,
+	})
+	return
+}
+
+// WhereDoesntHave filters records that do not have related models matching the given association.
+// An optional *DB argument can be provided to add conditions on the related model.
+func (db *DB) WhereDoesntHave(association string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.whereHasConds = append(tx.Statement.whereHasConds, whereHasCond{
+		Association: association,
+		NotExists:   true,
+		Args:        args,
+	})
 	return
 }
 

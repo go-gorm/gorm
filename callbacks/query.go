@@ -40,6 +40,9 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 	}
 
+	// Process WhereHas/WhereDoesntHave conditions
+	db.BuildWhereHasClauses()
+
 	if db.Statement.SQL.Len() == 0 {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}
@@ -54,23 +57,6 @@ func BuildQuerySQL(db *gorm.DB) {
 
 			if len(conds) > 0 {
 				db.Statement.AddClause(clause.Where{Exprs: conds})
-			}
-		}
-
-		if db.Statement.Schema != nil && len(db.Statement.WhereHasConditions) > 0 {
-			for _, whereHasCondition := range db.Statement.WhereHasConditions {
-				cl, err := newWhereHas(db, whereHasCondition.IsDoesntHave, whereHasCondition.Relation, whereHasCondition.Conds, db.Statement.Schema)
-				if err != nil {
-					_ = db.AddError(err)
-
-					continue
-				}
-
-				if cl == nil {
-					continue
-				}
-
-				db.Statement.AddClause(cl)
 			}
 		}
 
