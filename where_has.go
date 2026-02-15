@@ -29,7 +29,7 @@ func (db *DB) BuildWhereHasClauses() {
 
 	for _, cond := range db.Statement.whereHasConds {
 		if err := buildWhereHasClause(db, db.Statement.Schema, db.Statement.Table, cond); err != nil {
-			db.AddError(err)
+			_ = db.AddError(err)
 			return
 		}
 	}
@@ -145,19 +145,20 @@ func buildMany2ManySubquery(db *DB, rel *schema.Relationship, parentTable string
 	var joinON []clause.Expression
 
 	for _, ref := range rel.References {
-		if ref.OwnPrimaryKey {
+		switch {
+		case ref.OwnPrimaryKey:
 			// Parent side: join_table.parent_fk = parent_table.parent_pk  (goes to WHERE)
 			subQuery = subQuery.Where(clause.Eq{
 				Column: clause.Column{Table: joinTable, Name: ref.ForeignKey.DBName},
 				Value:  clause.Column{Table: parentTable, Name: ref.PrimaryKey.DBName},
 			})
-		} else if ref.PrimaryValue != "" {
+		case ref.PrimaryValue != "":
 			// Polymorphic value on join table
 			subQuery = subQuery.Where(clause.Eq{
 				Column: clause.Column{Table: joinTable, Name: ref.ForeignKey.DBName},
 				Value:  ref.PrimaryValue,
 			})
-		} else {
+		default:
 			// Related side: join_table.related_fk = related_table.related_pk  (goes to JOIN ON)
 			joinON = append(joinON, clause.Eq{
 				Column: clause.Column{Table: joinTable, Name: ref.ForeignKey.DBName},
