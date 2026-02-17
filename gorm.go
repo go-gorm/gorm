@@ -1,5 +1,5 @@
 // Package gorm is a full-featured, developer-friendly ORM for Golang.
-// See https://gorm.io for documentation, and community.
+// See https://gorm.io for documentation and community.
 package gorm
 
 import (
