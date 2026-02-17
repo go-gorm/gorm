@@ -1,3 +1,4 @@
+// Package utils provides internal utility functions for GORM.
 package utils
 
 import (

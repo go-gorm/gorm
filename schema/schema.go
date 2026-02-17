@@ -1,3 +1,4 @@
+// Package schema provides the Schema struct and related functions for parsing and managing database schemas in GORM.
 package schema
 
 import (
