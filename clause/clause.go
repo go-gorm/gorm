@@ -1,3 +1,4 @@
+// Package clause provides the clause interface and common clause implementations for GORM.
 package clause
 
 // Interface clause interface

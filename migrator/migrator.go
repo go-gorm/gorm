@@ -1,3 +1,4 @@
+// Package migrator provides the interface and implementation for database schema migration in GORM.
 package migrator
 
 import (
