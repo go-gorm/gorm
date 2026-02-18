@@ -1,11 +1,13 @@
 package schema
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"gorm.io/gorm/utils"
 
 	"github.com/jinzhu/inflection"
 	"golang.org/x/text/cases"
@@ -22,6 +24,7 @@ type Namer interface {
 	CheckerName(table, column string) string
 	IndexName(table, column string) string
 	UniqueName(table, column string) string
+	JoinNestedRelationNames(relationNames []string) string
 }
 
 // Replacer replacer interface like strings.Replacer
@@ -95,23 +98,64 @@ func (ns NamingStrategy) UniqueName(table, column string) string {
 	return ns.formatName("uni", table, ns.toDBName(column))
 }
 
+// JoinNestedRelationNames nested relationships like `Manager__Company` with enforcing IdentifierMaxLength
+func (ns NamingStrategy) JoinNestedRelationNames(relationNames []string) string {
+	tableAlias := utils.JoinNestedRelationNames(relationNames)
+	return ns.truncateName(tableAlias)
+}
+
+// TruncatedName generate truncated name
+func (ns NamingStrategy) truncateName(ident string) string {
+	formattedName := ident
+	if ns.IdentifierMaxLength == 0 {
+		ns.IdentifierMaxLength = 64
+	}
+
+	if len(formattedName) > ns.IdentifierMaxLength {
+		h := sha256.New224()
+		h.Write([]byte(formattedName))
+		bs := h.Sum(nil)
+		formattedName = truncate(formattedName, ns.IdentifierMaxLength-8) + hex.EncodeToString(bs)[:8]
+	}
+	return formattedName
+}
+
+func truncate(s string, size int) string {
+	if len(s) <= size {
+		return s
+	}
+	s = s[0:size]
+	num := brokenTailSize(s)
+	s = s[0 : len(s)-num]
+	return s
+}
+
+func brokenTailSize(s string) int {
+	if len(s) == 0 {
+		return 0
+	}
+	res := 1
+
+	for i := len(s) - 1; i >= 0; i-- {
+		char := s[i] & 0b11000000
+		if char != 0b10000000 {
+			break
+		}
+		res++
+	}
+
+	if utf8.Valid([]byte(s[len(s)-res:])) {
+		res = 0
+	}
+	return res
+}
+
 func (ns NamingStrategy) formatName(prefix, table, name string) string {
 	formattedName := strings.ReplaceAll(strings.Join([]string{
 		prefix, table, name,
 	}, "_"), ".", "_")
 
-	if ns.IdentifierMaxLength == 0 {
-		ns.IdentifierMaxLength = 64
-	}
-
-	if utf8.RuneCountInString(formattedName) > ns.IdentifierMaxLength {
-		h := sha1.New()
-		h.Write([]byte(formattedName))
-		bs := h.Sum(nil)
-
-		formattedName = formattedName[0:ns.IdentifierMaxLength-8] + hex.EncodeToString(bs)[:8]
-	}
-	return formattedName
+	return ns.truncateName(formattedName)
 }
 
 var (
