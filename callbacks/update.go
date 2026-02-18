@@ -268,6 +268,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 		switch updatingValue.Kind() {
 		case reflect.Struct:
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
+			priExpr := make([]clause.Expression, 0)
 			for _, dbName := range stmt.Schema.DBNames {
 				if field := updatingSchema.LookUpField(dbName); field != nil {
 					if !field.PrimaryKey || !updatingValue.CanAddr() || stmt.Dest != stmt.Model {
@@ -299,10 +300,25 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 						}
 					} else {
 						if value, isZero := field.ValueOf(stmt.Context, updatingValue); !isZero {
-							stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+							// stmt.AddClause(clause.Where{Exprs: []clause.Expression{clause.Eq{Column: field.DBName, Value: value}}})
+							priExpr = append(priExpr, clause.Eq{Column: field.DBName, Value: value})
+
 						}
 					}
 				}
+			}
+			if len(priExpr) > 0 {
+				where := clause.Where{Exprs: priExpr}
+				wname := where.Name()
+				existWc := stmt.Clauses[wname]
+				existWc.Name = wname
+				if existingWhere, ok := existWc.Expression.(clause.Where); ok {
+					where.Exprs = append(priExpr, existingWhere.Exprs...)
+					existWc.Expression = where
+					stmt.Clauses[wname] = existWc
+				}
+				existWc.Expression = where
+				stmt.Clauses[wname] = existWc
 			}
 		default:
 			stmt.AddError(gorm.ErrInvalidData)
