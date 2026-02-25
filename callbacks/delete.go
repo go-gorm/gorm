@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -171,12 +172,17 @@ func Delete(config *Config) func(db *gorm.DB) {
 			}
 
 			if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+				defer func() {
+					if r := recover(); r != nil {
+						db.AddError(fmt.Errorf("%v", r))
+					}
+					db.AddError(rows.Close())
+				}()
 				gorm.Scan(rows, db, mode)
 
 				if db.Statement.Result != nil {
 					db.Statement.Result.RowsAffected = db.RowsAffected
 				}
-				db.AddError(rows.Close())
 			}
 		}
 	}
