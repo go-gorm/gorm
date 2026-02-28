@@ -36,9 +36,14 @@ func sourceDir(file string) string {
 //   - Exclude test files (*_test.go)
 //   - go-gorm/gen's Generated files (*.gen.go)
 func CallerFrame() runtime.Frame {
+	// Preserve the original CallerFrame stack depth after introducing callerFrame().
+	return callerFrame(4)
+}
+
+func callerFrame(skip int) runtime.Frame {
 	pcs := [13]uintptr{}
-	// the third caller usually from gorm internal
-	len := runtime.Callers(3, pcs[:])
+	// skip is caller-path sensitive and should be selected by each public helper.
+	len := runtime.Callers(skip, pcs[:])
 	frames := runtime.CallersFrames(pcs[:len])
 	for i := 0; i < len; i++ {
 		// second return value is "more", not "ok"
@@ -54,7 +59,8 @@ func CallerFrame() runtime.Frame {
 
 // FileWithLineNum return the file name and line number of the current file
 func FileWithLineNum() string {
-	frame := CallerFrame()
+	// Keep FileWithLineNum one frame outer than CallerFrame to preserve pre-v1.31.1 semantics.
+	frame := callerFrame(4)
 	if frame.PC != 0 {
 		return string(strconv.AppendInt(append([]byte(frame.File), ':'), int64(frame.Line), 10))
 	}
