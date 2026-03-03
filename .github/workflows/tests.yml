@@ -16,7 +16,7 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['mysql:9', 'mysql:8', 'mysql:5.7']
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'mariadb:latest' ]
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -128,7 +128,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['postgres:latest', 'postgres:15', 'postgres:14', 'postgres:13']
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -170,7 +170,7 @@ jobs:
   sqlserver:
     strategy:
       matrix:
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
@@ -212,17 +212,18 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'v6.5.0' ]
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
-    steps:
-      - name: Setup TiDB
-        uses: Icemap/tidb-action@main
-        with:
-          port: 9940
-          version: ${{matrix.dbversion}}
+    services:
+      tidb:
+        image: pingcap/tidb:${{ matrix.dbversion }}
+        ports:
+          - 9940:4000
+          - 10080:10080
 
+    steps:
       - name: Set up Go 1.x
         uses: actions/setup-go@v4
         with:
@@ -230,6 +231,16 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
+
+      - name: Wait for TiDB
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:10080/status >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:10080/status
 
 
       - name: go mod package cache
@@ -245,7 +256,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['opengauss/opengauss:7.0.0-RC1.B023']
-        go: ['1.24', '1.25']
+        go: ['1.25', 'stable']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
