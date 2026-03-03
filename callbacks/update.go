@@ -91,6 +91,9 @@ func Update(config *Config) func(db *gorm.DB) {
 					db.Statement.Dest = db.Statement.ReflectValue.Addr().Interface()
 					gorm.Scan(rows, db, mode)
 					db.Statement.Dest = dest
+					if !rows.Next() {
+						db.AddError(rows.Err())
+					}
 					db.AddError(rows.Close())
 
 					if db.Statement.Result != nil {

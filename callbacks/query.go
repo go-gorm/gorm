@@ -22,6 +22,9 @@ func Query(db *gorm.DB) {
 				return
 			}
 			defer func() {
+				if !rows.Next() {
+					db.AddError(rows.Err())
+				}
 				db.AddError(rows.Close())
 			}()
 			gorm.Scan(rows, db, 0)

@@ -176,6 +176,9 @@ func Delete(config *Config) func(db *gorm.DB) {
 				if db.Statement.Result != nil {
 					db.Statement.Result.RowsAffected = db.RowsAffected
 				}
+				if !rows.Next() {
+					db.AddError(rows.Err())
+				}
 				db.AddError(rows.Close())
 			}
 		}

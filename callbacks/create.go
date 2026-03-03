@@ -93,6 +93,9 @@ func Create(config *Config) func(db *gorm.DB) {
 			)
 			if db.AddError(err) == nil {
 				defer func() {
+					if !rows.Next() {
+						db.AddError(rows.Err())
+					}
 					db.AddError(rows.Close())
 				}()
 				gorm.Scan(rows, db, mode)
