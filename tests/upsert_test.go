@@ -292,7 +292,7 @@ func TestFindOrInitialize(t *testing.T) {
 }
 
 func TestFindOrCreate(t *testing.T) {
-	var user1, user2, user3, user4, user5, user6, user7, user8 User
+	var user1, user2, user3, user4, user5, user6, user7, user8, user9 User
 	if err := DB.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1).Error; err != nil {
 		t.Errorf("no error should happen when FirstOrInit, but got %v", err)
 	}
@@ -327,8 +327,8 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("UpdateAt should be changed when update values with assign")
 	}
 
-	DB.Where(&User{Name: "find or create 4"}).Assign(User{Age: 44}).FirstOrCreate(&user4)
-	if user4.Name != "find or create 4" || user4.ID == 0 || user4.Age != 44 {
+	DB.Where(&User{Name: "find or create 4"}).Assign(User{Age: 44}).FirstOrCreate(&user9)
+	if user9.Name != "find or create 4" || user9.ID == 0 || user9.Age != 44 {
 		t.Errorf("user should be created with search value and assigned attrs")
 	}
 
