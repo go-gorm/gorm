@@ -347,7 +347,7 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 				}
 
 				if joins.Len() > 0 {
-					db.Error = db.AddError(db.Session(&gorm.Session{}).Clauses(clause.OnConflict{DoNothing: true}).Session(&gorm.Session{
+					db.AddError(db.Session(&gorm.Session{NewDB: true}).Clauses(clause.OnConflict{DoNothing: true}).Session(&gorm.Session{
 						SkipHooks:                db.Statement.SkipHooks,
 						DisableNestedTransaction: true,
 					}).Create(joins.Interface()).Error)
