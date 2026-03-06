@@ -409,6 +409,9 @@ func (db *DB) AddError(err error) error {
 		} else {
 			db.Error = fmt.Errorf("%v; %w", db.Error, err)
 		}
+		if db.Statement != nil && db.Statement.Result != nil {
+			db.Statement.Result.Error = db.Error
+		}
 	}
 	return db.Error
 }

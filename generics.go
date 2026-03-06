@@ -17,9 +17,13 @@ import (
 type result struct {
 	Result       sql.Result
 	RowsAffected int64
+	Error        error
 }
 
 func (info *result) ModifyStatement(stmt *Statement) {
+	info.Result = nil
+	info.RowsAffected = 0
+	info.Error = nil
 	stmt.Result = info
 }
 
