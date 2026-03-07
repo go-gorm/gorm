@@ -51,10 +51,13 @@ Implement these interfaces on a custom type to control GORM behaviour per field:
 The `Namer` interface (defined in `naming.go`) controls how struct and field names are translated to table and column names. The default strategy converts `CamelCase` to `snake_case` and pluralises table names.
 
 ```go
-db, _ := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
+db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
     NamingStrategy: schema.NamingStrategy{
         TablePrefix:   "app_",
         SingularTable: true,
     },
 })
+if err != nil {
+    panic(err)
+}
 ```
