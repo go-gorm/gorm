@@ -139,6 +139,10 @@ func TestManyToManyWithCustomizedForeignKeys(t *testing.T) {
 		t.Skip("skip sqlite, sqlserver due to it doesn't support multiple primary keys with auto increment")
 	}
 
+	if mysqlVersionAtLeast(8, 4) {
+		t.Skip("skip mysql 8.4+ due to stricter foreign key requirements for non-unique referenced keys")
+	}
+
 	if name := DB.Dialector.Name(); name == "postgres" {
 		t.Skip("skip postgres due to it only allow unique constraint matching given keys")
 	}
