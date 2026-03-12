@@ -35,6 +35,26 @@ func TestWhereCloneCorruption(t *testing.T) {
 	}
 }
 
+func TestStatementCloneDoesNotShareZeroModelPointer(t *testing.T) {
+	type TestUser struct {
+		Model
+		Age uint
+	}
+
+	base := new(Statement)
+	base.Model = &TestUser{}
+
+	cloned := base.clone()
+	if reflect.ValueOf(cloned.Model).Pointer() == reflect.ValueOf(base.Model).Pointer() {
+		t.Fatalf("expected cloned.Model to be isolated from base.Model")
+	}
+
+	reflect.ValueOf(cloned.Model).Elem().FieldByName("ID").SetUint(111)
+	if id := reflect.ValueOf(base.Model).Elem().FieldByName("ID").Uint(); id != 0 {
+		t.Fatalf("expected base.Model ID to remain 0, got %d", id)
+	}
+}
+
 func TestNilCondition(t *testing.T) {
 	s := new(Statement)
 	if len(s.BuildCondition(nil)) != 0 {

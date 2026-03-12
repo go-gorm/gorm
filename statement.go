@@ -527,10 +527,20 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 }
 
 func (stmt *Statement) clone() *Statement {
+	var clonedModel interface{} = stmt.Model
+	if rv := reflect.ValueOf(stmt.Model); rv.IsValid() && rv.Kind() == reflect.Ptr && !rv.IsNil() && rv.Elem().Kind() == reflect.Struct {
+		zero := reflect.New(rv.Elem().Type()).Elem()
+		if reflect.DeepEqual(rv.Elem().Interface(), zero.Interface()) {
+			cp := reflect.New(rv.Elem().Type())
+			cp.Elem().Set(rv.Elem())
+			clonedModel = cp.Interface()
+		}
+	}
+
 	newStmt := &Statement{
 		TableExpr:            stmt.TableExpr,
 		Table:                stmt.Table,
-		Model:                stmt.Model,
+		Model:                clonedModel,
 		Unscoped:             stmt.Unscoped,
 		Dest:                 stmt.Dest,
 		ReflectValue:         stmt.ReflectValue,
