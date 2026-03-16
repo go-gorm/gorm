@@ -1117,3 +1117,38 @@ func TestGenericsAssociationSlice(t *testing.T) {
 		}
 	}
 }
+
+func TestIssue7709(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "Issue7709", Age: 18}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user, got error: %v", err)
+	}
+
+	// Test case 1: Update with map (the original issue)
+	updates := map[string]interface{}{"name": "hello", "age": 18}
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Updates(ctx, updates); err != nil {
+		t.Errorf("Updates failed with map: %v", err)
+	}
+
+	var result User
+	if err := DB.First(&result, user.ID).Error; err != nil {
+		t.Fatalf("failed to find user: %v", err)
+	}
+	if result.Name != "hello" {
+		t.Errorf("expected name to be hello, but got %s", result.Name)
+	}
+
+	// Test case 2: Update with struct (ensure backward compatibility)
+	user.Name = "world"
+	if _, err := gorm.G[User](DB).Where("id = ?", user.ID).Updates(ctx, user); err != nil {
+		t.Errorf("Updates failed with struct: %v", err)
+	}
+
+	if err := DB.First(&result, user.ID).Error; err != nil {
+		t.Fatalf("failed to find user: %v", err)
+	}
+	if result.Name != "world" {
+		t.Errorf("expected name to be world, but got %s", result.Name)
+	}
+}

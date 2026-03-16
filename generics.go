@@ -59,7 +59,7 @@ type CreateInterface[T any] interface {
 
 	Delete(ctx context.Context) (rowsAffected int, err error)
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
-	Updates(ctx context.Context, t T) (rowsAffected int, err error)
+	Updates(ctx context.Context, t any) (rowsAffected int, err error)
 	Count(ctx context.Context, column string) (result int64, err error)
 
 	Table(name string, args ...interface{}) CreateInterface[T]
@@ -92,7 +92,7 @@ type ChainInterface[T any] interface {
 	Table(name string, args ...interface{}) ChainInterface[T]
 	Delete(ctx context.Context) (rowsAffected int, err error)
 	Update(ctx context.Context, name string, value any) (rowsAffected int, err error)
-	Updates(ctx context.Context, t T) (rowsAffected int, err error)
+	Updates(ctx context.Context, t any) (rowsAffected int, err error)
 	Count(ctx context.Context, column string) (result int64, err error)
 }
 
@@ -569,8 +569,9 @@ func (c chainG[T]) Update(ctx context.Context, name string, value any) (rowsAffe
 	return int(res.RowsAffected), res.Error
 }
 
-func (c chainG[T]) Updates(ctx context.Context, t T) (rowsAffected int, err error) {
-	res := c.g.apply(ctx).Updates(t)
+func (c chainG[T]) Updates(ctx context.Context, t any) (rowsAffected int, err error) {
+	var r *T
+	res := c.g.apply(ctx).Model(r).Updates(t)
 	return int(res.RowsAffected), res.Error
 }
 
