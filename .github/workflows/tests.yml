@@ -16,13 +16,13 @@ jobs:
   sqlite:
     strategy:
       matrix:
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ubuntu-latest] # can not run in windows OS
     runs-on: ${{ matrix.platform }}
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
 
@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['mysql:9', 'mysql:8', 'mysql:5.7']
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
 
@@ -65,7 +65,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
 
@@ -85,7 +85,7 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'mariadb:latest' ]
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -108,7 +108,7 @@ jobs:
 
     steps:
       - name: Set up Go 1.x
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
@@ -128,7 +128,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['postgres:latest', 'postgres:15', 'postgres:14', 'postgres:13']
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -151,7 +151,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
 
@@ -170,7 +170,7 @@ jobs:
   sqlserver:
     strategy:
       matrix:
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ubuntu-latest] # can not run test in macOS and windows
     runs-on: ${{ matrix.platform }}
 
@@ -192,7 +192,7 @@ jobs:
 
     steps:
     - name: Set up Go 1.x
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
 
@@ -212,7 +212,7 @@ jobs:
     strategy:
       matrix:
         dbversion: [ 'v6.5.0' ]
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
 
@@ -224,7 +224,7 @@ jobs:
           version: ${{matrix.dbversion}}
 
       - name: Set up Go 1.x
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
@@ -245,7 +245,7 @@ jobs:
     strategy:
       matrix:
         dbversion: ['opengauss/opengauss:7.0.0-RC1.B023']
-        go: ['1.25', 'stable']
+        go: ['stable', 'oldstable']
         platform: [ubuntu-latest] # can not run in macOS and Windows
     runs-on: ${{ matrix.platform }}
 
@@ -261,7 +261,7 @@ jobs:
 
     steps:
       - name: Set up Go 1.x
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
 
