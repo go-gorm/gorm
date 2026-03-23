@@ -281,6 +281,39 @@ func isMysql() bool {
 	return os.Getenv("GORM_DIALECT") == "mysql"
 }
 
+func mysqlVersionAtLeast(major, minor int) bool {
+	if !isMysql() {
+		return false
+	}
+
+	var version string
+	if err := DB.Raw("SELECT VERSION()").Row().Scan(&version); err != nil {
+		return false
+	}
+
+	base := strings.SplitN(strings.TrimSpace(version), "-", 2)[0]
+	parts := strings.Split(base, ".")
+	if len(parts) < 2 {
+		return false
+	}
+
+	currentMajor, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false
+	}
+
+	currentMinor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false
+	}
+
+	if currentMajor != major {
+		return currentMajor > major
+	}
+
+	return currentMinor >= minor
+}
+
 func isSqlite() bool {
 	return os.Getenv("GORM_DIALECT") == "sqlite"
 }

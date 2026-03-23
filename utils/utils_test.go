@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"math"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -197,5 +200,25 @@ func TestRTrimSlice(t *testing.T) {
 				t.Errorf("RTrimSlice(%v, %d) = %v; want %v", testcase.input, testcase.trimLen, result, testcase.expected)
 			}
 		})
+	}
+}
+
+//go:noinline
+func fileWithLineNumWrappedInnerForTest() string {
+	return FileWithLineNum()
+}
+
+//go:noinline
+func fileWithLineNumWrappedOuterForTest() (got, want string) {
+	_, file, line, _ := runtime.Caller(0)
+	got = filepath.ToSlash(fileWithLineNumWrappedInnerForTest())
+	want = fmt.Sprintf("%s:%d", filepath.ToSlash(file), line+1)
+	return got, want
+}
+
+func TestFileWithLineNumWrappedCallRegression(t *testing.T) {
+	got, want := fileWithLineNumWrappedOuterForTest()
+	if got != want {
+		t.Fatalf("FileWithLineNum wrapped caller mismatch, got %s, want %s", got, want)
 	}
 }

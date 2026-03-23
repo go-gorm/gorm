@@ -1,3 +1,4 @@
+// Package tests_test contains tests for GORM's utility functions and error handling.
 package tests_test
 
 import (

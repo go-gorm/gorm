@@ -1,3 +1,4 @@
+// Package lru provides a thread-safe Least Recently Used (LRU) cache with expirable entries.
 package lru
 
 // golang -lru

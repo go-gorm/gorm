@@ -310,7 +310,7 @@ func sortCallbacks(cs []*callback) (fns []func(*DB), err error) {
 					// if after callback sorted, append current callback to last
 					sorted = append(sorted, c.name)
 				} else if curIdx < sortedIdx {
-					return fmt.Errorf("conflicting callback %s with before %s", c.name, c.after)
+					return fmt.Errorf("conflicting callback %s with after %s", c.name, c.after)
 				}
 			} else if idx := getRIndex(names, c.after); idx != -1 {
 				// if after callback exists but haven't sorted
