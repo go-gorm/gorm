@@ -809,11 +809,11 @@ func TestUpdateReturningWithQueryFields(t *testing.T) {
 		Update("age", 88).Statement
 
 	sql := stmt.SQL.String()
-	if regexp.MustCompile(`(?i)RETURNING \*`).MatchString(sql) {
+	if regexp.MustCompile(`(?i)(RETURNING|OUTPUT)\s+(\*|INSERTED\.\*)`).MatchString(sql) {
 		t.Fatalf("SQL should not include wildcard returning when QueryFields is enabled, got %v", sql)
 	}
 
-	returningColumns := `(?i)RETURNING .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active`
+	returningColumns := `(?i)(RETURNING|OUTPUT) .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active`
 	if !regexp.MustCompile(returningColumns).MatchString(sql) {
 		t.Fatalf("SQL should include explicit returning columns when QueryFields is enabled, got %v", sql)
 	}

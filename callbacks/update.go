@@ -138,7 +138,7 @@ func applyQueryFieldsToReturningClause(db *gorm.DB) {
 
 	columns := make([]clause.Column, len(db.Statement.Schema.DBNames))
 	for idx, dbName := range db.Statement.Schema.DBNames {
-		columns[idx] = clause.Column{Name: dbName}
+		columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
 	}
 
 	db.Statement.Clauses["RETURNING"] = clause.Clause{

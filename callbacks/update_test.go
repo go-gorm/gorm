@@ -26,8 +26,8 @@ func TestUpdateReturningUsesExplicitColumnsWhenQueryFieldsEnabled(t *testing.T) 
 		t.Fatalf("SQL should not include wildcard returning when QueryFields is enabled, got %v", sql)
 	}
 
-	returningColumns := `(?i)RETURNING .*id.*created_at.*updated_at.*deleted_at.*name.*age.*birthday.*company_id.*manager_id.*active`
+	returningColumns := "(?i)RETURNING .*`users`\\.`id`.*`users`\\.`created_at`.*`users`\\.`updated_at`.*`users`\\.`deleted_at`.*`users`\\.`name`.*`users`\\.`age`.*`users`\\.`birthday`.*`users`\\.`company_id`.*`users`\\.`manager_id`.*`users`\\.`active`"
 	if !regexp.MustCompile(returningColumns).MatchString(sql) {
-		t.Fatalf("SQL should include explicit returning columns when QueryFields is enabled, got %v", sql)
+		t.Fatalf("SQL should include explicit qualified returning columns when QueryFields is enabled, got %v", sql)
 	}
 }
