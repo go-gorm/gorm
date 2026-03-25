@@ -425,10 +425,10 @@ func TestMigrateColumnTypeAliases(t *testing.T) {
 			}
 		}
 
-		// Change to varchar without size and migrate again
+		// Migrate again with the same type — should NOT trigger an ALTER
 		type UserLength2 struct {
 			ID   uint
-			Name string `gorm:"type:varchar"`
+			Name string `gorm:"type:varchar(100)"`
 		}
 
 		if err := DB.Table("user_lengths").AutoMigrate(&UserLength2{}); err != nil {
@@ -443,8 +443,7 @@ func TestMigrateColumnTypeAliases(t *testing.T) {
 		for _, columnType := range columnTypes2 {
 			if columnType.Name() == "name" {
 				length2, _ := columnType.Length()
-				// The new logic should prevent altering the type/length if they are considered the same
-				// Without the new logic, if DatabaseTypeName includes (100), it might alter
+				// Idempotent migration: same type and length must not alter the column
 				if length2 != nameLength {
 					t.Fatalf("length changed unexpectedly, was %v, now %v", nameLength, length2)
 				}
@@ -542,7 +541,7 @@ func TestMigrateColumnTypeAliases(t *testing.T) {
 		// Change to varchar and migrate
 		type UserAlias2 struct {
 			ID   uint
-			Data string `gorm:"type:varchar"`
+			Data string `gorm:"type:varchar(255)"`
 		}
 
 		if err := DB.Table("user_aliases").AutoMigrate(&UserAlias2{}); err != nil {

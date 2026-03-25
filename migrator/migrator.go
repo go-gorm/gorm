@@ -470,56 +470,64 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// found, smart migrate
-	fullDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from struct
-	realDataType := strings.ToLower(columnType.DatabaseTypeName())                                // from db
+	dbDataType := strings.ToLower(columnType.DatabaseTypeName())                                    // from db
+	structDataType := strings.TrimSpace(strings.ToLower(m.DB.Migrator().FullDataTypeOf(field).SQL)) // from struct, includes NOT NULL / DEFAULT qualifiers
+
 	var (
-		alterColumn bool
-		isSameType  = fullDataType == realDataType
+		alterColumn    bool
+		isSameType     = structDataType == dbDataType
+		isSameBaseType = isSameType // base types match (ignoring length/precision)
 	)
 
-	if !field.PrimaryKey {
+	if !field.PrimaryKey && !isSameType {
 		// check type
 
-		if !strings.HasPrefix(fullDataType, realDataType) {
+		// strip length/precision specifiers for base-type comparison
+		baseDbType := dbDataType
+		if p := strings.IndexAny(dbDataType, "(["); p >= 0 {
+			baseDbType = dbDataType[:p]
+		}
+		// derive baseStructType from DataTypeOf (no qualifiers) rather than FullDataTypeOf,
+		// so we don't need to know which qualifiers any given dialect may have added
+		baseStructType := strings.TrimSpace(strings.ToLower(m.DataTypeOf(field)))
+		if p := strings.IndexAny(baseStructType, "(["); p >= 0 {
+			baseStructType = baseStructType[:p]
+		}
+
+		isSameBaseType = baseDbType == baseStructType
+
+		if !isSameBaseType {
 			// check type aliases
-			// we must compare without any brackets or length specifiers
 			// also we compare in both directions in case the mapping misses one of both ways for a type
-
-			rdt := realDataType
-			if p := strings.IndexAny(realDataType, "(["); p >= 0 {
-				rdt = realDataType[:p]
-			}
-			fdt := fullDataType
-			if p := strings.IndexAny(fullDataType, "(["); p >= 0 {
-				fdt = fullDataType[:p]
-			}
-
-			types := []string{rdt, fdt}
-			for i := 0; !isSameType && i < len(types); i++ {
-				aliases := m.DB.Migrator().GetTypeAliases(types[i])
-				for _, alias := range aliases {
-					if strings.HasPrefix(types[1-i], alias) {
-						isSameType = true
-						break
+			aliasMatch := false
+			baseTypes := []string{baseDbType, baseStructType}
+			for i := 0; !aliasMatch && i < len(baseTypes); i++ {
+				if aliases := m.DB.Migrator().GetTypeAliases(baseTypes[i]); len(aliases) > 0 {
+					for _, alias := range aliases {
+						if baseTypes[1-i] == alias {
+							aliasMatch = true
+							break
+						}
 					}
 				}
 			}
 
-			if !isSameType {
+			if !aliasMatch {
 				alterColumn = true
 			}
+			isSameBaseType = aliasMatch
 		}
 	}
 
-	if !isSameType {
-		// check size
+	if !isSameType && isSameBaseType {
+		// check size only when base types match (same type, potentially different length)
 		if length, ok := columnType.Length(); length != int64(field.Size) {
 			if length > 0 && field.Size > 0 {
 				alterColumn = true
 			} else {
 				// has size in data type and not equal
 				// Since the following code is frequently called in the for loop, reg optimization is needed here
-				matches2 := regFullDataType.FindAllStringSubmatch(fullDataType, -1)
+				matches2 := regFullDataType.FindAllStringSubmatch(structDataType, -1)
 				if !field.PrimaryKey &&
 					(len(matches2) == 1 && matches2[0][1] != fmt.Sprint(length) && ok) {
 					alterColumn = true
@@ -529,12 +537,12 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check precision
-	if realDataType == "decimal" || realDataType == "numeric" &&
-		regexp.MustCompile(realDataType+`\(.*\)`).FindString(fullDataType) != "" { // if realDataType has no precision,ignore
+	if dbDataType == "decimal" || dbDataType == "numeric" &&
+		regexp.MustCompile(dbDataType+`\(.*\)`).FindString(structDataType) != "" { // if realDataType has no precision,ignore
 		precision, scale, ok := columnType.DecimalSize()
 		if ok {
-			if !strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d,%d)", realDataType, precision, scale)) &&
-				!strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d)", realDataType, precision)) {
+			if !strings.HasPrefix(structDataType, fmt.Sprintf("%s(%d,%d)", dbDataType, precision, scale)) &&
+				!strings.HasPrefix(structDataType, fmt.Sprintf("%s(%d)", dbDataType, precision)) {
 				alterColumn = true
 			}
 		}
