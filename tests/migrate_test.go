@@ -451,10 +451,8 @@ func TestMigrateColumnTypeAliases(t *testing.T) {
 		}
 	})
 
-	t.Run("array_types_postgres", func(t *testing.T) {
-		if DB.Dialector.Name() != "postgres" {
-			t.Skip("Array types test is for postgres")
-		}
+	t.Run("array_or_string_types", func(t *testing.T) {
+		isPostgres := DB.Dialector.Name() == "postgres"
 
 		// Set up test logger to capture SQL statements
 		var sqlLogs []string
@@ -466,63 +464,106 @@ func TestMigrateColumnTypeAliases(t *testing.T) {
 			DB.Logger = oldLogger
 		}()
 
-		type UserArray struct {
+		if isPostgres {
+			type postgresUserArray struct {
+				ID    uint
+				Names []string `gorm:"type:varchar[]"`
+			}
+
+			DB.Migrator().DropTable(&postgresUserArray{})
+
+			if err := DB.AutoMigrate(&postgresUserArray{}); err != nil {
+				t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+			}
+
+			// Clear logs before migration
+			sqlLogs = nil
+
+			// Now migrate with struct that has varchar[] - should NOT generate ALTER statements
+			if err := DB.AutoMigrate(&postgresUserArray{}); err != nil {
+				t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+			}
+
+			// Check that no ALTER statements were executed
+			for _, log := range sqlLogs {
+				if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
+					t.Fatalf("Unexpected ALTER TABLE statement found in logs: %v - this indicates the alias fix is not working", log)
+				}
+			}
+
+			columnTypes, err := DB.Migrator().ColumnTypes(&postgresUserArray{})
+			if err != nil {
+				t.Fatalf("failed to get column types, got error: %v", err)
+			}
+
+			var namesType string
+			for _, columnType := range columnTypes {
+				if columnType.Name() == "names" {
+					namesType = columnType.DatabaseTypeName()
+					// Should be character varying[] (postgres native) or varchar[]
+					if !strings.Contains(namesType, "character varying") && !strings.Contains(namesType, "varchar") {
+						t.Fatalf("expected array type containing 'character varying' or 'varchar', got %v", namesType)
+					}
+				}
+			}
+
+			// Clear logs again
+			sqlLogs = nil
+
+			// Migrate again with same struct - should not generate any ALTER statements
+			if err := DB.AutoMigrate(&postgresUserArray{}); err != nil {
+				t.Fatalf("failed to auto migrate again, got error: %v", err)
+			}
+
+			// Check again that no ALTER statements were executed
+			for _, log := range sqlLogs {
+				if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
+					t.Fatalf("Unexpected ALTER TABLE statement found in logs after second migration: %v", log)
+				}
+			}
+
+			DB.Migrator().DropTable(&postgresUserArray{})
+			return
+		}
+
+		type genericUserType struct {
 			ID    uint
-			Names []string `gorm:"type:varchar[]"`
+			Names string `gorm:"type:varchar(255)"`
 		}
 
-		if err := DB.AutoMigrate(&UserArray{}); err != nil {
-			t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+		DB.Migrator().DropTable(&genericUserType{})
+
+		if err := DB.AutoMigrate(&genericUserType{}); err != nil {
+			t.Fatalf("failed to auto migrate generic type, got error: %v", err)
 		}
 
-		// Clear logs before migration
 		sqlLogs = nil
 
-		// Now migrate with struct that has varchar[] - should NOT generate ALTER statements
-		if err := DB.AutoMigrate(&UserArray{}); err != nil {
-			t.Fatalf("failed to auto migrate with varchar[], got error: %v", err)
+		if err := DB.AutoMigrate(&genericUserType{}); err != nil {
+			t.Fatalf("failed to auto migrate generic type again, got error: %v", err)
 		}
 
-		// Check that no ALTER statements were executed
 		for _, log := range sqlLogs {
 			if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
-				t.Fatalf("Unexpected ALTER TABLE statement found in logs: %v - this indicates the alias fix is not working", log)
+				t.Fatalf("Unexpected ALTER TABLE statement found in logs: %v", log)
 			}
 		}
 
-		columnTypes, err := DB.Migrator().ColumnTypes(&UserArray{})
+		columnTypes, err := DB.Migrator().ColumnTypes(&genericUserType{})
 		if err != nil {
 			t.Fatalf("failed to get column types, got error: %v", err)
 		}
 
-		var namesType string
 		for _, columnType := range columnTypes {
 			if columnType.Name() == "names" {
-				namesType = columnType.DatabaseTypeName()
-				// Should be character varying[] (postgres native) or varchar[]
-				if !strings.Contains(namesType, "character varying") && !strings.Contains(namesType, "varchar") {
-					t.Fatalf("expected array type containing 'character varying' or 'varchar', got %v", namesType)
+				namesType := strings.ToLower(columnType.DatabaseTypeName())
+				if !strings.Contains(namesType, "char") && !strings.Contains(namesType, "text") {
+					t.Fatalf("expected string-like type for names, got %v", namesType)
 				}
 			}
 		}
 
-		// Clear logs again
-		sqlLogs = nil
-
-		// Migrate again with same struct - should not generate any ALTER statements
-		if err := DB.AutoMigrate(&UserArray{}); err != nil {
-			t.Fatalf("failed to auto migrate again, got error: %v", err)
-		}
-
-		// Check again that no ALTER statements were executed
-		for _, log := range sqlLogs {
-			if strings.Contains(strings.ToUpper(log), "ALTER TABLE") {
-				t.Fatalf("Unexpected ALTER TABLE statement found in logs after second migration: %v", log)
-			}
-		}
-
-		// Clean up
-		DB.Migrator().DropTable(&UserArray{})
+		DB.Migrator().DropTable(&genericUserType{})
 	})
 
 	t.Run("bidirectional_aliases", func(t *testing.T) {
