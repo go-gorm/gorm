@@ -808,3 +808,15 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Errorf("failed to create data from map with table, @id != id")
 	}
 }
+
+func TestCreateWithInterfaceArrayType(t *testing.T) {
+	user := *GetUser("create", Config{})
+	type UserInterface interface{}
+	var userInterface UserInterface = &user
+
+	if results := DB.Create([]UserInterface{userInterface}); results.Error != nil {
+		t.Fatalf("errors happened when create: %v", results.Error)
+	} else if results.RowsAffected != 1 {
+		t.Fatalf("rows affected expects: %v, got %v", 1, results.RowsAffected)
+	}
+}
