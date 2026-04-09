@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"sort"
 	"strings"
@@ -184,6 +185,24 @@ func TestScanRows(t *testing.T) {
 	}
 }
 
+type CustomFieldType struct {
+	Content string
+}
+
+func (f *CustomFieldType) Value() (driver.Value, error) {
+	return f.Content, nil
+}
+
+func (f *CustomFieldType) Scan(value interface{}) error {
+	switch v := value.(type) {
+	case []byte:
+		f.Content = string(v)
+	case string:
+		f.Content = v
+	}
+	return nil
+}
+
 func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 	DB.Save(&User{})
 
@@ -210,7 +229,9 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 			NULL AS embedded_int_field,
 			NULL AS nested_embedded_int_field,
 			NULL AS nested_embedded_int_field_with_default,			
-			NULL AS embedded_ptr_int_field
+			NULL AS embedded_ptr_int_field,
+			NULL AS custom_field,
+			NULL AS custom_ptr_field
         `).Rows()
 	if err != nil {
 		t.Errorf("No error should happen, got %v", err)
@@ -251,9 +272,14 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 		TimePtrField       *time.Time
 		EmbeddedStruct     `gorm:"embedded"`
 		*EmbeddedPtrStruct `gorm:"embedded"`
+		CustomField        CustomFieldType
+		CustomPtrField     *CustomFieldType
 	}
 
 	currTime := time.Now()
+	ct := CustomFieldType{
+		Content: "Hello World",
+	}
 	result := Result{
 		BoolField:         true,
 		BoolPtrField:      new(bool),
@@ -275,6 +301,8 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 		TimePtrField:      &currTime,
 		EmbeddedStruct:    EmbeddedStruct{EmbeddedIntField: 1, NestedEmbeddedStruct: NestedEmbeddedStruct{NestedEmbeddedIntField: 1, NestedEmbeddedIntFieldWithDefault: 2}},
 		EmbeddedPtrStruct: &EmbeddedPtrStruct{EmbeddedPtrIntField: 1},
+		CustomField:       ct,
+		CustomPtrField:    &ct,
 	}
 
 	for rows.Next() {

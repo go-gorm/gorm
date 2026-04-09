@@ -961,7 +961,7 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
-						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
+						field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
