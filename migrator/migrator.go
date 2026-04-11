@@ -811,7 +811,7 @@ func (m Migrator) BuildIndexOptions(opts []schema.IndexOption, stmt *gorm.Statem
 		if opt.Expression != "" {
 			str = opt.Expression
 		} else if opt.Length > 0 {
-			str += fmt.Sprintf("(%d)", opt.Length)
+			str += fmt.Sprintf("(LEFT(%s,%d))", str, opt.Length)
 		}
 
 		if opt.Collate != "" {
