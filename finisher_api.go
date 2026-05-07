@@ -16,16 +16,6 @@ import (
 )
 
 // Create inserts value, returning the inserted data's primary key in value's id
-func (db *DB) Create(value interface{}) (tx *DB) {
-	if db.CreateBatchSize > 0 {
-		return db.CreateInBatches(value, db.CreateBatchSize)
-	}
-
-	tx = db.getInstance()
-	tx.Statement.Dest = value
-	return tx.callbacks.Create().Execute(tx)
-}
-
 // CreateInBatches inserts value in batches of batchSize
 func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 	reflectValue := reflect.Indirect(reflect.ValueOf(value))
@@ -33,6 +23,7 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 	switch reflectValue.Kind() {
 	case reflect.Slice, reflect.Array:
 		var rowsAffected int64
+
 		tx = db.getInstance()
 
 		// the reflection length judgment of the optimized value
@@ -46,11 +37,31 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 				}
 
 				subtx := tx.getInstance()
-				subtx.Statement.Dest = reflectValue.Slice(i, ends).Interface()
+
+				// reflectValue.Slice(i, ends).Interface() returns an unaddressable sub-slice.
+				// When clause.Returning{} tries to call SetLen on it via reflection,
+				// Go runtime panics with "reflect.Value.SetLen using unaddressable value".
+				//
+				// Fix: allocate a new addressable slice of the same type (*[]T),
+				// copy the batch elements into it, and pass the pointer as Dest.
+				// This allows clause.Returning{} to safely write back scanned rows.
+				batchSlice := reflect.New(reflectValue.Type())
+				batchSlice.Elem().Set(reflectValue.Slice(i, ends))
+				subtx.Statement.Dest = batchSlice.Interface()
+
 				subtx.callbacks.Create().Execute(subtx)
 				if subtx.Error != nil {
 					return subtx.Error
 				}
+
+				// After execution, sync the RETURNING results written into batchSlice
+				// back into the original slice so the caller sees the updated values
+				// (e.g. server-generated fields like updated_at, created_at).
+				resultSlice := reflect.Indirect(batchSlice)
+				for j := 0; j < resultSlice.Len(); j++ {
+					reflectValue.Index(i + j).Set(resultSlice.Index(j))
+				}
+
 				rowsAffected += subtx.RowsAffected
 			}
 			return nil
@@ -63,11 +74,13 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 		}
 
 		tx.RowsAffected = rowsAffected
+
 	default:
 		tx = db.getInstance()
 		tx.Statement.Dest = value
 		tx = tx.callbacks.Create().Execute(tx)
 	}
+
 	return
 }
 
