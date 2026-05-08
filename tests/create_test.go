@@ -810,15 +810,6 @@ func TestCreateFromMapWithTable(t *testing.T) {
 }
 
 func TestCreateInBatchesWithReturning(t *testing.T) {
-	// Regression test for:
-	// panic: reflect: reflect.Value.SetLen using unaddressable value
-	//
-	// When CreateBatchSize > 0, CreateInBatches sets Statement.Dest to
-	// reflectValue.Slice(i, ends).Interface() — an unaddressable sub-slice.
-	// clause.Returning{} then panics when calling SetLen via reflection.
-	//
-	// Fix: allocate a new addressable *[]T per batch and sync results back
-	// into the original slice after execution.
 	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
 		t.Skip("RETURNING is only supported on SQLite >= 3.35.0 and PostgreSQL")
 	}
