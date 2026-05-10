@@ -542,35 +542,33 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	if !field.PrimaryKey {
-		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
-		dv, dvNotNull := columnType.DefaultValue()
-		if dvNotNull && !currentDefaultNotNull {
-			// default value -> null
-			alterColumn = true
-		} else if !dvNotNull && currentDefaultNotNull {
-			// null -> default value
-			alterColumn = true
-		} else if currentDefaultNotNull || dvNotNull {
-			switch field.GORMDataType {
-			case schema.Time:
-				if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
-					alterColumn = true
-				}
-			case schema.Bool:
-				v1, _ := strconv.ParseBool(dv)
-				v2, _ := strconv.ParseBool(field.DefaultValue)
-				if v1 != v2 {
-					alterColumn = true
-				}
-			case schema.String:
-				if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
-					alterColumn = true
-				}
-			default:
-				if dv != field.DefaultValue {
-					alterColumn = true
-				}
+	currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
+	dv, dvNotNull := columnType.DefaultValue()
+	if dvNotNull && !currentDefaultNotNull {
+		// default value -> null
+		alterColumn = true
+	} else if !dvNotNull && currentDefaultNotNull {
+		// null -> default value
+		alterColumn = true
+	} else if currentDefaultNotNull || dvNotNull {
+		switch field.GORMDataType {
+		case schema.Time:
+			if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
+				alterColumn = true
+			}
+		case schema.Bool:
+			v1, _ := strconv.ParseBool(dv)
+			v2, _ := strconv.ParseBool(field.DefaultValue)
+			if v1 != v2 {
+				alterColumn = true
+			}
+		case schema.String:
+			if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
+				alterColumn = true
+			}
+		default:
+			if dv != field.DefaultValue {
+				alterColumn = true
 			}
 		}
 	}
