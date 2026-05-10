@@ -544,13 +544,14 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	// check default value
 	currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
 	dv, dvNotNull := columnType.DefaultValue()
-	if dvNotNull && !currentDefaultNotNull {
+	switch {
+	case dvNotNull && !currentDefaultNotNull:
 		// default value -> null
 		alterColumn = true
-	} else if !dvNotNull && currentDefaultNotNull {
+	case !dvNotNull && currentDefaultNotNull:
 		// null -> default value
 		alterColumn = true
-	} else if currentDefaultNotNull || dvNotNull {
+	case currentDefaultNotNull || dvNotNull:
 		switch field.GORMDataType {
 		case schema.Time:
 			if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
