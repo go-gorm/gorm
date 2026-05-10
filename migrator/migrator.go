@@ -542,34 +542,42 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
-	dv, dvNotNull := columnType.DefaultValue()
-	switch {
-	case dvNotNull && !currentDefaultNotNull:
-		// default value -> null
-		alterColumn = true
-	case !dvNotNull && currentDefaultNotNull:
-		// null -> default value
-		alterColumn = true
-	case currentDefaultNotNull || dvNotNull:
-		switch field.GORMDataType {
-		case schema.Time:
-			if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
-				alterColumn = true
-			}
-		case schema.Bool:
-			v1, _ := strconv.ParseBool(dv)
-			v2, _ := strconv.ParseBool(field.DefaultValue)
-			if v1 != v2 {
-				alterColumn = true
-			}
-		case schema.String:
-			if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
-				alterColumn = true
-			}
-		default:
-			if dv != field.DefaultValue {
-				alterColumn = true
+	// For primary keys, only check default value changes when an explicit
+	// default: tag is set. Auto-increment primary keys have HasDefaultValue
+	// set by AUTOINCREMENT but should not be compared against the database
+	// default, as the DB returns engine-specific values (e.g. AUTO_INCREMENT)
+	// that differ from the empty model DefaultValue.
+	shouldCheckDefaultValue := !field.PrimaryKey || field.TagSettings["DEFAULT"] != ""
+	if shouldCheckDefaultValue {
+		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
+		dv, dvNotNull := columnType.DefaultValue()
+		switch {
+		case dvNotNull && !currentDefaultNotNull:
+			// default value -> null
+			alterColumn = true
+		case !dvNotNull && currentDefaultNotNull:
+			// null -> default value
+			alterColumn = true
+		case currentDefaultNotNull || dvNotNull:
+			switch field.GORMDataType {
+			case schema.Time:
+				if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
+					alterColumn = true
+				}
+			case schema.Bool:
+				v1, _ := strconv.ParseBool(dv)
+				v2, _ := strconv.ParseBool(field.DefaultValue)
+				if v1 != v2 {
+					alterColumn = true
+				}
+			case schema.String:
+				if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
+					alterColumn = true
+				}
+			default:
+				if dv != field.DefaultValue {
+					alterColumn = true
+				}
 			}
 		}
 	}
