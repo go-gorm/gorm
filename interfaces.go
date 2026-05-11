@@ -20,6 +20,10 @@ type Dialector interface {
 	Explain(sql string, vars ...interface{}) string
 }
 
+type ArrayValueHandler interface {
+	HandleArray(field *schema.Field) error
+}
+
 // Plugin GORM plugin interface
 type Plugin interface {
 	Name() string
