@@ -28,7 +28,10 @@ func (ct ColumnType) Name() string {
 	if ct.NameValue.Valid {
 		return ct.NameValue.String
 	}
-	return ct.SQLColumnType.Name()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.Name()
+	}
+	return ""
 }
 
 // DatabaseTypeName returns the database system name of the column type. If an empty
@@ -41,7 +44,10 @@ func (ct ColumnType) DatabaseTypeName() string {
 	if ct.DataTypeValue.Valid {
 		return ct.DataTypeValue.String
 	}
-	return ct.SQLColumnType.DatabaseTypeName()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.DatabaseTypeName()
+	}
+	return ""
 }
 
 // ColumnType returns the database type of the column. like `varchar(16)`
@@ -64,7 +70,10 @@ func (ct ColumnType) Length() (length int64, ok bool) {
 	if ct.LengthValue.Valid {
 		return ct.LengthValue.Int64, true
 	}
-	return ct.SQLColumnType.Length()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.Length()
+	}
+	return 0, false
 }
 
 // DecimalSize returns the scale and precision of a decimal type.
@@ -72,7 +81,10 @@ func (ct ColumnType) DecimalSize() (precision int64, scale int64, ok bool) {
 	if ct.DecimalSizeValue.Valid {
 		return ct.DecimalSizeValue.Int64, ct.ScaleValue.Int64, true
 	}
-	return ct.SQLColumnType.DecimalSize()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.DecimalSize()
+	}
+	return 0, 0, false
 }
 
 // Nullable reports whether the column may be null.
@@ -80,7 +92,10 @@ func (ct ColumnType) Nullable() (nullable bool, ok bool) {
 	if ct.NullableValue.Valid {
 		return ct.NullableValue.Bool, true
 	}
-	return ct.SQLColumnType.Nullable()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.Nullable()
+	}
+	return false, false
 }
 
 // Unique reports whether the column may be unique.
@@ -93,7 +108,10 @@ func (ct ColumnType) ScanType() reflect.Type {
 	if ct.ScanTypeValue != nil {
 		return ct.ScanTypeValue
 	}
-	return ct.SQLColumnType.ScanType()
+	if ct.SQLColumnType != nil {
+		return ct.SQLColumnType.ScanType()
+	}
+	return nil
 }
 
 // Comment returns the comment of current column.

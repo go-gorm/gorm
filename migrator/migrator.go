@@ -408,15 +408,15 @@ func (m Migrator) DropColumn(value interface{}, name string) error {
 	})
 }
 
-// AlterColumn alter value's `field` column' type based on schema definition
+// AlterColumn alter value's `field` column's type based on schema definition
 func (m Migrator) AlterColumn(value interface{}, field string) error {
 	return m.RunWithValue(value, func(stmt *gorm.Statement) error {
 		if stmt.Schema != nil {
 			if field := stmt.Schema.LookUpField(field); field != nil {
-				fileType := m.FullDataTypeOf(field)
+				fieldType := m.FullDataTypeOf(field)
 				return m.DB.Exec(
 					"ALTER TABLE ? ALTER COLUMN ? TYPE ?",
-					m.CurrentTable(stmt), clause.Column{Name: field.DBName}, fileType,
+					m.CurrentTable(stmt), clause.Column{Name: field.DBName}, fieldType,
 				).Error
 
 			}

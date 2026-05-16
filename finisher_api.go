@@ -46,11 +46,21 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 				}
 
 				subtx := tx.getInstance()
-				subtx.Statement.Dest = reflectValue.Slice(i, ends).Interface()
+				batchSlice := reflect.New(reflectValue.Type())
+				batchSlice.Elem().Set(reflectValue.Slice(i, ends))
+				subtx.Statement.Dest = batchSlice.Interface()
+
 				subtx.callbacks.Create().Execute(subtx)
+
 				if subtx.Error != nil {
 					return subtx.Error
 				}
+
+				resultSlice := reflect.Indirect(batchSlice)
+				for j := 0; j < resultSlice.Len(); j++ {
+					reflectValue.Index(i + j).Set(resultSlice.Index(j))
+				}
+
 				rowsAffected += subtx.RowsAffected
 			}
 			return nil

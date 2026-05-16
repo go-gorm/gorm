@@ -808,3 +808,45 @@ func TestCreateFromMapWithTable(t *testing.T) {
 		t.Errorf("failed to create data from map with table, @id != id")
 	}
 }
+
+func TestCreateInBatchesWithReturning(t *testing.T) {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" {
+		t.Skip("RETURNING is only supported on SQLite >= 3.35.0 and PostgreSQL")
+	}
+
+	// Use a session with CreateBatchSize > 0 to force CreateInBatches internally
+	batchDB := DB.Session(&gorm.Session{}).Set("gorm:create_batch_size", 2)
+	// Override CreateBatchSize directly to simulate gorm.Config{CreateBatchSize: 2}
+	batchDB.CreateBatchSize = 2
+
+	users := []User{
+		*GetUser("create_in_batches_returning_1", Config{}),
+		*GetUser("create_in_batches_returning_2", Config{}),
+		*GetUser("create_in_batches_returning_3", Config{}),
+	}
+
+	// Must NOT panic — this was the bug
+	result := batchDB.Clauses(clause.Returning{}).Create(&users)
+	if result.Error != nil {
+		t.Fatalf("expected no error, got: %v", result.Error)
+	}
+
+	// IDs must be populated by RETURNING
+	for i, u := range users {
+		if u.ID == 0 {
+			t.Errorf("users[%d].ID should be populated by RETURNING, got 0", i)
+		}
+	}
+
+	// RowsAffected must match number of created rows
+	if result.RowsAffected != int64(len(users)) {
+		t.Errorf("expected RowsAffected = %d, got %d", len(users), result.RowsAffected)
+	}
+
+	// Verify records actually exist in DB
+	var count int64
+	DB.Model(&User{}).Where("name LIKE ?", "create_in_batches_returning%").Count(&count)
+	if count != int64(len(users)) {
+		t.Errorf("expected %d records in DB, got %d", len(users), count)
+	}
+}
