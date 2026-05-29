@@ -85,12 +85,14 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 		case fmt.Stringer:
 			reflectValue := reflect.ValueOf(v)
 			switch reflectValue.Kind() {
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				vars[idx] = fmt.Sprintf("%d", reflectValue.Interface())
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				vars[idx] = strconv.FormatInt(reflectValue.Int(), 10)
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				vars[idx] = strconv.FormatUint(reflectValue.Uint(), 10)
 			case reflect.Float32, reflect.Float64:
-				vars[idx] = fmt.Sprintf("%.6f", reflectValue.Interface())
+				vars[idx] = strconv.FormatFloat(reflectValue.Float(), 'f', 6, 64)
 			case reflect.Bool:
-				vars[idx] = fmt.Sprintf("%t", reflectValue.Interface())
+				vars[idx] = strconv.FormatBool(reflectValue.Bool())
 			case reflect.String:
 				vars[idx] = escaper + strings.ReplaceAll(fmt.Sprintf("%v", v), escaper, escaper+escaper) + escaper
 			default:
@@ -124,10 +126,13 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			} else if rv.Kind() == reflect.Ptr && !rv.IsZero() {
 				convertParams(reflect.Indirect(rv).Interface(), idx)
 			} else if isNumeric(rv.Kind()) {
-				if rv.CanInt() || rv.CanUint() {
-					vars[idx] = fmt.Sprintf("%d", rv.Interface())
-				} else {
-					vars[idx] = fmt.Sprintf("%.6f", rv.Interface())
+				switch {
+				case rv.CanInt():
+					vars[idx] = strconv.FormatInt(rv.Int(), 10)
+				case rv.CanUint():
+					vars[idx] = strconv.FormatUint(rv.Uint(), 10)
+				default:
+					vars[idx] = strconv.FormatFloat(rv.Float(), 'f', 6, 64)
 				}
 			} else {
 				for _, t := range convertibleTypes {
