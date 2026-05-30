@@ -88,7 +88,9 @@ func Update(config *Config) func(db *gorm.DB) {
 			if ok, mode := hasReturning(db, supportReturning); ok {
 				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
 					defer func() {
-						db.AddError(rows.Close())
+						if err := rows.Close(); err != nil {
+							_ = db.AddError(err)
+						}
 					}()
 
 					dest := db.Statement.Dest

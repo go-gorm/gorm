@@ -544,7 +544,9 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 
 	if rows, err := tx.Rows(); err == nil {
 		defer func() {
-			tx.AddError(rows.Close())
+			if err := rows.Close(); err != nil {
+				_ = tx.AddError(err)
+			}
 		}()
 
 		if rows.Next() {

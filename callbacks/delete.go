@@ -172,7 +172,9 @@ func Delete(config *Config) func(db *gorm.DB) {
 
 			if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
 				defer func() {
-					db.AddError(rows.Close())
+					if err := rows.Close(); err != nil {
+						_ = db.AddError(err)
+					}
 				}()
 
 				gorm.Scan(rows, db, mode)
