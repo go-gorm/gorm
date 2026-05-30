@@ -87,11 +87,14 @@ func Update(config *Config) func(db *gorm.DB) {
 		if !db.DryRun && db.Error == nil {
 			if ok, mode := hasReturning(db, supportReturning); ok {
 				if rows, err := db.Statement.ConnPool.QueryContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...); db.AddError(err) == nil {
+					defer func() {
+						db.AddError(rows.Close())
+					}()
+
 					dest := db.Statement.Dest
 					db.Statement.Dest = db.Statement.ReflectValue.Addr().Interface()
 					gorm.Scan(rows, db, mode)
 					db.Statement.Dest = dest
-					db.AddError(rows.Close())
 
 					if db.Statement.Result != nil {
 						db.Statement.Result.RowsAffected = db.RowsAffected
