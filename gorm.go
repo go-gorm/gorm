@@ -33,7 +33,9 @@ type Config struct {
 	FullSaveAssociations bool
 	// Logger
 	Logger logger.Interface
-	// NowFunc the function to be used when creating a new timestamp
+	// NowFunc the function to be used when creating a new timestamp.
+	// It defaults to time.Now().Local(), so return values in the desired
+	// location when overriding it for timezone-sensitive applications.
 	NowFunc func() time.Time
 	// DryRun generate sql without execute
 	DryRun bool
@@ -126,8 +128,10 @@ type Session struct {
 	QueryFields              bool
 	Context                  context.Context
 	Logger                   logger.Interface
-	NowFunc                  func() time.Time
-	CreateBatchSize          int
+	// NowFunc overrides the function used when creating a new timestamp
+	// for this session.
+	NowFunc         func() time.Time
+	CreateBatchSize int
 }
 
 // Open initialize db session based on dialector
