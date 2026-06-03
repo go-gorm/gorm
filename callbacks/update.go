@@ -65,6 +65,10 @@ func Update(config *Config) func(db *gorm.DB) {
 			for _, c := range db.Statement.Schema.UpdateClauses {
 				db.Statement.AddClause(c)
 			}
+
+			if supportReturning {
+				populateReturningColumns(db)
+			}
 		}
 
 		if db.Statement.SQL.Len() == 0 {
