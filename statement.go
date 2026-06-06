@@ -171,6 +171,47 @@ func (stmt *Statement) Quote(field interface{}) string {
 	return builder.String()
 }
 
+// replaceBindVarsWithQuestion rewrites sql so that each rendered bind variable
+// produced by stmt.BindVarTo for vars is replaced with "?". The
+// replacement is done in a single pass over sql, in the order vars appear,
+// avoiding the per-iteration full-string allocation of strings.Replace.
+//
+// Some dialects (e.g. PostgreSQL) generate placeholders like "$1", "$2", ...
+// using the current length of stmt.Vars. To reproduce the same placeholder
+// sequence that originally rendered sql, this helper resets stmt.Vars and
+// appends each var before calling BindVarTo. Callers are expected to overwrite
+// stmt.Vars after the helper returns.
+func replaceBindVarsWithQuestion(stmt *Statement, sql string, vars []interface{}) string {
+	stmt.Vars = make([]interface{}, 0, len(vars))
+	var (
+		normalized strings.Builder
+		bindvar    strings.Builder
+	)
+	rest := sql
+	for _, vv := range vars {
+		stmt.Vars = append(stmt.Vars, vv)
+		bindvar.Reset()
+		stmt.BindVarTo(&bindvar, stmt, vv)
+		ph := bindvar.String()
+		if ph == "?" {
+			continue
+		}
+		if idx := strings.Index(rest, ph); idx >= 0 {
+			if normalized.Len() == 0 {
+				normalized.Grow(len(sql))
+			}
+			_, _ = normalized.WriteString(rest[:idx])
+			_ = normalized.WriteByte('?')
+			rest = rest[idx+len(ph):]
+		}
+	}
+	if normalized.Len() == 0 {
+		return sql
+	}
+	_, _ = normalized.WriteString(rest)
+	return normalized.String()
+}
+
 // AddVar add var
 func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 	for idx, v := range vars {
@@ -220,13 +261,7 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 					sql  = cv.Statement.SQL.String()
 				)
 
-				subdb.Statement.Vars = make([]interface{}, 0, len(vars))
-				for _, vv := range vars {
-					subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
-					bindvar := strings.Builder{}
-					cv.BindVarTo(&bindvar, subdb.Statement, vv)
-					sql = strings.Replace(sql, bindvar.String(), "?", 1)
-				}
+				sql = replaceBindVarsWithQuestion(subdb.Statement, sql, vars)
 
 				subdb.Statement.SQL.Reset()
 				subdb.Statement.Vars = stmt.Vars
