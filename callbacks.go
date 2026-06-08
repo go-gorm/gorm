@@ -95,7 +95,9 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if db.DefaultContextTimeout > 0 {
 		if _, ok := stmt.Context.Deadline(); !ok {
-			stmt.Context, _ = context.WithTimeout(stmt.Context, db.DefaultContextTimeout)
+			var cancel context.CancelFunc
+			stmt.Context, cancel = context.WithTimeout(stmt.Context, db.DefaultContextTimeout)
+			defer cancel()
 		}
 	}
 
