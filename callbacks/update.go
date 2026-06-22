@@ -65,6 +65,10 @@ func Update(config *Config) func(db *gorm.DB) {
 			for _, c := range db.Statement.Schema.UpdateClauses {
 				db.Statement.AddClause(c)
 			}
+
+			if supportReturning {
+				applyQueryFieldsToReturningClause(db)
+			}
 		}
 
 		if db.Statement.SQL.Len() == 0 {
@@ -115,6 +119,36 @@ func Update(config *Config) func(db *gorm.DB) {
 				}
 			}
 		}
+	}
+}
+
+func applyQueryFieldsToReturningClause(db *gorm.DB) {
+	if !db.QueryFields || db.Statement.Schema == nil {
+		return
+	}
+
+	c, ok := db.Statement.Clauses["RETURNING"]
+	if !ok {
+		return
+	}
+
+	returning, ok := c.Expression.(clause.Returning)
+	if !ok {
+		return
+	}
+
+	if len(returning.Columns) > 1 || (len(returning.Columns) == 1 && returning.Columns[0].Name != "*") {
+		return
+	}
+
+	columns := make([]clause.Column, len(db.Statement.Schema.DBNames))
+	for idx, dbName := range db.Statement.Schema.DBNames {
+		columns[idx] = clause.Column{Table: db.Statement.Table, Name: dbName}
+	}
+
+	db.Statement.Clauses["RETURNING"] = clause.Clause{
+		Name:       "RETURNING",
+		Expression: clause.Returning{Columns: columns},
 	}
 }
 
