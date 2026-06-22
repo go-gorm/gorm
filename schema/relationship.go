@@ -82,7 +82,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 
 	if hasPolymorphicRelation(field.TagSettings) {
 		schema.buildPolymorphicRelation(relation, field)
-	} else if many2many := field.TagSettings["MANY2MANY"]; many2many != "" {
+	} else if many2many, ok := field.TagSettings["MANY2MANY"]; ok {
 		schema.buildMany2ManyRelation(relation, field, many2many)
 	} else if belongsTo := field.TagSettings["BELONGSTO"]; belongsTo != "" {
 		schema.guessRelation(relation, field, guessBelongs)
@@ -364,8 +364,19 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		schema.namer); err != nil {
 		schema.err = err
 	}
-	relation.JoinTable.Name = many2many
-	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
+
+	// Catch empty tag OR the literal string "many2many"
+	if many2many == "" || strings.EqualFold(many2many, "many2many") {
+		// Use the new Namer method to get the 'Adequate' Table Name
+		relation.JoinTable.Table = schema.namer.RelationshipJoinTableName(*relation)
+		// Set the logical Name to SourceTable_FieldName for internal mapping
+		relation.JoinTable.Name = schema.Table + "_" + field.Name
+	} else {
+		// Use the manually provided name from the tag
+		relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
+		relation.JoinTable.Name = many2many
+	}
+
 	relation.JoinTable.PrimaryFields = make([]*Field, 0, len(relation.JoinTable.Fields))
 
 	relName := relation.Schema.Name
