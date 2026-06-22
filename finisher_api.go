@@ -543,13 +543,18 @@ func (db *DB) Scan(dest interface{}) (tx *DB) {
 	tx.Config = &config
 
 	if rows, err := tx.Rows(); err == nil {
+		defer func() {
+			if err := rows.Close(); err != nil {
+				_ = tx.AddError(err)
+			}
+		}()
+
 		if rows.Next() {
 			tx.ScanRows(rows, dest)
 		} else {
 			tx.RowsAffected = 0
 			tx.AddError(rows.Err())
 		}
-		tx.AddError(rows.Close())
 	}
 
 	currentLogger.Trace(tx.Statement.Context, newLogger.BeginAt, func() (string, int64) {
