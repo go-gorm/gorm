@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"sort"
 	"strings"
@@ -132,7 +133,7 @@ func TestScanRows(t *testing.T) {
 
 	type Result struct {
 		Name string
-		Age  int
+		Age  uint
 	}
 
 	var results []Result
@@ -152,6 +153,27 @@ func TestScanRows(t *testing.T) {
 		t.Errorf("Should find expected results, got %+v", results)
 	}
 
+	// scan should not reset structs
+	rows, err = DB.Table("users").Where("name = ?", user1.Name).Select("age").Rows()
+	if err != nil {
+		t.Errorf("No error should happen, got %v", err)
+	}
+
+	for rows.Next() {
+		result := Result{
+			Name: user1.Name,
+		}
+		if err := DB.ScanRows(rows, &result); err != nil {
+			t.Errorf("should get no error, but got %v", err)
+		}
+		if result.Name != user1.Name {
+			t.Errorf("ScanRows should not change name")
+		}
+		if result.Age != user1.Age {
+			t.Errorf("Age should be changed")
+		}
+	}
+
 	var ages int
 	if err := DB.Table("users").Where("name = ? or name = ?", user2.Name, user3.Name).Select("SUM(age)").Scan(&ages).Error; err != nil || ages != 30 {
 		t.Fatalf("failed to scan ages, got error %v, ages: %v", err, ages)
@@ -163,13 +185,33 @@ func TestScanRows(t *testing.T) {
 	}
 }
 
+type CustomFieldType struct {
+	Content string
+}
+
+func (f *CustomFieldType) Value() (driver.Value, error) {
+	return f.Content, nil
+}
+
+func (f *CustomFieldType) Scan(value interface{}) error {
+	switch v := value.(type) {
+	case []byte:
+		f.Content = string(v)
+	case string:
+		f.Content = v
+	}
+	return nil
+}
+
 func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 	DB.Save(&User{})
 
 	rows, err := DB.Table("users").
 		Select(`
 			NULL AS bool_field,
+			NULL AS bool_ptr_field,
 			NULL AS int_field,
+			NULL AS int_ptr_field,
 			NULL AS int8_field,
 			NULL AS int16_field,
 			NULL AS int32_field,
@@ -186,7 +228,10 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 			NULL AS time_ptr_field,
 			NULL AS embedded_int_field,
 			NULL AS nested_embedded_int_field,
-			NULL AS embedded_ptr_int_field
+			NULL AS nested_embedded_int_field_with_default,			
+			NULL AS embedded_ptr_int_field,
+			NULL AS custom_field,
+			NULL AS custom_ptr_field
         `).Rows()
 	if err != nil {
 		t.Errorf("No error should happen, got %v", err)
@@ -203,13 +248,14 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 	}
 
 	type EmbeddedPtrStruct struct {
-		EmbeddedPtrIntField   int
-		*NestedEmbeddedStruct `gorm:"embedded"`
+		EmbeddedPtrIntField int
 	}
 
 	type Result struct {
 		BoolField          bool
+		BoolPtrField       *bool
 		IntField           int
+		IntPtrField        *int
 		Int8Field          int8
 		Int16Field         int16
 		Int32Field         int32
@@ -226,12 +272,19 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 		TimePtrField       *time.Time
 		EmbeddedStruct     `gorm:"embedded"`
 		*EmbeddedPtrStruct `gorm:"embedded"`
+		CustomField        CustomFieldType
+		CustomPtrField     *CustomFieldType
 	}
 
 	currTime := time.Now()
-	reusedVar := Result{
+	ct := CustomFieldType{
+		Content: "Hello World",
+	}
+	result := Result{
 		BoolField:         true,
+		BoolPtrField:      new(bool),
 		IntField:          1,
+		IntPtrField:       new(int),
 		Int8Field:         1,
 		Int16Field:        1,
 		Int32Field:        1,
@@ -247,18 +300,21 @@ func TestScanRowsNullValuesScanToFieldDefault(t *testing.T) {
 		TimeField:         currTime,
 		TimePtrField:      &currTime,
 		EmbeddedStruct:    EmbeddedStruct{EmbeddedIntField: 1, NestedEmbeddedStruct: NestedEmbeddedStruct{NestedEmbeddedIntField: 1, NestedEmbeddedIntFieldWithDefault: 2}},
-		EmbeddedPtrStruct: &EmbeddedPtrStruct{EmbeddedPtrIntField: 1, NestedEmbeddedStruct: &NestedEmbeddedStruct{NestedEmbeddedIntField: 1, NestedEmbeddedIntFieldWithDefault: 2}},
+		EmbeddedPtrStruct: &EmbeddedPtrStruct{EmbeddedPtrIntField: 1},
+		CustomField:       ct,
+		CustomPtrField:    &ct,
 	}
 
 	for rows.Next() {
-		if err := DB.ScanRows(rows, &reusedVar); err != nil {
+		if err := DB.ScanRows(rows, &result); err != nil {
 			t.Errorf("should get no error, but got %v", err)
 		}
 	}
 
-	if !reflect.DeepEqual(reusedVar, Result{}) {
-		t.Errorf("Should find zero values in struct fields, got %+v\n", reusedVar)
+	if !reflect.DeepEqual(result, Result{EmbeddedPtrStruct: &EmbeddedPtrStruct{EmbeddedPtrIntField: 0}}) {
+		t.Errorf("Should find zero values in struct fields, got %+v\n", result)
 	}
+
 }
 
 func TestScanToEmbedded(t *testing.T) {

@@ -600,6 +600,8 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			case **bool:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetBool(**data)
+				} else {
+					field.ReflectValueOf(ctx, value).SetBool(false)
 				}
 			case bool:
 				field.ReflectValueOf(ctx, value).SetBool(data)
@@ -619,22 +621,32 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			case **int64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(**data)
+				} else {
+					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case **int:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case **int8:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case **int16:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case **int32:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetInt(int64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetInt(0)
 				}
 			case int64:
 				field.ReflectValueOf(ctx, value).SetInt(data)
@@ -699,22 +711,32 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			case **uint64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(**data)
+				} else {
+					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case **uint:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case **uint8:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case **uint16:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case **uint32:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetUint(uint64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetUint(0)
 				}
 			case uint64:
 				field.ReflectValueOf(ctx, value).SetUint(data)
@@ -767,10 +789,14 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			case **float64:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetFloat(**data)
+				} else {
+					field.ReflectValueOf(ctx, value).SetFloat(0)
 				}
 			case **float32:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetFloat(float64(**data))
+				} else {
+					field.ReflectValueOf(ctx, value).SetFloat(0)
 				}
 			case float64:
 				field.ReflectValueOf(ctx, value).SetFloat(data)
@@ -815,6 +841,8 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			case **string:
 				if data != nil && *data != nil {
 					field.ReflectValueOf(ctx, value).SetString(**data)
+				} else {
+					field.ReflectValueOf(ctx, value).SetString("")
 				}
 			case string:
 				field.ReflectValueOf(ctx, value).SetString(data)
@@ -838,6 +866,8 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 				case **time.Time:
 					if data != nil && *data != nil {
 						field.Set(ctx, value, *data)
+					} else {
+						field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
 					}
 				case time.Time:
 					field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(v))
@@ -864,6 +894,8 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 				case **time.Time:
 					if data != nil && *data != nil {
 						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
+					} else {
+						field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
 					}
 				case time.Time:
 					fieldValue := field.ReflectValueOf(ctx, value)
@@ -899,6 +931,10 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						if field.FieldType.Kind() == reflect.Pointer {
+							// If we have a pointer on the destination side, let's make sure we set it to null
+							field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
+						}
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
@@ -925,6 +961,7 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
+						field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
 						return
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
