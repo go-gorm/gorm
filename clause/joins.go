@@ -16,10 +16,15 @@ type JoinTarget struct {
 	Association string
 	Subquery    Expression
 	Table       string
+	Model       any
 }
 
 func Has(name string) JoinTarget {
 	return JoinTarget{Type: InnerJoin, Association: name}
+}
+
+func (jt JoinType) Model(model any) JoinTarget {
+	return JoinTarget{Type: jt, Model: model}
 }
 
 func (jt JoinType) Association(name string) JoinTarget {

@@ -45,12 +45,15 @@ type CreateInterface[T any] interface {
 	ExecInterface[T]
 	// chain methods available at start; Select/Omit keep CreateInterface to allow Create chaining
 	Scopes(scopes ...func(db *Statement)) ChainInterface[T]
+	Clauses(clauses ...clause.Expression) CreateInterface[T]
+	Unscoped() ChainInterface[T]
 	Where(query interface{}, args ...interface{}) ChainInterface[T]
 	Not(query interface{}, args ...interface{}) ChainInterface[T]
 	Or(query interface{}, args ...interface{}) ChainInterface[T]
 	Limit(offset int) ChainInterface[T]
 	Offset(offset int) ChainInterface[T]
 	Joins(query clause.JoinTarget, on func(db JoinBuilder, joinTable clause.Table, curTable clause.Table) error) ChainInterface[T]
+	Join(jt clause.JoinTarget, on clause.Expression, moreOn ...clause.Expression) ChainInterface[T]
 	Preload(association string, query func(db PreloadBuilder) error) ChainInterface[T]
 	Select(query string, args ...interface{}) CreateInterface[T]
 	Omit(columns ...string) CreateInterface[T]
@@ -75,12 +78,15 @@ type CreateInterface[T any] interface {
 type ChainInterface[T any] interface {
 	ExecInterface[T]
 	Scopes(scopes ...func(db *Statement)) ChainInterface[T]
+	Clauses(clauses ...clause.Expression) ChainInterface[T]
 	Where(query interface{}, args ...interface{}) ChainInterface[T]
 	Not(query interface{}, args ...interface{}) ChainInterface[T]
 	Or(query interface{}, args ...interface{}) ChainInterface[T]
+	Unscoped() ChainInterface[T]
 	Limit(offset int) ChainInterface[T]
 	Offset(offset int) ChainInterface[T]
 	Joins(query clause.JoinTarget, on func(db JoinBuilder, joinTable clause.Table, curTable clause.Table) error) ChainInterface[T]
+	Join(jt clause.JoinTarget, on clause.Expression, andOn ...clause.Expression) ChainInterface[T]
 	Preload(association string, query func(db PreloadBuilder) error) ChainInterface[T]
 	Select(query string, args ...interface{}) ChainInterface[T]
 	Omit(columns ...string) ChainInterface[T]
@@ -113,6 +119,7 @@ type SetCreateOrUpdateInterface[T any] interface {
 
 type ExecInterface[T any] interface {
 	Scan(ctx context.Context, r interface{}) error
+	Pluck(ctx context.Context, column string, result interface{}) error
 	First(context.Context) (T, error)
 	Last(ctx context.Context) (T, error)
 	Take(context.Context) (T, error)
@@ -131,6 +138,8 @@ type JoinBuilder interface {
 }
 
 type PreloadBuilder interface {
+	Scopes(...func(db *Statement)) PreloadBuilder
+	Unscoped() PreloadBuilder
 	Select(...string) PreloadBuilder
 	Omit(...string) PreloadBuilder
 	Where(query interface{}, args ...interface{}) PreloadBuilder
@@ -207,6 +216,12 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 	})}
 }
 
+func (c createG[T]) Clauses(clauses ...clause.Expression) CreateInterface[T] {
+	return createG[T]{c.with(func(db *DB) *DB {
+		return db.Clauses(clauses...)
+	})}
+}
+
 func (c createG[T]) Select(query string, args ...interface{}) CreateInterface[T] {
 	return createG[T]{c.with(func(db *DB) *DB {
 		return db.Select(query, args...)
@@ -264,6 +279,12 @@ func (c chainG[T]) Scopes(scopes ...func(db *Statement)) ChainInterface[T] {
 	})
 }
 
+func (c chainG[T]) Unscoped() ChainInterface[T] {
+	return c.with(func(db *DB) *DB {
+		return db.Unscoped()
+	})
+}
+
 func (c chainG[T]) Where(query interface{}, args ...interface{}) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
 		return db.Where(query, args...)
@@ -291,6 +312,12 @@ func (c chainG[T]) Limit(offset int) ChainInterface[T] {
 func (c chainG[T]) Offset(offset int) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
 		return db.Offset(offset)
+	})
+}
+
+func (c chainG[T]) Clauses(clauses ...clause.Expression) ChainInterface[T] {
+	return c.with(func(db *DB) *DB {
+		return db.Clauses(clauses...)
 	})
 }
 
@@ -330,6 +357,18 @@ type preloadBuilder struct {
 
 func (q *preloadBuilder) Where(query interface{}, args ...interface{}) PreloadBuilder {
 	q.db.Where(query, args...)
+	return q
+}
+
+func (q *preloadBuilder) Scopes(scopes ...func(db *Statement)) PreloadBuilder {
+	for _, scope := range scopes {
+		scope(q.db.Statement)
+	}
+	return q
+}
+
+func (q *preloadBuilder) Unscoped() PreloadBuilder {
+	q.db.Unscoped()
 	return q
 }
 
@@ -375,7 +414,16 @@ func (q *preloadBuilder) LimitPerRecord(num int) PreloadBuilder {
 
 func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable clause.Table, curTable clause.Table) error) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
-		if jt.Table == "" {
+		if jt.Model != nil {
+			tableName, err := schema.TableName(jt.Model, db.cacheStore, db.NamingStrategy)
+			if err != nil {
+				db.AddError(errors.New("failed to get table name from model"))
+			} else {
+				jt.Association = tableName
+			}
+		}
+
+		if jt.Table == "" || jt.Table == clause.CurrentTable {
 			jt.Table = clause.JoinTable(strings.Split(jt.Association, ".")...).Name
 		}
 
@@ -432,6 +480,53 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 	})
 }
 
+func (c chainG[T]) Join(jt clause.JoinTarget, on clause.Expression, andOn ...clause.Expression) ChainInterface[T] {
+	return c.with(func(db *DB) *DB {
+		var expression clause.Expression
+		if len(andOn) > 0 {
+			allOn := []clause.Expression{on}
+			allOn = append(allOn, andOn...)
+			expression = clause.AndConditions{Exprs: allOn}
+		} else {
+			expression = on
+		}
+
+		if jt.Model != nil {
+			tableName, err := schema.TableName(jt.Model, db.cacheStore, db.NamingStrategy)
+			if err != nil {
+				db.AddError(errors.New("failed to get table name from model"))
+			}
+
+			jt.Association = tableName
+		}
+
+		if jt.Table == "" || jt.Table == clause.CurrentTable {
+			jt.Table = clause.JoinTable(strings.Split(jt.Association, ".")...).Name
+		}
+
+		fromClause := clause.From{}
+		if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {
+			fromClause = v
+		}
+
+		q := joinBuilder{db: db.Session(&Session{NewDB: true, Initialized: true}).Table(jt.Table)}
+		q.Where(expression)
+
+		join := clause.Join{
+			Type:  jt.Type,
+			Table: clause.Table{Name: jt.Association, Alias: jt.Table},
+		}
+
+		if where, ok := q.db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
+			join.ON = where
+		}
+
+		fromClause.Joins = append(fromClause.Joins, join)
+		db.Statement.AddClause(fromClause)
+		return db
+	})
+}
+
 func (c chainG[T]) Select(query string, args ...interface{}) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
 		return db.Select(query, args...)
@@ -484,27 +579,28 @@ func (c chainG[T]) Preload(association string, query func(db PreloadBuilder) err
 			q := preloadBuilder{db: tx.getInstance()}
 			if query != nil {
 				if err := query(&q); err != nil {
-					db.AddError(err)
+					tx.AddError(err)
+					return tx
 				}
 			}
 
-			relation, ok := db.Statement.Schema.Relationships.Relations[association]
+			relation, ok := tx.Statement.Schema.Relationships.Relations[association]
 			if !ok {
 				if preloadFields := strings.Split(association, "."); len(preloadFields) > 1 {
-					relationships := &db.Statement.Schema.Relationships
+					relationships := &tx.Statement.Schema.Relationships
 					for _, field := range preloadFields {
 						var ok bool
 						relation, ok = relationships.Relations[field]
 						if ok {
 							relationships = &relation.FieldSchema.Relationships
 						} else {
-							db.AddError(fmt.Errorf("relation %s not found", association))
-							return nil
+							tx.AddError(fmt.Errorf("relation %s not found", association))
+							return tx
 						}
 					}
 				} else {
-					db.AddError(fmt.Errorf("relation %s not found", association))
-					return nil
+					tx.AddError(fmt.Errorf("relation %s not found", association))
+					return tx
 				}
 			}
 
@@ -568,19 +664,31 @@ func (c chainG[T]) Delete(ctx context.Context) (rowsAffected int, err error) {
 }
 
 func (c chainG[T]) Update(ctx context.Context, name string, value any) (rowsAffected int, err error) {
-	var r T
+	r := new(T)
 	res := c.g.apply(ctx).Model(r).Update(name, value)
 	return int(res.RowsAffected), res.Error
 }
 
 func (c chainG[T]) Updates(ctx context.Context, t T) (rowsAffected int, err error) {
-	res := c.g.apply(ctx).Updates(t)
+	newChain := c.with(func(db *DB) *DB {
+		if len(db.Statement.Selects) == 0 {
+			db.Statement.Selects = []string{"*"}
+		}
+
+		return db
+	})
+
+	res := newChain.g.apply(ctx).Updates(t)
 	return int(res.RowsAffected), res.Error
 }
 
 func (c chainG[T]) Count(ctx context.Context, column string) (result int64, err error) {
 	var r T
-	err = c.g.apply(ctx).Model(r).Select(column).Count(&result).Error
+	tx := c.g.apply(ctx).Model(r)
+	if len(column) > 0 && column != "*" {
+		tx = tx.Select(column)
+	}
+	err = tx.Count(&result).Error
 	return
 }
 
@@ -633,7 +741,13 @@ func (g execG[T]) First(ctx context.Context) (T, error) {
 
 func (g execG[T]) Scan(ctx context.Context, result interface{}) error {
 	var r T
-	err := g.g.apply(ctx).Model(r).Find(result).Error
+	err := g.g.apply(ctx).Model(r).Scan(result).Error
+	return err
+}
+
+func (g execG[T]) Pluck(ctx context.Context, column string, result interface{}) error {
+	var r T
+	err := g.g.apply(ctx).Model(r).Pluck(column, result).Error
 	return err
 }
 
@@ -712,8 +826,8 @@ func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, er
 
 	// Execute assignment operations
 	if len(s.assigns) > 0 {
-		var r T
-		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
+		r := new(T)
+		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).UpdateColumns(map[string]interface{}{})
 		return int(res.RowsAffected), res.Error
 	}
 
@@ -734,7 +848,7 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 		for _, a := range s.assigns {
 			data[a.Column.Name] = a.Value
 		}
-		var r T
+		r := new(T)
 		return s.c.g.apply(ctx).Model(r).Create(data).Error
 	}
 
@@ -743,7 +857,7 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
-	var r T
+	r := new(T)
 	base := s.c.g.apply(ctx).Model(r)
 
 	switch op.Type {
