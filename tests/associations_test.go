@@ -3,6 +3,7 @@ package tests_test
 import (
 	"testing"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -180,6 +181,56 @@ func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
 
 	if err := DB.First(&profile, profile.ID).Error; err == nil {
 		t.Fatalf("Should not find deleted profile")
+	}
+}
+
+func TestFullSaveAssociationsWithJSONDefault(t *testing.T) {
+	if DB.Dialector.Name() == "mysql" {
+		t.Skip() // mysql json can't have a default value
+	}
+
+	type ValueDep struct {
+		ID      int
+		ValueID int
+		Name    string
+		Params  datatypes.JSONMap `gorm:"default:'{}'"`
+	}
+	type Value struct {
+		ID   int
+		Name string
+		Dep  ValueDep
+	}
+
+	if err := DB.Migrator().DropTable(&ValueDep{}, &Value{}); err != nil {
+		t.Fatalf("failed to drop value table, got err: %v", err)
+	}
+	if err := DB.AutoMigrate(&ValueDep{}, &Value{}); err != nil {
+		t.Fatalf("failed to migrate value table, got err: %v", err)
+	}
+
+	if err := DB.Create(&Value{
+		Name: "foo",
+		Dep:  ValueDep{Name: "bar", Params: map[string]interface{}{"foo": "bar"}},
+	}).Error; err != nil {
+		t.Errorf("failed to create value, got err: %v", err)
+	}
+
+	var value Value
+	if err := DB.Preload("Dep").First(&value).Error; err != nil {
+		t.Errorf("failed to find value, got err: %v", err)
+	}
+
+	value.Dep.Params["foo"] = "new bar"
+	if err := DB.Session(&gorm.Session{FullSaveAssociations: true}).Save(&value).Error; err != nil {
+		t.Errorf("failed to svae value, got err: %v", err)
+	}
+
+	var result Value
+	if err := DB.Preload("Dep").First(&result).Error; err != nil {
+		t.Errorf("failed to find value, got err: %v", err)
+	}
+	if result.Dep.Params["foo"] != "new bar" {
+		t.Errorf("failed to save value dep params, got: %v", result.Dep.Params)
 	}
 }
 
