@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
+	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
 
@@ -119,6 +121,32 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 			t.Errorf("%v: expect: %+v, got %+v", utils.FileWithLineNum(), expect, got)
 			return
 		}
+	}
+}
+
+func AssertIndexOption(t *testing.T, model interface{}, indexName, wantOption string) {
+	t.Helper()
+	s, err := schema.Parse(model, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse schema: %v", err)
+	}
+
+	var found bool
+	var idx schema.Index
+	for _, index := range s.ParseIndexes() {
+		if index.Name == indexName {
+			idx = *index
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("index %q not found", indexName)
+	}
+
+	if idx.Option != wantOption {
+		t.Errorf("expected Option = %q, got %q", wantOption, idx.Option)
 	}
 }
 

@@ -3,7 +3,9 @@ package schema_test
 import (
 	"sync"
 	"testing"
+	"time"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils/tests"
 )
@@ -272,4 +274,60 @@ func CheckIndices(t *testing.T, expected, actual []*schema.Index) {
 			}
 		})
 	}
+}
+
+func TestIndexOptionWithMultipleIncludeColumns(t *testing.T) {
+	t.Run("single column INCLUDE", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			Status    string
+			CreatedAt time.Time `gorm:"index:idx_single,option:INCLUDE (status)"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_single", "INCLUDE (status)")
+	})
+
+	t.Run("multiple columns INCLUDE", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			Status    string
+			Friendly  string
+			CreatedAt time.Time `gorm:"index:idx_multi,option:INCLUDE (status, friendly)"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_multi", "INCLUDE (status, friendly)")
+	})
+
+	t.Run("three columns INCLUDE", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			Status    string
+			Friendly  string
+			Email     string
+			CreatedAt time.Time `gorm:"index:idx_three,option:INCLUDE (status, friendly, email)"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_three", "INCLUDE (status, friendly, email)")
+	})
+
+	t.Run("no option", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			CreatedAt time.Time `gorm:"index:idx_no_option"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_no_option", "")
+	})
+
+	t.Run("option without parentheses", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			CreatedAt time.Time `gorm:"index:idx_parser,option:WITH PARSER parser_name"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_parser", "WITH PARSER parser_name")
+	})
+
+	t.Run("NULLS NOT DISTINCT", func(t *testing.T) {
+		type Item struct {
+			gorm.Model
+			CreatedAt time.Time `gorm:"index:idx_nulls,option:NULLS NOT DISTINCT"`
+		}
+		tests.AssertIndexOption(t, &Item{}, "idx_nulls", "NULLS NOT DISTINCT")
+	})
 }

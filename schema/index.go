@@ -106,10 +106,20 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 					name       string
 					tag        = strings.Join(v[1:], ":")
 					idx        = strings.IndexByte(tag, ',')
-					tagSetting = strings.Join(strings.Split(tag, ",")[1:], ",")
+					tagParts   = splitTagCommas(tag)
+					tagSetting = strings.Join(tagParts[1:], ",")
 					settings   = ParseTagSetting(tagSetting, ",")
 					length, _  = strconv.Atoi(settings["LENGTH"])
 				)
+
+				for _, part := range tagParts[1:] {
+					part = strings.TrimSpace(part)
+					upper := strings.ToUpper(part)
+					if strings.HasPrefix(upper, "OPTION:") {
+						settings["OPTION"] = part[len("OPTION:"):]
+						break
+					}
+				}
 
 				if idx == -1 {
 					idx = len(tag)
