@@ -418,6 +418,75 @@ func TestFindInBatchesWithError(t *testing.T) {
 	}
 }
 
+func TestFindInBatchesCompositeKey(t *testing.T) {
+	coupons := []Coupon{
+		{AmountOff: 1.0, PercentOff: 0.5, AppliesToProduct: []*CouponProduct{
+			{ProductId: "1", Desc: "find_in_batches"},
+			{ProductId: "2", Desc: "find_in_batches"},
+			{ProductId: "3", Desc: "find_in_batches"},
+		}},
+		{AmountOff: 2.0, PercentOff: 0.5, AppliesToProduct: []*CouponProduct{
+			{ProductId: "1", Desc: "find_in_batches"},
+			{ProductId: "2", Desc: "find_in_batches"},
+			{ProductId: "3", Desc: "find_in_batches"},
+		}},
+		{AmountOff: 3.0, PercentOff: 0.5, AppliesToProduct: []*CouponProduct{
+			{ProductId: "1", Desc: "find_in_batches"},
+			{ProductId: "2", Desc: "find_in_batches"},
+			{ProductId: "3", Desc: "find_in_batches"},
+		}},
+		{AmountOff: 4.0, PercentOff: 0.5, AppliesToProduct: []*CouponProduct{
+			{ProductId: "1", Desc: "find_in_batches"},
+			{ProductId: "2", Desc: "find_in_batches"},
+			{ProductId: "3", Desc: "find_in_batches"},
+		}},
+	}
+
+	DB.Create(&coupons)
+
+	var (
+		results   []CouponProduct
+		lastBatch int
+	)
+
+	if result := DB.Table("coupon_products as cp").Where(&CouponProduct{Desc: "find_in_batches"}).FindInBatches(&results, 2, func(tx *gorm.DB, batch int) error {
+		lastBatch = batch
+
+		if tx.RowsAffected != 2 {
+			t.Errorf("Incorrect affected rows, expects: 2, got %v", tx.RowsAffected)
+		}
+
+		if len(results) != 2 {
+			t.Errorf("Incorrect coupon_product length, expects: 2, got %v", len(results))
+		}
+
+		for idx := range results {
+			results[idx].Desc = results[idx].Desc + "_new"
+		}
+
+		if err := tx.Save(results).Error; err != nil {
+			t.Fatalf("failed to save coupon_product, got error %v", err)
+		}
+
+		return nil
+	}); result.Error != nil || result.RowsAffected != 12 {
+		t.Errorf("Failed to batch find, got error %v, rows affected: %v", result.Error, result.RowsAffected)
+	}
+
+	if lastBatch != 6 {
+		t.Errorf("incorrect final batch, expects: %v, got %v", 6, lastBatch)
+	}
+
+	var count int64
+	DB.Model(&CouponProduct{}).Where(&CouponProduct{Desc: "find_in_batches_new"}).Count(&count)
+	if count != 12 {
+		t.Errorf("incorrect count after update, expects: %v, got %v", 12, count)
+	}
+
+	DB.Unscoped().Where(&CouponProduct{Desc: "find_in_batches_new"}).Delete(&CouponProduct{})
+	DB.Unscoped().Where("id in (1,2,3)").Delete(&Coupon{})
+}
+
 func TestFillSmallerStruct(t *testing.T) {
 	user := User{Name: "SmallerUser", Age: 100}
 	DB.Save(&user)
