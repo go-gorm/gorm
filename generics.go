@@ -52,7 +52,7 @@ type CreateInterface[T any] interface {
 	Offset(offset int) ChainInterface[T]
 	Joins(query clause.JoinTarget, on func(db JoinBuilder, joinTable clause.Table, curTable clause.Table) error) ChainInterface[T]
 	Preload(association string, query func(db PreloadBuilder) error) ChainInterface[T]
-	Select(query string, args ...interface{}) CreateInterface[T]
+	Select(query interface{}, args ...interface{}) CreateInterface[T]
 	Omit(columns ...string) CreateInterface[T]
 	MapColumns(m map[string]string) ChainInterface[T]
 	Distinct(args ...interface{}) ChainInterface[T]
@@ -82,7 +82,7 @@ type ChainInterface[T any] interface {
 	Offset(offset int) ChainInterface[T]
 	Joins(query clause.JoinTarget, on func(db JoinBuilder, joinTable clause.Table, curTable clause.Table) error) ChainInterface[T]
 	Preload(association string, query func(db PreloadBuilder) error) ChainInterface[T]
-	Select(query string, args ...interface{}) ChainInterface[T]
+	Select(query interface{}, args ...interface{}) ChainInterface[T]
 	Omit(columns ...string) ChainInterface[T]
 	MapColumns(m map[string]string) ChainInterface[T]
 	Distinct(args ...interface{}) ChainInterface[T]
@@ -207,7 +207,7 @@ func (c createG[T]) Table(name string, args ...interface{}) CreateInterface[T] {
 	})}
 }
 
-func (c createG[T]) Select(query string, args ...interface{}) CreateInterface[T] {
+func (c createG[T]) Select(query interface{}, args ...interface{}) CreateInterface[T] {
 	return createG[T]{c.with(func(db *DB) *DB {
 		return db.Select(query, args...)
 	})}
@@ -432,7 +432,7 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 	})
 }
 
-func (c chainG[T]) Select(query string, args ...interface{}) ChainInterface[T] {
+func (c chainG[T]) Select(query interface{}, args ...interface{}) ChainInterface[T] {
 	return c.with(func(db *DB) *DB {
 		return db.Select(query, args...)
 	})
