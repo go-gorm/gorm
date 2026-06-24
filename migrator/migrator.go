@@ -542,16 +542,23 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check default value
-	if !field.PrimaryKey {
+	// For primary keys, only check default value changes when an explicit
+	// default: tag is set. Auto-increment primary keys have HasDefaultValue
+	// set by AUTOINCREMENT but should not be compared against the database
+	// default, as the DB returns engine-specific values (e.g. AUTO_INCREMENT)
+	// that differ from the empty model DefaultValue.
+	shouldCheckDefaultValue := !field.PrimaryKey || field.TagSettings["DEFAULT"] != ""
+	if shouldCheckDefaultValue {
 		currentDefaultNotNull := field.HasDefaultValue && (field.DefaultValueInterface != nil || !strings.EqualFold(field.DefaultValue, "NULL"))
 		dv, dvNotNull := columnType.DefaultValue()
-		if dvNotNull && !currentDefaultNotNull {
+		switch {
+		case dvNotNull && !currentDefaultNotNull:
 			// default value -> null
 			alterColumn = true
-		} else if !dvNotNull && currentDefaultNotNull {
+		case !dvNotNull && currentDefaultNotNull:
 			// null -> default value
 			alterColumn = true
-		} else if currentDefaultNotNull || dvNotNull {
+		case currentDefaultNotNull || dvNotNull:
 			switch field.GORMDataType {
 			case schema.Time:
 				if !strings.EqualFold(strings.TrimSuffix(dv, "()"), strings.TrimSuffix(field.DefaultValue, "()")) {
