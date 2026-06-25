@@ -380,12 +380,66 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 }
 
 func (db *DB) executeScopes() (tx *DB) {
+	if len(db.Statement.scopes) == 0 {
+		return db
+	}
+
 	scopes := db.Statement.scopes
 	db.Statement.scopes = nil
+	originClause := db.Statement.Clauses
+
+	// use clean db in scope
+	cleanDB := db.Session(&Session{})
+	cleanDB.Statement.Clauses = map[string]clause.Clause{}
+
+	txs := make([]*DB, 0, len(scopes))
 	for _, scope := range scopes {
-		db = scope(db)
+		txs = append(txs, scope(cleanDB))
 	}
+
+	db.Statement.Clauses = originClause
+	db.mergeClauses(txs)
 	return db
+}
+
+func (db *DB) mergeClauses(txs []*DB) {
+	if len(txs) == 0 {
+		return
+	}
+
+	for _, tx := range txs {
+		stmt := tx.Statement
+		if stmt != nil {
+			stmtClause := stmt.Clauses
+			// merge clauses
+			if cs, ok := stmtClause["WHERE"]; ok {
+				if where, ok := cs.Expression.(clause.Where); ok {
+					db.Statement.AddClause(where)
+				}
+			}
+
+			// cover other expr
+			if stmt.TableExpr != nil {
+				db.Statement.TableExpr = stmt.TableExpr
+			}
+
+			if stmt.Table != "" {
+				db.Statement.Table = stmt.Table
+			}
+
+			if stmt.Model != nil {
+				db.Statement.Model = stmt.Model
+			}
+
+			if stmt.Selects != nil {
+				db.Statement.Selects = stmt.Selects
+			}
+
+			if stmt.Omits != nil {
+				db.Statement.Omits = stmt.Omits
+			}
+		}
+	}
 }
 
 // Preload preload associations with given conditions
