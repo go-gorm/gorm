@@ -568,7 +568,7 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 					alterColumn = true
 				}
 			default:
-				if dv != field.DefaultValue {
+				if dv != field.DefaultValue && dv != strings.Trim(field.DefaultValue, "'\"") {
 					alterColumn = true
 				}
 			}
