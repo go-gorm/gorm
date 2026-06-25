@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -384,16 +385,22 @@ func (db *DB) Get(key string) (interface{}, bool) {
 	return db.Statement.Settings.Load(key)
 }
 
+// stmtPtrKey returns a unique string key derived from the Statement pointer address.
+// Uses strconv.FormatUint instead of fmt.Sprintf("%p") to avoid format parsing overhead.
+func stmtPtrKey(stmt *Statement) string {
+	return strconv.FormatUint(uint64(reflect.ValueOf(stmt).Pointer()), 16)
+}
+
 // InstanceSet store value with key into current db instance's context
 func (db *DB) InstanceSet(key string, value interface{}) *DB {
 	tx := db.getInstance()
-	tx.Statement.Settings.Store(fmt.Sprintf("%p", tx.Statement)+key, value)
+	tx.Statement.Settings.Store(stmtPtrKey(tx.Statement)+key, value)
 	return tx
 }
 
 // InstanceGet get value with key from current db instance's context
 func (db *DB) InstanceGet(key string) (interface{}, bool) {
-	return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
+	return db.Statement.Settings.Load(stmtPtrKey(db.Statement) + key)
 }
 
 // Callback returns callback manager
