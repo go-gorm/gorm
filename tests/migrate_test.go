@@ -83,6 +83,33 @@ func TestMigrate(t *testing.T) {
 	}
 }
 
+func TestReorderModelsWithTableNameAndRelation(t *testing.T) {
+	type ReorderRelCompany struct {
+		ID   uint
+		Name string
+	}
+
+	type ReorderRelUser struct {
+		ID        uint
+		Name      string
+		CompanyID uint
+		Company   ReorderRelCompany
+	}
+
+	m := migrator.Migrator{Config: migrator.Config{DB: DB.Table("reorder_rel_users_tmp"), Dialector: DB.Dialector}}
+	ordered := m.ReorderModels([]interface{}{&ReorderRelUser{}}, true)
+
+	if len(ordered) != 2 {
+		t.Fatalf("expected 2 ordered models, got %d", len(ordered))
+	}
+	for _, value := range ordered {
+		stmt := &gorm.Statement{DB: DB}
+		if err := stmt.Parse(value); err != nil {
+			t.Fatalf("failed to parse reordered model %T: %v", value, err)
+		}
+	}
+}
+
 func TestAutoMigrateInt8PGAndGaussDB(t *testing.T) {
 	if DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" {
 		return

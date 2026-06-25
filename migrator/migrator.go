@@ -928,16 +928,16 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		parsedSchemas                 = map[*schema.Schema]bool{}
 		valuesMap                     = map[string]Dependency{}
 		insertIntoOrderedList         func(name string)
-		parseDependence               func(value interface{}, addToList bool)
+		parseDependence               func(value interface{}, addToList bool, specialTableName string)
 	)
 
-	parseDependence = func(value interface{}, addToList bool) {
+	parseDependence = func(value interface{}, addToList bool, specialTableName string) {
 		dep := Dependency{
 			Statement: &gorm.Statement{DB: m.DB, Dest: value},
 		}
 		beDependedOn := map[*schema.Schema]bool{}
 		// support for special table name
-		if err := dep.ParseWithSpecialTableName(value, m.DB.Statement.Table); err != nil {
+		if err := dep.ParseWithSpecialTableName(value, specialTableName); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
 		}
 		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
@@ -965,9 +965,9 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 							dep.Depends = append(dep.Depends, rel.FieldSchema)
 						} else {
 							fieldValue := reflect.New(rel.FieldSchema.ModelType).Interface()
-							parseDependence(fieldValue, autoAdd)
+							parseDependence(fieldValue, autoAdd, "")
 						}
-						parseDependence(joinValue, autoAdd)
+						parseDependence(joinValue, autoAdd, "")
 					}(rel, reflect.New(rel.JoinTable.ModelType).Interface())
 				}
 			}
@@ -992,7 +992,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 				if _, ok := valuesMap[d.Table]; ok {
 					insertIntoOrderedList(d.Table)
 				} else {
-					parseDependence(reflect.New(d.ModelType).Interface(), autoAdd)
+					parseDependence(reflect.New(d.ModelType).Interface(), autoAdd, "")
 					insertIntoOrderedList(d.Table)
 				}
 			}
@@ -1005,7 +1005,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		if v, ok := value.(string); ok {
 			results = append(results, v)
 		} else {
-			parseDependence(value, true)
+			parseDependence(value, true, m.DB.Statement.Table)
 		}
 	}
 
