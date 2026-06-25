@@ -62,6 +62,10 @@ func Create(config *Config) func(db *gorm.DB) {
 					}
 				}
 			}
+
+			if supportReturning {
+				populateReturningColumns(db)
+			}
 		}
 
 		if db.Statement.SQL.Len() == 0 {

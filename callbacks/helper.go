@@ -106,6 +106,37 @@ func hasReturning(tx *gorm.DB, supportReturning bool) (bool, gorm.ScanMode) {
 	return false, 0
 }
 
+// populateReturningColumns populates empty Returning.Columns from model schema when QueryFields is enabled.
+func populateReturningColumns(db *gorm.DB) {
+	if !db.QueryFields || db.Statement.Schema == nil {
+		return
+	}
+
+	c, ok := db.Statement.Clauses["RETURNING"]
+	if !ok {
+		return
+	}
+
+	returning, ok := c.Expression.(clause.Returning)
+	if !ok {
+		return
+	}
+
+	if len(returning.Columns) > 0 {
+		return
+	}
+
+	columns := make([]clause.Column, len(db.Statement.Schema.DBNames))
+	for idx, dbName := range db.Statement.Schema.DBNames {
+		columns[idx] = clause.Column{Name: dbName}
+	}
+
+	db.Statement.Clauses["RETURNING"] = clause.Clause{
+		Name:       "RETURNING",
+		Expression: clause.Returning{Columns: columns},
+	}
+}
+
 func checkMissingWhereConditions(db *gorm.DB) {
 	if !db.AllowGlobalUpdate && db.Error == nil {
 		where, withCondition := db.Statement.Clauses["WHERE"]
