@@ -250,7 +250,8 @@ func (db *DB) Joins(query string, args ...interface{}) (tx *DB) {
 }
 
 // InnerJoins specify inner joins conditions
-// db.InnerJoins("Account").Find(&user)
+//
+//	db.InnerJoins("Account").Find(&user)
 func (db *DB) InnerJoins(query string, args ...interface{}) (tx *DB) {
 	return joins(db, clause.InnerJoin, query, args...)
 }
