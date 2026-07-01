@@ -178,6 +178,23 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			writer.WriteByte(',')
 		}
 
+		// Fast path for common scalar types that definitely aren't any of
+		// the interface cases below and definitely aren't slices/arrays.
+		// Skips the whole type-switch dance + reflect.ValueOf().Kind()
+		// that follows for the default case. Types listed here must not
+		// implement Valuer / driver.Valuer / clause.Expression — i.e. no
+		// custom rendering logic runs on them; they get appended to
+		// stmt.Vars and rendered by the dialector's BindVarTo.
+		switch v.(type) {
+		case string, bool,
+			int, int8, int16, int32, int64,
+			uint, uint16, uint32, uint64,
+			float32, float64:
+			stmt.Vars = append(stmt.Vars, v)
+			stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+			continue
+		}
+
 		switch v := v.(type) {
 		case sql.NamedArg:
 			stmt.Vars = append(stmt.Vars, v.Value)

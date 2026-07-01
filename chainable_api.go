@@ -237,6 +237,19 @@ func (db *DB) WhereRaw(sql string, args []any) (tx *DB) {
 	return
 }
 
+// StartQuery combines Model + Select into a single getInstance() call.
+// The chainable-fluent equivalent `db.Model(&m).Select("t.*")` allocates
+// *DB + *Statement + Clauses map + Vars slice TWICE (once per chain
+// step) and does a variadic type-switch dance inside Select for a case
+// (`string` with no args) that could be a direct slice assignment. Wrapping
+// callers save one full getInstance clone per query.
+func (db *DB) StartQuery(model any, selects []string) *DB {
+	tx := db.getInstance()
+	tx.Statement.Model = model
+	tx.Statement.Selects = selects
+	return tx
+}
+
 // Not add NOT conditions
 //
 // Not works similarly to where, and has the same syntax.
