@@ -212,6 +212,31 @@ func (db *DB) Where(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+// WhereRaw adds a WHERE condition from a raw SQL fragment + a
+// pre-collected args slice. This is a specialization of Where for
+// callers that already know they hold a plain SQL string, skipping:
+//
+//   - Where's `interface{}` type dispatch on the query argument
+//   - BuildCondition's strconv.Atoi, strings.Contains, and struct/map/
+//     expression-as-conditions fallbacks
+//   - The variadic-to-slice conversion when the caller already has a []any
+//
+// Semantics match `Where(sql, args...)` for the string case: empty sql
+// with no args is a no-op; otherwise wrap in clause.Expr and append to
+// the WHERE clause. args stays typed as []any because bound values are
+// inherently heterogeneous — a single WHERE binds (string, int, uuid, ...)
+// in one call, and at the driver boundary they become []driver.Value.
+func (db *DB) WhereRaw(sql string, args []any) (tx *DB) {
+	tx = db.getInstance()
+	if sql == "" && len(args) == 0 {
+		return
+	}
+	tx.Statement.AddClause(clause.Where{
+		Exprs: []clause.Expression{clause.Expr{SQL: sql, Vars: args}},
+	})
+	return
+}
+
 // Not add NOT conditions
 //
 // Not works similarly to where, and has the same syntax.
