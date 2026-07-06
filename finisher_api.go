@@ -191,6 +191,8 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 		queryDB      = tx
 		rowsAffected int64
 		batch        int
+
+		batchPrimaryField *schema.Field // resolved lazily below (#7737)
 	)
 
 	// user specified offset or limit
@@ -238,12 +240,38 @@ func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, bat
 
 		// Optimize for-break
 		resultsValue := reflect.Indirect(reflect.ValueOf(dest))
-		if result.Statement.Schema.PrioritizedPrimaryField == nil {
+
+		// The ORDER BY and cursor comparison use the Model's primary-key column,
+		// but the value is read from the scanned dest rows. When a different
+		// Model is set (e.g. Model(A).FindInBatches(&[]B{})), the Model's field
+		// index doesn't apply to dest's type, so resolve the dest field mapping
+		// to that same primary-key column — keeping column and value in sync and
+		// mirroring how Scan re-parses a mismatched dest (#7737).
+		if batchPrimaryField == nil {
+			if modelSchema := result.Statement.Schema; modelSchema != nil && modelSchema.PrioritizedPrimaryField != nil {
+				batchPrimaryField = modelSchema.PrioritizedPrimaryField
+				destType := resultsValue.Type().Elem()
+				if destType.Kind() == reflect.Ptr {
+					destType = destType.Elem()
+				}
+				if destType != modelSchema.ModelType {
+					// Read the value from the dest field mapping to the Model's PK
+					// column; if there is none, leave it nil so the guard below
+					// fails cleanly instead of risking a wrong-index read.
+					batchPrimaryField = nil
+					if parsed, err := schema.Parse(dest, db.cacheStore, db.NamingStrategy); err == nil {
+						batchPrimaryField = parsed.LookUpField(modelSchema.PrioritizedPrimaryField.DBName)
+					}
+				}
+			}
+		}
+
+		if batchPrimaryField == nil {
 			tx.AddError(ErrPrimaryKeyRequired)
 			break
 		}
 
-		primaryValue, zero := result.Statement.Schema.PrioritizedPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
+		primaryValue, zero := batchPrimaryField.ValueOf(tx.Statement.Context, resultsValue.Index(resultsValue.Len()-1))
 		if zero {
 			tx.AddError(ErrPrimaryKeyRequired)
 			break
