@@ -275,7 +275,14 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			field.DataType = Time
 		}
 		if field.HasDefaultValue && !skipParseDefaultValue && field.DataType == Time {
-			if t, err := now.Parse(field.DefaultValue); err == nil {
+			// A literal time default carries surrounding quotes (e.g.
+			// default:'2015-10-22T14:00:00Z'); now.Parse rejects the quotes, so
+			// DefaultValueInterface stays nil and the field is wrongly treated as
+			// a DB-side default (dropped from ON CONFLICT DO UPDATE SET, #7540).
+			// Strip the quotes before parsing. A DB-side expression (now(),
+			// CURRENT_TIMESTAMP) won't parse and correctly leaves it nil.
+			defaultValue := strings.Trim(field.DefaultValue, `'"`)
+			if t, err := now.Parse(defaultValue); err == nil {
 				field.DefaultValueInterface = t
 			}
 		}
