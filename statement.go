@@ -47,6 +47,7 @@ type Statement struct {
 	attrs                []interface{}
 	assigns              []interface{}
 	scopes               []func(*DB) *DB
+	whereHasConds        []whereHasCond
 	Result               *result
 }
 
@@ -59,6 +60,12 @@ type join struct {
 	Omits      []string
 	Expression clause.Expression
 	JoinType   clause.JoinType
+}
+
+type whereHasCond struct {
+	Association string
+	NotExists   bool
+	Args        []interface{}
 }
 
 // StatementModifier statement modifier interface
@@ -355,6 +362,10 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 					conds = append(conds, cs.Expression)
 				}
 			}
+
+			if len(v.Statement.whereHasConds) > 0 {
+				stmt.whereHasConds = append(stmt.whereHasConds, v.Statement.whereHasConds...)
+			}
 		case map[interface{}]interface{}:
 			for i, j := range v {
 				conds = append(conds, clause.Eq{Column: i, Value: j})
@@ -570,6 +581,11 @@ func (stmt *Statement) clone() *Statement {
 	if len(stmt.scopes) > 0 {
 		newStmt.scopes = make([]func(*DB) *DB, len(stmt.scopes))
 		copy(newStmt.scopes, stmt.scopes)
+	}
+
+	if len(stmt.whereHasConds) > 0 {
+		newStmt.whereHasConds = make([]whereHasCond, len(stmt.whereHasConds))
+		copy(newStmt.whereHasConds, stmt.whereHasConds)
 	}
 
 	stmt.Settings.Range(func(k, v interface{}) bool {

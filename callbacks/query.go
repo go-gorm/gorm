@@ -40,6 +40,9 @@ func BuildQuerySQL(db *gorm.DB) {
 		}
 	}
 
+	// Process WhereHas/WhereDoesntHave conditions
+	db.BuildWhereHasClauses()
+
 	if db.Statement.SQL.Len() == 0 {
 		db.Statement.SQL.Grow(100)
 		clauseSelect := clause.Select{Distinct: db.Statement.Distinct}

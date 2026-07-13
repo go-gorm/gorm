@@ -240,6 +240,30 @@ func (db *DB) Or(query interface{}, args ...interface{}) (tx *DB) {
 	return
 }
 
+// WhereHas filters records that have related models matching the given association.
+// An optional *DB argument can be provided to add conditions on the related model.
+func (db *DB) WhereHas(association string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.whereHasConds = append(tx.Statement.whereHasConds, whereHasCond{
+		Association: association,
+		NotExists:   false,
+		Args:        args,
+	})
+	return
+}
+
+// WhereDoesntHave filters records that do not have related models matching the given association.
+// An optional *DB argument can be provided to add conditions on the related model.
+func (db *DB) WhereDoesntHave(association string, args ...interface{}) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.whereHasConds = append(tx.Statement.whereHasConds, whereHasCond{
+		Association: association,
+		NotExists:   true,
+		Args:        args,
+	})
+	return
+}
+
 // Joins specify Joins conditions
 //
 //	db.Joins("Account").Find(&user)
