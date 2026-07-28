@@ -77,6 +77,7 @@ type Field struct {
 	Precision              int
 	Scale                  int
 	IgnoreMigration        bool
+	UpdateStrategy         string
 	FieldType              reflect.Type
 	IndirectFieldType      reflect.Type
 	StructField            reflect.StructField
@@ -444,6 +445,14 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		}
 	}
 
+	// Update Strategy
+	if v, ok := field.TagSettings["UPDATESTRATEGY"]; ok {
+		uv := strings.ToUpper(strings.TrimSpace(v))
+		switch uv {
+		case "ALWAYS", "NOT NIL", "NOT ZERO", "DEFAULT", "NEVER":
+			field.UpdateStrategy = uv
+		}
+	}
 	return field
 }
 
