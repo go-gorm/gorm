@@ -1,13 +1,20 @@
 package clause
 
 import (
-	"strings"
+	"regexp"
 )
 
 const (
 	AndWithSpace = " AND "
 	OrWithSpace  = " OR "
 )
+
+// match AND/OR delimited by any whitespace so multiline string conditions are also wrapped in parentheses (issue #7351)
+var logicalOperatorMatcher = regexp.MustCompile(`(?i)\s(AND|OR)\s`)
+
+func hasLogicalOperator(sql string) bool {
+	return logicalOperatorMatcher.MatchString(sql)
+}
 
 // Where where clause
 type Where struct {
@@ -57,23 +64,19 @@ func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 			case OrConditions:
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
-						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = hasLogicalOperator(e.SQL)
 					}
 				}
 			case AndConditions:
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
-						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = hasLogicalOperator(e.SQL)
 					}
 				}
 			case Expr:
-				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = hasLogicalOperator(v.SQL)
 			case NamedExpr:
-				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = hasLogicalOperator(v.SQL)
 			}
 		}
 
@@ -190,8 +193,7 @@ func (not NotConditions) Build(builder Builder) {
 				builder.WriteString("NOT ")
 				e, wrapInParentheses := c.(Expr)
 				if wrapInParentheses {
-					sql := strings.ToUpper(e.SQL)
-					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+					if wrapInParentheses = hasLogicalOperator(e.SQL); wrapInParentheses {
 						builder.WriteByte('(')
 					}
 				}
@@ -225,8 +227,7 @@ func (not NotConditions) Build(builder Builder) {
 
 			e, wrapInParentheses := c.(Expr)
 			if wrapInParentheses {
-				sql := strings.ToUpper(e.SQL)
-				if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+				if wrapInParentheses = hasLogicalOperator(e.SQL); wrapInParentheses {
 					builder.WriteByte('(')
 				}
 			}
