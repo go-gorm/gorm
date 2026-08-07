@@ -5,11 +5,14 @@ import (
 	"database/sql/driver"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"gorm.io/gorm/schema"
 	"gorm.io/gorm/utils"
 )
+
+var scanValuesPool sync.Pool
 
 // prepareValues prepare values slice
 func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
@@ -66,7 +69,7 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 
 	db.RowsAffected++
 	db.AddError(rows.Scan(values...))
-	joinedNestedSchemaMap := make(map[string]interface{})
+	joinedNestedSchemaMap := make(map[string]struct{})
 	for idx, field := range fields {
 		if field == nil {
 			continue
@@ -95,7 +98,7 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 						}
 
 						relValue.Set(reflect.New(relValue.Type().Elem()))
-						joinedNestedSchemaMap[fullRelsName] = nil
+						joinedNestedSchemaMap[fullRelsName] = struct{}{}
 					}
 				}
 				currentReflectValue = relValue
@@ -126,11 +129,26 @@ const (
 func Scan(rows Rows, db *DB, mode ScanMode) {
 	var (
 		columns, _          = rows.Columns()
-		values              = make([]interface{}, len(columns))
+		values              []interface{}
 		initialized         = mode&ScanInitialized != 0
 		update              = mode&ScanUpdate != 0
 		onConflictDonothing = mode&ScanOnConflictDoNothing != 0
 	)
+
+	if pooledValues := scanValuesPool.Get(); pooledValues != nil {
+		values = pooledValues.([]interface{})
+	}
+	if cap(values) < len(columns) {
+		values = make([]interface{}, len(columns))
+	} else {
+		values = values[:len(columns)]
+	}
+	defer func() {
+		for idx := range values {
+			values[idx] = nil
+		}
+		scanValuesPool.Put(values)
+	}()
 
 	if len(db.Statement.ColumnMapping) > 0 {
 		for i, column := range columns {
