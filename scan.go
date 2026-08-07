@@ -147,7 +147,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		for idx := range values {
 			values[idx] = nil
 		}
-		scanValuesPool.Put(values)
+		scanValuesPool.Put(&values)
 	}()
 
 	if len(db.Statement.ColumnMapping) > 0 {
