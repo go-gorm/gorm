@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/jinzhu/inflection"
 	"golang.org/x/text/cases"
@@ -309,7 +310,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 
 	for idx, ownField := range ownForeignFields {
-		joinFieldName := cases.Title(language.Und, cases.NoLower).String(schema.Name) + ownField.Name
+		joinFieldName := structFieldName(schema.Name) + ownField.Name
 		if len(joinForeignKeys) > idx {
 			joinFieldName = cases.Title(language.Und, cases.NoLower).String(joinForeignKeys[idx])
 		}
@@ -326,7 +327,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 
 	for idx, relField := range refForeignFields {
-		joinFieldName := cases.Title(language.Und, cases.NoLower).String(relation.FieldSchema.Name) + relField.Name
+		joinFieldName := structFieldName(relation.FieldSchema.Name) + relField.Name
 
 		if _, ok := ownFieldsMap[joinFieldName]; ok {
 			if field.Name != relation.FieldSchema.Name {
@@ -355,7 +356,7 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 
 	joinTableFields = append(joinTableFields, reflect.StructField{
-		Name: cases.Title(language.Und, cases.NoLower).String(schema.Name) + field.Name,
+		Name: structFieldName(schema.Name) + field.Name,
 		Type: schema.ModelType,
 		Tag:  `gorm:"-"`,
 	})
@@ -780,4 +781,14 @@ func copyableDataType(str DataType) bool {
 		}
 	}
 	return true
+}
+
+func structFieldName(name string) string {
+	titled := cases.Title(language.Und, cases.NoLower).String(name)
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || r == '_' || unicode.IsDigit(r) {
+			return r
+		}
+		return -1
+	}, titled)
 }
