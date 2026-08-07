@@ -3,6 +3,7 @@ package callbacks
 import (
 	"context"
 	"database/sql"
+	"math"
 	"reflect"
 	"sync"
 	"testing"
@@ -81,7 +82,7 @@ func (lastInsertIDPool) PrepareContext(context.Context, string) (*sql.Stmt, erro
 }
 
 func (p lastInsertIDPool) ExecContext(context.Context, string, ...interface{}) (sql.Result, error) {
-	return lastInsertIDResult{id: p.id}, nil
+	return lastInsertIDResult(p), nil
 }
 
 func (lastInsertIDPool) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
@@ -107,7 +108,10 @@ func TestCreate_UnsignedPrimaryKeyAboveMaxInt64(t *testing.T) {
 		Name string
 	}
 
-	want := uint64(1) << 63
+	// math.MinInt64 is how a driver hands over an id of 1 << 63: the same bits
+	// read as signed.
+	const lastInsertID = int64(math.MinInt64)
+	const want = uint64(1) << 63
 
 	s, err := schema.Parse(&record{}, schemaCache, schema.NamingStrategy{})
 	if err != nil {
@@ -119,7 +123,7 @@ func TestCreate_UnsignedPrimaryKeyAboveMaxInt64(t *testing.T) {
 	db.Statement = &gorm.Statement{
 		DB:           db,
 		Context:      context.Background(),
-		ConnPool:     lastInsertIDPool{id: int64(want)},
+		ConnPool:     lastInsertIDPool{id: lastInsertID},
 		Schema:       s,
 		Dest:         dest,
 		ReflectValue: reflect.ValueOf(dest).Elem(),

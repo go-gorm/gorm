@@ -233,7 +233,7 @@ func holdsUint64(field *schema.Field) bool {
 		return false
 	}
 	fieldType := field.FieldType
-	for fieldType.Kind() == reflect.Ptr {
+	for fieldType.Kind() == reflect.Pointer {
 		fieldType = fieldType.Elem()
 	}
 	switch fieldType.Kind() {
