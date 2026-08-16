@@ -18,7 +18,7 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	type BasePost struct {
-		Id    int64
+		ID    int64
 		Title string
 		URL   string
 		ReadOnly
@@ -39,7 +39,7 @@ func TestEmbeddedStruct(t *testing.T) {
 	type EngadgetPost struct {
 		BasePost BasePost `gorm:"Embedded"`
 		Author   *Author  `gorm:"Embedded;EmbeddedPrefix:author_"` // Embedded struct
-		ImageUrl string
+		ImageURL string
 	}
 
 	DB.Migrator().DropTable(&HNPost{}, &EngadgetPost{})
@@ -100,7 +100,7 @@ func TestEmbeddedStruct(t *testing.T) {
 
 func TestEmbeddedPointerTypeStruct(t *testing.T) {
 	type BasePost struct {
-		Id    int64
+		ID    int64
 		Title string
 		URL   string
 	}
@@ -259,10 +259,10 @@ func TestEmbeddedRelations(t *testing.T) {
 
 func TestEmbeddedTagSetting(t *testing.T) {
 	type Tag1 struct {
-		Id int64 `gorm:"autoIncrement"`
+		ID int64 `gorm:"autoIncrement"`
 	}
 	type Tag2 struct {
-		Id int64
+		ID int64
 	}
 
 	type EmbeddedTag struct {
@@ -278,7 +278,7 @@ func TestEmbeddedTagSetting(t *testing.T) {
 	t1 := EmbeddedTag{Name: "embedded_tag"}
 	err = DB.Save(&t1).Error
 	AssertEqual(t, err, nil)
-	if t1.Tag1.Id == 0 {
+	if t1.Tag1.ID == 0 {
 		t.Errorf("embedded struct's primary field should be rewritten")
 	}
 }

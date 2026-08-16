@@ -562,7 +562,7 @@ func TestUpdatesWithBlankValues(t *testing.T) {
 
 func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 	type ElementWithIgnoredField struct {
-		Id           int64
+		ID           int64
 		Value        string
 		IgnoredField int64 `gorm:"-"`
 	}
@@ -573,11 +573,11 @@ func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 	DB.Save(&elem)
 
 	DB.Model(&ElementWithIgnoredField{}).
-		Where("id = ?", elem.Id).
+		Where("id = ?", elem.ID).
 		Updates(&ElementWithIgnoredField{Value: "bar", IgnoredField: 100})
 
 	var result ElementWithIgnoredField
-	if err := DB.First(&result, elem.Id).Error; err != nil {
+	if err := DB.First(&result, elem.ID).Error; err != nil {
 		t.Errorf("error getting an element from database: %s", err.Error())
 	}
 

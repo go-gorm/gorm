@@ -7,7 +7,7 @@ import (
 )
 
 type Hamster struct {
-	Id           int
+	ID           int
 	Name         string
 	PreferredToy Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_preferred"`
 	OtherToy     Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_other"`
@@ -21,7 +21,7 @@ func TestNamedPolymorphic(t *testing.T) {
 	DB.Save(&hamster)
 
 	hamster2 := Hamster{}
-	DB.Preload("PreferredToy").Preload("OtherToy").Find(&hamster2, hamster.Id)
+	DB.Preload("PreferredToy").Preload("OtherToy").Find(&hamster2, hamster.ID)
 
 	if hamster2.PreferredToy.ID != hamster.PreferredToy.ID || hamster2.PreferredToy.Name != hamster.PreferredToy.Name {
 		t.Errorf("Hamster's preferred toy failed to preload")

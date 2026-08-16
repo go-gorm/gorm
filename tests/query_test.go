@@ -1376,9 +1376,9 @@ func TestQueryResetNullValue(t *testing.T) {
 		Number2 uint64     `gorm:"default:NULL"`
 		Number3 float64    `gorm:"default:NULL"`
 		Now     *time.Time `gorm:"default:NULL"`
-		Item1Id string
+		Item1ID string
 		Item1   *QueryResetItem `gorm:"references:ID"`
-		Item2Id string
+		Item2ID string
 		Item2   *QueryResetItem `gorm:"references:ID"`
 	}
 
