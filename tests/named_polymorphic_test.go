@@ -7,7 +7,7 @@ import (
 )
 
 type Hamster struct {
-	ID           int
+	ID           int `gorm:"column:id;primaryKey"`
 	Name         string
 	PreferredToy Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_preferred"`
 	OtherToy     Toy `gorm:"polymorphic:Owner;polymorphicValue:hamster_other"`

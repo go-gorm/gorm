@@ -327,8 +327,8 @@ func TestAssociationEmptyQueryClause(t *testing.T) {
 		Organizations []Organization `gorm:"many2many:region_orgs;"`
 	}
 	type RegionOrg struct {
-		RegionID       uint
-		OrganizationID uint
+		RegionID       uint `gorm:"column:region_id"`	
+		OrganizationID uint `gorm:"column:organization_id"`
 		Empty          myType
 	}
 	if err := DB.SetupJoinTable(&Region{}, "Organizations", &RegionOrg{}); err != nil {

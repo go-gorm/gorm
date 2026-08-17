@@ -18,7 +18,7 @@ func TestEmbeddedStruct(t *testing.T) {
 	}
 
 	type BasePost struct {
-		ID    int64
+		ID    int64 `gorm:"column:id;primaryKey"`
 		Title string
 		URL   string
 		ReadOnly
@@ -39,7 +39,7 @@ func TestEmbeddedStruct(t *testing.T) {
 	type EngadgetPost struct {
 		BasePost BasePost `gorm:"Embedded"`
 		Author   *Author  `gorm:"Embedded;EmbeddedPrefix:author_"` // Embedded struct
-		ImageURL string
+		ImageURL string	  `gorm:"column:image_url"`
 	}
 
 	DB.Migrator().DropTable(&HNPost{}, &EngadgetPost{})
@@ -100,7 +100,7 @@ func TestEmbeddedStruct(t *testing.T) {
 
 func TestEmbeddedPointerTypeStruct(t *testing.T) {
 	type BasePost struct {
-		ID    int64
+		ID    int64 `gorm:"column:id;primaryKey"`
 		Title string
 		URL   string
 	}

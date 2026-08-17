@@ -562,7 +562,7 @@ func TestUpdatesWithBlankValues(t *testing.T) {
 
 func TestUpdatesTableWithIgnoredValues(t *testing.T) {
 	type ElementWithIgnoredField struct {
-		ID           int64
+		ID           int64  `gorm:"column:id;primaryKey"`
 		Value        string
 		IgnoredField int64 `gorm:"-"`
 	}
