@@ -1031,14 +1031,14 @@ func TestMigrateAutoIncrement(t *testing.T) {
 		t.Fatalf("AutoMigrate err: %v", err)
 	}
 
-	const ROWS = 10
-	for idx := 0; idx < ROWS; idx++ {
+	const numRows = 10
+	for idx := 0; idx < numRows; idx++ {
 		if err := DB.Create(&AutoIncrementStruct{}).Error; err != nil {
 			t.Fatalf("create auto_increment_struct fail, err: %v", err)
 		}
 	}
 
-	rows := make([]*AutoIncrementStruct, 0, ROWS)
+	rows := make([]*AutoIncrementStruct, 0, numRows)
 	if err := DB.Order("id ASC").Find(&rows).Error; err != nil {
 		t.Fatalf("find auto_increment_struct fail, err: %v", err)
 	}

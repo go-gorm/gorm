@@ -410,19 +410,19 @@ func TestCreateWithNowFuncOverride(t *testing.T) {
 	user := User{Name: "CreateUserTimestampOverride"}
 	curTime := now.MustParse("2016-01-01")
 
-	NEW := DB.Session(&gorm.Session{
+	newDB := DB.Session(&gorm.Session{
 		NowFunc: func() time.Time {
 			return curTime
 		},
 	})
 
-	NEW.Save(&user)
+	newDB.Save(&user)
 
 	AssertEqual(t, user.CreatedAt, curTime)
 	AssertEqual(t, user.UpdatedAt, curTime)
 
 	var newUser User
-	NEW.First(&newUser, user.ID)
+	newDB.First(&newUser, user.ID)
 
 	AssertEqual(t, newUser.CreatedAt, curTime)
 	AssertEqual(t, newUser.UpdatedAt, curTime)

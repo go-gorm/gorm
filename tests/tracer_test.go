@@ -12,23 +12,23 @@ type Tracer struct {
 	Test   func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error)
 }
 
-func (S Tracer) LogMode(level logger.LogLevel) logger.Interface {
-	return S.Logger.LogMode(level)
+func (t Tracer) LogMode(level logger.LogLevel) logger.Interface {
+	return t.Logger.LogMode(level)
 }
 
-func (S Tracer) Info(ctx context.Context, s string, i ...interface{}) {
-	S.Logger.Info(ctx, s, i...)
+func (t Tracer) Info(ctx context.Context, s string, i ...interface{}) {
+	t.Logger.Info(ctx, s, i...)
 }
 
-func (S Tracer) Warn(ctx context.Context, s string, i ...interface{}) {
-	S.Logger.Warn(ctx, s, i...)
+func (t) Warn(ctx context.Context, s string, i ...interface{}) {
+	t.Logger.Warn(ctx, s, i...)
 }
 
-func (S Tracer) Error(ctx context.Context, s string, i ...interface{}) {
-	S.Logger.Error(ctx, s, i...)
+func (t Tracer) Error(ctx context.Context, s string, i ...interface{}) {
+	t.Logger.Error(ctx, s, i...)
 }
 
-func (S Tracer) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
-	S.Logger.Trace(ctx, begin, fc, err)
-	S.Test(ctx, begin, fc, err)
+func (t Tracer) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+	t.Logger.Trace(ctx, begin, fc, err)
+	t.Test(ctx, begin, fc, err)
 }

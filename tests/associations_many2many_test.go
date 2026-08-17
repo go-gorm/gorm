@@ -34,7 +34,7 @@ func TestMany2ManyAssociation(t *testing.T) {
 	DB.Create(&language)
 
 	if err := DB.Model(&user2).Association("Languages").Append(&language); err != nil {
-		t.Fatalf("Error happened when append account, got %v", err)
+		t.Fatalf("Error happened when append language, got %v", err)
 	}
 
 	user.Languages = append(user.Languages, language)
@@ -219,7 +219,7 @@ func TestSingleTableMany2ManyAssociation(t *testing.T) {
 	friend := *GetUser("friend", Config{})
 
 	if err := DB.Model(&user2).Association("Friends").Append(&friend); err != nil {
-		t.Fatalf("Error happened when append account, got %v", err)
+		t.Fatalf("Error happened when append friend, got %v", err)
 	}
 
 	user.Friends = append(user.Friends, &friend)
@@ -367,7 +367,7 @@ func TestConcurrentMany2ManyAssociation(t *testing.T) {
 
 	var languages []Language
 	for i := 0; i < count; i++ {
-		language := Language{Code: fmt.Sprintf("consurrent %d", i)}
+		language := Language{Code: fmt.Sprintf("concurrent %d", i)}
 		db.Create(&language)
 		languages = append(languages, language)
 	}

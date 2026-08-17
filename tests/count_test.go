@@ -52,7 +52,7 @@ func TestCount(t *testing.T) {
 	}
 
 	if count != int64(len(users)) {
-		t.Errorf("Count() method should get correct value, expect: %v, got %v", count, len(users))
+		t.Errorf("Count() method should get correct value, expected: %v, got %v", len(users), count)
 	}
 
 	if err := DB.Model(&User{}).Where("name = ?", user1.Name).Or("name = ?", user3.Name).Count(&count).Find(&users).Error; err != nil {

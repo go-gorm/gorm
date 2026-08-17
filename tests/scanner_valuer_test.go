@@ -167,7 +167,7 @@ type EncryptedData []byte
 func (data *EncryptedData) Scan(value interface{}) error {
 	if b, ok := value.([]byte); ok {
 		if len(b) < 3 || b[0] != '*' || b[1] != '*' || b[2] != '*' {
-			return errors.New("Too short")
+			return errors.New("too short")
 		}
 
 		*data = append((*data)[0:], b[3:]...)
@@ -177,13 +177,13 @@ func (data *EncryptedData) Scan(value interface{}) error {
 		return nil
 	}
 
-	return errors.New("Bytes expected")
+	return errors.New("bytes expected")
 }
 
 func (data EncryptedData) Value() (driver.Value, error) {
 	if len(data) > 0 && data[0] == 'x' {
 		// needed to test failures
-		return nil, errors.New("Should not start with 'x'")
+		return nil, errors.New("should not start with 'x'")
 	}
 
 	// prepend asterisks
@@ -200,7 +200,7 @@ func (i *Num) Scan(src interface{}) error {
 	case int64:
 		*i = Num(s)
 	default:
-		return errors.New("Cannot scan NamedInt from " + reflect.ValueOf(src).String())
+		return errors.New("cannot scan NamedInt from " + reflect.ValueOf(src).String())
 	}
 	return nil
 }

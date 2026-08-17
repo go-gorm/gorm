@@ -46,7 +46,7 @@ func TestHasManyAssociation(t *testing.T) {
 	pet := Pet{Name: "pet-has-many-append"}
 
 	if err := DB.Model(&user2).Association("Pets").Append(&pet); err != nil {
-		t.Fatalf("Error happened when append account, got %v", err)
+		t.Fatalf("Error happened when append pet, got %v", err)
 	}
 
 	if pet.ID == 0 {
@@ -141,7 +141,7 @@ func TestSingleTableHasManyAssociation(t *testing.T) {
 	team := *GetUser("team", Config{})
 
 	if err := DB.Model(&user2).Association("Team").Append(&team); err != nil {
-		t.Fatalf("Error happened when append account, got %v", err)
+		t.Fatalf("Error happened when append team, got %v", err)
 	}
 
 	if team.ID == 0 {
@@ -346,7 +346,7 @@ func TestPolymorphicHasManyAssociation(t *testing.T) {
 	toy := Toy{Name: "toy-has-many-append"}
 
 	if err := DB.Model(&user2).Association("Toys").Append(&toy); err != nil {
-		t.Fatalf("Error happened when append account, got %v", err)
+		t.Fatalf("Error happened when append toy, got %v", err)
 	}
 
 	if toy.ID == 0 {

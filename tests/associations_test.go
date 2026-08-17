@@ -9,9 +9,9 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
-func AssertAssociationCount(t *testing.T, data interface{}, name string, result int64, reason string) {
-	if count := DB.Model(data).Association(name).Count(); count != result {
-		t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+func AssertAssociationCount(t *testing.T, data interface{}, name string, expected int64, reason string) {
+	if count := DB.Model(data).Association(name).Count(); count != expected {
+		t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, expected, count)
 	}
 
 	var newUser User
@@ -22,8 +22,8 @@ func AssertAssociationCount(t *testing.T, data interface{}, name string, result 
 	}
 
 	if newUser.ID != 0 {
-		if count := DB.Model(&newUser).Association(name).Count(); count != result {
-			t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, result, count)
+		if count := DB.Model(&newUser).Association(name).Count(); count != expected {
+			t.Fatalf("invalid %v count %v, expects: %v got %v", name, reason, expected, count)
 		}
 	}
 }
@@ -66,7 +66,7 @@ func TestAssociationNotNullClear(t *testing.T) {
 	}
 
 	if err := DB.Model(member).Association("Profiles").Clear(); err == nil {
-		t.Fatalf("No error occurred during clearind not null association")
+		t.Fatalf("No error occurred during clearing not null association")
 	}
 }
 

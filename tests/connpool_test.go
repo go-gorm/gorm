@@ -17,30 +17,30 @@ type wrapperTx struct {
 	conn *wrapperConnPool
 }
 
-func (c *wrapperTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	c.conn.got = append(c.conn.got, query)
-	return c.Tx.PrepareContext(ctx, query)
+func (w *wrapperTx) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	w.conn.got = append(w.conn.got, query)
+	return w.Tx.PrepareContext(ctx, query)
 }
 
-func (c *wrapperTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	c.conn.got = append(c.conn.got, query)
-	return c.Tx.ExecContext(ctx, query, args...)
+func (w *wrapperTx) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	w.conn.got = append(w.conn.got, query)
+	return w.Tx.ExecContext(ctx, query, args...)
 }
 
-func (c *wrapperTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	c.conn.got = append(c.conn.got, query)
-	return c.Tx.QueryContext(ctx, query, args...)
+func (w *wrapperTx) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	w.conn.got = append(w.conn.got, query)
+	return w.Tx.QueryContext(ctx, query, args...)
 }
 
-func (c *wrapperTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	c.conn.got = append(c.conn.got, query)
-	return c.Tx.QueryRowContext(ctx, query, args...)
+func (w *wrapperTx) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	w.conn.got = append(w.conn.got, query)
+	return w.Tx.QueryRowContext(ctx, query, args...)
 }
 
 type wrapperConnPool struct {
 	db     *sql.DB
 	got    []string
-	expect []string
+	expected []string
 }
 
 func (c *wrapperConnPool) Ping() error {
@@ -54,32 +54,32 @@ func (c *wrapperConnPool) Ping() error {
 //	}
 //
 // You should use BeginTx returned gorm.Tx which could wrap *sql.Tx then you can record all queries.
-func (c *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
-	tx, err := c.db.BeginTx(ctx, opts)
+func (w *wrapperConnPool) BeginTx(ctx context.Context, opts *sql.TxOptions) (gorm.ConnPool, error) {
+	tx, err := w.db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
-	return &wrapperTx{Tx: tx, conn: c}, nil
+	return &wrapperTx{Tx: tx, conn: w}, nil
 }
 
-func (c *wrapperConnPool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	c.got = append(c.got, query)
-	return c.db.PrepareContext(ctx, query)
+func (w *wrapperConnPool) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	w.got = append(w.got, query)
+	return w.db.PrepareContext(ctx, query)
 }
 
-func (c *wrapperConnPool) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	c.got = append(c.got, query)
-	return c.db.ExecContext(ctx, query, args...)
+func (w *wrapperConnPool) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	w.got = append(w.got, query)
+	return w.db.ExecContext(ctx, query, args...)
 }
 
-func (c *wrapperConnPool) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	c.got = append(c.got, query)
-	return c.db.QueryContext(ctx, query, args...)
+func (w *wrapperConnPool) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	w.got = append(w.got, query)
+	return w.db.QueryContext(ctx, query, args...)
 }
 
-func (c *wrapperConnPool) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	c.got = append(c.got, query)
-	return c.db.QueryRowContext(ctx, query, args...)
+func (w *wrapperConnPool) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	w.got = append(w.got, query)
+	return w.db.QueryRowContext(ctx, query, args...)
 }
 
 func TestConnPoolWrapper(t *testing.T) {
@@ -99,7 +99,7 @@ func TestConnPoolWrapper(t *testing.T) {
 
 	conn := &wrapperConnPool{
 		db: nativeDB,
-		expect: []string{
+		expected: []string{
 			"SELECT VERSION()",
 			"INSERT INTO `users` (`created_at`,`updated_at`,`deleted_at`,`name`,`age`,`birthday`,`company_id`,`manager_id`,`active`) VALUES (?,?,?,?,?,?,?,?,?)",
 			"SELECT * FROM `users` WHERE name = ? AND `users`.`deleted_at` IS NULL ORDER BY `users`.`id` LIMIT ?",
@@ -113,8 +113,8 @@ func TestConnPoolWrapper(t *testing.T) {
 	}
 
 	defer func() {
-		if !reflect.DeepEqual(conn.got, conn.expect) {
-			t.Errorf("expect %#v but got %#v", conn.expect, conn.got)
+		if !reflect.DeepEqual(conn.got, conn.expected) {
+			t.Errorf("expect %#v but got %#v", conn.expected, conn.got)
 		}
 	}()
 

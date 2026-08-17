@@ -90,7 +90,7 @@ func (s *Product) AfterDelete(tx *gorm.DB) (err error) {
 	return
 }
 
-func (s *Product) GetCallTimes() []int64 {
+func (s *Product) CallTimes() []int64 {
 	return []int64{s.BeforeCreateCallTimes, s.BeforeSaveCallTimes, s.BeforeUpdateCallTimes, s.AfterCreateCallTimes, s.AfterSaveCallTimes, s.AfterUpdateCallTimes, s.BeforeDeleteCallTimes, s.AfterDeleteCallTimes, s.AfterFindCallTimes}
 }
 
@@ -101,19 +101,19 @@ func TestRunCallbacks(t *testing.T) {
 	p := Product{Code: "unique_code", Price: 100}
 	DB.Save(&p)
 
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0, 0}) {
-		t.Fatalf("Callbacks should be invoked successfully, %v", p.GetCallTimes())
+	if !reflect.DeepEqual(p.CallTimes(), []int64{1, 1, 0, 1, 1, 0, 0, 0, 0}) {
+		t.Fatalf("Callbacks should be invoked successfully, %v", p.CallTimes())
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 1, 0, 1, 0, 0, 0, 0, 1}) {
-		t.Fatalf("After callbacks values are not saved, %v", p.GetCallTimes())
+	if !reflect.DeepEqual(p.CallTimes(), []int64{1, 1, 0, 1, 0, 0, 0, 0, 1}) {
+		t.Fatalf("After callbacks values are not saved, %v", p.CallTimes())
 	}
 
 	p.Price = 200
 	DB.Save(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 1, 1, 0, 0, 1}) {
-		t.Fatalf("After update callbacks should be invoked successfully, %v", p.GetCallTimes())
+	if !reflect.DeepEqual(p.CallTimes(), []int64{1, 2, 1, 1, 1, 1, 0, 0, 1}) {
+		t.Fatalf("After update callbacks should be invoked successfully, %v", p.CallTimes())
 	}
 
 	var products []Product
@@ -123,13 +123,13 @@ func TestRunCallbacks(t *testing.T) {
 	}
 
 	DB.Where("Code = ?", "unique_code").First(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0, 2}) {
-		t.Fatalf("After update callbacks values are not saved, %v", p.GetCallTimes())
+	if !reflect.DeepEqual(p.CallTimes(), []int64{1, 2, 1, 1, 0, 0, 0, 0, 2}) {
+		t.Fatalf("After update callbacks values are not saved, %v", p.CallTimes())
 	}
 
 	DB.Delete(&p)
-	if !reflect.DeepEqual(p.GetCallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2}) {
-		t.Fatalf("After delete callbacks should be invoked successfully, %v", p.GetCallTimes())
+	if !reflect.DeepEqual(p.CallTimes(), []int64{1, 2, 1, 1, 0, 0, 1, 1, 2}) {
+		t.Fatalf("After delete callbacks should be invoked successfully, %v", p.CallTimes())
 	}
 
 	if DB.Where("Code = ?", "unique_code").First(&p).Error == nil {
@@ -222,10 +222,10 @@ type Product2 struct {
 
 func (s Product2) BeforeCreate(tx *gorm.DB) (err error) {
 	if !strings.HasSuffix(s.Name, "_clone") {
-		newProduft := s
-		newProduft.Price *= 2
-		newProduft.Name += "_clone"
-		err = tx.Create(&newProduft).Error
+		newProduct := s
+		newProduct.Price *= 2
+		newProduct.Name += "_clone"
+		err = tx.Create(&newProduct).Error
 	}
 
 	if s.Name == "Invalid" {

@@ -143,7 +143,7 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 	}
 
 	now := time.Now().Round(time.Second)
-	NewPost := HNPost{
+	newPost := HNPost{
 		BasePost: &BasePost{Title: "embedded_pointer_type2"},
 		Author: &Author{
 			Name:        "test",
@@ -153,31 +153,31 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 			BirthdayPtr: nil,
 		},
 	}
-	DB.Create(&NewPost)
+	DB.Create(&newPost)
 
 	hnPost = HNPost{}
-	if err := DB.First(&hnPost, "title = ?", NewPost.Title).Error; err != nil {
+	if err := DB.First(&hnPost, "title = ?", newPost.Title).Error; err != nil {
 		t.Errorf("No error should happen when find embedded pointer type, but got %v", err)
 	}
 
-	if hnPost.Title != NewPost.Title {
+	if hnPost.Title != newPost.Title {
 		t.Errorf("Should find correct value for embedded pointer type")
 	}
 
-	if hnPost.Author.Name != NewPost.Author.Name {
-		t.Errorf("Expected to get Author name %v but got: %v", NewPost.Author.Name, hnPost.Author.Name)
+	if hnPost.Author.Name != newPost.Author.Name {
+		t.Errorf("Expected to get Author name %v but got: %v", newPost.Author.Name, hnPost.Author.Name)
 	}
 
-	if !reflect.DeepEqual(NewPost.Author.Content, hnPost.Author.Content) {
-		t.Errorf("Expected to get Author content %v but got: %v", NewPost.Author.Content, hnPost.Author.Content)
+	if !reflect.DeepEqual(newPost.Author.Content, hnPost.Author.Content) {
+		t.Errorf("Expected to get Author content %v but got: %v", newPost.Author.Content, hnPost.Author.Content)
 	}
 
 	if hnPost.Author.ContentPtr != nil {
 		t.Errorf("Expected to get nil Author contentPtr but got: %v", hnPost.Author.ContentPtr)
 	}
 
-	if NewPost.Author.Birthday.UnixMilli() != hnPost.Author.Birthday.UnixMilli() {
-		t.Errorf("Expected to get Author birthday with %+v but got: %+v", NewPost.Author.Birthday, hnPost.Author.Birthday)
+	if newPost.Author.Birthday.UnixMilli() != hnPost.Author.Birthday.UnixMilli() {
+		t.Errorf("Expected to get Author birthday with %+v but got: %+v", newPost.Author.Birthday, hnPost.Author.Birthday)
 	}
 
 	if hnPost.Author.BirthdayPtr != nil {
@@ -201,7 +201,7 @@ func (c *Content) Scan(src interface{}) error {
 	if !ok {
 		byt, ok := src.([]byte)
 		if !ok {
-			return errors.New("Embedded.Scan byte assertion failed")
+			return errors.New("embedded.Scan byte assertion failed")
 		}
 		if err := json.Unmarshal(byt, &value); err != nil {
 			return err

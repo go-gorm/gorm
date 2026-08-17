@@ -51,7 +51,7 @@ func TestFind(t *testing.T) {
 		t.Errorf("errors happened when query find: %v, length: %v", err, len(all))
 	} else {
 		for idx, user := range users {
-			t.Run("FindAll#"+strconv.Itoa(idx+1), func(t *testing.T) {
+			t.Run("user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 				CheckUser(t, all[idx], user)
 			})
 		}
@@ -141,7 +141,7 @@ func TestFind(t *testing.T) {
 			t.Errorf("errors happened when query find: %v", err)
 		} else {
 			for idx, user := range users {
-				t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
+				t.Run("map_user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 					for _, name := range []string{"Name", "Age", "Birthday"} {
 						t.Run(name, func(t *testing.T) {
 							dbName := DB.NamingStrategy.ColumnName("", name)
@@ -176,7 +176,7 @@ func TestFind(t *testing.T) {
 			t.Errorf("errors happened when query find: %v", err)
 		} else {
 			for idx, user := range users {
-				t.Run("FindAllMap#"+strconv.Itoa(idx+1), func(t *testing.T) {
+				t.Run("map_user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 					for _, name := range []string{"Name", "Age", "Birthday"} {
 						t.Run(name, func(t *testing.T) {
 							dbName := DB.NamingStrategy.ColumnName("", name)
@@ -211,7 +211,7 @@ func TestFind(t *testing.T) {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models))
 	} else {
 		for idx, user := range users {
-			t.Run("FindWithInClause#"+strconv.Itoa(idx+1), func(t *testing.T) {
+			t.Run("user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 				CheckUser(t, models[idx], user)
 			})
 		}
@@ -223,7 +223,7 @@ func TestFind(t *testing.T) {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models2))
 	} else {
 		for idx, user := range users {
-			t.Run("FindWithInClause#"+strconv.Itoa(idx+1), func(t *testing.T) {
+			t.Run("user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 				CheckUser(t, models2[idx], user)
 			})
 		}
@@ -235,7 +235,7 @@ func TestFind(t *testing.T) {
 		t.Errorf("errors happened when query find with in clause: %v, length: %v", err, len(models3))
 	} else {
 		for idx, user := range users[:2] {
-			t.Run("FindWithInClause#"+strconv.Itoa(idx+1), func(t *testing.T) {
+			t.Run("user_1"+strconv.Itoa(idx+1), func(t *testing.T) {
 				CheckUser(t, models3[idx], user)
 			})
 		}
@@ -1336,7 +1336,7 @@ func (t *DoubleInt64) Scan(val interface{}) error {
 		t.data = v * 2
 		return nil
 	default:
-		return fmt.Errorf("DoubleInt64 cant not scan with:%v", v)
+		return fmt.Errorf("DoubleInt64 cannot not scan with:%v", v)
 	}
 }
 

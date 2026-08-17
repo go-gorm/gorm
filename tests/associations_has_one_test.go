@@ -112,7 +112,7 @@ func TestHasOneAssociationForSlice(t *testing.T) {
 	// Find
 	var accounts []Account
 	if DB.Model(&users).Association("Account").Find(&accounts); len(accounts) != 2 {
-		t.Errorf("accounts count should be %v, but got %v", 3, len(accounts))
+		t.Errorf("accounts count should be %v, but got %v", 2, len(accounts))
 	}
 
 	// Append
