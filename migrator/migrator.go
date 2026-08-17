@@ -875,7 +875,7 @@ func (m Migrator) DropIndex(value interface{}, name string) error {
 			}
 		}
 
-		return m.DB.Exec("DROP INDEX ? ON ?", clause.Column{Name: name}, m.CurrentTable(stmt)).Error
+		return m.DB.Exec("DROP INDEX IF EXISTS ?", clause.Column{Name: name}).Error
 	})
 }
 
