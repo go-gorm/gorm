@@ -20,7 +20,7 @@ func (t Tracer) Info(ctx context.Context, s string, i ...interface{}) {
 	t.Logger.Info(ctx, s, i...)
 }
 
-func (t) Warn(ctx context.Context, s string, i ...interface{}) {
+func (t Tracer) Warn(ctx context.Context, s string, i ...interface{}) {
 	t.Logger.Warn(ctx, s, i...)
 }
 
