@@ -939,6 +939,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		// support for special table name
 		if err := dep.ParseWithSpecialTableName(value, m.DB.Statement.Table); err != nil {
 			m.DB.Logger.Error(context.Background(), "failed to parse value %#v, got error %v", value, err)
+			return
 		}
 		if _, ok := parsedSchemas[dep.Statement.Schema]; ok {
 			return
