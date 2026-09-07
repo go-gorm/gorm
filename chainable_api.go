@@ -1,6 +1,7 @@
 package gorm
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -241,12 +242,60 @@ func (db *DB) WhereRaw(sql string, args []any) (tx *DB) {
 // The chainable-fluent equivalent `db.Model(&m).Select("t.*")` allocates
 // *DB + *Statement + Clauses map + Vars slice TWICE (once per chain
 // step) and does a variadic type-switch dance inside Select for a case
-// (`string` with no args) that could be a direct slice assignment. Wrapping
-// callers save one full getInstance clone per query.
+// (`string` with no args) that could be a direct slice assignment.
+//
+// Fast path: when db was returned by WithContextLight the Statement
+// carries LightTemplate=true and no Clauses map yet. StartQuery promotes
+// that template in-place — no *DB / *Statement alloc — populating the
+// working Statement fields and marking clone=0 so subsequent chainables
+// (WhereRaw, etc.) mutate this Statement directly. Consumers that need
+// to fan out multiple queries from the same context (e.g. Delete's
+// primary + secondary pair) must fork the tx explicitly (see
+// tx.Session(...)) before the second call.
 func (db *DB) StartQuery(model any, selects []string) *DB {
+	if db.Statement.LightTemplate {
+		db.Statement.LightTemplate = false
+		db.Statement.Clauses = map[string]clause.Clause{}
+		db.Statement.Vars = make([]interface{}, 0, 8)
+		db.Statement.Model = model
+		db.Statement.Selects = selects
+		db.clone = 0
+
+		return db
+	}
+
 	tx := db.getInstance()
 	tx.Statement.Model = model
 	tx.Statement.Selects = selects
+	return tx
+}
+
+// WithContextLight is a lightweight replacement for WithContext(ctx) when
+// the caller only needs to attach a context (no other Session options).
+// Vanilla WithContext dispatches through Session which then calls
+// Statement.clone — a full copy of Clauses/Preloads maps plus a
+// Settings.Range copy of the (typically empty) source statement.
+//
+// Instead we return a template *DB whose Statement holds only Context +
+// ConnPool. clone=1 is set so the very next getInstance() takes the
+// lightweight clone-with-new-statement path, inheriting the context and
+// producing a fresh working statement. Callers that fan out multiple
+// queries off the same template (e.g. Delete's primary+secondary) each
+// get an isolated statement, matching Session's semantics without the
+// map-copy cost.
+func (db *DB) WithContextLight(ctx context.Context) *DB {
+	tx := &DB{Config: db.Config, Error: db.Error, clone: 1}
+	tx.Statement = &Statement{
+		DB:            tx,
+		ConnPool:      db.Statement.ConnPool,
+		Context:       ctx,
+		SkipHooks:     db.Statement.SkipHooks,
+		LightTemplate: true,
+	}
+	if db.Config.PropagateUnscoped {
+		tx.Statement.Unscoped = db.Statement.Unscoped
+	}
+
 	return tx
 }
 

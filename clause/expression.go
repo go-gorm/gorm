@@ -31,30 +31,57 @@ func (expr Expr) Build(builder Builder) {
 		idx              int
 	)
 
+	// Optional non-variadic AddVar fast path — skips the []interface{}{v}
+	// slice allocation the standard AddVar(...) signature forces the
+	// caller to materialize per '?' placeholder. Statement implements
+	// SingleVarBuilder; third-party Builder implementations fall through
+	// to the variadic AddVar unchanged.
+	svb, hasSingle := builder.(SingleVarBuilder)
+
 	for _, v := range []byte(expr.SQL) {
 		if v == '?' && len(expr.Vars) > idx {
 			if afterParenthesis || expr.WithoutParentheses {
 				if _, ok := expr.Vars[idx].(driver.Valuer); ok {
-					builder.AddVar(builder, expr.Vars[idx])
+					if hasSingle {
+						svb.AddVarSingle(builder, expr.Vars[idx])
+					} else {
+						builder.AddVar(builder, expr.Vars[idx])
+					}
 				} else {
 					switch rv := reflect.ValueOf(expr.Vars[idx]); rv.Kind() {
 					case reflect.Slice, reflect.Array:
 						if rv.Len() == 0 {
-							builder.AddVar(builder, nil)
+							if hasSingle {
+								svb.AddVarSingle(builder, nil)
+							} else {
+								builder.AddVar(builder, nil)
+							}
 						} else {
 							for i := 0; i < rv.Len(); i++ {
 								if i > 0 {
 									builder.WriteByte(',')
 								}
-								builder.AddVar(builder, rv.Index(i).Interface())
+								if hasSingle {
+									svb.AddVarSingle(builder, rv.Index(i).Interface())
+								} else {
+									builder.AddVar(builder, rv.Index(i).Interface())
+								}
 							}
 						}
 					default:
-						builder.AddVar(builder, expr.Vars[idx])
+						if hasSingle {
+							svb.AddVarSingle(builder, expr.Vars[idx])
+						} else {
+							builder.AddVar(builder, expr.Vars[idx])
+						}
 					}
 				}
 			} else {
-				builder.AddVar(builder, expr.Vars[idx])
+				if hasSingle {
+					svb.AddVarSingle(builder, expr.Vars[idx])
+				} else {
+					builder.AddVar(builder, expr.Vars[idx])
+				}
 			}
 
 			idx++

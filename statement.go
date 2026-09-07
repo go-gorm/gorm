@@ -41,6 +41,19 @@ type Statement struct {
 	Context              context.Context
 	RaiseErrorOnNotFound bool
 	SkipHooks            bool
+	// RowsMode replaces the Settings["rows"] sync.Map dance used by
+	// DB.Rows() to signal that RowQuery should call QueryContext (rows)
+	// rather than QueryRowContext (a single row). Using a bool field
+	// skips the sync.Map.Store/Load/Delete triple that used to allocate
+	// ~1% of total allocs per Rows() call.
+	RowsMode bool
+	// LightTemplate marks a Statement returned by WithContextLight as a
+	// promotable template: StartQuery consumes it in-place (populating
+	// Clauses/Vars/Model/Selects on this Statement rather than
+	// allocating a fresh *DB + *Statement pair via getInstance). Cleared
+	// after first StartQuery so subsequent calls take the normal clone
+	// path — the shared root DB from Open() never has this set.
+	LightTemplate bool
 	SQL                  strings.Builder
 	Vars                 []interface{}
 	CurDestIndex         int
@@ -283,6 +296,29 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			}
 		}
 	}
+}
+
+// AddVarSingle is a single-value form of AddVar that skips the
+// []interface{}{v} variadic-slice allocation the standard AddVar
+// signature forces the caller to materialize per '?' placeholder.
+//
+// Fast path only for scalar built-ins that are known to hit AddVar's
+// scalar branch — anything else delegates to AddVar itself so the
+// exotic paths (Valuer, clause.Expression, *DB subqueries, []byte,
+// slices, driver.Valuer, etc.) aren't duplicated. The exotic paths
+// pay the variadic slice alloc still, but they're rare compared to
+// bound scalar parameters.
+func (stmt *Statement) AddVarSingle(writer clause.Writer, v interface{}) {
+	switch v.(type) {
+	case string, bool,
+		int, int8, int16, int32, int64,
+		uint, uint16, uint32, uint64,
+		float32, float64:
+		stmt.Vars = append(stmt.Vars, v)
+		stmt.DB.Dialector.BindVarTo(writer, stmt, v)
+		return
+	}
+	stmt.AddVar(writer, v)
 }
 
 // AddClause add clause
@@ -532,9 +568,15 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
 	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
-		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
+		// Look for the `schema.table` form (e.g. "public.users") without
+		// allocating a []string via strings.Split — every query hits this
+		// path and the split's throwaway slice was ~1.8% of total allocs
+		// in the CQL benchmark. IndexByte + string slicing preserves the
+		// exact semantics of `len(Split(...)) == 2`: a name with exactly
+		// one dot splits Schema.Table at that dot and takes the tail.
+		if dot := strings.IndexByte(stmt.Schema.Table, '.'); dot >= 0 && strings.IndexByte(stmt.Schema.Table[dot+1:], '.') < 0 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
-			stmt.Table = tables[1]
+			stmt.Table = stmt.Schema.Table[dot+1:]
 			return
 		}
 

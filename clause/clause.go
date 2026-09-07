@@ -23,6 +23,17 @@ type Builder interface {
 	AddError(error) error
 }
 
+// SingleVarBuilder is an optional extension implemented by Builders
+// (i.e. gorm.Statement) that can accept a single variable without the
+// variadic ...interface{} slice allocation the standard AddVar
+// signature forces. Callers on hot paths (clause.Expr.Build) should
+// type-assert to this interface and prefer AddVarSingle when
+// available, falling back to AddVar otherwise.
+type SingleVarBuilder interface {
+	Builder
+	AddVarSingle(Writer, interface{})
+}
+
 // Clause
 type Clause struct {
 	Name                string // WHERE

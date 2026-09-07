@@ -514,7 +514,11 @@ func (db *DB) Row() *sql.Row {
 }
 
 func (db *DB) Rows() (*sql.Rows, error) {
-	tx := db.getInstance().Set("rows", true)
+	tx := db.getInstance()
+	// Set the rows-mode flag directly on the Statement rather than
+	// going through Set("rows", true) — which allocates a sync.Map
+	// entry, plus another getInstance clone inside Set.
+	tx.Statement.RowsMode = true
 	tx = tx.callbacks.Row().Execute(tx)
 	rows, ok := tx.Statement.Dest.(*sql.Rows)
 	if !ok && tx.DryRun && tx.Error == nil {
