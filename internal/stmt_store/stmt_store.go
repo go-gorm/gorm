@@ -16,16 +16,47 @@ type Stmt struct {
 	Transaction bool
 	prepared    chan struct{}
 	prepareErr  error
+	mu          sync.Mutex
+	refs        int
+	closed      bool
 }
 
 func (stmt *Stmt) Error() error {
 	return stmt.prepareErr
 }
 
+// Acquire retains a prepared statement for use unless it has been closed.
+// Each successful acquisition must be paired with Release.
+func (stmt *Stmt) Acquire() bool {
+	stmt.mu.Lock()
+	defer stmt.mu.Unlock()
+	if stmt.closed {
+		return false
+	}
+	stmt.refs++
+	return true
+}
+
+// Release releases an active use, closing an evicted statement after its last user.
+func (stmt *Stmt) Release() {
+	stmt.mu.Lock()
+	stmt.refs--
+	closeStmt := stmt.closed && stmt.refs == 0
+	stmt.mu.Unlock()
+	if closeStmt && stmt.Stmt != nil {
+		_ = stmt.Stmt.Close()
+	}
+}
+
+// Close prevents new acquisitions and defers closing until active users finish.
 func (stmt *Stmt) Close() error {
 	<-stmt.prepared
 
-	if stmt.Stmt != nil {
+	stmt.mu.Lock()
+	stmt.closed = true
+	closeStmt := stmt.refs == 0
+	stmt.mu.Unlock()
+	if closeStmt && stmt.Stmt != nil {
 		return stmt.Stmt.Close()
 	}
 	return nil
@@ -35,7 +66,8 @@ func (stmt *Stmt) Close() error {
 // This interface provides methods for creating new statements, retrieving all cache keys,
 // getting cached statements, setting cached statements, and deleting cached statements.
 type Store interface {
-	// New creates a new Stmt object and caches it.
+	// New creates a new Stmt object and caches it. On success, the caller owns
+	// an active reference and must call Release after using the statement.
 	// Parameters:
 	//   ctx: The context for the request, which can carry deadlines, cancellation signals, etc.
 	//   key: The key representing the SQL query, used for caching and preparing the statement.
@@ -161,6 +193,7 @@ func (s *lruStore) New(ctx context.Context, key string, isTransaction bool, conn
 	cacheStmt := &Stmt{
 		Transaction: isTransaction,
 		prepared:    make(chan struct{}),
+		refs:        1, // Retain the creator's reference before publishing to the cache.
 	}
 	// Cache the Stmt object with the associated key.
 	s.Set(key, cacheStmt)
@@ -176,6 +209,7 @@ func (s *lruStore) New(ctx context.Context, key string, isTransaction bool, conn
 		// If statement preparation fails, record the error and remove the invalid Stmt object from the cache.
 		cacheStmt.prepareErr = err
 		s.Delete(key)
+		cacheStmt.Release()
 		return &Stmt{}, err
 	}
 
