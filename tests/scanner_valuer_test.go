@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -63,6 +65,54 @@ func TestScannerValuer(t *testing.T) {
 		t.Errorf(`ExampleStruct.Val should equal to "value1", but got %#v`, result.ExampleStruct)
 	}
 	AssertObjEqual(t, data, result, "Name", "Gender", "Age", "Male", "Height", "Birthday", "Password", "Bytes", "Num", "Strings", "Structs")
+}
+
+func TestScannerValuerArray(t *testing.T) {
+	// Use custom dialector to enable array handler
+	os.Setenv("GORM_DIALECT", "postgres")
+	os.Setenv("GORM_ENABLE_ARRAY_HANDLER", "true")
+	var err error
+	if DB, err = OpenTestConnection(&gorm.Config{}); err != nil {
+		log.Printf("failed to connect database, got error %v", err)
+		os.Exit(1)
+	}
+
+	DB.Migrator().DropTable(&ScannerValuerStructOfArrays{})
+	if err := DB.Migrator().AutoMigrate(&ScannerValuerStructOfArrays{}); err != nil {
+		t.Fatalf("no error should happen when migrate scanner, valuer struct, got error %v", err)
+	}
+
+	data := ScannerValuerStructOfArrays{
+		StringArray: []string{"a", "b", "c"},
+		IntArray:    []int{1, 2, 3},
+		Int8Array:   []int8{1, 2, 3},
+		Int16Array:  []int16{1, 2, 3},
+		Int32Array:  []int32{1, 2, 3},
+		Int64Array:  []int64{1, 2, 3},
+		UintArray:   []uint{1, 2, 3},
+		Uint16Array: []uint16{1, 2, 3},
+		Uint32Array: []uint32{1, 2, 3},
+		Uint64Array: []uint64{1, 2, 3},
+		Float32Array: []float32{
+			1.1, 2.2, 3.3,
+		},
+		Float64Array: []float64{
+			1.1, 2.2, 3.3,
+		},
+		BoolArray: []bool{true, false, true},
+	}
+
+	if err := DB.Create(&data).Error; err != nil {
+		t.Fatalf("No error should happened when create scanner valuer struct, but got %v", err)
+	}
+
+	var result ScannerValuerStructOfArrays
+
+	if err := DB.Find(&result, "id = ?", data.ID).Error; err != nil {
+		t.Fatalf("no error should happen when query scanner, valuer struct, but got %v", err)
+	}
+
+	AssertObjEqual(t, data, result, "StringArray", "IntArray", "Int8Array", "Int16Array", "Int32Array", "Int64Array", "UintArray", "Uint16Array", "Uint32Array", "Uint64Array", "Float32Array", "Float64Array", "BoolArray")
 }
 
 func TestScannerValuerWithFirstOrCreate(t *testing.T) {
@@ -160,6 +210,23 @@ type ScannerValuerStruct struct {
 	EmptyTime        EmptyTime
 	ExampleStruct    ExampleStruct
 	ExampleStructPtr *ExampleStruct
+}
+
+type ScannerValuerStructOfArrays struct {
+	gorm.Model
+	StringArray  []string
+	IntArray     []int
+	Int8Array    []int8
+	Int16Array   []int16
+	Int32Array   []int32
+	Int64Array   []int64
+	UintArray    []uint
+	Uint16Array  []uint16
+	Uint32Array  []uint32
+	Uint64Array  []uint64
+	Float32Array []float32
+	Float64Array []float64
+	BoolArray    []bool
 }
 
 type EncryptedData []byte
