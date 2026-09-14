@@ -95,7 +95,7 @@ func (association *Association) Replace(values ...interface{}) error {
 				// deferred delete condition to the NEW association
 				for _, row := range fvs {
 					for idx, v := range row {
-						if rv := reflect.ValueOf(v); rv.Kind() == reflect.Ptr && !rv.IsNil() {
+						if rv := reflect.ValueOf(v); rv.Kind() == reflect.Pointer && !rv.IsNil() {
 							row[idx] = rv.Elem().Interface()
 						}
 					}
