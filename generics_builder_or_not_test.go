@@ -2,6 +2,7 @@ package gorm_test
 
 import (
 	"context"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -44,15 +45,7 @@ func petNames(pets []orNotPet) []string {
 }
 
 func equalNames(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return reflect.DeepEqual(a, b)
 }
 
 func openOrNotDB(t *testing.T) *gorm.DB {
@@ -79,8 +72,19 @@ func openOrNotDB(t *testing.T) *gorm.DB {
 	return db
 }
 
+func preloadPetNames(t *testing.T, db *gorm.DB, ownerID uint, build func(pb gorm.PreloadBuilder) error) []string {
+	t.Helper()
+	owners, err := gorm.G[orNotOwner](db).Preload("Pets", build).Where("id = ?", ownerID).Find(context.Background())
+	if err != nil {
+		t.Fatalf("preload failed: %v", err)
+	}
+	if len(owners) != 1 {
+		t.Fatalf("expected 1 owner, got %d", len(owners))
+	}
+	return petNames(owners[0].Pets)
+}
+
 func TestGenericsPreloadBuilderOrNot(t *testing.T) {
-	ctx := context.Background()
 	db := openOrNotDB(t)
 
 	owner := orNotOwner{ID: 1, Name: "o1", Pets: []orNotPet{
@@ -91,47 +95,26 @@ func TestGenericsPreloadBuilderOrNot(t *testing.T) {
 	}
 
 	// Or: preload pets named cat OR dog -> 2 pets
-	owners, err := gorm.G[orNotOwner](db).Preload("Pets", func(pb gorm.PreloadBuilder) error {
+	if got := preloadPetNames(t, db, owner.ID, func(pb gorm.PreloadBuilder) error {
 		pb.Where("name = ?", "cat").Or("name = ?", "dog")
 		return nil
-	}).Where("id = ?", owner.ID).Find(ctx)
-	if err != nil {
-		t.Fatalf("preload Or failed: %v", err)
-	}
-	if len(owners) != 1 {
-		t.Fatalf("expected 1 owner, got %d", len(owners))
-	}
-	if got := petNames(owners[0].Pets); !equalNames(got, []string{"cat", "dog"}) {
+	}); !equalNames(got, []string{"cat", "dog"}) {
 		t.Fatalf("preload Or expected pets [cat dog], got %v", got)
 	}
 
 	// Not alone: preload pets not named bird -> 2 pets (cat, dog)
-	owners, err = gorm.G[orNotOwner](db).Preload("Pets", func(pb gorm.PreloadBuilder) error {
+	if got := preloadPetNames(t, db, owner.ID, func(pb gorm.PreloadBuilder) error {
 		pb.Not("name = ?", "bird")
 		return nil
-	}).Where("id = ?", owner.ID).Find(ctx)
-	if err != nil {
-		t.Fatalf("preload Not failed: %v", err)
-	}
-	if len(owners) != 1 {
-		t.Fatalf("expected 1 owner, got %d", len(owners))
-	}
-	if got := petNames(owners[0].Pets); !equalNames(got, []string{"cat", "dog"}) {
+	}); !equalNames(got, []string{"cat", "dog"}) {
 		t.Fatalf("preload Not expected pets [cat dog], got %v", got)
 	}
 
 	// Where + Not: name = cat AND NOT name = dog -> 1 pet (cat)
-	owners, err = gorm.G[orNotOwner](db).Preload("Pets", func(pb gorm.PreloadBuilder) error {
+	if got := preloadPetNames(t, db, owner.ID, func(pb gorm.PreloadBuilder) error {
 		pb.Where("name = ?", "cat").Not("name = ?", "dog")
 		return nil
-	}).Where("id = ?", owner.ID).Find(ctx)
-	if err != nil {
-		t.Fatalf("preload Where+Not failed: %v", err)
-	}
-	if len(owners) != 1 {
-		t.Fatalf("expected 1 owner, got %d", len(owners))
-	}
-	if got := petNames(owners[0].Pets); !equalNames(got, []string{"cat"}) {
+	}); !equalNames(got, []string{"cat"}) {
 		t.Fatalf("preload Where+Not expected pets [cat], got %v", got)
 	}
 }
