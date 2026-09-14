@@ -304,12 +304,12 @@ func (q *joinBuilder) Where(query interface{}, args ...interface{}) JoinBuilder 
 }
 
 func (q *joinBuilder) Or(query interface{}, args ...interface{}) JoinBuilder {
-	q.db.Where(query, args...)
+	q.db.Or(query, args...)
 	return q
 }
 
 func (q *joinBuilder) Not(query interface{}, args ...interface{}) JoinBuilder {
-	q.db.Where(query, args...)
+	q.db.Not(query, args...)
 	return q
 }
 
@@ -334,12 +334,12 @@ func (q *preloadBuilder) Where(query interface{}, args ...interface{}) PreloadBu
 }
 
 func (q *preloadBuilder) Or(query interface{}, args ...interface{}) PreloadBuilder {
-	q.db.Where(query, args...)
+	q.db.Or(query, args...)
 	return q
 }
 
 func (q *preloadBuilder) Not(query interface{}, args ...interface{}) PreloadBuilder {
-	q.db.Where(query, args...)
+	q.db.Not(query, args...)
 	return q
 }
 
