@@ -66,8 +66,11 @@ func (db *PreparedStmtDB) Reset() {
 func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransaction bool, query string) (_ *stmt_store.Stmt, err error) {
 	db.Mux.RLock()
 	if db.Stmts != nil {
-		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) && stmt.Acquire() {
 			db.Mux.RUnlock()
+			if stmt.Error() != nil {
+				stmt.Release()
+			}
 			return stmt, stmt.Error()
 		}
 	}
@@ -76,8 +79,11 @@ func (db *PreparedStmtDB) prepare(ctx context.Context, conn ConnPool, isTransact
 	// retry
 	db.Mux.Lock()
 	if db.Stmts != nil {
-		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) {
+		if stmt, ok := db.Stmts.Get(query); ok && (!stmt.Transaction || isTransaction) && stmt.Acquire() {
 			db.Mux.Unlock()
+			if stmt.Error() != nil {
+				stmt.Release()
+			}
 			return stmt, stmt.Error()
 		}
 	}
@@ -109,6 +115,7 @@ func (db *PreparedStmtDB) BeginTx(ctx context.Context, opt *sql.TxOptions) (Conn
 func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
+		defer stmt.Release()
 		result, err = stmt.ExecContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
 			db.Stmts.Delete(query)
@@ -120,6 +127,7 @@ func (db *PreparedStmtDB) ExecContext(ctx context.Context, query string, args ..
 func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
+		defer stmt.Release()
 		rows, err = stmt.QueryContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
 			db.Stmts.Delete(query)
@@ -131,6 +139,7 @@ func (db *PreparedStmtDB) QueryContext(ctx context.Context, query string, args .
 func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	stmt, err := db.prepare(ctx, db.ConnPool, false, query)
 	if err == nil {
+		defer stmt.Release()
 		return stmt.QueryRowContext(ctx, args...)
 	}
 	return &sql.Row{}
@@ -170,6 +179,7 @@ func (tx *PreparedStmtTX) Rollback() error {
 func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ...interface{}) (result sql.Result, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
+		defer stmt.Release()
 		result, err = tx.Tx.StmtContext(ctx, stmt.Stmt).ExecContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
 			tx.PreparedStmtDB.Stmts.Delete(query)
@@ -181,6 +191,7 @@ func (tx *PreparedStmtTX) ExecContext(ctx context.Context, query string, args ..
 func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args ...interface{}) (rows *sql.Rows, err error) {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
+		defer stmt.Release()
 		rows, err = tx.Tx.StmtContext(ctx, stmt.Stmt).QueryContext(ctx, args...)
 		if errors.Is(err, driver.ErrBadConn) {
 			tx.PreparedStmtDB.Stmts.Delete(query)
@@ -192,6 +203,7 @@ func (tx *PreparedStmtTX) QueryContext(ctx context.Context, query string, args .
 func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	stmt, err := tx.PreparedStmtDB.prepare(ctx, tx.Tx, true, query)
 	if err == nil {
+		defer stmt.Release()
 		return tx.Tx.StmtContext(ctx, stmt.Stmt).QueryRowContext(ctx, args...)
 	}
 	return &sql.Row{}
