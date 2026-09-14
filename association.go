@@ -89,6 +89,17 @@ func (association *Association) Replace(values ...interface{}) error {
 				}
 			}
 			if _, fvs := schema.GetIdentityFieldValuesMap(association.DB.Statement.Context, reflectValue, foreignFields); len(fvs) > 0 {
+				// snapshot the foreign key values: pointer-typed foreign keys are
+				// captured by reference, and saveAssociation below updates them by
+				// writing through the existing pointer, which would retarget the
+				// deferred delete condition to the NEW association
+				for _, row := range fvs {
+					for idx, v := range row {
+						if rv := reflect.ValueOf(v); rv.Kind() == reflect.Ptr && !rv.IsNil() {
+							row[idx] = rv.Elem().Interface()
+						}
+					}
+				}
 				column, values := schema.ToQueryValues(rel.FieldSchema.Table, rel.FieldSchema.PrimaryFieldDBNames, fvs)
 				oldBelongsToExpr = clause.IN{Column: column, Values: values}
 			}
