@@ -13,12 +13,8 @@ type createViewItem struct {
 	Txt string
 }
 
-// Migrator.CreateView used to collect the view query's vars on the shared
-// m.DB.Statement: the second CreateView call on the same Migrator inherited
-// the first call's vars (AddVar prefixes the stale ones), so the new view's
-// `?` placeholders were filled with the OLD values. The second view then
-// silently filtered on the first view's parameters.
-func TestMigratorCreateViewVarsPollution(t *testing.T) {
+func setupCreateViewDB(t *testing.T) *gorm.DB {
+	t.Helper()
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("open db failed: %v", err)
@@ -34,7 +30,6 @@ func TestMigratorCreateViewVarsPollution(t *testing.T) {
 	if err := db.Migrator().DropTable(&createViewItem{}); err != nil {
 		t.Fatalf("drop table failed: %v", err)
 	}
-
 	if err := db.AutoMigrate(&createViewItem{}); err != nil {
 		t.Fatalf("migrate failed: %v", err)
 	}
@@ -43,7 +38,27 @@ func TestMigratorCreateViewVarsPollution(t *testing.T) {
 			t.Fatalf("seed failed: %v", err)
 		}
 	}
+	return db
+}
 
+func assertViewRows(t *testing.T, db *gorm.DB, view string, want int64) {
+	t.Helper()
+	var got int64
+	if err := db.Table(view).Count(&got).Error; err != nil {
+		t.Fatalf("count %s failed: %v", view, err)
+	}
+	if got != want {
+		t.Errorf("view %s: expected %d rows, got %d", view, want, got)
+	}
+}
+
+// Migrator.CreateView used to collect the view query's vars on the shared
+// m.DB.Statement: the second CreateView call on the same Migrator inherited
+// the first call's vars (AddVar prefixes the stale ones), so the new view's
+// `?` placeholders were filled with the OLD values. The second view then
+// silently filtered on the first view's parameters.
+func TestMigratorCreateViewVarsPollution(t *testing.T) {
+	db := setupCreateViewDB(t)
 	mig := db.Migrator() // the SAME migrator (and statement) for every call
 
 	q1 := db.Session(&gorm.Session{NewDB: true}).Model(&createViewItem{}).Where("txt = ?", "alpha")
@@ -56,19 +71,9 @@ func TestMigratorCreateViewVarsPollution(t *testing.T) {
 		t.Fatalf("create cv_beta failed: %v", err)
 	}
 
-	assertViewRows := func(view string, want int64) {
-		t.Helper()
-		var got int64
-		if err := db.Table(view).Count(&got).Error; err != nil {
-			t.Fatalf("count %s failed: %v", view, err)
-		}
-		if got != want {
-			t.Errorf("view %s: expected %d rows, got %d", view, want, got)
-		}
-	}
-	assertViewRows("cv_alpha", 1)
+	assertViewRows(t, db, "cv_alpha", 1)
 	// bug: cv_beta was created with alpha's leaked var and returned the alpha row
-	assertViewRows("cv_beta", 1)
+	assertViewRows(t, db, "cv_beta", 1)
 
 	var got string
 	if err := db.Raw("SELECT txt FROM cv_beta LIMIT 1").Scan(&got).Error; err != nil {
@@ -86,11 +91,16 @@ func TestMigratorCreateViewVarsPollution(t *testing.T) {
 	if !strings.Contains(ddl, "beta") || strings.Contains(ddl, "alpha") {
 		t.Errorf("cv_beta ddl should reference beta, got %q", ddl)
 	}
+}
 
-	// a view with two placeholders keeps its positional substitution intact
-	q3 := db.Session(&gorm.Session{NewDB: true}).Model(&createViewItem{}).Where("txt IN ?", []string{"alpha", "beta"})
-	if err := mig.CreateView("cv_all", gorm.ViewOption{Query: q3}); err != nil {
+// A view with multiple placeholders keeps its positional substitution intact.
+func TestMigratorCreateViewMultiVarsPositional(t *testing.T) {
+	db := setupCreateViewDB(t)
+	mig := db.Migrator()
+
+	q := db.Session(&gorm.Session{NewDB: true}).Model(&createViewItem{}).Where("txt IN ?", []string{"alpha", "beta"})
+	if err := mig.CreateView("cv_all", gorm.ViewOption{Query: q}); err != nil {
 		t.Fatalf("create cv_all failed: %v", err)
 	}
-	assertViewRows("cv_all", 2)
+	assertViewRows(t, db, "cv_all", 2)
 }
