@@ -38,3 +38,9 @@ require (
 )
 
 replace gorm.io/gorm => ../
+
+// Pin driver/postgres to v1.6.0 until the DropIndex/RenameIndex CURRENT_SCHEMA()
+// regression is fixed upstream (v1.6.1+): https://github.com/go-gorm/postgres/issues/350
+// A require pin is not enough because tests_all.sh runs `go get -u -t ./...`,
+// while a replace is skipped by `go get -u`. Remove this once a fixed driver is released.
+replace gorm.io/driver/postgres => gorm.io/driver/postgres v1.6.0
