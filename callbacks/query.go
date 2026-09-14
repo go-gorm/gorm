@@ -119,7 +119,7 @@ func BuildQuerySQL(db *gorm.DB) {
 				if db.Statement.Schema != nil {
 					var isRelations bool // is relations or raw sql
 					var relations []*schema.Relationship
-					relation, ok := db.Statement.Schema.Relationships.Relations[join.Name]
+					relation, ok := db.Statement.Schema.Relationships.LookUpRelation(join.Name)
 					if ok {
 						isRelations = true
 						relations = append(relations, relation)
@@ -129,12 +129,12 @@ func BuildQuerySQL(db *gorm.DB) {
 						if len(nestedJoinNames) > 1 {
 							isNestedJoin := true
 							guessNestedRelations := make([]*schema.Relationship, 0, len(nestedJoinNames))
-							currentRelations := db.Statement.Schema.Relationships.Relations
+							currentRelations := &db.Statement.Schema.Relationships
 							for _, relname := range nestedJoinNames {
 								// incomplete match, only treated as raw sql
-								if relation, ok = currentRelations[relname]; ok {
+								if relation, ok = currentRelations.LookUpRelation(relname); ok {
 									guessNestedRelations = append(guessNestedRelations, relation)
-									currentRelations = relation.FieldSchema.Relationships.Relations
+									currentRelations = &relation.FieldSchema.Relationships
 								} else {
 									isNestedJoin = false
 									break

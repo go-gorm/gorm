@@ -499,7 +499,7 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	}
 	joinSchema = stmt.Schema
 
-	relation, ok := modelSchema.Relationships.Relations[field]
+	relation, ok := modelSchema.Relationships.LookUpRelation(field)
 	isRelation := ok && relation.JoinTable != nil
 	if !isRelation {
 		return fmt.Errorf("failed to find relation: %s", field)
@@ -519,12 +519,21 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 		ref.ForeignKey = f
 	}
 
+	relation.JoinTable.Relationships.Mux.RLock()
+	joinTableRelations := make(map[string]*schema.Relationship, len(relation.JoinTable.Relationships.Relations))
 	for name, rel := range relation.JoinTable.Relationships.Relations {
+		joinTableRelations[name] = rel
+	}
+	relation.JoinTable.Relationships.Mux.RUnlock()
+
+	joinSchema.Relationships.Mux.Lock()
+	for name, rel := range joinTableRelations {
 		if _, ok := joinSchema.Relationships.Relations[name]; !ok {
 			rel.Schema = joinSchema
 			joinSchema.Relationships.Relations[name] = rel
 		}
 	}
+	joinSchema.Relationships.Mux.Unlock()
 	relation.JoinTable = joinSchema
 
 	return nil
