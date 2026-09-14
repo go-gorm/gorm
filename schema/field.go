@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/utils"
 )
@@ -104,6 +105,11 @@ func (field *Field) BindName() string {
 
 // ParseField parses reflect.StructField to Field
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
+	return schema.parseFieldWithCallers(fieldStruct, nil)
+}
+
+// nolint:cyclop
+func (schema *Schema) parseFieldWithCallers(fieldStruct reflect.StructField, inProgress map[reflect.Type]struct{}) *Field {
 	var (
 		err        error
 		tagSetting = ParseTagSetting(fieldStruct.Tag.Get("gorm"), ";")
@@ -198,7 +204,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 				field.DataType = String
 				field.Serializer = serializer
 			} else {
-				schema.err = fmt.Errorf("invalid serializer type %v", serializerName)
+				schema.setErr(fmt.Errorf("invalid serializer type %v", serializerName))
 			}
 		}
 	}
@@ -235,28 +241,28 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.DataType = Bool
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseBool(field.DefaultValue); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for bool, got error: %v", field.DefaultValue, err)
+				schema.setErr(fmt.Errorf("failed to parse %s as default value for bool, got error: %v", field.DefaultValue, err))
 			}
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		field.DataType = Int
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseInt(field.DefaultValue, 0, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for int, got error: %v", field.DefaultValue, err)
+				schema.setErr(fmt.Errorf("failed to parse %s as default value for int, got error: %v", field.DefaultValue, err))
 			}
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		field.DataType = Uint
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseUint(field.DefaultValue, 0, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for uint, got error: %v", field.DefaultValue, err)
+				schema.setErr(fmt.Errorf("failed to parse %s as default value for uint, got error: %v", field.DefaultValue, err))
 			}
 		}
 	case reflect.Float32, reflect.Float64:
 		field.DataType = Float
 		if field.HasDefaultValue && !skipParseDefaultValue {
 			if field.DefaultValueInterface, err = strconv.ParseFloat(field.DefaultValue, 64); err != nil {
-				schema.err = fmt.Errorf("failed to parse %s as default value for float, got error: %v", field.DefaultValue, err)
+				schema.setErr(fmt.Errorf("failed to parse %s as default value for float, got error: %v", field.DefaultValue, err))
 			}
 		}
 	case reflect.String:
@@ -398,8 +404,8 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 			cacheStore := &sync.Map{}
 			cacheStore.Store(embeddedCacheKey, true)
-			if field.EmbeddedSchema, err = getOrParse(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}); err != nil {
-				schema.err = err
+			if field.EmbeddedSchema, err = getOrParseWithCallers(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}, inProgress); err != nil {
+				schema.setErr(err)
 			}
 
 			for _, ef := range field.EmbeddedSchema.Fields {
@@ -440,7 +446,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 			}
 		case reflect.Invalid, reflect.Uintptr, reflect.Array, reflect.Chan, reflect.Func, reflect.Interface,
 			reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
-			schema.err = fmt.Errorf("invalid embedded struct for %s's field %s, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType)
+			schema.setErr(fmt.Errorf("invalid embedded struct for %s's field %s, should be struct, but got %v", field.Schema.Name, field.Name, field.FieldType))
 		}
 	}
 

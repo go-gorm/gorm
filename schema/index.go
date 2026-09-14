@@ -35,7 +35,7 @@ func (schema *Schema) ParseIndexes() []*Index {
 		if field.TagSettings["INDEX"] != "" || field.TagSettings["UNIQUEINDEX"] != "" {
 			fieldIndexes, err := parseFieldIndexes(field)
 			if err != nil {
-				schema.err = err
+				schema.setErr(err)
 				break
 			}
 			for _, index := range fieldIndexes {

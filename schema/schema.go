@@ -57,8 +57,48 @@ type Schema struct {
 	AfterFind                 bool
 	err                       error
 	initialized               chan struct{}
+	fieldsInitialized         chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
+}
+
+func (schema *Schema) wait(visited map[*Schema]struct{}) {
+	if schema == nil || schema.initialized == nil {
+		return
+	}
+
+	if _, ok := visited[schema]; ok {
+		return
+	}
+	visited[schema] = struct{}{}
+
+	<-schema.initialized
+	schema.Relationships.Mux.RLock()
+	rels := make([]*Relationship, 0, len(schema.Relationships.Relations))
+	for _, rel := range schema.Relationships.Relations {
+		rels = append(rels, rel)
+	}
+	schema.Relationships.Mux.RUnlock()
+
+	for _, rel := range rels {
+		if rel.FieldSchema != nil {
+			rel.FieldSchema.wait(visited)
+		}
+	}
+}
+
+func (schema *Schema) setErr(err error) {
+	if err != nil {
+		schema.Relationships.Mux.Lock()
+		schema.err = err
+		schema.Relationships.Mux.Unlock()
+	}
+}
+
+func (schema *Schema) getErr() error {
+	schema.Relationships.Mux.RLock()
+	defer schema.Relationships.Mux.RUnlock()
+	return schema.err
 }
 
 func (schema *Schema) String() string {
@@ -137,6 +177,11 @@ func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error)
 
 // ParseWithSpecialTableName get data type from dialector with extra schema table
 func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+	return parseWithCallers(dest, cacheStore, namer, specialTableName, nil)
+}
+
+// nolint:cyclop
+func parseWithCallers(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string, inProgress map[reflect.Type]struct{}) (*Schema, error) {
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -173,9 +218,22 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	// Load exist schema cache, return if exists
 	if v, ok := cacheStore.Load(schemaCacheKey); ok {
 		s := v.(*Schema)
+		// If this schema is currently being built by *this* goroutine
+		// (cycle), do NOT wait on s.initialized — that would deadlock.
+		// Returning the partial *Schema works as the outer-most
+		// frame for this type will finish populating it before its own
+		// initialized channel is closed, and any caller that obtained
+		// the schema via the public API waits on that channel.
+		if _, building := inProgress[modelType]; building {
+			return s, s.getErr()
+		}
 		// Wait for the initialization of other goroutines to complete
-		<-s.initialized
-		return s, s.err
+		if inProgress == nil {
+			s.wait(map[*Schema]struct{}{})
+		} else if s.fieldsInitialized != nil {
+			<-s.fieldsInitialized
+		}
+		return s, s.getErr()
 	}
 
 	var tableName string
@@ -193,33 +251,59 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	schema := &Schema{
-		Name:             modelType.Name(),
-		ModelType:        modelType,
-		Table:            tableName,
-		DBNames:          make([]string, 0, 10),
-		Fields:           make([]*Field, 0, 10),
-		FieldsByName:     make(map[string]*Field, 10),
-		FieldsByBindName: make(map[string]*Field, 10),
-		FieldsByDBName:   make(map[string]*Field, 10),
-		Relationships:    Relationships{Relations: map[string]*Relationship{}},
-		cacheStore:       cacheStore,
-		namer:            namer,
-		initialized:      make(chan struct{}),
+		Name:              modelType.Name(),
+		ModelType:         modelType,
+		Table:             tableName,
+		DBNames:           make([]string, 0, 10),
+		Fields:            make([]*Field, 0, 10),
+		FieldsByName:      make(map[string]*Field, 10),
+		FieldsByBindName:  make(map[string]*Field, 10),
+		FieldsByDBName:    make(map[string]*Field, 10),
+		Relationships:     Relationships{Relations: map[string]*Relationship{}},
+		cacheStore:        cacheStore,
+		namer:             namer,
+		initialized:       make(chan struct{}),
+		fieldsInitialized: make(chan struct{}),
 	}
+
+	// Cache the schema early to allow other goroutines (and cycles in this goroutine) to find it
+	if v, loaded := cacheStore.LoadOrStore(schemaCacheKey, schema); loaded {
+		s := v.(*Schema)
+		if _, building := inProgress[modelType]; building {
+			return s, s.getErr()
+		}
+		if inProgress == nil {
+			s.wait(map[*Schema]struct{}{})
+		} else if s.fieldsInitialized != nil {
+			<-s.fieldsInitialized
+		}
+		return s, s.getErr()
+	}
+
 	// When the schema initialization is completed, the channel will be closed
 	defer close(schema.initialized)
+	// When the field initialization is completed, the channel will be closed
+	defer func() {
+		select {
+		case <-schema.fieldsInitialized:
+		default:
+			close(schema.fieldsInitialized)
+		}
+	}()
 
-	// Load exist schema cache, return if exists
-	if v, ok := cacheStore.Load(schemaCacheKey); ok {
-		s := v.(*Schema)
-		// Wait for the initialization of other goroutines to complete
-		<-s.initialized
-		return s, s.err
+	// Mark this type as in-progress for the current goroutine so that
+	// nested getOrParse calls (which may recurse back into this type
+	// via relationships) can detect the cycle and avoid blocking on
+	// our own initialized channel.
+	if inProgress == nil {
+		inProgress = make(map[reflect.Type]struct{}, 2)
 	}
+	inProgress[modelType] = struct{}{}
+	defer delete(inProgress, modelType)
 
 	for i := 0; i < modelType.NumField(); i++ {
 		if fieldStruct := modelType.Field(i); ast.IsExported(fieldStruct.Name) {
-			if field := schema.ParseField(fieldStruct); field.EmbeddedSchema != nil {
+			if field := schema.parseFieldWithCallers(fieldStruct, inProgress); field.EmbeddedSchema != nil {
 				schema.Fields = append(schema.Fields, field.EmbeddedSchema.Fields...)
 			} else {
 				schema.Fields = append(schema.Fields, field)
@@ -348,18 +432,12 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		}
 	}
 
-	// Cache the schema
-	if v, loaded := cacheStore.LoadOrStore(schemaCacheKey, schema); loaded {
-		s := v.(*Schema)
-		// Wait for the initialization of other goroutines to complete
-		<-s.initialized
-		return s, s.err
-	}
+	close(schema.fieldsInitialized)
 
 	defer func() {
-		if schema.err != nil {
-			logger.Default.Error(context.Background(), schema.err.Error())
-			cacheStore.Delete(modelType)
+		if err := schema.getErr(); err != nil {
+			logger.Default.Error(context.Background(), err.Error())
+			cacheStore.Delete(schemaCacheKey)
 		}
 	}()
 
@@ -382,15 +460,26 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 
 	// parse relationships
 	for _, field := range relationshipFields {
-		if schema.parseRelation(field); schema.err != nil {
-			return schema, schema.err
+		schema.parseRelationWithCallers(field, inProgress)
+		schema.Relationships.Mux.RLock()
+		err := schema.err
+		schema.Relationships.Mux.RUnlock()
+		if err != nil {
+			return schema, err
 		}
 	}
 
-	return schema, schema.err
+	schema.Relationships.Mux.RLock()
+	err := schema.err
+	schema.Relationships.Mux.RUnlock()
+	return schema, err
 }
 
 func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+	return getOrParseWithCallers(dest, cacheStore, namer, nil)
+}
+
+func getOrParseWithCallers(dest interface{}, cacheStore *sync.Map, namer Namer, inProgress map[reflect.Type]struct{}) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
 
 	if modelType.Kind() != reflect.Struct {
@@ -407,8 +496,25 @@ func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, e
 	}
 
 	if v, ok := cacheStore.Load(modelType); ok {
-		return v.(*Schema), nil
+		s := v.(*Schema)
+		// If the current goroutine is itself building this schema (cycle),
+		// return the cached (possibly partial) pointer immediately to
+		// avoid self-deadlock. The outer-most parse frame for this type
+		// will finish populating it.
+		if _, building := inProgress[modelType]; building {
+			return s, s.getErr()
+		}
+		// Otherwise another goroutine is responsible for closing
+		// s.initialized; wait until parsing is fully done before
+		// handing the schema to the caller — this prevents readers
+		// from seeing a half-built Relationships map.
+		if inProgress == nil {
+			s.wait(map[*Schema]struct{}{})
+		} else if s.fieldsInitialized != nil {
+			<-s.fieldsInitialized
+		}
+		return s, s.getErr()
 	}
 
-	return Parse(dest, cacheStore, namer)
+	return parseWithCallers(dest, cacheStore, namer, "", inProgress)
 }
