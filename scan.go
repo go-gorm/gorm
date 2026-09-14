@@ -253,13 +253,13 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 							}
 						}
 
-						if rel, ok := sch.Relationships.Relations[names[0]]; ok {
+						if rel, ok := sch.Relationships.LookUpRelation(names[0]); ok {
 							subNameCount := len(names)
 							// nested relation fields
 							relFields := make([]*schema.Field, 0, subNameCount-1)
 							relFields = append(relFields, rel.Field)
 							for _, name := range names[1 : subNameCount-1] {
-								rel = rel.FieldSchema.Relationships.Relations[name]
+								rel, _ = rel.FieldSchema.Relationships.LookUpRelation(name)
 								relFields = append(relFields, rel.Field)
 							}
 							// latest name is raw dbname

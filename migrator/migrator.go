@@ -166,7 +166,7 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 				}
 
 				if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
-					for _, rel := range stmt.Schema.Relationships.Relations {
+					for _, rel := range stmt.Schema.Relationships.AllRelations() {
 						if rel.Field.IgnoreMigration {
 							continue
 						}
@@ -275,7 +275,7 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 			}
 
 			if !m.DB.DisableForeignKeyConstraintWhenMigrating && !m.DB.IgnoreRelationshipsWhenMigrating {
-				for _, rel := range stmt.Schema.Relationships.Relations {
+				for _, rel := range stmt.Schema.Relationships.AllRelations() {
 					if rel.Field.IgnoreMigration {
 						continue
 					}
@@ -727,7 +727,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 		return stmt.Table
 	}
 
-	for _, rel := range stmt.Schema.Relationships.Relations {
+	for _, rel := range stmt.Schema.Relationships.AllRelations() {
 		if constraint := rel.ParseConstraint(); constraint != nil && constraint.Name == name {
 			return constraint, getTable(rel)
 		}
@@ -748,7 +748,7 @@ func (m Migrator) GuessConstraintInterfaceAndTable(stmt *gorm.Statement, name st
 			}
 		}
 
-		for _, rel := range stmt.Schema.Relationships.Relations {
+		for _, rel := range stmt.Schema.Relationships.AllRelations() {
 			if constraint := rel.ParseConstraint(); constraint != nil && rel.Field == field {
 				return constraint, getTable(rel)
 			}
@@ -946,7 +946,7 @@ func (m Migrator) ReorderModels(values []interface{}, autoAdd bool) (results []i
 		parsedSchemas[dep.Statement.Schema] = true
 
 		if !m.DB.IgnoreRelationshipsWhenMigrating {
-			for _, rel := range dep.Schema.Relationships.Relations {
+			for _, rel := range dep.Schema.Relationships.AllRelations() {
 				if rel.Field.IgnoreMigration {
 					continue
 				}
