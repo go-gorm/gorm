@@ -133,7 +133,10 @@ func (db *PreparedStmtDB) QueryRowContext(ctx context.Context, query string, arg
 	if err == nil {
 		return stmt.QueryRowContext(ctx, args...)
 	}
-	return &sql.Row{}
+	// The statement failed to be prepared; fall back to querying the underlying
+	// pool directly, so the returned row reports the failure from Scan instead
+	// of being a zero-value *sql.Row whose Scan panics.
+	return db.ConnPool.QueryRowContext(ctx, query, args...)
 }
 
 func (db *PreparedStmtDB) Ping() error {
@@ -194,7 +197,10 @@ func (tx *PreparedStmtTX) QueryRowContext(ctx context.Context, query string, arg
 	if err == nil {
 		return tx.Tx.StmtContext(ctx, stmt.Stmt).QueryRowContext(ctx, args...)
 	}
-	return &sql.Row{}
+	// The statement failed to be prepared; fall back to querying the transaction
+	// directly, so the returned row reports the failure from Scan instead of
+	// being a zero-value *sql.Row whose Scan panics.
+	return tx.Tx.QueryRowContext(ctx, query, args...)
 }
 
 func (tx *PreparedStmtTX) Ping() error {
