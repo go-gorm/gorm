@@ -44,66 +44,53 @@ func TestUpdatesSliceIdentityClause(t *testing.T) {
 		t.Fatalf("migrate failed: %v", err)
 	}
 
-	// H04: a trailing element with zero primary key must not discard the
-	// identity IN clause built from the elements that do have identity.
-	resetUpdateSliceUsers(t, db)
-	users := []updateSliceUser{{ID: 1}, {ID: 0}}
-	res := db.Model(&users).Where("name LIKE ?", "u%").Updates(map[string]interface{}{"age": 100})
-	if res.Error != nil {
-		t.Fatalf("updates failed: %v", res.Error)
-	}
-	if res.RowsAffected != 1 {
-		t.Fatalf("expected only the identified row to be updated, RowsAffected = %d", res.RowsAffected)
-	}
-	if n := countAge100(t, db); n != 1 {
-		t.Fatalf("expected 1 row with age=100, got %d", n)
-	}
-
-	// Order independence: zero-PK element first must behave the same.
-	resetUpdateSliceUsers(t, db)
-	users = []updateSliceUser{{ID: 0}, {ID: 2}}
-	res = db.Model(&users).Where("name LIKE ?", "u%").Updates(map[string]interface{}{"age": 100})
-	if res.Error != nil {
-		t.Fatalf("updates failed: %v", res.Error)
-	}
-	if res.RowsAffected != 1 || countAge100(t, db) != 1 {
-		t.Fatalf("expected only row 2 updated, RowsAffected = %d, age100 = %d", res.RowsAffected, countAge100(t, db))
+	cases := []struct {
+		name     string
+		users    []updateSliceUser
+		scoped   bool  // add the user's own WHERE condition
+		wantRows int64 // expected RowsAffected and rows with age=100
+		wantErr  error
+	}{
+		// H04: a trailing element with zero primary key must not discard the
+		// identity IN clause built from the elements that do have identity.
+		{"trailing zero PK keeps identity", []updateSliceUser{{ID: 1}, {ID: 0}}, true, 1, nil},
+		// Order independence: zero-PK element first must behave the same.
+		{"leading zero PK keeps identity", []updateSliceUser{{ID: 0}, {ID: 2}}, true, 1, nil},
+		// Control: all elements identified -> IN (1,2) -> 2 rows.
+		{"all identified", []updateSliceUser{{ID: 1}, {ID: 2}}, true, 2, nil},
+		// Documented semantics: when NO element has identity the identity
+		// clause is skipped and the user's own conditions scope the update
+		// (mirrors the single-struct case with a zero primary key).
+		{"all zero PK scoped by user where", []updateSliceUser{{ID: 0}, {ID: 0}}, true, 5, nil},
+		// Safety net: no element identified and no other conditions -> refuse
+		// global update instead of silently updating everything.
+		{"all zero PK without where refused", []updateSliceUser{{ID: 0}, {ID: 0}}, false, 0, gorm.ErrMissingWhereClause},
 	}
 
-	// Control: all elements identified -> IN (1,2) -> 2 rows.
-	resetUpdateSliceUsers(t, db)
-	users = []updateSliceUser{{ID: 1}, {ID: 2}}
-	res = db.Model(&users).Where("name LIKE ?", "u%").Updates(map[string]interface{}{"age": 100})
-	if res.Error != nil {
-		t.Fatalf("updates failed: %v", res.Error)
-	}
-	if res.RowsAffected != 2 || countAge100(t, db) != 2 {
-		t.Fatalf("expected 2 rows updated, RowsAffected = %d, age100 = %d", res.RowsAffected, countAge100(t, db))
-	}
+	for _, c := range cases {
+		c := c
+		t.Run(c.name, func(t *testing.T) {
+			resetUpdateSliceUsers(t, db)
 
-	// Documented semantics: elements whose primary keys are all zero carry no
-	// identity, so when NO element has identity the identity clause is skipped
-	// and the user's own conditions scope the update (mirrors the single-struct
-	// case with a zero primary key).
-	resetUpdateSliceUsers(t, db)
-	users = []updateSliceUser{{ID: 0}, {ID: 0}}
-	res = db.Model(&users).Where("name LIKE ?", "u%").Updates(map[string]interface{}{"age": 100})
-	if res.Error != nil {
-		t.Fatalf("updates failed: %v", res.Error)
-	}
-	if res.RowsAffected != 5 {
-		t.Fatalf("expected explicit WHERE to scope the update to 5 rows, RowsAffected = %d", res.RowsAffected)
-	}
+			tx := db.Model(&c.users)
+			if c.scoped {
+				tx = tx.Where("name LIKE ?", "u%")
+			}
+			res := tx.Updates(map[string]interface{}{"age": 100})
 
-	// Safety net: no element identified and no other conditions -> refuse
-	// global update instead of silently updating everything.
-	resetUpdateSliceUsers(t, db)
-	users = []updateSliceUser{{ID: 0}, {ID: 0}}
-	res = db.Model(&users).Updates(map[string]interface{}{"age": 100})
-	if res.Error != gorm.ErrMissingWhereClause {
-		t.Fatalf("expected ErrMissingWhereClause, got %v", res.Error)
-	}
-	if res.RowsAffected != 0 || countAge100(t, db) != 0 {
-		t.Fatalf("expected no rows updated, RowsAffected = %d, age100 = %d", res.RowsAffected, countAge100(t, db))
+			if c.wantErr != nil {
+				if res.Error != c.wantErr {
+					t.Fatalf("expected error %v, got %v", c.wantErr, res.Error)
+				}
+			} else if res.Error != nil {
+				t.Fatalf("updates failed: %v", res.Error)
+			}
+			if res.RowsAffected != c.wantRows {
+				t.Fatalf("expected RowsAffected = %d, got %d", c.wantRows, res.RowsAffected)
+			}
+			if n := countAge100(t, db); n != c.wantRows {
+				t.Fatalf("expected %d rows with age=100, got %d", c.wantRows, n)
+			}
+		})
 	}
 }
