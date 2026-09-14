@@ -84,7 +84,7 @@ func TestPreparedStmtTxQueryRowPrepareFailure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("begin tx failed: %v", err)
 	}
-	defer sqlTx.Rollback()
+	defer func() { _ = sqlTx.Rollback() }()
 
 	prepareErr := errors.New("forced prepare failure")
 	pdb := gorm.NewPreparedStmtDB(failPreparePool{ConnPool: db.Statement.ConnPool, err: prepareErr}, 0, 0)
