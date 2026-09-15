@@ -100,6 +100,22 @@ func (db *DB) Distinct(args ...interface{}) (tx *DB) {
 	return
 }
 
+// onlyColumnSelectArgs reports whether every arg is a plain column name
+// (string or []string) rather than a bind variable. When that is the case, an
+// "@" in the query is part of the SQL text (for example inside a string
+// literal) and must not turn Select into a named expression, which would
+// consume the column names as variables and drop them. See issue #7235.
+func onlyColumnSelectArgs(args []interface{}) bool {
+	for _, arg := range args {
+		switch arg.(type) {
+		case string, []string:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 // Select specify fields that you want when querying, creating, updating
 //
 // Use Select when you only want a subset of the fields. By default, GORM will select all fields.
@@ -138,7 +154,7 @@ func (db *DB) Select(query interface{}, args ...interface{}) (tx *DB) {
 				Distinct:   db.Statement.Distinct,
 				Expression: clause.Expr{SQL: v, Vars: args},
 			})
-		} else if strings.Count(v, "@") > 0 && len(args) > 0 {
+		} else if strings.Count(v, "@") > 0 && len(args) > 0 && !onlyColumnSelectArgs(args) {
 			tx.Statement.AddClause(clause.Select{
 				Distinct:   db.Statement.Distinct,
 				Expression: clause.NamedExpr{SQL: v, Vars: args},
