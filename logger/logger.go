@@ -198,6 +198,12 @@ func (l *logger) ParamsFilter(ctx context.Context, sql string, params ...interfa
 	return sql, params
 }
 
+// paramsFilter is the same shape as gorm.ParamsFilter, which cannot be
+// referenced from this package without an import cycle.
+type paramsFilter interface {
+	ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{})
+}
+
 type traceRecorder struct {
 	Interface
 	BeginAt      time.Time
@@ -211,6 +217,12 @@ func (l *traceRecorder) New() *traceRecorder {
 	return &traceRecorder{Interface: l.Interface, BeginAt: time.Now()}
 }
 
+// NewRecorder returns a trace recorder that records statements on behalf of the
+// given logger, so the logger's own configuration still applies while recording.
+func NewRecorder(l Interface) *traceRecorder {
+	return &traceRecorder{Interface: l, BeginAt: time.Now()}
+}
+
 // Trace implement logger interface
 func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (string, int64), err error) {
 	l.BeginAt = begin
@@ -219,6 +231,12 @@ func (l *traceRecorder) Trace(ctx context.Context, begin time.Time, fc func() (s
 }
 
 func (l *traceRecorder) ParamsFilter(ctx context.Context, sql string, params ...interface{}) (string, []interface{}) {
+	// Prefer the recorded logger's own filter, so a logger configured with
+	// ParameterizedQueries (or implementing gorm.ParamsFilter) still applies while
+	// its statements are being recorded.
+	if f, ok := l.Interface.(paramsFilter); ok {
+		return f.ParamsFilter(ctx, sql, params...)
+	}
 	if RecorderParamsFilter == nil {
 		return sql, params
 	}
