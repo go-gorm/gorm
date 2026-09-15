@@ -76,6 +76,7 @@ func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 
 	rowCallback := db.Callback().Row()
 	rowCallback.Register("gorm:row", RowQuery)
+	rowCallback.Register("gorm:scan_rows", ScanRows)
 	rowCallback.Clauses = config.QueryClauses
 
 	rawCallback := db.Callback().Raw()
