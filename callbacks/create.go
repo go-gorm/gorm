@@ -142,6 +142,13 @@ func Create(config *Config) func(db *gorm.DB) {
 		insertID, err := result.LastInsertId()
 		insertOk := err == nil && insertID > 0
 
+		// LastInsertId has no unsigned form, so an auto-increment above
+		// MaxInt64 in a BIGINT UNSIGNED column arrives negative. The bits are
+		// intact and the setter of an unsigned field converts them back.
+		if err == nil && insertID < 0 && holdsUint64(pkField) {
+			insertOk = true
+		}
+
 		if !insertOk {
 			if !supportReturning {
 				db.AddError(err)
@@ -216,6 +223,24 @@ func Create(config *Config) func(db *gorm.DB) {
 				}
 			}
 		}
+	}
+}
+
+// holdsUint64 reports whether the field can hold every value of a BIGINT
+// UNSIGNED column.
+func holdsUint64(field *schema.Field) bool {
+	if field == nil {
+		return false
+	}
+	fieldType := field.FieldType
+	for fieldType.Kind() == reflect.Pointer {
+		fieldType = fieldType.Elem()
+	}
+	switch fieldType.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return fieldType.Bits() >= 64
+	default:
+		return false
 	}
 }
 
