@@ -2,10 +2,12 @@ package callbacks
 
 import (
 	"reflect"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 func TestLoadOrStoreVisitMap(t *testing.T) {
@@ -96,6 +98,65 @@ func TestConvertMapToValuesForCreate(t *testing.T) {
 	}
 }
 
+func TestPopulateReturningColumns(t *testing.T) {
+	type user struct {
+		ID   uint
+		Name string
+	}
+
+	s, err := schema.Parse(&user{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("parse schema error: %v", err)
+	}
+
+	testCase := []struct {
+		name          string
+		queryFields   bool
+		input         clause.Returning
+		expectColumns []clause.Column
+	}{
+		{
+			name:        "populates empty Returning when QueryFields is enabled",
+			queryFields: true,
+			input:       clause.Returning{},
+			expectColumns: []clause.Column{
+				{Name: "id"},
+				{Name: "name"},
+			},
+		},
+		{
+			name:          "does not populate when QueryFields is disabled",
+			queryFields:   false,
+			input:         clause.Returning{},
+			expectColumns: nil,
+		},
+		{
+			name:          "does not override explicit columns",
+			queryFields:   true,
+			input:         clause.Returning{Columns: []clause.Column{{Name: "id"}}},
+			expectColumns: []clause.Column{{Name: "id"}},
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			db := &gorm.DB{Config: &gorm.Config{}, Statement: &gorm.Statement{Settings: sync.Map{}, Schema: s, Table: "users"}}
+			db.QueryFields = tc.queryFields
+			db.Statement.Clauses = map[string]clause.Clause{
+				"RETURNING": {Name: "RETURNING", Expression: tc.input},
+			}
+
+			populateReturningColumns(db)
+
+			rt := db.Statement.Clauses["RETURNING"]
+			returning := rt.Expression.(clause.Returning)
+			if !reflect.DeepEqual(returning.Columns, tc.expectColumns) {
+				t.Errorf("expected %v, got %v", tc.expectColumns, returning.Columns)
+			}
+		})
+	}
+}
+
 func TestConvertSliceOfMapToValuesForCreate(t *testing.T) {
 	testCase := []struct {
 		name   string
@@ -153,5 +214,4 @@ func TestConvertSliceOfMapToValuesForCreate(t *testing.T) {
 			}
 		})
 	}
-
 }
