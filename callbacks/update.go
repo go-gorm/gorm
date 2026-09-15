@@ -272,6 +272,7 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 
 		switch updatingValue.Kind() {
 		case reflect.Struct:
+			useUpdateStrategy := hasUpdateStrategy(stmt)
 			set = make([]clause.Assignment, 0, len(stmt.Schema.FieldsByDBName))
 			for _, dbName := range stmt.Schema.DBNames {
 				if field := updatingSchema.LookUpField(dbName); field != nil {
@@ -291,7 +292,11 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 								isZero = false
 							}
 
-							if (ok || !isZero) && field.Updatable {
+							shouldUpdate := ok || !isZero
+							if useUpdateStrategy {
+								shouldUpdate = allowsUpdate(field, value, isZero, ok)
+							}
+							if shouldUpdate && field.Updatable {
 								set = append(set, clause.Assignment{Column: clause.Column{Name: field.DBName}, Value: value})
 								assignField := field
 								if isDiffSchema {
@@ -315,4 +320,45 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	}
 
 	return
+}
+
+func hasUpdateStrategy(stmt *gorm.Statement) bool {
+	_, ok := stmt.Settings.Load("gorm:update_strategy")
+	return ok
+}
+
+func allowsUpdate(field *schema.Field, value interface{}, isZero, selected bool) bool {
+	switch field.UpdateStrategy {
+	case "ALWAYS":
+		return true
+	case "NOT NIL":
+		return !isNilUpdateValue(field, value, isZero)
+	case "NOT ZERO":
+		return !isZero
+	case "NEVER":
+		return false
+	case "DEFAULT", "":
+		return selected || !isZero
+	default:
+		return selected || !isZero
+	}
+}
+
+func isNilUpdateValue(field *schema.Field, value interface{}, isZero bool) bool {
+	if value == nil {
+		return true
+	}
+
+	switch field.FieldType.Kind() {
+	case reflect.Chan,
+		reflect.Func,
+		reflect.Interface,
+		reflect.Map,
+		reflect.Ptr,
+		reflect.Slice:
+		return isZero
+	default:
+		// int、bool、string 等非 nil 类型永远不是 nil
+		return false
+	}
 }
