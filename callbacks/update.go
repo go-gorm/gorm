@@ -18,6 +18,10 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 				db.Statement.ReflectValue = db.Statement.ReflectValue.Elem()
 			}
 
+			if isZeroValueModel(db.Statement.ReflectValue) {
+				db.Statement.ReflectValue = reflect.New(db.Statement.ReflectValue.Type()).Elem()
+			}
+
 			if dest, ok := db.Statement.Dest.(map[string]interface{}); ok {
 				for _, rel := range db.Statement.Schema.Relationships.BelongsTo {
 					if _, ok := dest[rel.Name]; ok {
@@ -27,6 +31,14 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 			}
 		}
 	}
+}
+
+func isZeroValueModel(reflectValue reflect.Value) bool {
+	if !reflectValue.IsValid() || reflectValue.Kind() != reflect.Struct || !reflectValue.CanAddr() {
+		return false
+	}
+
+	return reflectValue.IsZero()
 }
 
 // BeforeUpdate before update hooks
