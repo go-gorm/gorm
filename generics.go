@@ -596,13 +596,7 @@ func (c chainG[T]) Build(builder clause.Builder) {
 				sql  = subdb.Statement.SQL.String()
 			)
 
-			subdb.Statement.Vars = make([]interface{}, 0, len(vars))
-			for _, vv := range vars {
-				subdb.Statement.Vars = append(subdb.Statement.Vars, vv)
-				bindvar := strings.Builder{}
-				subdb.BindVarTo(&bindvar, subdb.Statement, vv)
-				sql = strings.Replace(sql, bindvar.String(), "?", 1)
-			}
+			sql = replaceBindVarsWithQuestion(subdb.Statement, sql, vars)
 
 			subdb.Statement.SQL.Reset()
 			subdb.Statement.Vars = stmt.Vars
