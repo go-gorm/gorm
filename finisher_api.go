@@ -403,6 +403,15 @@ func (db *DB) FirstOrCreate(dest interface{}, conds ...interface{}) (tx *DB) {
 			}
 		}
 
+		if _, ok := tx.Statement.Clauses["RETURNING"]; !ok {
+			for _, v := range assigns {
+				if _, ok := v.(clause.Expr); ok {
+					tx = tx.Clauses(clause.Returning{})
+					break
+				}
+			}
+		}
+
 		return tx.Model(dest).Updates(assigns)
 	}
 
