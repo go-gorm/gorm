@@ -36,6 +36,28 @@ func TestCountWithGroup(t *testing.T) {
 	}
 }
 
+func TestCountWithOrderInScope(t *testing.T) {
+	var count int64
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+
+	scopeResult := dryDB.Scopes(func(tx *gorm.DB) *gorm.DB {
+		return tx.Order("name desc")
+	}).Model(&User{}).Count(&count)
+	if strings.Contains(strings.ToUpper(scopeResult.Statement.SQL.String()), "ORDER BY") {
+		t.Fatalf("Count with order in scope should not generate ORDER BY, got %v", scopeResult.Statement.SQL.String())
+	}
+
+	directResult := dryDB.Model(&User{}).Order("name desc").Count(&count)
+	if strings.Contains(strings.ToUpper(directResult.Statement.SQL.String()), "ORDER BY") {
+		t.Fatalf("Count with direct order should not generate ORDER BY, got %v", directResult.Statement.SQL.String())
+	}
+
+	groupResult := dryDB.Model(&User{}).Group("name").Order("name desc").Count(&count)
+	if !strings.Contains(strings.ToUpper(groupResult.Statement.SQL.String()), "ORDER BY") {
+		t.Fatalf("Count with group should keep ORDER BY, got %v", groupResult.Statement.SQL.String())
+	}
+}
+
 func TestCount(t *testing.T) {
 	var (
 		user1                 = *GetUser("count-1", Config{})
