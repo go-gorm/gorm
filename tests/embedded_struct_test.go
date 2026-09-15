@@ -130,6 +130,7 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 	DB.Create(&HNPost{BasePost: &BasePost{Title: "embedded_pointer_type"}})
 
 	var hnPost HNPost
+
 	if err := DB.First(&hnPost, "title = ?", "embedded_pointer_type").Error; err != nil {
 		t.Errorf("No error should happen when find embedded pointer type, but got %v", err)
 	}
@@ -138,8 +139,8 @@ func TestEmbeddedPointerTypeStruct(t *testing.T) {
 		t.Errorf("Should find correct value for embedded pointer type")
 	}
 
-	if hnPost.Author != nil {
-		t.Errorf("Expected to get back a nil Author but got: %v", hnPost.Author)
+	if *hnPost.Author != (Author{}) {
+		t.Errorf("Expected to get a empty Author but got: %v", hnPost.Author)
 	}
 
 	now := time.Now().Round(time.Second)
