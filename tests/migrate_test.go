@@ -1335,7 +1335,7 @@ func TestInvalidCachedPlanSimpleProtocol(t *testing.T) {
 
 // TODO: ERROR: must have at least one column (SQLSTATE 0A000)
 func TestInvalidCachedPlanSimpleProtocolGaussDB(t *testing.T) {
-	t.Skipf("This test case skipped, because of gaussdb not support creaing empty table(SQLSTATE 0A000)")
+	t.Skipf("This test case skipped, because of gaussdb not support creating empty table(SQLSTATE 0A000)")
 	if DB.Dialector.Name() != "gaussdb" {
 		return
 	}
