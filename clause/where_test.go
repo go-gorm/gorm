@@ -129,6 +129,26 @@ func TestWhere(t *testing.T) {
 			"SELECT * FROM `users` WHERE NOT ((`users`.`id` = ? AND `age` > ?) OR `score` < ?)",
 			[]interface{}{"1", 18, 100},
 		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{
+				Exprs: []clause.Expression{
+					clause.Eq{Column: clause.PrimaryColumn, Value: "1"},
+					clause.Expr{SQL: "`age` > ?\n\tOR `name` <> ?", Vars: []interface{}{18, "jinzhu"}},
+				},
+			}},
+			"SELECT * FROM `users` WHERE `users`.`id` = ? AND (`age` > ?\n\tOR `name` <> ?)",
+			[]interface{}{"1", 18, "jinzhu"},
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Where{
+				Exprs: []clause.Expression{
+					clause.Or(clause.Eq{Column: clause.PrimaryColumn, Value: "1"}),
+					clause.Or(clause.Expr{SQL: "`age` > ?\n\tAND `name` <> ?", Vars: []interface{}{18, "jinzhu"}}),
+				},
+			}},
+			"SELECT * FROM `users` WHERE `users`.`id` = ? OR (`age` > ?\n\tAND `name` <> ?)",
+			[]interface{}{"1", 18, "jinzhu"},
+		},
 	}
 
 	for idx, result := range results {
