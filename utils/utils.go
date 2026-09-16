@@ -44,9 +44,9 @@ func CallerFrame() runtime.Frame {
 func callerFrame(skip int) runtime.Frame {
 	pcs := [13]uintptr{}
 	// skip is caller-path sensitive and should be selected by each public helper.
-	len := runtime.Callers(skip, pcs[:])
-	frames := runtime.CallersFrames(pcs[:len])
-	for i := 0; i < len; i++ {
+	length := runtime.Callers(skip, pcs[:])
+	frames := runtime.CallersFrames(pcs[:length])
+	for i := 0; i < length; i++ {
 		// second return value is "more", not "ok"
 		frame, _ := frames.Next()
 		if (!strings.HasPrefix(frame.File, gormSourceDir) ||

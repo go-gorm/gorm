@@ -24,7 +24,7 @@ func TestIsInvalidDBNameChar(t *testing.T) {
 func TestCheckTruth(t *testing.T) {
 	checkTruthTests := []struct {
 		v   string
-		out bool
+		expected bool
 	}{
 		{"123", true},
 		{"true", true},
@@ -37,8 +37,8 @@ func TestCheckTruth(t *testing.T) {
 
 	for _, test := range checkTruthTests {
 		t.Run(test.v, func(t *testing.T) {
-			if out := CheckTruth(test.v); out != test.out {
-				t.Errorf("CheckTruth(%s) want: %t, got: %t", test.v, test.out, out)
+			if expected := CheckTruth(test.v); expected != test.expected {
+				t.Errorf("CheckTruth(%s) want: %t, got: %t", test.v, test.expected, expected)
 			}
 		})
 	}
@@ -47,7 +47,7 @@ func TestCheckTruth(t *testing.T) {
 func TestToStringKey(t *testing.T) {
 	cases := []struct {
 		values []interface{}
-		key    string
+		want    string
 	}{
 		{[]interface{}{"a"}, "a"},
 		{[]interface{}{1, 2, 3}, "1_2_3"},
@@ -57,8 +57,8 @@ func TestToStringKey(t *testing.T) {
 		{[]interface{}{[]interface{}{"1", nil, "3"}}, "[1 <nil> 3]"},
 	}
 	for _, c := range cases {
-		if key := ToStringKey(c.values...); key != c.key {
-			t.Errorf("%v: expected %v, got %v", c.values, c.key, key)
+		if want := ToStringKey(c.values...); want != c.want {
+			t.Errorf("%v: expected %v, got %v", c.values, c.want, want)
 		}
 	}
 }
@@ -68,15 +68,15 @@ func TestContains(t *testing.T) {
 		name  string
 		elems []string
 		elem  string
-		out   bool
+		expected   bool
 	}{
 		{"exists", []string{"1", "2", "3"}, "1", true},
 		{"not exists", []string{"1", "2", "3"}, "4", false},
 	}
 	for _, test := range containsTests {
 		t.Run(test.name, func(t *testing.T) {
-			if out := Contains(test.elems, test.elem); test.out != out {
-				t.Errorf("Contains(%v, %s) want: %t, got: %t", test.elems, test.elem, test.out, out)
+			if expected := Contains(test.elems, test.elem); test.expected != expected {
+				t.Errorf("Contains(%v, %s) want: %t, got: %t", test.elems, test.elem, test.expected, expected)
 			}
 		})
 	}
@@ -97,7 +97,7 @@ func TestAssertEqual(t *testing.T) {
 	assertEqualTests := []struct {
 		name     string
 		src, dst interface{}
-		out      bool
+		expected      bool
 	}{
 		{"error equal", errors.New("1"), errors.New("1"), true},
 		{"error not equal", errors.New("1"), errors.New("2"), false},
@@ -107,8 +107,8 @@ func TestAssertEqual(t *testing.T) {
 	}
 	for _, test := range assertEqualTests {
 		t.Run(test.name, func(t *testing.T) {
-			if out := AssertEqual(test.src, test.dst); test.out != out {
-				t.Errorf("AssertEqual(%v, %v) want: %t, got: %t", test.src, test.dst, test.out, out)
+			if expected := AssertEqual(test.src, test.dst); test.expected != expected {
+				t.Errorf("AssertEqual(%v, %v) want: %t, got: %t", test.src, test.dst, test.expected, expected)
 			}
 		})
 	}
@@ -118,7 +118,7 @@ func TestToString(t *testing.T) {
 	tests := []struct {
 		name string
 		in   interface{}
-		out  string
+		expected  string
 	}{
 		{"int", math.MaxInt64, "9223372036854775807"},
 		{"int8", int8(math.MaxInt8), "127"},
@@ -135,8 +135,8 @@ func TestToString(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			if out := ToString(test.in); test.out != out {
-				t.Fatalf("ToString(%v) want: %s, got: %s", test.in, test.out, out)
+			if expected := ToString(test.in); test.expected != expected {
+				t.Fatalf("ToString(%v) want: %s, got: %s", test.in, test.expected, expected)
 			}
 		})
 	}

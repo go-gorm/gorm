@@ -186,7 +186,7 @@ func TestForeignKeyConstraintsBelongsTo(t *testing.T) {
 func TestFullSaveAssociations(t *testing.T) {
 	coupon := &Coupon{
 		AppliesToProduct: []*CouponProduct{
-			{ProductId: "full-save-association-product1"},
+			{ProductID: "full-save-association-product1"},
 		},
 		AmountOff:  10,
 		PercentOff: 0.0,
