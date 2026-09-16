@@ -130,6 +130,60 @@ var callbackTypes = []callbackType{
 	callbackTypeAfterFind,
 }
 
+func TableName(dest interface{}, cacheStore *sync.Map, namer Namer) (string, error) {
+	if dest == nil {
+		return "", fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+	}
+
+	modelType := reflect.ValueOf(dest).Type()
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
+	if modelType.Kind() != reflect.Struct {
+		if modelType.Kind() == reflect.Interface {
+			modelType = reflect.Indirect(reflect.ValueOf(dest)).Elem().Type()
+		}
+
+		for modelType.Kind() == reflect.Slice || modelType.Kind() == reflect.Array || modelType.Kind() == reflect.Ptr {
+			modelType = modelType.Elem()
+		}
+
+		if modelType.Kind() != reflect.Struct {
+			if modelType.PkgPath() == "" {
+				return "", fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
+			}
+			return "", fmt.Errorf("%w: %s.%s", ErrUnsupportedDataType, modelType.PkgPath(), modelType.Name())
+		}
+	}
+
+	// Cache the Schema for performance,
+	// Use the modelType or modelType + schemaTable (if it present) as cache key.
+	var schemaCacheKey interface{} = modelType
+
+	// Load exist schema cache, return if exists
+	if v, ok := cacheStore.Load(schemaCacheKey); ok {
+		s := v.(*Schema)
+		// Wait for the initialization of other goroutines to complete
+		<-s.initialized
+		return s.Table, s.err
+	}
+
+	var tableName string
+	modelValue := reflect.New(modelType)
+	if en, ok := namer.(embeddedNamer); ok {
+		tableName = en.Table
+	} else if tabler, ok := modelValue.Interface().(Tabler); ok {
+		tableName = tabler.TableName()
+	} else if tabler, ok := modelValue.Interface().(TablerWithNamer); ok {
+		tableName = tabler.TableName(namer)
+	} else {
+		tableName = namer.TableName(modelType.Name())
+	}
+
+	return tableName, nil
+}
+
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
 	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
