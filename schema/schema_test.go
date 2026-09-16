@@ -350,3 +350,44 @@ func TestCompositePrimaryKeyWithAutoIncrement(t *testing.T) {
 		t.Fatalf("PrioritizedPrimaryField of non autoincrement composite key should be nil")
 	}
 }
+
+// TestLookUpFieldWithEmbeddedStruct tests that LookUpField does not return
+// embedded fields when searching for a field name that doesn't exist in the schema.
+// This is a regression test for issue #7686.
+func TestLookUpFieldWithEmbeddedStruct(t *testing.T) {
+	// EmbeddedUser represents an embedded struct with ID field
+	type EmbeddedUser struct {
+		ID    int64  `gorm:"column:user_id"`
+		Email string `gorm:"column:user_email"`
+	}
+
+	// ModelWithEmbedded has an embedded struct and its own fields
+	type ModelWithEmbedded struct {
+		ID     int64        `gorm:"primaryKey"`
+		SrcID  string       `gorm:"primaryKey"`
+		UserID int64        // This is a separate field, not the embedded ID
+		User   EmbeddedUser `gorm:"embedded;embeddedPrefix:user_"`
+	}
+
+	s, err := schema.Parse(&ModelWithEmbedded{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse schema: %v", err)
+	}
+
+	// LookUpField("UserID") should return the UserID field, not the embedded ID
+	field := s.LookUpField("UserID")
+	if field == nil {
+		t.Fatalf("LookUpField(\"UserID\") returned nil, expected UserID field")
+	}
+	if field.Name != "UserID" {
+		t.Errorf("LookUpField(\"UserID\") returned field with Name=%q, expected \"UserID\"", field.Name)
+	}
+
+	// LookUpField("NonExistent") should return nil, not an embedded field
+	// even if namer.ColumnName("...", "NonExistent") produces a DBName
+	// that matches an embedded field
+	field = s.LookUpField("NonExistent")
+	if field != nil {
+		t.Errorf("LookUpField(\"NonExistent\") returned field %q, expected nil", field.Name)
+	}
+}
