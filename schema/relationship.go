@@ -75,7 +75,7 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 		}
 	)
 
-	if relation.FieldSchema, err = getOrParse(fieldValue, schema.cacheStore, schema.namer); err != nil {
+	if relation.FieldSchema, err = getOrParse(fieldValue, schema.cacheStore, schema.namer, schema.dialect); err != nil {
 		schema.err = fmt.Errorf("failed to parse field: %s, error: %w", field.Name, err)
 		return nil
 	}
@@ -360,8 +360,11 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 		Tag:  `gorm:"-"`,
 	})
 
-	if relation.JoinTable, err = Parse(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore,
-		schema.namer); err != nil {
+	// parse the dynamically-built join table struct with the same dialect as the
+	// owner schema, so the migrator re-parsing it (with the dialector name) hits
+	// the same cache entry instead of building a schema with an empty table name
+	if relation.JoinTable, err = ParseWithSpecialTableNameAndDialect(reflect.New(reflect.StructOf(joinTableFields)).Interface(), schema.cacheStore,
+		schema.namer, "", schema.dialect); err != nil {
 		schema.err = err
 	}
 	relation.JoinTable.Name = many2many

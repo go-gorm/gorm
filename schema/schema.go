@@ -59,6 +59,7 @@ type Schema struct {
 	initialized               chan struct{}
 	namer                     Namer
 	cacheStore                *sync.Map
+	dialect                   string
 }
 
 func (schema *Schema) String() string {
@@ -132,11 +133,23 @@ var callbackTypes = []callbackType{
 
 // Parse get data type from dialector
 func Parse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
-	return ParseWithSpecialTableName(dest, cacheStore, namer, "")
+	return ParseWithSpecialTableNameAndDialect(dest, cacheStore, namer, "", "")
 }
 
 // ParseWithSpecialTableName get data type from dialector with extra schema table
 func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName string) (*Schema, error) {
+	return ParseWithSpecialTableNameAndDialect(dest, cacheStore, namer, specialTableName, "")
+}
+
+// ParseWithSpecialTableNameAndDialect get data type from dialector with extra schema
+// table and the dialector name (the value of `gorm.Dialector.Name()`, e.g. `mysql`,
+// `postgres`), which is used to resolve database-specific type tags like
+// `gorm:"type:aaa;mysql:type:bbb"` — the field uses `bbb` on mysql and `aaa` elsewhere.
+// An empty dialectName disables database-specific type tag resolution.
+//
+//nolint:cyclop
+func ParseWithSpecialTableNameAndDialect(dest interface{}, cacheStore *sync.Map, namer Namer, specialTableName, dialectName string) (*Schema, error) {
+	dialectName = strings.ToLower(strings.TrimSpace(dialectName))
 	if dest == nil {
 		return nil, fmt.Errorf("%w: %+v", ErrUnsupportedDataType, dest)
 	}
@@ -164,10 +177,10 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	}
 
 	// Cache the Schema for performance,
-	// Use the modelType or modelType + schemaTable (if it present) as cache key.
+	// Use the modelType or modelType + schemaTable/dialectName (if any present) as cache key.
 	var schemaCacheKey interface{} = modelType
-	if specialTableName != "" {
-		schemaCacheKey = fmt.Sprintf("%p-%s", modelType, specialTableName)
+	if specialTableName != "" || dialectName != "" {
+		schemaCacheKey = fmt.Sprintf("%p-%s-%s", modelType, specialTableName, dialectName)
 	}
 
 	// Load exist schema cache, return if exists
@@ -204,6 +217,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 		Relationships:    Relationships{Relations: map[string]*Relationship{}},
 		cacheStore:       cacheStore,
 		namer:            namer,
+		dialect:          dialectName,
 		initialized:      make(chan struct{}),
 	}
 	// When the schema initialization is completed, the channel will be closed
@@ -359,7 +373,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	defer func() {
 		if schema.err != nil {
 			logger.Default.Error(context.Background(), schema.err.Error())
-			cacheStore.Delete(modelType)
+			cacheStore.Delete(schemaCacheKey)
 		}
 	}()
 
@@ -390,7 +404,7 @@ func ParseWithSpecialTableName(dest interface{}, cacheStore *sync.Map, namer Nam
 	return schema, schema.err
 }
 
-func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, error) {
+func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer, dialectName string) (*Schema, error) {
 	modelType := reflect.ValueOf(dest).Type()
 
 	if modelType.Kind() != reflect.Struct {
@@ -406,9 +420,15 @@ func getOrParse(dest interface{}, cacheStore *sync.Map, namer Namer) (*Schema, e
 		}
 	}
 
-	if v, ok := cacheStore.Load(modelType); ok {
+	var cacheKey interface{} = modelType
+	if dialectName != "" {
+		// keep consistent with the cache key built in ParseWithSpecialTableNameAndDialect
+		cacheKey = fmt.Sprintf("%p--%s", modelType, dialectName)
+	}
+
+	if v, ok := cacheStore.Load(cacheKey); ok {
 		return v.(*Schema), nil
 	}
 
-	return Parse(dest, cacheStore, namer)
+	return ParseWithSpecialTableNameAndDialect(dest, cacheStore, namer, "", dialectName)
 }
