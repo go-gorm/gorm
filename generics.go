@@ -389,6 +389,7 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 		j := join{
 			Name:     jt.Association,
 			Alias:    jt.Table,
+			From:     jt.From,
 			Selects:  q.db.Statement.Selects,
 			Omits:    q.db.Statement.Omits,
 			JoinType: jt.Type,
