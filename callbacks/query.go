@@ -149,7 +149,7 @@ func BuildQuerySQL(db *gorm.DB) {
 					}
 
 					if isRelations {
-						genJoinClause := func(joinType clause.JoinType, tableAliasName string, parentTableName string, relation *schema.Relationship) clause.Join {
+						genJoinClause := func(joinType clause.JoinType, tableAliasName string, parentTableName string, relation *schema.Relationship, from clause.Table) clause.Join {
 							columnStmt := gorm.Statement{
 								Table: tableAliasName, DB: db, Schema: relation.FieldSchema,
 								Selects: join.Selects, Omits: join.Omits,
@@ -224,9 +224,14 @@ func BuildQuerySQL(db *gorm.DB) {
 								}
 							}
 
+							if from.Name == "" {
+								from.Name = relation.FieldSchema.Table
+							}
+							from.Alias = tableAliasName
+
 							return clause.Join{
 								Type:  joinType,
-								Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+								Table: from,
 								ON:    clause.Where{Exprs: exprs},
 							}
 						}
@@ -245,7 +250,11 @@ func BuildQuerySQL(db *gorm.DB) {
 									aliasName = join.Alias
 								}
 
-								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel))
+								from := clause.Table{}
+								if idx == len(relations)-1 {
+									from = join.From
+								}
+								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel, from))
 								specifiedRelationsName[curAliasName] = aliasName
 							}
 

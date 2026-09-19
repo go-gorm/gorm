@@ -53,6 +53,7 @@ type Statement struct {
 type join struct {
 	Name       string
 	Alias      string
+	From       clause.Table
 	Conds      []interface{}
 	On         *clause.Where
 	Selects    []string
