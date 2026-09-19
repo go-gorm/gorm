@@ -23,11 +23,13 @@ func (joinTestDialector) DataTypeOf(*schema.Field) string { return "" }
 func (joinTestDialector) DefaultValueOf(*schema.Field) clause.Expression {
 	return clause.Expr{}
 }
+
 func (joinTestDialector) BindVarTo(writer clause.Writer, _ *gorm.Statement, _ interface{}) {
-	writer.WriteByte('?')
+	_ = writer.WriteByte('?')
 }
+
 func (joinTestDialector) QuoteTo(writer clause.Writer, value string) {
-	writer.WriteString(value)
+	_, _ = writer.WriteString(value)
 }
 func (joinTestDialector) Explain(sql string, _ ...interface{}) string { return sql }
 
@@ -43,6 +45,15 @@ type joinTestUser struct {
 	Manager   *joinTestUser
 }
 
+type joinTestCase struct {
+	name           string
+	target         clause.JoinTarget
+	wantJoinTable  string
+	wantSQL        []string
+	doNotWantSQL   []string
+	wantTableCount int
+}
+
 func TestGenericsJoinPhysicalTableOverride(t *testing.T) {
 	db, err := gorm.Open(joinTestDialector{}, &gorm.Config{
 		DisableAutomaticPing: true,
@@ -52,14 +63,7 @@ func TestGenericsJoinPhysicalTableOverride(t *testing.T) {
 		t.Fatalf("open test database: %v", err)
 	}
 
-	tests := []struct {
-		name           string
-		target         clause.JoinTarget
-		wantJoinTable  string
-		wantSQL        []string
-		doNotWantSQL   []string
-		wantTableCount int
-	}{
+	tests := []joinTestCase{
 		{
 			name:          "default association table",
 			target:        clause.InnerJoin.Association("Company"),
@@ -113,36 +117,41 @@ func TestGenericsJoinPhysicalTableOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			joinTableName := ""
-			var findErr error
-			sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
-				_, findErr = gorm.G[joinTestUser](tx).Joins(tt.target, func(_ gorm.JoinBuilder, joinTable clause.Table, _ clause.Table) error {
-					joinTableName = joinTable.Name
-					return nil
-				}).Find(context.Background())
-				tx.AddError(findErr)
-				return tx
-			})
-
-			if findErr != nil {
-				t.Fatalf("build join query: %v", findErr)
-			}
-			if joinTableName != tt.wantJoinTable {
-				t.Fatalf("join builder table = %q, want %q", joinTableName, tt.wantJoinTable)
-			}
-			for _, want := range tt.wantSQL {
-				if !strings.Contains(sql, want) {
-					t.Errorf("join SQL %q does not contain %q", sql, want)
-				}
-			}
-			for _, unwanted := range tt.doNotWantSQL {
-				if strings.Contains(sql, unwanted) {
-					t.Errorf("join SQL %q unexpectedly contains %q", sql, unwanted)
-				}
-			}
-			if tt.wantTableCount > 0 && strings.Count(sql, tt.target.From.Name) != tt.wantTableCount {
-				t.Errorf("join SQL %q contains physical table %q %d times, want %d", sql, tt.target.From.Name, strings.Count(sql, tt.target.From.Name), tt.wantTableCount)
-			}
+			testGenericsJoinTarget(t, db, tt)
 		})
+	}
+}
+
+func testGenericsJoinTarget(t *testing.T, db *gorm.DB, tt joinTestCase) {
+	t.Helper()
+
+	joinTableName := ""
+	var findErr error
+	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		_, findErr = gorm.G[joinTestUser](tx).Joins(tt.target, func(_ gorm.JoinBuilder, joinTable clause.Table, _ clause.Table) error {
+			joinTableName = joinTable.Name
+			return nil
+		}).Find(context.Background())
+		return tx
+	})
+
+	if findErr != nil {
+		t.Fatalf("build join query: %v", findErr)
+	}
+	if joinTableName != tt.wantJoinTable {
+		t.Fatalf("join builder table = %q, want %q", joinTableName, tt.wantJoinTable)
+	}
+	for _, want := range tt.wantSQL {
+		if !strings.Contains(sql, want) {
+			t.Errorf("join SQL %q does not contain %q", sql, want)
+		}
+	}
+	for _, unwanted := range tt.doNotWantSQL {
+		if strings.Contains(sql, unwanted) {
+			t.Errorf("join SQL %q unexpectedly contains %q", sql, unwanted)
+		}
+	}
+	if tt.wantTableCount > 0 && strings.Count(sql, tt.target.From.Name) != tt.wantTableCount {
+		t.Errorf("join SQL %q contains physical table %q %d times, want %d", sql, tt.target.From.Name, strings.Count(sql, tt.target.From.Name), tt.wantTableCount)
 	}
 }
