@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"go/token"
 	"sync"
 	"testing"
 	"time"
@@ -1039,5 +1040,40 @@ func TestDataRace(t *testing.T) {
 			var result tests.Account
 			schema.Parse(&result, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
 		}()
+	}
+}
+
+type GenericRow[T any] struct {
+	Row   T `gorm:"embedded"`
+	Count int64
+}
+
+func TestParseMany2ManyWithGeneric(t *testing.T) {
+	type Tag struct {
+		gorm.Model
+		Name string
+	}
+	type Post struct {
+		gorm.Model
+		Tags []Tag `gorm:"many2many:post_tags"`
+	}
+
+	s, err := schema.Parse(&GenericRow[*Post]{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Errorf("Failed to parse schema, got error %v", err)
+	}
+
+	rel, ok := s.Relationships.Relations["Tags"]
+	if !ok {
+		t.Fatalf(`Failed to find relation "Tags", got %+v`, s.Relationships.Relations)
+	}
+	if rel.JoinTable.Table != "post_tags" {
+		t.Errorf(`Expected join table "post_tags", got %s`, rel.JoinTable.Table)
+	}
+
+	for _, field := range rel.JoinTable.Fields {
+		if !token.IsIdentifier(field.Name) {
+			t.Errorf("Expected join table field %q to be a valid Go identifier", field.Name)
+		}
 	}
 }
