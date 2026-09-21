@@ -463,6 +463,12 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				if len(args) == 1 {
 					switch reflectValue.Kind() {
 					case reflect.Slice, reflect.Array:
+						// database/sql converts some slice types to a single
+						// value rather than a list of them, e.g. []byte, uuid.UUID
+						if _, err := driver.DefaultParameterConverter.ConvertValue(reflectValue.Interface()); err == nil {
+							break
+						}
+
 						// optimize reflect value length
 						valueLen := reflectValue.Len()
 						values := make([]interface{}, valueLen)
