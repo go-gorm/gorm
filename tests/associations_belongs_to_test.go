@@ -18,13 +18,17 @@ func TestBelongsToAssociation(t *testing.T) {
 
 	// Find
 	var user2 User
-	DB.Find(&user2, "id = ?", user.ID)
+	if err := DB.First(&user2, "id = ?", user.ID).Error; err != nil {
+		t.Fatalf("failed to find user, got error: %v", err)
+	}
 	pointerOfUser := &user2
 	if err := DB.Model(&pointerOfUser).Association("Company").Find(&user2.Company); err != nil {
-		t.Errorf("failed to query users, got error %#v", err)
+		t.Fatalf("failed to find belongs-to company, got error: %v", err)
 	}
 	user2.Manager = &User{}
-	DB.Model(&user2).Association("Manager").Find(user2.Manager)
+	if err := DB.Model(&user2).Association("Manager").Find(user2.Manager); err != nil {
+		t.Fatalf("failed to find belongs-to manager, got error: %v", err)
+	}
 	CheckUser(t, user2, user)
 
 	// Count
@@ -150,36 +154,48 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 		*GetUser("slice-belongs-to-3", Config{Company: true, Manager: true}),
 	}
 
-	DB.Create(&users)
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatalf("failed to create users, got error: %v", err)
+	}
 
 	AssertAssociationCount(t, users, "Company", 3, "")
 	AssertAssociationCount(t, users, "Manager", 2, "")
 
 	// Find
 	var companies []Company
-	if DB.Model(&users).Association("Company").Find(&companies); len(companies) != 3 {
+	if err := DB.Model(&users).Association("Company").Find(&companies); err != nil {
+		t.Fatalf("failed to find companies, got error: %v", err)
+	}
+	if len(companies) != 3 {
 		t.Errorf("companies count should be %v, but got %v", 3, len(companies))
 	}
 
 	var managers []User
-	if DB.Model(&users).Association("Manager").Find(&managers); len(managers) != 2 {
+	if err := DB.Model(&users).Association("Manager").Find(&managers); err != nil {
+		t.Fatalf("failed to find managers, got error: %v", err)
+	}
+	if len(managers) != 2 {
 		t.Errorf("managers count should be %v, but got %v", 2, len(managers))
 	}
 
 	// Append
-	DB.Model(&users).Association("Company").Append(
+	if err := DB.Model(&users).Association("Company").Append(
 		&Company{Name: "company-slice-append-1"},
 		&Company{Name: "company-slice-append-2"},
 		&Company{Name: "company-slice-append-3"},
-	)
+	); err != nil {
+		t.Fatalf("failed to append companies, got error: %v", err)
+	}
 
 	AssertAssociationCount(t, users, "Company", 3, "After Append")
 
-	DB.Model(&users).Association("Manager").Append(
+	if err := DB.Model(&users).Association("Manager").Append(
 		GetUser("manager-slice-belongs-to-1", Config{}),
 		GetUser("manager-slice-belongs-to-2", Config{}),
 		GetUser("manager-slice-belongs-to-3", Config{}),
-	)
+	); err != nil {
+		t.Fatalf("failed to append managers, got error: %v", err)
+	}
 	AssertAssociationCount(t, users, "Manager", 3, "After Append")
 
 	if err := DB.Model(&users).Association("Manager").Append(
@@ -202,10 +218,14 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 	AssertAssociationCount(t, users, "Company", 2, "After Delete")
 
 	// Clear
-	DB.Model(&users).Association("Company").Clear()
+	if err := DB.Model(&users).Association("Company").Clear(); err != nil {
+		t.Fatalf("failed to clear companies, got error: %v", err)
+	}
 	AssertAssociationCount(t, users, "Company", 0, "After Clear")
 
-	DB.Model(&users).Association("Manager").Clear()
+	if err := DB.Model(&users).Association("Manager").Clear(); err != nil {
+		t.Fatalf("failed to clear managers, got error: %v", err)
+	}
 	AssertAssociationCount(t, users, "Manager", 0, "After Clear")
 
 	// shared company
@@ -222,7 +242,9 @@ func TestBelongsToAssociationForSlice(t *testing.T) {
 		t.Errorf("user's company id should exists and equal, but its: %v, %v", users[0].CompanyID, users[1].CompanyID)
 	}
 
-	DB.Model(&users[0]).Association("Company").Delete(&company)
+	if err := DB.Model(&users[0]).Association("Company").Delete(&company); err != nil {
+		t.Fatalf("failed to delete shared company, got error: %v", err)
+	}
 	AssertAssociationCount(t, users[0], "Company", 0, "After Delete")
 	AssertAssociationCount(t, users[1], "Company", 1, "After other user Delete")
 }
