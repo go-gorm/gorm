@@ -142,6 +142,28 @@ func parseFieldIndexes(field *Field) (indexes []Index, err error) {
 					priority = 10
 				}
 
+				// Handle FUNCTION tag to generate EXPRESSION
+				// Supports: function:upper, function:coalesce:-1, function:concat:a:b:c, etc.
+				if settings["FUNCTION"] != "" && settings["EXPRESSION"] == "" {
+					f := strings.Split(settings["FUNCTION"], ":")
+					if len(f) == 1 {
+						settings["EXPRESSION"] = f[0] + "(" + field.DBName + ")"
+					} else {
+						// Filter out empty parameters
+						var params []string
+						for _, p := range f[1:] {
+							if p != "" {
+								params = append(params, p)
+							}
+						}
+						settings["EXPRESSION"] = f[0] + "(" + field.DBName
+						if len(params) > 0 {
+							settings["EXPRESSION"] += ", " + strings.Join(params, ", ")
+						}
+						settings["EXPRESSION"] += ")"
+					}
+				}
+
 				indexes = append(indexes, Index{
 					Name:    name,
 					Class:   settings["CLASS"],
