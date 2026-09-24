@@ -193,7 +193,7 @@ func TestFormatNameWithStringLongerThan63Characters(t *testing.T) {
 	ns := NamingStrategy{IdentifierMaxLength: 63}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
-	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVer180f2c67" {
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVerb463f8ff" {
 		t.Errorf("invalid formatted name generated, got %v", formattedName)
 	}
 }
@@ -202,7 +202,7 @@ func TestFormatNameWithStringLongerThan64Characters(t *testing.T) {
 	ns := NamingStrategy{IdentifierMaxLength: 64}
 
 	formattedName := ns.formatName("prefix", "table", "thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryLongString")
-	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVery180f2c67" {
+	if formattedName != "prefix_table_thisIsAVeryVeryVeryVeryVeryVeryVeryVeryVeryb463f8ff" {
 		t.Errorf("invalid formatted name generated, got %v", formattedName)
 	}
 }

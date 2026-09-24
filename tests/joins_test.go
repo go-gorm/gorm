@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"testing"
@@ -475,4 +476,82 @@ func TestJoinsPreload_Issue7013_NoEntries(t *testing.T) {
 	})
 
 	AssertEqual(t, len(entries), 0)
+}
+
+func TestJoinsLongName_Issue7513(t *testing.T) {
+	if os.Getenv("GORM_DIALECT") != "postgres" {
+		// Another DB may not support UTF-8 characters in identifiers
+		return
+	}
+	type (
+		Owner struct {
+			gorm.Model
+			Name string
+		}
+
+		Land struct {
+			gorm.Model
+			Address                                                                             string
+			OwneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeerID uint `gorm:"column:owner_id"`
+			Owneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeer   *Owner
+		}
+
+		Design struct {
+			gorm.Model
+			Name𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x string
+		}
+
+		Building struct {
+			gorm.Model
+			Name                                                                  string
+			Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃xID uint `gorm:"column:land_id"`
+			Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x   *Land
+
+			DesignID uint `gorm:"column:design_id"`
+			Design   *Design
+		}
+	)
+
+	DB.Migrator().DropTable(&Building{}, &Owner{}, &Land{}, Design{})
+	DB.Migrator().AutoMigrate(&Building{}, &Owner{}, &Land{}, Design{})
+
+	home := &Building{
+		Model: gorm.Model{
+			ID: 1,
+		},
+		Name: "Awesome Building",
+		Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃xID: 2,
+		Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x: &Land{
+			Model: gorm.Model{
+				ID: 2,
+			},
+			Address: "Awesome Street",
+			OwneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeerID: 3,
+			Owneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeer: &Owner{
+				Model: gorm.Model{
+					ID: 3,
+				},
+				Name: "Awesome Person",
+			},
+		},
+		DesignID: 4,
+		Design: &Design{
+			Model: gorm.Model{
+				ID: 4,
+			},
+			Name𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x: "Awesome Design",
+		},
+	}
+	DB.Create(home)
+
+	var entries []Building
+	assert.NotPanics(t, func() {
+		assert.NoError(t,
+			DB.Joins("Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x").
+				Joins("Laaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaand𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃𒀃x.Owneeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeer").
+				Joins("Design").
+				Find(&entries).Error)
+	})
+
+	AssertEqual(t, entries, []Building{*home})
 }
