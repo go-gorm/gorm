@@ -22,6 +22,7 @@ type Namer interface {
 	CheckerName(table, column string) string
 	IndexName(table, column string) string
 	UniqueName(table, column string) string
+	RelationshipJoinTableName(Relationship) string
 }
 
 // Replacer replacer interface like strings.Replacer
@@ -112,6 +113,20 @@ func (ns NamingStrategy) formatName(prefix, table, name string) string {
 		formattedName = formattedName[0:ns.IdentifierMaxLength-8] + hex.EncodeToString(bs)[:8]
 	}
 	return formattedName
+}
+
+func (ns NamingStrategy) CheckerJoinTableName(table, field string) string {
+	// TableName + "_" + FieldName (converted to snake_case)
+	return ns.TableName(table + "_" + field)
+}
+
+// RelationshipJoinTableName generates the join table name for a many-to-many relationship.
+// This implementation concatenates the source table name and the field name.
+func (ns NamingStrategy) RelationshipJoinTableName(rel Relationship) string {
+	// rel.Schema.Table is the source table (e.g., "users")
+	// rel.Field.Name is the field on the struct (e.g., "Languages")
+	// JoinTableName handles the snake_case conversion and pluralization logic
+	return ns.JoinTableName(rel.Schema.Table + "_" + rel.Field.Name)
 }
 
 var (
