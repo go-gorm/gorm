@@ -631,6 +631,7 @@ type Constraint struct {
 	References      []*Field
 	OnDelete        string
 	OnUpdate        string
+	Deferrable      string
 }
 
 func (constraint *Constraint) GetName() string { return constraint.Name }
@@ -643,6 +644,10 @@ func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 
 	if constraint.OnUpdate != "" {
 		sql += " ON UPDATE " + constraint.OnUpdate
+	}
+
+	if constraint.Deferrable != "" {
+		sql += " DEFERRABLE " + constraint.Deferrable
 	}
 
 	foreignKeys := make([]interface{}, 0, len(constraint.ForeignKeys))
@@ -701,10 +706,11 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	}
 
 	constraint := Constraint{
-		Name:     name,
-		Field:    rel.Field,
-		OnUpdate: settings["ONUPDATE"],
-		OnDelete: settings["ONDELETE"],
+		Name:       name,
+		Field:      rel.Field,
+		OnUpdate:   settings["ONUPDATE"],
+		OnDelete:   settings["ONDELETE"],
+		Deferrable: strings.ToUpper(settings["DEFERRABLE"]),
 	}
 
 	for _, ref := range rel.References {
