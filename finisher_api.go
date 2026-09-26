@@ -182,6 +182,14 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 	return tx.callbacks.Query().Execute(tx)
 }
 
+// Exists reports whether at least one record matches the current query.
+func (db *DB) Exists() (bool, error) {
+	var result int
+
+	tx := db.Limit(1).Select("1").Find(&result)
+	return tx.RowsAffected > 0, tx.Error
+}
+
 // FindInBatches finds all records in batches of batchSize
 func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
 	var (

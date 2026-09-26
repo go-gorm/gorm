@@ -116,6 +116,7 @@ type ExecInterface[T any] interface {
 	First(context.Context) (T, error)
 	Last(ctx context.Context) (T, error)
 	Take(context.Context) (T, error)
+	Exists(ctx context.Context) (bool, error)
 	Find(ctx context.Context) ([]T, error)
 	FindInBatches(ctx context.Context, batchSize int, fc func(data []T, batch int) error) error
 	Row(ctx context.Context) *sql.Row
@@ -647,6 +648,16 @@ func (g execG[T]) Take(ctx context.Context) (T, error) {
 	var r T
 	err := g.g.apply(ctx).Take(&r).Error
 	return r, err
+}
+
+func (g execG[T]) Exists(ctx context.Context) (bool, error) {
+	var (
+		r      T
+		result int
+	)
+
+	tx := g.g.apply(ctx).Model(r).Limit(1).Select("1").Find(&result)
+	return tx.RowsAffected > 0, tx.Error
 }
 
 func (g execG[T]) Find(ctx context.Context) ([]T, error) {
