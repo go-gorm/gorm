@@ -651,11 +651,8 @@ func (g execG[T]) Take(ctx context.Context) (T, error) {
 }
 
 func (g execG[T]) Exists(ctx context.Context) (bool, error) {
-	var (
-		r      T
-		result int
-	)
-
+	var r T
+	var result int
 	tx := g.g.apply(ctx).Model(r).Limit(1).Select("1").Find(&result)
 	return tx.RowsAffected > 0, tx.Error
 }

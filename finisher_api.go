@@ -185,7 +185,6 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 // Exists reports whether at least one record matches the current query.
 func (db *DB) Exists() (bool, error) {
 	var result int
-
 	tx := db.Limit(1).Select("1").Find(&result)
 	return tx.RowsAffected > 0, tx.Error
 }
