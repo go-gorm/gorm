@@ -247,6 +247,57 @@ func TestFind(t *testing.T) {
 	}
 }
 
+func TestExists(t *testing.T) {
+	user := *GetUser("exists", Config{})
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	exists, err := DB.Model(&User{}).Where("name = ?", user.Name).Exists()
+	if err != nil {
+		t.Fatalf("failed to check whether user exists: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected matching user to exist")
+	}
+
+	exists, err = DB.Model(&User{}).Where("name = ?", "does-not-exist").Exists()
+	if err != nil {
+		t.Fatalf("failed to check whether user exists: %v", err)
+	}
+	if exists {
+		t.Fatal("expected non-matching user not to exist")
+	}
+
+	if err := DB.Delete(&user).Error; err != nil {
+		t.Fatalf("failed to soft delete user: %v", err)
+	}
+
+	exists, err = DB.Model(&User{}).Where("name = ?", user.Name).Exists()
+	if err != nil {
+		t.Fatalf("failed to check whether soft-deleted user exists: %v", err)
+	}
+	if exists {
+		t.Fatal("expected soft-deleted user not to exist")
+	}
+
+	exists, err = DB.Unscoped().Model(&User{}).Where("name = ?", user.Name).Exists()
+	if err != nil {
+		t.Fatalf("failed to check whether soft-deleted user exists unscoped: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected soft-deleted user to exist in an unscoped query")
+	}
+
+	exists, err = DB.Table("missing_exists_table").Exists()
+	if err == nil {
+		t.Fatal("expected missing table query to return an error")
+	}
+	if exists {
+		t.Fatal("expected missing table query not to report a record")
+	}
+}
+
 func TestQueryWithAssociation(t *testing.T) {
 	user := *GetUser("query_with_association", Config{Account: true, Pets: 2, Toys: 1, Company: true, Manager: true, Team: 2, Languages: 1, Friends: 3})
 
