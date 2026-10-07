@@ -490,3 +490,80 @@ func TestTransactionWithDefaultTimeout(t *testing.T) {
 		t.Errorf("should return error when transaction timeout, got error %v", err)
 	}
 }
+
+func TestTransactionWithDefaultTimeoutCancelOnCommit(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{DefaultTransactionTimeout: 10 * time.Minute})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		t.Fatalf("Begin: %v", tx.Error)
+	}
+	ctx := tx.Statement.Context
+	if _, ok := ctx.Deadline(); !ok {
+		t.Fatal("expected deadline to be set by DefaultTransactionTimeout")
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("unexpected context error before commit: %v", ctx.Err())
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	if ctx.Err() != context.Canceled {
+		t.Errorf("expected context to be cancelled after commit, got %v", ctx.Err())
+	}
+}
+
+func TestTransactionWithDefaultTimeoutCancelOnRollback(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{DefaultTransactionTimeout: 10 * time.Minute})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		t.Fatalf("Begin: %v", tx.Error)
+	}
+	ctx := tx.Statement.Context
+	if _, ok := ctx.Deadline(); !ok {
+		t.Fatal("expected deadline to be set by DefaultTransactionTimeout")
+	}
+	if ctx.Err() != nil {
+		t.Fatalf("unexpected context error before rollback: %v", ctx.Err())
+	}
+
+	if err := tx.Rollback().Error; err != nil {
+		t.Fatalf("Rollback: %v", err)
+	}
+
+	if ctx.Err() != context.Canceled {
+		t.Errorf("expected context to be cancelled after rollback, got %v", ctx.Err())
+	}
+}
+
+func TestTransactionWithDefaultTimeoutPreservesCallerDeadline(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{DefaultTransactionTimeout: 10 * time.Minute})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	callerCtx, callerCancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer callerCancel()
+
+	tx := db.WithContext(callerCtx).Begin()
+	if tx.Error != nil {
+		t.Fatalf("Begin: %v", tx.Error)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		t.Fatalf("Commit: %v", err)
+	}
+
+	if callerCtx.Err() != nil {
+		t.Errorf("caller context should not be cancelled, got %v", callerCtx.Err())
+	}
+}

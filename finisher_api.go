@@ -690,9 +690,11 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	}
 
 	ctx := tx.Statement.Context
+	var cancel context.CancelFunc
 	if db.DefaultTransactionTimeout > 0 {
 		if _, ok := ctx.Deadline(); !ok {
-			ctx, _ = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+			ctx, cancel = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+			tx.Statement.Context = ctx
 		}
 	}
 
@@ -706,7 +708,12 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	}
 
 	if err != nil {
+		if cancel != nil {
+			cancel()
+		}
 		tx.AddError(err)
+	} else {
+		tx.Statement.cancel = cancel
 	}
 
 	return tx
@@ -714,6 +721,12 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 
 // Commit commits the changes in a transaction
 func (db *DB) Commit() *DB {
+	if db.Statement != nil && db.Statement.cancel != nil {
+		defer func() {
+			db.Statement.cancel()
+			db.Statement.cancel = nil
+		}()
+	}
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil && !reflect.ValueOf(committer).IsNil() {
 		db.AddError(committer.Commit())
 	} else {
@@ -724,6 +737,12 @@ func (db *DB) Commit() *DB {
 
 // Rollback rollbacks the changes in a transaction
 func (db *DB) Rollback() *DB {
+	if db.Statement != nil && db.Statement.cancel != nil {
+		defer func() {
+			db.Statement.cancel()
+			db.Statement.cancel = nil
+		}()
+	}
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		if !reflect.ValueOf(committer).IsNil() {
 			db.AddError(committer.Rollback())
