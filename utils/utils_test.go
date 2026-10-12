@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"math"
 	"path/filepath"
+	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -220,5 +222,88 @@ func TestFileWithLineNumWrappedCallRegression(t *testing.T) {
 	got, want := fileWithLineNumWrappedOuterForTest()
 	if got != want {
 		t.Fatalf("FileWithLineNum wrapped caller mismatch, got %s, want %s", got, want)
+	}
+}
+
+// toStringKeyReference is the original reflection-based ToStringKey, kept to
+// verify the fast paths produce identical keys.
+func toStringKeyReference(values ...interface{}) string {
+	results := make([]string, len(values))
+
+	for idx, value := range values {
+		if valuer, ok := value.(driver.Valuer); ok {
+			value, _ = valuer.Value()
+		}
+
+		switch v := value.(type) {
+		case string:
+			results[idx] = v
+		case []byte:
+			results[idx] = string(v)
+		case uint:
+			results[idx] = strconv.FormatUint(uint64(v), 10)
+		default:
+			results[idx] = "nil"
+			vv := reflect.ValueOf(v)
+			if vv.IsValid() && !vv.IsZero() {
+				results[idx] = fmt.Sprint(reflect.Indirect(vv).Interface())
+			}
+		}
+	}
+
+	return strings.Join(results, "_")
+}
+
+func TestToStringKeyMatchesReference(t *testing.T) {
+	i64, zero := int64(42), 0
+	values := []interface{}{
+		nil, "", "a", []byte("b"),
+		[]byte{},
+		0, 1, -1, math.MaxInt64, math.MinInt64,
+		int8(0), int8(-8), int16(16), int32(-32), int64(0), int64(64),
+		uint(0), uint(7), uint8(0), uint8(8), uint16(16), uint32(32), uint64(0), uint64(math.MaxUint64),
+		1.5, float32(2.5), true, false,
+		&i64, &zero, (*int)(nil),
+		sql.NullInt64{Int64: 5, Valid: true},
+		sql.NullInt64{},
+		sql.NullString{String: "s", Valid: true},
+		time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC),
+		[]interface{}{1, "2", nil},
+	}
+
+	for _, v := range values {
+		if got, want := ToStringKey(v), toStringKeyReference(v); got != want {
+			t.Errorf("ToStringKey(%#v) = %q, want %q", v, got, want)
+		}
+	}
+	for i := range values {
+		pair := []interface{}{values[i], values[(i+1)%len(values)]}
+		if got, want := ToStringKey(pair...), toStringKeyReference(pair...); got != want {
+			t.Errorf("ToStringKey(%#v) = %q, want %q", pair, got, want)
+		}
+	}
+	if got := ToStringKey(); got != "" {
+		t.Errorf("ToStringKey() = %q, want empty", got)
+	}
+}
+
+func BenchmarkToStringKey(b *testing.B) {
+	cases := []struct {
+		name   string
+		values []interface{}
+	}{
+		{"int64", []interface{}{int64(123456)}},
+		{"int", []interface{}{123456}},
+		{"uint", []interface{}{uint(123456)}},
+		{"string", []interface{}{"abc-123"}},
+		{"composite_int64", []interface{}{int64(1), int64(2)}},
+	}
+	for _, c := range cases {
+		b.Run(c.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				ToStringKey(c.values...)
+			}
+		})
 	}
 }

@@ -84,30 +84,88 @@ func CheckTruth(vals ...string) bool {
 }
 
 func ToStringKey(values ...interface{}) string {
+	if len(values) == 1 {
+		return toKeyPart(values[0])
+	}
+
 	results := make([]string, len(values))
-
 	for idx, value := range values {
-		if valuer, ok := value.(driver.Valuer); ok {
-			value, _ = valuer.Value()
-		}
-
-		switch v := value.(type) {
-		case string:
-			results[idx] = v
-		case []byte:
-			results[idx] = string(v)
-		case uint:
-			results[idx] = strconv.FormatUint(uint64(v), 10)
-		default:
-			results[idx] = "nil"
-			vv := reflect.ValueOf(v)
-			if vv.IsValid() && !vv.IsZero() {
-				results[idx] = fmt.Sprint(reflect.Indirect(vv).Interface())
-			}
-		}
+		results[idx] = toKeyPart(value)
 	}
 
 	return strings.Join(results, "_")
+}
+
+// toKeyPart formats a single ToStringKey component. Signed and sized
+// integers take a strconv fast path; zero values of those types map to "nil"
+// to match the reflection-based fallback.
+func toKeyPart(value interface{}) string {
+	if valuer, ok := value.(driver.Valuer); ok {
+		value, _ = valuer.Value()
+	}
+
+	switch v := value.(type) {
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	case uint:
+		return strconv.FormatUint(uint64(v), 10)
+	}
+
+	if key, ok := intKeyPart(value); ok {
+		return key
+	}
+
+	vv := reflect.ValueOf(value)
+	if vv.IsValid() && !vv.IsZero() {
+		return fmt.Sprint(reflect.Indirect(vv).Interface())
+	}
+	return "nil"
+}
+
+func intKeyPart(value interface{}) (string, bool) {
+	var n int64
+	switch v := value.(type) {
+	case int:
+		n = int64(v)
+	case int8:
+		n = int64(v)
+	case int16:
+		n = int64(v)
+	case int32:
+		n = int64(v)
+	case int64:
+		n = v
+	default:
+		return uintKeyPart(value)
+	}
+
+	if n == 0 {
+		return "nil", true
+	}
+	return strconv.FormatInt(n, 10), true
+}
+
+func uintKeyPart(value interface{}) (string, bool) {
+	var n uint64
+	switch v := value.(type) {
+	case uint8:
+		n = uint64(v)
+	case uint16:
+		n = uint64(v)
+	case uint32:
+		n = uint64(v)
+	case uint64:
+		n = v
+	default:
+		return "", false
+	}
+
+	if n == 0 {
+		return "nil", true
+	}
+	return strconv.FormatUint(n, 10), true
 }
 
 func Contains(elems []string, elem string) bool {
