@@ -165,6 +165,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 		}
 	case *[]map[string]interface{}:
 		columnTypes, _ := rows.ColumnTypes()
+		if !update {
+			*dest = (*dest)[:0]
+		}
 		for initialized || rows.Next() {
 			prepareValues(values, db, columnTypes, columns)
 
@@ -172,9 +175,18 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 			db.RowsAffected++
 			db.AddError(rows.Scan(values...))
 
-			mapValue := map[string]interface{}{}
+			var mapValue map[string]interface{}
+			if update && int(db.RowsAffected) <= len(*dest) {
+				mapValue = (*dest)[db.RowsAffected-1]
+				if mapValue == nil {
+					mapValue = map[string]interface{}{}
+					(*dest)[db.RowsAffected-1] = mapValue
+				}
+			} else {
+				mapValue = map[string]interface{}{}
+				*dest = append(*dest, mapValue)
+			}
 			scanIntoMap(mapValue, values, columns)
-			*dest = append(*dest, mapValue)
 		}
 	case *int, *int8, *int16, *int32, *int64,
 		*uint, *uint8, *uint16, *uint32, *uint64, *uintptr,
