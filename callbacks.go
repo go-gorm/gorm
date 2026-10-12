@@ -95,7 +95,16 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if db.DefaultContextTimeout > 0 {
 		if _, ok := stmt.Context.Deadline(); !ok {
-			stmt.Context, _ = context.WithTimeout(stmt.Context, db.DefaultContextTimeout)
+			var cancel context.CancelFunc
+			stmt.Context, cancel = context.WithTimeout(stmt.Context, db.DefaultContextTimeout)
+			// Cancel after Execute completes to prevent context leaks (#7786).
+			// Save and restore any existing cancel func in case Execute is nested.
+			prevCancel := db.cancel
+			db.cancel = cancel
+			defer func() {
+				cancel()
+				db.cancel = prevCancel
+			}()
 		}
 	}
 

@@ -692,7 +692,9 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 	ctx := tx.Statement.Context
 	if db.DefaultTransactionTimeout > 0 {
 		if _, ok := ctx.Deadline(); !ok {
-			ctx, _ = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+			tx.cancel = cancel
 		}
 	}
 
@@ -719,6 +721,13 @@ func (db *DB) Commit() *DB {
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
+
+	// Cancel any timeout context created during Begin to prevent leaks (#7875).
+	if db.cancel != nil {
+		db.cancel()
+		db.cancel = nil
+	}
+
 	return db
 }
 
@@ -731,6 +740,13 @@ func (db *DB) Rollback() *DB {
 	} else {
 		db.AddError(ErrInvalidTransaction)
 	}
+
+	// Cancel any timeout context created during Begin to prevent leaks (#7875).
+	if db.cancel != nil {
+		db.cancel()
+		db.cancel = nil
+	}
+
 	return db
 }
 
