@@ -16,6 +16,12 @@ type JoinTarget struct {
 	Association string
 	Subquery    Expression
 	Table       string
+	// From overrides the physical table used for the association join.
+	// When set, it replaces relation.FieldSchema.Table in the generated JOIN clause.
+	// This is useful for schema-per-tenant setups where the joined table
+	// needs to be qualified with a different schema than the model's default.
+	// The alias is still controlled by Table (via As).
+	From Table
 }
 
 func Has(name string) JoinTarget {
@@ -28,6 +34,13 @@ func (jt JoinType) Association(name string) JoinTarget {
 
 func (jt JoinType) AssociationFrom(name string, subquery Expression) JoinTarget {
 	return JoinTarget{Type: jt, Association: name, Subquery: subquery}
+}
+
+// FromTable sets the physical table override for the join target.
+// This overrides the default relation.FieldSchema.Table in the generated JOIN clause.
+func (jt JoinTarget) FromTable(table Table) JoinTarget {
+	jt.From = table
+	return jt
 }
 
 func (jt JoinTarget) As(name string) JoinTarget {
