@@ -84,7 +84,7 @@ jobs:
   mariadb:
     strategy:
       matrix:
-        dbversion: [ 'mariadb:latest' ]
+        dbversion: [ 'mariadb:12' ]
         go: ['stable', 'oldstable']
         platform: [ ubuntu-latest ]
     runs-on: ${{ matrix.platform }}
