@@ -111,6 +111,11 @@ type DB struct {
 	RowsAffected int64
 	Statement    *Statement
 	clone        int
+
+	// cancel holds the context.CancelFunc for any timeout context created
+	// by DefaultTransactionTimeout or DefaultContextTimeout. It is called
+	// in Commit/Rollback to prevent context leaks (see #7875, #7786).
+	cancel context.CancelFunc
 }
 
 // Session session config when create session with Session() method
