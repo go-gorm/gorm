@@ -34,8 +34,10 @@ func (commonDialect) BindVar(i int) string {
 	return "$$$" // ?
 }
 
+// Quote quotes an identifier. Embedded double quotes are escaped by doubling
+// them, so the identifier cannot break out of the quoted name.
 func (commonDialect) Quote(key string) string {
-	return fmt.Sprintf(`"%s"`, key)
+	return `"` + strings.ReplaceAll(key, `"`, `""`) + `"`
 }
 
 func (s *commonDialect) fieldCanAutoIncrement(field *StructField) bool {

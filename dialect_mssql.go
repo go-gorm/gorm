@@ -12,7 +12,7 @@ func setIdentityInsert(scope *Scope) {
 	if scope.Dialect().GetName() == "mssql" {
 		for _, field := range scope.PrimaryFields() {
 			if _, ok := field.TagSettings["AUTO_INCREMENT"]; ok && !field.IsBlank {
-				scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v ON", scope.TableName()))
+				scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v ON", scope.QuotedTableName()))
 				scope.InstanceSet("mssql:identity_insert_on", true)
 			}
 		}
@@ -22,7 +22,7 @@ func setIdentityInsert(scope *Scope) {
 func turnOffIdentityInsert(scope *Scope) {
 	if scope.Dialect().GetName() == "mssql" {
 		if _, ok := scope.InstanceGet("mssql:identity_insert_on"); ok {
-			scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v OFF", scope.TableName()))
+			scope.NewDB().Exec(fmt.Sprintf("SET IDENTITY_INSERT %v OFF", scope.QuotedTableName()))
 		}
 	}
 }
@@ -50,8 +50,10 @@ func (mssql) BindVar(i int) string {
 	return "$$$" // ?
 }
 
+// Quote quotes an identifier. Embedded closing brackets are escaped by
+// doubling them, so the identifier cannot break out of the quoted name.
 func (mssql) Quote(key string) string {
-	return fmt.Sprintf(`[%s]`, key)
+	return "[" + strings.ReplaceAll(key, "]", "]]") + "]"
 }
 
 func (s *mssql) DataTypeOf(field *StructField) string {

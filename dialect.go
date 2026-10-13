@@ -17,7 +17,9 @@ type Dialect interface {
 
 	// BindVar return the placeholder for actual values in SQL statements, in many dbs it is "?", Postgres using $1
 	BindVar(i int) string
-	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name
+	// Quote quotes field name to avoid SQL parsing exceptions by using a reserved word as a field name.
+	// Implementations must escape the quote delimiter inside key (for example by doubling it),
+	// so that key cannot terminate the quoted identifier.
 	Quote(key string) string
 	// DataTypeOf return data's sql type
 	DataTypeOf(field *StructField) string

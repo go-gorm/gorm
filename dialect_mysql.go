@@ -23,8 +23,10 @@ func (mysql) GetName() string {
 	return "mysql"
 }
 
+// Quote quotes an identifier. Embedded backticks are escaped by doubling
+// them, so the identifier cannot break out of the quoted name.
 func (mysql) Quote(key string) string {
-	return fmt.Sprintf("`%s`", key)
+	return "`" + strings.ReplaceAll(key, "`", "``") + "`"
 }
 
 // Get Data Type for MySQL Dialect
