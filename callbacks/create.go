@@ -140,12 +140,32 @@ func Create(config *Config) func(db *gorm.DB) {
 		}
 
 		insertID, err := result.LastInsertId()
-		insertOk := err == nil && insertID > 0
-
-		if !insertOk {
+		if err != nil {
 			if !supportReturning {
 				db.AddError(err)
 			}
+			return
+		}
+
+		// Validate the insert ID.
+		//
+		// For unsigned primary keys (uint32/uint64), accept any non-zero
+		// value. DB columns like BIGINT UNSIGNED whose auto-increment counter
+		// exceeds math.MaxInt64 overflow into negative int64 when returned
+		// through LastInsertId(). Field.Set handles the signed-to-unsigned
+		// conversion correctly, recovering the true uint64 value.
+		//
+		// For signed primary keys, keep the original > 0 guard so that
+		// driver quirks never populate a struct field with a negative ID.
+		insertOk := insertID > 0
+		if !insertOk && pkField != nil {
+			switch pkField.FieldType.Kind() {
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+				insertOk = insertID != 0
+			}
+		}
+
+		if !insertOk {
 			return
 		}
 
