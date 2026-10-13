@@ -149,7 +149,7 @@ func BuildQuerySQL(db *gorm.DB) {
 					}
 
 					if isRelations {
-						genJoinClause := func(joinType clause.JoinType, tableAliasName string, parentTableName string, relation *schema.Relationship) clause.Join {
+						genJoinClause := func(joinType clause.JoinType, tableAliasName string, parentTableName string, relation *schema.Relationship, physicalTableOverride ...string) clause.Join {
 							columnStmt := gorm.Statement{
 								Table: tableAliasName, DB: db, Schema: relation.FieldSchema,
 								Selects: join.Selects, Omits: join.Omits,
@@ -224,9 +224,15 @@ func BuildQuerySQL(db *gorm.DB) {
 								}
 							}
 
+							// Determine the physical table name: use override if provided, otherwise fall back to relation schema table.
+							physicalTableName := relation.FieldSchema.Table
+							if len(physicalTableOverride) > 0 && physicalTableOverride[0] != "" {
+								physicalTableName = physicalTableOverride[0]
+							}
+
 							return clause.Join{
 								Type:  joinType,
-								Table: clause.Table{Name: relation.FieldSchema.Table, Alias: tableAliasName},
+								Table: clause.Table{Name: physicalTableName, Alias: tableAliasName},
 								ON:    clause.Where{Exprs: exprs},
 							}
 						}
@@ -245,7 +251,12 @@ func BuildQuerySQL(db *gorm.DB) {
 									aliasName = join.Alias
 								}
 
-								fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel))
+								// Pass physical table override only for the last relation in the chain.
+								if idx == len(relations)-1 && join.PhysicalTable.Name != "" {
+									fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel, join.PhysicalTable.Name))
+								} else {
+									fromClause.Joins = append(fromClause.Joins, genJoinClause(join.JoinType, aliasName, specifiedRelationsName[parentTableName], rel))
+								}
 								specifiedRelationsName[curAliasName] = aliasName
 							}
 

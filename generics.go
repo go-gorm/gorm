@@ -387,11 +387,12 @@ func (c chainG[T]) Joins(jt clause.JoinTarget, on func(db JoinBuilder, joinTable
 		}
 
 		j := join{
-			Name:     jt.Association,
-			Alias:    jt.Table,
-			Selects:  q.db.Statement.Selects,
-			Omits:    q.db.Statement.Omits,
-			JoinType: jt.Type,
+			Name:          jt.Association,
+			Alias:         jt.Table,
+			Selects:       q.db.Statement.Selects,
+			Omits:         q.db.Statement.Omits,
+			JoinType:      jt.Type,
+			PhysicalTable: jt.From,
 		}
 
 		if where, ok := q.db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
