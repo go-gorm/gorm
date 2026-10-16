@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
@@ -131,6 +132,125 @@ func TestJoinOn(t *testing.T) {
 		t.Fatalf("Failed to load with joins on, got error: %v", err)
 	}
 	AssertEqual(t, user2.NamedPet.Name, "joins-on_pet_2")
+}
+
+func TestJoinOnScopes(t *testing.T) {
+	users := []User{
+		{Name: "joins-scopes-1", Company: Company{Name: "joins-scopes-company-1"}},
+		{Name: "joins-scopes-2", Company: Company{Name: "joins-scopes-company-2"}},
+	}
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatal(err)
+	}
+	userIDs := []uint{users[0].ID, users[1].ID}
+
+	for _, joinType := range []string{"left", "inner"} {
+		for _, scopeType := range []string{"direct", "nested", "session"} {
+			t.Run(joinType+"/"+scopeType, func(t *testing.T) {
+				companyName := users[0].Company.Name
+				filter := func(tx *gorm.DB) *gorm.DB {
+					return tx.Where(&Company{Name: companyName})
+				}
+				scopes := map[string]func(*gorm.DB) *gorm.DB{
+					"direct":  filter,
+					"nested":  func(tx *gorm.DB) *gorm.DB { return tx.Scopes(filter) },
+					"session": func(tx *gorm.DB) *gorm.DB { return filter(tx.Session(&gorm.Session{})) },
+				}
+				onQuery := DB.Scopes(scopes[scopeType]).Session(&gorm.Session{})
+
+				for match, user := range users {
+					companyName = user.Company.Name
+					query := DB.Where("users.id IN ?", userIDs).Order("users.id")
+					if joinType == "left" {
+						query = query.Joins("Company", onQuery)
+					} else {
+						query = query.InnerJoins("Company", onQuery)
+					}
+					var results []User
+					if err := query.Find(&results).Error; err != nil {
+						t.Fatal(err)
+					}
+					if joinType == "inner" {
+						if len(results) != 1 {
+							t.Fatalf("expected one matching user, got %d", len(results))
+						}
+						AssertEqual(t, results[0].ID, user.ID)
+						AssertEqual(t, results[0].Company.ID, user.Company.ID)
+					} else {
+						if len(results) != len(users) {
+							t.Fatalf("expected both users, got %d", len(results))
+						}
+						AssertEqual(t, results[match].Company.ID, user.Company.ID)
+						AssertEqual(t, results[1-match].Company.ID, 0)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestJoinScopeFields(t *testing.T) {
+	user := User{Name: "joins-scope-fields", Company: Company{Name: "joins-scope-fields-company"}}
+	if err := DB.Create(&user).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, method := range []string{"select", "omit"} {
+		t.Run(method, func(t *testing.T) {
+			onQuery := DB.Scopes(func(tx *gorm.DB) *gorm.DB {
+				if method == "select" {
+					return tx.Select("ID")
+				}
+				return tx.Omit("Name")
+			})
+			var result User
+			if err := DB.Joins("Company", onQuery).First(&result, user.ID).Error; err != nil {
+				t.Fatal(err)
+			}
+			AssertEqual(t, result.Company.ID, user.Company.ID)
+			AssertEqual(t, result.Company.Name, "")
+		})
+	}
+}
+
+func TestJoinScopedSubquery(t *testing.T) {
+	users := []User{
+		{Name: "joins-scoped-subquery-1", Company: Company{Name: "joins-scoped-subquery-company-1"}},
+		{Name: "joins-scoped-subquery-2", Company: Company{Name: "joins-scoped-subquery-company-2"}},
+	}
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatal(err)
+	}
+	companyName := users[0].Company.Name
+	subquery := DB.Model(&Company{}).Select("id").Scopes(func(tx *gorm.DB) *gorm.DB {
+		return tx.Session(&gorm.Session{}).Where(&Company{Name: companyName})
+	}).Session(&gorm.Session{})
+	for _, user := range users {
+		companyName = user.Company.Name
+		var results []User
+		if err := DB.Joins("JOIN (?) AS company ON company.id = users.company_id", subquery).
+			Find(&results).Error; err != nil {
+			t.Fatal(err)
+		}
+		if len(results) != 1 {
+			t.Fatalf("expected one matching user, got %d", len(results))
+		}
+		AssertEqual(t, results[0].ID, user.ID)
+	}
+}
+
+func TestJoinScopeError(t *testing.T) {
+	scopeError := errors.New("join scope failed")
+	onQuery := DB.Scopes(func(tx *gorm.DB) *gorm.DB {
+		_ = tx.AddError(scopeError)
+		return tx
+	})
+	var users []User
+	result := DB.Joins("Company", onQuery).Find(&users)
+	if !errors.Is(result.Error, scopeError) {
+		t.Fatalf("expected scope error %v, got %v", scopeError, result.Error)
+	}
+	AssertEqual(t, result.RowsAffected, int64(0))
+	AssertEqual(t, len(users), 0)
 }
 
 func TestJoinsWithSelect(t *testing.T) {

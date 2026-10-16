@@ -260,8 +260,16 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
+			db = db.getInstance()
+			for len(db.Statement.scopes) > 0 {
+				db = db.executeScopes()
+			}
+			if err := tx.AddError(db.Error); err != nil {
+				return
+			}
+
 			j := join{
-				Name: query, Conds: args, Selects: db.Statement.Selects,
+				Name: query, Conds: []interface{}{db}, Selects: db.Statement.Selects,
 				Omits: db.Statement.Omits, JoinType: joinType,
 			}
 			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
