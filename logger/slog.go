@@ -39,19 +39,19 @@ func (l *slogLogger) LogMode(level LogLevel) Interface {
 
 func (l *slogLogger) Info(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Info {
-		l.log(ctx, slog.LevelInfo, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelInfo, fmt.Sprintf(msg, data...))
 	}
 }
 
 func (l *slogLogger) Warn(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Warn {
-		l.log(ctx, slog.LevelWarn, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelWarn, fmt.Sprintf(msg, data...))
 	}
 }
 
 func (l *slogLogger) Error(ctx context.Context, msg string, data ...interface{}) {
 	if l.LogLevel >= Error {
-		l.log(ctx, slog.LevelError, msg, slog.Any("data", data))
+		l.log(ctx, slog.LevelError, fmt.Sprintf(msg, data...))
 	}
 }
 
