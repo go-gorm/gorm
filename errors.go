@@ -57,7 +57,8 @@ var (
 	// that DryRun cannot produce. Inspect Statement.SQL and Vars for SQL generation.
 	ErrDryRunModeUnsupported = errors.New("dry run mode unsupported")
 	// ErrInvalidDB indicates that the current connection cannot provide a valid
-	// *sql.DB, or a prepared-statement wrapper can no longer use its store.
+	// *sql.DB. DB.DB and PreparedStmtDB.GetDBConn return it when the active pool
+	// exposes no underlying database handle.
 	ErrInvalidDB = errors.New("invalid db")
 	// ErrInvalidValue indicates the supplied model or destination has an invalid
 	// shape or cannot be assigned. Query destinations generally need writable pointers
@@ -66,8 +67,9 @@ var (
 	// ErrInvalidValueOfLength indicates batch association values do not match
 	// the number of owner records. Provide one appropriately shaped argument per owner.
 	ErrInvalidValueOfLength = errors.New("invalid association values, length doesn't match")
-	// ErrPreloadNotAllowed is the sentinel for a preload request rejected in a
-	// count context. Count returns an aggregate rather than model rows to preload.
+	// ErrPreloadNotAllowed is a legacy sentinel that current GORM no longer returns.
+	// Count with Preload runs when a model schema is available; without one, Preload
+	// fails with ErrModelValueRequired instead.
 	ErrPreloadNotAllowed = errors.New("preload is not allowed when count is used")
 	// ErrDuplicatedKey represents a unique-constraint violation translated by a
 	// supporting dialector when TranslateError is enabled. Otherwise inspect the native

@@ -197,8 +197,10 @@ func (db *DB) MapColumns(m map[string]string) (tx *DB) {
 
 // Where adds predicates to the current statement, normally combined with AND.
 // query may be a trusted SQL template with bound args, a struct, a map, or a clause
-// expression. Struct conditions omit zero values by default; use a map or explicitly
-// selected fields when false, 0, or an empty string must participate in a condition.
+// expression. Struct conditions omit zero values by default; use a map, or name the
+// zero-valued fields as extra arguments to the same Where call
+// (db.Where(&User{Name: "jinzhu"}, "Age")), when false, 0, or an empty string must
+// participate in a condition.
 //
 //	db.Where("name = ?", name).Where(map[string]interface{}{"active": false}).Find(&users)
 //

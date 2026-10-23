@@ -7,8 +7,9 @@ type OrderByColumn struct {
 	Column Column
 	// Desc emits DESC when true; false leaves the database's default ascending order.
 	Desc bool
-	// Reorder makes merging discard earlier keys and keep this and subsequent new keys. It
-	// has no standalone SQL output.
+	// Reorder makes merging discard earlier keys and keep this and subsequent new keys;
+	// with multiple Reorder markers, only the last one applies. It has no standalone SQL
+	// output.
 	Reorder bool
 }
 

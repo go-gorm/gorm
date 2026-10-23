@@ -48,4 +48,3 @@ func TestWithResultIncludesError(t *testing.T) {
 		t.Fatalf("expected result error to be set for missing table")
 	}
 }
-

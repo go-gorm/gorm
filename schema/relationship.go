@@ -763,10 +763,11 @@ func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 }
 
 // ParseConstraint derives a foreign-key migration constraint from relationship
-// references and the constraint tag. It returns nil for constraint:- and for duplicate
-// inverse belongs-to mappings. Fixed polymorphic discriminator references do not become
-// foreign-key columns; the actual key direction determines the owning and referenced
-// schemas.
+// references and the constraint tag. It returns nil for constraint:- and when the
+// associated model already declares an inverse relation with identical references,
+// so the same foreign key is not emitted twice. Fixed polymorphic discriminator
+// references do not become foreign-key columns; the actual key direction determines
+// the owning and referenced schemas.
 func (rel *Relationship) ParseConstraint() *Constraint {
 	str := rel.Field.TagSettings["CONSTRAINT"]
 	if str == "-" {

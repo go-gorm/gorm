@@ -25,9 +25,10 @@ var (
 // than mutating it while queries run.
 type Config struct {
 	// LastInsertIDReversed indicates that LastInsertId identifies the last generated ID in
-	// a batch. Create then works backward using the primary field's AutoIncrementIncrement;
-	// otherwise it assumes the first ID and works forward. This inference requires the
-	// driver/database batch-ID semantics to match.
+	// a batch. Create then works backward from that ID, stepping by the primary field's
+	// AutoIncrementIncrement for struct batches and by the default increment of one for
+	// map batches; otherwise it assumes the first ID and works forward. This inference
+	// requires the driver/database batch-ID semantics to match.
 	LastInsertIDReversed bool
 	// CreateClauses lists INSERT clauses in build order. Including RETURNING enables the
 	// default create callback's returning path; support must agree with the dialector.

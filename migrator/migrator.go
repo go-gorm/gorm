@@ -159,7 +159,9 @@ func (m Migrator) GetQueryAndExecTx() (queryTx, execTx *gorm.DB) {
 // AutoMigrate reconciles models with database metadata in dependency order, adding
 // referenced models and join tables unless relationship migration is disabled. It
 // creates absent tables; for existing tables it adds missing columns, calls the
-// dialect's MigrateColumn, and creates missing foreign keys, checks, and indexes.
+// dialect's MigrateColumn, and creates missing foreign keys (unless
+// DisableForeignKeyConstraintWhenMigrating or IgnoreRelationshipsWhenMigrating is
+// set), checks, and indexes.
 //
 // It does not drop unused columns or rebuild existing indexes whose definitions
 // changed. It can alter column types/defaults/comments and reconcile column unique

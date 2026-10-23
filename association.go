@@ -442,8 +442,9 @@ type assignBack struct {
 	Dest reflect.Value
 }
 
-// saveAssociation updates owner relation fields, selects association/reference columns,
-// and saves each owner through update callbacks. clear replaces existing in-memory
+// saveAssociation updates owner relation fields, restricts saved columns to
+// association/reference columns unless FullSaveAssociations is set, and saves each
+// owner through update callbacks. clear replaces existing in-memory
 // relations before saving. It handles maps for collection creation, validates per-owner
 // argument counts, and copies generated values back. Failures are recorded on
 // association.Error; the helper does not establish a transaction around the complete

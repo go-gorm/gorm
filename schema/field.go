@@ -136,9 +136,9 @@ type Field struct {
 	// HasDefaultValue records a declared or inferred default, including auto-increment
 	// keys. A zero Go value may therefore be omitted or replaced during creation.
 	HasDefaultValue bool
-	// DefaultValue holds the trimmed default tag expression, with string-literal quotes
-	// removed when parsed. Database expressions are trusted model metadata, not bound user
-	// values.
+	// DefaultValue holds the trimmed default tag expression; string-literal quotes are
+	// removed only for string-kind fields. Database expressions are trusted model
+	// metadata, not bound user values.
 	DefaultValue string
 	// DefaultValueInterface holds a successfully parsed Go literal default. Nil also
 	// represents defaults left to the database, such as functions, NULL, and generated

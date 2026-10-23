@@ -40,9 +40,9 @@ func (db *DB) Create(value interface{}) (tx *DB) {
 // batchSize must be positive. Generated values are copied back into the input elements,
 // and RowsAffected accumulates successful batches. A failure stops later batches.
 // When multiple batches are needed, a transaction wraps them unless
-// SkipDefaultTransaction
-// is enabled; without it earlier batches may persist after an error. For a non-slice
-// value, this executes one normal create callback chain.
+// SkipDefaultTransaction is enabled; without that transaction, earlier batches may
+// persist after an error. For a non-slice value, this executes one normal create
+// callback chain.
 //
 // RowsAffected counts batches reported successful before an error; it can include
 // writes subsequently rolled back by an encompassing transaction. It is not a
@@ -104,12 +104,14 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 // Save persists all fields of value, including zero values, subject to field
 // permissions.
 // For a struct with a zero primary-key field it inserts. Otherwise it updates; when
-// no explicit selection was supplied and the update affects no rows, it falls back
-// to Create with an update-all conflict clause and skips hooks for that fallback.
+// no explicit selection was supplied, the update affects no rows, and execution is
+// not in DryRun mode, it falls back to Create with an update-all conflict clause
+// and skips hooks for that fallback.
 // Slices use create callbacks with an update-all conflict clause unless one exists.
 //
 // Use Updates with an explicit condition when insertion is not intended. Do not
-// combine Save with Model; that combination has undefined behavior. Save is absent
+// combine Save with Model; that combination is unsupported: the update can target
+// the Model's primary key while writing the destination's fields. Save is absent
 // from the generics API. See https://gorm.io/docs/update.html#Save-All-Fields.
 func (db *DB) Save(value interface{}) (tx *DB) {
 	tx = db.getInstance()
