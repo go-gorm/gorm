@@ -1,4 +1,3 @@
-// Package callbacks provides the default callback functions for GORM operations such as create, query, update, and delete.
 package callbacks
 
 import (
@@ -6,20 +5,55 @@ import (
 )
 
 var (
+	// createClauses is the default INSERT clause order. Dialectors may replace it, for
+	// example to add RETURNING.
 	createClauses = []string{"INSERT", "VALUES", "ON CONFLICT"}
-	queryClauses  = []string{"SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR"}
+	// queryClauses is the default SELECT clause order, also installed on the row and raw
+	// processors.
+	queryClauses = []string{"SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT", "FOR"}
+	// updateClauses is the default UPDATE clause order; dialects can supply an order that
+	// includes RETURNING.
 	updateClauses = []string{"UPDATE", "SET", "WHERE"}
+	// deleteClauses is the default physical DELETE clause order. Field-specific clauses can
+	// replace deletion with an UPDATE for soft deletion.
 	deleteClauses = []string{"DELETE", "FROM", "WHERE"}
 )
 
+// Config selects dialect-specific SQL clause ordering and generated-ID interpretation
+// for the default processors. Pass a non-nil Config to RegisterDefaultCallbacks; that
+// function fills empty clause lists in place. Configure it during initialization rather
+// than mutating it while queries run.
 type Config struct {
+	// LastInsertIDReversed indicates that LastInsertId identifies the last generated ID in
+	// a batch. Create then works backward using the primary field's AutoIncrementIncrement;
+	// otherwise it assumes the first ID and works forward. This inference requires the
+	// driver/database batch-ID semantics to match.
 	LastInsertIDReversed bool
-	CreateClauses        []string
-	QueryClauses         []string
-	UpdateClauses        []string
-	DeleteClauses        []string
+	// CreateClauses lists INSERT clauses in build order. Including RETURNING enables the
+	// default create callback's returning path; support must agree with the dialector.
+	CreateClauses []string
+	// QueryClauses lists SELECT clauses in build order, shared by query, row, and raw
+	// processors. An empty list selects the defaults.
+	QueryClauses []string
+	// UpdateClauses lists UPDATE clauses in build order. Including RETURNING enables
+	// scanning returned rows into the model.
+	UpdateClauses []string
+	// DeleteClauses lists DELETE clauses in build order. Including RETURNING enables
+	// scanning deleted rows into the destination.
+	DeleteClauses []string
 }
 
+// RegisterDefaultCallbacks installs the named create, query, update, delete, row, and
+// raw callbacks and their clause orders. Dialectors normally call it from Initialize,
+// after choosing supported clauses in a non-nil config. Empty clause lists are filled
+// in config in place.
+//
+// Writes normally run begin-transaction, before hooks, association work, SQL, after
+// hooks, then commit-or-rollback. Belongs-to associations are saved before the owner;
+// other associations follow it. Queries run SQL, preloads, then AfterFind. SkipHooks
+// skips model hooks, not the processor or association callbacks. Use db.Callback()
+// registration ordering to extend these chains; changing the registry affects all
+// sessions sharing that configuration.
 func RegisterDefaultCallbacks(db *gorm.DB, config *Config) {
 	enableTransaction := func(db *gorm.DB) bool {
 		return !db.SkipDefaultTransaction

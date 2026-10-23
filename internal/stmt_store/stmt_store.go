@@ -1,4 +1,3 @@
-// Package stmt_store provides an implementation of a statement cache for SQL statements.
 package stmt_store
 
 import (
@@ -11,17 +10,29 @@ import (
 	"gorm.io/gorm/internal/lru"
 )
 
+// Stmt wraps a prepared SQL statement with transaction provenance and a
+// preparation-completion signal. Obtain it through Store.New/Get; a zero Stmt has no
+// completion channel and is not a usable prepared entry.
 type Stmt struct {
 	*sql.Stmt
+	// Transaction records whether preparation used a transaction. The outer GORM cache
+	// rejects transaction-only entries for nontransactional execution.
 	Transaction bool
-	prepared    chan struct{}
-	prepareErr  error
+	// prepared closes after preparation publishes its result or error. Readers must wait
+	// before inspecting the embedded statement or prepareErr.
+	prepared chan struct{}
+	// prepareErr records a failed preparation and is published by closing prepared.
+	prepareErr error
 }
 
+// Error returns the recorded preparation failure. It does not wait for preparation;
+// call it after Store.Get or another completion synchronization.
 func (stmt *Stmt) Error() error {
 	return stmt.prepareErr
 }
 
+// Close waits for preparation to complete and closes the SQL statement if present. A
+// zero-value entry has no completion signal and must not be closed through this method.
 func (stmt *Stmt) Close() error {
 	<-stmt.prepared
 
@@ -31,71 +42,47 @@ func (stmt *Stmt) Close() error {
 	return nil
 }
 
-// Store defines an interface for managing the caching operations of SQL statements (Stmt).
-// This interface provides methods for creating new statements, retrieving all cache keys,
-// getting cached statements, setting cached statements, and deleting cached statements.
+// Store caches SQL-text-keyed prepared entries. Get synchronizes with preparation;
+// Delete triggers resource cleanup. The New lock-transfer contract is essential to
+// avoid holding an outer cache lock during a potentially blocking PrepareContext call.
 type Store interface {
-	// New creates a new Stmt object and caches it.
-	// Parameters:
-	//   ctx: The context for the request, which can carry deadlines, cancellation signals, etc.
-	//   key: The key representing the SQL query, used for caching and preparing the statement.
-	//   isTransaction: Indicates whether this operation is part of a transaction, which may affect the caching strategy.
-	//   connPool: A connection pool that provides database connections.
-	//   locker: A synchronization lock that is unlocked after initialization to avoid deadlocks.
-	// Returns:
-	//   *Stmt: A newly created statement object for executing SQL operations.
-	//   error: An error if the statement preparation fails.
+	// New inserts an in-progress entry, then unlocks the supplied already-held locker
+	// before preparing through connPool. The caller must not unlock it again. Completion
+	// publishes either the prepared statement or an error; failed entries are removed.
+	// Check the returned error before using the entry.
 	New(ctx context.Context, key string, isTransaction bool, connPool ConnPool, locker sync.Locker) (*Stmt, error)
 
-	// Keys returns a slice of all cache keys in the store.
+	// Keys returns keys of unexpired entries from oldest to most recently used. It does not
+	// remove expired entries waiting for cleanup.
 	Keys() []string
 
-	// Get retrieves a Stmt object from the store based on the given key.
-	// Parameters:
-	//   key: The key used to look up the Stmt object.
-	// Returns:
-	//   *Stmt: The found Stmt object, or nil if not found.
-	//   bool: Indicates whether the corresponding Stmt object was successfully found.
+	// Get returns an unexpired entry and waits for its preparation to finish. Inspect
+	// Stmt.Error afterward; an entry found during failed preparation may still report that
+	// failure.
 	Get(key string) (*Stmt, bool)
 
-	// Set stores the given Stmt object in the store and associates it with the specified key.
-	// Parameters:
-	//   key: The key used to associate the Stmt object.
-	//   value: The Stmt object to be stored.
+	// Set inserts or replaces an entry and renews its cache expiry. Replacing a key does
+	// not itself close the previous value; callers own that replacement responsibility.
 	Set(key string, value *Stmt)
 
-	// Delete removes the Stmt object corresponding to the specified key from the store.
-	// Parameters:
-	//   key: The key associated with the Stmt object to be deleted.
+	// Delete removes the entry if present and schedules its statement closure
+	// asynchronously.
 	Delete(key string)
 }
 
-// defaultMaxSize defines the default maximum capacity of the cache.
-// Its value is the maximum value of the int64 type, which means that when the cache size is not specified,
-// the cache can theoretically store as many elements as possible.
-// (1 << 63) - 1 is the maximum value that an int64 type can represent.
 const (
+	// defaultMaxSize is math.MaxInt, used when no positive capacity is provided. It is a
+	// practical unbounded default rather than an application memory limit.
 	defaultMaxSize = math.MaxInt
-	// defaultTTL defines the default time-to-live (TTL) for each cache entry.
-	// When the TTL for cache entries is not specified, each cache entry will expire after 24 hours.
+	// defaultTTL expires entries 24 hours after insertion or replacement when no positive
+	// TTL is configured.
 	defaultTTL = time.Hour * 24
 )
 
-// New creates and returns a new Store instance.
-//
-// Parameters:
-//   - size: The maximum capacity of the cache. If the provided size is less than or equal to 0,
-//     it defaults to defaultMaxSize.
-//   - ttl: The time-to-live duration for each cache entry. If the provided ttl is less than or equal to 0,
-//     it defaults to defaultTTL.
-//
-// This function defines an onEvicted callback that is invoked when a cache entry is evicted.
-// The callback ensures that if the evicted value (v) is not nil, its Close method is called asynchronously
-// to release associated resources.
-//
-// Returns:
-//   - A Store instance implemented by lruStore, which internally uses an LRU cache with the specified size,
-//     eviction callback, and TTL.
+// New creates an LRU statement store with capacity and TTL. Non-positive size uses
+// math.MaxInt and non-positive ttl uses 24 hours. Eviction schedules Stmt.Close in a
+// goroutine so resource closure does not block the cache lock. Positive TTLs use a
+// background cleanup worker without an exposed stop API.
 func New(size int, ttl time.Duration) Store {
 	if size <= 0 {
 		size = defaultMaxSize
@@ -113,14 +100,22 @@ func New(size int, ttl time.Duration) Store {
 	return &lruStore{lru: lru.NewLRU[string, *Stmt](size, onEvicted, ttl)}
 }
 
+// lruStore implements Store using a synchronized expiring LRU and
+// preparation-completion channels.
 type lruStore struct {
+	// lru stores entries by SQL template and invokes asynchronous closure when entries are
+	// removed.
 	lru *lru.LRU[string, *Stmt]
 }
 
+// Keys returns unexpired SQL keys in oldest-to-newest recency order. Expired entries
+// may still await physical cleanup.
 func (s *lruStore) Keys() []string {
 	return s.lru.Keys()
 }
 
+// Get looks up an unexpired entry, updates recency, and waits on its preparation
+// channel before returning it. The wait itself has no context cancellation.
 func (s *lruStore) Get(key string) (*Stmt, bool) {
 	stmt, ok := s.lru.Get(key)
 	if ok && stmt != nil {
@@ -129,32 +124,30 @@ func (s *lruStore) Get(key string) (*Stmt, bool) {
 	return stmt, ok
 }
 
+// Set inserts or replaces an entry and renews its TTL. Replacing an existing key does
+// not invoke the eviction callback for the old value.
 func (s *lruStore) Set(key string, value *Stmt) {
 	s.lru.Add(key, value)
 }
 
+// Delete removes key and schedules Stmt.Close through the LRU eviction callback; it
+// does not wait for the close to finish.
 func (s *lruStore) Delete(key string) {
 	s.lru.Remove(key)
 }
 
+// ConnPool is the preparation-only connection capability needed by the statement store.
+// It can be implemented by a pool, connection, or transaction.
 type ConnPool interface {
+	// PrepareContext prepares a SQL template under ctx and returns the owned statement or
+	// an error.
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 }
 
-// New creates a new Stmt object for executing SQL queries.
-// It caches the Stmt object for future use and handles preparation and error states.
-// Parameters:
-//
-//	ctx: Context for the request, used to carry deadlines, cancellation signals, etc.
-//	key: The key representing the SQL query, used for caching and preparing the statement.
-//	isTransaction: Indicates whether this operation is part of a transaction, affecting cache strategy.
-//	conn: A connection pool that provides database connections.
-//	locker: A synchronization lock that is unlocked after initialization to avoid deadlocks.
-//
-// Returns:
-//
-//	*Stmt: A newly created statement object for executing SQL operations.
-//	error: An error if the statement preparation fails.
+// New publishes an in-progress entry, releases the supplied held locker, and prepares
+// outside that lock. A deferred channel close releases waiting Get/Close calls. On
+// failure it records the error, removes the entry, and returns an unusable empty entry
+// plus the error; callers must check err first.
 func (s *lruStore) New(ctx context.Context, key string, isTransaction bool, conn ConnPool, locker sync.Locker) (_ *Stmt, err error) {
 	// Create a Stmt object and set its Transaction property.
 	// The prepared channel is used to synchronize the statement preparation state.

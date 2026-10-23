@@ -18,70 +18,141 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-// Statement statement
+// Statement is the mutable state for one SQL operation or traditional chain. It holds
+// model metadata, clauses, bound parameters, context, and the active pool/transaction.
+// Plugins may inspect it in callbacks; application code normally uses DB chain methods.
+// It is not safe for concurrent mutation, and clone only copies selected containers,
+// not every referenced object.
 type Statement struct {
 	*DB
-	TableExpr            *clause.Expr
-	Table                string
-	Model                interface{}
-	Unscoped             bool
-	Dest                 interface{}
-	ReflectValue         reflect.Value
-	Clauses              map[string]clause.Clause
-	BuildClauses         []string
-	Distinct             bool
-	Selects              []string          // selected columns
-	Omits                []string          // omit columns
-	ColumnMapping        map[string]string // map columns
-	Joins                []join
-	Preloads             map[string][]interface{}
-	Settings             sync.Map
-	ConnPool             ConnPool
-	Schema               *schema.Schema
-	Context              context.Context
+	// TableExpr holds an optional trusted table expression, taking precedence over simple
+	// table quoting.
+	TableExpr *clause.Expr
+	// Table is the resolved table name or alias used to qualify model columns.
+	Table string
+	// Model supplies schema and owner identity; it can differ from the scan/write
+	// destination.
+	Model interface{}
+	// Unscoped disables applicable model query/delete scopes such as soft deletion. It does
+	// not discard user predicates.
+	Unscoped bool
+	// Dest is the result destination or write payload consumed by callbacks.
+	Dest interface{}
+	// ReflectValue is the dereferenced destination/model value used by field setters,
+	// hooks, and scanners.
+	ReflectValue reflect.Value
+	// Clauses stores merged SQL clauses by name; builders decide their final order.
+	Clauses map[string]clause.Clause
+	// BuildClauses overrides clause order for this operation; the processor supplies
+	// defaults when empty.
+	BuildClauses []string
+	// Distinct requests distinct selection and affects single-column Count.
+	Distinct bool
+	// Selects lists requested model fields or selection expressions used by query and write
+	// builders.
+	Selects []string // selected columns
+	// Omits lists excluded fields and association paths; omission takes precedence over
+	// selection.
+	Omits []string // omit columns
+	// ColumnMapping maps returned column names to schema fields while scanning.
+	ColumnMapping map[string]string // map columns
+	// Joins records association and raw joins for later SQL construction.
+	Joins []join
+	// Preloads maps association paths to their query customization arguments.
+	Preloads map[string][]interface{}
+	// Settings stores statement settings used by Set/Get, callbacks, and plugins; copied
+	// settings can still hold shared mutable values.
+	Settings sync.Map
+	// ConnPool is the active execution target, which can be a pool, transaction, or
+	// dedicated connection.
+	ConnPool ConnPool
+	// Schema is cached parsed model metadata, shared across statements using the same model
+	// configuration.
+	Schema *schema.Schema
+	// Context carries cancellation, deadlines, and request values to database calls, hooks,
+	// and logs.
+	Context context.Context
+	// RaiseErrorOnNotFound makes Scan add ErrRecordNotFound for an empty successful result;
+	// single-row finishers enable it.
 	RaiseErrorOnNotFound bool
-	SkipHooks            bool
-	SQL                  strings.Builder
-	Vars                 []interface{}
-	CurDestIndex         int
-	attrs                []interface{}
-	assigns              []interface{}
-	scopes               []func(*DB) *DB
-	Result               *result
+	// SkipHooks suppresses model hooks where callbacks honor it; it does not disable the
+	// callback pipeline.
+	SkipHooks bool
+	// SQL contains generated SQL with placeholders. Normal execution resets it after
+	// tracing; DryRun preserves it.
+	SQL strings.Builder
+	// Vars contains values bound to SQL placeholders in dialect order. Treat them
+	// separately from diagnostic interpolated SQL.
+	Vars []interface{}
+	// CurDestIndex identifies the current element during per-model hooks on a slice
+	// destination.
+	CurDestIndex int
+	// attrs holds missing-record initialization values supplied by Attrs.
+	attrs []interface{}
+	// assigns holds unconditional FirstOrInit/FirstOrCreate assignments supplied by Assign.
+	assigns []interface{}
+	// scopes queues deferred traditional query transformations consumed before callback
+	// execution.
+	scopes []func(*DB) *DB
+	// Result optionally points to a mutable WithResult collector shared with the caller.
+	Result *result
 }
 
+// join stores a deferred association or raw SQL join, including alias, ON predicates,
+// and selected related fields. Query callbacks translate it into SQL and scan metadata.
 type join struct {
-	Name       string
-	Alias      string
-	Conds      []interface{}
-	On         *clause.Where
-	Selects    []string
-	Omits      []string
+	// Name is the association path or raw join template.
+	Name string
+	// Alias is an explicit alias used to qualify joined columns and map scanned relation
+	// paths.
+	Alias string
+	// Conds holds arguments accompanying a raw or association join.
+	Conds []interface{}
+	// On contains additional predicates for an association join's ON clause.
+	On *clause.Where
+	// Selects limits fields fetched from the joined model.
+	Selects []string
+	// Omits excludes fields from the joined model projection.
+	Omits []string
+	// Expression holds a prebuilt join expression, such as an aliased subquery join.
 	Expression clause.Expression
-	JoinType   clause.JoinType
+	// JoinType selects LEFT, INNER, or another supported join form when the join is
+	// generated.
+	JoinType clause.JoinType
 }
 
-// StatementModifier statement modifier interface
+// StatementModifier adjusts statement state when supplied through supported clause or
+// destination paths. It can install query behavior without rendering SQL directly;
+// implementations must respect the current operation's mutable state and report errors
+// through the attached DB.
 type StatementModifier interface {
+	// ModifyStatement mutates the supplied operation state. Clause registration or callback
+	// execution invokes it; it should not assume that SQL has already been built.
 	ModifyStatement(*Statement)
 }
 
-// WriteString write string
+// WriteString appends trusted SQL text to the statement buffer. It performs no quoting
+// or value binding; use AddVar for values and WriteQuoted for identifiers.
 func (stmt *Statement) WriteString(str string) (int, error) {
 	return stmt.SQL.WriteString(str)
 }
 
-// WriteByte write byte
+// WriteByte appends one SQL byte without escaping. It implements clause.Writer for SQL
+// builders.
 func (stmt *Statement) WriteByte(c byte) error {
 	return stmt.SQL.WriteByte(c)
 }
 
-// WriteQuoted write quoted value
+// WriteQuoted writes a dialect-quoted identifier or structured column/table expression
+// into SQL. It is not a data-value placeholder; use AddVar to bind values.
 func (stmt *Statement) WriteQuoted(value interface{}) {
 	stmt.QuoteTo(&stmt.SQL, value)
 }
 
-// QuoteTo write quoted value to writer
+// QuoteTo writes identifiers and clause column/table references using the dialector. It
+// resolves CurrentTable and PrimaryKey from model metadata and records missing-model
+// errors. Raw flags bypass quoting, and clause.Expr is built as SQL; do not treat this
+// as an arbitrary SQL sanitizer.
 func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	write := func(raw bool, str string) {
 		if raw {
@@ -164,14 +235,22 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 	}
 }
 
-// Quote returns quoted value
+// Quote returns the quoted representation of an ordinary identifier using QuoteTo. It
+// is not a pure string renderer for expressions: a clause.Expr, or a table resolved
+// through Statement.TableExpr, builds into stmt.SQL and may add Vars/errors instead of
+// writing into the local string builder. Use Quote for trusted identifiers and
+// Build/AddVar for expression construction.
 func (stmt *Statement) Quote(field interface{}) string {
 	var builder strings.Builder
 	stmt.QuoteTo(&builder, field)
 	return builder.String()
 }
 
-// AddVar add var
+// AddVar writes placeholders and appends data to Vars, using the dialector's binding
+// syntax. Columns/tables are quoted, expressions and GORM Valuer values build SQL, and
+// query builders become subqueries with rebound variables. Slices expand as lists
+// (empty lists become (NULL)); byte slices remain one value. Expression SQL must be
+// trusted even when passed in a value position.
 func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 	for idx, v := range vars {
 		if idx > 0 {
@@ -268,7 +347,9 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 	}
 }
 
-// AddClause add clause
+// AddClause invokes a StatementModifier immediately or merges the clause into Clauses
+// by name using its MergeClause method. It records construction state without executing
+// SQL; the clause implementation determines append/replace behavior.
 func (stmt *Statement) AddClause(v clause.Interface) {
 	if optimizer, ok := v.(StatementModifier); ok {
 		optimizer.ModifyStatement(stmt)
@@ -281,14 +362,21 @@ func (stmt *Statement) AddClause(v clause.Interface) {
 	}
 }
 
-// AddClauseIfNotExists add clause if not exists
+// AddClauseIfNotExists adds v only when its named clause is absent or has no
+// Expression. An existing non-nil expression is preserved; this is not an unconditional
+// merge.
 func (stmt *Statement) AddClauseIfNotExists(v clause.Interface) {
 	if c, ok := stmt.Clauses[v.Name()]; !ok || c.Expression == nil {
 		stmt.AddClause(v)
 	}
 }
 
-// BuildCondition build condition
+// BuildCondition converts SQL templates, maps, structs, expressions, nested DB
+// predicates, or primary-key inputs into clause expressions. Struct zero values are
+// omitted unless fields are explicitly selected; maps retain zero values. String-keyed
+// map columns are sorted for deterministic SQL. String inputs can be interpreted as
+// SQL, so untrusted identifiers/values must not be passed as condition text. Errors are
+// added to the statement DB.
 func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []clause.Expression {
 	if s, ok := query.(string); ok {
 		// if it is a number, then treats it as primary key
@@ -489,7 +577,9 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 	return nil
 }
 
-// Build build sql with clauses names
+// Build appends present clauses in the requested order, using Config.ClauseBuilders
+// overrides when registered. It does not reset SQL or Vars; callers must start with the
+// appropriate buffer state. Missing clause names are skipped.
 func (stmt *Statement) Build(clauses ...string) {
 	var firstClauseWritten bool
 
@@ -509,10 +599,17 @@ func (stmt *Statement) Build(clauses ...string) {
 	}
 }
 
+// Parse resolves and caches schema metadata for value and fills the statement table
+// when it is unset. It is shorthand for ParseWithSpecialTableName with no table
+// override; it does not inspect or migrate the database.
 func (stmt *Statement) Parse(value interface{}) (err error) {
 	return stmt.ParseWithSpecialTableName(value, "")
 }
 
+// ParseWithSpecialTableName parses value using the shared schema cache and naming
+// strategy, optionally overriding its table name. It sets Schema and fills Table only
+// if the current table is empty, handling schema-qualified tables with a quoted
+// TableExpr. It returns parsing errors without executing SQL.
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
 	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
@@ -526,6 +623,10 @@ func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTable
 	return err
 }
 
+// clone copies statement containers needed for session isolation, including clauses,
+// preloads, joins, queued scopes, settings, and built SQL/Vars. Model, destination,
+// schema, context, connection, result collector, and nested reference values remain
+// shared. The caller must attach the new DB pointer; this is not a general deep copy.
 func (stmt *Statement) clone() *Statement {
 	newStmt := &Statement{
 		TableExpr:            stmt.TableExpr,
@@ -580,10 +681,11 @@ func (stmt *Statement) clone() *Statement {
 	return newStmt
 }
 
-// SetColumn set column's value
-//
-//	stmt.SetColumn("Name", "jinzhu") // Hooks Method
-//	stmt.SetColumn("Name", "jinzhu", true) // Callbacks Method
+// SetColumn changes a destination field during hooks or callbacks through schema-aware
+// assignment. Map destinations are updated directly. For slice models a hook updates
+// CurDestIndex; supplying the optional fromCallbacks argument applies to every element
+// (its presence, not its boolean value, controls this). Assignment failures are added
+// to DB.Error. It changes pending values, not the database by itself.
 func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks ...bool) {
 	if v, ok := stmt.Dest.(map[string]interface{}); ok {
 		v[name] = value
@@ -639,7 +741,11 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 	}
 }
 
-// Changed check model changed or not when updating
+// Changed reports whether any named update field differs from the current model value,
+// respecting Select/Omit and field permissions. With no names it checks all mapped
+// fields. It compares pending Update/Updates values in memory, not current database
+// contents; struct zero values are omitted unless selected. Use it in update hooks with
+// an initialized schema, not as general dirty tracking for Save.
 func (stmt *Statement) Changed(fields ...string) bool {
 	modelValue := stmt.ReflectValue
 	switch modelValue.Kind() {
@@ -695,6 +801,9 @@ func (stmt *Statement) Changed(fields ...string) bool {
 	return false
 }
 
+// matchName recognizes a simple optionally qualified column or wildcard for selection
+// mapping. It returns empty strings when the expression does not match; it is not a
+// full SQL parser or validation boundary.
 var matchName = func() func(tableColumn string) (table, column string) {
 	nameMatcher := regexp.MustCompile(`^(?:\W?(\w+?)\W?\.)?(?:(\*)|\W?(\w+?)\W?)$`)
 	return func(tableColumn string) (table, column string) {
@@ -711,7 +820,11 @@ var matchName = func() func(tableColumn string) (table, column string) {
 	}
 }()
 
-// SelectAndOmitColumns get select and omit columns, select -> true, omit -> false
+// SelectAndOmitColumns resolves selected/omitted names, wildcards, and association
+// names into a database-column map (true means included). Omit overrides Select;
+// requireCreate/requireUpdate also exclude fields lacking those permissions. The second
+// result reports an explicit restricted selection, so absence from the map must be
+// interpreted with that flag.
 func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (map[string]bool, bool) {
 	results := map[string]bool{}
 	notRestricted := false

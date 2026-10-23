@@ -11,6 +11,11 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// AssertObjEqual compares the selected named fields of r and e in subtests using
+// AssertEqual. Both values must be structs or non-nil pointers to structs with
+// accessible fields of those names. A validity mismatch is reported immediately;
+// missing, inaccessible, or incompatible fields can panic. Only listed fields are
+// checked, and comparison inherits AssertEqual's permissive fixture semantics.
 func AssertObjEqual(t *testing.T, r, e interface{}, names ...string) {
 	for _, name := range names {
 		rv := reflect.Indirect(reflect.ValueOf(r))
@@ -27,6 +32,16 @@ func AssertObjEqual(t *testing.T, r, e interface{}, names ...string) {
 	}
 }
 
+// AssertEqual reports fixture differences through t, recursively using subtests
+// for slice elements and exported struct fields. It first accepts reflect.DeepEqual
+// or identical formatted representations, unwraps driver.Valuer values and pointers,
+// and attempts type conversion. Valuer errors are ignored. Time values are compared
+// at second precision after rounding or truncation in UTC.
+//
+// This helper is intentionally permissive and assumes compatible, non-pathological
+// fixture shapes; mismatched reflected fields, nil values, or incompatible time
+// values can panic. It is not a strict equality assertion, a database equality
+// predicate, or suitable for proving arbitrary values equivalent.
 func AssertEqual(t *testing.T, got, expect interface{}) {
 	if !reflect.DeepEqual(got, expect) {
 		isEqual := func() {
@@ -122,6 +137,9 @@ func AssertEqual(t *testing.T, got, expect interface{}) {
 	}
 }
 
+// Now returns a newly allocated pointer to the current local time for nullable
+// timestamp fixtures. Each call reads the real clock; it is not a fixed or injectable
+// test clock.
 func Now() *time.Time {
 	now := time.Now()
 	return &now

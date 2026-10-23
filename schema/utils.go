@@ -11,8 +11,16 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// embeddedCacheKey marks the private cache used while flattening embedded schemas,
+// suppressing full relationship and field-clause collection until the owning schema is
+// parsed.
 var embeddedCacheKey = "embedded_cache_store"
 
+// ParseTagSetting splits a tag value by sep into uppercase, trimmed keys and their
+// values. A key without a colon maps to itself; values retain embedded colons, escaped
+// separators are rejoined, and escaped double quotes are unescaped. Repeated keys keep
+// the last value. For example, ParseTagSetting("size:128;not null", ";") returns
+// SIZE="128" and NOT NULL="NOT NULL".
 func ParseTagSetting(str string, sep string) map[string]string {
 	settings := map[string]string{}
 	names := strings.Split(str, sep)
@@ -42,6 +50,8 @@ func ParseTagSetting(str string, sep string) map[string]string {
 	return settings
 }
 
+// toColumns splits a nonempty comma-separated setting into trimmed field names,
+// preserving order and any empty interior entries.
 func toColumns(val string) (results []string) {
 	if val != "" {
 		for _, v := range strings.Split(val, ",") {
@@ -51,6 +61,9 @@ func toColumns(val string) (results []string) {
 	return
 }
 
+// removeSettingFromTag removes matching settings from the gorm portion of a struct tag
+// using case-insensitive regular expressions. names are trusted setting names used
+// while synthesizing join-table fields, not arbitrary patterns from user input.
 func removeSettingFromTag(tag reflect.StructTag, names ...string) reflect.StructTag {
 	for _, name := range names {
 		tag = reflect.StructTag(regexp.MustCompile(`(?i)(gorm:.*?)(`+name+`(:.*?)?)(;|("))`).ReplaceAllString(string(tag), "${1}${5}"))
@@ -58,6 +71,9 @@ func removeSettingFromTag(tag reflect.StructTag, names ...string) reflect.Struct
 	return tag
 }
 
+// appendSettingFromTag prepends value to the gorm tag unless it already occurs as a
+// substring. When adding a setting it rebuilds only the gorm tag, so callers must not
+// rely on unrelated original tags surviving.
 func appendSettingFromTag(tag reflect.StructTag, value string) reflect.StructTag {
 	t := tag.Get("gorm")
 	if strings.Contains(t, value) {
@@ -66,7 +82,11 @@ func appendSettingFromTag(tag reflect.StructTag, value string) reflect.StructTag
 	return reflect.StructTag(fmt.Sprintf(`gorm:"%s;%s"`, value, t))
 }
 
-// GetRelationsValues get relations's values from a reflect value
+// GetRelationsValues traverses rels in order through a struct or slice reflect.Value and returns a
+// slice of pointers to the final associated model type. Zero associations are skipped;
+// non-pointer struct elements must be addressable. It reads already loaded Go values
+// and does not query the database; an empty relation path returns an invalid
+// reflect.Value.
 func GetRelationsValues(ctx context.Context, reflectValue reflect.Value, rels []*Relationship) (reflectResults reflect.Value) {
 	for _, rel := range rels {
 		reflectResults = reflect.MakeSlice(reflect.SliceOf(reflect.PointerTo(rel.FieldSchema.ModelType)), 0, 1)
@@ -104,7 +124,15 @@ func GetRelationsValues(ctx context.Context, reflectValue reflect.Value, rels []
 	return
 }
 
-// GetIdentityFieldValuesMap get identity map from fields
+// GetIdentityFieldValuesMap extracts ordered field tuples and groups model values by
+// utils.ToStringKey. Structs and slice elements whose selected fields are all zero are
+// omitted; repeated identities share one tuple and map to multiple values. Slice
+// processing also skips repeated element identities.
+//
+// Inputs must have the expected model shape; map inputs must contain usable values for
+// every requested database-column key; a missing key can panic before the Go-name
+// fallback is attempted. Returned tuple order follows encounter order. These string
+// keys are internal matching aids, not a collision-free external identifier encoding.
 func GetIdentityFieldValuesMap(ctx context.Context, reflectValue reflect.Value, fields []*Field) (map[string][]reflect.Value, [][]interface{}) {
 	var (
 		results       = [][]interface{}{}
@@ -178,7 +206,10 @@ func GetIdentityFieldValuesMap(ctx context.Context, reflectValue reflect.Value, 
 	return dataResults, results
 }
 
-// GetIdentityFieldValuesMapFromValues get identity map from fields
+// GetIdentityFieldValuesMapFromValues extracts identities from each supplied value and
+// concatenates their tuples and grouped models. Duplicate tuples across separate values
+// are not globally deduplicated. Each input must satisfy GetIdentityFieldValuesMap's
+// model-shape requirements.
 func GetIdentityFieldValuesMapFromValues(ctx context.Context, values []interface{}, fields []*Field) (map[string][]reflect.Value, [][]interface{}) {
 	resultsMap := map[string][]reflect.Value{}
 	results := [][]interface{}{}
@@ -193,7 +224,10 @@ func GetIdentityFieldValuesMapFromValues(ctx context.Context, values []interface
 	return resultsMap, results
 }
 
-// ToQueryValues to query values
+// ToQueryValues converts foreign-key columns and identity tuples into the column/value
+// operands for clause.IN. One key produces a single qualified column and flat values;
+// composite keys produce ordered columns and tuple values. It assumes each tuple
+// matches foreignKeys and neither validates identifiers nor executes SQL.
 func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interface{}) (interface{}, []interface{}) {
 	queryValues := make([]interface{}, len(foreignValues))
 	if len(foreignKeys) == 1 {
@@ -216,7 +250,11 @@ func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interfa
 	return columns, queryValues
 }
 
+// embeddedNamer carries the owner table while delegating naming rules, ensuring
+// flattened embedded fields use the containing model's table context.
 type embeddedNamer struct {
+	// Table is the containing model's resolved table name used by embedded schema parsing.
 	Table string
+	// Namer delegates column, index, constraint, and other naming rules to the owner.
 	Namer
 }

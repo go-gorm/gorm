@@ -1,5 +1,3 @@
-// Package gorm is a full-featured, developer-friendly ORM for Golang.
-// See https://gorm.io for documentation and community.
 package gorm
 
 import (
@@ -16,69 +14,105 @@ import (
 	"gorm.io/gorm/schema"
 )
 
-// for Config.cacheStore store PreparedStmtDB key
+// preparedStmtDBKey identifies the shared prepared-statement manager in cacheStore.
+// Session-level PrepareStmt wrappers reuse this manager's store and lock.
 const preparedStmtDBKey = "preparedStmt"
 
-// Config GORM config
+// Config controls initialization and the default behavior of sessions created by Open.
+// Configure it before opening the database; sessions shallow-copy it, so referenced
+// maps, plugins, naming strategies, and connection pools can remain shared.
+// Use DB.Session for per-operation options rather than changing a live Config.
+//
+// See https://gorm.io/docs/gorm_config.html.
 type Config struct {
-	// GORM perform single create, update, delete operations in transactions by default to ensure database data integrity
-	// You can disable it by setting `SkipDefaultTransaction` to true
-	SkipDefaultTransaction    bool
+	// SkipDefaultTransaction disables the transaction wrapping a create, update, or delete
+	// callback chain. Multi-statement writes, including associations, may then partially
+	// succeed.
+	SkipDefaultTransaction bool
+	// DefaultTransactionTimeout sets a fallback timeout for Begin when the current context
+	// has no deadline. A non-positive duration adds no timeout.
 	DefaultTransactionTimeout time.Duration
-	DefaultContextTimeout     time.Duration
+	// DefaultContextTimeout sets a fallback timeout during callback execution when the
+	// statement context has no deadline. A non-positive duration adds no timeout.
+	DefaultContextTimeout time.Duration
 
-	// NamingStrategy tables, columns naming strategy
+	// NamingStrategy maps Go model and field names to database identifiers. Set it before
+	// schemas are cached; the default is schema.NamingStrategy.
 	NamingStrategy schema.Namer
-	// FullSaveAssociations full save associations
+	// FullSaveAssociations updates associated records in full when saving a model, rather
+	// than only maintaining association references. Select and Omit still control included
+	// associations.
 	FullSaveAssociations bool
-	// Logger
+	// Logger receives operation traces and diagnostics. Open uses logger.Default when it is
+	// nil.
 	Logger logger.Interface
-	// NowFunc the function to be used when creating a new timestamp.
-	// It defaults to time.Now().Local(), so return values in the desired
-	// location when overriding it for timezone-sensitive applications.
+	// NowFunc supplies timestamps for automatic create/update times and soft deletion. Open
+	// defaults to time.Now().Local; return the desired location when overriding it.
 	NowFunc func() time.Time
-	// DryRun generate sql without execute
+	// DryRun builds SQL and bound variables without normal database execution. Callbacks
+	// still run; inspect the returned Statement and Error rather than expecting fetched
+	// rows.
 	DryRun bool
-	// PrepareStmt executes the given query in cached statement
+	// PrepareStmt wraps the connection pool with a shared prepared-statement cache. SQL
+	// text is the cache key; bound values do not create distinct entries.
 	PrepareStmt bool
-	// PrepareStmt cache support LRU expired,
-	// default maxsize=int64 Max value and ttl=1h
+	// PrepareStmtMaxSize limits cached prepared statements. A non-positive value uses the
+	// statement store default (effectively unbounded capacity).
 	PrepareStmtMaxSize int
-	PrepareStmtTTL     time.Duration
+	// PrepareStmtTTL controls prepared-statement expiration. A non-positive value
+	// uses the statement store default of 24 hours.
+	PrepareStmtTTL time.Duration
 
-	// DisableAutomaticPing
+	// DisableAutomaticPing skips the ping performed by Open. Initialization success then
+	// does not prove the database is reachable.
 	DisableAutomaticPing bool
-	// DisableForeignKeyConstraintWhenMigrating
+	// DisableForeignKeyConstraintWhenMigrating prevents AutoMigrate from creating
+	// foreign-key constraints. It does not disable association operations.
 	DisableForeignKeyConstraintWhenMigrating bool
-	// IgnoreRelationshipsWhenMigrating
+	// IgnoreRelationshipsWhenMigrating skips relationship traversal and relationship
+	// constraints during migration.
 	IgnoreRelationshipsWhenMigrating bool
-	// DisableNestedTransaction disable nested transaction
+	// DisableNestedTransaction makes nested Transaction callbacks use the current
+	// transaction without savepoints. An inner error alone cannot undo only the inner
+	// writes.
 	DisableNestedTransaction bool
-	// AllowGlobalUpdate allow global update
+	// AllowGlobalUpdate permits UPDATE and DELETE without a user WHERE condition. Keep it
+	// false unless an operation intentionally affects every matching row.
 	AllowGlobalUpdate bool
-	// QueryFields executes the SQL query with all fields of the table
+	// QueryFields selects model columns explicitly instead of using a wildcard when
+	// building queries.
 	QueryFields bool
-	// CreateBatchSize default create batch size
+	// CreateBatchSize sets the default maximum number of records per INSERT batch when
+	// positive. Explicit CreateInBatches calls supply their own size.
 	CreateBatchSize int
-	// TranslateError enabling error translation
+	// TranslateError asks a dialector implementing ErrorTranslator to map driver errors to
+	// GORM errors. Translation availability and coverage depend on the driver.
 	TranslateError bool
-	// PropagateUnscoped propagate Unscoped to every other nested statement
+	// PropagateUnscoped carries Unscoped into fresh nested statements, including
+	// association operations. This can extend permanent-deletion behavior to related
+	// records.
 	PropagateUnscoped bool
 
-	// ClauseBuilders clause builder
+	// ClauseBuilders overrides SQL generation by clause name. Dialectors use this shared
+	// map for database-specific syntax.
 	ClauseBuilders map[string]clause.ClauseBuilder
-	// ConnPool db conn pool
+	// ConnPool is the underlying execution pool or connection wrapper. The current
+	// Statement.ConnPool can instead hold a transaction or dedicated connection.
 	ConnPool ConnPool
 	// Dialector database dialector
 	Dialector
-	// Plugins registered plugins
+	// Plugins contains registered plugins by name. Configure through Use before concurrent
+	// use; sessions may share the map.
 	Plugins map[string]Plugin
 
-	callbacks  *callbacks
+	// callbacks holds the operation callback registry shared by sessions.
+	callbacks *callbacks
+	// cacheStore shares parsed schemas and the prepared-statement manager across sessions.
 	cacheStore *sync.Map
 }
 
-// Apply update config to new config
+// Apply shallow-copies c into config unless both pointers are identical.
+// It implements Option; maps, pointers, and the connection pool are not deep-copied.
 func (c *Config) Apply(config *Config) error {
 	if config != c {
 		*config = *c
@@ -86,7 +120,9 @@ func (c *Config) Apply(config *Config) error {
 	return nil
 }
 
-// AfterInitialize initialize plugins after db connected
+// AfterInitialize initializes the plugins in c.Plugins after Open initializes db.
+// It returns the first plugin error. Map iteration does not define plugin order;
+// plugins with ordering requirements should be registered explicitly with DB.Use.
 func (c *Config) AfterInitialize(db *DB) error {
 	if db != nil {
 		for _, plugin := range c.Plugins {
@@ -98,43 +134,126 @@ func (c *Config) AfterInitialize(db *DB) error {
 	return nil
 }
 
-// Option gorm option interface
+// Option participates in Open's configuration and post-initialization phases.
+// Apply runs before the dialector initializes the connection. AfterInitialize runs
+// on return from Open, except when dialector initialization fails; implementations
+// must account for a nil DB or an initialization error. A *Config is applied first.
+//
+// AfterInitialize calls are deferred in reverse order of successful Apply calls. A
+// later post-initialization error can replace an earlier Open error; implementations
+// should not infer successful initialization merely from receiving a non-nil DB.
 type Option interface {
+	// Apply updates the configuration before dialector initialization. Return an error
+	// to stop Open; callers must not assume a DB has been created at this stage.
 	Apply(*Config) error
+	// AfterInitialize performs post-initialization setup when Open returns.
+	// Account for a nil DB or failed setup; see Option for the initialization order.
 	AfterInitialize(*DB) error
 }
 
-// DB GORM DB definition
+// DB is a database handle, a statement builder, and the result of a traditional
+// API operation. Open returns a reusable root handle backed by a connection pool;
+// it is not a dedicated connection and does not itself denote a transaction.
+//
+// Chain methods such as Where return a handle carrying mutable statement state.
+// Do not share an initialized chain across goroutines or independent queries.
+// Use Session(&Session{}) to derive a reusable base that preserves conditions,
+// or Session(&Session{NewDB: true}) to start without those conditions.
+//
+// Finishers such as Find and Create execute callbacks and return a DB whose Error
+// and RowsAffected describe the operation. Always check Error before using results.
+// The generic G API instead accepts context at execution and returns errors directly.
 type DB struct {
 	*Config
-	Error        error
+	// Error records errors from the current chain; inspect it on the returned finisher
+	// result.
+	Error error
+	// RowsAffected records rows reported by the operation. Its meaning depends on the
+	// operation and driver; check Error first.
 	RowsAffected int64
-	Statement    *Statement
-	clone        int
+	// Statement contains mutable query state, bound variables, context, and the active
+	// connection. Use chain methods instead of sharing or mutating it concurrently.
+	Statement *Statement
+	// clone selects fresh-statement, copied-statement, or in-place behavior in getInstance.
+	clone int
 }
 
-// Session session config when create session with Session() method
+// Session specifies per-session changes for DB.Session.
+// The zero value preserves existing configuration and query conditions while
+// making subsequent chains independent. Most boolean options only enable a
+// behavior; false does not clear a value already enabled in Config.
+// NewDB discards conditions on the next operation, not the connection or transaction.
+//
+// See https://gorm.io/docs/session.html.
 type Session struct {
-	DryRun                   bool
-	PrepareStmt              bool
-	NewDB                    bool
-	Initialized              bool
-	SkipHooks                bool
-	SkipDefaultTransaction   bool
+	// DryRun builds SQL and bound variables without normal database execution. Callbacks
+	// still run; inspect the returned Statement and Error rather than expecting fetched
+	// rows.
+	// It applies to the session returned by DB.Session.
+	DryRun bool
+	// PrepareStmt enables prepared-statement caching for the returned session.
+	// Sessions can share the same store, so clearing it affects other users of that store.
+	PrepareStmt bool
+	// NewDB starts subsequent operations with an empty statement rather than copying
+	// conditions. The underlying pool or transaction and context remain in use.
+	NewDB bool
+	// Initialized eagerly initializes the new statement. The resulting handle is not safe
+	// for independent chain reuse or concurrent mutation.
+	Initialized bool
+	// SkipHooks skips model lifecycle hooks for this session. It does not remove registered
+	// callbacks or turn off association handling.
+	SkipHooks bool
+	// SkipDefaultTransaction disables the transaction wrapping a create, update, or delete
+	// callback chain. Multi-statement writes, including associations, may then partially
+	// succeed.
+	// It applies to the session returned by DB.Session.
+	SkipDefaultTransaction bool
+	// DisableNestedTransaction makes nested Transaction callbacks use the current
+	// transaction without savepoints. An inner error alone cannot undo only the inner
+	// writes.
+	// It applies to the session returned by DB.Session.
 	DisableNestedTransaction bool
-	AllowGlobalUpdate        bool
-	FullSaveAssociations     bool
-	PropagateUnscoped        bool
-	QueryFields              bool
-	Context                  context.Context
-	Logger                   logger.Interface
-	// NowFunc overrides the function used when creating a new timestamp
-	// for this session.
-	NowFunc         func() time.Time
+	// AllowGlobalUpdate permits UPDATE and DELETE without a user WHERE condition. Keep it
+	// false unless an operation intentionally affects every matching row.
+	// It applies to the session returned by DB.Session.
+	AllowGlobalUpdate bool
+	// FullSaveAssociations updates associated records in full when saving a model, rather
+	// than only maintaining association references. Select and Omit still control included
+	// associations.
+	// It applies to the session returned by DB.Session.
+	FullSaveAssociations bool
+	// PropagateUnscoped carries Unscoped into fresh nested statements, including
+	// association operations. This can extend permanent-deletion behavior to related
+	// records.
+	// It applies to the session returned by DB.Session.
+	PropagateUnscoped bool
+	// QueryFields selects model columns explicitly instead of using a wildcard when
+	// building queries.
+	// It applies to the session returned by DB.Session.
+	QueryFields bool
+	// Context overrides the context used by subsequent SQL operations, callbacks, and
+	// logging when non-nil.
+	Context context.Context
+	// Logger overrides the session logger when non-nil; nil preserves the existing logger.
+	Logger logger.Interface
+	// NowFunc overrides the timestamp function when non-nil; nil preserves the
+	// existing function. Return times in the location required by the application.
+	NowFunc func() time.Time
+	// CreateBatchSize overrides the default insert batch size when positive.
+	// Zero or a negative value preserves the existing setting.
 	CreateBatchSize int
 }
 
-// Open initialize db session based on dialector
+// Open initializes a reusable database handle using a database-specific dialector
+// and configuration options. Import a driver such as gorm.io/driver/sqlite and pass
+// its Open result as dialector; this package does not select a driver from a DSN.
+//
+// Open installs callbacks, applies options, initializes the dialector and plugins,
+// and pings the connection when supported unless DisableAutomaticPing is set.
+// Always check err even when db is non-nil. To configure pool limits or close the
+// underlying pool at application shutdown, obtain it with DB.DB.
+//
+// See https://gorm.io/docs/connecting_to_the_database.html.
 func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	config := &Config{}
 
@@ -257,7 +376,14 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	return
 }
 
-// Session create new db session
+// Session returns a handle with a shallow copy of the configuration and the
+// requested overrides. Session(&Session{}) preserves conditions but clones statement
+// state for subsequent chains; NewDB starts subsequent chains without conditions.
+// The connection pool, including an active transaction, remains shared.
+//
+// Initialized eagerly initializes the statement and removes this safe-reuse
+// boundary: do not share that result across independent chains or goroutines.
+// Session does not clear an existing Error and does not begin a transaction.
 func (db *DB) Session(config *Session) *DB {
 	var (
 		txConfig = *db.Config
@@ -359,12 +485,17 @@ func (db *DB) Session(config *Session) *DB {
 	return tx
 }
 
-// WithContext change current instance db's context to ctx
+// WithContext returns a new session using ctx for SQL execution, hooks, and logging.
+// It is shorthand for Session(&Session{Context: ctx}) and preserves conditions.
+// Pass a non-nil context; cancellation is propagated to the underlying driver.
+// Call the cancel function yourself when creating a timeout context.
 func (db *DB) WithContext(ctx context.Context) *DB {
 	return db.Session(&Session{Context: ctx})
 }
 
-// Debug start debug mode
+// Debug returns a new session whose logger runs at Info level, so subsequent SQL
+// operations can be traced. It preserves conditions and does not execute a query.
+// Log output may contain parameter values unless the logger filters them.
 func (db *DB) Debug() (tx *DB) {
 	tx = db.getInstance()
 	return tx.Session(&Session{
@@ -372,36 +503,53 @@ func (db *DB) Debug() (tx *DB) {
 	})
 }
 
-// Set store value with key into current db instance's context
+// Set stores a setting on the returned statement for callbacks and hooks to read
+// with Get. This is Statement.Settings, not context.Context.WithValue.
+// Settings are copied when a statement is cloned and may reach association hooks;
+// use InstanceSet when a value must belong only to this statement instance.
 func (db *DB) Set(key string, value interface{}) *DB {
 	tx := db.getInstance()
 	tx.Statement.Settings.Store(key, value)
 	return tx
 }
 
-// Get get value with key from current db instance's context
+// Get looks up a setting written with Set on the current statement.
+// The boolean reports whether the key exists, including a stored nil value.
+// It does not read values from Statement.Context.
 func (db *DB) Get(key string) (interface{}, bool) {
 	return db.Statement.Settings.Load(key)
 }
 
-// InstanceSet store value with key into current db instance's context
+// InstanceSet stores a setting under a key scoped to the returned Statement's
+// identity. InstanceGet on that same statement retrieves it; a newly created
+// association statement does not inherit access to this instance-specific key.
 func (db *DB) InstanceSet(key string, value interface{}) *DB {
 	tx := db.getInstance()
 	tx.Statement.Settings.Store(fmt.Sprintf("%p", tx.Statement)+key, value)
 	return tx
 }
 
-// InstanceGet get value with key from current db instance's context
+// InstanceGet retrieves a value set with InstanceSet for this exact statement.
+// It returns false for a missing key or for a key belonging to another statement,
+// even if that other statement's settings were copied into this one.
 func (db *DB) InstanceGet(key string) (interface{}, bool) {
 	return db.Statement.Settings.Load(fmt.Sprintf("%p", db.Statement) + key)
 }
 
-// Callback returns callback manager
+// Callback returns the shared callback registry used by finishers.
+// Plugins register handlers on its Create, Query, Update, Delete, Row, or Raw
+// processors. Registration affects sessions sharing this registry; configure it
+// before concurrent database use. See https://gorm.io/docs/write_plugins.html.
 func (db *DB) Callback() *callbacks {
 	return db.callbacks
 }
 
-// AddError add error to db
+// AddError records err on db and returns the accumulated Error; nil leaves it
+// unchanged.
+// With TranslateError enabled it first invokes the dialector's ErrorTranslator.
+// When an error already exists, its text is retained and the new error is wrapped
+// with %w; errors.Is does not necessarily match earlier accumulated errors.
+// An attached WithResult collector is updated with the resulting error.
 func (db *DB) AddError(err error) error {
 	if err != nil {
 		if db.Config.TranslateError {
@@ -422,7 +570,12 @@ func (db *DB) AddError(err error) error {
 	return db.Error
 }
 
-// DB returns `*sql.DB`
+// DB exposes the underlying *sql.DB for pool configuration, statistics, or shutdown.
+// It examines the current statement's connection first, supports *sql.Tx and
+// GetDBConnector wrappers, and returns ErrInvalidDB when no *sql.DB is available
+// (for example, a dedicated *sql.Conn without a connector).
+// The returned pool is shared; closing it affects other sessions. Using this pool
+// directly does not execute inside the current GORM transaction.
 func (db *DB) DB() (*sql.DB, error) {
 	connPool := db.ConnPool
 	if db.Statement != nil && db.Statement.ConnPool != nil {
@@ -445,6 +598,10 @@ func (db *DB) DB() (*sql.DB, error) {
 	return nil, ErrInvalidDB
 }
 
+// getInstance implements lazy statement isolation for chaining.
+// clone=1 creates a fresh statement carrying connection, context, and hook settings;
+// clone=2 copies the existing statement. An initialized handle (clone=0) is returned
+// unchanged, so callers must not treat every chain method as an immutable operation.
 func (db *DB) getInstance() *DB {
 	if db.clone > 0 {
 		tx := &DB{Config: db.Config, Error: db.Error}
@@ -474,12 +631,21 @@ func (db *DB) getInstance() *DB {
 	return db
 }
 
-// Expr returns clause.Expr, which can be used to pass SQL expression as params
+// Expr builds a SQL expression for use as a value or clause, for example
+// DB.Model(&account).Update("balance", Expr("balance + ?", delta)).
+// The SQL template is trusted SQL; args are bound through the dialect's placeholders.
+// Do not interpolate untrusted text into expr, including identifiers or operators.
+// Expr only constructs an expression and does not execute it.
 func Expr(expr string, args ...interface{}) clause.Expr {
 	return clause.Expr{SQL: expr, Vars: args}
 }
 
-// SetupJoinTable setup join table schema
+// SetupJoinTable replaces the many-to-many join-table schema for model's named
+// association field. joinTable must contain the foreign-key columns required by
+// the relation; missing relations or columns return an error.
+// Register the custom model before using the association or migrating it. This
+// changes cached schema metadata and does not create or alter database tables.
+// See https://gorm.io/docs/many_to_many.html#Customize-JoinTable.
 func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interface{}) error {
 	var (
 		tx                      = db.getInstance()
@@ -530,7 +696,11 @@ func (db *DB) SetupJoinTable(model interface{}, field string, joinTable interfac
 	return nil
 }
 
-// Use use plugin
+// Use initializes a plugin and registers it by Plugin.Name after successful
+// initialization.
+// It returns ErrRegistered for a duplicate name and leaves the plugin unregistered
+// if Initialize fails. Configure plugins before concurrent use of the shared DB;
+// registration mutates the shared plugin map and may modify callback registries.
 func (db *DB) Use(plugin Plugin) error {
 	name := plugin.Name()
 	if _, ok := db.Plugins[name]; ok {
@@ -543,14 +713,19 @@ func (db *DB) Use(plugin Plugin) error {
 	return nil
 }
 
-// ToSQL for generate SQL string.
+// ToSQL runs queryFn in a DryRun session and returns dialect-formatted SQL for
+// inspection.
+// queryFn must return a finished statement, for example:
 //
-//	db.ToSQL(func(tx *gorm.DB) *gorm.DB {
-//			return tx.Model(&User{}).Where(&User{Name: "foo", Age: 20})
-//				.Limit(10).Offset(5)
-//				.Order("name ASC")
-//				.First(&User{})
+//	sql := db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+//		return tx.Where("name = ?", "alice").Limit(10).Find(&[]User{})
 //	})
+//
+// The result interpolates values for debugging and is not safe executable SQL.
+// Use parameterized operations to execute queries. ToSQL returns no error; inspect
+// Statement.SQL, Statement.Vars, and Error on a DryRun result when those are needed.
+// DryRun still invokes callbacks, so queryFn and custom callbacks must avoid side
+// effects.
 func (db *DB) ToSQL(queryFn func(tx *DB) *DB) string {
 	tx := queryFn(db.Session(&Session{DryRun: true, SkipDefaultTransaction: true}).getInstance())
 	stmt := tx.Statement

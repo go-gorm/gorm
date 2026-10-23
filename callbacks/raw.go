@@ -4,6 +4,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// RawExec executes the statement's existing SQL and Vars with its context when db has
+// no error and DryRun is false. It records execution errors, RowsAffected, and an
+// optional native sql.Result collector. It does not build SQL, load a model, run model
+// hooks, or start a transaction.
 func RawExec(db *gorm.DB) {
 	if db.Error == nil && !db.DryRun {
 		result, err := db.Statement.ConnPool.ExecContext(db.Statement.Context, db.Statement.SQL.String(), db.Statement.Vars...)

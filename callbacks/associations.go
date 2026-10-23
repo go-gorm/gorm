@@ -10,6 +10,12 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// SaveBeforeAssociations returns a callback that saves selected, nonzero belongs-to
+// associations before the owner and copies their referenced keys into the owner (and
+// applicable update maps). create selects create versus update field permissions.
+// Complete related primary keys are used to deduplicate batch values; recursive visits
+// are tracked separately. Association upserts respect Select/Omit and
+// FullSaveAssociations and share the operation's connection or transaction.
 func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
 		if db.Error == nil && db.Statement.Schema != nil {
@@ -107,6 +113,17 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 	}
 }
 
+// SaveAfterAssociations returns a callback that saves selected has-one, has-many, and
+// many-to-many associations after the owner is written. It copies owner keys and
+// polymorphic constants into related records or join rows. create selects create versus
+// update permissions.
+//
+// Ordinary association upserts update required foreign keys; FullSaveAssociations
+// requests a broader update of related fields. For many-to-many data,
+// Omit("Languages.*") skips upserting target records while still permitting join rows;
+// omitting the association itself skips both. Join rows use ON CONFLICT DO NOTHING. All
+// work shares the current connection or transaction, but the callback itself does not
+// open a transaction.
 func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
 		if db.Error == nil && db.Statement.Schema != nil {
@@ -357,6 +374,10 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 	}
 }
 
+// onConflictOption chooses the association upsert policy. With default update columns
+// or FullSaveAssociations it targets schema primary keys and updates those columns or
+// requests UpdateAll; otherwise it selects DoNothing. Dialectors determine the
+// supported SQL translation.
 func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingColumns []string) (onConflict clause.OnConflict) {
 	if len(defaultUpdatingColumns) > 0 || stmt.DB.FullSaveAssociations {
 		onConflict.Columns = make([]clause.Column, 0, len(s.PrimaryFieldDBNames))
@@ -375,6 +396,11 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingCol
 	return
 }
 
+// saveAssociations creates related values in a fresh statement on the operation's
+// connection or transaction, applying the association conflict policy and nested
+// Select/Omit restrictions. It shares statement settings and the visited-object map,
+// preserves SkipHooks/FullSaveAssociations, and disables nested savepoints. Already
+// visited values are skipped. The returned error is also added to db.
 func saveAssociations(db *gorm.DB, rel *schema.Relationship, rValues reflect.Value, selectColumns map[string]bool, restricted bool, defaultUpdatingColumns []string) error {
 	// stop save association loop
 	if checkAssociationsSaved(db, rValues) {
@@ -431,11 +457,15 @@ func saveAssociations(db *gorm.DB, rel *schema.Relationship, rValues reflect.Val
 	return db.AddError(tx.Create(values).Error)
 }
 
-// check association values has been saved
-// if values kind is Struct, check it has been saved
-// if values kind is Slice/Array, check all items have been saved
+// visitMapStoreKey is the statement setting used to share visited association object
+// identities through recursive saves. It is an internal coordination key, not an
+// idempotency token.
 var visitMapStoreKey = "gorm:saved_association_map"
 
+// checkAssociationsSaved loads or initializes the operation's visited-object map and
+// records values. It returns true when the existing map has already seen all supported
+// values, allowing recursive association saves to stop. This is object-identity cycle
+// prevention within one operation, not database-level deduplication.
 func checkAssociationsSaved(db *gorm.DB, values reflect.Value) bool {
 	if visit, ok := db.Get(visitMapStoreKey); ok {
 		if v, ok := visit.(*visitMap); ok {

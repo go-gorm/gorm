@@ -4,6 +4,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// RowQuery builds SELECT SQL and, unless DryRun or an earlier error prevents execution,
+// stores either *sql.Rows or *sql.Row in Statement.Dest. The internal rows setting
+// selects QueryContext versus QueryRowContext. It sets RowsAffected to -1 because it
+// does not scan or count results. The caller owns Rows.Close/Rows.Err or Row.Scan;
+// row-query errors may be deferred until Scan. It does not preload associations or
+// invoke AfterFind.
 func RowQuery(db *gorm.DB) {
 	if db.Error == nil {
 		BuildQuerySQL(db)

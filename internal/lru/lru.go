@@ -1,4 +1,3 @@
-// Package lru provides a thread-safe Least Recently Used (LRU) cache with expirable entries.
 package lru
 
 // golang -lru
@@ -8,47 +7,67 @@ import (
 	"time"
 )
 
-// EvictCallback is used to get a callback when a cache entry is evicted
+// EvictCallback runs synchronously under the cache lock when an entry is removed,
+// including purge/resize/expiry. It must not re-enter this cache or block on work
+// requiring its lock. Updating an existing key does not invoke it for the old value.
 type EvictCallback[K comparable, V any] func(key K, value V)
 
-// LRU implements a thread-safe LRU with expirable entries.
+// LRU is a synchronized least-recently-used cache with insertion/update-based TTL. Get
+// refreshes recency but not expiration. Contains, Len, and GetOldest can include
+// expired entries pending cleanup; Cap is not synchronized with Resize. Initialize
+// through NewLRU, not the zero value.
 type LRU[K comparable, V any] struct {
-	size      int
+	// size is the maximum entry count; zero means unlimited. It is changed by Resize.
+	size int
+	// evictList orders entries from most recently used at the front to least recently used
+	// at the back.
 	evictList *LruList[K, V]
-	items     map[K]*Entry[K, V]
-	onEvict   EvictCallback[K, V]
+	// items indexes list entries by key; an expired entry can remain until removal or
+	// background cleanup.
+	items map[K]*Entry[K, V]
+	// onEvict runs under mu when an entry is removed. It must not re-enter the cache.
+	onEvict EvictCallback[K, V]
 
-	// expirable options
-	mu   sync.RWMutex
-	ttl  time.Duration
+	// mu guards maps, recency links, and expiry buckets during cache operations.
+	mu sync.RWMutex
+	// ttl is the duration applied on insertion or replacement, not extended by Get.
+	ttl time.Duration
+	// done is observed by the cleanup goroutine but is never closed by an exposed API in
+	// this implementation.
 	done chan struct{}
 
-	// buckets for expiration
+	// buckets groups entries for background expiration cleanup rather than scheduling one
+	// timer per entry.
 	buckets []bucket[K, V]
-	// uint8 because it's number between 0 and numBuckets
+	// nextCleanupBucket identifies the next expiry bucket to process, wrapping modulo
+	// numBuckets.
 	nextCleanupBucket uint8
 }
 
-// bucket is a container for holding entries to be expired
+// bucket holds entries awaiting expiry cleanup and the latest expiry time added to that
+// bucket. Cleanup waits for that time before removing the bucket contents.
 type bucket[K comparable, V any] struct {
-	entries     map[K]*Entry[K, V]
+	// entries indexes entries assigned to this expiry bucket.
+	entries map[K]*Entry[K, V]
+	// newestEntry is the latest expiry assigned to the bucket; removal does not recompute
+	// it.
 	newestEntry time.Time
 }
 
-// noEvictionTTL - very long ttl to prevent eviction
+// noEvictionTTL is the ten-year TTL sentinel used for non-positive TTL input. It
+// disables the background expiry worker, but read-time expiration checks still use the
+// stored expiry.
 const noEvictionTTL = time.Hour * 24 * 365 * 10
 
-// because of uint8 usage for nextCleanupBucket, should not exceed 256.
-// casting it as uint8 explicitly requires type conversions in multiple places
+// numBuckets partitions expiration work; the uint8 bucket index requires no more than
+// 256 buckets. The cleanup ticker interval is ttl divided by this count.
 const numBuckets = 100
 
-// NewLRU returns a new thread-safe cache with expirable entries.
-//
-// Size parameter set to 0 makes cache of unlimited size, e.g. turns LRU mechanism off.
-//
-// Providing 0 TTL turns expiring off.
-//
-// Delete expired entries every 1/100th of ttl value. Goroutine which deletes expired entries runs indefinitely.
+// NewLRU creates a cache with a size limit and optional eviction callback. Non-positive
+// size is unlimited. Non-positive ttl becomes the ten-year sentinel and disables
+// background cleanup; other TTLs must be large enough that ttl/numBuckets is positive
+// for time.NewTicker. The cleanup goroutine has no exposed stop method and runs for the
+// cache lifetime. Eviction callbacks run under the cache lock and must not re-enter it.
 func NewLRU[K comparable, V any](size int, onEvict EvictCallback[K, V], ttl time.Duration) *LRU[K, V] {
 	if size < 0 {
 		size = 0
@@ -93,8 +112,8 @@ func NewLRU[K comparable, V any](size int, onEvict EvictCallback[K, V], ttl time
 	return &res
 }
 
-// Purge clears the cache completely.
-// onEvict is called for each evicted key.
+// Purge removes every stored entry and resets the recency list, invoking onEvict for
+// each entry under the lock. It does not stop the background cleanup worker.
 func (c *LRU[K, V]) Purge() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -112,9 +131,10 @@ func (c *LRU[K, V]) Purge() {
 	c.evictList.Init()
 }
 
-// Add adds a value to the cache. Returns true if an eviction occurred.
-// Returns false if there was no eviction: the item was already in the cache,
-// or the size was not exceeded.
+// Add inserts or replaces a value, marks it most recent, and resets expiry. It returns
+// true only when capacity eviction occurs. Replacing an existing key does not call
+// onEvict for its prior value, so resource-owning callers must handle replacement
+// cleanup.
 func (c *LRU[K, V]) Add(key K, value V) (evicted bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -143,7 +163,8 @@ func (c *LRU[K, V]) Add(key K, value V) (evicted bool) {
 	return evict
 }
 
-// Get looks up a key's value from the cache.
+// Get returns an unexpired value and marks it most recent without extending TTL. An
+// expired entry is reported missing but is not physically removed by this method.
 func (c *LRU[K, V]) Get(key K) (value V, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -159,8 +180,8 @@ func (c *LRU[K, V]) Get(key K) (value V, ok bool) {
 	return
 }
 
-// Contains checks if a key is in the cache, without updating the recent-ness
-// or deleting it for being stale.
+// Contains checks physical key presence without updating recency or checking
+// expiration. It can return true while Get reports the same key expired.
 func (c *LRU[K, V]) Contains(key K) (ok bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -168,8 +189,8 @@ func (c *LRU[K, V]) Contains(key K) (ok bool) {
 	return ok
 }
 
-// Peek returns the key value (or undefined if not found) without updating
-// the "recently used"-ness of the key.
+// Peek returns an unexpired value without changing recency or TTL. Expired entries are
+// reported missing but remain stored until cleanup.
 func (c *LRU[K, V]) Peek(key K) (value V, ok bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -184,8 +205,8 @@ func (c *LRU[K, V]) Peek(key K) (value V, ok bool) {
 	return
 }
 
-// Remove removes the provided key from the cache, returning if the
-// key was contained.
+// Remove deletes key if present and invokes onEvict under the lock. It reports physical
+// presence, including an expired entry waiting for cleanup.
 func (c *LRU[K, V]) Remove(key K) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -196,7 +217,8 @@ func (c *LRU[K, V]) Remove(key K) bool {
 	return false
 }
 
-// RemoveOldest removes the oldest item from the cache.
+// RemoveOldest removes the least recently used stored entry and invokes onEvict. It can
+// remove an already expired entry; ok=false means the list is empty.
 func (c *LRU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -207,7 +229,8 @@ func (c *LRU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	return
 }
 
-// GetOldest returns the oldest entry
+// GetOldest returns the least recently used stored entry without checking expiration or
+// changing recency. Use Get/Peek when live-value semantics are required.
 func (c *LRU[K, V]) GetOldest() (key K, value V, ok bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -217,6 +240,8 @@ func (c *LRU[K, V]) GetOldest() (key K, value V, ok bool) {
 	return
 }
 
+// KeyValues returns a new map of entries unexpired at the snapshot time. Values are
+// copied shallowly; referenced objects remain shared.
 func (c *LRU[K, V]) KeyValues() map[K]V {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -232,8 +257,8 @@ func (c *LRU[K, V]) KeyValues() map[K]V {
 	return maps
 }
 
-// Keys returns a slice of the keys in the cache, from oldest to newest.
-// Expired entries are filtered out.
+// Keys returns unexpired keys in least-to-most-recent order without changing recency.
+// Expired entries are filtered but not deleted.
 func (c *LRU[K, V]) Keys() []K {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -248,8 +273,8 @@ func (c *LRU[K, V]) Keys() []K {
 	return keys
 }
 
-// Values returns a slice of the values in the cache, from oldest to newest.
-// Expired entries are filtered out.
+// Values returns unexpired values in least-to-most-recent order. The slice is new but
+// reference-valued entries are not deep-copied.
 func (c *LRU[K, V]) Values() []V {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -264,14 +289,17 @@ func (c *LRU[K, V]) Values() []V {
 	return values
 }
 
-// Len returns the number of items in the cache.
+// Len reports stored entries, including expired entries awaiting cleanup. It is not the
+// same as len(Keys()) when expiration has occurred.
 func (c *LRU[K, V]) Len() int {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.evictList.Length()
 }
 
-// Resize changes the cache size. Size of 0 means unlimited.
+// Resize changes the capacity and removes least-recent entries until the new positive
+// limit is met, returning the number removed. Non-positive size makes capacity
+// unlimited. Eviction callbacks run under the lock.
 func (c *LRU[K, V]) Resize(size int) (evicted int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -302,14 +330,17 @@ func (c *LRU[K, V]) Resize(size int) (evicted int) {
 //	close(c.done)
 // }
 
-// removeOldest removes the oldest item from the cache. Has to be called with lock!
+// removeOldest removes the back entry if present. The caller must hold the write lock;
+// removal invokes the eviction callback.
 func (c *LRU[K, V]) removeOldest() {
 	if ent := c.evictList.Back(); ent != nil {
 		c.removeElement(ent)
 	}
 }
 
-// removeElement is used to remove a given list element from the cache. Has to be called with lock!
+// removeElement unlinks e from the recency list, key map, and expiry bucket, then
+// invokes onEvict. The caller must hold the write lock and supply an entry owned by
+// this cache.
 func (c *LRU[K, V]) removeElement(e *Entry[K, V]) {
 	c.evictList.Remove(e)
 	delete(c.items, e.Key)
@@ -319,8 +350,9 @@ func (c *LRU[K, V]) removeElement(e *Entry[K, V]) {
 	}
 }
 
-// deleteExpired deletes expired records from the oldest bucket, waiting for the newest entry
-// in it to expire first.
+// deleteExpired processes the next expiry bucket, temporarily releasing the lock while
+// waiting for its newest recorded expiry, then removes its entries and advances the
+// bucket index. Cleanup can lag read-time expiration.
 func (c *LRU[K, V]) deleteExpired() {
 	c.mu.Lock()
 	bucketIdx := c.nextCleanupBucket
@@ -338,7 +370,9 @@ func (c *LRU[K, V]) deleteExpired() {
 	c.mu.Unlock()
 }
 
-// addToBucket adds entry to expire bucket so that it will be cleaned up when the time comes. Has to be called with lock!
+// addToBucket assigns an entry to the bucket before the next cleanup position and
+// extends that bucket's newest expiry if necessary. The caller must hold the write
+// lock.
 func (c *LRU[K, V]) addToBucket(e *Entry[K, V]) {
 	bucketID := (numBuckets + c.nextCleanupBucket - 1) % numBuckets
 	e.ExpireBucket = bucketID
@@ -348,42 +382,44 @@ func (c *LRU[K, V]) addToBucket(e *Entry[K, V]) {
 	}
 }
 
-// removeFromBucket removes the entry from its corresponding bucket. Has to be called with lock!
+// removeFromBucket removes an entry from its recorded expiry bucket without changing
+// the bucket's newest-expiry timestamp. The caller must hold the write lock.
 func (c *LRU[K, V]) removeFromBucket(e *Entry[K, V]) {
 	delete(c.buckets[e.ExpireBucket].entries, e.Key)
 }
 
-// Cap returns the capacity of the cache
+// Cap returns the configured capacity, with zero meaning unlimited. It does not lock;
+// do not call it concurrently with Resize without external synchronization.
 func (c *LRU[K, V]) Cap() int {
 	return c.size
 }
 
-// Entry is an LRU Entry
+// Entry is a node in LruList holding a key/value and optional expiration metadata. List
+// links are internal and not independently synchronized; use the owning LRU for
+// concurrent cache access.
 type Entry[K comparable, V any] struct {
-	// Next and previous pointers in the doubly-linked list of elements.
-	// To simplify the implementation, internally a list l is implemented
-	// as a ring, such that &l.root is both the next element of the last
-	// list element (l.Back()) and the previous element of the first list
-	// element (l.Front()).
+	// next and prev form a doubly linked ring through the owning list's sentinel. Removed
+	// entries have both links cleared.
 	next, prev *Entry[K, V]
 
-	// The list to which this element belongs.
+	// list identifies the owning list or is nil after removal.
 	list *LruList[K, V]
 
-	// The LRU Key of this element.
+	// Key is the cache lookup key associated with this node.
 	Key K
 
-	// The Value stored with this element.
+	// Value is the cached value; referenced objects are not copied by the list.
 	Value V
 
-	// The time this element would be cleaned up, optional
+	// ExpiresAt is the absolute expiry checked by LRU reads and cleanup scheduling.
 	ExpiresAt time.Time
 
-	// The expiry bucket item was put in, optional
+	// ExpireBucket indexes the owning LRU's expiration bucket for removal/rescheduling.
 	ExpireBucket uint8
 }
 
-// PrevEntry returns the previous list element or nil.
+// PrevEntry returns the preceding node toward the front, or nil at the sentinel or
+// after removal. It requires the caller to provide appropriate synchronization.
 func (e *Entry[K, V]) PrevEntry() *Entry[K, V] {
 	if p := e.prev; e.list != nil && p != &e.list.root {
 		return p
@@ -391,14 +427,19 @@ func (e *Entry[K, V]) PrevEntry() *Entry[K, V] {
 	return nil
 }
 
-// LruList represents a doubly linked list.
-// The zero Value for LruList is an empty list ready to use.
+// LruList is an unsynchronized doubly linked ring used by LRU. Its zero value is lazily
+// initialized by insertion; do not copy a populated list because node links point to
+// its sentinel.
 type LruList[K comparable, V any] struct {
+	// root is the sentinel ring node, excluded from the element count.
 	root Entry[K, V] // sentinel list element, only &root, root.prev, and root.next are used
-	len  int         // current list Length excluding (this) sentinel element
+	// len counts data nodes, excluding root.
+	len int // current list Length excluding (this) sentinel element
 }
 
-// Init initializes or clears list l.
+// Init resets the sentinel links and length and returns the list. It does not visit or
+// detach previously held nodes; callers must discard old entries when clearing the
+// list.
 func (l *LruList[K, V]) Init() *LruList[K, V] {
 	l.root.next = &l.root
 	l.root.prev = &l.root
@@ -406,14 +447,15 @@ func (l *LruList[K, V]) Init() *LruList[K, V] {
 	return l
 }
 
-// NewList returns an initialized list.
+// NewList allocates an initialized empty list. It provides no locking; LRU supplies
+// synchronization around list operations.
 func NewList[K comparable, V any]() *LruList[K, V] { return new(LruList[K, V]).Init() }
 
-// Length returns the number of elements of list l.
-// The complexity is O(1).
+// Length returns the stored element count in constant time without locking.
 func (l *LruList[K, V]) Length() int { return l.len }
 
-// Back returns the last element of list l or nil if the list is empty.
+// Back returns the least-recent end node or nil when the list is empty. The list does
+// not check entry expiration.
 func (l *LruList[K, V]) Back() *Entry[K, V] {
 	if l.len == 0 {
 		return nil
@@ -421,14 +463,15 @@ func (l *LruList[K, V]) Back() *Entry[K, V] {
 	return l.root.prev
 }
 
-// lazyInit lazily initializes a zero List Value.
+// lazyInit links the zero-value sentinel to itself before insertion.
 func (l *LruList[K, V]) lazyInit() {
 	if l.root.next == nil {
 		l.Init()
 	}
 }
 
-// insert inserts e after at, increments l.len, and returns e.
+// insert links e immediately after at, sets its owner, and increments length. at must
+// belong to this initialized list and e must be suitable for insertion.
 func (l *LruList[K, V]) insert(e, at *Entry[K, V]) *Entry[K, V] {
 	e.prev = at
 	e.next = at.next
@@ -439,12 +482,14 @@ func (l *LruList[K, V]) insert(e, at *Entry[K, V]) *Entry[K, V] {
 	return e
 }
 
-// insertValue is a convenience wrapper for insert(&Entry{Value: v, ExpiresAt: ExpiresAt}, at).
+// insertValue allocates a key/value node with expiresAt and inserts it after at. It
+// assumes the list and insertion point are valid.
 func (l *LruList[K, V]) insertValue(k K, v V, expiresAt time.Time, at *Entry[K, V]) *Entry[K, V] {
 	return l.insert(&Entry[K, V]{Value: v, Key: k, ExpiresAt: expiresAt}, at)
 }
 
-// Remove removes e from its list, decrements l.len
+// Remove unlinks e, clears its owner and links, decrements length, and returns its
+// value. e must be a non-sentinel member of this list; membership is not checked here.
 func (l *LruList[K, V]) Remove(e *Entry[K, V]) V {
 	e.prev.next = e.next
 	e.next.prev = e.prev
@@ -456,7 +501,8 @@ func (l *LruList[K, V]) Remove(e *Entry[K, V]) V {
 	return e.Value
 }
 
-// move moves e to next to at.
+// move relinks e after at without changing length. Both nodes must belong to this list;
+// moving a node after itself is a no-op.
 func (l *LruList[K, V]) move(e, at *Entry[K, V]) {
 	if e == at {
 		return
@@ -470,21 +516,23 @@ func (l *LruList[K, V]) move(e, at *Entry[K, V]) {
 	e.next.prev = e
 }
 
-// PushFront inserts a new element e with value v at the front of list l and returns e.
+// PushFront inserts a key/value at the front with a zero expiry. It is a list
+// operation; zero expiry is not an unexpired-entry promise to an LRU reader.
 func (l *LruList[K, V]) PushFront(k K, v V) *Entry[K, V] {
 	l.lazyInit()
 	return l.insertValue(k, v, time.Time{}, &l.root)
 }
 
-// PushFrontExpirable inserts a new expirable element e with Value v at the front of list l and returns e.
+// PushFrontExpirable inserts a node at the front with the supplied absolute expiration
+// time. It lazily initializes the list but does not schedule cleanup itself.
 func (l *LruList[K, V]) PushFrontExpirable(k K, v V, expiresAt time.Time) *Entry[K, V] {
 	l.lazyInit()
 	return l.insertValue(k, v, expiresAt, &l.root)
 }
 
-// MoveToFront moves element e to the front of list l.
-// If e is not an element of l, the list is not modified.
-// The element must not be nil.
+// MoveToFront moves a non-nil member to the front. It leaves the list unchanged for an
+// entry owned by another list or one already at the front; callers provide
+// synchronization.
 func (l *LruList[K, V]) MoveToFront(e *Entry[K, V]) {
 	if e.list != l || l.root.next == e {
 		return

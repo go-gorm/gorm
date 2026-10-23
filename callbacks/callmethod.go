@@ -6,6 +6,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// callMethod dispatches fc to the destination value first, then, if fc reports no
+// matching hook, to addressable model pointers in a struct or slice/array. It maintains
+// CurDestIndex for slice hooks and records ErrInvalidValue for an unaddressable model.
+// The hook session uses NewDB to omit the caller's query conditions while retaining its
+// connection or transaction. fc is responsible for recording hook errors on the
+// original DB.
 func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 	tx := db.Session(&gorm.Session{NewDB: true})
 	if called := fc(db.Statement.ReflectValue.Interface(), tx); !called {
