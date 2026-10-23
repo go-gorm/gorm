@@ -28,7 +28,7 @@ func openExampleDB() (*gorm.DB, func()) {
 	}
 	pool.SetMaxOpenConns(1)
 	if err := db.AutoMigrate(&exampleUser{}); err != nil {
-		pool.Close()
+		_ = pool.Close()
 		panic(err)
 	}
 	return db, func() { _ = pool.Close() }
@@ -167,7 +167,11 @@ func ExampleDB_Rows() {
 	if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			panic(err)
+		}
+	}()
 	for rows.Next() {
 		var user exampleUser
 		if err := db.ScanRows(rows, &user); err != nil {
