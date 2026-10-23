@@ -454,6 +454,17 @@ const (
 )
 
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl guessLevel) {
+	// Preserve the relationship selected by exact field and column names before
+	// considering additional matches introduced by the naming strategy.
+	schema.guessRelationWithLookup(relation, field, cgl, (*Schema).lookUpField)
+	if schema.err != nil {
+		schema.err = nil
+		schema.guessRelationWithLookup(relation, field, cgl, (*Schema).LookUpField)
+	}
+}
+
+//nolint:cyclop // Preserve the existing inference algorithm and retry order while parameterizing field lookup.
+func (schema *Schema) guessRelationWithLookup(relation *Relationship, field *Field, cgl guessLevel, lookup func(*Schema, string) *Field) {
 	var (
 		primaryFields, foreignFields []*Field
 		primarySchema, foreignSchema = schema, relation.FieldSchema
@@ -471,13 +482,13 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	reguessOrErr := func() {
 		switch cgl {
 		case guessGuess:
-			schema.guessRelation(relation, field, guessBelongs)
+			schema.guessRelationWithLookup(relation, field, guessBelongs, lookup)
 		case guessBelongs:
-			schema.guessRelation(relation, field, guessEmbeddedBelongs)
+			schema.guessRelationWithLookup(relation, field, guessEmbeddedBelongs, lookup)
 		case guessEmbeddedBelongs:
-			schema.guessRelation(relation, field, guessHas)
+			schema.guessRelationWithLookup(relation, field, guessHas, lookup)
 		case guessHas:
-			schema.guessRelation(relation, field, guessEmbeddedHas)
+			schema.guessRelationWithLookup(relation, field, guessEmbeddedHas, lookup)
 		// case guessEmbeddedHas:
 		default:
 			schema.err = fmt.Errorf("invalid field found for struct %v's field %s: define a valid foreign key for relations or implement the Valuer/Scanner interface",
@@ -505,7 +516,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 
 	if len(relation.foreignKeys) > 0 {
 		for _, foreignKey := range relation.foreignKeys {
-			f := foreignSchema.LookUpField(foreignKey)
+			f := lookup(foreignSchema, foreignKey)
 			if f == nil {
 				reguessOrErr()
 				return
@@ -520,7 +531,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 
 		if len(relation.primaryKeys) > 0 {
 			for _, primaryKey := range relation.primaryKeys {
-				if f := primarySchema.LookUpField(primaryKey); f != nil {
+				if f := lookup(primarySchema, primaryKey); f != nil {
 					primaryFields = append(primaryFields, f)
 				}
 			}
@@ -550,7 +561,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 				}
 			}
 			for _, name := range lookUpNames {
-				if f := foreignSchema.LookUpField(name); f != nil {
+				if f := lookup(foreignSchema, name); f != nil {
 					foreignFields = append(foreignFields, f)
 					primaryFields = append(primaryFields, primaryField)
 					continue primaryFieldLoop
@@ -565,7 +576,7 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 		return
 	case len(relation.primaryKeys) > 0:
 		for idx, primaryKey := range relation.primaryKeys {
-			if f := primarySchema.LookUpField(primaryKey); f != nil {
+			if f := lookup(primarySchema, primaryKey); f != nil {
 				if len(primaryFields) < idx+1 {
 					primaryFields = append(primaryFields, f)
 				} else if f != primaryFields[idx] {

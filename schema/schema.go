@@ -76,11 +76,19 @@ func (schema *Schema) MakeSlice() reflect.Value {
 	return results
 }
 
-func (schema *Schema) LookUpField(name string) *Field {
+// lookUpField resolves exact struct field names and database column names.
+func (schema *Schema) lookUpField(name string) *Field {
 	if field, ok := schema.FieldsByDBName[name]; ok {
 		return field
 	}
 	if field, ok := schema.FieldsByName[name]; ok {
+		return field
+	}
+	return nil
+}
+
+func (schema *Schema) LookUpField(name string) *Field {
+	if field := schema.lookUpField(name); field != nil {
 		return field
 	}
 
