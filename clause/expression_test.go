@@ -115,6 +115,26 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "name1 = ?\r AND name2 = ?",
 		ExpectedVars: []interface{}{"jinzhu", "jinzhu"},
 	}, {
+		SQL:          "-- filter by @tenant\nname = @name",
+		Vars:         []interface{}{sql.Named("tenant", "acme"), sql.Named("name", "jinzhu")},
+		Result:       "-- filter by @tenant\nname = ?",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
+		SQL:          "/* @tenant, ? */ name = @name /* @tenant",
+		Vars:         []interface{}{sql.Named("tenant", "acme"), sql.Named("name", "jinzhu")},
+		Result:       "/* @tenant, ? */ name = ? /* @tenant",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
+		SQL:          "/*! name = @name */",
+		Vars:         []interface{}{sql.Named("name", "jinzhu")},
+		Result:       "/*! name = ? */",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
+		SQL:          "note = 'a -- b' AND note = 'it''s /* x' AND note = 'it\\'s -- y' AND name = @name",
+		Vars:         []interface{}{sql.Named("name", "jinzhu")},
+		Result:       "note = 'a -- b' AND note = 'it''s /* x' AND note = 'it\\'s -- y' AND name = ?",
+		ExpectedVars: []interface{}{"jinzhu"},
+	}, {
 		SQL:    "?",
 		Vars:   []interface{}{clause.Column{Table: "table", Name: "col"}},
 		Result: "`table`.`col`",
