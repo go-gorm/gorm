@@ -5,6 +5,7 @@ import (
 	"database/sql/driver"
 	"go/ast"
 	"reflect"
+	"strings"
 )
 
 // Expression expression interface
@@ -69,6 +70,8 @@ func (expr NamedExpr) Build(builder Builder) {
 		idx              int
 		inName           bool
 		afterParenthesis bool
+		escaped          bool
+		quote            byte
 		namedMap         = make(map[string]interface{}, len(expr.Vars))
 	)
 
@@ -105,7 +108,27 @@ func (expr NamedExpr) Build(builder Builder) {
 
 	name := make([]byte, 0, 10)
 
-	for _, v := range []byte(expr.SQL) {
+	for i := 0; i < len(expr.SQL); i++ {
+		v := expr.SQL[i]
+		if quote != 0 {
+			switch {
+			case escaped:
+				escaped = false
+			case v == '\\':
+				escaped = true
+			case v == quote:
+				quote = 0
+			}
+		} else if v == '\'' || v == '"' || v == '`' {
+			quote = v
+		} else if !inName {
+			if end := commentEnd(expr.SQL, i); end > i {
+				builder.WriteString(expr.SQL[i:end])
+				i = end - 1
+				continue
+			}
+		}
+
 		if v == '@' && !inName {
 			inName = true
 			name = name[:0]
@@ -154,6 +177,25 @@ func (expr NamedExpr) Build(builder Builder) {
 			builder.WriteString(string(name))
 		}
 	}
+}
+
+// commentEnd returns the index just past the SQL comment starting at s[i], or i when none starts there.
+// MySQL executable comments (/*! ... */) run as SQL, so their parameters are still bound.
+func commentEnd(s string, i int) int {
+	rest := s[i:]
+	switch {
+	case strings.HasPrefix(rest, "--"):
+		if n := strings.IndexByte(rest, '\n'); n >= 0 {
+			return i + n
+		}
+		return len(s)
+	case strings.HasPrefix(rest, "/*") && !strings.HasPrefix(rest, "/*!"):
+		if n := strings.Index(rest[2:], "*/"); n >= 0 {
+			return i + n + 4
+		}
+		return len(s)
+	}
+	return i
 }
 
 // processValue handles different value types appropriately for SQL parameter binding
