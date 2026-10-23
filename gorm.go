@@ -458,6 +458,7 @@ func (db *DB) getInstance() *DB {
 				Clauses:   map[string]clause.Clause{},
 				Vars:      make([]interface{}, 0, 8),
 				SkipHooks: db.Statement.SkipHooks,
+				cancel:    db.Statement.cancel,
 			}
 			if db.Config.PropagateUnscoped {
 				tx.Statement.Unscoped = db.Statement.Unscoped
