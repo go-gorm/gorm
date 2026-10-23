@@ -1,4 +1,3 @@
-// Package utils provides internal utility functions for GORM.
 package utils
 
 import (
@@ -12,14 +11,21 @@ import (
 	"unicode"
 )
 
+// gormSourceDir is the normalized source prefix used to skip GORM implementation frames
+// while locating callers. It is initialized from this file's runtime location.
 var gormSourceDir string
 
+// init records the source-directory prefix used by caller reporting. Path normalization
+// accommodates module cache and checkout layouts.
 func init() {
 	_, file, _, _ := runtime.Caller(0)
 	// compatible solution to get gorm source directory with various operating systems
 	gormSourceDir = sourceDir(file)
 }
 
+// sourceDir derives the slash-normalized GORM source prefix from a source filename,
+// accounting for a gorm.io parent directory. It is a stack-filter heuristic, not
+// filesystem discovery.
 func sourceDir(file string) string {
 	dir := filepath.Dir(file)
 	dir = filepath.Dir(dir)
@@ -31,16 +37,18 @@ func sourceDir(file string) string {
 	return filepath.ToSlash(s) + "/"
 }
 
-// CallerFrame retrieves the first relevant stack frame outside of GORM's internal implementation files.
-// It skips:
-//   - GORM's core source files (identified by gormSourceDir prefix)
-//   - Exclude test files (*_test.go)
-//   - go-gorm/gen's Generated files (*.gen.go)
+// CallerFrame returns the first relevant caller outside GORM implementation files,
+// retaining _test.go frames and skipping .gen.go frames. It examines a bounded stack
+// window and returns a zero runtime.Frame when no candidate is found. The fixed skip
+// count is part of caller-reporting behavior.
 func CallerFrame() runtime.Frame {
 	// Preserve the original CallerFrame stack depth after introducing callerFrame().
 	return callerFrame(4)
 }
 
+// callerFrame scans up to 13 runtime caller PCs after skip, excluding GORM
+// implementation and generated .gen.go files while retaining test files. It returns a
+// zero frame if none qualifies.
 func callerFrame(skip int) runtime.Frame {
 	pcs := [13]uintptr{}
 	// skip is caller-path sensitive and should be selected by each public helper.
@@ -58,7 +66,9 @@ func callerFrame(skip int) runtime.Frame {
 	return runtime.Frame{}
 }
 
-// FileWithLineNum return the file name and line number of the current file
+// FileWithLineNum formats the first relevant external caller as path:line, or an empty
+// string if none is found. It uses its own fixed stack skip to preserve historical
+// reporting behavior.
 func FileWithLineNum() string {
 	// Keep FileWithLineNum one frame outer than CallerFrame to preserve pre-v1.31.1 semantics.
 	frame := callerFrame(4)
@@ -69,11 +79,16 @@ func FileWithLineNum() string {
 	return ""
 }
 
+// IsInvalidDBNameChar identifies separators for simple identifier heuristics. Letters,
+// numbers, dot, star, underscore, dollar, and at-sign are accepted; this is not SQL
+// validation or an injection defense.
 func IsInvalidDBNameChar(c rune) bool {
 	return !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '.' && c != '*' && c != '_' && c != '$' && c != '@'
 }
 
-// CheckTruth check string true or not
+// CheckTruth reports true when any value is non-empty and not case-insensitively equal
+// to "false". Values such as "0" count as true; it is a GORM tag convention, not
+// strconv.ParseBool.
 func CheckTruth(vals ...string) bool {
 	for _, val := range vals {
 		if val != "" && !strings.EqualFold(val, "false") {
@@ -83,6 +98,10 @@ func CheckTruth(vals ...string) bool {
 	return false
 }
 
+// ToStringKey converts identity components into an underscore-joined lookup key,
+// unwrapping driver.Valuer values and using special zero/nil formatting. It is intended
+// for internal association maps, not collision-free serialization: delimiters and
+// textual values can collide.
 func ToStringKey(values ...interface{}) string {
 	results := make([]string, len(values))
 
@@ -110,6 +129,8 @@ func ToStringKey(values ...interface{}) string {
 	return strings.Join(results, "_")
 }
 
+// Contains reports whether elems contains elem using exact, case-sensitive string
+// equality. It scans linearly and does not modify the slice.
 func Contains(elems []string, elem string) bool {
 	for _, e := range elems {
 		if elem == e {
@@ -119,6 +140,10 @@ func Contains(elems []string, elem string) bool {
 	return false
 }
 
+// AssertEqual compares values with reflect.DeepEqual, then compares unwrapped
+// driver.Valuer results when necessary. Nil pointers are handled before calling Value;
+// conversion errors are ignored. It is a schema/update comparison helper, not arbitrary
+// SQL equality.
 func AssertEqual(x, y interface{}) bool {
 	if reflect.DeepEqual(x, y) {
 		return true
@@ -143,6 +168,8 @@ func AssertEqual(x, y interface{}) bool {
 	return reflect.DeepEqual(x, y)
 }
 
+// ToString formats a string or built-in signed/unsigned integer in decimal. Unsupported
+// types, including floats and uintptr, return an empty string; it is not fmt.Sprint.
 func ToString(value interface{}) string {
 	switch v := value.(type) {
 	case string:
@@ -171,24 +198,33 @@ func ToString(value interface{}) string {
 	return ""
 }
 
+// nestedRelationSplit separates components of GORM's nested association column aliases.
+// Names containing this delimiter need special care because splitting is purely
+// textual.
 const nestedRelationSplit = "__"
 
-// NestedRelationName nested relationships like `Manager__Company`
+// NestedRelationName joins prefix and name with the nested-relation delimiter, for
+// example Manager__Company. It does not quote or validate SQL identifiers.
 func NestedRelationName(prefix, name string) string {
 	return prefix + nestedRelationSplit + name
 }
 
-// SplitNestedRelationName Split nested relationships to `[]string{"Manager","Company"}`
+// SplitNestedRelationName splits a nested association alias on double underscores. An
+// empty input produces one empty component, following strings.Split.
 func SplitNestedRelationName(name string) []string {
 	return strings.Split(name, nestedRelationSplit)
 }
 
-// JoinNestedRelationNames nested relationships like `Manager__Company`
+// JoinNestedRelationNames joins association path components with double underscores for
+// SQL aliases and scan mapping.
 func JoinNestedRelationNames(relationNames []string) string {
 	return strings.Join(relationNames, nestedRelationSplit)
 }
 
-// RTrimSlice Right trims the given slice by given length
+// RTrimSlice returns a view omitting trimLen elements from the right. A negative value
+// leaves the slice length unchanged; trimLen at least the length returns an empty view.
+// It shares the original backing array and does not clear removed values or release
+// their references.
 func RTrimSlice[T any](v []T, trimLen int) []T {
 	if trimLen >= len(v) { // trimLen greater than slice len means fully sliced
 		return v[:0]

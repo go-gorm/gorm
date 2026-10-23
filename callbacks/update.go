@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// SetupUpdateReflectValue chooses the model value used by update hooks and associations
+// when the current reflection value is unaddressable or Model differs from Dest. For
+// map updates it also copies explicitly supplied belongs-to association values into the
+// model. It runs before BeforeUpdate in the default chain.
 func SetupUpdateReflectValue(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil {
 		if !db.Statement.ReflectValue.CanAddr() || db.Statement.Model != db.Statement.Dest {
@@ -29,7 +33,9 @@ func SetupUpdateReflectValue(db *gorm.DB) {
 	}
 }
 
-// BeforeUpdate before update hooks
+// BeforeUpdate invokes BeforeSave followed by BeforeUpdate on models when db has no
+// error, schema metadata enables the hooks, and SkipHooks is false. Errors are recorded
+// on db and cause rollback of an owned default transaction.
 func BeforeUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -52,7 +58,16 @@ func BeforeUpdate(db *gorm.DB) {
 	}
 }
 
-// Update update hook
+// Update returns the dialector-configured UPDATE callback. It adds schema update
+// clauses (the built-in soft-delete modifier checks Unscoped), builds UPDATE/SET from
+// the destination when SQL is empty,
+// and returns without execution when there are no assignments. It checks the
+// missing-WHERE guard even in DryRun; execution requires no error and DryRun=false.
+//
+// Supported RETURNING queries scan into the model and close their rows; other updates
+// use ExecContext and report RowsAffected. The surrounding processor handles hooks,
+// associations, and transactions. Explicit SQL and expressions remain trusted caller
+// input.
 func Update(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.UpdateClauses, "RETURNING")
 
@@ -118,7 +133,10 @@ func Update(config *Config) func(db *gorm.DB) {
 	}
 }
 
-// AfterUpdate after update hooks
+// AfterUpdate invokes AfterUpdate followed by AfterSave when db has no error, schema
+// metadata enables the hooks, and SkipHooks is false. It runs after association saving
+// and before the default transaction commits; it does not prove a transaction has
+// committed.
 func AfterUpdate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterUpdate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -141,7 +159,17 @@ func AfterUpdate(db *gorm.DB) {
 	}
 }
 
-// ConvertToAssignments convert to update assignments
+// ConvertToAssignments builds SET assignments and may add primary-key WHERE conditions
+// from stmt.Model. Select/Omit and update permissions filter columns. Map keys are
+// sorted and preserve explicitly supplied zero values; struct updates normally omit
+// zero values unless selected. Automatic update timestamps are generated unless hooks
+// are skipped.
+//
+// It maps Go field names to database columns, supports expressions as values, and
+// copies applicable values back into the model used by hooks. When Model and Dest
+// differ it can parse the destination's schema for field lookup. Unsupported data
+// records ErrInvalidData. The returned assignments can be empty; callers should avoid
+// executing an empty SET.
 func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 	var (
 		selectColumns, restricted = stmt.SelectAndOmitColumns(false, true)

@@ -10,6 +10,9 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// BeforeDelete invokes the model's BeforeDelete hook when schema metadata enables it,
+// db has no error, and SkipHooks is false. Hook errors are recorded on db before
+// association or owner deletion.
 func BeforeDelete(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.BeforeDelete {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {
@@ -23,6 +26,14 @@ func BeforeDelete(db *gorm.DB) {
 	}
 }
 
+// DeleteBeforeAssociations deletes explicitly selected has-one/has-many associations
+// and many-to-many join rows before deleting the owner. It derives predicates from
+// nonzero owner identities and respects nested association selections. Has-one/has-many
+// deletion explicitly propagates Unscoped; the fresh many-to-many join statement
+// inherits it only when PropagateUnscoped is enabled, which matters for soft-deletable
+// join models. Ordinary Delete does not recursively delete every association, and
+// many-to-many target rows are not deleted by this callback. Related deletions share
+// the operation's connection or transaction.
 func DeleteBeforeAssociations(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil {
 		selectColumns, restricted := db.Statement.SelectAndOmitColumns(true, false)
@@ -110,6 +121,17 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 	}
 }
 
+// Delete returns the dialector-configured deletion callback. It adds schema delete
+// clauses; the built-in soft-delete modifier decides whether to replace DELETE with
+// UPDATE based on Unscoped. For
+// ordinary deletion it adds primary-key predicates from Dest or Model and builds
+// DELETE/FROM. The missing-WHERE guard prevents an unqualified operation unless
+// AllowGlobalUpdate is enabled.
+//
+// DryRun builds without executing. Supported RETURNING scans deleted rows and closes
+// the result set; other operations use ExecContext and report RowsAffected. Hooks,
+// selected association deletion, and transaction completion belong to the surrounding
+// callback chain.
 func Delete(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.DeleteClauses, "RETURNING")
 
@@ -187,6 +209,9 @@ func Delete(config *Config) func(db *gorm.DB) {
 	}
 }
 
+// AfterDelete invokes the model's AfterDelete hook when db has no error, schema
+// metadata enables it, and SkipHooks is false. It applies to both soft and physical
+// deletion and runs before the owned default transaction commits.
 func AfterDelete(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && db.Statement.Schema.AfterDelete {
 		callMethod(db, func(value interface{}, tx *gorm.DB) bool {

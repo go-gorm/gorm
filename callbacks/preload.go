@@ -12,29 +12,11 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-// parsePreloadMap extracts nested preloads. e.g.
-//
-//	// schema has a "k0" relation and a "k7.k8" embedded relation
-//	parsePreloadMap(schema, map[string][]interface{}{
-//		clause.Associations: {"arg1"},
-//		"k1":                {"arg2"},
-//		"k2.k3":             {"arg3"},
-//		"k4.k5.k6":          {"arg4"},
-//	})
-//	// preloadMap is
-//	map[string]map[string][]interface{}{
-//		"k0": {},
-//		"k7": {
-//			"k8": {},
-//		},
-//		"k1": {},
-//		"k2": {
-//			"k3": {"arg3"},
-//		},
-//		"k4": {
-//			"k5.k6": {"arg4"},
-//		},
-//	}
+// parsePreloadMap groups dotted preload paths by their first relationship component.
+// Remaining path segments retain their condition arguments; top-level conditions are
+// read separately by preloadEntryPoint. clause.Associations expands direct schema
+// relationships and embedded relationship paths, but does not automatically recurse
+// through every association level.
 func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[string]map[string][]interface{} {
 	preloadMap := map[string]map[string][]interface{}{}
 	setPreloadMap := func(name, value string, args []interface{}) {
@@ -68,6 +50,10 @@ func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[st
 	return preloadMap
 }
 
+// embeddedValues returns dotted relation paths beneath embeddedRelations, omitting
+// the first embedded struct name from each field path. It recursively includes nested
+// embeddings and returns nil for a nil relationship set. The result order follows map
+// traversal.
 func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	if embeddedRelations == nil {
 		return nil
@@ -83,8 +69,11 @@ func embeddedValues(embeddedRelations *schema.Relationships) []string {
 	return names
 }
 
-// preloadEntryPoint enters layer by layer. It will call real preload if it finds the right entry point.
-// If the current relationship is embedded or joined, current query will be ignored.
+// preloadEntryPoint walks requested relationships in sorted name order. Embedded paths
+// recurse without a query; relationships already loaded by joins recurse through their
+// values; other paths call preload for separate queries. Unknown paths wrap
+// ErrUnsupportedRelation. Conditions supplied through clause.Associations are passed to
+// each applicable association query. It returns the first traversal or query error.
 //
 //nolint:cyclop
 func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relationships, preloads map[string][]interface{}, associationsConds []interface{}) error {
@@ -166,6 +155,10 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 	return nil
 }
 
+// preloadDB creates an initialized, fresh statement for a preload destination while
+// retaining context, hook policy, connection/transaction, settings, and Unscoped. It
+// parses dest and installs reflectValue for association assignment; parse failures are
+// returned on the new DB's Error field.
 func preloadDB(db *gorm.DB, reflectValue reflect.Value, dest interface{}) *gorm.DB {
 	tx := db.Session(&gorm.Session{Context: db.Statement.Context, NewDB: true, SkipHooks: db.Statement.SkipHooks, Initialized: true})
 	db.Statement.Settings.Range(func(k, v interface{}) bool {
@@ -182,6 +175,17 @@ func preloadDB(db *gorm.DB, reflectValue reflect.Value, dest interface{}) *gorm.
 	return tx
 }
 
+// preload loads one relationship by collecting owner identity tuples, querying related
+// records with an IN condition, and assigning results back through an identity map.
+// Many-to-many relationships first query the join table. With no usable owner keys it
+// returns without querying or clearing existing association values.
+//
+// Nested preloads are installed on the related query. Function conditions modify that
+// query, and remaining inline conditions form its WHERE input. After a successful
+// query, existing association values are cleared and replaced; selected columns must
+// include the keys needed for identity mapping. Missing mapping keys or setter/query
+// failures are returned as errors. A Limit applied here limits the association query as
+// a whole, not each parent's rows.
 func preload(tx *gorm.DB, rel *schema.Relationship, conds []interface{}, preloads map[string][]interface{}) error {
 	var (
 		reflectValue     = tx.Statement.ReflectValue

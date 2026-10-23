@@ -11,7 +11,10 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-// BeforeCreate before create hooks
+// BeforeCreate invokes BeforeSave followed by BeforeCreate on each model when schema
+// metadata enables the hooks, db has no error, and SkipHooks is false. Hook errors are
+// added to db; the default write transaction rolls back on error. Hooks receive a new
+// session on the operation's connection or transaction.
 func BeforeCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.BeforeSave || db.Statement.Schema.BeforeCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -33,7 +36,21 @@ func BeforeCreate(db *gorm.DB) {
 	}
 }
 
-// Create create hook
+// Create returns the INSERT callback configured for the dialector's clause order and
+// LastInsertId behavior. It applies schema create clauses unless Unscoped, builds
+// INSERT/VALUES/upsert SQL if SQL is not already supplied, and skips execution on
+// errors or DryRun.
+//
+// With supported RETURNING it queries and scans rows, including generated fields.
+// Otherwise it executes SQL, records RowsAffected, and uses a positive LastInsertId to
+// backfill supported destinations. Struct destinations receive generated primary keys
+// only where the field is zero; batch struct IDs use AutoIncrementIncrement. Map
+// destinations overwrite the ID entry, and batch map IDs are inferred with an increment
+// of one. LastInsertIDReversed chooses the direction of batch inference. These
+// assumptions must match the driver/database behavior.
+//
+// The callback owns and closes returning rows; the surrounding processor owns hooks,
+// associations, and transaction completion.
 func Create(config *Config) func(db *gorm.DB) {
 	supportReturning := utils.Contains(config.CreateClauses, "RETURNING")
 
@@ -219,7 +236,10 @@ func Create(config *Config) func(db *gorm.DB) {
 	}
 }
 
-// AfterCreate after create hooks
+// AfterCreate invokes AfterCreate followed by AfterSave on each model when there is no
+// error, schema metadata enables the hooks, and SkipHooks is false. It runs after
+// association saving but before the default transaction commits; an error can still
+// roll the write back.
 func AfterCreate(db *gorm.DB) {
 	if db.Error == nil && db.Statement.Schema != nil && !db.Statement.SkipHooks && (db.Statement.Schema.AfterSave || db.Statement.Schema.AfterCreate) {
 		callMethod(db, func(value interface{}, tx *gorm.DB) (called bool) {
@@ -241,7 +261,18 @@ func AfterCreate(db *gorm.DB) {
 	}
 }
 
-// ConvertToCreateValues convert to create values
+// ConvertToCreateValues builds the INSERT columns and rows from stmt.Dest, respecting
+// Select/Omit and field create permissions. It accepts structs, struct slices/arrays,
+// and supported map forms; unsupported data or an empty slice records an error on stmt.
+//
+// For model fields it fills parsed defaults and automatic create/update timestamps into
+// the destination, and uses dialect default expressions for database-generated values
+// in mixed batches. Presence of the gorm:update_track_time setting refreshes update
+// timestamps regardless of its value; model conversion consumes that setting.
+// Map conversion does not run this model-default/timestamp filling. If ON CONFLICT has
+// UpdateAll, it expands permitted update columns and primary-key conflict targets,
+// excluding primary keys and creation timestamps; an empty update set becomes DO
+// NOTHING. This function mutates both the statement and addressable model values.
 func ConvertToCreateValues(stmt *gorm.Statement) (values clause.Values) {
 	curTime := stmt.DB.NowFunc()
 

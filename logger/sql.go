@@ -14,11 +14,18 @@ import (
 )
 
 const (
+	// tmFmtWithMS is the diagnostic time layout with millisecond precision; it is not the
+	// database driver's encoding contract.
 	tmFmtWithMS = "2006-01-02 15:04:05.999"
-	tmFmtZero   = "0000-00-00 00:00:00"
-	nullStr     = "NULL"
+	// tmFmtZero is the diagnostic representation of a zero time, not a portable executable
+	// SQL timestamp.
+	tmFmtZero = "0000-00-00 00:00:00"
+	// nullStr is the SQL NULL text used when formatting nil values for logs.
+	nullStr = "NULL"
 )
 
+// isPrintable reports whether every rune is printable, allowing byte slices to be
+// displayed as text instead of a binary marker.
 func isPrintable(s string) bool {
 	for _, r := range s {
 		if !unicode.IsPrint(r) {
@@ -28,12 +35,16 @@ func isPrintable(s string) bool {
 	return true
 }
 
-// A list of Go types that should be converted to SQL primitives
+// convertibleTypes lists underlying primitive types used to format compatible custom
+// values in diagnostic SQL.
 var convertibleTypes = []reflect.Type{reflect.TypeOf(time.Time{}), reflect.TypeOf(false), reflect.TypeOf([]byte{})}
 
-// RegEx matches only numeric values
+// numericPlaceholderRe recognizes temporary $number$ markers after a dialect's numbered
+// placeholders have been normalized for interpolation.
 var numericPlaceholderRe = regexp.MustCompile(`\$\d+\$`)
 
+// isNumeric recognizes signed/unsigned integer and floating reflection kinds used by
+// diagnostic formatting. uintptr is not included.
 func isNumeric(k reflect.Kind) bool {
 	switch k {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -47,7 +58,12 @@ func isNumeric(k reflect.Kind) bool {
 	}
 }
 
-// ExplainSQL generate SQL string with given parameters, the generated SQL is expected to be used in logger, execute it might introduce a SQL injection vulnerability
+// ExplainSQL interpolates values into a diagnostic SQL string for logging. With nil
+// numericPlaceholder it replaces ? sequentially; otherwise the regexp must capture the
+// one-based parameter number. escaper is used to quote textual values. Binary data may
+// become a marker, times use a display layout, and placeholder scanning is not SQL
+// parsing. Never execute its output or use it as a substitute for driver parameter
+// binding.
 func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, avars ...interface{}) string {
 	var (
 		convertParams func(interface{}, int)

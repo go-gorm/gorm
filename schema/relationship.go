@@ -14,54 +14,118 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// RelationshipType relationship type
+// RelationshipType classifies where an association stores its foreign keys and whether
+// it uses a join table.
 type RelationshipType string
 
 const (
-	HasOne    RelationshipType = "has_one"      // HasOneRel has one relationship
-	HasMany   RelationshipType = "has_many"     // HasManyRel has many relationship
-	BelongsTo RelationshipType = "belongs_to"   // BelongsToRel belongs to relationship
+	// HasOne identifies a single associated model whose foreign key refers to the owner.
+	HasOne RelationshipType = "has_one" // HasOneRel has one relationship
+	// HasMany identifies a collection of associated models whose foreign keys refer to the
+	// owner.
+	HasMany RelationshipType = "has_many" // HasManyRel has many relationship
+	// BelongsTo identifies an association whose foreign key is stored on the owner and
+	// refers to the associated model.
+	BelongsTo RelationshipType = "belongs_to" // BelongsToRel belongs to relationship
+	// Many2Many identifies an association linked through a join table containing keys for
+	// both models.
 	Many2Many RelationshipType = "many_to_many" // Many2ManyRel many to many relationship
-	has       RelationshipType = "has"
+	// has is the intermediate owner-to-child relationship kind, resolved to HasOne or
+	// HasMany from the field shape.
+	has RelationshipType = "has"
 )
 
+// Relationships groups a schema's associations by kind, by field name, and by embedded
+// path. It is built during schema parsing and shared by cached schemas; callers should
+// treat it as metadata rather than modifying its maps during queries.
 type Relationships struct {
-	HasOne    []*Relationship
+	// HasOne lists single-record associations whose foreign keys are on the associated
+	// model.
+	HasOne []*Relationship
+	// BelongsTo lists associations whose foreign keys are on this model.
 	BelongsTo []*Relationship
-	HasMany   []*Relationship
+	// HasMany lists collection associations whose foreign keys are on the associated model.
+	HasMany []*Relationship
+	// Many2Many lists associations that use join tables.
 	Many2Many []*Relationship
+	// Relations indexes associations by field name, and can include internal reverse
+	// entries named _Owner_Relation. Explicit top-level fields take precedence over
+	// embedded-name collisions.
 	Relations map[string]*Relationship
 
+	// EmbeddedRelations forms a tree for explicitly embedded association paths, used by
+	// nested preloading.
 	EmbeddedRelations map[string]*Relationships
 
+	// Mux protects relationship updates performed during recursive schema parsing. It does
+	// not make arbitrary Schema mutation or unsynchronized map access safe.
 	Mux sync.RWMutex
 }
 
+// Relationship describes the association declared by a model field. References explains
+// key direction; Schema is the owner, FieldSchema is the associated model, and
+// JoinTable is populated for many-to-many relationships. It describes mapping, not
+// whether rows have been loaded.
 type Relationship struct {
-	Name                     string
-	Type                     RelationshipType
-	Field                    *Field
-	Polymorphic              *Polymorphic
-	References               []*Reference
-	Schema                   *Schema
-	FieldSchema              *Schema
-	JoinTable                *Schema
+	// Name is the Go association field name used by Preload, Joins, and Association.
+	Name string
+	// Type is the resolved cardinality and key direction of the association.
+	Type RelationshipType
+	// Field is the model field declaring the association.
+	Field *Field
+	// Polymorphic records discriminator and owner-ID fields when different owner types
+	// share an associated table; otherwise it is nil.
+	Polymorphic *Polymorphic
+	// References contains key pairs and optional fixed discriminator values. Composite
+	// relationships preserve key-pair order.
+	References []*Reference
+	// Schema is the model declaring the association.
+	Schema *Schema
+	// FieldSchema is the schema of the associated field's model.
+	FieldSchema *Schema
+	// JoinTable describes the intermediate table for a many-to-many association; it is nil
+	// for direct associations.
+	JoinTable *Schema
+	// foreignKeys and primaryKeys retain parsed foreignKey and references tag names for
+	// relationship inference. Their owning schema depends on the association direction.
 	foreignKeys, primaryKeys []string
 }
 
+// Polymorphic identifies an associated table's owner ID and discriminator columns. The
+// discriminator defaults to the owner table name and can be overridden with
+// polymorphicValue.
 type Polymorphic struct {
-	PolymorphicID   *Field
+	// PolymorphicID is the associated model field storing the owner key.
+	PolymorphicID *Field
+	// PolymorphicType is the associated model field storing the owner-type discriminator.
 	PolymorphicType *Field
-	Value           string
+	// Value is the fixed discriminator written and matched for this owner type.
+	Value string
 }
 
+// Reference links a primary key to a foreign key or binds a foreign key to a fixed
+// polymorphic discriminator. Use OwnPrimaryKey to determine whether the key comes from
+// the association owner.
 type Reference struct {
-	PrimaryKey    *Field
-	PrimaryValue  string
-	ForeignKey    *Field
+	// PrimaryKey is the referenced key field. It can be nil when PrimaryValue supplies a
+	// fixed discriminator instead.
+	PrimaryKey *Field
+	// PrimaryValue is a fixed discriminator value used instead of reading a primary-key
+	// field when nonempty.
+	PrimaryValue string
+	// ForeignKey is the field storing the key or discriminator, on the owner, associated
+	// model, or join table according to the relationship.
+	ForeignKey *Field
+	// OwnPrimaryKey means PrimaryKey belongs to the association owner. False normally means
+	// the associated model provides the primary key; inspect PrimaryValue for fixed-value
+	// references.
 	OwnPrimaryKey bool
 }
 
+// parseRelation parses an association field, choosing polymorphic and many-to-many tags
+// before ordinary key inference. It resolves the associated schema through the
+// recursion-safe cache, registers successful relations and reverse metadata, and
+// records failures in schema.err.
 func (schema *Schema) parseRelation(field *Field) *Relationship {
 	var (
 		err        error
@@ -130,9 +194,9 @@ func (schema *Schema) parseRelation(field *Field) *Relationship {
 	return relation
 }
 
-// hasPolymorphicRelation check if has polymorphic relation
-// 1. `POLYMORPHIC` tag
-// 2. `POLYMORPHICTYPE` and `POLYMORPHICID` tag
+// hasPolymorphicRelation reports whether the tags contain polymorphic, or both
+// polymorphicType and polymorphicId. Presence selects polymorphic parsing; the target
+// fields are validated separately.
 func hasPolymorphicRelation(tagSettings map[string]string) bool {
 	if _, ok := tagSettings["POLYMORPHIC"]; ok {
 		return true
@@ -144,6 +208,9 @@ func hasPolymorphicRelation(tagSettings map[string]string) bool {
 	return hasType && hasId
 }
 
+// setRelation registers the named association under the relationship mutex and builds
+// its explicit embedded-path tree. Existing non-embedded names retain precedence over
+// collisions.
 func (schema *Schema) setRelation(relation *Relationship) {
 	schema.Relationships.Mux.Lock()
 	defer schema.Relationships.Mux.Unlock()
@@ -180,18 +247,14 @@ func (schema *Schema) setRelation(relation *Relationship) {
 	}
 }
 
-// User has many Toys, its `Polymorphic` is `Owner`, Pet has one Toy, its `Polymorphic` is `Owner`
+// buildPolymorphicRelation resolves the associated model's discriminator and owner-ID
+// fields from polymorphic, polymorphicType, and polymorphicId tags. It defaults the
+// discriminator to the owner table, supports polymorphicValue, copies compatible key
+// type metadata, and records invalid fields or keys in schema.err.
 //
-//	type User struct {
-//	  Toys []Toy `gorm:"polymorphic:Owner;"`
-//	}
-//	type Pet struct {
-//	  Toy Toy `gorm:"polymorphic:Owner;"`
-//	}
-//	type Toy struct {
-//	  OwnerID   int
-//	  OwnerType string
-//	}
+// For Toys []Toy tagged gorm:"polymorphic:Owner", Toy normally supplies OwnerID and
+// OwnerType. The relationship contains one fixed OwnerType reference and one
+// owner-primary-key reference; parseRelation resolves its final HasOne or HasMany kind.
 func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Field) {
 	polymorphic := field.TagSettings["POLYMORPHIC"]
 
@@ -268,6 +331,14 @@ func (schema *Schema) buildPolymorphicRelation(relation *Relationship, field *Fi
 	relation.Type = has
 }
 
+// buildMany2ManyRelation constructs the join-table schema and key references for a
+// many2many tag. Owner and related primary keys are defaults; foreignKey/references
+// select source fields and joinForeignKey/joinReferences select join fields. It handles
+// self-association name collisions, removes inappropriate inherited
+// column/index/auto-increment tags, and marks join keys as primary fields.
+//
+// This builds metadata only. Table creation and custom join-model configuration are
+// handled by the migrator and DB.SetupJoinTable respectively.
 func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Field, many2many string) {
 	relation.Type = Many2Many
 
@@ -443,16 +514,30 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	}
 }
 
+// guessLevel tracks the fallback direction and embedded-owner scope used while
+// inferring ordinary relationships.
 type guessLevel int
 
 const (
+	// guessGuess starts relation inference using the model/field relationship to choose the
+	// initial direction.
 	guessGuess guessLevel = iota
+	// guessBelongs looks for foreign keys on the association owner.
 	guessBelongs
+	// guessEmbeddedBelongs looks for foreign keys on the original embedded owner schema.
 	guessEmbeddedBelongs
+	// guessHas looks for foreign keys on the associated model that reference the owner.
 	guessHas
+	// guessEmbeddedHas looks for foreign keys on the associated model that reference the
+	// original embedded owner.
 	guessEmbeddedHas
 )
 
+// guessRelation matches explicit foreignKey/references tags or conventional key names,
+// trying belongs-to, has, and embedded-owner alternatives as needed. On success it
+// copies compatible key type metadata and appends ordered References; exhausted
+// inference records an error asking for valid foreign keys or a scalar Scanner/Valuer
+// type.
 func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl guessLevel) {
 	var (
 		primaryFields, foreignFields []*Field
@@ -621,20 +706,39 @@ func (schema *Schema) guessRelation(relation *Relationship, field *Field, cgl gu
 	}
 }
 
-// Constraint is ForeignKey Constraint
+// Constraint describes a foreign-key constraint for migration, including the table that
+// owns it, referenced table, paired columns, and referential actions. It does not
+// execute or validate DDL.
 type Constraint struct {
-	Name            string
-	Field           *Field
-	Schema          *Schema
-	ForeignKeys     []*Field
+	// Name is the foreign-key constraint identifier, explicit or generated by
+	// Namer.RelationshipFKName.
+	Name string
+	// Field is the association field from which this constraint was inferred.
+	Field *Field
+	// Schema is the table containing ForeignKeys; it can differ from the association owner
+	// for has-one and has-many relations.
+	Schema *Schema
+	// ForeignKeys lists the constrained columns, paired positionally with References.
+	ForeignKeys []*Field
+	// ReferenceSchema is the table containing the referenced keys.
 	ReferenceSchema *Schema
-	References      []*Field
-	OnDelete        string
-	OnUpdate        string
+	// References lists the referenced key columns, paired positionally with ForeignKeys.
+	References []*Field
+	// OnDelete is the trusted SQL action appended after ON DELETE, such as CASCADE or SET
+	// NULL. It is not a parameterized value.
+	OnDelete string
+	// OnUpdate is the trusted SQL action appended after ON UPDATE. Database support and
+	// validity are checked when DDL executes.
+	OnUpdate string
 }
 
+// GetName returns the foreign-key constraint identifier.
 func (constraint *Constraint) GetName() string { return constraint.Name }
 
+// Build returns a SQL template and clause arguments for the foreign-key definition.
+// Identifiers are represented as clause values for dialect quoting; OnDelete and
+// OnUpdate are appended as trusted SQL. It neither executes SQL nor checks column
+// cardinality.
 func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 	sql = "CONSTRAINT ? FOREIGN KEY ? REFERENCES ??"
 	if constraint.OnDelete != "" {
@@ -658,6 +762,12 @@ func (constraint *Constraint) Build() (sql string, vars []interface{}) {
 	return
 }
 
+// ParseConstraint derives a foreign-key migration constraint from relationship
+// references and the constraint tag. It returns nil for constraint:- and when the
+// associated model already declares an inverse relation with identical references,
+// so the same foreign key is not emitted twice. Fixed polymorphic discriminator
+// references do not become foreign-key columns; the actual key direction determines
+// the owning and referenced schemas.
 func (rel *Relationship) ParseConstraint() *Constraint {
 	str := rel.Field.TagSettings["CONSTRAINT"]
 	if str == "-" {
@@ -725,6 +835,11 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	return &constraint
 }
 
+// ToQueryConditions builds association predicates for the supplied owner model or
+// collection: fixed discriminators, join-column equalities when needed, and an IN
+// condition over extracted identity values. It performs no SQL and does not load rows.
+// All-zero struct identities are excluded; an empty identity set remains an empty IN
+// expression for the clause builder to handle.
 func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue reflect.Value) (conds []clause.Expression) {
 	table := rel.FieldSchema.Table
 	foreignFields := []*Field{}
@@ -772,6 +887,9 @@ func (rel *Relationship) ToQueryConditions(ctx context.Context, reflectValue ref
 	return
 }
 
+// copyableDataType rejects explicit type strings containing auto_increment or primary
+// key, case-insensitively, so copying a key type to a foreign-key field does not copy
+// those column behaviors.
 func copyableDataType(str DataType) bool {
 	lowerStr := strings.ToLower(string(str))
 	for _, s := range []string{"auto_increment", "primary key"} {

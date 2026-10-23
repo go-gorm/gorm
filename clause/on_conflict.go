@@ -1,20 +1,40 @@
 package clause
 
+// OnConflict configures database-side insert conflict handling. Choose DoNothing or
+// DoUpdates, and specify a supported target through Columns/TargetWhere or
+// OnConstraint. UpdateAll is expanded by GORM create callbacks using model metadata.
+// Driver overrides and database constraints determine actual semantics.
 type OnConflict struct {
-	Columns      []Column
-	Where        Where
-	TargetWhere  Where
+	// Columns identifies conflict-target columns, where supported.
+	Columns []Column
+	// Where filters rows for the update action, distinct from TargetWhere. Do not combine
+	// it with an action unsupported by the database.
+	Where Where
+	// TargetWhere adds the conflict-target predicate, such as one identifying a partial
+	// unique index.
+	TargetWhere Where
+	// OnConstraint names the target constraint and takes precedence over
+	// Columns/TargetWhere. It is emitted verbatim, so supply trusted application text.
 	OnConstraint string
-	DoNothing    bool
-	DoUpdates    Set
-	UpdateAll    bool
+	// DoNothing chooses DO NOTHING instead of an update action.
+	DoNothing bool
+	// DoUpdates contains assignments for the conflict update action. Use AssignmentColumns
+	// to refer to incoming excluded values where supported.
+	DoUpdates Set
+	// UpdateAll asks GORM create callbacks to derive update assignments from writable model
+	// columns, subject to primary-key/default/timestamp rules. It has no standalone effect
+	// in Build.
+	UpdateAll bool
 }
 
+// Name returns ON CONFLICT, the statement registry key for this clause.
 func (OnConflict) Name() string {
 	return "ON CONFLICT"
 }
 
-// Build build onConflict clause
+// Build renders a constraint or column target, optional target predicate, and DO
+// NOTHING or DO UPDATE SET. Where is emitted after the action; callers must choose a
+// combination valid for their database. UpdateAll is not expanded by this method.
 func (onConflict OnConflict) Build(builder Builder) {
 	if onConflict.OnConstraint != "" {
 		builder.WriteString("ON CONSTRAINT ")
@@ -53,7 +73,8 @@ func (onConflict OnConflict) Build(builder Builder) {
 	}
 }
 
-// MergeClause merge onConflict clauses
+// MergeClause replaces the entire earlier conflict clause rather than appending
+// assignments or targets.
 func (onConflict OnConflict) MergeClause(clause *Clause) {
 	clause.Expression = onConflict
 }

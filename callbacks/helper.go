@@ -8,7 +8,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// ConvertMapToValuesForCreate convert map to values
+// ConvertMapToValuesForCreate builds one INSERT row from mapValue. It sorts input keys,
+// maps recognized model field names to database columns, and honors Select/Omit and
+// create permissions. Explicit nil and zero values are retained. It does not fill model
+// defaults or timestamps; supply at most one key per database column to avoid duplicate
+// columns.
 func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]interface{}) (values clause.Values) {
 	values.Columns = make([]clause.Column, 0, len(mapValue))
 	selectColumns, restricted := stmt.SelectAndOmitColumns(true, false)
@@ -39,7 +43,11 @@ func ConvertMapToValuesForCreate(stmt *gorm.Statement, mapValue map[string]inter
 	return
 }
 
-// ConvertSliceOfMapToValuesForCreate convert slice of map to values
+// ConvertSliceOfMapToValuesForCreate builds INSERT rows with a shared, sorted column
+// set from mapValues, honoring schema mappings and create selections. A key missing in
+// a row becomes nil in that column, not a database DEFAULT expression. An empty slice
+// records ErrEmptySlice. It does not fill model defaults or timestamps; avoid multiple
+// keys mapping to the same column.
 func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[string]interface{}) (values clause.Values) {
 	columns := make([]string, 0, len(mapValues))
 
@@ -93,6 +101,9 @@ func ConvertSliceOfMapToValuesForCreate(stmt *gorm.Statement, mapValues []map[st
 	return
 }
 
+// hasReturning reports whether the dialector supports RETURNING and the statement
+// contains that clause. Returning all columns uses the normal scan mode; a non-wildcard
+// projection uses ScanUpdate to preserve destination fields not returned.
 func hasReturning(tx *gorm.DB, supportReturning bool) (bool, gorm.ScanMode) {
 	if supportReturning {
 		if c, ok := tx.Statement.Clauses["RETURNING"]; ok {
@@ -106,6 +117,11 @@ func hasReturning(tx *gorm.DB, supportReturning bool) (bool, gorm.ScanMode) {
 	return false, 0
 }
 
+// checkMissingWhereConditions records ErrMissingWhereClause when no qualifying WHERE
+// clause is present, unless AllowGlobalUpdate is enabled or db already has an error.
+// When soft deletion added its own predicate, that predicate alone does not satisfy the
+// guard. This structural check does not determine whether a supplied condition is
+// selective or safe.
 func checkMissingWhereConditions(db *gorm.DB) {
 	if !db.AllowGlobalUpdate && db.Error == nil {
 		where, withCondition := db.Statement.Clauses["WHERE"]
@@ -122,9 +138,16 @@ func checkMissingWhereConditions(db *gorm.DB) {
 	}
 }
 
+// visitMap records addressable model identities while traversing association values. It
+// prevents recursion through already visited objects, not duplicate database operations
+// across independent requests.
 type visitMap = map[reflect.Value]bool
 
-// Check if circular values, return true if loaded
+// loadOrStoreVisitMap checks and records addressable struct/interface values after one
+// pointer dereference. For slices and arrays it visits every element and returns true
+// only if all elements were already present (including an empty collection).
+// Unaddressable values cannot be remembered. The map is shared within one association
+// traversal and is not concurrency-safe.
 func loadOrStoreVisitMap(visitMap *visitMap, v reflect.Value) (loaded bool) {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()

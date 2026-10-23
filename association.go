@@ -10,14 +10,34 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-// Association Mode contains some helper methods to handle relationship things easily.
+// Association operates on a named relationship of the owner passed to DB.Model.
+// It holds mutable statement and error state; create a separate handle for independent
+// work. Owners need their relationship key values populated for meaningful operations.
+// Append/Replace can save related records, while ordinary Delete/Clear usually unlink
+// them. Relationship type and Unscoped determine deletion semantics.
+//
+// See https://gorm.io/docs/associations.html#Association-Mode.
 type Association struct {
-	DB           *DB
+	// DB supplies the owner model, conditions, context, and execution connection.
+	// Association operations may mutate its statement; do not share it concurrently.
+	DB *DB
+	// Relationship is the parsed metadata for the named Go association field. It is nil
+	// when setup fails, so check Error before inspecting it.
 	Relationship *schema.Relationship
-	Unscope      bool
-	Error        error
+	// Unscope selects deletion of related has-one/has-many/belongs-to records when links
+	// are removed. It is distinct from DB.Statement.Unscoped, which controls soft-delete
+	// filtering and physical deletion.
+	Unscope bool
+	// Error retains setup and operation errors. Check method error returns directly; Count
+	// reports failures through this field because its return value is only a count.
+	Error error
 }
 
+// Association selects column, the Go association field name on the current Model, and
+// prepares relationship metadata without querying rows. Supply an owner with populated
+// keys, for example db.Model(&user).Association("Languages"), and check Error before
+// use. Unsupported names wrap ErrUnsupportedRelation; nested paths are not resolved
+// here as they are in Preload.
 func (db *DB) Association(column string) *Association {
 	association := &Association{DB: db, Unscope: db.Statement.Unscoped}
 	table := db.Statement.Table
@@ -39,6 +59,11 @@ func (db *DB) Association(column string) *Association {
 	return association
 }
 
+// Unscoped returns an association handle with Unscope enabled. Removing
+// has-one/has-many/belongs-to links can then delete related records, still respecting
+// the DB soft-delete setting. To physically delete soft-deletable related records, the
+// DB must also be Unscoped. Many-to-many removal deletes join records, not the related
+// entities. Find/Count query scoping is controlled by the DB, not this flag alone.
 func (association *Association) Unscoped() *Association {
 	return &Association{
 		DB:           association.DB,
@@ -48,6 +73,9 @@ func (association *Association) Unscoped() *Association {
 	}
 }
 
+// Find loads related records into a writable destination, applying optional conditions
+// as in DB.Find. Empty results normally are not errors. It returns any existing setup
+// error without issuing a query.
 func (association *Association) Find(out interface{}, conds ...interface{}) error {
 	if association.Error == nil {
 		association.Error = association.buildCondition().Find(out, conds...).Error
@@ -55,6 +83,11 @@ func (association *Association) Find(out interface{}, conds ...interface{}) erro
 	return association.Error
 }
 
+// Append adds has-many/many-to-many relationships and saves included related values.
+// For has-one/belongs-to it delegates to Replace. With multiple owners, provide one
+// corresponding argument per owner; use a pointer to a slice to keep several children
+// grouped as one argument. Check the returned error; generated fields can be written
+// back to addressable input values.
 func (association *Association) Append(values ...interface{}) error {
 	values = expandValues(values)
 
@@ -72,6 +105,16 @@ func (association *Association) Append(values ...interface{}) error {
 	return association.Error
 }
 
+// Replace saves the supplied related values and replaces the owner's association links.
+// Ordinary has-one/has-many replacement clears foreign keys on records not retained,
+// and many-to-many replacement deletes obsolete join records. Replace() clears links.
+// Unscoped can delete related records for non-join relations.
+//
+// In the current Unscoped belongs-to path, the original related record is deleted even
+// when the supplied replacement has the same primary key. Do not use that path
+// expecting a retained target to be preserved. Multiple SQL statements may run, so use
+// an enclosing Transaction if the whole replacement must be atomic; a transaction does
+// not change the target-selection behavior.
 func (association *Association) Replace(values ...interface{}) error {
 	values = expandValues(values)
 
@@ -196,6 +239,11 @@ func (association *Association) Replace(values ...interface{}) error {
 	return association.Error
 }
 
+// Delete removes links to the supplied related records identified by their keys.
+// Ordinarily it clears foreign keys or deletes many-to-many join rows, rather than
+// deleting related entities. Unscoped changes non-join relation removal to
+// related-record deletion. Owner keys are required; a missing required key can return
+// ErrPrimaryKeyRequired. Check the returned error even if Error was previously nil.
 func (association *Association) Delete(values ...interface{}) error {
 	values = expandValues(values)
 
@@ -364,10 +412,16 @@ func (association *Association) Delete(values ...interface{}) error {
 	return association.Error
 }
 
+// Clear removes all links by calling Replace with no values. Related rows normally
+// remain; Association.Unscoped can delete non-join related rows, with physical deletion
+// controlled separately by DB.Unscoped. Many-to-many related entities are retained.
 func (association *Association) Clear() error {
 	return association.Replace()
 }
 
+// Count returns the number of associated rows matching the current conditions. Read
+// association.Error afterward: zero can mean either no matches or a failed query. For
+// multiple owners it counts the combined relation query, not one count per owner.
 func (association *Association) Count() (count int64) {
 	if association.Error == nil {
 		association.Error = association.buildCondition().Count(&count).Error
@@ -375,12 +429,26 @@ func (association *Association) Count() (count int64) {
 	return
 }
 
+// assignBack records where generated association values must be copied after saving. It
+// lets value-typed relation fields propagate generated keys back to addressable
+// arguments.
 type assignBack struct {
+	// Source is the owner whose association field contains the saved value.
 	Source reflect.Value
-	Index  int
-	Dest   reflect.Value
+	// Index is a one-based element position for slice associations; zero selects the whole
+	// singular association field.
+	Index int
+	// Dest is the original addressable argument to receive the saved association value.
+	Dest reflect.Value
 }
 
+// saveAssociation updates owner relation fields, restricts saved columns to
+// association/reference columns unless FullSaveAssociations is set, and saves each
+// owner through update callbacks. clear replaces existing in-memory
+// relations before saving. It handles maps for collection creation, validates per-owner
+// argument counts, and copies generated values back. Failures are recorded on
+// association.Error; the helper does not establish a transaction around the complete
+// owner loop.
 func (association *Association) saveAssociation(clear bool, values ...interface{}) {
 	var (
 		reflectValue = association.DB.Statement.ReflectValue
@@ -605,6 +673,10 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 	}
 }
 
+// buildCondition creates the related-model query constrained by owner reference values.
+// Many-to-many queries join the link table and apply its query clauses when scoped. It
+// uses the DB statement's Unscoped flag, not Association.Unscope, to decide query
+// visibility.
 func (association *Association) buildCondition() *DB {
 	var (
 		queryConds = association.Relationship.ToQueryConditions(association.DB.Statement.Context, association.DB.Statement.ReflectValue)
@@ -635,6 +707,10 @@ func (association *Association) buildCondition() *DB {
 	return tx
 }
 
+// expandValues expands direct slice/array arguments one level and copies struct values
+// into pointers so relation assignment can address them. Pointer-to-slice arguments
+// stay grouped, which is required when pairing collections with multiple owners.
+// Invalid nil interface values are ignored.
 func expandValues(values ...any) (results []any) {
 	appendToResult := func(rv reflect.Value) {
 		// unwrap interface

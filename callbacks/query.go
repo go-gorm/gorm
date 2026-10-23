@@ -11,6 +11,10 @@ import (
 	"gorm.io/gorm/utils"
 )
 
+// Query builds SELECT SQL and, unless DryRun or an earlier error prevents execution,
+// queries the current connection with the statement context and scans rows into Dest.
+// It owns and closes the result set and updates result counters. Preloading and
+// AfterFind run in subsequent callbacks, not in this function.
 func Query(db *gorm.DB) {
 	if db.Error == nil {
 		BuildQuerySQL(db)
@@ -33,6 +37,16 @@ func Query(db *gorm.DB) {
 	}
 }
 
+// BuildQuerySQL adds schema query clauses and builds SELECT SQL only when the statement
+// SQL buffer is empty. It derives projections from Select/Omit, QueryFields,
+// destination shape, and joined relations; nonzero destination primary keys can add
+// WHERE predicates.
+//
+// Relationship joins derive key predicates and nested column aliases for scanning,
+// include related query clauses such as soft-delete filters, and merge supplied ON
+// conditions. A join name that is not a complete recognized relationship path is
+// treated as raw SQL. Raw expressions must be trusted; bind data through Vars. The
+// function mutates statement clauses and SQL without executing a query.
 func BuildQuerySQL(db *gorm.DB) {
 	if db.Statement.Schema != nil {
 		for _, c := range db.Statement.Schema.QueryClauses {
@@ -274,6 +288,12 @@ func BuildQuerySQL(db *gorm.DB) {
 	}
 }
 
+// Preload resolves requested association paths after the parent query has populated
+// Dest. It requires a parsed model schema, skips work after an error, and records
+// preload errors on db. Joined relationships are traversed using already loaded values;
+// other relationships issue separate queries with the operation's context, hook policy,
+// and Unscoped setting. Preload does not by itself give the parent and association
+// queries a transactional snapshot.
 func Preload(db *gorm.DB) {
 	if db.Error == nil && len(db.Statement.Preloads) > 0 {
 		if db.Statement.Schema == nil {
@@ -295,6 +315,10 @@ func Preload(db *gorm.DB) {
 	}
 }
 
+// AfterQuery removes joins appended during query construction from the stored FROM
+// clause, then invokes AfterFind on returned models when RowsAffected is positive,
+// schema metadata enables it, no error exists, and SkipHooks is false. It follows
+// preloading; hook errors are added to db.
 func AfterQuery(db *gorm.DB) {
 	// clear the joins after query because preload need it
 	if v, ok := db.Statement.Clauses["FROM"].Expression.(clause.From); ok {

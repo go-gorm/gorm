@@ -18,91 +18,215 @@ import (
 
 // special types' reflect type
 var (
-	TimeReflectType    = reflect.TypeOf(time.Time{})
+	// TimeReflectType is the reflect.Type of time.Time, used when classifying
+	// time-compatible model fields. Treat this package variable as read-only.
+	TimeReflectType = reflect.TypeOf(time.Time{})
+	// TimePtrReflectType is the reflect.Type of *time.Time, used to recognize
+	// pointer-compatible time fields. Treat it as read-only.
 	TimePtrReflectType = reflect.TypeOf(&time.Time{})
-	ByteReflectType    = reflect.TypeOf(uint8(0))
+	// ByteReflectType is the reflect.Type of uint8, used to classify byte slices and
+	// arrays. Treat it as read-only.
+	ByteReflectType = reflect.TypeOf(uint8(0))
 )
 
 type (
-	// DataType GORM data type
+	// DataType names a logical GORM column type or an explicit database type from a model
+	// tag. Dialectors map logical types to database-specific SQL.
 	DataType string
-	// TimeType GORM time type
+	// TimeType selects the representation used for automatic timestamps. Zero disables
+	// automatic timestamp handling; UnixTime stores time.Time and the other values select
+	// integer epoch units.
 	TimeType int64
 )
 
 // GORM time types
 const (
-	UnixTime        TimeType = 1
-	UnixSecond      TimeType = 2
+	// UnixTime marks automatic timestamps stored as time.Time values.
+	UnixTime TimeType = 1
+	// UnixSecond marks automatic timestamps stored as seconds since the Unix epoch.
+	UnixSecond TimeType = 2
+	// UnixMillisecond marks automatic timestamps stored as milliseconds since the Unix
+	// epoch.
 	UnixMillisecond TimeType = 3
-	UnixNanosecond  TimeType = 4
+	// UnixNanosecond marks automatic timestamps stored as nanoseconds since the Unix epoch.
+	UnixNanosecond TimeType = 4
 )
 
 // GORM fields types
 const (
-	Bool   DataType = "bool"
-	Int    DataType = "int"
-	Uint   DataType = "uint"
-	Float  DataType = "float"
+	// Bool is the logical GORM type for boolean columns. The dialector selects the concrete
+	// database type.
+	Bool DataType = "bool"
+	// Int is the logical GORM type for signed integer columns. The dialector selects the
+	// concrete database type.
+	Int DataType = "int"
+	// Uint is the logical GORM type for unsigned integer columns. The dialector selects the
+	// concrete database type.
+	Uint DataType = "uint"
+	// Float is the logical GORM type for floating-point columns. The dialector selects the
+	// concrete database type.
+	Float DataType = "float"
+	// String is the logical GORM type for text columns. The dialector selects the concrete
+	// database type.
 	String DataType = "string"
-	Time   DataType = "time"
-	Bytes  DataType = "bytes"
+	// Time is the logical GORM type for date/time columns. The dialector selects the
+	// concrete database type.
+	Time DataType = "time"
+	// Bytes is the logical GORM type for binary columns. The dialector selects the concrete
+	// database type.
+	Bytes DataType = "bytes"
 )
 
+// DefaultAutoIncrementIncrement is the default spacing between generated keys when
+// create callbacks backfill batch IDs. The autoIncrementIncrement tag overrides it; it
+// does not configure the database sequence.
 const DefaultAutoIncrementIncrement int64 = 1
 
-// Field is the representation of model schema's field
+// Field describes a model field, including its column mapping, permissions, defaults,
+// embedding path, and compiled accessors. Not every Field is a column: associations and
+// ignored fields can have an empty DataType or DBName.
+//
+// Fields are shared through cached schemas. Use the accessors with a value of the
+// owning model; setters and embedding allocation require addressable values. These
+// accessors do not enforce CRUD permissions by themselves: statement and callback code
+// applies Creatable, Updatable, and Readable.
 type Field struct {
-	Name                   string
-	DBName                 string
-	BindNames              []string
-	EmbeddedBindNames      []string
-	DataType               DataType
-	GORMDataType           DataType
-	PrimaryKey             bool
-	AutoIncrement          bool
+	// Name is the Go struct field name, without its embedding path.
+	Name string
+	// DBName is the database column name from the column tag or naming strategy; it can be
+	// empty for associations or ignored fields.
+	DBName string
+	// BindNames is the Go field path from the root model, including anonymous embedding.
+	// BindName joins it with dots.
+	BindNames []string
+	// EmbeddedBindNames is the association path used for explicitly embedded fields;
+	// ordinary anonymous embedding can be omitted from this path.
+	EmbeddedBindNames []string
+	// DataType is the effective logical or explicit SQL type after applying the type tag.
+	// Dialectors interpret it when generating column definitions.
+	DataType DataType
+	// GORMDataType preserves the inferred or GormDataType-provided logical type before a
+	// type tag overrides DataType. Plugins can use it to identify the underlying field
+	// category.
+	GORMDataType DataType
+	// PrimaryKey indicates membership in the model primary key, whether declared by tag or
+	// inferred from ID.
+	PrimaryKey bool
+	// AutoIncrement indicates a database-generated incrementing key. Integer prioritized
+	// primary keys enable it by convention unless explicitly configured otherwise.
+	AutoIncrement bool
+	// AutoIncrementIncrement is the step used to calculate generated IDs for a batch from
+	// LastInsertId; it defaults to DefaultAutoIncrementIncrement.
 	AutoIncrementIncrement int64
-	Creatable              bool
-	Updatable              bool
-	Readable               bool
-	AutoCreateTime         TimeType
-	AutoUpdateTime         TimeType
-	HasDefaultValue        bool
-	DefaultValue           string
-	DefaultValueInterface  interface{}
-	NotNull                bool
-	Unique                 bool
-	Comment                string
-	Size                   int
-	Precision              int
-	Scale                  int
-	IgnoreMigration        bool
-	FieldType              reflect.Type
-	IndirectFieldType      reflect.Type
-	StructField            reflect.StructField
-	Tag                    reflect.StructTag
-	TagSettings            map[string]string
-	Schema                 *Schema
-	EmbeddedSchema         *Schema
-	OwnerSchema            *Schema
-	ReflectValueOf         func(context.Context, reflect.Value) reflect.Value
-	ValueOf                func(context.Context, reflect.Value) (value interface{}, zero bool)
-	Set                    func(context.Context, reflect.Value, interface{}) error
-	Serializer             SerializerInterface
-	NewValuePool           FieldNewValuePool
+	// Creatable permits this field in model-based inserts, subject to Select/Omit and
+	// default-value handling.
+	Creatable bool
+	// Updatable permits this field in model-based updates, subject to Select/Omit and
+	// zero-value handling.
+	Updatable bool
+	// Readable permits database results to be assigned to this model field during GORM
+	// scanning.
+	Readable bool
+	// AutoCreateTime selects automatic creation-time handling and its storage unit; zero
+	// disables it.
+	AutoCreateTime TimeType
+	// AutoUpdateTime selects automatic update-time handling and its storage unit; zero
+	// disables it. Callbacks decide whether an operation updates timestamps.
+	AutoUpdateTime TimeType
+	// HasDefaultValue records a declared or inferred default, including auto-increment
+	// keys. A zero Go value may therefore be omitted or replaced during creation.
+	HasDefaultValue bool
+	// DefaultValue holds the trimmed default tag expression; string-literal quotes are
+	// removed only for string-kind fields. Database expressions are trusted model
+	// metadata, not bound user values.
+	DefaultValue string
+	// DefaultValueInterface holds a successfully parsed Go literal default. Nil also
+	// represents defaults left to the database, such as functions, NULL, and generated
+	// keys; consult HasDefaultValue.
+	DefaultValueInterface interface{}
+	// NotNull requests a NOT NULL column constraint during migration; it does not validate
+	// Go values before writing.
+	NotNull bool
+	// Unique requests a single-column unique constraint. Unique indexes are tracked
+	// separately by ParseIndexes and UniqueIndex.
+	Unique bool
+	// Comment is the column comment requested by the comment tag; support depends on the
+	// dialector.
+	Comment string
+	// Size is the declared column length or inferred numeric bit width. Its SQL meaning
+	// depends on the dialector and DataType.
+	Size int
+	// Precision is the precision requested by the precision tag for dialector-specific
+	// column definitions.
+	Precision int
+	// Scale is the scale requested by the scale tag, commonly the fractional digit count
+	// for decimal columns.
+	Scale int
+	// IgnoreMigration excludes this field from migration handling without necessarily
+	// disabling reads or writes.
+	IgnoreMigration bool
+	// FieldType is the declared Go type, preserving pointer wrappers.
+	FieldType reflect.Type
+	// IndirectFieldType is FieldType with pointer wrappers removed.
+	IndirectFieldType reflect.Type
+	// StructField contains the reflection metadata. Its Index path is rewritten for
+	// embedded fields; a negative component encodes an embedded pointer as -index-1.
+	StructField reflect.StructField
+	// Tag is the original Go struct tag for this field.
+	Tag reflect.StructTag
+	// TagSettings contains parsed GORM tags with uppercase keys, including inherited
+	// embedded-field settings.
+	TagSettings map[string]string
+	// Schema is the root model schema that owns this field after embedding is flattened.
+	Schema *Schema
+	// EmbeddedSchema describes the nested struct when this field is an embedding container;
+	// it is nil for ordinary columns and associations.
+	EmbeddedSchema *Schema
+	// OwnerSchema is the original embedded schema for a flattened field, or nil when no
+	// embedded owner is recorded.
+	OwnerSchema *Schema
+	// ReflectValueOf locates the field in a model value and allocates nil embedded pointers
+	// on the path. The model must have the expected shape and be addressable when
+	// allocation or mutation is needed.
+	ReflectValueOf func(context.Context, reflect.Value) reflect.Value
+	// ValueOf returns the field value and its Go zero-value status. A nil embedded pointer
+	// yields (nil, true). Serialized fields return a driver.Valuer wrapper while preserving
+	// the underlying zero flag.
+	ValueOf func(context.Context, reflect.Value) (value interface{}, zero bool)
+	// Set assigns or converts a value into an addressable model field, using type-specific
+	// conversions, sql.Scanner, or the configured serializer. Conversion semantics are
+	// type-dependent; inspect the returned error rather than assuming validation or
+	// lossless numeric conversion.
+	Set func(context.Context, reflect.Value, interface{}) error
+	// Serializer is the codec selected by the field type or serializer/json tag. It is
+	// captured while parsing the schema.
+	Serializer SerializerInterface
+	// NewValuePool supplies temporary scan destinations. Callers must return each borrowed
+	// object after assigning it with Set, and must not retain it afterward.
+	NewValuePool FieldNewValuePool
 
-	// In some db (e.g. MySQL), Unique and UniqueIndex are indistinguishable.
-	// When a column has a (not Mul) UniqueIndex, Migrator always reports its gorm.ColumnType is Unique.
-	// It causes field unnecessarily migration.
-	// Therefore, we need to record the UniqueIndex on this column (exclude Mul UniqueIndex) for MigrateColumnUnique.
+	// UniqueIndex records the name of a single-column UNIQUE index during ParseIndexes.
+	// Migrators use it to distinguish tagged indexes from Unique constraints on databases
+	// that report both as column uniqueness; composite unique indexes do not populate it.
 	UniqueIndex string
 }
 
+// BindName returns the dotted Go embedding path, such as Address.City, used by
+// Schema.FieldsByBindName.
 func (field *Field) BindName() string {
 	return strings.Join(field.BindNames, ".")
 }
 
-// ParseField parses reflect.StructField to Field
+// ParseField interprets one reflected struct field and its gorm tag, including logical
+// type inference, driver.Valuer and serializer support, defaults, automatic timestamps,
+// permissions, and embedding. It records failures on the schema and returns the field
+// even when parsing fails.
+//
+// This is one stage of Parse: column naming, primary-key prioritization, relationship
+// resolution, and accessors are completed by the full schema parser. Calling ParseField
+// alone does not produce a fully usable independent field. Anonymous structs or fields
+// tagged embedded are flattened by the caller; embeddedPrefix changes their column
+// names.
 func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	var (
 		err        error
@@ -447,7 +571,9 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 	return field
 }
 
-// create valuer, setter when parse struct
+// setupValuerAndSetter compiles field-path readers, allocating reflection access,
+// type-specific assignment, and serializer wrappers for a parsed field. It initializes
+// scan pooling first and expects the embedding index path to have been finalized.
 func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 	// Setup NewValuePool
 	field.setupNewValuePool()
@@ -989,6 +1115,10 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 	}
 }
 
+// setupNewValuePool installs a field-specific pool of serializer wrappers when a codec
+// is present; otherwise it reuses a type-keyed pool of pointers to the indirect field
+// type. Serializer instances are shallow-copied from the configured prototype, so
+// custom codecs must manage any shared referenced state safely.
 func (field *Field) setupNewValuePool() {
 	if field.Serializer != nil {
 		serializerValue := reflect.Indirect(reflect.ValueOf(field.Serializer))

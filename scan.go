@@ -11,7 +11,8 @@ import (
 	"gorm.io/gorm/utils"
 )
 
-// prepareValues prepare values slice
+// prepareValues allocates scan holders using model field types first, then driver
+// column metadata, and finally interface{} fallbacks. Pointer layers preserve SQL NULL.
 func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, columns []string) {
 	if db.Statement.Schema != nil {
 		for idx, name := range columns {
@@ -36,6 +37,8 @@ func prepareValues(values []interface{}, db *DB, columnTypes []*sql.ColumnType, 
 	}
 }
 
+// scanIntoMap unwraps scan holders into result-column keys, preserving NULL as nil. It
+// converts sql.RawBytes to strings and unwraps driver.Valuer values.
 func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns []string) {
 	for idx, column := range columns {
 		if reflectValue := reflect.Indirect(reflect.Indirect(reflect.ValueOf(values[idx]))); reflectValue.IsValid() {
@@ -51,6 +54,9 @@ func scanIntoMap(mapValue map[string]interface{}, values []interface{}, columns 
 	}
 }
 
+// scanIntoStruct scans one row using pooled field holders, assigns model and
+// joined-association fields, and returns holders to their pools. It records scan/setter
+// errors and counts the row; NULL joined values do not allocate absent nested records.
 func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []interface{}, fields []*schema.Field, joinFields [][]*schema.Field) {
 	for idx, field := range fields {
 		if field != nil {
@@ -112,17 +118,34 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 	}
 }
 
-// ScanMode scan data mode
+// ScanMode is a bitmask controlling the low-level Scan cursor and destination behavior.
+// The zero mode advances rows normally and builds a fresh result. Callers must
+// initialize Statement metadata and destination reflection before scanning.
 type ScanMode uint8
 
 // scan modes
 const (
-	ScanInitialized         ScanMode = 1 << 0 // 1
-	ScanUpdate              ScanMode = 1 << 1 // 2
+	// ScanInitialized tells Scan that rows is already positioned on its first row, so the
+	// first iteration must not call Next again. Used by DB.ScanRows.
+	ScanInitialized ScanMode = 1 << 0 // 1
+	// ScanUpdate fills existing slice elements, such as records receiving RETURNING values,
+	// instead of rebuilding the slice. It falls back to normal accumulation for an empty
+	// destination.
+	ScanUpdate ScanMode = 1 << 1 // 2
+	// ScanOnConflictDoNothing adjusts ScanUpdate destination alignment when
+	// conflict-skipped records already have non-zero returned fields. It is a scan flag; it
+	// does not add an ON CONFLICT SQL clause.
 	ScanOnConflictDoNothing ScanMode = 1 << 2 // 4
 )
 
-// Scan scan rows into db statement
+// Scan maps rows into db.Statement.Dest using schema metadata, column mappings, and
+// mode. It updates db.RowsAffected and accumulates scan/iteration errors on db.Error.
+// ErrRecordNotFound is added only when RaiseErrorOnNotFound is set and no row or
+// earlier error exists.
+//
+// This is a callback-level primitive: callers must prepare Statement.Schema and
+// ReflectValue as needed and retain responsibility for closing rows. Application code
+// normally uses DB.Find, DB.Scan, or DB.ScanRows instead.
 func Scan(rows Rows, db *DB, mode ScanMode) {
 	var (
 		columns, _          = rows.Columns()
