@@ -458,8 +458,7 @@ func (association *Association) saveAssociation(clear bool, values ...interface{
 					}).Model(child.Interface()).Create(mapv.Interface()).Error
 
 					for _, key := range mapv.MapKeys() {
-						k := strings.ToLower(key.String())
-						if f, ok := association.Relationship.FieldSchema.FieldsByDBName[k]; ok {
+						if f := association.Relationship.FieldSchema.LookUpField(key.String()); f != nil {
 							_ = f.Set(association.DB.Statement.Context, child, mapv.MapIndex(key).Interface())
 						}
 					}
