@@ -243,6 +243,10 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			writer.WriteString(subdb.Statement.SQL.String())
 			stmt.Vars = subdb.Statement.Vars
 		default:
+			if valuer := GetDynamicGormValuer(reflect.TypeOf(v)); valuer != nil {
+				stmt.AddVar(writer, valuer(stmt.Context, stmt.DB, v))
+				return
+			}
 			switch rv := reflect.ValueOf(v); rv.Kind() {
 			case reflect.Slice, reflect.Array:
 				if rv.Len() == 0 {
