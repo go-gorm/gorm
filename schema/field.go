@@ -862,8 +862,12 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 			field.Set = func(ctx context.Context, value reflect.Value, v interface{}) error {
 				switch data := v.(type) {
 				case **time.Time:
-					if data != nil && *data != nil {
-						field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
+					if data != nil {
+						if *data != nil {
+							field.ReflectValueOf(ctx, value).Set(reflect.ValueOf(*data))
+						} else if _, zero := field.ValueOf(ctx, value); !zero {
+							field.ReflectValueOf(ctx, value).Set(reflect.Zero(field.FieldType))
+						}
 					}
 				case time.Time:
 					fieldValue := field.ReflectValueOf(ctx, value)

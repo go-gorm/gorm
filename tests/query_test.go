@@ -1437,6 +1437,32 @@ func TestQueryResetNullValue(t *testing.T) {
 
 	AssertEqual(t, q1, qs[0])
 	AssertEqual(t, q2, qs[1])
+
+	var reused QueryResetNullValue
+	if err := DB.First(&reused, q1.ID).Error; err != nil {
+		t.Fatalf("failed to load non-NULL value: %v", err)
+	}
+	if reused.Now == nil {
+		t.Fatal("expected initial non-NULL time value")
+	}
+
+	if err := DB.Model(&QueryResetNullValue{}).Where("id = ?", q1.ID).Update("now", nil).Error; err != nil {
+		t.Fatalf("failed to set time value to NULL: %v", err)
+	}
+	if err := DB.First(&reused, q1.ID).Error; err != nil {
+		t.Fatalf("failed to reload NULL value: %v", err)
+	}
+	if reused.Now != nil {
+		t.Fatalf("expected reloaded time value to be nil, got %v", *reused.Now)
+	}
+
+	reused.Now = &now
+	if err := DB.Model(&QueryResetNullValue{}).Select("id").First(&reused, q1.ID).Error; err != nil {
+		t.Fatalf("failed to reload selected fields: %v", err)
+	}
+	if reused.Now == nil {
+		t.Fatal("unselected time value should not be reset")
+	}
 }
 
 func TestQueryError(t *testing.T) {
