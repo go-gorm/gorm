@@ -29,6 +29,16 @@ The fantastic ORM library for Golang, aims to be developer friendly.
 * GORM Guides [https://gorm.io](https://gorm.io)
 * Gen Guides [https://gorm.io/gen/index.html](https://gorm.io/gen/index.html)
 
+## AI-assisted development
+
+Use [GORM Skills](https://github.com/go-gorm/gorm-skills) to give your coding agent GORM-specific guidance for modeling, queries, associations, transactions, migrations, and troubleshooting.
+
+```sh
+npx skills add go-gorm/gorm-skills --skill gorm-development
+```
+
+The skill follows your project's installed GORM version and conventions. See the [skill README](https://github.com/go-gorm/gorm-skills#installation) for installation options and example prompts.
+
 ## Contributing
 
 [You can help to deliver a better GORM, check out things you can do](https://gorm.io/contribute.html)
