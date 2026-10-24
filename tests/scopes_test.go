@@ -90,7 +90,31 @@ func TestComplexScopes(t *testing.T) {
 				).Find(&Language{})
 			},
 			expected: `SELECT * FROM "languages" WHERE a = 1 AND (b = 2 OR c = 3)`,
-		}, {
+		},
+		{
+			name: "group_cond",
+			queryFn: func(tx *gorm.DB) *gorm.DB {
+				return tx.Scopes(
+					func(d *gorm.DB) *gorm.DB { return d.Table("languages1") },
+					func(d *gorm.DB) *gorm.DB { return d.Table("languages2") },
+					func(d *gorm.DB) *gorm.DB {
+						return d.Where(
+							d.Where("a = 1").Or("b = 2"),
+						)
+					},
+					func(d *gorm.DB) *gorm.DB {
+						return d.Select("f1, f2")
+					},
+					func(d *gorm.DB) *gorm.DB {
+						return d.Where(
+							d.Where("c = 3"),
+						)
+					},
+				).Find(&Language{})
+			},
+			expected: `SELECT f1, f2 FROM "languages2" WHERE (a = 1 OR b = 2) AND c = 3`,
+		},
+		{
 			name: "depth_1_pre_cond",
 			queryFn: func(tx *gorm.DB) *gorm.DB {
 				return tx.Where("z = 0").Scopes(
