@@ -567,6 +567,16 @@ func (stmt *Statement) clone() *Statement {
 		copy(newStmt.Joins, stmt.Joins)
 	}
 
+	if len(stmt.attrs) > 0 {
+		newStmt.attrs = make([]interface{}, len(stmt.attrs))
+		copy(newStmt.attrs, stmt.attrs)
+	}
+
+	if len(stmt.assigns) > 0 {
+		newStmt.assigns = make([]interface{}, len(stmt.assigns))
+		copy(newStmt.assigns, stmt.assigns)
+	}
+
 	if len(stmt.scopes) > 0 {
 		newStmt.scopes = make([]func(*DB) *DB, len(stmt.scopes))
 		copy(newStmt.scopes, stmt.scopes)

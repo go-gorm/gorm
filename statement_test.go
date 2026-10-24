@@ -35,6 +35,21 @@ func TestWhereCloneCorruption(t *testing.T) {
 	}
 }
 
+func TestStatementCloneKeepsAttrsAndAssigns(t *testing.T) {
+	stmt := &Statement{
+		attrs:   []interface{}{map[string]interface{}{"name": "jinzhu"}},
+		assigns: []interface{}{map[string]interface{}{"age": 18}},
+	}
+
+	cloned := stmt.clone()
+	if !reflect.DeepEqual(cloned.attrs, stmt.attrs) {
+		t.Errorf("cloned statement should keep attrs, got %v want %v", cloned.attrs, stmt.attrs)
+	}
+	if !reflect.DeepEqual(cloned.assigns, stmt.assigns) {
+		t.Errorf("cloned statement should keep assigns, got %v want %v", cloned.assigns, stmt.assigns)
+	}
+}
+
 func TestNilCondition(t *testing.T) {
 	s := new(Statement)
 	if len(s.BuildCondition(nil)) != 0 {
