@@ -276,17 +276,17 @@ func (neq Neq) Build(builder Builder) {
 	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
 		rv := reflect.ValueOf(neq.Value)
 		if rv.Len() == 0 {
-			builder.WriteString(" IS NOT NULL")
-		} else {
-			builder.WriteString(" NOT IN (")
-			for i := 0; i < rv.Len(); i++ {
-				if i > 0 {
-					builder.WriteByte(',')
-				}
-				builder.AddVar(builder, rv.Index(i).Interface())
-			}
-			builder.WriteByte(')')
+			builder.WriteString(" IS NOT NULL") //nolint:errcheck
+			break
 		}
+		builder.WriteString(" NOT IN (") //nolint:errcheck
+		for i := 0; i < rv.Len(); i++ {
+			if i > 0 {
+				builder.WriteByte(',')
+			}
+			builder.AddVar(builder, rv.Index(i).Interface())
+		}
+		builder.WriteByte(')')
 	default:
 		if eqNil(neq.Value) {
 			builder.WriteString(" IS NOT NULL")
