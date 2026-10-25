@@ -149,8 +149,12 @@ func (c *LRU[K, V]) Get(key K) (value V, ok bool) {
 	defer c.mu.Unlock()
 	var ent *Entry[K, V]
 	if ent, ok = c.items[key]; ok {
-		// Expired item check
+		// Expired item check. Drop it here rather than leaving it for the
+		// cleanup goroutine: reporting a miss while keeping the entry makes the
+		// caller's follow-up Add overwrite ent.Value, and the replaced value
+		// never reaches onEvict.
 		if time.Now().After(ent.ExpiresAt) {
+			c.removeElement(ent)
 			return value, false
 		}
 		c.evictList.MoveToFront(ent)
