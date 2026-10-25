@@ -276,10 +276,10 @@ func (neq Neq) Build(builder Builder) {
 	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
 		rv := reflect.ValueOf(neq.Value)
 		if rv.Len() == 0 {
-			builder.WriteString(" IS NOT NULL") //nolint:errcheck
+			builder.WriteString(" IS NOT NULL") //nolint:errcheck,gosec
 			break
 		}
-		builder.WriteString(" NOT IN (") //nolint:errcheck
+		builder.WriteString(" NOT IN (") //nolint:errcheck,gosec
 		for i := 0; i < rv.Len(); i++ {
 			if i > 0 {
 				builder.WriteByte(',')
