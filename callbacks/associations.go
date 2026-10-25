@@ -12,6 +12,10 @@ import (
 
 func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
+		if !db.SaveAssociations {
+			return
+		}
+
 		if db.Error == nil && db.Statement.Schema != nil {
 			selectColumns, restricted := db.Statement.SelectAndOmitColumns(create, !create)
 
@@ -109,6 +113,10 @@ func SaveBeforeAssociations(create bool) func(db *gorm.DB) {
 
 func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 	return func(db *gorm.DB) {
+		if !db.SaveAssociations {
+			return
+		}
+
 		if db.Error == nil && db.Statement.Schema != nil {
 			selectColumns, restricted := db.Statement.SelectAndOmitColumns(create, !create)
 

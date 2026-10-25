@@ -31,6 +31,8 @@ type Config struct {
 	NamingStrategy schema.Namer
 	// FullSaveAssociations full save associations
 	FullSaveAssociations bool
+	// SaveAssociations save associations
+	SaveAssociations bool
 	// Logger
 	Logger logger.Interface
 	// NowFunc the function to be used when creating a new timestamp.
@@ -124,6 +126,7 @@ type Session struct {
 	DisableNestedTransaction bool
 	AllowGlobalUpdate        bool
 	FullSaveAssociations     bool
+	SaveAssociations         bool
 	PropagateUnscoped        bool
 	QueryFields              bool
 	Context                  context.Context
@@ -282,6 +285,10 @@ func (db *DB) Session(config *Session) *DB {
 
 	if config.FullSaveAssociations {
 		txConfig.FullSaveAssociations = true
+	}
+
+	if config.SaveAssociations {
+		txConfig.SaveAssociations = true
 	}
 
 	if config.PropagateUnscoped {
