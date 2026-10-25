@@ -101,6 +101,30 @@ func TestGenericsCreate(t *testing.T) {
 	}
 }
 
+func TestGenericsExists(t *testing.T) {
+	ctx := context.Background()
+	user := User{Name: "GenericsExists"}
+	if err := gorm.G[User](DB).Create(ctx, &user); err != nil {
+		t.Fatalf("failed to create user: %v", err)
+	}
+
+	exists, err := gorm.G[User](DB).Where("name = ?", user.Name).Exists(ctx)
+	if err != nil {
+		t.Fatalf("failed to check whether user exists: %v", err)
+	}
+	if !exists {
+		t.Fatal("expected matching user to exist")
+	}
+
+	exists, err = gorm.G[User](DB).Where("name = ?", "does-not-exist").Exists(ctx)
+	if err != nil {
+		t.Fatalf("failed to check whether user exists: %v", err)
+	}
+	if exists {
+		t.Fatal("expected non-matching user not to exist")
+	}
+}
+
 func TestGenericsCreateInBatches(t *testing.T) {
 	batch := []User{
 		{Name: "GenericsCreateInBatches1"},
