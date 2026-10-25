@@ -3,9 +3,11 @@ package gorm
 import (
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 )
 
 func TestWhereCloneCorruption(t *testing.T) {
@@ -39,6 +41,41 @@ func TestNilCondition(t *testing.T) {
 	s := new(Statement)
 	if len(s.BuildCondition(nil)) != 0 {
 		t.Errorf("Nil condition should be empty")
+	}
+}
+
+func TestBuildConditionValues(t *testing.T) {
+	type namedBytes []byte
+
+	for _, tc := range []struct {
+		name      string
+		cond      interface{}
+		wantCount int
+	}{
+		{"byte slice is one value", []byte{1, 2, 3}, 1},
+		{"named byte slice is one value", namedBytes{1, 2, 3}, 1},
+		{"uint slice is a list", []uint{1, 2, 3}, 3},
+		{"uint array is a list", [3]uint{1, 2, 3}, 3},
+		{"string slice is a list", []string{"a", "b"}, 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := &Statement{DB: &DB{Config: &Config{
+				NamingStrategy: schema.NamingStrategy{},
+				cacheStore:     &sync.Map{},
+			}}}
+
+			exprs := s.BuildCondition(tc.cond)
+			if len(exprs) != 1 {
+				t.Fatalf("expected 1 expression, got %d", len(exprs))
+			}
+			in, ok := exprs[0].(clause.IN)
+			if !ok {
+				t.Fatalf("expected clause.IN, got %T", exprs[0])
+			}
+			if len(in.Values) != tc.wantCount {
+				t.Errorf("expected %d value(s), got %d: %v", tc.wantCount, len(in.Values), in.Values)
+			}
+		})
 	}
 }
 
