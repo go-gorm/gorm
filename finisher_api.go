@@ -420,6 +420,8 @@ func (db *DB) Update(column string, value interface{}) (tx *DB) {
 func (db *DB) Updates(values interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = values
+	tx.Statement.Settings.Store("gorm:update_strategy", true)
+	defer tx.Statement.Settings.Delete("gorm:update_strategy")
 	return tx.callbacks.Update().Execute(tx)
 }
 
@@ -434,6 +436,8 @@ func (db *DB) UpdateColumns(values interface{}) (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Dest = values
 	tx.Statement.SkipHooks = true
+	tx.Statement.Settings.Store("gorm:update_strategy", true)
+	defer tx.Statement.Settings.Delete("gorm:update_strategy")
 	return tx.callbacks.Update().Execute(tx)
 }
 
