@@ -12,11 +12,11 @@ type DummyDialector struct {
 	TranslatedErr error
 }
 
-func (DummyDialector) Name() string {
+func (d DummyDialector) Name() string {
 	return "dummy"
 }
 
-func (DummyDialector) Initialize(db *gorm.DB) error {
+func (d DummyDialector) Initialize(db *gorm.DB) error {
 	callbacks.RegisterDefaultCallbacks(db, &callbacks.Config{
 		CreateClauses:        []string{"INSERT", "VALUES", "ON CONFLICT", "RETURNING"},
 		UpdateClauses:        []string{"UPDATE", "SET", "WHERE", "RETURNING"},
@@ -27,19 +27,19 @@ func (DummyDialector) Initialize(db *gorm.DB) error {
 	return nil
 }
 
-func (DummyDialector) DefaultValueOf(field *schema.Field) clause.Expression {
+func (d DummyDialector) DefaultValueOf(field *schema.Field) clause.Expression {
 	return clause.Expr{SQL: "DEFAULT"}
 }
 
-func (DummyDialector) Migrator(*gorm.DB) gorm.Migrator {
+func (d DummyDialector) Migrator(*gorm.DB) gorm.Migrator {
 	return nil
 }
 
-func (DummyDialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
+func (d DummyDialector) BindVarTo(writer clause.Writer, stmt *gorm.Statement, v interface{}) {
 	writer.WriteByte('?')
 }
 
-func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
+func (d DummyDialector) QuoteTo(writer clause.Writer, str string) {
 	var (
 		underQuoted, selfQuoted bool
 		continuousBacktick      int8
@@ -87,11 +87,11 @@ func (DummyDialector) QuoteTo(writer clause.Writer, str string) {
 	writer.WriteByte('`')
 }
 
-func (DummyDialector) Explain(sql string, vars ...interface{}) string {
+func (d DummyDialector) Explain(sql string, vars ...interface{}) string {
 	return logger.ExplainSQL(sql, nil, `"`, vars...)
 }
 
-func (DummyDialector) DataTypeOf(*schema.Field) string {
+func (d DummyDialector) DataTypeOf(*schema.Field) string {
 	return ""
 }
 
