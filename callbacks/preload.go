@@ -50,6 +50,9 @@ func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[st
 		preloadFields := strings.Split(name, ".")
 		value := strings.TrimPrefix(strings.TrimPrefix(name, preloadFields[0]), ".")
 		if preloadFields[0] == clause.Associations {
+			// guard the iteration against concurrent relation registration
+			// (reverse relations of a lazily parsed schema)
+			s.Relationships.Mux.RLock()
 			for _, relation := range s.Relationships.Relations {
 				if relation.Schema == s {
 					setPreloadMap(relation.Name, value, args)
@@ -61,6 +64,7 @@ func parsePreloadMap(s *schema.Schema, preloads map[string][]interface{}) map[st
 					setPreloadMap(embedded, value, args)
 				}
 			}
+			s.Relationships.Mux.RUnlock()
 		} else {
 			setPreloadMap(preloadFields[0], value, args)
 		}
@@ -99,13 +103,13 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 
 	isJoined := func(name string) (joined bool, nestedJoins []string) {
 		for _, join := range joins {
-			if _, ok := relationships.Relations[join]; ok && name == join {
+			if _, ok := relationships.LookUpRelation(join); ok && name == join {
 				joined = true
 				continue
 			}
 			join0, join1, cut := strings.Cut(join, ".")
 			if cut {
-				if _, ok := relationships.Relations[join0]; ok && name == join0 {
+				if _, ok := relationships.LookUpRelation(join0); ok && name == join0 {
 					joined = true
 					nestedJoins = append(nestedJoins, join1)
 				}
@@ -115,11 +119,15 @@ func preloadEntryPoint(db *gorm.DB, joins []string, relationships *schema.Relati
 	}
 
 	for _, name := range preloadNames {
-		if relations := relationships.EmbeddedRelations[name]; relations != nil {
-			if err := preloadEntryPoint(db, joins, relations, preloadMap[name], associationsConds); err != nil {
+		relationships.Mux.RLock()
+		embeddedRelations := relationships.EmbeddedRelations[name]
+		relationships.Mux.RUnlock()
+
+		if embeddedRelations != nil {
+			if err := preloadEntryPoint(db, joins, embeddedRelations, preloadMap[name], associationsConds); err != nil {
 				return err
 			}
-		} else if rel := relationships.Relations[name]; rel != nil {
+		} else if rel, _ := relationships.LookUpRelation(name); rel != nil {
 			if joined, nestedJoins := isJoined(name); joined {
 				switch rv := db.Statement.ReflectValue; rv.Kind() {
 				case reflect.Slice, reflect.Array:

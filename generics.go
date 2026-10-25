@@ -488,13 +488,13 @@ func (c chainG[T]) Preload(association string, query func(db PreloadBuilder) err
 				}
 			}
 
-			relation, ok := db.Statement.Schema.Relationships.Relations[association]
+			relation, ok := db.Statement.Schema.Relationships.LookUpRelation(association)
 			if !ok {
 				if preloadFields := strings.Split(association, "."); len(preloadFields) > 1 {
 					relationships := &db.Statement.Schema.Relationships
 					for _, field := range preloadFields {
 						var ok bool
-						relation, ok = relationships.Relations[field]
+						relation, ok = relationships.LookUpRelation(field)
 						if ok {
 							relationships = &relation.FieldSchema.Relationships
 						} else {

@@ -24,7 +24,7 @@ func (db *DB) Association(column string) *Association {
 
 	if association.Error = db.Statement.Parse(db.Statement.Model); association.Error == nil {
 		db.Statement.Table = table
-		association.Relationship = db.Statement.Schema.Relationships.Relations[column]
+		association.Relationship, _ = db.Statement.Schema.Relationships.LookUpRelation(column)
 
 		if association.Relationship == nil {
 			association.Error = fmt.Errorf("%w: %s", ErrUnsupportedRelation, column)

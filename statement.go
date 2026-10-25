@@ -725,7 +725,7 @@ func (stmt *Statement) SelectAndOmitColumns(requireCreate, requireUpdate bool) (
 				results[dbName] = result
 			}
 		} else if column == clause.Associations {
-			for _, rel := range stmt.Schema.Relationships.Relations {
+			for _, rel := range stmt.Schema.Relationships.AllRelations() {
 				results[rel.Name] = result
 			}
 		} else if field := stmt.Schema.LookUpField(column); field != nil && field.DBName != "" {

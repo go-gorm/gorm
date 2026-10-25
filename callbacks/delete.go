@@ -35,7 +35,7 @@ func DeleteBeforeAssociations(db *gorm.DB) {
 				continue
 			}
 
-			rel, ok := db.Statement.Schema.Relationships.Relations[column]
+			rel, ok := db.Statement.Schema.Relationships.LookUpRelation(column)
 			if !ok {
 				continue
 			}

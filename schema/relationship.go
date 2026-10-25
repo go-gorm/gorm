@@ -37,6 +37,29 @@ type Relationships struct {
 	Mux sync.RWMutex
 }
 
+// LookUpRelation returns the relationship registered under the given name and
+// whether it exists. It synchronizes with concurrent relation registration,
+// e.g. the reverse relations another schema's first parse registers into this
+// schema while the schema is already serving queries.
+func (rs *Relationships) LookUpRelation(name string) (*Relationship, bool) {
+	rs.Mux.RLock()
+	defer rs.Mux.RUnlock()
+	rel, ok := rs.Relations[name]
+	return rel, ok
+}
+
+// AllRelations returns a snapshot of all registered relationships, so callers
+// can iterate it without racing with concurrent relation registration.
+func (rs *Relationships) AllRelations() []*Relationship {
+	rs.Mux.RLock()
+	defer rs.Mux.RUnlock()
+	relations := make([]*Relationship, 0, len(rs.Relations))
+	for _, rel := range rs.Relations {
+		relations = append(relations, rel)
+	}
+	return relations
+}
+
 type Relationship struct {
 	Name                     string
 	Type                     RelationshipType
@@ -368,6 +391,12 @@ func (schema *Schema) buildMany2ManyRelation(relation *Relationship, field *Fiel
 	relation.JoinTable.Table = schema.namer.JoinTableName(many2many)
 	relation.JoinTable.PrimaryFields = make([]*Field, 0, len(relation.JoinTable.Fields))
 
+	// the join table schema is already cached (and, because reflect.StructOf
+	// canonicalizes identical struct types, possibly shared with a concurrent
+	// parse), so guard its Relations map with its own Mux while it is extended
+	relation.JoinTable.Relationships.Mux.Lock()
+	defer relation.JoinTable.Relationships.Mux.Unlock()
+
 	relName := relation.Schema.Name
 	relRefName := relation.FieldSchema.Name
 	if relName == relRefName {
@@ -665,7 +694,7 @@ func (rel *Relationship) ParseConstraint() *Constraint {
 	}
 
 	if rel.Type == BelongsTo {
-		for _, r := range rel.FieldSchema.Relationships.Relations {
+		for _, r := range rel.FieldSchema.Relationships.AllRelations() {
 			if r != rel && r.FieldSchema == rel.Schema && len(rel.References) == len(r.References) {
 				matched := true
 				for idx, ref := range r.References {
