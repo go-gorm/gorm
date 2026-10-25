@@ -234,11 +234,29 @@ type Eq struct {
 	Value  interface{}
 }
 
+// isValueList reports whether value should be rendered as an IN (...) list
+// rather than as a single bind variable.
+//
+// Any slice or array is a list, except for byte slices (including named byte
+// slice types) which databases bind as a single binary value.
+func isValueList(value interface{}) bool {
+	if _, ok := value.(driver.Valuer); ok {
+		return false
+	}
+
+	rv := reflect.ValueOf(value)
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
+		return rv.Type().Elem().Kind() != reflect.Uint8
+	default:
+		return false
+	}
+}
+
 func (eq Eq) Build(builder Builder) {
 	builder.WriteQuoted(eq.Column)
 
-	switch eq.Value.(type) {
-	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
+	if isValueList(eq.Value) {
 		rv := reflect.ValueOf(eq.Value)
 		if rv.Len() == 0 {
 			builder.WriteString(" IN (NULL)")
@@ -252,7 +270,7 @@ func (eq Eq) Build(builder Builder) {
 			}
 			builder.WriteByte(')')
 		}
-	default:
+	} else {
 		if eqNil(eq.Value) {
 			builder.WriteString(" IS NULL")
 		} else {
@@ -272,8 +290,7 @@ type Neq Eq
 func (neq Neq) Build(builder Builder) {
 	builder.WriteQuoted(neq.Column)
 
-	switch neq.Value.(type) {
-	case []string, []int, []int32, []int64, []uint, []uint32, []uint64, []interface{}:
+	if isValueList(neq.Value) {
 		builder.WriteString(" NOT IN (")
 		rv := reflect.ValueOf(neq.Value)
 		for i := 0; i < rv.Len(); i++ {
@@ -283,7 +300,7 @@ func (neq Neq) Build(builder Builder) {
 			builder.AddVar(builder, rv.Index(i).Interface())
 		}
 		builder.WriteByte(')')
-	default:
+	} else {
 		if eqNil(neq.Value) {
 			builder.WriteString(" IS NOT NULL")
 		} else {

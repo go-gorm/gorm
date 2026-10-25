@@ -160,6 +160,9 @@ func TestNamedExpr(t *testing.T) {
 	}
 }
 
+type namedFloat64s []float64
+type namedBytes []byte
+
 func TestExpression(t *testing.T) {
 	column := "column-name"
 	results := []struct {
@@ -212,6 +215,58 @@ func TestExpression(t *testing.T) {
 	}, {
 		Expressions: []clause.Expression{
 			clause.Eq{Column: column, Value: []string{}},
+		},
+		Result: "`column-name` IN (NULL)",
+	}, {
+		// slice element types other than the hard-coded ones in Eq/Neq must
+		// still render as an IN/NOT IN list, not `= (?,?)`
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []float64{1.5, 2.5}},
+		},
+		ExpectedVars: []interface{}{1.5, 2.5},
+		Result:       "`column-name` IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Neq{Column: column, Value: []float64{1.5, 2.5}},
+		},
+		ExpectedVars: []interface{}{1.5, 2.5},
+		Result:       "`column-name` NOT IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []int8{1, 2}},
+		},
+		ExpectedVars: []interface{}{int8(1), int8(2)},
+		Result:       "`column-name` IN (?,?)",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []bool{true, false}},
+		},
+		ExpectedVars: []interface{}{true, false},
+		Result:       "`column-name` IN (?,?)",
+	}, {
+		// a named slice type must behave the same as its underlying type
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: namedFloat64s{1.5, 2.5}},
+		},
+		ExpectedVars: []interface{}{1.5, 2.5},
+		Result:       "`column-name` IN (?,?)",
+	}, {
+		// []byte is a single value, never a list
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []byte{1, 2}},
+		},
+		ExpectedVars: []interface{}{[]byte{1, 2}},
+		Result:       "`column-name` = ?",
+	}, {
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: namedBytes{1, 2}},
+		},
+		ExpectedVars: []interface{}{namedBytes{1, 2}},
+		Result:       "`column-name` = ?",
+	}, {
+		// an empty list of any element type must still be IN (NULL)
+		Expressions: []clause.Expression{
+			clause.Eq{Column: column, Value: []float64{}},
 		},
 		Result: "`column-name` IN (NULL)",
 	}, {
