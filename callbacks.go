@@ -73,6 +73,23 @@ func (cs *callbacks) Raw() *processor {
 }
 
 func (p *processor) Execute(db *DB) *DB {
+	replacedContext := false
+	oldContext := db.Statement.Context
+	if db.DefaultContextTimeout > 0 {
+		// On Row() and Rows() methods, we cannot cancel the context after returning
+		// because callers scan rows themselves. Canceling here would cause [context.Canceled] errors on `rows.Next()`.
+		_, okRows := db.Get("rows")          // db.Row() or db.Rows()
+		_, okScanDest := db.Get("scan-dest") // db.Scan()
+		if !okRows || okScanDest {
+			if _, ok := db.Statement.Context.Deadline(); !ok {
+				ctx, cancel := context.WithTimeout(db.Statement.Context, db.DefaultContextTimeout)
+				db = db.Session(&Session{Context: ctx, Initialized: true})
+				replacedContext = true
+				defer cancel()
+			}
+		}
+	}
+
 	// call scopes
 	for len(db.Statement.scopes) > 0 {
 		db = db.executeScopes()
@@ -91,12 +108,6 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if optimizer, ok := stmt.Dest.(StatementModifier); ok {
 		optimizer.ModifyStatement(stmt)
-	}
-
-	if db.DefaultContextTimeout > 0 {
-		if _, ok := stmt.Context.Deadline(); !ok {
-			stmt.Context, _ = context.WithTimeout(stmt.Context, db.DefaultContextTimeout)
-		}
 	}
 
 	// assign model values
@@ -153,6 +164,11 @@ func (p *processor) Execute(db *DB) *DB {
 
 	if resetBuildClauses {
 		stmt.BuildClauses = nil
+	}
+
+	if replacedContext {
+		// Restore old context so the statement can be re-used
+		db = db.Session(&Session{Context: oldContext, Initialized: true})
 	}
 
 	return db
