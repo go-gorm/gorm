@@ -836,6 +836,18 @@ func TestSelect(t *testing.T) {
 	}
 }
 
+func TestSelectWithAtInStringLiteral(t *testing.T) {
+	// An @ inside a quoted string literal must not make Select treat the
+	// following arguments as named parameters and silently drop them.
+	// https://github.com/go-gorm/gorm/issues/7235
+	dryDB := DB.Session(&gorm.Session{DryRun: true})
+
+	r := dryDB.Table("users").Select("name = 'test@example.com' as is_example", "age").Find(&User{})
+	if !regexp.MustCompile(`is_example.*age`).MatchString(r.Statement.SQL.String()) {
+		t.Fatalf("expected the age column to be kept alongside the expression, but got %v", r.Statement.SQL.String())
+	}
+}
+
 func TestOmit(t *testing.T) {
 	user := User{Name: "OmitUser1", Age: 20}
 	DB.Save(&user)
