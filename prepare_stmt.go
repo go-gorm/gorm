@@ -144,6 +144,14 @@ func (db *PreparedStmtDB) Ping() error {
 	return conn.Ping()
 }
 
+func (db *PreparedStmtDB) PingContext(ctx context.Context) error {
+	conn, err := db.GetDBConn()
+	if err != nil {
+		return err
+	}
+	return conn.PingContext(ctx)
+}
+
 type PreparedStmtTX struct {
 	Tx
 	PreparedStmtDB *PreparedStmtDB
@@ -203,4 +211,12 @@ func (tx *PreparedStmtTX) Ping() error {
 		return err
 	}
 	return conn.Ping()
+}
+
+func (tx *PreparedStmtTX) PingContext(ctx context.Context) error {
+	conn, err := tx.GetDBConn()
+	if err != nil {
+		return err
+	}
+	return conn.PingContext(ctx)
 }

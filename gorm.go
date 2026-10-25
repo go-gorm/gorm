@@ -48,6 +48,9 @@ type Config struct {
 
 	// DisableAutomaticPing
 	DisableAutomaticPing bool
+	// PingTimeout sets the timeout for the automatic ping performed during Open.
+	// Defaults to 5 seconds when zero.
+	PingTimeout time.Duration
 	// DisableForeignKeyConstraintWhenMigrating
 	DisableForeignKeyConstraintWhenMigrating bool
 	// IgnoreRelationshipsWhenMigrating
@@ -199,6 +202,10 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 		config.cacheStore = &sync.Map{}
 	}
 
+	if config.PingTimeout == 0 {
+		config.PingTimeout = 5 * time.Second
+	}
+
 	db = &DB{Config: config, clone: 1}
 
 	db.callbacks = initializeCallbacks(db)
@@ -240,12 +247,20 @@ func Open(dialector Dialector, opts ...Option) (db *DB, err error) {
 	}
 
 	if err == nil && !config.DisableAutomaticPing {
-		if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
+		pingCtx, pingCancel := context.WithTimeout(context.Background(), config.PingTimeout)
+		defer pingCancel()
+
+		if pinger, ok := db.ConnPool.(interface {
+			PingContext(context.Context) error
+		}); ok {
+			err = pinger.PingContext(pingCtx)
+		} else if pinger, ok := db.ConnPool.(interface{ Ping() error }); ok {
 			err = pinger.Ping()
-			if err != nil {
-				if db, _ := db.DB(); db != nil {
-					_ = db.Close()
-				}
+		}
+
+		if err != nil {
+			if sqlDB, _ := db.DB(); sqlDB != nil {
+				_ = sqlDB.Close()
 			}
 		}
 	}
