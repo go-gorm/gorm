@@ -211,7 +211,7 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 
 		if sch != nil {
 			if reflectValueType != sch.ModelType && reflectValueType.Kind() == reflect.Struct {
-				sch, _ = schema.Parse(db.Statement.Dest, db.cacheStore, db.NamingStrategy)
+				sch, _ = db.parseSchema(db.Statement.Dest)
 			}
 
 			if len(columns) == 1 {

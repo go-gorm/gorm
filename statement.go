@@ -412,7 +412,7 @@ func (stmt *Statement) BuildCondition(query interface{}, args ...interface{}) []
 				reflectValue = reflectValue.Elem()
 			}
 
-			if s, err := schema.Parse(arg, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+			if s, err := stmt.parseSchema(arg); err == nil {
 				selectedColumns := map[string]bool{}
 				if idx == 0 {
 					for _, v := range args[1:] {
@@ -514,7 +514,7 @@ func (stmt *Statement) Parse(value interface{}) (err error) {
 }
 
 func (stmt *Statement) ParseWithSpecialTableName(value interface{}, specialTableName string) (err error) {
-	if stmt.Schema, err = schema.ParseWithSpecialTableName(value, stmt.DB.cacheStore, stmt.DB.NamingStrategy, specialTableName); err == nil && stmt.Table == "" {
+	if stmt.Schema, err = schema.ParseWithSpecialTableNameAndDialect(value, stmt.cacheStore, stmt.NamingStrategy, specialTableName, stmt.DialectorName()); err == nil && stmt.Table == "" {
 		if tables := strings.Split(stmt.Schema.Table, "."); len(tables) == 2 {
 			stmt.TableExpr = &clause.Expr{SQL: stmt.Quote(stmt.Schema.Table)}
 			stmt.Table = tables[1]
@@ -662,7 +662,7 @@ func (stmt *Statement) Changed(fields ...string) bool {
 				for destValue.Kind() == reflect.Ptr {
 					destValue = destValue.Elem()
 				}
-				if descSchema, err := schema.Parse(stmt.Dest, stmt.DB.cacheStore, stmt.DB.NamingStrategy); err == nil {
+				if descSchema, err := stmt.parseSchema(stmt.Dest); err == nil {
 					if destField := descSchema.LookUpField(field.DBName); destField != nil {
 						changedValue, zero := destField.ValueOf(stmt.Context, destValue)
 						if v {

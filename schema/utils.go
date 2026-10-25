@@ -34,12 +34,61 @@ func ParseTagSetting(str string, sep string) map[string]string {
 			val := strings.Join(values[1:], ":")
 			val = strings.ReplaceAll(val, `\"`, `"`)
 			settings[k] = val
+
+			// `<dialector>:type:<value>` declares a database-specific data type, e.g.
+			// `mysql:type:json;postgres:type:text[]`, which is resolved with the
+			// dialector name when parsing the schema (see dialectTypeSetting).
+			// The plain setting above is kept for backward compatibility with
+			// three-segment tags like `index:type:fulltext`.
+			if len(values) >= 3 && strings.TrimSpace(strings.ToUpper(values[1])) == "TYPE" {
+				dialectVal := strings.Join(values[2:], ":")
+				settings[k+":TYPE"] = strings.ReplaceAll(dialectVal, `\"`, `"`)
+			}
 		} else if k != "" {
 			settings[k] = k
 		}
 	}
 
 	return settings
+}
+
+// dialectTypeAliases maps dialector names to alternative names that are also
+// accepted in database-specific type tags, e.g. `postgresql:type:text[]` is
+// applied when the dialector name is `postgres`. The exact dialector name is
+// always tried first, so `postgres:type:...` and `gaussdb:type:...` can coexist
+// on the same field.
+var dialectTypeAliases = map[string][]string{
+	"mysql":       {"mariadb"},
+	"mariadb":     {"mysql"},
+	"tidb":        {"mysql"},
+	"postgres":    {"postgresql", "pg"},
+	"postgresql":  {"postgres", "pg"},
+	"cockroachdb": {"postgres", "postgresql"},
+	"sqlite":      {"sqlite3"},
+	"sqlserver":   {"mssql"},
+	"mssql":       {"sqlserver"},
+	"gaussdb":     {"opengauss", "postgres", "postgresql"},
+	"opengauss":   {"gaussdb", "postgres", "postgresql"},
+}
+
+// dialectTypeSetting looks up the database-specific type tag (`<dialect>:type:<value>`,
+// stored as `<DIALECT>:TYPE` by ParseTagSetting) for the given dialector name,
+// trying the exact name first and then its well-known aliases. It reports false
+// when no non-empty setting matches, so the generic `type` tag or GORM's default
+// data type rules apply instead.
+func dialectTypeSetting(dialectName string, settings map[string]string) (string, bool) {
+	dialectName = strings.ToLower(strings.TrimSpace(dialectName))
+	if dialectName == "" {
+		return "", false
+	}
+
+	names := append([]string{dialectName}, dialectTypeAliases[dialectName]...)
+	for _, name := range names {
+		if v, ok := settings[strings.ToUpper(name)+":TYPE"]; ok && v != "" {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 func toColumns(val string) (results []string) {

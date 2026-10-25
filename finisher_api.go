@@ -280,7 +280,7 @@ func (db *DB) assignInterfacesToValue(values ...interface{}) {
 				db.assignInterfacesToValue(exprs)
 			}
 		default:
-			if s, err := schema.Parse(value, db.cacheStore, db.NamingStrategy); err == nil {
+			if s, err := db.parseSchema(value); err == nil {
 				reflectValue := reflect.Indirect(reflect.ValueOf(value))
 				switch reflectValue.Kind() {
 				case reflect.Struct:

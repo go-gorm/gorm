@@ -317,13 +317,21 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 		field.GORMDataType = field.DataType
 	}
 
-	if val, ok := field.TagSettings["TYPE"]; ok {
-		lowerVal := DataType(strings.ToLower(val))
+	// a database-specific type tag (`<dialect>:type:<value>`, e.g. `mysql:type:json`)
+	// takes precedence over the generic `type` tag for the current dialector,
+	// so `gorm:"type:aaa;mysql:type:bbb"` uses `bbb` on mysql and `aaa` elsewhere;
+	// fields without any matching type tag keep GORM's default data type rules
+	typeValue, hasTypeValue := field.TagSettings["TYPE"]
+	if dialectValue, ok := dialectTypeSetting(schema.dialect, field.TagSettings); ok {
+		typeValue, hasTypeValue = dialectValue, true
+	}
+	if hasTypeValue {
+		lowerVal := DataType(strings.ToLower(typeValue))
 		switch lowerVal {
 		case Bool, Int, Uint, Float, String, Time, Bytes:
 			field.DataType = lowerVal
 		default:
-			field.DataType = DataType(val)
+			field.DataType = DataType(typeValue)
 		}
 	}
 
@@ -398,7 +406,7 @@ func (schema *Schema) ParseField(fieldStruct reflect.StructField) *Field {
 
 			cacheStore := &sync.Map{}
 			cacheStore.Store(embeddedCacheKey, true)
-			if field.EmbeddedSchema, err = getOrParse(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}); err != nil {
+			if field.EmbeddedSchema, err = getOrParse(fieldValue.Interface(), cacheStore, embeddedNamer{Table: schema.Table, Namer: schema.namer}, schema.dialect); err != nil {
 				schema.err = err
 			}
 
