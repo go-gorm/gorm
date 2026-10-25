@@ -1336,7 +1336,7 @@ func (t *DoubleInt64) Scan(val interface{}) error {
 		t.data = v * 2
 		return nil
 	default:
-		return fmt.Errorf("DoubleInt64 cant not scan with:%v", v)
+		return fmt.Errorf("DoubleInt64 cannot scan with:%v", v)
 	}
 }
 
