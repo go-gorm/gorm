@@ -216,7 +216,7 @@ func TestExplainSQL(t *testing.T) {
 
 	stmt = dryRunDB.Model(&user).Where("id = ?", 1).Updates(map[string]interface{}{"age": ageFloat(0.12345678)}).Statement
 	sql = DB.Dialector.Explain(stmt.SQL.String(), stmt.Vars...)
-	if !regexp.MustCompile(`.*age.*=0.123457,`).MatchString(sql) {
+	if !regexp.MustCompile(`.*age.*=0[.]12345678,`).MatchString(sql) {
 		t.Errorf("Failed to generate sql, got %v", sql)
 	}
 }

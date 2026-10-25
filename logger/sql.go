@@ -90,7 +90,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				vars[idx] = strconv.FormatUint(reflectValue.Uint(), 10)
 			case reflect.Float32, reflect.Float64:
-				vars[idx] = strconv.FormatFloat(reflectValue.Float(), 'f', 6, 64)
+				vars[idx] = strconv.FormatFloat(reflectValue.Float(), 'f', -1, reflectValue.Type().Bits())
 			case reflect.Bool:
 				vars[idx] = strconv.FormatBool(reflectValue.Bool())
 			case reflect.String:
@@ -132,7 +132,7 @@ func ExplainSQL(sql string, numericPlaceholder *regexp.Regexp, escaper string, a
 				case rv.CanUint():
 					vars[idx] = strconv.FormatUint(rv.Uint(), 10)
 				default:
-					vars[idx] = strconv.FormatFloat(rv.Float(), 'f', 6, 64)
+					vars[idx] = strconv.FormatFloat(rv.Float(), 'f', -1, rv.Type().Bits())
 				}
 			} else {
 				for _, t := range convertibleTypes {

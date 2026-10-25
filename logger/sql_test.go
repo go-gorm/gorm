@@ -34,6 +34,35 @@ func format(v []byte, escaper string) string {
 	return escaper + strings.ReplaceAll(string(v), escaper, escaper+escaper) + escaper
 }
 
+type (
+	namedFloat32    float32
+	namedFloat64    float64
+	stringerFloat32 float32
+	stringerFloat64 float64
+)
+
+func (stringerFloat32) String() string { return "not a SQL number" }
+func (stringerFloat64) String() string { return "not a SQL number" }
+
+func TestExplainSQLNamedFloatPrecision(t *testing.T) {
+	for _, value := range []interface{}{
+		namedFloat32(0.0000001), namedFloat64(0.0000001),
+		stringerFloat32(0.0000001), stringerFloat64(0.0000001),
+	} {
+		if got := logger.ExplainSQL("SELECT ?", nil, "'", value); got != "SELECT 0.0000001" {
+			t.Errorf("%T: got %q, want SELECT 0.0000001", value, got)
+		}
+	}
+	for _, value := range []interface{}{
+		namedFloat32(1.23), namedFloat64(1.23),
+		stringerFloat32(1.23), stringerFloat64(1.23),
+	} {
+		if got := logger.ExplainSQL("SELECT ?", nil, "'", value); got != "SELECT 1.23" {
+			t.Errorf("%T: got %q, want SELECT 1.23", value, got)
+		}
+	}
+}
+
 func TestExplainSQL(t *testing.T) {
 	type role string
 	type password []byte
@@ -121,7 +150,7 @@ func TestExplainSQL(t *testing.T) {
 			SQL:           "create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, float_val) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			NumericRegexp: nil,
 			Vars:          []interface{}{"jinzhu?", 1, 999.99, true, []byte("12345"), tt, &tt, nil, "w@g.\"com", myrole, pwd, floatVal},
-			Result:        `create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, float_val) values ("jinzhu?", 1, 999.99, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.""com", "admin", "pass", 1.230000)`,
+			Result:        `create table users (name, age, height, actived, bytes, create_at, update_at, deleted_at, email, role, pass, float_val) values ("jinzhu?", 1, 999.99, true, "12345", "2020-02-23 11:10:10", "2020-02-23 11:10:10", NULL, "w@g.""com", "admin", "pass", 1.23)`,
 		},
 	}
 
