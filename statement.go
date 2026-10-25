@@ -210,6 +210,37 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			} else {
 				writer.WriteString("(NULL)")
 			}
+		// Typed slice fast paths: avoid the per-element reflect.Value.Interface()
+		// boxing and the recursive AddVar dispatch used by the reflect fallback.
+		// []uint8 (= []byte) is intentionally omitted because it is handled as a
+		// scalar bind by the case above; custom slice aliases (e.g. type T []int)
+		// still go through the reflect fallback to preserve existing behavior.
+		case []int:
+			addVarsTyped(stmt, writer, v)
+		case []int8:
+			addVarsTyped(stmt, writer, v)
+		case []int16:
+			addVarsTyped(stmt, writer, v)
+		case []int32:
+			addVarsTyped(stmt, writer, v)
+		case []int64:
+			addVarsTyped(stmt, writer, v)
+		case []uint:
+			addVarsTyped(stmt, writer, v)
+		case []uint16:
+			addVarsTyped(stmt, writer, v)
+		case []uint32:
+			addVarsTyped(stmt, writer, v)
+		case []uint64:
+			addVarsTyped(stmt, writer, v)
+		case []float32:
+			addVarsTyped(stmt, writer, v)
+		case []float64:
+			addVarsTyped(stmt, writer, v)
+		case []string:
+			addVarsTyped(stmt, writer, v)
+		case []bool:
+			addVarsTyped(stmt, writer, v)
 		case interface{ getInstance() *DB }:
 			cv := v.getInstance()
 
@@ -266,6 +297,30 @@ func (stmt *Statement) AddVar(writer clause.Writer, vars ...interface{}) {
 			}
 		}
 	}
+}
+
+// addVarsTyped writes a parenthesized, comma-separated list of bind variables
+// for a slice of a concrete primitive type, appending each element to
+// stmt.Vars with its original type preserved. Empty slices are rendered as
+// "(NULL)" to match the existing reflect-based behavior in AddVar.
+//
+// Writer errors are intentionally ignored: clause.Writer is satisfied by
+// strings.Builder whose Write methods never return a non-nil error, matching
+// the rest of AddVar.
+func addVarsTyped[T any](stmt *Statement, writer clause.Writer, vars []T) {
+	if len(vars) == 0 {
+		_, _ = writer.WriteString("(NULL)")
+		return
+	}
+	_ = writer.WriteByte('(')
+	for i, v := range vars {
+		if i > 0 {
+			_ = writer.WriteByte(',')
+		}
+		stmt.Vars = append(stmt.Vars, v)
+		stmt.BindVarTo(writer, stmt, v)
+	}
+	_ = writer.WriteByte(')')
 }
 
 // AddClause add clause
