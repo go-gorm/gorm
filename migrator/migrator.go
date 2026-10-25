@@ -671,13 +671,17 @@ func (m Migrator) CreateView(name string, option gorm.ViewOption) error {
 	m.QuoteTo(sql, name)
 	sql.WriteString(" AS ")
 
-	m.DB.Statement.AddVar(sql, option.Query)
+	// collect the subquery's vars on an isolated statement: AddVar appends to
+	// the statement's Vars, and reusing the shared m.DB.Statement leaked the
+	// vars of a previous CreateView call into this view's placeholders
+	stmt := &gorm.Statement{DB: m.DB}
+	stmt.AddVar(sql, option.Query)
 
 	if option.CheckOption != "" {
 		sql.WriteString(" ")
 		sql.WriteString(option.CheckOption)
 	}
-	return m.DB.Exec(m.Explain(sql.String(), m.DB.Statement.Vars...)).Error
+	return m.DB.Exec(m.Explain(sql.String(), stmt.Vars...)).Error
 }
 
 // DropView drop view
