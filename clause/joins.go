@@ -16,6 +16,7 @@ type JoinTarget struct {
 	Association string
 	Subquery    Expression
 	Table       string
+	From        Table
 }
 
 func Has(name string) JoinTarget {
