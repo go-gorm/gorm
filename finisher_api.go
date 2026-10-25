@@ -453,6 +453,13 @@ func (db *DB) Delete(value interface{}, conds ...interface{}) (tx *DB) {
 
 func (db *DB) Count(count *int64) (tx *DB) {
 	tx = db.getInstance()
+	if len(tx.Statement.scopes) > 0 {
+		for len(tx.Statement.scopes) > 0 {
+			tx = tx.executeScopes()
+		}
+		db = tx
+	}
+
 	if tx.Statement.Model == nil {
 		tx.Statement.Model = tx.Statement.Dest
 		defer func() {
