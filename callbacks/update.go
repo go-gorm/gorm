@@ -185,6 +185,14 @@ func ConvertToAssignments(stmt *gorm.Statement) (set clause.Set) {
 							break
 						}
 					}
+
+					// isZero only reflects the last examined element, so stop
+					// as soon as an element with identity is found; otherwise a
+					// trailing element with zero primary keys would discard the
+					// identity condition of the whole slice.
+					if !isZero {
+						break
+					}
 				}
 
 				if !isZero {
