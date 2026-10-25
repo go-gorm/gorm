@@ -57,23 +57,19 @@ func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 			case OrConditions:
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
-						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = containsBooleanOperator(e.SQL)
 					}
 				}
 			case AndConditions:
 				if len(v.Exprs) == 1 {
 					if e, ok := v.Exprs[0].(Expr); ok {
-						sql := strings.ToUpper(e.SQL)
-						wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+						wrapInParentheses = containsBooleanOperator(e.SQL)
 					}
 				}
 			case Expr:
-				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = containsBooleanOperator(v.SQL)
 			case NamedExpr:
-				sql := strings.ToUpper(v.SQL)
-				wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace)
+				wrapInParentheses = containsBooleanOperator(v.SQL)
 			}
 		}
 
@@ -86,6 +82,46 @@ func buildExprs(exprs []Expression, builder Builder, joinCond string) {
 			expr.Build(builder)
 		}
 	}
+}
+
+func containsBooleanOperator(sql string) bool {
+	for i := 0; i < len(sql); i++ {
+		if !isSQLWordBoundary(sql, i-1) {
+			continue
+		}
+
+		switch {
+		case hasKeywordAt(sql, i, "AND"):
+			if isSQLWordBoundary(sql, i+3) {
+				return true
+			}
+		case hasKeywordAt(sql, i, "OR"):
+			if isSQLWordBoundary(sql, i+2) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasKeywordAt(sql string, i int, keyword string) bool {
+	if len(sql)-i < len(keyword) {
+		return false
+	}
+	return strings.EqualFold(sql[i:i+len(keyword)], keyword)
+}
+
+func isSQLWordBoundary(sql string, i int) bool {
+	if i < 0 || i >= len(sql) {
+		return true
+	}
+
+	c := sql[i]
+	switch {
+	case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '_':
+		return false
+	}
+	return true
 }
 
 // MergeClause merge where clauses
@@ -190,8 +226,7 @@ func (not NotConditions) Build(builder Builder) {
 				builder.WriteString("NOT ")
 				e, wrapInParentheses := c.(Expr)
 				if wrapInParentheses {
-					sql := strings.ToUpper(e.SQL)
-					if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+					if wrapInParentheses = containsBooleanOperator(e.SQL); wrapInParentheses {
 						builder.WriteByte('(')
 					}
 				}
@@ -225,8 +260,7 @@ func (not NotConditions) Build(builder Builder) {
 
 			e, wrapInParentheses := c.(Expr)
 			if wrapInParentheses {
-				sql := strings.ToUpper(e.SQL)
-				if wrapInParentheses = strings.Contains(sql, AndWithSpace) || strings.Contains(sql, OrWithSpace); wrapInParentheses {
+				if wrapInParentheses = containsBooleanOperator(e.SQL); wrapInParentheses {
 					builder.WriteByte('(')
 				}
 			}
