@@ -15,6 +15,7 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"gorm.io/gorm/schema"
 	. "gorm.io/gorm/utils/tests"
 )
 
@@ -138,6 +139,31 @@ func TestInvalidValuer(t *testing.T) {
 	}
 
 	AssertEqual(t, data.Password, EncryptedData("newpass"))
+}
+
+func TestScannerHandlesNullForNonPointerField(t *testing.T) {
+	DB.Migrator().DropTable(&NullScannerModel{})
+	if err := DB.AutoMigrate(&NullScannerModel{}); err != nil {
+		t.Fatalf("failed to migrate NullScannerModel, got %v", err)
+	}
+
+	record := NullScannerModel{}
+	if err := DB.Create(&record).Error; err != nil {
+		t.Fatalf("failed to create NullScannerModel, got %v", err)
+	}
+
+	var result NullScannerModel
+	if err := DB.First(&result, record.ID).Error; err != nil {
+		t.Fatalf("failed to query NullScannerModel, got %v", err)
+	}
+
+	if result.Settings == nil {
+		t.Errorf("expected scanner to initialize empty map for NULL value")
+	}
+
+	if len(result.Settings) != 0 {
+		t.Errorf("expected empty map for NULL value, got %v", result.Settings)
+	}
 }
 
 type ScannerValuerStruct struct {
@@ -308,6 +334,50 @@ func (t EmptyTime) Value() (driver.Value, error) {
 
 type NullString struct {
 	sql.NullString
+}
+
+type NullScannerModel struct {
+	ID       uint
+	Settings extraSettings
+}
+
+type extraSettings map[string]any
+
+func (s extraSettings) Value() (driver.Value, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	return json.Marshal(s)
+}
+
+func (s *extraSettings) Scan(src interface{}) error {
+	if src == nil {
+		*s = map[string]any{}
+		return nil
+	}
+
+	switch v := src.(type) {
+	case []byte:
+		return json.Unmarshal(v, s)
+	case string:
+		return json.Unmarshal([]byte(v), s)
+	default:
+		return fmt.Errorf("unsupported type %T for extraSettings", src)
+	}
+}
+
+func (extraSettings) GormDataType() string {
+	return "json"
+}
+
+func (extraSettings) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+	switch db.Dialector.Name() {
+	case "sqlserver":
+		return "nvarchar(max)"
+	default:
+		return "json"
+	}
 }
 
 type Point struct {
