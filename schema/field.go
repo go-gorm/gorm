@@ -899,7 +899,9 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
-						return
+						if val, zero := field.ValueOf(ctx, value); !zero {
+							err = val.(sql.Scanner).Scan(nil)
+						}
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {
@@ -925,7 +927,9 @@ func (field *Field) setupValuerAndSetter(modelType reflect.Type) {
 					if !reflectV.IsValid() {
 						field.ReflectValueOf(ctx, value).Set(reflect.New(field.FieldType).Elem())
 					} else if reflectV.Kind() == reflect.Ptr && reflectV.IsNil() {
-						return
+						if fv, ok := findFieldByIndex(value, field.StructField.Index); ok {
+							err = fv.Addr().Interface().(sql.Scanner).Scan(nil)
+						}
 					} else if reflectV.Type().AssignableTo(field.FieldType) {
 						field.ReflectValueOf(ctx, value).Set(reflectV)
 					} else if reflectV.Kind() == reflect.Ptr {

@@ -216,6 +216,29 @@ func ToQueryValues(table string, foreignKeys []string, foreignValues [][]interfa
 	return columns, queryValues
 }
 
+// findFieldByIndex returns the nested field corresponding to index.
+// If field is in nested struct and the nested struct is nil, it returns the parent struct and false.
+// Otherwise, it returns the field and true.
+func findFieldByIndex(v reflect.Value, index []int) (reflect.Value, bool) {
+	f := reflect.Indirect(v)
+	for idx, fieldIdx := range index {
+		if fieldIdx >= 0 {
+			f = f.Field(fieldIdx)
+		} else {
+			f = f.Field(-fieldIdx - 1)
+
+			if f.IsNil() {
+				return v, false
+			}
+
+			if idx < len(index)-1 {
+				f = f.Elem()
+			}
+		}
+	}
+	return f, true
+}
+
 type embeddedNamer struct {
 	Table string
 	Namer
