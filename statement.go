@@ -608,7 +608,12 @@ func (stmt *Statement) SetColumn(name string, value interface{}, fromCallbacks .
 
 				switch destValue.Kind() {
 				case reflect.Struct:
-					stmt.AddError(field.Set(stmt.Context, destValue, value))
+					if destSchema, err := schema.Parse(stmt.Dest, stmt.cacheStore, stmt.NamingStrategy); err != nil {
+						_ = stmt.AddError(err)
+					} else if destField := destSchema.FieldsByDBName[field.DBName]; destField != nil {
+						// Match the update assignments by column, not by model field index.
+						_ = stmt.AddError(destField.Set(stmt.Context, destValue, value))
+					}
 				default:
 					stmt.AddError(ErrInvalidData)
 				}
