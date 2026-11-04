@@ -117,6 +117,7 @@ type DB struct {
 type Session struct {
 	DryRun                   bool
 	PrepareStmt              bool
+	DisablePrepareStmt       bool
 	NewDB                    bool
 	Initialized              bool
 	SkipHooks                bool
@@ -288,7 +289,7 @@ func (db *DB) Session(config *Session) *DB {
 		txConfig.PropagateUnscoped = true
 	}
 
-	if config.Context != nil || config.PrepareStmt || config.SkipHooks {
+	if config.Context != nil || config.PrepareStmt || config.DisablePrepareStmt || config.SkipHooks {
 		tx.Statement = tx.Statement.clone()
 		tx.Statement.DB = tx
 	}
@@ -322,6 +323,16 @@ func (db *DB) Session(config *Session) *DB {
 		}
 		txConfig.ConnPool = tx.Statement.ConnPool
 		txConfig.PrepareStmt = true
+	} else if config.DisablePrepareStmt {
+		switch t := tx.Statement.ConnPool.(type) {
+		case *PreparedStmtTX:
+			tx.Statement.ConnPool = t.Tx
+		case *PreparedStmtDB:
+			tx.Statement.ConnPool = t.ConnPool
+		}
+
+		txConfig.ConnPool = tx.Statement.ConnPool
+		txConfig.PrepareStmt = false
 	}
 
 	if config.SkipHooks {
