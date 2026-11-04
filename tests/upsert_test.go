@@ -292,7 +292,7 @@ func TestFindOrInitialize(t *testing.T) {
 }
 
 func TestFindOrCreate(t *testing.T) {
-	var user1, user2, user3, user4, user5, user6, user7, user8 User
+	var user1, user2, user3, user4, user5, user6, user7, user8, user9 User
 	if err := DB.Where(&User{Name: "find or create", Age: 33}).FirstOrCreate(&user1).Error; err != nil {
 		t.Errorf("no error should happen when FirstOrInit, but got %v", err)
 	}
@@ -327,27 +327,27 @@ func TestFindOrCreate(t *testing.T) {
 		t.Errorf("UpdateAt should be changed when update values with assign")
 	}
 
-	DB.Where(&User{Name: "find or create 4"}).Assign(User{Age: 44}).FirstOrCreate(&user4)
-	if user4.Name != "find or create 4" || user4.ID == 0 || user4.Age != 44 {
+	DB.Where(&User{Name: "find or create 4"}).Assign(User{Age: 44}).FirstOrCreate(&user5)
+	if user5.Name != "find or create 4" || user5.ID == 0 || user5.Age != 44 {
 		t.Errorf("user should be created with search value and assigned attrs")
 	}
 
-	DB.Where(&User{Name: "find or create"}).Attrs("age", 44).FirstOrInit(&user5)
-	if user5.Name != "find or create" || user5.ID == 0 || user5.Age != 33 {
+	DB.Where(&User{Name: "find or create"}).Attrs("age", 44).FirstOrInit(&user6)
+	if user6.Name != "find or create" || user6.ID == 0 || user6.Age != 33 {
 		t.Errorf("user should be found and not initialized by Attrs")
 	}
 
-	DB.Where(&User{Name: "find or create"}).Assign(User{Age: 44}).FirstOrCreate(&user6)
-	if user6.Name != "find or create" || user6.ID == 0 || user6.Age != 44 {
-		t.Errorf("user should be found and updated with assigned attrs")
-	}
-
-	DB.Where(&User{Name: "find or create"}).Find(&user7)
+	DB.Where(&User{Name: "find or create"}).Assign(User{Age: 44}).FirstOrCreate(&user7)
 	if user7.Name != "find or create" || user7.ID == 0 || user7.Age != 44 {
 		t.Errorf("user should be found and updated with assigned attrs")
 	}
 
-	DB.Where(&User{Name: "find or create embedded struct"}).Assign(User{Age: 44, Account: Account{Number: "1231231231"}, Pets: []*Pet{{Name: "first_or_create_pet1"}, {Name: "first_or_create_pet2"}}}).FirstOrCreate(&user8)
+	DB.Where(&User{Name: "find or create"}).Find(&user8)
+	if user8.Name != "find or create" || user8.ID == 0 || user8.Age != 44 {
+		t.Errorf("user should be found and updated with assigned attrs")
+	}
+
+	DB.Where(&User{Name: "find or create embedded struct"}).Assign(User{Age: 44, Account: Account{Number: "1231231231"}, Pets: []*Pet{{Name: "first_or_create_pet1"}, {Name: "first_or_create_pet2"}}}).FirstOrCreate(&user9)
 	if err := DB.Where("name = ?", "first_or_create_pet1").First(&Pet{}).Error; err != nil {
 		t.Errorf("has many association should be saved")
 	}
