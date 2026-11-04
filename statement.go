@@ -106,7 +106,7 @@ func (stmt *Statement) QuoteTo(writer clause.Writer, field interface{}) {
 		}
 
 		if v.Alias != "" {
-			writer.WriteByte(' ')
+			writer.WriteString(" AS ")
 			write(v.Raw, v.Alias)
 		}
 	case clause.Column:
