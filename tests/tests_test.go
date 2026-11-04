@@ -51,6 +51,7 @@ func init() {
 
 func OpenTestConnection(cfg *gorm.Config) (db *gorm.DB, err error) {
 	dbDSN := os.Getenv("GORM_DSN")
+	enableArrayHandler := os.Getenv("GORM_ENABLE_ARRAY_HANDLER")
 	switch os.Getenv("GORM_DIALECT") {
 	case "mysql":
 		log.Println("testing mysql...")
@@ -66,6 +67,7 @@ func OpenTestConnection(cfg *gorm.Config) (db *gorm.DB, err error) {
 		db, err = gorm.Open(postgres.New(postgres.Config{
 			DSN:                  dbDSN,
 			PreferSimpleProtocol: true,
+			EnableArrayHandler:   enableArrayHandler == "true",
 		}), cfg)
 	case "gaussdb":
 		log.Println("testing gaussdb...")
