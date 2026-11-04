@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/now"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
@@ -632,6 +633,38 @@ func TestCreateOnConflictWithDefaultNull(t *testing.T) {
 	AssertEqual(t, u2.Name, "on-conflict-user-name-2")
 	AssertEqual(t, u2.Email, "on-conflict-user-email-2")
 	AssertEqual(t, u2.Mobile, "133xxxx")
+}
+
+func TestCreateOnConflictWithDefaultJSON(t *testing.T) {
+	if DB.Dialector.Name() == "mysql" {
+		t.Skip() // mysql json can't have a default value
+	}
+	type OnConflictValue struct {
+		ID     int
+		Params datatypes.JSONMap `gorm:"default:'{}'"`
+	}
+
+	err := DB.Migrator().DropTable(&OnConflictValue{})
+	AssertEqual(t, err, nil)
+	err = DB.AutoMigrate(&OnConflictValue{})
+	AssertEqual(t, err, nil)
+
+	v := OnConflictValue{
+		Params: datatypes.JSONMap{"foo": "bar"},
+	}
+	err = DB.Create(&v).Error
+	AssertEqual(t, err, nil)
+
+	err = DB.Clauses(clause.OnConflict{UpdateAll: true}).Create(&OnConflictValue{
+		ID:     v.ID,
+		Params: datatypes.JSONMap{"foo": "new-bar"},
+	}).Error
+	AssertEqual(t, err, nil)
+
+	var v2 OnConflictValue
+	err = DB.Where("id = ?", v.ID).First(&v2).Error
+	AssertEqual(t, err, nil)
+	AssertEqual(t, v2.Params, datatypes.JSONMap{"foo": "new-bar"})
 }
 
 func TestCreateFromMapWithoutPK(t *testing.T) {
