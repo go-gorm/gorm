@@ -986,6 +986,22 @@ func TestGenericsToSQL(t *testing.T) {
 	}
 }
 
+func TestGenericsSelectWithArrayInput(t *testing.T) {
+	ctx := context.Background()
+	sql := DB.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		gorm.G[User](tx).Select([]string{"id", "name"}).Find(ctx)
+		return tx
+	})
+
+	if !regexp.MustCompile("SELECT .*id.*,.*name.* FROM .users.").MatchString(sql) {
+		t.Fatalf("ToSQL: got wrong sql with Generics Select array input %v", sql)
+	}
+
+	if strings.Contains(sql, "('id','name')") || strings.Contains(sql, "('name','id')") {
+		t.Fatalf("ToSQL: should build column list instead of string literals, got %v", sql)
+	}
+}
+
 func TestGenericsScanUUID(t *testing.T) {
 	ctx := context.Background()
 	users := []User{
