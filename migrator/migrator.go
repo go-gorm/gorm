@@ -811,7 +811,16 @@ func (m Migrator) BuildIndexOptions(opts []schema.IndexOption, stmt *gorm.Statem
 		if opt.Expression != "" {
 			str = opt.Expression
 		} else if opt.Length > 0 {
-			str += fmt.Sprintf("(%d)", opt.Length)
+			// Use Postgres-specific prefix only if dialect is Postgres
+			dialectName := ""
+			if m.DB != nil && m.DB.Dialector != nil {
+				dialectName = strings.ToLower(fmt.Sprintf("%T", m.DB.Dialector))
+			}
+			if strings.Contains(dialectName, "postgres") {
+				str = fmt.Sprintf("LEFT(%s,%d)", str, opt.Length)
+			} else {
+				str += fmt.Sprintf("(%d)", opt.Length)
+			}
 		}
 
 		if opt.Collate != "" {
