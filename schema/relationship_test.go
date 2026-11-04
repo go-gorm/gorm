@@ -1,6 +1,7 @@
 package schema_test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1039,5 +1040,34 @@ func TestDataRace(t *testing.T) {
 			var result tests.Account
 			schema.Parse(&result, syncMap, schema.NamingStrategy{IdentifierMaxLength: 64})
 		}()
+	}
+}
+
+func TestDeferrable(t *testing.T) {
+	type Profile struct {
+		gorm.Model
+		Name   string
+		User   User
+		UserId uint
+	}
+
+	type User struct {
+		gorm.Model
+		Profile Profile `gorm:"constraint:deferrable:initially deferred"`
+	}
+
+	s, err := schema.Parse(&User{}, &sync.Map{}, schema.NamingStrategy{})
+	if err != nil {
+		t.Fatalf("failed to parse schema")
+	}
+
+	constraint := s.Relationships.Relations["Profile"].ParseConstraint()
+	if constraint.Deferrable != "INITIALLY DEFERRED" {
+		t.Fatalf("expected deferrable INITIALLY DEFERRED, got %v", constraint.Deferrable)
+	}
+
+	sql, _ := constraint.Build()
+	if !strings.Contains(sql, "DEFERRABLE INITIALLY DEFERRED") {
+		t.Fatalf("expected deferrable in sql, got %v", sql)
 	}
 }
