@@ -364,6 +364,15 @@ func onConflictOption(stmt *gorm.Statement, s *schema.Schema, defaultUpdatingCol
 			onConflict.Columns = append(onConflict.Columns, clause.Column{Name: dbName})
 		}
 
+		// If the associated model has no primary key columns, we cannot build a valid
+		// ON CONFLICT (columns) DO UPDATE clause. Fall back to DO NOTHING to avoid
+		// generating invalid SQL (e.g. ON CONFLICT DO UPDATE SET ... without column
+		// specification, which PostgreSQL rejects).
+		if len(onConflict.Columns) == 0 {
+			onConflict.DoNothing = true
+			return
+		}
+
 		onConflict.UpdateAll = stmt.DB.FullSaveAssociations
 		if !onConflict.UpdateAll {
 			onConflict.DoUpdates = clause.AssignmentColumns(defaultUpdatingColumns)
