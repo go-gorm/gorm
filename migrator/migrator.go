@@ -192,6 +192,9 @@ func (m Migrator) AutoMigrate(values ...interface{}) error {
 						if err := execTx.Migrator().CreateIndex(value, idx.Name); err != nil {
 							return err
 						}
+						if !execTx.DryRun && !queryTx.Migrator().HasIndex(value, idx.Name) {
+							return fmt.Errorf("failed to create index %v", idx.Name)
+						}
 					}
 				}
 
@@ -253,6 +256,9 @@ func (m Migrator) CreateTable(values ...interface{}) error {
 					defer func(value interface{}, name string) {
 						if err == nil {
 							err = tx.Migrator().CreateIndex(value, name)
+							if err == nil && !tx.DryRun && !tx.Migrator().HasIndex(value, name) {
+								err = fmt.Errorf("failed to create index %v", name)
+							}
 						}
 					}(value, idx.Name)
 				} else {
