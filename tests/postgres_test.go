@@ -254,3 +254,105 @@ func TestAlterColumnDataType(t *testing.T) {
 
 	DB.AutoMigrate(Company{})
 }
+
+type SharedIndexLeft struct {
+	ID   uint
+	Host string `gorm:"size:64;uniqueIndex:idx_shared_host_port"`
+	Port int    `gorm:"uniqueIndex:idx_shared_host_port"`
+}
+
+type SharedIndexRight struct {
+	ID   uint
+	Host string `gorm:"size:64;uniqueIndex:idx_shared_host_port"`
+	Port int    `gorm:"uniqueIndex:idx_shared_host_port"`
+}
+
+type DistinctIndexLeft struct {
+	ID   uint
+	Host string `gorm:"size:64;uniqueIndex:idx_distinct_left_host_port"`
+	Port int    `gorm:"uniqueIndex:idx_distinct_left_host_port"`
+}
+
+type DistinctIndexRight struct {
+	ID   uint
+	Host string `gorm:"size:64;uniqueIndex:idx_distinct_right_host_port"`
+	Port int    `gorm:"uniqueIndex:idx_distinct_right_host_port"`
+}
+
+func TestAutoMigrateSharedUniqueIndexNamePostgres(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip()
+	}
+
+	// Positive case: distinct unique index names across models
+	DB.Migrator().DropTable(&DistinctIndexLeft{}, &DistinctIndexRight{})
+	t.Cleanup(func() {
+		DB.Migrator().DropTable(&DistinctIndexLeft{}, &DistinctIndexRight{})
+	})
+
+	if err := DB.AutoMigrate(&DistinctIndexLeft{}, &DistinctIndexRight{}); err != nil {
+		t.Fatalf("expected AutoMigrate to succeed for models with distinct unique index names, got error: %v", err)
+	}
+	if !DB.Migrator().HasIndex(&DistinctIndexLeft{}, "idx_distinct_left_host_port") {
+		t.Fatalf("expected unique index on DistinctIndexLeft to exist")
+	}
+	if !DB.Migrator().HasIndex(&DistinctIndexRight{}, "idx_distinct_right_host_port") {
+		t.Fatalf("expected unique index on DistinctIndexRight to exist")
+	}
+
+	// Verify uniqueness is enforced on both tables
+	if err := DB.Create(&DistinctIndexLeft{Host: "127.0.0.1", Port: 80}).Error; err != nil {
+		t.Fatalf("failed to insert initial row into DistinctIndexLeft: %v", err)
+	}
+	if err := DB.Create(&DistinctIndexLeft{Host: "127.0.0.1", Port: 80}).Error; err == nil {
+		t.Fatalf("expected duplicate insert into DistinctIndexLeft to fail")
+	}
+	if err := DB.Create(&DistinctIndexRight{Host: "127.0.0.1", Port: 80}).Error; err != nil {
+		t.Fatalf("failed to insert initial row into DistinctIndexRight: %v", err)
+	}
+	if err := DB.Create(&DistinctIndexRight{Host: "127.0.0.1", Port: 80}).Error; err == nil {
+		t.Fatalf("expected duplicate insert into DistinctIndexRight to fail")
+	}
+
+	// Negative case 1 (issue #7894): simultaneous AutoMigrate with colliding index name
+	DB.Migrator().DropTable(&SharedIndexLeft{}, &SharedIndexRight{})
+	t.Cleanup(func() {
+		DB.Migrator().DropTable(&SharedIndexLeft{}, &SharedIndexRight{})
+	})
+
+	if err := DB.AutoMigrate(&SharedIndexLeft{}, &SharedIndexRight{}); err == nil {
+		t.Fatalf("expected AutoMigrate to fail when two models declare colliding unique index names, got nil")
+	}
+
+	// Negative case 2: sequential AutoMigrate where first succeeds and second collides
+	DB.Migrator().DropTable(&SharedIndexLeft{}, &SharedIndexRight{})
+	if err := DB.AutoMigrate(&SharedIndexLeft{}); err != nil {
+		t.Fatalf("failed to migrate first model: %v", err)
+	}
+	if !DB.Migrator().HasIndex(&SharedIndexLeft{}, "idx_shared_host_port") {
+		t.Fatalf("expected index on first model to exist")
+	}
+	if err := DB.AutoMigrate(&SharedIndexRight{}); err == nil {
+		t.Fatalf("expected AutoMigrate on second model with colliding index name to fail, got nil")
+	}
+
+	// Negative case 3: existing table without index updated via AutoMigrate with colliding index
+	type SharedIndexRightNoIndex struct {
+		ID   uint
+		Host string `gorm:"size:64"`
+		Port int
+	}
+	DB.Migrator().DropTable("shared_index_rights")
+	if err := DB.Table("shared_index_rights").AutoMigrate(&SharedIndexRightNoIndex{}); err != nil {
+		t.Fatalf("failed to create existing table without index: %v", err)
+	}
+	if err := DB.AutoMigrate(&SharedIndexRight{}); err == nil {
+		t.Fatalf("expected AutoMigrate to fail when adding colliding index to existing table, got nil")
+	}
+
+	// DryRun verification: AutoMigrate with DryRun should not return an error
+	if err := DB.Session(&gorm.Session{DryRun: true}).AutoMigrate(&SharedIndexLeft{}); err != nil {
+		t.Fatalf("expected DryRun AutoMigrate to succeed, got: %v", err)
+	}
+}
+
