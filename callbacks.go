@@ -132,9 +132,22 @@ func (p *processor) Execute(db *DB) *DB {
 		}
 	}
 
+	// a panic in a callback must not leave the default transaction open: roll it back
+	// and let the panic continue, the same way DB.Transaction does
+	panicked := true
+	defer func() {
+		if panicked {
+			if _, ok := db.InstanceGet("gorm:started_transaction"); ok {
+				db.Rollback()
+				db.Statement.ConnPool = db.ConnPool
+			}
+		}
+	}()
+
 	for _, f := range p.fns {
 		f(db)
 	}
+	panicked = false
 
 	if stmt.SQL.Len() > 0 {
 		db.Logger.Trace(stmt.Context, curTime, func() (string, int64) {
