@@ -609,3 +609,151 @@ func TestPropagateUnscoped(t *testing.T) {
 		t.Fatalf("unscoped did not propagate")
 	}
 }
+
+type PanicHookProduct struct {
+	ID    uint
+	Name  string
+	Panic string
+}
+
+func (p *PanicHookProduct) BeforeCreate(tx *gorm.DB) error {
+	if p.Panic == "create" {
+		panic("panic in BeforeCreate")
+	}
+	return nil
+}
+
+func (p *PanicHookProduct) BeforeUpdate(tx *gorm.DB) error {
+	if p.Panic == "update" {
+		panic("panic in BeforeUpdate")
+	}
+	return nil
+}
+
+func (p *PanicHookProduct) BeforeDelete(tx *gorm.DB) error {
+	if p.Panic == "delete" {
+		panic("panic in BeforeDelete")
+	}
+	return nil
+}
+
+func TestPanicInCallbackRollsBackDefaultTransaction(t *testing.T) {
+	DB.Migrator().DropTable(&PanicHookProduct{})
+	if err := DB.AutoMigrate(&PanicHookProduct{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	sqlDB, err := DB.DB()
+	if err != nil {
+		t.Fatalf("failed to get sql.DB, got error %v", err)
+	}
+
+	for _, prepareStmt := range []bool{false, true} {
+		session := DB.Session(&gorm.Session{PrepareStmt: prepareStmt})
+		if prepareStmt {
+			t.Cleanup(func() {
+				if mgr, ok := session.ConnPool.(*gorm.PreparedStmtDB); ok {
+					mgr.Close()
+				}
+			})
+		}
+
+		for _, op := range []string{"create", "update", "delete"} {
+			name := op
+			if prepareStmt {
+				name += "-prepared"
+			}
+			t.Run(name, func(t *testing.T) {
+				product := PanicHookProduct{Name: name}
+				if op != "create" {
+					if err := session.Create(&product).Error; err != nil {
+						t.Fatalf("failed to create fixture, got error %v", err)
+					}
+				}
+				product.Panic = op
+				inUse := sqlDB.Stats().InUse
+
+				func() {
+					defer func() {
+						if r := recover(); r == nil {
+							t.Errorf("expected the panic to propagate to the caller")
+						}
+					}()
+					switch op {
+					case "create":
+						session.Create(&product)
+					case "update":
+						session.Model(&product).Update("name", "changed")
+					case "delete":
+						session.Delete(&product)
+					}
+				}()
+
+				if got := sqlDB.Stats().InUse; got != inUse {
+					t.Errorf("connection still in use after a panic in %s, in use before %d, after %d", op, inUse, got)
+				}
+
+				var count int64
+				session.Model(&PanicHookProduct{}).Where("name = ?", name).Count(&count)
+				switch op {
+				case "create":
+					if count != 0 {
+						t.Errorf("row of the panicking create must be rolled back, found %d", count)
+					}
+				case "update", "delete":
+					if count != 1 {
+						t.Errorf("the panicking %s must leave the original row, found %d", op, count)
+					}
+				}
+
+				if err := session.Create(&PanicHookProduct{Name: name + "-after"}).Error; err != nil {
+					t.Errorf("create after the panic failed, got error %v", err)
+				}
+			})
+		}
+	}
+}
+
+type PanicOwner struct {
+	ID    uint
+	Name  string
+	Items []*PanicItem
+}
+
+type PanicItem struct {
+	ID           uint
+	PanicOwnerID uint
+}
+
+func TestPanicInAssociationSaveRollsBackDefaultTransaction(t *testing.T) {
+	DB.Migrator().DropTable(&PanicItem{}, &PanicOwner{})
+	if err := DB.AutoMigrate(&PanicOwner{}, &PanicItem{}); err != nil {
+		t.Fatalf("failed to migrate, got error %v", err)
+	}
+
+	sqlDB, err := DB.DB()
+	if err != nil {
+		t.Fatalf("failed to get sql.DB, got error %v", err)
+	}
+	inUse := sqlDB.Stats().InUse
+
+	func() {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("expected the panic to propagate to the caller")
+			}
+		}()
+		// a nil element panics after the parent row has been inserted
+		DB.Create(&PanicOwner{Name: "owner", Items: []*PanicItem{nil}})
+	}()
+
+	if got := sqlDB.Stats().InUse; got != inUse {
+		t.Errorf("connection still in use after a panic in the association save, in use before %d, after %d", inUse, got)
+	}
+
+	var count int64
+	DB.Model(&PanicOwner{}).Where("name = ?", "owner").Count(&count)
+	if count != 0 {
+		t.Errorf("the parent row must be rolled back, found %d", count)
+	}
+}
