@@ -95,6 +95,21 @@ func TestCount(t *testing.T) {
 		t.Fatalf("Build count with select, but got %v", result.Statement.SQL.String())
 	}
 
+	result = dryDB.Table("users").Select("name as n").Count(&count)
+	if !regexp.MustCompile(`SELECT COUNT\(.name.\) FROM .*users.*`).MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build count with select alias, but got %v", result.Statement.SQL.String())
+	}
+
+	result = dryDB.Model(&User{}).Distinct("Name AS n").Count(&count)
+	if !regexp.MustCompile(`SELECT COUNT\(DISTINCT\(.name.\)\) FROM .*users.*`).MatchString(result.Statement.SQL.String()) {
+		t.Fatalf("Build count with distinct alias, but got %v", result.Statement.SQL.String())
+	}
+
+	var countAlias int64
+	if err := DB.Model(&User{}).Select("users.name as n").Where("name in ?", []string{user1.Name, user2.Name, user3.Name}).Count(&countAlias).Error; err != nil || countAlias != 3 {
+		t.Errorf("Count with select alias should be 3, but got count: %v err %v", countAlias, err)
+	}
+
 	var count4 int64
 	if err := DB.Table("users").Joins("LEFT JOIN companies on companies.name = users.name").Where("users.name = ?", user1.Name).Count(&count4).Error; err != nil || count4 != 1 {
 		t.Errorf("count with join, got error: %v, count %v", err, count4)

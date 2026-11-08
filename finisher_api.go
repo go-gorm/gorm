@@ -477,6 +477,10 @@ func (db *DB) Count(count *int64) (tx *DB) {
 			dbName := tx.Statement.Selects[0]
 			fields := strings.FieldsFunc(dbName, utils.IsInvalidDBNameChar)
 			if len(fields) == 1 || (len(fields) == 3 && (strings.ToUpper(fields[1]) == "AS" || fields[1] == ".")) {
+				if len(fields) == 3 && strings.ToUpper(fields[1]) == "AS" {
+					dbName = fields[0]
+				}
+
 				if tx.Statement.Parse(tx.Statement.Model) == nil {
 					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
 						dbName = f.DBName
