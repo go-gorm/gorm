@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -205,6 +206,10 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 
 						for i := 0; i < f.Len(); i++ {
 							elem := f.Index(i)
+							if elem.Kind() == reflect.Ptr && elem.IsNil() {
+								db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
+								continue
+							}
 							for _, ref := range rel.References {
 								if ref.OwnPrimaryKey {
 									pv, _ := ref.PrimaryKey.ValueOf(db.Statement.Context, v)
@@ -297,6 +302,10 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 						f := reflect.Indirect(rel.Field.ReflectValueOf(db.Statement.Context, v))
 						for i := 0; i < f.Len(); i++ {
 							elem := f.Index(i)
+							if elem.Kind() == reflect.Ptr && elem.IsNil() {
+								db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
+								continue
+							}
 							if !isPtr {
 								elem = elem.Addr()
 							}
