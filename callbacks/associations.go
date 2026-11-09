@@ -206,8 +206,8 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 
 						for i := 0; i < f.Len(); i++ {
 							elem := f.Index(i)
-							if elem.Kind() == reflect.Ptr && elem.IsNil() {
-								db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
+							if elem.Kind() == reflect.Pointer && elem.IsNil() {
+								_ = db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
 								continue
 							}
 							for _, ref := range rel.References {
@@ -302,8 +302,8 @@ func SaveAfterAssociations(create bool) func(db *gorm.DB) {
 						f := reflect.Indirect(rel.Field.ReflectValueOf(db.Statement.Context, v))
 						for i := 0; i < f.Len(); i++ {
 							elem := f.Index(i)
-							if elem.Kind() == reflect.Ptr && elem.IsNil() {
-								db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
+							if elem.Kind() == reflect.Pointer && elem.IsNil() {
+								_ = db.AddError(fmt.Errorf("associations %s[%v] is invalid: %w", rel.Name, i, gorm.ErrInvalidData))
 								continue
 							}
 							if !isPtr {
