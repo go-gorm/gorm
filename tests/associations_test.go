@@ -1,6 +1,7 @@
 package tests_test
 
 import (
+	"errors"
 	"testing"
 
 	"gorm.io/gorm"
@@ -461,5 +462,51 @@ func TestAssociationMany2ManyReplaceMap(t *testing.T) {
 	}
 	if len(langs) != 1 || langs[0].Code != "rm2m_map_1" {
 		t.Fatalf("expected only rm2m_map_1 after replace, got %+v", langs)
+	}
+}
+
+type NilElementParent struct {
+	ID       uint
+	Name     string
+	Children []*NilElementChild
+	Peers    []*NilElementPeer `gorm:"many2many:nil_element_parent_peers;"`
+}
+
+type NilElementChild struct {
+	ID                 uint
+	NilElementParentID uint
+	Name               string
+}
+
+type NilElementPeer struct {
+	ID   uint
+	Name string
+}
+
+func TestAssociationNilElement(t *testing.T) {
+	if err := DB.AutoMigrate(&NilElementParent{}, &NilElementChild{}, &NilElementPeer{}); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		parent *NilElementParent
+	}{
+		{"has many", &NilElementParent{ID: 2101, Name: "nil_element_has_many", Children: []*NilElementChild{nil}}},
+		{"many2many", &NilElementParent{ID: 2102, Name: "nil_element_m2m", Peers: []*NilElementPeer{nil}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := DB.Create(tc.parent).Error; !errors.Is(err, gorm.ErrInvalidData) {
+				t.Fatalf("%v: expected ErrInvalidData, got %v", tc.name, err)
+			}
+
+			var count int64
+			if err := DB.Model(&NilElementParent{}).Where("id = ?", tc.parent.ID).Count(&count).Error; err != nil {
+				t.Fatalf("%v: count: %v", tc.name, err)
+			}
+			if count != 0 {
+				t.Fatalf("%v: parent row should have been rolled back, got %v rows", tc.name, count)
+			}
+		})
 	}
 }
