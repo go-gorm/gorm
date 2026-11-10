@@ -20,11 +20,12 @@ func TestSlogLogger(t *testing.T) {
 		return "select count(*) from users", 0
 	}, nil)
 
-	if strings.Contains(buf.String(), "gorm/logger/slog.go") {
+	output := buf.String()
+	if strings.Contains(output, "/logger/slog.go:") {
 		t.Error("Found internal slog.go reference in caller frame. Expected only test file references.")
 	}
 
-	if !strings.Contains(buf.String(), "gorm/logger/slog_test.go") {
-		t.Error("Missing expected test file reference. 'gorm/logger/slog_test.go' should appear in caller frames.")
+	if !strings.Contains(output, "/logger/slog_test.go:") {
+		t.Errorf("Expected slog_test.go in caller frame, got log: %s", output)
 	}
 }
