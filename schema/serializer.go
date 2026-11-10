@@ -1,11 +1,9 @@
 package schema
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -17,7 +15,14 @@ import (
 
 var serializerMap = sync.Map{}
 
-// RegisterSerializer register serializer
+// RegisterSerializer registers a serializer under the given name. The name is
+// matched case-insensitively against the `serializer:` struct tag.
+//
+// Built-in serializers ("json", "unixtime") are registered automatically in
+// init. Optional serializers (e.g. "gob") live in dedicated subpackages and
+// self-register on import — import them with a blank identifier to enable:
+//
+//	import _ "gorm.io/gorm/schema/gob"
 func RegisterSerializer(name string, serializer SerializerInterface) {
 	serializerMap.Store(strings.ToLower(name), serializer)
 }
@@ -31,10 +36,16 @@ func GetSerializer(name string) (serializer SerializerInterface, ok bool) {
 	return serializer, ok
 }
 
+// init registers the built-in serializers.
+//
+// Optional serializers live in their own subpackages and must be enabled
+// explicitly via blank import so that their dependencies are not pulled in
+// unless needed. For example, to enable the gob serializer:
+//
+//	import _ "gorm.io/gorm/schema/gob"
 func init() {
 	RegisterSerializer("json", JSONSerializer{})
 	RegisterSerializer("unixtime", UnixSecondSerializer{})
-	RegisterSerializer("gob", GobSerializer{})
 }
 
 // Serializer field value serializer
@@ -155,35 +166,4 @@ func (UnixSecondSerializer) Value(ctx context.Context, field *Field, dst reflect
 		err = fmt.Errorf("invalid field type %#v for UnixSecondSerializer, only int, uint supported", fieldValue)
 	}
 	return
-}
-
-// GobSerializer gob serializer
-type GobSerializer struct{}
-
-// Scan implements serializer interface
-func (GobSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) (err error) {
-	fieldValue := reflect.New(field.FieldType)
-
-	if dbValue != nil {
-		var bytesValue []byte
-		switch v := dbValue.(type) {
-		case []byte:
-			bytesValue = v
-		default:
-			return fmt.Errorf("failed to unmarshal gob value: %#v", dbValue)
-		}
-		if len(bytesValue) > 0 {
-			decoder := gob.NewDecoder(bytes.NewBuffer(bytesValue))
-			err = decoder.Decode(fieldValue.Interface())
-		}
-	}
-	field.ReflectValueOf(ctx, dst).Set(fieldValue.Elem())
-	return
-}
-
-// Value implements serializer interface
-func (GobSerializer) Value(ctx context.Context, field *Field, dst reflect.Value, fieldValue interface{}) (interface{}, error) {
-	buf := new(bytes.Buffer)
-	err := gob.NewEncoder(buf).Encode(fieldValue)
-	return buf.Bytes(), err
 }
