@@ -186,7 +186,7 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
 	if batchSize <= 0 {
 		tx := db.Session(&Session{})
-		tx.AddError(fmt.Errorf("invalid batch size %d: must be greater than zero", batchSize))
+		_ = tx.AddError(fmt.Errorf("invalid batch size %d: must be greater than zero", batchSize))
 		return tx
 	}
 
