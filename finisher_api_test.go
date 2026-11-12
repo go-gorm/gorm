@@ -20,5 +20,11 @@ func TestFindInBatchesRejectsNonPositiveBatchSize(t *testing.T) {
 		if called {
 			t.Fatalf("batchSize=%d: callback should not be invoked", size)
 		}
+		if db.Error != nil {
+			t.Fatalf("batchSize=%d: reused *DB was mutated: %v", size, db.Error)
+		}
+		if result == db {
+			t.Fatalf("batchSize=%d: FindInBatches should return a cloned *DB", size)
+		}
 	}
 }
