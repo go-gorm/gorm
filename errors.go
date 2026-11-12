@@ -51,4 +51,6 @@ var (
 	ErrForeignKeyViolated = errors.New("violates foreign key constraint")
 	// ErrCheckConstraintViolated occurs when there is a check constraint violation
 	ErrCheckConstraintViolated = errors.New("violates check constraint")
+	// ErrInvalidBatchSize occurs when FindInBatches is given a batch size of 0 or less
+	ErrInvalidBatchSize = errors.New("batch size must be greater than 0")
 )

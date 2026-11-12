@@ -184,6 +184,11 @@ func (db *DB) Find(dest interface{}, conds ...interface{}) (tx *DB) {
 
 // FindInBatches finds all records in batches of batchSize
 func (db *DB) FindInBatches(dest interface{}, batchSize int, fc func(tx *DB, batch int) error) *DB {
+	if batchSize <= 0 {
+		_ = db.AddError(ErrInvalidBatchSize)
+		return db
+	}
+
 	var (
 		tx = db.Order(clause.OrderByColumn{
 			Column: clause.Column{Table: clause.CurrentTable, Name: clause.PrimaryKey},
