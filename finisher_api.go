@@ -765,7 +765,7 @@ func (db *DB) RollbackTo(name string) *DB {
 			preparedStmtTx   *PreparedStmtTX
 			isPreparedStmtTx bool
 		)
-		// close prepared statement, because SavePoint not support prepared statement.
+		// close prepared statement, because RollbackTo not support prepared statement.
 		if preparedStmtTx, isPreparedStmtTx = db.Statement.ConnPool.(*PreparedStmtTX); isPreparedStmtTx {
 			db.Statement.ConnPool = preparedStmtTx.Tx
 		}
