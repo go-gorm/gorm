@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -488,5 +489,43 @@ func TestTransactionWithDefaultTimeout(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	if err = tx.Find(&User{}).Error; err == nil {
 		t.Errorf("should return error when transaction timeout, got error %v", err)
+	}
+}
+
+func TestTransactionKeepsErrorWhenContextCanceledDuringWrite(t *testing.T) {
+	db, err := OpenTestConnection(&gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to connect database, got error %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	err = db.Callback().Create().Before("gorm:create").Register("cancel_context_before_create", func(tx *gorm.DB) {
+		sqlTx, ok := tx.Statement.ConnPool.(*sql.Tx)
+		if !ok {
+			t.Errorf("expected default transaction, got %T", tx.Statement.ConnPool)
+			return
+		}
+		cancel()
+		// database/sql rolls the transaction back asynchronously once its context is done
+		deadline := time.Now().Add(5 * time.Second)
+		for {
+			if _, err := sqlTx.ExecContext(context.Background(), "SELECT 1"); errors.Is(err, sql.ErrTxDone) {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Errorf("transaction was not closed after its context was canceled")
+				return
+			}
+		}
+	})
+	if err != nil {
+		t.Fatalf("failed to register callback, got error %v", err)
+	}
+
+	user := *GetUser("canceled_during_create", Config{})
+	if err := db.WithContext(ctx).Create(&user).Error; !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected error to wrap context.Canceled, got %v", err)
 	}
 }

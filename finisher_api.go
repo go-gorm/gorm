@@ -726,7 +726,9 @@ func (db *DB) Commit() *DB {
 func (db *DB) Rollback() *DB {
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		if !reflect.ValueOf(committer).IsNil() {
-			db.AddError(committer.Rollback())
+			if err := committer.Rollback(); db.Error == nil || !errors.Is(err, sql.ErrTxDone) {
+				_ = db.AddError(err)
+			}
 		}
 	} else {
 		db.AddError(ErrInvalidTransaction)
