@@ -17,7 +17,11 @@ func TestRawNamedParameterTab(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer conn.Close()
+	t.Cleanup(func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("close SQLite connection: %v", err)
+		}
+	})
 	for _, tc := range []struct{ name, query string }{
 		{"before_alias", "SELECT @value\tAS result"},
 		{"trailing_tab", "SELECT @value\t"},
