@@ -109,7 +109,7 @@ func (expr NamedExpr) Build(builder Builder) {
 		if v == '@' && !inName {
 			inName = true
 			name = name[:0]
-		} else if v == ' ' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' || v == '\r' || v == '\n' || v == ';' {
+		} else if v == ' ' || v == '\t' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' || v == '\r' || v == '\n' || v == ';' {
 			if inName {
 				if nv, ok := namedMap[string(name)]; ok {
 					if afterParenthesis {
