@@ -128,8 +128,8 @@ func (expr NamedExpr) Build(builder Builder) {
 			builder.WriteByte(v)
 		} else if v == '?' && len(expr.Vars) > idx {
 			if inName {
-				builder.WriteByte('@')
-				builder.WriteString(string(name))
+				_ = builder.WriteByte('@')
+				_, _ = builder.WriteString(string(name))
 				afterParenthesis = len(name) > 0 && name[len(name)-1] == '('
 				inName = false
 			}
