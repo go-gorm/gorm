@@ -105,6 +105,10 @@ func ToStringKey(values ...interface{}) string {
 				results[idx] = fmt.Sprint(reflect.Indirect(vv).Interface())
 			}
 		}
+		if len(values) > 1 {
+			// Keep separators distinct from characters inside a composite key component.
+			results[idx] = strings.ReplaceAll(strings.ReplaceAll(results[idx], "%", "%25"), "_", "%5F")
+		}
 	}
 
 	return strings.Join(results, "_")

@@ -52,6 +52,54 @@ func TestPreloadWithAssociations(t *testing.T) {
 	CheckUser(t, user3, user)
 }
 
+func TestPreloadCompositeStringKeys(t *testing.T) {
+	type CompositeKeyChild struct {
+		ID     uint
+		OwnerA string
+		OwnerB string
+	}
+	type CompositeKeyOwner struct {
+		KeyA     string              `gorm:"primaryKey"`
+		KeyB     string              `gorm:"primaryKey"`
+		Children []CompositeKeyChild `gorm:"foreignKey:OwnerA,OwnerB;references:KeyA,KeyB"`
+	}
+
+	for _, keys := range [][2][2]string{
+		{{"plain", "one"}, {"plain", "two"}},
+		{{"a_b", "c"}, {"a", "b_c"}},
+		{{"a%5Fb", "c"}, {"a", "b%5Fc"}},
+		{{"a_b", "c"}, {"a%5Fb", "c"}},
+	} {
+		t.Run(keys[0][0]+"/"+keys[1][0], func(t *testing.T) {
+			DB.Migrator().DropTable(&CompositeKeyChild{}, &CompositeKeyOwner{})
+			if err := DB.AutoMigrate(&CompositeKeyOwner{}, &CompositeKeyChild{}); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { DB.Migrator().DropTable(&CompositeKeyChild{}, &CompositeKeyOwner{}) })
+			owners := []CompositeKeyOwner{{KeyA: keys[0][0], KeyB: keys[0][1]}, {KeyA: keys[1][0], KeyB: keys[1][1]}}
+			if err := DB.Create(&owners).Error; err != nil {
+				t.Fatal(err)
+			}
+			children := []CompositeKeyChild{{OwnerA: keys[0][0], OwnerB: keys[0][1]}, {OwnerA: keys[1][0], OwnerB: keys[1][1]}}
+			if err := DB.Create(&children).Error; err != nil {
+				t.Fatal(err)
+			}
+			var loaded []CompositeKeyOwner
+			if err := DB.Preload("Children").Find(&loaded).Error; err != nil {
+				t.Fatal(err)
+			}
+			if len(loaded) != 2 {
+				t.Fatalf("expected two owners, got %v", loaded)
+			}
+			for _, owner := range loaded {
+				if len(owner.Children) != 1 || owner.Children[0].OwnerA != owner.KeyA || owner.Children[0].OwnerB != owner.KeyB {
+					t.Errorf("owner (%q, %q) received another owner's children: %+v", owner.KeyA, owner.KeyB, owner.Children)
+				}
+			}
+		})
+	}
+}
+
 func TestNestedPreload(t *testing.T) {
 	user := *GetUser("nested_preload", Config{Pets: 2})
 
