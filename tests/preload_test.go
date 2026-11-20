@@ -53,6 +53,10 @@ func TestPreloadWithAssociations(t *testing.T) {
 }
 
 func TestPreloadCompositeStringKeys(t *testing.T) {
+	if DB.Dialector.Name() == "sqlserver" {
+		t.Skip("SQL Server does not support the tuple IN condition used by composite-key preload")
+	}
+
 	type CompositeKeyChild struct {
 		ID     uint
 		OwnerA string `gorm:"size:64"`
