@@ -55,12 +55,12 @@ func TestPreloadWithAssociations(t *testing.T) {
 func TestPreloadCompositeStringKeys(t *testing.T) {
 	type CompositeKeyChild struct {
 		ID     uint
-		OwnerA string
-		OwnerB string
+		OwnerA string `gorm:"size:64"`
+		OwnerB string `gorm:"size:64"`
 	}
 	type CompositeKeyOwner struct {
-		KeyA     string              `gorm:"primaryKey"`
-		KeyB     string              `gorm:"primaryKey"`
+		KeyA     string              `gorm:"primaryKey;size:64"`
+		KeyB     string              `gorm:"primaryKey;size:64"`
 		Children []CompositeKeyChild `gorm:"foreignKey:OwnerA,OwnerB;references:KeyA,KeyB"`
 	}
 
