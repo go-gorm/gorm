@@ -15,6 +15,8 @@ import (
 )
 
 func TestUpdate(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	DB := DB.Session(&gorm.Session{NowFunc: func() time.Time { return now }})
 	var (
 		users = []*User{
 			GetUser("update-1", Config{}),
@@ -30,6 +32,7 @@ func TestUpdate(t *testing.T) {
 			t.Errorf("%v: user's updated at should be changed, but got %v, was %v", name, n, lastUpdatedAt)
 		}
 		lastUpdatedAt = n
+		now = now.Add(time.Second)
 	}
 
 	checkOtherData := func(name string) {
@@ -53,6 +56,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("user's updated at should not zero, %v", user.UpdatedAt)
 	}
 	lastUpdatedAt = user.UpdatedAt
+	now = now.Add(time.Second)
 
 	if err := DB.Model(user).Update("Age", 10).Error; err != nil {
 		t.Errorf("errors happened when update: %v", err)
@@ -127,6 +131,7 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("should only update one record, but got %v", rowsAffected)
 	}
 
+	now = now.Add(time.Second)
 	if rowsAffected := DB.Model(users).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 3 {
 		t.Errorf("should only update one record, but got %v", rowsAffected)
 	}
