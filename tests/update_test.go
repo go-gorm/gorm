@@ -133,6 +133,8 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestUpdates(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	DB := DB.Session(&gorm.Session{NowFunc: func() time.Time { return now }})
 	users := []*User{
 		GetUser("updates_01", Config{}),
 		GetUser("updates_02", Config{}),
@@ -142,6 +144,7 @@ func TestUpdates(t *testing.T) {
 	lastUpdatedAt := users[0].UpdatedAt
 
 	// update with map
+	now = now.Add(time.Second)
 	if res := DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100}); res.Error != nil || res.RowsAffected != 1 {
 		t.Errorf("Failed to update users")
 	}
@@ -162,7 +165,7 @@ func TestUpdates(t *testing.T) {
 	CheckUser(t, user2, *users[1])
 
 	// update with struct
-	time.Sleep(1 * time.Second)
+	now = now.Add(time.Second)
 	DB.Table("users").Where("name in ?", []string{users[1].Name}).Updates(User{Name: "updates_02_newname"})
 
 	var user3 User

@@ -821,8 +821,12 @@ func TestSelect(t *testing.T) {
 		t.Fatalf("Build Select with func, but got %v", r.Statement.SQL.String())
 	}
 
-	if _, err := DB.Table("users").Select("COALESCE(age,?)", "42").Rows(); err != nil {
+	rows, err := DB.Table("users").Select("COALESCE(age,?)", "42").Rows()
+	if err != nil {
 		t.Fatalf("Failed, got error: %v", err)
+	}
+	if err := rows.Close(); err != nil {
+		t.Fatalf("Failed to close rows, got error: %v", err)
 	}
 
 	r = dryDB.Select("u.*").Table("users as u").First(&User{}, user.ID)
