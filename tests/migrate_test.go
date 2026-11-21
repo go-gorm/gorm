@@ -2143,6 +2143,54 @@ func decimalColumnsTest[T, T2 any](t *testing.T, expectedSql []string) {
 	}
 }
 
+func TestAutoMigrateUnconstrainedNumeric(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip("unconstrained numeric is PostgreSQL specific")
+	}
+
+	type MigrateDecimalColumn struct {
+		Amount float64 `gorm:"type:numeric"`
+	}
+	type MigrateDecimalColumn2 struct {
+		Amount float64 `gorm:"type:numeric(8,2)"`
+	}
+
+	statements := testAutoMigrateDecimal(t, &MigrateDecimalColumn{}, &MigrateDecimalColumn2{})
+	var alterCount int
+	for _, statement := range statements {
+		if strings.HasPrefix(statement, "ALTER TABLE ") {
+			alterCount++
+		}
+	}
+	if alterCount != 1 {
+		t.Fatalf("expected one numeric precision migration, got %d", alterCount)
+	}
+
+	columnTypes, err := DB.Table("migrate_decimal_columns").Migrator().ColumnTypes(&MigrateDecimalColumn2{})
+	if err != nil {
+		t.Fatalf("failed to get column types: %v", err)
+	}
+	if len(columnTypes) != 1 {
+		t.Fatalf("expected one column, got %d", len(columnTypes))
+	}
+	if precision, scale, ok := columnTypes[0].DecimalSize(); !ok || precision != 8 || scale != 2 {
+		t.Fatalf("expected numeric(8,2), got precision %d, scale %d, known %v", precision, scale, ok)
+	}
+
+	tracer := Tracer{
+		Logger: DB.Config.Logger,
+		Test: func(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
+			statement, _ := fc()
+			if strings.HasPrefix(statement, "ALTER TABLE ") {
+				t.Fatalf("unchanged numeric precision should not be migrated again: %s", statement)
+			}
+		},
+	}
+	if err := DB.Session(&gorm.Session{Logger: tracer}).Table("migrate_decimal_columns").AutoMigrate(&MigrateDecimalColumn2{}); err != nil {
+		t.Fatalf("failed to repeat numeric migration: %v", err)
+	}
+}
+
 func TestAutoMigrateDecimal(t *testing.T) {
 	if DB.Dialector.Name() == "sqlserver" { // database/sql will replace numeric to decimal. so only support decimal.
 		type MigrateDecimalColumn struct {
