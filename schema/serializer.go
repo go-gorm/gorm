@@ -118,8 +118,12 @@ type UnixSecondSerializer struct{}
 // Scan implements serializer interface
 func (UnixSecondSerializer) Scan(ctx context.Context, field *Field, dst reflect.Value, dbValue interface{}) (err error) {
 	t := sql.NullTime{}
-	if err = t.Scan(dbValue); err == nil && t.Valid {
-		err = field.Set(ctx, dst, t.Time.Unix())
+	if err = t.Scan(dbValue); err == nil {
+		if t.Valid {
+			err = field.Set(ctx, dst, t.Time.Unix())
+		} else {
+			err = field.Set(ctx, dst, nil)
+		}
 	}
 
 	return

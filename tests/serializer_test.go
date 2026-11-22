@@ -178,6 +178,31 @@ func TestSerializerZeroValue(t *testing.T) {
 	}
 }
 
+func TestSerializerUnixTimeNull(t *testing.T) {
+	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
+	DB.Migrator().DropTable(adaptorSerializerModel(&SerializerStruct{}))
+	if err := DB.AutoMigrate(adaptorSerializerModel(&SerializerStruct{})); err != nil {
+		t.Fatal(err)
+	}
+
+	timestamp := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	result := SerializerStruct{CreatedTime: timestamp, UpdatedTime: &timestamp}
+	if err := DB.Create(&result).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := DB.Model(adaptorSerializerModel(&SerializerStruct{})).Where("id = ?", result.ID).UpdateColumns(map[string]interface{}{
+		"created_time": nil,
+		"updated_time": nil,
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := DB.First(&result, result.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	AssertEqual(t, result.CreatedTime, int64(0))
+	AssertEqual(t, result.UpdatedTime, (*int64)(nil))
+}
+
 func TestSerializerAssignFirstOrCreate(t *testing.T) {
 	schema.RegisterSerializer("custom", NewCustomSerializer("hello"))
 	DB.Migrator().DropTable(adaptorSerializerModel(&SerializerStruct{}))
