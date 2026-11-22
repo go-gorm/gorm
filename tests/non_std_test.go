@@ -3,6 +3,8 @@ package tests_test
 import (
 	"testing"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Animal struct {
@@ -16,6 +18,8 @@ type Animal struct {
 }
 
 func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	DB := DB.Session(&gorm.Session{NowFunc: func() time.Time { return now }})
 	DB.Migrator().DropTable(&Animal{})
 	if err := DB.AutoMigrate(&Animal{}); err != nil {
 		t.Fatalf("no error should happen when migrate but got %v", err)
@@ -25,6 +29,7 @@ func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
 	DB.Save(&animal)
 	updatedAt1 := animal.UpdatedAt
 
+	now = now.Add(time.Second)
 	DB.Save(&animal).Update("name", "Francis")
 	if updatedAt1.Format(time.RFC3339Nano) == animal.UpdatedAt.Format(time.RFC3339Nano) {
 		t.Errorf("UpdatedAt should be updated")
@@ -32,7 +37,7 @@ func TestNonStdPrimaryKeyAndDefaultValues(t *testing.T) {
 
 	var animals []Animal
 	DB.Find(&animals)
-	if count := DB.Model(Animal{}).Where("1=1").Update("CreatedAt", time.Now().Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
+	if count := DB.Model(Animal{}).Where("1=1").Update("CreatedAt", now.Add(2*time.Hour)).RowsAffected; count != int64(len(animals)) {
 		t.Error("RowsAffected should be correct when do batch update")
 	}
 

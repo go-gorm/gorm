@@ -28,7 +28,9 @@ func (returning Returning) Build(builder Builder) {
 func (returning Returning) MergeClause(clause *Clause) {
 	if v, ok := clause.Expression.(Returning); ok && len(returning.Columns) > 0 {
 		if v.Columns != nil {
-			returning.Columns = append(v.Columns, returning.Columns...)
+			copiedColumns := make([]Column, len(v.Columns), len(v.Columns)+len(returning.Columns))
+			copy(copiedColumns, v.Columns)
+			returning.Columns = append(copiedColumns, returning.Columns...)
 		} else {
 			returning.Columns = nil
 		}

@@ -15,6 +15,8 @@ import (
 )
 
 func TestUpdate(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	DB := DB.Session(&gorm.Session{NowFunc: func() time.Time { return now }})
 	var (
 		users = []*User{
 			GetUser("update-1", Config{}),
@@ -30,6 +32,7 @@ func TestUpdate(t *testing.T) {
 			t.Errorf("%v: user's updated at should be changed, but got %v, was %v", name, n, lastUpdatedAt)
 		}
 		lastUpdatedAt = n
+		now = now.Add(time.Second)
 	}
 
 	checkOtherData := func(name string) {
@@ -53,6 +56,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("user's updated at should not zero, %v", user.UpdatedAt)
 	}
 	lastUpdatedAt = user.UpdatedAt
+	now = now.Add(time.Second)
 
 	if err := DB.Model(user).Update("Age", 10).Error; err != nil {
 		t.Errorf("errors happened when update: %v", err)
@@ -127,12 +131,15 @@ func TestUpdate(t *testing.T) {
 		t.Errorf("should only update one record, but got %v", rowsAffected)
 	}
 
+	now = now.Add(time.Second)
 	if rowsAffected := DB.Model(users).Where("age > 0").Update("name", "jinzhu").RowsAffected; rowsAffected != 3 {
 		t.Errorf("should only update one record, but got %v", rowsAffected)
 	}
 }
 
 func TestUpdates(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	DB := DB.Session(&gorm.Session{NowFunc: func() time.Time { return now }})
 	users := []*User{
 		GetUser("updates_01", Config{}),
 		GetUser("updates_02", Config{}),
@@ -142,6 +149,7 @@ func TestUpdates(t *testing.T) {
 	lastUpdatedAt := users[0].UpdatedAt
 
 	// update with map
+	now = now.Add(time.Second)
 	if res := DB.Model(users[0]).Updates(map[string]interface{}{"name": "updates_01_newname", "age": 100}); res.Error != nil || res.RowsAffected != 1 {
 		t.Errorf("Failed to update users")
 	}
@@ -162,7 +170,7 @@ func TestUpdates(t *testing.T) {
 	CheckUser(t, user2, *users[1])
 
 	// update with struct
-	time.Sleep(1 * time.Second)
+	now = now.Add(time.Second)
 	DB.Table("users").Where("name in ?", []string{users[1].Name}).Updates(User{Name: "updates_02_newname"})
 
 	var user3 User
@@ -794,6 +802,33 @@ func TestUpdateReturning(t *testing.T) {
 
 	if results[1].Age-results[0].Age != 100 {
 		t.Errorf("failed to return updated age column")
+	}
+}
+
+func TestUpdateReturningSessionIsolation(t *testing.T) {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" && DB.Dialector.Name() != "sqlserver" {
+		return
+	}
+
+	base := DB.Model(&User{}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "created_at"}}}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "updated_at"}}})
+	left := base.Session(&gorm.Session{}).Clauses(clause.Returning{Columns: []clause.Column{{Name: "name"}}})
+	right := base.Session(&gorm.Session{}).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}})
+	for _, test := range []struct {
+		db   *gorm.DB
+		name string
+	}{
+		{left, "name"},
+		{right, "age"},
+	} {
+		sql := test.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("id = ?", 1).Update("active", true)
+		})
+		if !strings.Contains(sql, test.db.Statement.Quote(test.name)) {
+			t.Errorf("expected returned column %s in SQL: %s", test.name, sql)
+		}
 	}
 }
 
