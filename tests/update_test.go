@@ -798,6 +798,10 @@ func TestUpdateReturning(t *testing.T) {
 }
 
 func TestUpdateReturningSessionIsolation(t *testing.T) {
+	if DB.Dialector.Name() != "sqlite" && DB.Dialector.Name() != "postgres" && DB.Dialector.Name() != "gaussdb" && DB.Dialector.Name() != "sqlserver" {
+		return
+	}
+
 	base := DB.Model(&User{}).
 		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
 		Clauses(clause.Returning{Columns: []clause.Column{{Name: "created_at"}}}).
