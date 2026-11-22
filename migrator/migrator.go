@@ -516,10 +516,15 @@ func (m Migrator) MigrateColumn(value interface{}, field *schema.Field, columnTy
 	}
 
 	// check precision
-	if realDataType == "decimal" || realDataType == "numeric" &&
+	if (realDataType == "decimal" || realDataType == "numeric") &&
 		regexp.MustCompile(realDataType+`\(.*\)`).FindString(fullDataType) != "" { // if realDataType has no precision,ignore
 		precision, scale, ok := columnType.DecimalSize()
-		if ok {
+		if !ok {
+			// Unconstrained numeric columns can report an unknown precision.
+			if columnTypeName, ok := columnType.ColumnType(); ok && strings.EqualFold(columnTypeName, realDataType) {
+				alterColumn = true
+			}
+		} else {
 			if !strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d,%d)", realDataType, precision, scale)) &&
 				!strings.HasPrefix(fullDataType, fmt.Sprintf("%s(%d)", realDataType, precision)) {
 				alterColumn = true
