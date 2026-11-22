@@ -797,6 +797,29 @@ func TestUpdateReturning(t *testing.T) {
 	}
 }
 
+func TestUpdateReturningSessionIsolation(t *testing.T) {
+	base := DB.Model(&User{}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "id"}}}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "created_at"}}}).
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "updated_at"}}})
+	left := base.Session(&gorm.Session{}).Clauses(clause.Returning{Columns: []clause.Column{{Name: "name"}}})
+	right := base.Session(&gorm.Session{}).Clauses(clause.Returning{Columns: []clause.Column{{Name: "age"}}})
+	for _, test := range []struct {
+		db   *gorm.DB
+		name string
+	}{
+		{left, "name"},
+		{right, "age"},
+	} {
+		sql := test.db.ToSQL(func(tx *gorm.DB) *gorm.DB {
+			return tx.Where("id = ?", 1).Update("active", true)
+		})
+		if !strings.Contains(sql, test.db.Statement.Quote(test.name)) {
+			t.Errorf("expected returned column %s in SQL: %s", test.name, sql)
+		}
+	}
+}
+
 func TestUpdateWithDiffSchema(t *testing.T) {
 	user := GetUser("update-diff-schema-1", Config{})
 	DB.Create(&user)
