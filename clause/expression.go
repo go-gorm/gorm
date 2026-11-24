@@ -105,8 +105,17 @@ func (expr NamedExpr) Build(builder Builder) {
 
 	name := make([]byte, 0, 10)
 
-	for _, v := range []byte(expr.SQL) {
+	for i := 0; i < len(expr.SQL); i++ {
+		v := expr.SQL[i]
 		if v == '@' && !inName {
+			// PostgreSQL's @? is an operator. In <@?, the ? follows the <@ operator.
+			if i+1 < len(expr.SQL) && expr.SQL[i+1] == '?' && (i == 0 || expr.SQL[i-1] != '<') {
+				_, _ = builder.WriteString("@?")
+				i++
+				afterParenthesis = false
+				continue
+			}
+
 			inName = true
 			name = name[:0]
 		} else if v == ' ' || v == ',' || v == ')' || v == '"' || v == '\'' || v == '`' || v == '\r' || v == '\n' || v == ';' {
@@ -127,6 +136,14 @@ func (expr NamedExpr) Build(builder Builder) {
 			afterParenthesis = false
 			builder.WriteByte(v)
 		} else if v == '?' && len(expr.Vars) > idx {
+			if inName {
+				// Write the buffered operator and any adjacent SQL before binding the placeholder.
+				_ = builder.WriteByte('@')
+				_, _ = builder.WriteString(string(name))
+				afterParenthesis = len(name) > 0 && name[len(name)-1] == '('
+				inName = false
+			}
+
 			if afterParenthesis {
 				processValue(builder, expr.Vars[idx])
 			} else {

@@ -66,6 +66,14 @@ func TestNamedExpr(t *testing.T) {
 		Result:       "name1 = ? AND name2 = @@name",
 		ExpectedVars: []interface{}{"jinzhu"},
 	}, {
+		SQL:    "?::jsonb<@?::jsonb",
+		Vars:   []interface{}{clause.Column{Name: "subset"}, clause.Column{Name: "document"}},
+		Result: "`subset`::jsonb<@`document`::jsonb",
+	}, {
+		SQL:    "?::jsonb@??::jsonpath",
+		Vars:   []interface{}{clause.Column{Name: "document"}, clause.Column{Name: "path"}},
+		Result: "`document`::jsonb@?`path`::jsonpath",
+	}, {
 		SQL:          "name1 = @name1 AND name2 = @name2 AND name3 = @name1",
 		Vars:         []interface{}{sql.Named("name1", "jinzhu"), sql.Named("name2", "jinzhu2")},
 		Result:       "name1 = ? AND name2 = ? AND name3 = ?",
