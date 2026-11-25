@@ -568,7 +568,7 @@ func (c chainG[T]) Delete(ctx context.Context) (rowsAffected int, err error) {
 }
 
 func (c chainG[T]) Update(ctx context.Context, name string, value any) (rowsAffected int, err error) {
-	var r T
+	r := new(T)
 	res := c.g.apply(ctx).Model(r).Update(name, value)
 	return int(res.RowsAffected), res.Error
 }
@@ -712,7 +712,7 @@ func (s setCreateOrUpdateG[T]) Update(ctx context.Context) (rowsAffected int, er
 
 	// Execute assignment operations
 	if len(s.assigns) > 0 {
-		var r T
+		r := new(T)
 		res := s.c.g.apply(ctx).Model(r).Clauses(clause.Set(s.assigns)).Updates(map[string]interface{}{})
 		return int(res.RowsAffected), res.Error
 	}
@@ -735,7 +735,7 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 			data[a.Column.Name] = a.Value
 		}
 		var r T
-		return s.c.g.apply(ctx).Model(r).Create(data).Error
+		return s.c.g.apply(ctx).Model(&r).Create(data).Error
 	}
 
 	return nil
@@ -743,7 +743,7 @@ func (s setCreateOrUpdateG[T]) Create(ctx context.Context) error {
 
 // executeAssociationOperation executes an association operation
 func (s setCreateOrUpdateG[T]) executeAssociationOperation(ctx context.Context, op clause.Association) error {
-	var r T
+	r := new(T)
 	base := s.c.g.apply(ctx).Model(r)
 
 	switch op.Type {

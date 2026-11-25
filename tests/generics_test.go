@@ -796,6 +796,81 @@ func TestGenericsSetUpdate(t *testing.T) {
 	}
 }
 
+func TestGenericsUpdateWithPointerReceiverHooks(t *testing.T) {
+	ctx := context.Background()
+
+	if err := DB.Migrator().DropTable("hook_users"); err != nil {
+		t.Fatalf("failed to clean table: %v", err)
+	}
+	if err := DB.AutoMigrate(&hookUser{}); err != nil {
+		t.Fatalf("failed to migrate: %v", err)
+	}
+
+	u := hookUser{Name: "GenericsHookBefore", Age: 30}
+	if err := DB.Create(&u).Error; err != nil {
+		t.Fatalf("prepare failed: %v", err)
+	}
+
+	// https://github.com/go-gorm/gorm/issues/7910: pointer receiver hooks made
+	// the generics API fail with ErrInvalidValue while the traditional API worked.
+	rows, err := gorm.G[hookUser](DB).
+		Where("id = ?", u.ID).
+		Set(clause.Assignment{Column: clause.Column{Name: "name"}, Value: "GenericsHookAfter"}).
+		Update(ctx)
+	if err != nil {
+		t.Fatalf("Set Update failed: %v", err)
+	}
+	if rows != 1 {
+		t.Fatalf("expected 1 row affected, got %d", rows)
+	}
+
+	_, err = gorm.G[hookUser](DB).Where("id = ?", u.ID).Update(ctx, "age", 31)
+	if err != nil {
+		t.Fatalf("Update failed: %v", err)
+	}
+
+	err = gorm.G[hookUser](DB).
+		Set(clause.Assignment{Column: clause.Column{Name: "name"}, Value: "GenericsHookCreated"}).
+		Create(ctx)
+	if err != nil {
+		t.Fatalf("Set Create failed: %v", err)
+	}
+
+	var after hookUser
+	if err := DB.Where("id = ?", u.ID).First(&after).Error; err != nil {
+		t.Fatalf("failed to read updated row: %v", err)
+	}
+	if after.Name != "GenericsHookAfter" || after.Age != 31 {
+		t.Errorf("updated row mismatch, got %+v", after)
+	}
+	// Note: Set Create passes a map as the destination, so model hooks are not
+	// invoked — same as the traditional API with a map destination.
+	if genericsHookUpdateCalls != 2 {
+		t.Errorf("BeforeUpdate hook ran %d times, want 2 (Set Update + Update)", genericsHookUpdateCalls)
+	}
+}
+
+var (
+	genericsHookCreateCalls int
+	genericsHookUpdateCalls int
+)
+
+type hookUser struct {
+	ID   uint
+	Name string
+	Age  uint
+}
+
+func (*hookUser) BeforeCreate(tx *gorm.DB) error {
+	genericsHookCreateCalls++
+	return nil
+}
+
+func (*hookUser) BeforeUpdate(tx *gorm.DB) error {
+	genericsHookUpdateCalls++
+	return nil
+}
+
 func TestGenericsGroupHaving(t *testing.T) {
 	ctx := context.Background()
 
