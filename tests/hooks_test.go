@@ -146,6 +146,32 @@ func TestRunCallbacks(t *testing.T) {
 	}
 }
 
+func TestAfterFindWithInterfaceDest(t *testing.T) {
+	DB.Migrator().DropTable(&Product{})
+	DB.AutoMigrate(&Product{})
+
+	DB.Create(&[]Product{{Code: "interface_dest_1", Price: 1}, {Code: "interface_dest_2", Price: 2}})
+
+	// the destination is a pointer to an interface holding a slice
+	var rows interface{} = make([]*Product, 0)
+	if err := DB.Where("code LIKE ?", "interface_dest_%").Find(&rows).Error; err != nil {
+		t.Fatalf("failed to find with interface dest, got error %v", err)
+	}
+
+	products, ok := rows.([]*Product)
+	if !ok {
+		t.Fatalf("unexpected type of rows: %T", rows)
+	}
+	if len(products) != 2 {
+		t.Fatalf("expected 2 records, got %d", len(products))
+	}
+	for _, p := range products {
+		if p.AfterFindCallTimes != 1 {
+			t.Fatalf("AfterFind should be called once for %v with interface dest, called %v", p.Code, p.AfterFindCallTimes)
+		}
+	}
+}
+
 func TestCallbacksWithErrors(t *testing.T) {
 	DB.Migrator().DropTable(&Product{})
 	DB.AutoMigrate(&Product{})
