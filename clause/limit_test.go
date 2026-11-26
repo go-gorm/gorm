@@ -36,6 +36,21 @@ func TestLimit(t *testing.T) {
 			[]interface{}{limit0},
 		},
 		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10}, clause.Limit{Limit: &limit0}},
+			"SELECT * FROM `users` LIMIT ?",
+			[]interface{}{limit0},
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limitNeg10}, clause.Limit{Limit: &limit0}},
+			"SELECT * FROM `users` LIMIT ?",
+			[]interface{}{limit0},
+		},
+		{
+			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Limit: &limit10, Offset: 20}, clause.Limit{Limit: &limit0}},
+			"SELECT * FROM `users` LIMIT ? OFFSET ?",
+			[]interface{}{limit0, 20},
+		},
+		{
 			[]clause.Interface{clause.Select{}, clause.From{}, clause.Limit{Offset: 20}},
 			"SELECT * FROM `users` OFFSET ?",
 			[]interface{}{20},
