@@ -31,7 +31,7 @@ func (limit Limit) MergeClause(clause *Clause) {
 	clause.Name = ""
 
 	if v, ok := clause.Expression.(Limit); ok {
-		if (limit.Limit == nil || *limit.Limit == 0) && v.Limit != nil {
+		if limit.Limit == nil && v.Limit != nil {
 			limit.Limit = v.Limit
 		}
 
