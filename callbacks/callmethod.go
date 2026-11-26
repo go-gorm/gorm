@@ -8,12 +8,20 @@ import (
 
 func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 	tx := db.Session(&gorm.Session{NewDB: true})
-	if called := fc(db.Statement.ReflectValue.Interface(), tx); !called {
-		switch db.Statement.ReflectValue.Kind() {
+
+	// the destination may be a pointer to an interface, e.g. `var rows interface{} = []*User{}; db.Find(&rows)`,
+	// unwrap it locally (db.Statement.ReflectValue must stay untouched, scan needs to Set it)
+	reflectValue := db.Statement.ReflectValue
+	if reflectValue.Kind() == reflect.Interface && !reflectValue.IsNil() {
+		reflectValue = reflectValue.Elem()
+	}
+
+	if called := fc(reflectValue.Interface(), tx); !called {
+		switch reflectValue.Kind() {
 		case reflect.Slice, reflect.Array:
 			db.Statement.CurDestIndex = 0
-			for i := 0; i < db.Statement.ReflectValue.Len(); i++ {
-				if value := reflect.Indirect(db.Statement.ReflectValue.Index(i)); value.CanAddr() {
+			for i := 0; i < reflectValue.Len(); i++ {
+				if value := reflect.Indirect(reflectValue.Index(i)); value.CanAddr() {
 					fc(value.Addr().Interface(), tx)
 				} else {
 					db.AddError(gorm.ErrInvalidValue)
@@ -22,8 +30,8 @@ func callMethod(db *gorm.DB, fc func(value interface{}, tx *gorm.DB) bool) {
 				db.Statement.CurDestIndex++
 			}
 		case reflect.Struct:
-			if db.Statement.ReflectValue.CanAddr() {
-				fc(db.Statement.ReflectValue.Addr().Interface(), tx)
+			if reflectValue.CanAddr() {
+				fc(reflectValue.Addr().Interface(), tx)
 			} else {
 				db.AddError(gorm.ErrInvalidValue)
 			}
