@@ -88,6 +88,46 @@ func TestCreateInBatches(t *testing.T) {
 	}
 }
 
+func TestCreateInBatchesWithArray(t *testing.T) {
+	for _, batchSize := range []int{0, 1, 2, 3, 4} {
+		for _, defaultSize := range []bool{false, true} {
+			for _, pointers := range []bool{false, true} {
+				t.Run(fmt.Sprintf("size_%d_default_%t_pointers_%t", batchSize, defaultSize, pointers), func(t *testing.T) {
+					users := [3]User{
+						{Name: "array_batch_1", Age: 21},
+						{Name: "array_batch_2", Age: 22},
+						{Name: "array_batch_3", Age: 23},
+					}
+					var value interface{} = &users
+					if pointers {
+						value = &[3]*User{&users[0], &users[1], &users[2]}
+					}
+					var result *gorm.DB
+					if batchSize == 0 || defaultSize {
+						result = DB.Session(&gorm.Session{CreateBatchSize: batchSize}).Create(value)
+					} else {
+						result = DB.CreateInBatches(value, batchSize)
+					}
+					if result.Error != nil {
+						t.Fatalf("failed to create array: %v", result.Error)
+					}
+					AssertEqual(t, result.RowsAffected, int64(len(users)))
+					for _, user := range users {
+						if user.ID == 0 || user.CreatedAt.IsZero() || user.UpdatedAt.IsZero() {
+							t.Fatalf("generated fields were not filled: %+v", user)
+						}
+						var stored User
+						if err := DB.First(&stored, user.ID).Error; err != nil {
+							t.Fatalf("failed to load created user: %v", err)
+						}
+						CheckUser(t, stored, user)
+					}
+				})
+			}
+		}
+	}
+}
+
 func TestCreateInBatchesWithDefaultSize(t *testing.T) {
 	users := []User{
 		*GetUser("create_with_default_batch_size_1", Config{Account: true, Pets: 2, Toys: 3, Company: true, Manager: true, Team: 0, Languages: 1, Friends: 1}),
