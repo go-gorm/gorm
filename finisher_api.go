@@ -46,8 +46,9 @@ func (db *DB) CreateInBatches(value interface{}, batchSize int) (tx *DB) {
 				}
 
 				subtx := tx.getInstance()
-				batchSlice := reflect.New(reflectValue.Type())
-				batchSlice.Elem().Set(reflectValue.Slice(i, ends))
+				batch := reflectValue.Slice(i, ends)
+				batchSlice := reflect.New(batch.Type())
+				batchSlice.Elem().Set(batch)
 				subtx.Statement.Dest = batchSlice.Interface()
 
 				subtx.callbacks.Create().Execute(subtx)
