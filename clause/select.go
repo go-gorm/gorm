@@ -12,11 +12,11 @@ func (s Select) Name() string {
 }
 
 func (s Select) Build(builder Builder) {
-	if len(s.Columns) > 0 {
-		if s.Distinct {
-			builder.WriteString("DISTINCT ")
-		}
+	if s.Distinct {
+		_, _ = builder.WriteString("DISTINCT ")
+	}
 
+	if len(s.Columns) > 0 {
 		for idx, column := range s.Columns {
 			if idx > 0 {
 				builder.WriteByte(',')

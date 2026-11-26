@@ -72,3 +72,37 @@ func TestDistinct(t *testing.T) {
 		t.Fatalf("Build Distinct with u.*, but got %v", r.Statement.SQL.String())
 	}
 }
+
+func TestDistinctAllColumns(t *testing.T) {
+	type DistinctRow struct {
+		Name string
+		Age  int
+	}
+	if err := DB.Migrator().DropTable(&DistinctRow{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := DB.Migrator().CreateTable(&DistinctRow{}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { DB.Migrator().DropTable(&DistinctRow{}) })
+	rows := []DistinctRow{{Name: "alice", Age: 20}, {Name: "alice", Age: 20}, {Name: "bob", Age: 30}}
+	if err := DB.Create(&rows).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	for _, queryFields := range []bool{false, true} {
+		var result []DistinctRow
+		tx := DB.Session(&gorm.Session{QueryFields: queryFields}).Distinct().Order("name").Find(&result)
+		if tx.Error != nil {
+			t.Fatal(tx.Error)
+		}
+		AssertEqual(t, tx.RowsAffected, int64(2))
+		AssertEqual(t, result, []DistinctRow{{Name: "alice", Age: 20}, {Name: "bob", Age: 30}})
+	}
+
+	var all []DistinctRow
+	if err := DB.Find(&all).Error; err != nil {
+		t.Fatal(err)
+	}
+	AssertEqual(t, len(all), 3)
+}

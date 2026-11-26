@@ -18,6 +18,14 @@ func TestSelect(t *testing.T) {
 			"SELECT * FROM `users`", nil,
 		},
 		{
+			[]clause.Interface{clause.Select{Distinct: true}, clause.From{}},
+			"SELECT DISTINCT * FROM `users`", nil,
+		},
+		{
+			[]clause.Interface{clause.Select{Distinct: true, Columns: []clause.Column{}}, clause.From{}},
+			"SELECT DISTINCT * FROM `users`", nil,
+		},
+		{
 			[]clause.Interface{clause.Select{
 				Columns: []clause.Column{clause.PrimaryColumn},
 			}, clause.From{}},
