@@ -23,6 +23,37 @@ import (
 	. "gorm.io/gorm/utils/tests"
 )
 
+func TestMigrateUnicodeNames(t *testing.T) {
+	type Café struct {
+		ID   uint
+		Café string
+	}
+
+	DB.Migrator().DropTable(&Café{})
+	if err := DB.AutoMigrate(&Café{}); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { DB.Migrator().DropTable(&Café{}) })
+
+	if !DB.Migrator().HasTable("café") {
+		t.Error("migration did not preserve the table name café")
+	}
+	if !DB.Migrator().HasColumn(&Café{}, "café") {
+		t.Error("migration did not preserve the column name café")
+	}
+	value := Café{Café: "coffee"}
+	if err := DB.Create(&value).Error; err != nil {
+		t.Fatal(err)
+	}
+	var got string
+	if err := DB.Table("café").Select("café").Scan(&got).Error; err != nil {
+		t.Fatal(err)
+	}
+	if got != value.Café {
+		t.Errorf("read back %q, want %q", got, value.Café)
+	}
+}
+
 func TestMigrate(t *testing.T) {
 	allModels := []interface{}{&User{}, &Account{}, &Pet{}, &Company{}, &Toy{}, &Language{}, &Tools{}, &Man{}}
 	rand.Seed(time.Now().UnixNano())

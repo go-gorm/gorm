@@ -148,7 +148,7 @@ func (ns NamingStrategy) toDBName(name string) string {
 	}
 
 	var (
-		value                          = commonInitialismsReplacer.Replace(name)
+		value                          = []rune(commonInitialismsReplacer.Replace(name))
 		buf                            strings.Builder
 		lastCase, nextCase, nextNumber bool // upper case == true
 		curCase                        = value[0] <= 'Z' && value[0] >= 'A'
@@ -179,9 +179,9 @@ func (ns NamingStrategy) toDBName(name string) string {
 		if !lastCase && len(value) > 1 {
 			buf.WriteByte('_')
 		}
-		buf.WriteByte(value[len(value)-1] + 32)
+		buf.WriteRune(value[len(value)-1] + 32)
 	} else {
-		buf.WriteByte(value[len(value)-1])
+		buf.WriteRune(value[len(value)-1])
 	}
 	ret := buf.String()
 	return ret
