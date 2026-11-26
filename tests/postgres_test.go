@@ -240,6 +240,56 @@ func TestPostgresOnConstraint(t *testing.T) {
 	}
 }
 
+func TestPostgresOnConstraintIdentifiers(t *testing.T) {
+	if DB.Dialector.Name() != "postgres" {
+		t.Skip()
+	}
+
+	type ConstraintItem struct {
+		ID   uint
+		Code string
+		Data string
+	}
+
+	for _, name := range []string{"uq_code", "UqCode", "uq-code", `uq"code`, "select"} {
+		t.Run(name, func(t *testing.T) {
+			if err := DB.Migrator().DropTable(&ConstraintItem{}); err != nil {
+				t.Fatal(err)
+			}
+			if err := DB.Migrator().CreateTable(&ConstraintItem{}); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { DB.Migrator().DropTable(&ConstraintItem{}) })
+			if err := DB.Exec("ALTER TABLE ? ADD CONSTRAINT ? UNIQUE (code)", clause.Table{Name: "constraint_items"}, clause.Column{Name: name}).Error; err != nil {
+				t.Fatal(err)
+			}
+			if err := DB.Create(&ConstraintItem{Code: "item", Data: "original"}).Error; err != nil {
+				t.Fatal(err)
+			}
+
+			result := DB.Clauses(clause.OnConflict{
+				OnConstraint: name,
+				DoUpdates:    clause.AssignmentColumns([]string{"data"}),
+			}).Create(&ConstraintItem{Code: "item", Data: "updated"})
+			if result.Error != nil {
+				t.Fatal(result.Error)
+			}
+			result = DB.Clauses(clause.OnConflict{OnConstraint: name, DoNothing: true}).Create(&ConstraintItem{Code: "item", Data: "ignored"})
+			if result.Error != nil || result.RowsAffected != 0 {
+				t.Fatalf("do nothing: rows=%d, error=%v", result.RowsAffected, result.Error)
+			}
+
+			var items []ConstraintItem
+			if err := DB.Find(&items).Error; err != nil {
+				t.Fatal(err)
+			}
+			if len(items) != 1 || items[0].Data != "updated" {
+				t.Fatalf("expected one updated item, got %+v", items)
+			}
+		})
+	}
+}
+
 type CompanyNew struct {
 	ID   int
 	Name int

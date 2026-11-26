@@ -18,7 +18,7 @@ func (OnConflict) Name() string {
 func (onConflict OnConflict) Build(builder Builder) {
 	if onConflict.OnConstraint != "" {
 		builder.WriteString("ON CONSTRAINT ")
-		builder.WriteString(onConflict.OnConstraint)
+		builder.WriteQuoted(onConflict.OnConstraint)
 		builder.WriteByte(' ')
 	} else {
 		if len(onConflict.Columns) > 0 {
