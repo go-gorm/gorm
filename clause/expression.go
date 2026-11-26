@@ -157,9 +157,10 @@ func (expr NamedExpr) Build(builder Builder) {
 }
 
 // processValue handles different value types appropriately for SQL parameter binding
-// It checks for driver.Valuer first, then handles slices/arrays, and finally adds single values
+// It checks for driver.Valuer and binary data first, then handles slices/arrays, and finally adds single values
 func processValue(builder Builder, value interface{}) {
-	if _, ok := value.(driver.Valuer); ok {
+	switch value.(type) {
+	case driver.Valuer, []byte:
 		builder.AddVar(builder, value)
 		return
 	}

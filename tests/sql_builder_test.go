@@ -1,6 +1,8 @@
 package tests_test
 
 import (
+	"bytes"
+	"database/sql"
 	"regexp"
 	"strings"
 	"testing"
@@ -10,6 +12,44 @@ import (
 	"gorm.io/gorm/clause"
 	. "gorm.io/gorm/utils/tests"
 )
+
+func TestRawBinaryParameters(t *testing.T) {
+	type BinaryExpressionValue struct {
+		Data []byte
+	}
+	if err := DB.Migrator().DropTable(&BinaryExpressionValue{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := DB.AutoMigrate(&BinaryExpressionValue{}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, data := range [][]byte{{0, 1, 255}, {}, nil} {
+		for _, named := range []bool{false, true} {
+			if err := DB.Exec("DELETE FROM binary_expression_values").Error; err != nil {
+				t.Fatal(err)
+			}
+			query := "INSERT INTO binary_expression_values (data) VALUES (?)"
+			var parameter interface{} = data
+			if named {
+				query = "INSERT INTO binary_expression_values (data) VALUES (@data)"
+				parameter = sql.Named("data", data)
+			}
+			if err := DB.Exec(query, parameter).Error; err != nil {
+				t.Errorf("insert binary data %v with named=%v: %v", data, named, err)
+				continue
+			}
+			var got []byte
+			var isNull bool
+			if err := DB.Raw("SELECT CASE WHEN data IS NULL THEN 1 ELSE 0 END, data FROM binary_expression_values").Row().Scan(&isNull, &got); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, data) || isNull != (data == nil) {
+				t.Errorf("binary data changed: want %v, got %v", data, got)
+			}
+		}
+	}
+}
 
 func TestRow(t *testing.T) {
 	user1 := User{Name: "RowUser1", Age: 1}

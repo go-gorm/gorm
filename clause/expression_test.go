@@ -36,6 +36,28 @@ func TestExpr(t *testing.T) {
 	}
 }
 
+func TestExpressionByteSlice(t *testing.T) {
+	for _, data := range [][]byte{{0, 1, 255}, {}, nil} {
+		for name, expression := range map[string]clause.Expression{
+			"positional":          clause.Expr{SQL: "VALUES (?)", Vars: []interface{}{data}},
+			"named":               clause.NamedExpr{SQL: "VALUES (@data)", Vars: []interface{}{sql.Named("data", data)}},
+			"named positional":    clause.NamedExpr{SQL: "VALUES (?)", Vars: []interface{}{data}},
+			"without parentheses": clause.Expr{SQL: "VALUES (?)", Vars: []interface{}{data}, WithoutParentheses: true},
+		} {
+			t.Run(fmt.Sprintf("%s/%v", name, data), func(t *testing.T) {
+				stmt := &gorm.Statement{DB: db}
+				expression.Build(stmt)
+				if stmt.SQL.String() != "VALUES (?)" {
+					t.Errorf("expected one bind variable, got %s", stmt.SQL.String())
+				}
+				if !reflect.DeepEqual(stmt.Vars, []interface{}{data}) {
+					t.Errorf("expected binary parameter %#v, got %#v", data, stmt.Vars)
+				}
+			})
+		}
+	}
+}
+
 func TestNamedExpr(t *testing.T) {
 	type Base struct {
 		Name2 string
