@@ -1048,6 +1048,23 @@ func TestOrder(t *testing.T) {
 	}
 }
 
+func TestFirstWithOrderExpression(t *testing.T) {
+	users := []User{{Name: "first-expression-default"}, {Name: "first-expression-preferred"}}
+	if err := DB.Create(&users).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	var first User
+	err := DB.Where("id IN ?", []uint{users[0].ID, users[1].ID}).
+		Order(clause.OrderBy{Expression: clause.Expr{
+			SQL: "CASE WHEN name = ? THEN 0 ELSE 1 END", Vars: []interface{}{users[1].Name},
+		}}).First(&first).Error
+	if err != nil {
+		t.Fatal(err)
+	}
+	AssertEqual(t, first.ID, users[1].ID)
+}
+
 func TestOrderWithAllFields(t *testing.T) {
 	dryDB := DB.Session(&gorm.Session{DryRun: true, QueryFields: true})
 	userQuery := "SELECT .*users.*id.*users.*created_at.*users.*updated_at.*users.*deleted_at.*users.*name.*users.*age" +
