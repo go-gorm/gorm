@@ -112,6 +112,15 @@ func (db *DB) scanIntoStruct(rows Rows, reflectValue reflect.Value, values []int
 	}
 }
 
+// appendZeroElem appends a zero element to slice and returns the new slice and
+// a pointer to that element. Scanning into it does not allocate a struct for
+// each row and does not copy the struct into the slice.
+func appendZeroElem(slice reflect.Value, typ reflect.Type) (reflect.Value, reflect.Value) {
+	n := slice.Len()
+	slice = reflect.Append(slice, reflect.Zero(typ))
+	return slice, slice.Index(n).Addr()
+}
+
 // ScanMode scan data mode
 type ScanMode uint8
 
@@ -307,6 +316,9 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 				}
 			}
 
+			// Rows of a struct slice are scanned into the slice element directly.
+			inPlace := !update && !isPtr && !isArrayKind
+
 			for initialized || rows.Next() {
 			BEGIN:
 				initialized = false
@@ -324,13 +336,15 @@ func Scan(rows Rows, db *DB, mode ScanMode) {
 							}
 						}
 					}
+				} else if inPlace {
+					reflectValue, elem = appendZeroElem(reflectValue, reflectValueType)
 				} else {
 					elem = reflect.New(reflectValueType)
 				}
 
 				db.scanIntoStruct(rows, elem, values, fields, joinFields)
 
-				if !update {
+				if !update && !inPlace {
 					if !isPtr {
 						elem = elem.Elem()
 					}
