@@ -45,6 +45,18 @@ func (orderBy OrderBy) MergeClause(clause *Clause) {
 			}
 		}
 
+		if orderBy.Expression != nil || v.Expression != nil {
+			switch {
+			case orderBy.Expression == nil && len(orderBy.Columns) == 0:
+				clause.Expression = v
+			case v.Expression == nil && len(v.Columns) == 0:
+				clause.Expression = orderBy
+			default:
+				clause.Expression = OrderBy{Expression: CommaExpression{Exprs: []Expression{v, orderBy}}}
+			}
+			return
+		}
+
 		copiedColumns := make([]OrderByColumn, len(v.Columns))
 		copy(copiedColumns, v.Columns)
 		orderBy.Columns = append(copiedColumns, orderBy.Columns...)
