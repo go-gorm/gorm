@@ -96,7 +96,11 @@ func (db *DB) Save(value interface{}) (tx *DB) {
 		if _, ok := tx.Statement.Clauses["ON CONFLICT"]; !ok {
 			tx = tx.Clauses(clause.OnConflict{UpdateAll: true})
 		}
-		tx = tx.callbacks.Create().Execute(tx.Set("gorm:update_track_time", true))
+		tx = tx.Set("gorm:update_track_time", true)
+		if db.CreateBatchSize > 0 {
+			return tx.CreateInBatches(value, db.CreateBatchSize)
+		}
+		tx = tx.callbacks.Create().Execute(tx)
 	case reflect.Struct:
 		if err := tx.Statement.Parse(value); err == nil && tx.Statement.Schema != nil {
 			for _, pf := range tx.Statement.Schema.PrimaryFields {
